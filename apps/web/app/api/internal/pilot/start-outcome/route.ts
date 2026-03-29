@@ -20,6 +20,10 @@ function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function readOptionalBoolean(value: unknown): boolean | undefined {
+  return value === true ? true : undefined;
+}
+
 function readOptionalStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -52,14 +56,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'entityId must be a valid UUID.' }, { status: 400 });
   }
 
-  const startedAt = payload.startedAt;
-  if (!isValidIsoDateString(startedAt)) {
+  const outcomeStatus = readOptionalString(payload.outcomeStatus) === 'not_started' ? 'not_started' : 'started';
+  const actualStartDate = readOptionalString(payload.actualStartDate) ?? readOptionalString(payload.startedAt);
+  const outcomeRecordedAt = readOptionalString(payload.outcomeRecordedAt)
+    ?? (outcomeStatus === 'not_started' ? readOptionalString(payload.startedAt) : undefined);
+
+  if (outcomeStatus === 'started' && !isValidIsoDateString(actualStartDate)) {
     return NextResponse.json({ error: 'startedAt must be a valid ISO date string.' }, { status: 400 });
+  }
+
+  const nonStartReason = readOptionalString(payload.nonStartReason);
+  if (outcomeStatus === 'not_started' && !isValidIsoDateString(outcomeRecordedAt)) {
+    return NextResponse.json({ error: 'outcomeRecordedAt must be a valid ISO date string when outcomeStatus=not_started.' }, { status: 400 });
+  }
+  if (outcomeStatus === 'not_started' && !nonStartReason) {
+    return NextResponse.json({ error: 'nonStartReason is required when outcomeStatus=not_started.' }, { status: 400 });
   }
 
   const body: Record<string, unknown> = {
     entityId,
-    startedAt,
+    outcomeStatus,
   };
 
   const organizationContextId = readOptionalString(payload.organizationContextId);
@@ -67,8 +83,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const workflowLane = readOptionalString(payload.workflowLane);
   const geographyTag = readOptionalString(payload.geographyTag);
   const readinessScoreAtStart = readOptionalNumber(payload.readinessScoreAtStart);
+  const baselineProcessDurationDays = readOptionalNumber(payload.baselineProcessDurationDays);
   const blockers = readOptionalStringArray(payload.blockers);
   const note = readOptionalString(payload.note);
+  const manualCorrection = readOptionalBoolean(payload.manualCorrection);
+  const correctionGroupKey = readOptionalString(payload.correctionGroupKey);
 
   if (organizationContextId) {
     body.organizationContextId = organizationContextId;
@@ -85,11 +104,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (typeof readinessScoreAtStart === 'number') {
     body.readinessScoreAtStart = readinessScoreAtStart;
   }
+  if (typeof baselineProcessDurationDays === 'number') {
+    body.baselineProcessDurationDays = baselineProcessDurationDays;
+  }
   if (blockers) {
     body.blockers = blockers;
   }
   if (note) {
     body.note = note;
+  }
+  if (manualCorrection) {
+    body.manualCorrection = true;
+  }
+  if (correctionGroupKey) {
+    body.correctionGroupKey = correctionGroupKey;
+  }
+  if (outcomeStatus === 'started' && actualStartDate) {
+    body.startedAt = actualStartDate;
+    body.actualStartDate = actualStartDate;
+  }
+  if (outcomeStatus === 'not_started' && outcomeRecordedAt) {
+    body.startedAt = outcomeRecordedAt;
+    body.outcomeRecordedAt = outcomeRecordedAt;
+  }
+  if (nonStartReason) {
+    body.nonStartReason = nonStartReason;
   }
 
   try {
@@ -117,7 +156,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json(upstreamPayload ?? { ok: true, entityId, startedAt }, { status: 202 });
+    return NextResponse.json(
+      upstreamPayload
+      ?? {
+        ok: true,
+        entityId,
+        outcomeStatus,
+        actualStartDate: outcomeStatus === 'started' ? actualStartDate : null,
+        outcomeRecordedAt: outcomeStatus === 'not_started' ? outcomeRecordedAt : null,
+      },
+      { status: 202 },
+    );
   } catch {
     return NextResponse.json({ error: 'Backend unreachable.' }, { status: 500 });
   }

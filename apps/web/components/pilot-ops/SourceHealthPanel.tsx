@@ -5,8 +5,11 @@ import {
   type SourceOpsEntry,
   type SourceOpsReport,
 } from '@/lib/mission-ops/sourceOpsTypes';
-
-const PILOT_SOURCE_IDS = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'];
+import {
+  filterPilotSources,
+  formatSourceHealthAge,
+  formatSourceHealthCoverageState,
+} from '@/lib/mission-ops/sourceHealthContract';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -18,6 +21,14 @@ function coverageColor(state: SourceOpsEntry['coverageState']): string {
       return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
     case 'pending':
       return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
+    case 'gated':
+    case 'accessRequired':
+      return 'border-sky-500/30 bg-sky-500/10 text-sky-400';
+    case 'reviewRequired':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+    case 'notDecisionGrade':
+    case 'previewOnly':
+      return 'border-zinc-600/30 bg-zinc-600/10 text-zinc-500';
     case 'unavailable':
       return 'border-rose-500/30 bg-rose-500/10 text-rose-400';
     default:
@@ -37,26 +48,6 @@ function spineStatusColor(status: SourceOpsReport['spineStatus']): string {
     default:
       return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
   }
-}
-
-function formatAge(isoDate: string | null): string {
-  if (!isoDate) return 'never';
-  const ms = Date.now() - new Date(isoDate).getTime();
-  if (ms < 0) return 'just now';
-  const hours = Math.floor(ms / 3_600_000);
-  if (hours < 1) {
-    const mins = Math.floor(ms / 60_000);
-    return mins < 1 ? 'just now' : `${mins}m ago`;
-  }
-  if (hours < 48) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function filterPilotSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
-  return sources.filter(
-    (s) => PILOT_SOURCE_IDS.includes(s.sourceId) || s.isSpine,
-  );
 }
 
 export function SourceHealthPanel() {
@@ -152,17 +143,22 @@ export function SourceHealthPanel() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[10px] text-zinc-500">
-                  {formatAge(source.lastSuccessAt)}
+                  {formatSourceHealthAge(source.lastSuccessAt)}
                 </span>
                 {source.consecutiveFailures >= 1 && (
                   <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
                     {source.consecutiveFailures} fail{source.consecutiveFailures > 1 ? 's' : ''}
                   </span>
                 )}
+                {source.featureFlag.mismatch && (
+                  <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
+                    Flag mismatch
+                  </span>
+                )}
                 <span
                   className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${coverageColor(source.coverageState)}`}
                 >
-                  {source.coverageState}
+                  {formatSourceHealthCoverageState(source.coverageState)}
                 </span>
               </div>
             </div>

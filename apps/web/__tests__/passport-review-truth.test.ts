@@ -314,6 +314,106 @@ describe('passport review truth', () => {
     expect(truth.buckets.nextActions.map((item) => item.label)).toContain('Upload DEA evidence');
   });
 
+  it('keeps buyer-facing source-backed posture copy aligned with source coverage reality', () => {
+    const identityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'checked',
+      reason: 'NPPES identity checked',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    });
+    const reviewRequiredSafetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'reviewRequired',
+      reason: 'Potential exclusion match requires manual review',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    });
+    const accessRequiredAuthorityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'STATE_BOARD',
+      state: 'accessRequired',
+      reason: 'Institutional board access is required before this lane becomes decision-grade',
+    });
+    const contextualEligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'notDecisionGrade',
+      reason: 'Quarterly enrollment snapshot is contextual only',
+      checkedAt: '2026-03-20T00:00:00.000Z',
+    });
+    const coverageChecks = [
+      identityCoverage,
+      reviewRequiredSafetyCoverage,
+      accessRequiredAuthorityCoverage,
+      contextualEligibilityCoverage,
+    ];
+
+    const model = buildPassportReviewTruthModel(buildPassport({
+      authority: {
+        credentials: [],
+        summary: {
+          active: 0,
+          expired: 0,
+          stale: 0,
+          missing: ['LICENSURE', 'BOARD_CERTIFICATION', 'DEA_REGISTRATION'],
+        },
+      },
+      training: {
+        records: [],
+        hasDegree: false,
+        degreeVerified: false,
+        hasResidency: false,
+        fellowshipCount: 0,
+      },
+      sourceCoverage: {
+        checks: coverageChecks,
+        summary: summarizeCanonicalSourceCoverage(coverageChecks),
+      },
+      truth: {
+        identity: {
+          kind: 'verification',
+          status: 'VERIFIED',
+          satisfied: true,
+          decisionGrade: true,
+          coverage: identityCoverage,
+        },
+        safety: {
+          kind: 'clearance',
+          status: 'REVIEW REQUIRED',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: reviewRequiredSafetyCoverage,
+        },
+        authority: {
+          kind: 'verification',
+          status: 'ACCESS REQUIRED',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: accessRequiredAuthorityCoverage,
+        },
+        eligibility: {
+          kind: 'enrollment',
+          status: 'NOT DECISION-GRADE',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: contextualEligibilityCoverage,
+        },
+      },
+    }));
+
+    expect(model.posture.reliableCount).toBe(1);
+    expect(model.posture.reliableLabel).toBe('1 source-backed claim');
+    expect(model.buckets.sourceBackedNow.map((item) => item.label)).toEqual([
+      'Identity Verification',
+    ]);
+    expect(model.buckets.needsReview.map((item) => item.label)).toContain('Sanctions & Exclusions');
+    expect(model.buckets.contextualOnly.map((item) => item.label)).toContain('Enrollment / Eligibility');
+    expect(model.buckets.missingOrAccessRequired.map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        'State Licensure / Authority',
+        'Board Certification',
+        'DEA / Controlled Substance',
+      ]),
+    );
+  });
+
   it('keeps manual-only authority out of source-backed truth', () => {
     const passport = buildPassport({
       authority: {

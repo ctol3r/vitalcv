@@ -211,6 +211,7 @@ const START_OUTCOME_SELECT = {
 } satisfies Prisma.StartOutcomeEventSelect;
 
 type StartOutcomeRow = Prisma.StartOutcomeEventGetPayload<{ select: typeof START_OUTCOME_SELECT }>;
+type StartOutcomeStatus = 'started' | 'not_started' | 'pending';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -291,6 +292,45 @@ export interface StartOutcomeStats {
   };
 }
 
+export interface PilotOutcomeProofCase {
+  entityId: string;
+  organizationContextId: string | null;
+  baselineProcessDurationDays: number | null;
+  firstSharedAt: string | null;
+  firstReviewAt: string | null;
+  employerDecisionAt: string | null;
+  actualStartDate: string | null;
+  outcomeRecordedAt: string | null;
+  outcomeStatus: StartOutcomeStatus;
+  started: boolean;
+  nonStartReason: string | null;
+  daysFromFirstShare: number | null;
+  daysFromFirstReview: number | null;
+  daysFromReady: number | null;
+  measuredProcessDurationDays: number | null;
+  measuredDeltaDays: number | null;
+  blockerResolution: {
+    resolvedCount: number;
+    avgDays: number | null;
+    medianDays: number | null;
+  };
+  manualCorrection: boolean;
+  note: string | null;
+}
+
+export interface PilotOutcomeProofSummary {
+  totalCases: number;
+  startedCases: number;
+  notStartedCases: number;
+  pendingCases: number;
+  casesWithBaseline: number;
+  casesWithMeasuredDelta: number;
+  usableProofCases: number;
+  avgMeasuredDeltaDays: number | null;
+  medianMeasuredDeltaDays: number | null;
+  automaticProofArtifactReady: boolean;
+}
+
 export interface PilotKpiSnapshot {
   generatedAt: string;
   windowDays: number;
@@ -317,6 +357,10 @@ export interface PilotKpiSnapshot {
 
   /** Start outcomes */
   startOutcomes: StartOutcomeStats;
+
+  /** Case-level proof contract for buyer-facing pilot evidence */
+  proofCases: PilotOutcomeProofCase[];
+  proofSummary: PilotOutcomeProofSummary;
 
   /** Audit-trail counts — confirms the event chain is firing */
   eventChain: {
@@ -365,6 +409,18 @@ function average(values: number[]): number | null {
 function readJson(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
   if (!value || Array.isArray(value) || typeof value !== 'object') return {};
   return value as Record<string, unknown>;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readBoolean(value: unknown): boolean {
+  return value === true;
 }
 
 function toIso(date: Date | null | undefined): string | null {
@@ -416,19 +472,81 @@ function readTimestampMs(value: unknown): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function readOptionalDate(value: unknown): Date | null {
+  const timestampMs = readTimestampMs(value);
+  return timestampMs === null ? null : new Date(timestampMs);
+}
+
+function elapsedDays(earlier: Date | null | undefined, later: Date | null | undefined): number | null {
+  if (!earlier || !later) return null;
+  const deltaMs = later.getTime() - earlier.getTime();
+  if (deltaMs < 0) return null;
+  return Math.max(0, Math.ceil(deltaMs / 86_400_000));
+}
+
+function startOutcomeStatus(row: StartOutcomeRow): Exclude<StartOutcomeStatus, 'pending'> {
+  const metadata = readJson(row.metadata);
+  return readString(metadata.outcomeStatus) === 'not_started' ? 'not_started' : 'started';
+}
+
+function startOutcomeActualStartDate(row: StartOutcomeRow): Date | null {
+  const metadata = readJson(row.metadata);
+  const explicitActualStartDate = readOptionalDate(metadata.actualStartDate);
+  if (explicitActualStartDate) {
+    return explicitActualStartDate;
+  }
+
+  return startOutcomeStatus(row) === 'started' ? row.startedAt : null;
+}
+
+function startOutcomeOutcomeRecordedAt(row: StartOutcomeRow): Date | null {
+  const metadata = readJson(row.metadata);
+  return readOptionalDate(metadata.outcomeRecordedAt)
+    ?? readOptionalDate(metadata.capturedAt)
+    ?? readOptionalDate(metadata.recordedAt)
+    ?? readOptionalDate(metadata.monitoredAt)
+    ?? row.startedAt;
+}
+
+function startOutcomeBaselineDays(row: StartOutcomeRow): number | null {
+  const metadata = readJson(row.metadata);
+  return readNumber(metadata.baselineProcessDurationDays)
+    ?? readNumber(metadata.baseline_process_duration_days)
+    ?? readNumber(metadata.baselineDays);
+}
+
+function startOutcomeNonStartReason(row: StartOutcomeRow): string | null {
+  const metadata = readJson(row.metadata);
+  return readString(metadata.nonStartReason)
+    ?? readString(metadata.non_start_reason)
+    ?? readString(metadata.reason);
+}
+
+function startOutcomeNote(row: StartOutcomeRow): string | null {
+  const metadata = readJson(row.metadata);
+  return readString(metadata.note);
+}
+
 function startOutcomeCorrectionKey(row: StartOutcomeRow): string {
+  const metadata = readJson(row.metadata);
+  const correctionGroupKey = readString(metadata.correctionGroupKey)
+    ?? readString(metadata.correction_group_key);
+  if (correctionGroupKey) {
+    return correctionGroupKey;
+  }
+
+  const outcomeStatus = startOutcomeStatus(row);
+  const effectiveDate = startOutcomeActualStartDate(row) ?? startOutcomeOutcomeRecordedAt(row) ?? row.startedAt;
   return [
     row.entityId,
     row.organizationContextId ?? '(global)',
-    row.startedAt.toISOString(),
+    outcomeStatus,
+    effectiveDate.toISOString(),
   ].join('|');
 }
 
 function startOutcomeRecordedAtMs(row: StartOutcomeRow): number | null {
-  const metadata = readJson(row.metadata);
-  return readTimestampMs(metadata.capturedAt)
-    ?? readTimestampMs(metadata.recordedAt)
-    ?? readTimestampMs(metadata.monitoredAt);
+  return startOutcomeOutcomeRecordedAt(row)?.getTime() ?? null;
 }
 
 function shouldReplaceStartOutcome(current: StartOutcomeRow, candidate: StartOutcomeRow): boolean {
@@ -450,11 +568,16 @@ function shouldReplaceStartOutcome(current: StartOutcomeRow, candidate: StartOut
   return candidateRecordedAt >= currentRecordedAt;
 }
 
-function collapseCorrectedStartOutcomes(rows: StartOutcomeRow[]): StartOutcomeRow[] {
+function collapseCorrectedStartOutcomes(rows: StartOutcomeRow[]): {
+  rows: StartOutcomeRow[];
+  groupSizes: Map<string, number>;
+} {
   const effectiveRows = new Map<string, StartOutcomeRow>();
+  const groupSizes = new Map<string, number>();
 
   for (const row of rows) {
     const key = startOutcomeCorrectionKey(row);
+    groupSizes.set(key, (groupSizes.get(key) ?? 0) + 1);
     const existing = effectiveRows.get(key);
 
     if (!existing || shouldReplaceStartOutcome(existing, row)) {
@@ -462,9 +585,12 @@ function collapseCorrectedStartOutcomes(rows: StartOutcomeRow[]): StartOutcomeRo
     }
   }
 
-  return [...effectiveRows.values()].sort(
-    (left, right) => left.startedAt.getTime() - right.startedAt.getTime(),
-  );
+  return {
+    rows: [...effectiveRows.values()].sort(
+      (left, right) => left.startedAt.getTime() - right.startedAt.getTime(),
+    ),
+    groupSizes,
+  };
 }
 
 // ── Main query ─────────────────────────────────────────────────────────────
@@ -546,7 +672,10 @@ export async function computePilotKpis(
     ]),
   ]);
 
-  const effectiveStartOutcomeRows = collapseCorrectedStartOutcomes(startOutcomeRows);
+  const collapsedStartOutcomes = collapseCorrectedStartOutcomes(startOutcomeRows);
+  const effectiveStartOutcomeRows = collapsedStartOutcomes.rows;
+  const startOutcomeCorrectionGroups = collapsedStartOutcomes.groupSizes;
+  const effectiveStartedOutcomeRows = effectiveStartOutcomeRows.filter((row) => startOutcomeStatus(row) === 'started');
   const reviewEvents = advisoryEvents.filter((event) => event.eventType === REVIEW_OPEN_EVENT_TYPE);
 
   const [
@@ -659,8 +788,11 @@ export async function computePilotKpis(
     }
   });
 
-  const reviewToStartDays = effectiveStartOutcomeRows
-    .map((row) => row.daysFromFirstReview)
+  const reviewToStartDays = effectiveStartedOutcomeRows
+    .map((row) => row.daysFromFirstReview ?? elapsedDays(
+      firstReviewByEntity.get(row.entityId) ?? null,
+      startOutcomeActualStartDate(row),
+    ))
     .filter((value): value is number => value !== null);
 
   const shareToDecisionDays: number[] = [];
@@ -713,11 +845,11 @@ export async function computePilotKpis(
   // ── Start Outcomes ────────────────────────────────────────────────────
   // Filtered views intentionally do not infer pilot scope from canonical starts because
   // StartAttestation and EmployerAcceptance do not carry pilot metadata today.
-  const totalStarts = effectiveStartOutcomeRows.length || (filtered ? 0 : startAttestationCount);
+  const totalStarts = effectiveStartedOutcomeRows.length || (filtered ? 0 : startAttestationCount);
   const distinctStartEntities = new Set(
-    effectiveStartOutcomeRows.map((row) => row.entityId),
+    effectiveStartedOutcomeRows.map((row) => row.entityId),
   ).size;
-  const scoresAtStart = effectiveStartOutcomeRows
+  const scoresAtStart = effectiveStartedOutcomeRows
     .map((row) => row.readinessScoreAtStart)
     .filter((value): value is number => value !== null);
 
@@ -727,7 +859,7 @@ export async function computePilotKpis(
     readinessAtStart: {
       avgScore: average(scoresAtStart),
       medianScore: median(scoresAtStart),
-      withBlockers: effectiveStartOutcomeRows.filter((row) =>
+      withBlockers: effectiveStartedOutcomeRows.filter((row) =>
         Array.isArray(row.blockersAtStart) && row.blockersAtStart.length > 0,
       ).length,
     },
@@ -784,6 +916,137 @@ export async function computePilotKpis(
     noScore: noScoreCount,
   };
 
+  // ── Case-level proof contract ────────────────────────────────────────
+  const firstReadyByEntity = earliestDateByKey(
+    advisoryEvents.filter((event) => (event.readinessScoreAtEvent ?? 0) >= READY_READINESS_THRESHOLD),
+    (event) => event.entityId,
+    (event) => event.eventTimestamp,
+  );
+  const blockerEventsByEntity = groupRowsByKey(blockerEvents, (event) => event.entityId);
+  const startOutcomesByEntity = groupRowsByKey(effectiveStartOutcomeRows, (row) => row.entityId);
+  const orgContextByEntity = new Map<string, string | null>();
+
+  const rememberOrgContext = (entityId: string | null | undefined, orgContextId: string | null | undefined) => {
+    if (!entityId || orgContextByEntity.has(entityId)) {
+      return;
+    }
+    orgContextByEntity.set(entityId, orgContextId ?? null);
+  };
+
+  shareEvents.forEach((event) => rememberOrgContext(event.subjectEntityId, event.organizationContextId));
+  reviewEvents.forEach((event) => rememberOrgContext(event.entityId, event.organizationContextId));
+  decisionEvents.forEach((event) => rememberOrgContext(event.entityId, event.organizationContextId));
+  effectiveStartOutcomeRows.forEach((row) => rememberOrgContext(row.entityId, row.organizationContextId));
+
+  const proofEntityIds = [...new Set([
+    ...shareEvents.map((event) => event.subjectEntityId).filter((value): value is string => Boolean(value)),
+    ...reviewEvents.map((event) => event.entityId),
+    ...decisionEvents.map((event) => event.entityId),
+    ...effectiveStartOutcomeRows.map((row) => row.entityId),
+  ])];
+
+  const proofCases: PilotOutcomeProofCase[] = proofEntityIds.map((entityId) => {
+    const outcomeRow = startOutcomesByEntity.get(entityId)?.[startOutcomesByEntity.get(entityId)!.length - 1] ?? null;
+    const actualStartDate = outcomeRow ? startOutcomeActualStartDate(outcomeRow) : null;
+    const outcomeStatus: StartOutcomeStatus = outcomeRow ? startOutcomeStatus(outcomeRow) : 'pending';
+    const baselineProcessDurationDays = outcomeRow ? startOutcomeBaselineDays(outcomeRow) : null;
+    const blockerResolutionDays = (blockerEventsByEntity.get(entityId) ?? [])
+      .filter((row) => row.status === 'RESOLVED')
+      .map((row) => row.resolutionDays)
+      .filter((value): value is number => value !== null);
+    const daysFromFirstShare = outcomeRow && outcomeStatus === 'started'
+      ? outcomeRow.daysFromShare ?? elapsedDays(firstShareByEntity.get(entityId) ?? null, actualStartDate)
+      : null;
+    const daysFromFirstReview = outcomeRow && outcomeStatus === 'started'
+      ? outcomeRow.daysFromFirstReview ?? elapsedDays(firstReviewByEntity.get(entityId) ?? null, actualStartDate)
+      : null;
+    const daysFromReady = outcomeRow && outcomeStatus === 'started'
+      ? outcomeRow.daysFromReady ?? elapsedDays(firstReadyByEntity.get(entityId) ?? null, actualStartDate)
+      : null;
+    const correctionGroupSize = outcomeRow
+      ? (startOutcomeCorrectionGroups.get(startOutcomeCorrectionKey(outcomeRow)) ?? 1)
+      : 0;
+    const metadata = outcomeRow ? readJson(outcomeRow.metadata) : {};
+    const measuredProcessDurationDays = outcomeStatus === 'started' ? daysFromFirstReview : null;
+    const measuredDeltaDays = baselineProcessDurationDays !== null && measuredProcessDurationDays !== null
+      ? baselineProcessDurationDays - measuredProcessDurationDays
+      : null;
+
+    return {
+      entityId,
+      organizationContextId: orgContextByEntity.get(entityId) ?? null,
+      baselineProcessDurationDays,
+      firstSharedAt: toIso(firstShareByEntity.get(entityId) ?? null),
+      firstReviewAt: toIso(firstReviewByEntity.get(entityId) ?? null),
+      employerDecisionAt: toIso(firstDecisionByEntity.get(entityId) ?? null),
+      actualStartDate: toIso(actualStartDate),
+      outcomeRecordedAt: outcomeRow ? toIso(startOutcomeOutcomeRecordedAt(outcomeRow)) : null,
+      outcomeStatus,
+      started: outcomeStatus === 'started',
+      nonStartReason: outcomeRow && outcomeStatus === 'not_started'
+        ? startOutcomeNonStartReason(outcomeRow)
+        : null,
+      daysFromFirstShare,
+      daysFromFirstReview,
+      daysFromReady,
+      measuredProcessDurationDays,
+      measuredDeltaDays,
+      blockerResolution: {
+        resolvedCount: blockerResolutionDays.length,
+        avgDays: average(blockerResolutionDays),
+        medianDays: median(blockerResolutionDays),
+      },
+      manualCorrection: outcomeRow
+        ? correctionGroupSize > 1
+          || readBoolean(metadata.manualCorrection)
+          || readString(metadata.correctionOfOutcomeId) !== null
+        : false,
+      note: outcomeRow ? startOutcomeNote(outcomeRow) : null,
+    };
+  }).sort((left, right) => {
+    const leftTime = Date.parse(
+      left.outcomeRecordedAt
+      ?? left.actualStartDate
+      ?? left.employerDecisionAt
+      ?? left.firstReviewAt
+      ?? left.firstSharedAt
+      ?? '1970-01-01T00:00:00.000Z',
+    );
+    const rightTime = Date.parse(
+      right.outcomeRecordedAt
+      ?? right.actualStartDate
+      ?? right.employerDecisionAt
+      ?? right.firstReviewAt
+      ?? right.firstSharedAt
+      ?? '1970-01-01T00:00:00.000Z',
+    );
+    return rightTime - leftTime;
+  });
+
+  const measuredDeltaDays = proofCases
+    .map((entry) => entry.measuredDeltaDays)
+    .filter((value): value is number => value !== null);
+  const proofSummary: PilotOutcomeProofSummary = {
+    totalCases: proofCases.length,
+    startedCases: proofCases.filter((entry) => entry.outcomeStatus === 'started').length,
+    notStartedCases: proofCases.filter((entry) => entry.outcomeStatus === 'not_started').length,
+    pendingCases: proofCases.filter((entry) => entry.outcomeStatus === 'pending').length,
+    casesWithBaseline: proofCases.filter((entry) => entry.baselineProcessDurationDays !== null).length,
+    casesWithMeasuredDelta: measuredDeltaDays.length,
+    usableProofCases: proofCases.filter((entry) => (
+      entry.outcomeStatus === 'started'
+      && entry.baselineProcessDurationDays !== null
+      && entry.measuredProcessDurationDays !== null
+    )).length,
+    avgMeasuredDeltaDays: average(measuredDeltaDays),
+    medianMeasuredDeltaDays: median(measuredDeltaDays),
+    automaticProofArtifactReady: proofCases.some((entry) => (
+      entry.outcomeStatus === 'started'
+      && entry.baselineProcessDurationDays !== null
+      && entry.measuredProcessDurationDays !== null
+    )),
+  };
+
   // ── Gaps detection ────────────────────────────────────────────────────
   const gaps: string[] = [];
   if (reviewEvents.length === 0) {
@@ -803,6 +1066,12 @@ export async function computePilotKpis(
   }
   if (filtered && startAttestationCount > 0 && effectiveStartOutcomeRows.length === 0) {
     gaps.push('Scoped start KPIs rely on start_outcome_events. Canonical start_attestations are unscoped health signals only and are excluded from filtered start metrics.');
+  }
+  if (proofCases.some((entry) => entry.outcomeStatus === 'started' && entry.baselineProcessDurationDays === null)) {
+    gaps.push('Started cases are missing baseline_process_duration_days — measured TTS deltas require the buyer/employer baseline.');
+  }
+  if (proofCases.some((entry) => entry.outcomeStatus === 'not_started' && entry.nonStartReason === null)) {
+    gaps.push('Not-started cases are missing non_start_reason — proof exports need an explicit employer/buyer reason.');
   }
 
   log('info', 'pilot_kpi_computed', {
@@ -829,6 +1098,8 @@ export async function computePilotKpis(
     velocity,
     blockers,
     startOutcomes,
+    proofCases,
+    proofSummary,
     readinessDistribution,
     eventChain: {
       bundleShareEvents: bundleShareCount,
@@ -936,6 +1207,28 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
       label: 'starts_with_blockers',
       value: String(snap.startOutcomes.readinessAtStart.withBlockers),
     },
+    { section: 'proof_summary', label: 'total_cases', value: String(snap.proofSummary.totalCases) },
+    { section: 'proof_summary', label: 'started_cases', value: String(snap.proofSummary.startedCases) },
+    { section: 'proof_summary', label: 'not_started_cases', value: String(snap.proofSummary.notStartedCases) },
+    { section: 'proof_summary', label: 'pending_cases', value: String(snap.proofSummary.pendingCases) },
+    { section: 'proof_summary', label: 'cases_with_baseline', value: String(snap.proofSummary.casesWithBaseline) },
+    { section: 'proof_summary', label: 'cases_with_measured_delta', value: String(snap.proofSummary.casesWithMeasuredDelta) },
+    { section: 'proof_summary', label: 'usable_proof_cases', value: String(snap.proofSummary.usableProofCases) },
+    {
+      section: 'proof_summary',
+      label: 'avg_measured_delta_days',
+      value: formatExportValue(snap.proofSummary.avgMeasuredDeltaDays),
+    },
+    {
+      section: 'proof_summary',
+      label: 'median_measured_delta_days',
+      value: formatExportValue(snap.proofSummary.medianMeasuredDeltaDays),
+    },
+    {
+      section: 'proof_summary',
+      label: 'automatic_proof_artifact_ready',
+      value: String(snap.proofSummary.automaticProofArtifactReady),
+    },
   ];
 
   for (const [deliveryStatus, count] of Object.entries(snap.packetShares.byDeliveryStatus).sort(([left], [right]) => left.localeCompare(right))) {
@@ -1007,6 +1300,32 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
       label: eventName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''),
       value: String(count),
     });
+  }
+
+  for (const proofCase of snap.proofCases) {
+    const caseSection = `proof_case:${proofCase.entityId}`;
+    rows.push(
+      { section: caseSection, label: 'organization_context_id', value: proofCase.organizationContextId ?? 'none' },
+      { section: caseSection, label: 'baseline_process_duration_days', value: formatExportValue(proofCase.baselineProcessDurationDays) },
+      { section: caseSection, label: 'first_shared_at', value: proofCase.firstSharedAt ?? 'none' },
+      { section: caseSection, label: 'first_review_at', value: proofCase.firstReviewAt ?? 'none' },
+      { section: caseSection, label: 'employer_decision_at', value: proofCase.employerDecisionAt ?? 'none' },
+      { section: caseSection, label: 'actual_start_date', value: proofCase.actualStartDate ?? 'none' },
+      { section: caseSection, label: 'outcome_recorded_at', value: proofCase.outcomeRecordedAt ?? 'none' },
+      { section: caseSection, label: 'outcome_status', value: proofCase.outcomeStatus },
+      { section: caseSection, label: 'started', value: String(proofCase.started) },
+      { section: caseSection, label: 'non_start_reason', value: proofCase.nonStartReason ?? 'none' },
+      { section: caseSection, label: 'days_from_first_share', value: formatExportValue(proofCase.daysFromFirstShare) },
+      { section: caseSection, label: 'days_from_first_review', value: formatExportValue(proofCase.daysFromFirstReview) },
+      { section: caseSection, label: 'days_from_ready', value: formatExportValue(proofCase.daysFromReady) },
+      { section: caseSection, label: 'measured_process_duration_days', value: formatExportValue(proofCase.measuredProcessDurationDays) },
+      { section: caseSection, label: 'measured_delta_days', value: formatExportValue(proofCase.measuredDeltaDays) },
+      { section: caseSection, label: 'blockers_resolved_count', value: String(proofCase.blockerResolution.resolvedCount) },
+      { section: caseSection, label: 'avg_blocker_resolution_days', value: formatExportValue(proofCase.blockerResolution.avgDays) },
+      { section: caseSection, label: 'median_blocker_resolution_days', value: formatExportValue(proofCase.blockerResolution.medianDays) },
+      { section: caseSection, label: 'manual_correction', value: String(proofCase.manualCorrection) },
+      { section: caseSection, label: 'note', value: proofCase.note ?? 'none' },
+    );
   }
 
   if (snap.gaps.length === 0) {

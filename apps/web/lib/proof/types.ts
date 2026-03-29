@@ -1,3 +1,8 @@
+import type {
+  PilotOutcomeProofCase,
+  PilotOutcomeProofSummary,
+} from '@/lib/pilot/pilotKpiTypes';
+
 export type OutcomeObjectType = 'user' | 'application' | 'provider' | 'case';
 
 export type OutcomeType =
@@ -145,6 +150,8 @@ export interface PilotProofSummary {
     count: number;
     detail: string;
   }>;
+  ttsProof: PilotOutcomeProofSummary;
+  proofCases: PilotOutcomeProofCase[];
   recentProgress: OutcomeStateChange[];
   topProofGaps: PilotProofGap[];
   remainingGaps: PilotProofGap[];

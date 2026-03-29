@@ -55,6 +55,19 @@ const EMPTY_READINESS_DISTRIBUTION: PilotKpiSnapshot['readinessDistribution'] = 
   noScore: 0,
 };
 
+const EMPTY_PROOF_SUMMARY: PilotKpiSnapshot['proofSummary'] = {
+  totalCases: 0,
+  startedCases: 0,
+  notStartedCases: 0,
+  pendingCases: 0,
+  casesWithBaseline: 0,
+  casesWithMeasuredDelta: 0,
+  usableProofCases: 0,
+  avgMeasuredDeltaDays: null,
+  medianMeasuredDeltaDays: null,
+  automaticProofArtifactReady: false,
+};
+
 async function fetchKpis(days: number, filter: PilotFilter): Promise<PilotKpiSnapshot | null> {
   if (!MONITORING_SECRET) return null;
   try {
@@ -73,6 +86,8 @@ async function fetchKpis(days: number, filter: PilotFilter): Promise<PilotKpiSna
     return {
       ...payload,
       readinessDistribution: payload.readinessDistribution ?? EMPTY_READINESS_DISTRIBUTION,
+      proofCases: payload.proofCases ?? [],
+      proofSummary: payload.proofSummary ?? EMPTY_PROOF_SUMMARY,
     } as PilotKpiSnapshot;
   } catch { return null; }
 }

@@ -308,6 +308,40 @@ describe('employer packet export bundle', () => {
     expect(bundle.readmeTxt).toContain('status.json');
   });
 
+  it('keeps README source-coverage language aligned with the exported packet summary', () => {
+    const packet = buildPacketFixture();
+    const coverageSummary = {
+      ...packet.sourceCoverageSummary,
+      checked: ['NPPES_API'],
+      stale: ['OIG_LEIE'],
+      gated: ['DEA'],
+      accessRequired: ['STATE_BOARD'],
+      reviewRequired: ['OFAC'],
+      notDecisionGrade: ['PECOS_PUBLIC'],
+      previewOnly: ['BOARD_CERTIFICATION'],
+      unavailable: ['NURSYS'],
+    };
+
+    packet.sourceCoverageSummary = coverageSummary;
+    packet.manifest.sourceCoverageSummary = coverageSummary;
+    packet.manifest.sourceCoverage = {
+      ...packet.manifest.sourceCoverage,
+      summary: coverageSummary,
+    };
+
+    const bundle = buildEmployerEvidencePacketBundleContents(packet);
+
+    expect(bundle.readmeTxt).toContain('Only checked sources are decision-grade');
+    expect(bundle.readmeTxt).toContain('Checked: NPPES_API');
+    expect(bundle.readmeTxt).toContain('Stale: OIG_LEIE');
+    expect(bundle.readmeTxt).toContain('Gated: DEA');
+    expect(bundle.readmeTxt).toContain('Access required: STATE_BOARD');
+    expect(bundle.readmeTxt).toContain('Review required: OFAC');
+    expect(bundle.readmeTxt).toContain('Unavailable: NURSYS');
+    expect(bundle.readmeTxt).toContain('Not decision-grade: PECOS_PUBLIC');
+    expect(bundle.readmeTxt).toContain('Preview only: BOARD_CERTIFICATION');
+  });
+
   it('packages packet.json, manifest.json, source-coverage.json, status.json, and README.txt into a zip stream', async () => {
     const packet = buildPacketFixture();
     const zipBuffer = await streamToBuffer(createEmployerEvidencePacketZipStream(packet));

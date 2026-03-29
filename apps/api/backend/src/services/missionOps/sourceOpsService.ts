@@ -1,4 +1,5 @@
 import {
+  coverageSatisfiesDecisionGradeTruth,
   resolveCanonicalSourceCoverageState,
   type CanonicalSourceCoverageState,
 } from '../../../../../../packages/trust-state/sourceCoverage';
@@ -27,11 +28,14 @@ export interface SourceOpsEntry {
   sourceId: string;
   name: string;
   isSpine: boolean;
+  supportedInLaunchLane: boolean;
   decisionGrade: boolean;
+  liveDecisionGrade: boolean;
   coverageState: CanonicalSourceCoverageState;
   featureFlag: {
     key: string;
     enabled: boolean;
+    mismatch: boolean;
   };
   lastSuccessAt: string | null;
   lastFailureAt: string | null;
@@ -111,6 +115,34 @@ function nextSpineStatus(
   return order[next] > order[current] ? next : current;
 }
 
+function resolveSourceOpsCoverageState(input: {
+  sourceImplemented: boolean;
+  sourceEnabled: boolean;
+  sourceDecisionGrade: boolean;
+  hasSuccessfulFetch: boolean;
+  fresh: boolean;
+  connectorStatus: ConnectorHealthEntry['status'] | null;
+  governanceAccessBoundary: string | null;
+}): CanonicalSourceCoverageState {
+  if (!input.sourceImplemented) {
+    return input.sourceEnabled ? 'notDecisionGrade' : 'pending';
+  }
+
+  if (!input.sourceEnabled) {
+    return 'pending';
+  }
+
+  return resolveCanonicalSourceCoverageState({
+    checked: input.hasSuccessfulFetch,
+    fresh: input.fresh,
+    unavailable: input.connectorStatus === 'UNREACHABLE',
+    gated:
+      input.governanceAccessBoundary === 'institutional'
+      || input.governanceAccessBoundary === 'gated',
+    notDecisionGrade: !input.sourceDecisionGrade,
+  });
+}
+
 export function computeSourceOpsReport(): SourceOpsReport {
   const catalog = listSources();
   const connectorHealth = getConnectorHealth();
@@ -128,21 +160,19 @@ export function computeSourceOpsReport(): SourceOpsReport {
     const sourceEnabled = readSourceEnabled(source);
     const fresh = sourceImplemented && isFresh(sourceHealth.lastSuccessAt, source.refreshSlaHours);
     const governance = SOURCE_GOVERNANCE[source.id];
-    const coverageState = !sourceImplemented
-      ? sourceEnabled
-        ? 'unavailable'
-        : 'pending'
-      : !sourceEnabled
-        ? 'pending'
-        : resolveCanonicalSourceCoverageState({
-            checked: Boolean(sourceHealth.lastSuccessAt),
-            fresh,
-            unavailable: connectorEntry?.status === 'UNREACHABLE',
-            gated: governance?.accessBoundary === 'institutional' || governance?.accessBoundary === 'gated',
-            notDecisionGrade: !source.decisionGrade,
-          });
+    const coverageState = resolveSourceOpsCoverageState({
+      sourceImplemented,
+      sourceEnabled,
+      sourceDecisionGrade: source.decisionGrade,
+      hasSuccessfulFetch: Boolean(sourceHealth.lastSuccessAt),
+      fresh,
+      connectorStatus: connectorEntry?.status ?? null,
+      governanceAccessBoundary: governance?.accessBoundary ?? null,
+    });
 
-    const decisionGrade = coverageState === 'checked';
+    const decisionGrade = source.decisionGrade && sourceImplemented;
+    const liveDecisionGrade = decisionGrade && coverageSatisfiesDecisionGradeTruth({ state: coverageState });
+    const featureFlagMismatch = isSpine && !sourceEnabled;
     const isUnavailable = coverageState === 'unavailable';
     const isStale = coverageState === 'stale';
 
@@ -151,6 +181,8 @@ export function computeSourceOpsReport(): SourceOpsReport {
         spineStatus = nextSpineStatus(spineStatus, 'CRITICAL');
       } else if (isStale) {
         spineStatus = nextSpineStatus(spineStatus, 'STALE');
+      } else if (featureFlagMismatch) {
+        spineStatus = nextSpineStatus(spineStatus, 'DEGRADED');
       } else if (sourceHealth.consecutiveFailures >= 3) {
         spineStatus = nextSpineStatus(spineStatus, 'DEGRADED');
       }
@@ -187,11 +219,14 @@ export function computeSourceOpsReport(): SourceOpsReport {
       sourceId: source.id,
       name: source.name,
       isSpine,
+      supportedInLaunchLane: sourceImplemented,
       decisionGrade,
+      liveDecisionGrade,
       coverageState,
       featureFlag: {
         key: source.envFlag,
         enabled: sourceEnabled,
+        mismatch: featureFlagMismatch,
       },
       lastSuccessAt: sourceHealth.lastSuccessAt,
       lastFailureAt: sourceHealth.lastFailureAt,

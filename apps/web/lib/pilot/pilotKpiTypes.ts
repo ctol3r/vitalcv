@@ -64,6 +64,47 @@ export interface StartOutcomeStats {
   };
 }
 
+export type StartOutcomeStatus = 'started' | 'not_started' | 'pending';
+
+export interface PilotOutcomeProofCase {
+  entityId: string;
+  organizationContextId: string | null;
+  baselineProcessDurationDays: number | null;
+  firstSharedAt: string | null;
+  firstReviewAt: string | null;
+  employerDecisionAt: string | null;
+  actualStartDate: string | null;
+  outcomeRecordedAt: string | null;
+  outcomeStatus: StartOutcomeStatus;
+  started: boolean;
+  nonStartReason: string | null;
+  daysFromFirstShare: number | null;
+  daysFromFirstReview: number | null;
+  daysFromReady: number | null;
+  measuredProcessDurationDays: number | null;
+  measuredDeltaDays: number | null;
+  blockerResolution: {
+    resolvedCount: number;
+    avgDays: number | null;
+    medianDays: number | null;
+  };
+  manualCorrection: boolean;
+  note: string | null;
+}
+
+export interface PilotOutcomeProofSummary {
+  totalCases: number;
+  startedCases: number;
+  notStartedCases: number;
+  pendingCases: number;
+  casesWithBaseline: number;
+  casesWithMeasuredDelta: number;
+  usableProofCases: number;
+  avgMeasuredDeltaDays: number | null;
+  medianMeasuredDeltaDays: number | null;
+  automaticProofArtifactReady: boolean;
+}
+
 export interface ReadinessDistribution {
   ready:   number;
   partial: number;
@@ -91,6 +132,8 @@ export interface PilotKpiSnapshot {
   velocity:      VelocityStats;
   blockers:      BlockerKpi[];
   startOutcomes: StartOutcomeStats;
+  proofCases:    PilotOutcomeProofCase[];
+  proofSummary:  PilotOutcomeProofSummary;
   eventChain: {
     bundleShareEvents:       number;
     advisoryOutcomeEvents:   number;

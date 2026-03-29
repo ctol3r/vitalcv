@@ -1,6 +1,11 @@
 import { ApplicationStatus, Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import {
+  computePilotKpis,
+  type PilotOutcomeProofCase,
+  type PilotOutcomeProofSummary,
+} from './pilotKpiService';
+import {
   listAllOrgApplications,
   listClinicianApplications,
   type MarketplaceApplication,
@@ -184,6 +189,8 @@ export interface PilotProofSummary {
     count: number;
     detail: string;
   }>;
+  ttsProof: PilotOutcomeProofSummary;
+  proofCases: PilotOutcomeProofCase[];
   recentProgress: OutcomeStateChange[];
   topProofGaps: PilotProofGap[];
   remainingGaps: PilotProofGap[];
@@ -225,8 +232,8 @@ const FIXED_PROOF_GAPS: PilotProofGap[] = [
 const REMAINING_PROOF_GAPS: PilotProofGap[] = [
   {
     id: 'time_saved_numeric_gap',
-    title: 'Numeric time-saved minutes are not yet directly measured end-to-end.',
-    detail: 'Prepared context is now visible, but a defensible manual-vs-assisted timing baseline is not yet persisted.',
+    title: 'Numeric proof still depends on the buyer supplying a baseline.',
+    detail: 'Measured TTS deltas are now computed automatically when baseline_process_duration_days is captured, but the employer still has to provide that baseline input.',
     status: 'remaining',
   },
 ];
@@ -1095,6 +1102,7 @@ export async function getPilotProofSummary(
     earliestTrustArtifact,
     earliestFinding,
     earliestStoryline,
+    pilotKpis,
   ] = await Promise.all([
     prisma.auditEvent.findMany({
       where: {
@@ -1191,6 +1199,9 @@ export async function getPilotProofSummary(
     prisma.storyline.findFirst({
       orderBy: { createdAt: 'asc' },
       select: { createdAt: true },
+    }),
+    computePilotKpis({
+      windowDays: Math.max(1, Math.ceil(lookbackHours / 24)),
     }),
   ]);
 
@@ -1404,6 +1415,8 @@ export async function getPilotProofSummary(
         detail: 'Applications that reached reviewed status but have not yet been accepted or declined.',
       },
     ],
+    ttsProof: pilotKpis.proofSummary,
+    proofCases: pilotKpis.proofCases,
     recentProgress,
     topProofGaps: FIXED_PROOF_GAPS,
     remainingGaps: REMAINING_PROOF_GAPS,

@@ -55,17 +55,30 @@ describe('sourceOpsService', () => {
 
     expect(nppes?.coverageState).toBe('checked');
     expect(nppes?.decisionGrade).toBe(true);
+    expect(nppes?.liveDecisionGrade).toBe(true);
+    expect(nppes?.supportedInLaunchLane).toBe(true);
     expect(oig?.coverageState).toBe('pending');
-    expect(oig?.decisionGrade).toBe(false);
+    expect(oig?.decisionGrade).toBe(true);
+    expect(oig?.liveDecisionGrade).toBe(false);
   });
 
-  it('emits a mismatch alert when an official spine source is explicitly disabled', () => {
+  it('degrades spine status and emits a mismatch contract when an official spine source is explicitly disabled', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({ connectors: [] });
 
     process.env.NPPES_API_ENABLED = 'false';
 
     const report = computeSourceOpsReport();
+    const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
 
+    expect(report.spineStatus).toBe('DEGRADED');
+    expect(nppes?.coverageState).toBe('pending');
+    expect(nppes?.decisionGrade).toBe(true);
+    expect(nppes?.liveDecisionGrade).toBe(false);
+    expect(nppes?.featureFlag).toEqual({
+      key: 'NPPES_API_ENABLED',
+      enabled: false,
+      mismatch: true,
+    });
     expect(report.alerts).toContain(
       'MISMATCH: Official spine source CMS NPI Registry API has feature flag NPPES_API_ENABLED disabled.',
     );
@@ -90,6 +103,7 @@ describe('sourceOpsService', () => {
     expect(openAlex?.featureFlag.enabled).toBe(false);
     expect(openAlex?.coverageState).toBe('pending');
     expect(openAlex?.decisionGrade).toBe(false);
+    expect(openAlex?.liveDecisionGrade).toBe(false);
   });
 
   it('treats the physician licensure launch lane as part of the official spine', () => {
@@ -111,9 +125,11 @@ describe('sourceOpsService', () => {
     expect(stateBoard?.isSpine).toBe(true);
     expect(stateBoard?.featureFlag.enabled).toBe(true);
     expect(stateBoard?.coverageState).toBe('checked');
+    expect(stateBoard?.decisionGrade).toBe(true);
+    expect(stateBoard?.liveDecisionGrade).toBe(true);
   });
 
-  it('treats flag-enabled but unimplemented sources as unavailable and alerts operators', () => {
+  it('treats flag-enabled but unsupported sources as not decision-grade and alerts operators', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({ connectors: [] });
     process.env.OFAC_SDN_ENABLED = 'true';
 
@@ -121,8 +137,11 @@ describe('sourceOpsService', () => {
     const ofac = report.sources.find((entry) => entry.sourceId === 'OFAC_SDN');
 
     expect(ofac?.featureFlag.enabled).toBe(true);
-    expect(ofac?.coverageState).toBe('unavailable');
+    expect(ofac?.featureFlag.mismatch).toBe(false);
+    expect(ofac?.supportedInLaunchLane).toBe(false);
+    expect(ofac?.coverageState).toBe('notDecisionGrade');
     expect(ofac?.decisionGrade).toBe(false);
+    expect(ofac?.liveDecisionGrade).toBe(false);
     expect(report.alerts).toContain(
       'UNIMPLEMENTED: Source OFAC Specially Designated Nationals (SDN) List is flag-enabled but has no ingestion handler in the launch lane.',
     );
@@ -145,7 +164,8 @@ describe('sourceOpsService', () => {
     const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
 
     expect(nppes?.coverageState).toBe('stale');
-    expect(nppes?.decisionGrade).toBe(false);
+    expect(nppes?.decisionGrade).toBe(true);
+    expect(nppes?.liveDecisionGrade).toBe(false);
     expect(report.spineStatus).toBe('STALE');
     expect(report.alerts).toContain(
       'STALE: Decision-grade source CMS NPI Registry API has missed its freshness SLA of 168h.',
@@ -169,7 +189,8 @@ describe('sourceOpsService', () => {
     const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
 
     expect(nppes?.coverageState).toBe('unavailable');
-    expect(nppes?.decisionGrade).toBe(false);
+    expect(nppes?.decisionGrade).toBe(true);
+    expect(nppes?.liveDecisionGrade).toBe(false);
     expect(report.spineStatus).toBe('CRITICAL');
     expect(report.alerts).toContain(
       'FAILURE: Source CMS NPI Registry API has failed 4 consecutive times.',

@@ -55,6 +55,14 @@ function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function readOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readOptionalBoolean(value: unknown): boolean {
+  return value === true;
+}
+
 function readPilotFilter(source: Record<string, unknown>): PilotFilter {
   const scope = parseScopeFromQuery(source);
 
@@ -159,6 +167,13 @@ export function registerPilotKpiRoutes(app: Express): void {
     const {
       entityId,
       startedAt,
+      actualStartDate,
+      outcomeRecordedAt,
+      outcomeStatus,
+      baselineProcessDurationDays,
+      nonStartReason,
+      manualCorrection,
+      correctionGroupKey,
       organizationContextId,
       readinessScoreAtStart,
       blockers,
@@ -170,16 +185,47 @@ export function registerPilotKpiRoutes(app: Express): void {
       return;
     }
 
-    if (!startedAt || isNaN(Date.parse(startedAt as string))) {
+    const normalizedOutcomeStatus = outcomeStatus === 'not_started' ? 'not_started' : 'started';
+    const actualStartDateInput = readOptionalString(actualStartDate) ?? readOptionalString(startedAt);
+    const outcomeRecordedAtInput = readOptionalString(outcomeRecordedAt)
+      ?? (normalizedOutcomeStatus === 'not_started' ? readOptionalString(startedAt) : null);
+
+    if (normalizedOutcomeStatus === 'started' && (!actualStartDateInput || isNaN(Date.parse(actualStartDateInput)))) {
       void res.status(400).json({ error: 'startedAt must be a valid ISO date string.' });
       return;
     }
 
+    if (normalizedOutcomeStatus === 'not_started' && (!outcomeRecordedAtInput || isNaN(Date.parse(outcomeRecordedAtInput)))) {
+      void res.status(400).json({ error: 'outcomeRecordedAt must be a valid ISO date string when outcomeStatus=not_started.' });
+      return;
+    }
+
+    const nonStartReasonValue = readOptionalString(nonStartReason);
+    if (normalizedOutcomeStatus === 'not_started' && !nonStartReasonValue) {
+      void res.status(400).json({ error: 'nonStartReason is required when outcomeStatus=not_started.' });
+      return;
+    }
+
+    const effectiveStartedAt = new Date(
+      normalizedOutcomeStatus === 'started'
+        ? actualStartDateInput as string
+        : outcomeRecordedAtInput as string,
+    );
+
     void captureStartOutcome({
       entityId,
       organizationContextId: readOptionalString(organizationContextId),
-      startedAt: new Date(startedAt as string),
-      readinessScoreAtStart: typeof readinessScoreAtStart === 'number' ? readinessScoreAtStart : null,
+      startedAt: effectiveStartedAt,
+      outcomeStatus: normalizedOutcomeStatus,
+      actualStartDate: normalizedOutcomeStatus === 'started'
+        ? new Date(actualStartDateInput as string)
+        : null,
+      outcomeRecordedAt: outcomeRecordedAtInput ? new Date(outcomeRecordedAtInput) : null,
+      baselineProcessDurationDays: readOptionalNumber(baselineProcessDurationDays),
+      nonStartReason: nonStartReasonValue,
+      manualCorrection: readOptionalBoolean(manualCorrection),
+      correctionGroupKey: readOptionalString(correctionGroupKey),
+      readinessScoreAtStart: readOptionalNumber(readinessScoreAtStart),
       blockersAtStart: Array.isArray(blockers) ? blockers as string[] : [],
       sourceCoverageAtStart: {},
       metadata: {
@@ -190,8 +236,20 @@ export function registerPilotKpiRoutes(app: Express): void {
       scope: readPilotFilter((req.body ?? {}) as Record<string, unknown>),
     });
 
-    log('info', 'pilot_start_outcome_recorded_manually', { entityId, startedAt });
-    void res.status(202).json({ ok: true, queued: true, entityId, startedAt });
+    log('info', 'pilot_start_outcome_recorded_manually', {
+      entityId,
+      outcomeStatus: normalizedOutcomeStatus,
+      startedAt: actualStartDateInput ?? null,
+      outcomeRecordedAt: outcomeRecordedAtInput,
+    });
+    void res.status(202).json({
+      ok: true,
+      queued: true,
+      entityId,
+      outcomeStatus: normalizedOutcomeStatus,
+      actualStartDate: normalizedOutcomeStatus === 'started' ? actualStartDateInput : null,
+      outcomeRecordedAt: outcomeRecordedAtInput,
+    });
   }));
 
   log('info', 'pilot_kpi_routes_registered', {

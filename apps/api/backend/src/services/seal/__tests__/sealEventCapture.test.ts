@@ -119,6 +119,13 @@ describe('captureStartOutcome', () => {
         metadata: expect.objectContaining({
           note: 'manual backfill',
           capturedAt: '2026-03-23T00:00:00.000Z',
+          outcomeStatus: 'started',
+          actualStartDate: '2026-03-10T00:00:00.000Z',
+          outcomeRecordedAt: null,
+          baselineProcessDurationDays: null,
+          nonStartReason: null,
+          manualCorrection: false,
+          correctionGroupKey: null,
         }),
       }),
     }));
@@ -163,6 +170,11 @@ describe('captureStartOutcome', () => {
         daysFromFirstReview: 7,
         daysFromShare: 6,
         daysFromReady: 5,
+        metadata: expect.objectContaining({
+          outcomeStatus: 'started',
+          actualStartDate: '2026-03-10T00:00:00.000Z',
+          outcomeRecordedAt: null,
+        }),
       }),
     }));
 
@@ -170,5 +182,44 @@ describe('captureStartOutcome', () => {
       ([call]) => call.where?.eventType === 'SHARE_INITIATED',
     );
     expect(shareInitiatedCalls).toHaveLength(1);
+  });
+
+  it('captures not-started outcomes without deriving false start timings', async () => {
+    await captureStartOutcome({
+      entityId: '00000000-0000-0000-0000-000000000333',
+      organizationContextId: 'org-ctx-9',
+      startedAt: new Date('2026-03-12T00:00:00.000Z'),
+      outcomeStatus: 'not_started',
+      outcomeRecordedAt: new Date('2026-03-12T00:00:00.000Z'),
+      baselineProcessDurationDays: 45,
+      nonStartReason: 'Offer withdrawn by employer',
+      manualCorrection: true,
+      correctionGroupKey: 'pilot-case-333',
+      readinessScoreAtStart: null,
+      blockersAtStart: ['LICENSURE_PENDING'],
+      sourceCoverageAtStart: EMPTY_COVERAGE,
+      metadata: { note: 'manual closeout' },
+    });
+
+    expect(prismaMock.startOutcomeEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        entityId: '00000000-0000-0000-0000-000000000333',
+        organizationContextId: 'org-ctx-9',
+        startedAt: new Date('2026-03-12T00:00:00.000Z'),
+        daysFromFirstReview: null,
+        daysFromShare: null,
+        daysFromReady: null,
+        metadata: expect.objectContaining({
+          note: 'manual closeout',
+          outcomeStatus: 'not_started',
+          actualStartDate: null,
+          outcomeRecordedAt: '2026-03-12T00:00:00.000Z',
+          baselineProcessDurationDays: 45,
+          nonStartReason: 'Offer withdrawn by employer',
+          manualCorrection: true,
+          correctionGroupKey: 'pilot-case-333',
+        }),
+      }),
+    }));
   });
 });

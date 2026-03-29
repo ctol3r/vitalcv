@@ -177,7 +177,10 @@ describe('pilotKpiService', () => {
         daysFromReady: 5,
         readinessScoreAtStart: 72,
         blockersAtStart: ['LICENSE_EXPIRED'],
-        metadata: { recordedAt: '2026-03-10T01:00:00.000Z' },
+        metadata: {
+          recordedAt: '2026-03-10T01:00:00.000Z',
+          correctionGroupKey: 'pilot-case-entity-1',
+        },
       },
       {
         id: 'start-corrected',
@@ -189,7 +192,12 @@ describe('pilotKpiService', () => {
         daysFromReady: 4,
         readinessScoreAtStart: 91,
         blockersAtStart: [],
-        metadata: { capturedAt: '2026-03-10T05:00:00.000Z' },
+        metadata: {
+          capturedAt: '2026-03-10T05:00:00.000Z',
+          correctionGroupKey: 'pilot-case-entity-1',
+          baselineProcessDurationDays: 30,
+          manualCorrection: true,
+        },
       },
     ]);
 
@@ -227,6 +235,45 @@ describe('pilotKpiService', () => {
         withBlockers: 0,
       },
     });
+    expect(snapshot.proofSummary).toEqual({
+      totalCases: 1,
+      startedCases: 1,
+      notStartedCases: 0,
+      pendingCases: 0,
+      casesWithBaseline: 1,
+      casesWithMeasuredDelta: 1,
+      usableProofCases: 1,
+      avgMeasuredDeltaDays: 22,
+      medianMeasuredDeltaDays: 22,
+      automaticProofArtifactReady: true,
+    });
+    expect(snapshot.proofCases).toEqual([
+      {
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        baselineProcessDurationDays: 30,
+        firstSharedAt: '2026-03-01T00:00:00.000Z',
+        firstReviewAt: '2026-03-02T00:00:00.000Z',
+        employerDecisionAt: '2026-03-04T00:00:00.000Z',
+        actualStartDate: '2026-03-10T00:00:00.000Z',
+        outcomeRecordedAt: '2026-03-10T05:00:00.000Z',
+        outcomeStatus: 'started',
+        started: true,
+        nonStartReason: null,
+        daysFromFirstShare: 8,
+        daysFromFirstReview: 8,
+        daysFromReady: 4,
+        measuredProcessDurationDays: 8,
+        measuredDeltaDays: 22,
+        blockerResolution: {
+          resolvedCount: 0,
+          avgDays: null,
+          medianDays: null,
+        },
+        manualCorrection: true,
+        note: null,
+      },
+    ]);
     expect(snapshot.eventChain.startOutcomeEvents).toBe(2);
 
     expect(prismaMock.bundleShareEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -324,6 +371,139 @@ describe('pilotKpiService', () => {
     });
   });
 
+  it('tracks not-started proof cases without counting them as starts', async () => {
+    prismaMock.bundleShareEvent.findMany.mockResolvedValue([
+      {
+        id: 'share-1',
+        subjectEntityId: 'entity-2',
+        organizationContextId: 'org-2',
+        organizationId: 'employer-2',
+        deliveryStatus: 'DELIVERED',
+        sharedAt: new Date('2026-03-01T00:00:00.000Z'),
+        npi: '2222222222',
+      },
+    ]);
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-2',
+        organizationContextId: 'org-2',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-02T00:00:00.000Z'),
+        readinessScoreAtEvent: 58,
+        blockersAtEvent: ['LICENSURE_PENDING'],
+        metadata: {},
+      },
+    ]);
+    prismaMock.employerDecisionEvent.findMany.mockResolvedValue([
+      {
+        id: 'decision-1',
+        entityId: 'entity-2',
+        organizationContextId: 'org-2',
+        decision: 'HOLD',
+        decidedAt: new Date('2026-03-03T00:00:00.000Z'),
+        readinessScoreAtDecision: 58,
+        blockersAtDecision: ['LICENSURE_PENDING'],
+        metadata: {},
+      },
+    ]);
+    prismaMock.startOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'outcome-1',
+        entityId: 'entity-2',
+        organizationContextId: 'org-2',
+        startedAt: new Date('2026-03-04T00:00:00.000Z'),
+        daysFromFirstReview: null,
+        daysFromShare: null,
+        daysFromReady: null,
+        readinessScoreAtStart: null,
+        blockersAtStart: ['LICENSURE_PENDING'],
+        metadata: {
+          outcomeStatus: 'not_started',
+          outcomeRecordedAt: '2026-03-04T00:00:00.000Z',
+          baselineProcessDurationDays: 40,
+          nonStartReason: 'Credentialing hold remained unresolved',
+        },
+      },
+    ]);
+    prismaMock.bundleShareEvent.count.mockResolvedValue(1);
+    prismaMock.advisoryOutcomeEvent.count.mockResolvedValue(1);
+    prismaMock.employerDecisionEvent.count.mockResolvedValue(1);
+    prismaMock.startOutcomeEvent.count.mockResolvedValue(1);
+
+    const snapshot = await computePilotKpis({ windowDays: 30 });
+
+    expect(snapshot.startOutcomes.totalStarts).toBe(0);
+    expect(snapshot.velocity.medianDaysFirstReviewToStart).toBeNull();
+    expect(snapshot.proofSummary).toEqual({
+      totalCases: 1,
+      startedCases: 0,
+      notStartedCases: 1,
+      pendingCases: 0,
+      casesWithBaseline: 1,
+      casesWithMeasuredDelta: 0,
+      usableProofCases: 0,
+      avgMeasuredDeltaDays: null,
+      medianMeasuredDeltaDays: null,
+      automaticProofArtifactReady: false,
+    });
+    expect(snapshot.proofCases[0]).toMatchObject({
+      entityId: 'entity-2',
+      outcomeStatus: 'not_started',
+      started: false,
+      actualStartDate: null,
+      nonStartReason: 'Credentialing hold remained unresolved',
+      baselineProcessDurationDays: 40,
+      employerDecisionAt: '2026-03-03T00:00:00.000Z',
+      measuredDeltaDays: null,
+    });
+  });
+
+  it('flags started cases that are missing a buyer baseline', async () => {
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-3',
+        organizationContextId: 'org-3',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-02T00:00:00.000Z'),
+        readinessScoreAtEvent: 70,
+        blockersAtEvent: [],
+        metadata: {},
+      },
+    ]);
+    prismaMock.startOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'start-1',
+        entityId: 'entity-3',
+        organizationContextId: 'org-3',
+        startedAt: new Date('2026-03-08T00:00:00.000Z'),
+        daysFromFirstReview: 6,
+        daysFromShare: null,
+        daysFromReady: null,
+        readinessScoreAtStart: 82,
+        blockersAtStart: [],
+        metadata: {},
+      },
+    ]);
+    prismaMock.advisoryOutcomeEvent.count.mockResolvedValue(1);
+    prismaMock.startOutcomeEvent.count.mockResolvedValue(1);
+
+    const snapshot = await computePilotKpis({ windowDays: 30 });
+
+    expect(snapshot.proofSummary.casesWithBaseline).toBe(0);
+    expect(snapshot.proofCases[0]).toMatchObject({
+      entityId: 'entity-3',
+      outcomeStatus: 'started',
+      measuredProcessDurationDays: 6,
+      baselineProcessDurationDays: null,
+      measuredDeltaDays: null,
+    });
+    expect(snapshot.gaps).toContain(
+      'Started cases are missing baseline_process_duration_days — measured TTS deltas require the buyer/employer baseline.',
+    );
+  });
+
   it('exports normalized row-shaped data for downstream spreadsheets', () => {
     const snapshot: PilotKpiSnapshot = {
       generatedAt: '2026-03-23T21:00:00.000Z',
@@ -382,6 +562,45 @@ describe('pilotKpiService', () => {
           withBlockers: 0,
         },
       },
+      proofCases: [
+        {
+          entityId: 'entity-1',
+          organizationContextId: 'org-1',
+          baselineProcessDurationDays: 30,
+          firstSharedAt: '2026-03-01T00:00:00.000Z',
+          firstReviewAt: '2026-03-02T00:00:00.000Z',
+          employerDecisionAt: '2026-03-03T00:00:00.000Z',
+          actualStartDate: '2026-03-09T00:00:00.000Z',
+          outcomeRecordedAt: '2026-03-09T01:00:00.000Z',
+          outcomeStatus: 'started',
+          started: true,
+          nonStartReason: null,
+          daysFromFirstShare: 8,
+          daysFromFirstReview: 7,
+          daysFromReady: 4,
+          measuredProcessDurationDays: 7,
+          measuredDeltaDays: 23,
+          blockerResolution: {
+            resolvedCount: 1,
+            avgDays: 3,
+            medianDays: 3,
+          },
+          manualCorrection: false,
+          note: 'confirmed by operator',
+        },
+      ],
+      proofSummary: {
+        totalCases: 1,
+        startedCases: 1,
+        notStartedCases: 0,
+        pendingCases: 0,
+        casesWithBaseline: 1,
+        casesWithMeasuredDelta: 1,
+        usableProofCases: 1,
+        avgMeasuredDeltaDays: 23,
+        medianMeasuredDeltaDays: 23,
+        automaticProofArtifactReady: true,
+      },
       eventChain: {
         bundleShareEvents: 4,
         advisoryOutcomeEvents: 3,
@@ -406,11 +625,16 @@ describe('pilotKpiService', () => {
 
     expect(rows).toEqual(expect.arrayContaining([
       { section: 'filters', label: 'geography_tag', value: '(all)' },
+      { section: 'proof_summary', label: 'automatic_proof_artifact_ready', value: 'true' },
+      { section: 'proof_case:entity-1', label: 'baseline_process_duration_days', value: '30' },
+      { section: 'proof_case:entity-1', label: 'measured_delta_days', value: '23' },
       { section: 'velocity', label: 'median_days_share_to_decision', value: '4' },
       { section: 'velocity_samples', label: 'sample_share_to_decision', value: '2' },
       { section: 'event_chain', label: 'start_outcome_events', value: '1' },
     ]));
     expect(csv).toContain('section,label,value');
+    expect(csv).toContain('proof_summary,automatic_proof_artifact_ready,true');
+    expect(csv).toContain('proof_case:entity-1,measured_delta_days,23');
     expect(csv).toContain('velocity,median_days_share_to_decision,4');
     expect(csv).toContain('velocity_samples,sample_share_to_decision,2');
   });

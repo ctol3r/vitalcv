@@ -10,6 +10,8 @@
  * for each step are correct — not that the full browser flow works.
  */
 
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
   PUBLIC_WEDGE_ROUTE_TARGETS,
@@ -81,6 +83,17 @@ describe('wedge smoke flow', () => {
       expect(href).toBe(
         `/review/${SAMPLE_ENTITY_ID}?contextId=${SAMPLE_CONTEXT_ID}`,
       );
+    });
+
+    it('review landing keeps the employer request path explicit', async () => {
+      const { default: ReviewLandingPage } = await import('../app/review/page');
+      const markup = renderToStaticMarkup(React.createElement(ReviewLandingPage));
+
+      expect(markup).toContain('Open a shared passport review');
+      expect(markup).toContain('Request a passport review');
+      expect(markup).toContain('/review/request');
+      expect(markup).toContain(PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup);
+      expect(markup).toContain(PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry);
     });
   });
 

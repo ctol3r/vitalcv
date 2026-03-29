@@ -15,6 +15,7 @@ import type {
   SourceOpsEntry,
   SourceOpsReport,
 } from '@/lib/mission-ops/sourceOpsTypes';
+import { formatSourceHealthCoverageState } from '@/lib/mission-ops/sourceHealthContract';
 
 const COVERAGE_STATE_STYLES: Record<SourceOpsCoverageState, string> = {
   checked: 'bg-vt-success/10 text-vt-success border-vt-success/20',
@@ -34,23 +35,6 @@ const SPINE_STATUS_STYLES: Record<SourceOpsReport['spineStatus'], string> = {
   STALE: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   CRITICAL: 'bg-vt-danger/10 text-vt-danger border-vt-danger/20',
 };
-
-function formatCoverageState(state: SourceOpsCoverageState): string {
-  switch (state) {
-    case 'notDecisionGrade':
-      return 'Not Decision-Grade';
-    case 'pending':
-      return 'Pending';
-    case 'accessRequired':
-      return 'Access Required';
-    case 'reviewRequired':
-      return 'Review Required';
-    case 'previewOnly':
-      return 'Preview Only';
-    default:
-      return state.charAt(0).toUpperCase() + state.slice(1);
-  }
-}
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -117,7 +101,17 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
         </div>
         {source.decisionGrade && (
           <div className="mt-2 inline-flex rounded border border-vt-warning/20 bg-vt-warning/5 px-1.5 py-0.5 text-[10px] text-vt-warning/80">
-            Decision-Grade
+            Decision-grade source
+          </div>
+        )}
+        {!source.supportedInLaunchLane && (
+          <div className="mt-2 inline-flex rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-white/55">
+            Unsupported in launch lane
+          </div>
+        )}
+        {source.featureFlag.mismatch && (
+          <div className="mt-2 inline-flex rounded border border-vt-danger/20 bg-vt-danger/5 px-1.5 py-0.5 text-[10px] text-vt-danger/80">
+            Flag mismatch
           </div>
         )}
       </td>
@@ -129,7 +123,7 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
           )}
         >
           {readStateIcon(source.coverageState)}
-          <span>{formatCoverageState(source.coverageState)}</span>
+          <span>{formatSourceHealthCoverageState(source.coverageState)}</span>
         </div>
 
         {source.consecutiveFailures > 0 && (

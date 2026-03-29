@@ -426,6 +426,13 @@ export interface CaptureStartOutcomeInput {
   entityId:              string;
   organizationContextId?: string | null;
   startedAt:             Date;
+  outcomeStatus?:        'started' | 'not_started';
+  actualStartDate?:      Date | null;
+  outcomeRecordedAt?:    Date | null;
+  baselineProcessDurationDays?: number | null;
+  nonStartReason?:       string | null;
+  manualCorrection?:     boolean;
+  correctionGroupKey?:   string | null;
   readinessScoreAtStart?: number | null;
   blockersAtStart:       string[];
   sourceCoverageAtStart: SourceCoverageSnapshot | Record<string, unknown>;
@@ -438,11 +445,24 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     const entityId = await resolveStartOutcomeEntityId(input.entityId);
     if (!entityId) return;
 
-    const timings = await deriveStartOutcomeTimings(
-      entityId,
-      input.startedAt,
-      input.organizationContextId ?? null,
-    );
+    const outcomeStatus = input.outcomeStatus === 'not_started' ? 'not_started' : 'started';
+    const actualStartDate = outcomeStatus === 'started'
+      ? (input.actualStartDate ?? input.startedAt)
+      : null;
+    const outcomeRecordedAt = input.outcomeRecordedAt
+      ?? (outcomeStatus === 'not_started' ? input.startedAt : null);
+    const persistedOutcomeAt = actualStartDate ?? outcomeRecordedAt ?? input.startedAt;
+    const timings = actualStartDate
+      ? await deriveStartOutcomeTimings(
+          entityId,
+          actualStartDate,
+          input.organizationContextId ?? null,
+        )
+      : {
+          daysFromFirstReview: null,
+          daysFromShare: null,
+          daysFromReady: null,
+        };
     const capturedAt = new Date().toISOString();
 
     await prisma.startOutcomeEvent.create({
@@ -450,7 +470,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         id:                    randomUUID(),
         entityId,
         organizationContextId: input.organizationContextId ?? null,
-        startedAt:             input.startedAt,
+        startedAt:             persistedOutcomeAt,
         daysFromFirstReview:   timings.daysFromFirstReview,
         daysFromShare:         timings.daysFromShare,
         daysFromReady:         timings.daysFromReady,
@@ -460,12 +480,24 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         metadata:              JSON.parse(JSON.stringify(mergeScope({
           ...(input.metadata ?? {}),
           capturedAt,
+          outcomeStatus,
+          actualStartDate: actualStartDate?.toISOString() ?? null,
+          outcomeRecordedAt: outcomeRecordedAt?.toISOString() ?? null,
+          baselineProcessDurationDays:
+            typeof input.baselineProcessDurationDays === 'number'
+            && Number.isFinite(input.baselineProcessDurationDays)
+              ? input.baselineProcessDurationDays
+              : null,
+          nonStartReason: input.nonStartReason ?? null,
+          manualCorrection: input.manualCorrection === true,
+          correctionGroupKey: input.correctionGroupKey ?? null,
         }, input.scope))),
       },
     });
     log('info', 'seal_start_outcome_captured', {
       entityId: entityId.slice(0, 8) + '…',
-      startedAt: input.startedAt.toISOString(),
+      outcomeStatus,
+      startedAt: persistedOutcomeAt.toISOString(),
     });
   } catch (err) {
     log('warn', 'seal_start_outcome_capture_failed', {

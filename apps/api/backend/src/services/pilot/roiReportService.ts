@@ -97,10 +97,16 @@ export interface RoiReport {
   topLine: {
     daysDecisionLatency: number | null;
     daysSavedVsBaseline: number | null;
+    measuredTtsDeltaDays: number | null;
     percentReadyAtFirstReview: number | null;
     blockersResolvedCount: number;
     startOutcomeCount: number;
+    proofCaseCount: number;
+    automaticProofArtifactReady: boolean;
   };
+
+  proofSummary: PilotKpiSnapshot['proofSummary'];
+  proofCases: PilotKpiSnapshot['proofCases'];
 
   // ── Full metric breakdown ──────────────────────────────────────────────────
   sections: RoiSection[];
@@ -145,6 +151,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   const generatedAt = new Date().toISOString();
   const decisionCount = snap.decisions.total;
   const conf = confidence(decisionCount);
+  const measuredTtsDeltaDays = snap.proofSummary.medianMeasuredDeltaDays;
 
   // ── Decision latency metric ────────────────────────────────────────────────
   const observedLatency = snap.velocity.medianDaysFirstReviewToDecision;
@@ -309,6 +316,9 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   if (observedLatency !== null && latencyDelta !== null && latencyDelta > 0) {
     summaryParts.push(`${latencyDelta}-day reduction in employer decision latency vs industry baseline`);
   }
+  if (measuredTtsDeltaDays !== null) {
+    summaryParts.push(`${measuredTtsDeltaDays}-day measured TTS delta vs buyer baseline`);
+  }
   if (observedTts !== null && ttsDelta !== null && ttsDelta > 0) {
     summaryParts.push(`${ttsDelta}-day reduction in time-to-start vs CAQH baseline`);
   }
@@ -330,6 +340,9 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   if (snap.startOutcomes.totalStarts === 0) {
     dataGaps.push('No start outcomes recorded — POST /api/internal/pilot/start-outcome when a clinician starts');
   }
+  if (snap.proofSummary.startedCases > 0 && snap.proofSummary.usableProofCases === 0) {
+    dataGaps.push('Started cases exist, but no case has both baseline_process_duration_days and measured TTS for proof-grade delta reporting.');
+  }
   if (decisionCount < MIN_DECISIONS_FOR_HIGH_CONFIDENCE) {
     dataGaps.push(`Only ${decisionCount} employer decision${decisionCount === 1 ? '' : 's'} — need ${MIN_DECISIONS_FOR_HIGH_CONFIDENCE} for HIGH confidence`);
   }
@@ -341,9 +354,12 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   const topLine = {
     daysDecisionLatency: observedLatency,
     daysSavedVsBaseline: latencyDelta !== null && latencyDelta > 0 ? latencyDelta : null,
+    measuredTtsDeltaDays,
     percentReadyAtFirstReview: pctReady,
     blockersResolvedCount: resolvedCount,
     startOutcomeCount: snap.startOutcomes.totalStarts,
+    proofCaseCount: snap.proofSummary.totalCases,
+    automaticProofArtifactReady: snap.proofSummary.automaticProofArtifactReady,
   };
 
   return {
@@ -353,10 +369,12 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     methodology: 'pilot-roi-report/v1.0',
     dataDisclaimer:
       'VitalCV metrics are derived from real event data. Industry baselines are cited estimates from publicly available research. ' +
-      'Time-saved figures assume baseline applies to this use case. All numbers show sample size for transparency.',
+      'Buyer baseline deltas come from baseline_process_duration_days captured on pilot outcomes when provided. All numbers show sample size for transparency.',
     executiveSummary,
     overallConfidence: conf,
     topLine,
+    proofSummary: snap.proofSummary,
+    proofCases: snap.proofCases,
     sections: [
       {
         id: 'velocity',
@@ -450,6 +468,37 @@ export function roiReportToHtml(report: RoiReport): string {
       `).join('')}
     </div>
   `;
+  const proofCases = report.proofCases.length > 0 ? `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:16px;font-weight:700;color:#1e293b;margin:0 0 8px">Pilot Proof Cases</h2>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Entity</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Status</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Baseline</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Measured</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Delta</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Decision</th>
+            <th style="padding:10px 8px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase">Start</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${report.proofCases.map((entry) => `
+            <tr style="border-top:1px solid #e2e8f0">
+              <td style="padding:10px 8px;font-size:12px;color:#0f172a">${entry.entityId}</td>
+              <td style="padding:10px 8px;font-size:12px;color:#0f172a">${entry.outcomeStatus}</td>
+              <td style="padding:10px 8px;font-size:12px;color:#0f172a">${fmt(entry.baselineProcessDurationDays, 'd')}</td>
+              <td style="padding:10px 8px;font-size:12px;color:#0f172a">${fmt(entry.measuredProcessDurationDays, 'd')}</td>
+              <td style="padding:10px 8px;font-size:12px;color:${(entry.measuredDeltaDays ?? 0) >= 0 ? '#16a34a' : '#b91c1c'}">${fmt(entry.measuredDeltaDays, 'd')}</td>
+              <td style="padding:10px 8px;font-size:12px;color:#475569">${entry.employerDecisionAt ? new Date(entry.employerDecisionAt).toLocaleDateString() : '—'}</td>
+              <td style="padding:10px 8px;font-size:12px;color:#475569">${entry.actualStartDate ? new Date(entry.actualStartDate).toLocaleDateString() : entry.nonStartReason ?? 'Pending'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  ` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -479,9 +528,9 @@ export function roiReportToHtml(report: RoiReport): string {
       <p style="font-size:11px;color:#4ade80;margin:2px 0 0">baseline: ${BASELINES.medianDaysReviewToDecision.value}d</p>
     </div>
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px">
-      <p style="font-size:11px;color:#2563eb;margin:0 0 4px;text-transform:uppercase">Days saved</p>
-      <p style="font-size:28px;font-weight:800;color:#1d4ed8;margin:0">${fmt(report.topLine.daysSavedVsBaseline, 'd')}</p>
-      <p style="font-size:11px;color:#93c5fd;margin:2px 0 0">vs industry</p>
+      <p style="font-size:11px;color:#2563eb;margin:0 0 4px;text-transform:uppercase">${report.topLine.measuredTtsDeltaDays !== null ? 'Measured TTS delta' : 'Days saved'}</p>
+      <p style="font-size:28px;font-weight:800;color:#1d4ed8;margin:0">${fmt(report.topLine.measuredTtsDeltaDays ?? report.topLine.daysSavedVsBaseline, 'd')}</p>
+      <p style="font-size:11px;color:#93c5fd;margin:2px 0 0">${report.topLine.measuredTtsDeltaDays !== null ? 'vs buyer baseline' : 'vs industry'}</p>
     </div>
     <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:14px">
       <p style="font-size:11px;color:#7c3aed;margin:0 0 4px;text-transform:uppercase">Ready at review</p>
@@ -496,6 +545,7 @@ export function roiReportToHtml(report: RoiReport): string {
   </div>
 
   ${sections}
+  ${proofCases}
 
   <div style="margin-bottom:24px">
     <h2 style="font-size:16px;font-weight:700;color:#1e293b;margin:0 0 8px">Event Chain Health</h2>

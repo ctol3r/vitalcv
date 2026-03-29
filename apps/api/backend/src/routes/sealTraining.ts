@@ -155,17 +155,49 @@ export function registerSealTrainingRoutes(app: Express): void {
     requireClerkUserId(req);
     const {
       entityId, organizationContextId, startedAt,
+      actualStartDate, outcomeRecordedAt, outcomeStatus,
+      baselineProcessDurationDays, nonStartReason,
+      manualCorrection, correctionGroupKey,
       readinessScoreAtStart, blockersAtStart,
       sourceCoverageAtStart, metadata,
     } = req.body ?? {};
 
     if (!entityId || !UUID_RE.test(entityId)) throw new HttpError(400, 'entityId must be a valid UUID.');
-    if (!startedAt || isNaN(Date.parse(startedAt))) throw new HttpError(400, 'startedAt must be a valid ISO date.');
+    const normalizedOutcomeStatus = outcomeStatus === 'not_started' ? 'not_started' : 'started';
+    const actualStartDateValue = typeof actualStartDate === 'string' && actualStartDate.length > 0
+      ? actualStartDate
+      : startedAt;
+    const outcomeRecordedAtValue = typeof outcomeRecordedAt === 'string' && outcomeRecordedAt.length > 0
+      ? outcomeRecordedAt
+      : normalizedOutcomeStatus === 'not_started'
+        ? startedAt
+        : null;
+
+    if (normalizedOutcomeStatus === 'started' && (!actualStartDateValue || isNaN(Date.parse(actualStartDateValue)))) {
+      throw new HttpError(400, 'startedAt must be a valid ISO date.');
+    }
+    if (normalizedOutcomeStatus === 'not_started' && (!outcomeRecordedAtValue || isNaN(Date.parse(outcomeRecordedAtValue)))) {
+      throw new HttpError(400, 'outcomeRecordedAt must be a valid ISO date when outcomeStatus=not_started.');
+    }
+    if (normalizedOutcomeStatus === 'not_started' && typeof nonStartReason !== 'string') {
+      throw new HttpError(400, 'nonStartReason is required when outcomeStatus=not_started.');
+    }
 
     void captureStartOutcome({
       entityId,
       organizationContextId: organizationContextId ?? null,
-      startedAt:             new Date(startedAt),
+      startedAt:             new Date(
+        normalizedOutcomeStatus === 'started'
+          ? actualStartDateValue
+          : outcomeRecordedAtValue as string,
+      ),
+      outcomeStatus:         normalizedOutcomeStatus,
+      actualStartDate:       normalizedOutcomeStatus === 'started' ? new Date(actualStartDateValue) : null,
+      outcomeRecordedAt:     outcomeRecordedAtValue ? new Date(outcomeRecordedAtValue) : null,
+      baselineProcessDurationDays: typeof baselineProcessDurationDays === 'number' ? baselineProcessDurationDays : null,
+      nonStartReason:        typeof nonStartReason === 'string' ? nonStartReason : null,
+      manualCorrection:      manualCorrection === true,
+      correctionGroupKey:    typeof correctionGroupKey === 'string' ? correctionGroupKey : null,
       readinessScoreAtStart: typeof readinessScoreAtStart === 'number' ? readinessScoreAtStart : null,
       blockersAtStart:       Array.isArray(blockersAtStart) ? blockersAtStart : [],
       sourceCoverageAtStart: sourceCoverageAtStart ?? {},

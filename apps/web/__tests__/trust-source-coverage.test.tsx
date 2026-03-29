@@ -12,9 +12,11 @@ import {
   findPassportSourceCoverageChecks,
   normalizePassportSourceCoverageState,
   sourceCoverageBadgeLabel,
+  sourceCoverageStateLabel,
   sourceCoveragePosture,
   type PassportSourceCoverageReport,
 } from '../lib/trust/source-coverage';
+import { formatSourceHealthCoverageState } from '../lib/mission-ops/sourceHealthContract';
 import { mapSourceCoverageStateToTrustStatus } from '../lib/trust/status-language';
 
 describe('trust source coverage contract', () => {
@@ -172,5 +174,37 @@ describe('trust source coverage contract', () => {
     expect(findPassportSourceCoverageCheck(report, ['CMS PECOS', 'PECOS'])?.state).toBe('notDecisionGrade');
     expect(findPassportSourceCoverageCheck(report, ['State Boards', 'FSMB', 'Nursys'])?.state).toBe('accessRequired');
     expect(findPassportSourceCoverageChecks(report, ['State Boards', 'FSMB', 'Nursys'])).toHaveLength(1);
+  });
+
+  it('keeps operator source-health labels aligned with the user-facing sourceCoverage contract', () => {
+    const report: PassportSourceCoverageReport = {
+      checks: [
+        { sourceId: 'STATE_BOARD', state: 'accessRequired', reason: 'institutional access required' },
+        { sourceId: 'PECOS_PUBLIC', state: 'notDecisionGrade', reason: 'quarterly contextual dataset' },
+      ],
+      summary: {
+        checked: [],
+        gated: [],
+        pending: [],
+        stale: [],
+        notDecisionGrade: ['PECOS_PUBLIC'],
+        previewOnly: [],
+        unavailable: [],
+        accessRequired: ['STATE_BOARD'],
+        reviewRequired: [],
+      },
+    };
+
+    const authorityState = findPassportSourceCoverageCheck(report, ['STATE_BOARD'])?.state;
+    const eligibilityState = findPassportSourceCoverageCheck(report, ['PECOS'])?.state;
+
+    expect(authorityState).toBe('accessRequired');
+    expect(eligibilityState).toBe('notDecisionGrade');
+    expect(formatSourceHealthCoverageState(authorityState ?? 'pending')).toBe(
+      sourceCoverageStateLabel(authorityState ?? 'pending'),
+    );
+    expect(formatSourceHealthCoverageState(eligibilityState ?? 'pending')).toBe(
+      sourceCoverageBadgeLabel({ state: eligibilityState ?? 'pending', decisionGrade: false }),
+    );
   });
 });

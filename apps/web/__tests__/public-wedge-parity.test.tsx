@@ -8,6 +8,7 @@ import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
   buildPassportLookupHref,
+  getPublicWedgeSurfaceBadgeMeta,
   getPublicWedgeSurfaceStateLabel,
   isPublicWedgeStrongOutcome,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
@@ -81,11 +82,23 @@ describe('public wedge parity helpers', () => {
   it('keeps coverage, accordion, and strong-outcome semantics on the same contract', () => {
     expect(resolvePublicWedgeSurfaceStateFromCoverage('reviewRequired')).toBe('review_required');
     expect(resolvePublicWedgeSurfaceStateFromCoverage('notDecisionGrade')).toBe('preview_only');
+    expect(resolvePublicWedgeSurfaceStateFromCoverage('previewOnly')).toBe('preview_only');
     expect(resolvePublicWedgeSurfaceStateFromAccordionStatus('stale')).toBe('stale');
     expect(resolvePublicWedgeSurfaceStateFromAccordionStatus('access_required')).toBe('access_required');
     expect(isPublicWedgeStrongOutcome('checked')).toBe(true);
     expect(isPublicWedgeStrongOutcome('review_required')).toBe(false);
     expect(isPublicWedgeStrongOutcome('preview_only')).toBe(false);
+  });
+
+  it('keeps checked and preview-only rendering semantics distinct', () => {
+    expect(getPublicWedgeSurfaceBadgeMeta('checked')).toEqual({
+      status: 'checked',
+      label: 'Checked',
+    });
+    expect(getPublicWedgeSurfaceBadgeMeta('preview_only')).toEqual({
+      status: 'demo',
+      label: 'Preview only',
+    });
   });
 
   it('keeps shared wedge state labels explicit across homepage, passport, review, and request surfaces', () => {

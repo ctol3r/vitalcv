@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 const reviewClientSpy = vi.fn();
 
@@ -160,5 +161,18 @@ describe('review page contract', () => {
     expect(markup).toContain('Employer review unavailable');
     expect(markup).toContain('Passport hydration missing.');
     expect(markup).toContain('/review/entity-1?contextId=ctx-1&amp;bundleId=bundle-1&amp;from=Ada+Lovelace');
+  });
+
+  it('keeps buyer CTA routing on the review and request-review paths without inflating the promise', async () => {
+    const ReviewLandingPage = (await import('../app/review/page')).default;
+    const markup = renderToStaticMarkup(<ReviewLandingPage />);
+
+    expect(markup).toContain('Employer review opens from a real passport share link.');
+    expect(markup).toContain(`href="${PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}"`);
+    expect(markup).toContain(`href="${PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}"`);
+    expect(markup).toContain('href="/review/request"');
+    expect(markup).toContain('Request a passport review');
+    expect(markup).not.toMatch(/verified review/i);
+    expect(markup).not.toMatch(/instant/i);
   });
 });

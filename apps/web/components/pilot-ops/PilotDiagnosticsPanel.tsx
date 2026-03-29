@@ -2,54 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  type SourceOpsEntry,
   type SourceOpsReport,
 } from '@/lib/mission-ops/sourceOpsTypes';
+import {
+  classifySourceHealthErrors,
+  formatSourceHealthAge,
+  type SourceHealthErrorClass,
+} from '@/lib/mission-ops/sourceHealthContract';
 
-type ErrorClass = 'connectivity' | 'freshness' | 'config';
-
-interface ErrorGroup {
-  label: string;
-  className: ErrorClass;
-  sources: SourceOpsEntry[];
-}
-
-function formatAge(isoDate: string | null): string {
-  if (!isoDate) return 'never';
-  const ms = Date.now() - new Date(isoDate).getTime();
-  if (ms < 0) return 'just now';
-  const hours = Math.floor(ms / 3_600_000);
-  if (hours < 1) {
-    const mins = Math.floor(ms / 60_000);
-    return mins < 1 ? 'just now' : `${mins}m ago`;
-  }
-  if (hours < 48) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function classifyErrors(spineSources: SourceOpsEntry[]): ErrorGroup[] {
-  const connectivity = spineSources.filter((s) => s.coverageState === 'unavailable');
-  const freshness = spineSources.filter((s) => s.coverageState === 'stale');
-  const config = spineSources.filter((s) => s.coverageState === 'pending');
-
-  const groups: ErrorGroup[] = [];
-  if (connectivity.length > 0) {
-    groups.push({ label: 'Connectivity', className: 'connectivity', sources: connectivity });
-  }
-  if (freshness.length > 0) {
-    groups.push({ label: 'Freshness', className: 'freshness', sources: freshness });
-  }
-  if (config.length > 0) {
-    groups.push({ label: 'Configuration', className: 'config', sources: config });
-  }
-  return groups;
-}
-
-const ERROR_CLASS_COLORS: Record<ErrorClass, string> = {
+const ERROR_CLASS_COLORS: Record<SourceHealthErrorClass, string> = {
   connectivity: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
   freshness: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
   config: 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400',
+  unsupported: 'border-zinc-600/30 bg-zinc-600/10 text-zinc-500',
+  review: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
 };
 
 export function PilotDiagnosticsPanel() {
@@ -105,7 +71,7 @@ export function PilotDiagnosticsPanel() {
     .filter((s) => s.consecutiveFailures > 0)
     .sort((a, b) => b.consecutiveFailures - a.consecutiveFailures);
   const mostFailing = failingSources[0] ?? null;
-  const errorGroups = classifyErrors(spineSources);
+  const errorGroups = classifySourceHealthErrors(spineSources);
   const allHealthy = !mostFailing && errorGroups.length === 0;
 
   return (
@@ -139,12 +105,12 @@ export function PilotDiagnosticsPanel() {
             </h4>
             <div className="space-y-1">
               {spineSources.map((source) => (
-                <div key={source.sourceId} className="flex items-center justify-between px-1 py-1">
-                  <span className="text-[11px] text-zinc-400">{source.name}</span>
-                  <span className="text-[11px] text-zinc-500">{formatAge(source.lastSuccessAt)}</span>
-                </div>
-              ))}
-            </div>
+              <div key={source.sourceId} className="flex items-center justify-between px-1 py-1">
+                <span className="text-[11px] text-zinc-400">{source.name}</span>
+                <span className="text-[11px] text-zinc-500">{formatSourceHealthAge(source.lastSuccessAt)}</span>
+              </div>
+            ))}
+          </div>
           </div>
 
           {errorGroups.length > 0 && (
