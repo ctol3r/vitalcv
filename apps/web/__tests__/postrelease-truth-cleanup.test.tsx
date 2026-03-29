@@ -650,9 +650,9 @@ describe('post-release truth cleanup', () => {
     // TODO: Content cleanup needed — "Every healthcare job" is aspirational, not current
     expect(markup).toContain('Free Specialty Job Board');
 
-    // Pillar 03 — current state: still uses MATCHA branding
-    // TODO: Content cleanup needed — MATCHA is an internal project name, not public brand
-    expect(markup).toContain('MATCHA');
+    // Pillar 03 — renamed from MATCHA to "Career Signal" (Wave 17)
+    expect(markup).toContain('Career Signal');
+    expect(markup).not.toContain('MATCHA — AI Career Matching');
 
     expectMarkupExcludes(markup, PROHIBITED_PUBLIC_STRINGS);
   });
