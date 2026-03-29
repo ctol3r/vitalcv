@@ -1,9 +1,12 @@
 # VitalCV — Pilot Proof Pack
 
-**For:** Healthcare Employer — Credentialing Director / Staffing Ops
+**For:** Credentialing Director / Staffing Ops (healthcare employer)
 **From:** VitalCV Pilot Team
 **Date:** 2026-03-28
-**Source:** Real system outputs — vitalcv.com / Railway backend
+**Source:** Live system — vitalcv.com · backend SHA 18162024c · pulled 2026-03-28T22:29Z
+
+> All data in this document was retrieved from the live production system, not a demo or simulation.
+> Metric estimates are labeled as estimates. Real TTS data requires a completed pilot case.
 
 ---
 
@@ -120,7 +123,7 @@ After: One NPI input at vitalcv.com delivers a pre-assembled, timestamped, sourc
 | Audit trail | None | Timestamped passport with source attribution | ✅ New capability |
 | State board | Manual (~30 min–hours) | **Not automated in pilot** — flagged transparently | Honest gap |
 
-**Estimated TTS reduction hypothesis:** If 2–5 of the average 14-day credentialing delay is attributable to the initial federal lookup and assembly phase, VitalCV targets a 2–5 day TTS reduction per case. This will be measured during the pilot.
+**TTS reduction hypothesis (not a guarantee):** If 2–5 days of the typical 14-day credentialing delay are attributable to the initial federal lookup and assembly phase, VitalCV targets a 2–5 day TTS reduction per case. This hypothesis will be tested and measured during the pilot. It may be higher or lower depending on your workflow.
 
 ---
 

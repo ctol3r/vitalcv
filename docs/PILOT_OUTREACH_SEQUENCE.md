@@ -1,5 +1,8 @@
 # VitalCV — Pilot Outreach Sequence
-**Updated:** 2026-03-28 | **Source:** Real system data (NPI 1003000126, vitalcv.com live)
+**Updated:** 2026-03-28 | **Data source:** Live system — NPI 1003000126 pulled 2026-03-28T22:29Z
+**One buyer:** Healthcare employer (credentialing director / staffing ops)
+**One workflow:** NPI → readiness → passport → employer review → start outcome
+**One KPI:** Time to Start (TTS)
 
 > 3-touch sequence for 10 warm healthcare operators.
 > Goal: book one 15-minute demo call per contact.

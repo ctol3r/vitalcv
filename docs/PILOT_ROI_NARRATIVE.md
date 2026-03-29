@@ -1,8 +1,9 @@
 # VitalCV Pilot — ROI Narrative
 
 > Use this in pilot conversations to quantify the problem and frame the value.
-> The "real system output" section is drawn from live vitalcv.com data (2026-03-28).
-> Cost figures are conservative estimates — adjust with actual buyer data.
+> **Real system data:** NPI 1003000126 pulled live from vitalcv.com on 2026-03-28T22:29Z.
+> **Cost model:** Conservative estimates only — use as conversation anchors, not guarantees.
+> **TTS reduction:** Hypothesis until measured by real pilot cases. Do not present as proven.
 
 ---
 
