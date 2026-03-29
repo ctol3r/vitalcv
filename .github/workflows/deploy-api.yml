@@ -8,6 +8,12 @@ on:
       - 'packages/**'
       - 'railway.toml'
       - 'pnpm-lock.yaml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'manual redeploy'
 
 concurrency:
   group: deploy-api
