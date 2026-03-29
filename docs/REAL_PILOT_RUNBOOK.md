@@ -14,6 +14,32 @@ Do NOT mix simulation data with real pilot evidence in the same evidence file.
 
 ---
 
+## Pilot Structure (Locked)
+
+| Dimension | Value |
+|-----------|-------|
+| Buyer type | Credentialing director / staffing ops / recruiting lead |
+| Workflow | Already-qualified clinician nearing start |
+| Primary KPI | Interview-to-Start Velocity (TTS delta) |
+| Default terrain | Northern California healthcare employer (or first available live lane) |
+| Proof story | NPI → readiness → passport → employer decision → start outcome |
+
+---
+
+## Event Chain (All Must Fire for a Complete Pilot Case)
+
+| Step | Event/Record | Where Captured | Verification |
+|------|-------------|----------------|-------------|
+| 1. Passport shared | `BundleShareEvent` | DB: `bundle_share_events` | `eventChain.bundleShareEvents` in KPI |
+| 2. Employer review opened | `AdvisoryOutcomeEvent` (EMPLOYER_REVIEW) | DB: `advisory_outcome_events` | `eventChain.advisoryOutcomeEvents` |
+| 3. Employer decision | `EmployerDecisionEvent` | DB: `employer_decision_events` | `eventChain.employerDecisionEvents` |
+| 4. Blocker resolved (if any) | `blocker_resolved` metric event | `pilot_metric_events` | `metrics.blockerResolved` |
+| 5. Start outcome | `StartOutcomeEvent` | DB: `start_outcome_events` | `eventChain.startOutcomeEvents` |
+
+Verify after each case: `GET /api/internal/pilot/kpis` → `eventChain` object.
+
+---
+
 ## Prerequisites
 
 - Access to https://vitalcv.com (production)
