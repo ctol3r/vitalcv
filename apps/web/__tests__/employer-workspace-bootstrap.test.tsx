@@ -233,7 +233,8 @@ describe('/review landing page', () => {
 
     expect(markup).toContain('Request a passport review');
     expect(markup).toContain('/review/request');
-    expect(markup).toContain('Are you an employer?');
+    // Updated: "Are you an employer?" removed — page now opens directly with employer framing
+    expect(markup).toContain('Employer review');
   });
 
   it('shows clinician recovery paths', async () => {
@@ -241,7 +242,7 @@ describe('/review landing page', () => {
     const markup = renderToStaticMarkup(<ReviewLandingPage />);
 
     expect(markup).toContain('Start with NPI lookup');
-    expect(markup).toContain('View passport');
-    expect(markup).toContain('Open a shared passport review');
+    // Updated: page tone improved — direct employer framing, no warning-heavy copy
+    expect(markup).toContain("Review a clinician");
   });
 });

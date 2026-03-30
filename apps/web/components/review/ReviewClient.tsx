@@ -873,17 +873,20 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
                         );
                       })}
 
-                      {certCreds.map((credential) => (
-                        <TrustLabel
-                          key={credential.id}
-                          status="checked"
-                          label={`Board certified${credential.jurisdiction ? ` — ${credential.jurisdiction}` : ''}`}
-                          source={credential.issuerName ?? credential.sourceId ?? 'ABMS'}
-                          timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
-                          note={formatAsOfDate(credential.observedAt ?? credential.verifiedAt) ?? undefined}
-                          explanation="Board certification is on file from the issuing authority."
-                        />
-                      ))}
+                      {certCreds.map((credential) => {
+                        const row = buildAuthorityRow(credential);
+                        return (
+                          <TrustLabel
+                            key={credential.id}
+                            status={row.status}
+                            label={row.label}
+                            source={resolveAuthorityMethodLabel(credential)}
+                            timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
+                            note={row.note}
+                            explanation={row.explanation}
+                          />
+                        );
+                      })}
 
                       {!hasAny && (
                         <TrustLabel

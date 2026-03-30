@@ -508,10 +508,10 @@ describe('post-release truth cleanup', () => {
     expect(findHrefByText(interviewMarkup, 'Go to passport')).toBe('/passport');
     expectMarkupExcludes(interviewMarkup, PROHIBITED_PUBLIC_STRINGS);
 
-    expect(reviewMarkup).toContain('Open a shared passport review');
-    expect(reviewMarkup).toContain('share when a real passport exists');
+    // Updated: /review page now uses direct employer framing (seam-close wave)
+    expect(reviewMarkup).toContain('Employer review');
+    expect(reviewMarkup).toContain('Request a passport review');
     expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/');
-    expect(findHrefByText(reviewMarkup, 'View passport')).toBe('/passport');
   }, 20000);
 
   it('keeps the developers hero and key resource blocks on current/preview wording', async () => {

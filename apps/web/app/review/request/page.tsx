@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function RequestReviewPage() {
   return (
-    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-16 sm:pt-24 pb-24">
+    <main className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 sm:pt-24 pb-24">
       <div className="w-full max-w-sm">
         <RequestReviewPanel />
       </div>

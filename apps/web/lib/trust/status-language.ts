@@ -187,7 +187,7 @@ export function readinessLevelLabel(level: string | null | undefined): string {
   switch (level) {
     case 'L0': return 'Foundation — not ready';
     case 'L1': return 'Provisional — review required';
-    case 'L2': return 'Verified — ready to proceed';
+    case 'L2': return 'Source-backed — ready to proceed';
     case 'L3': return 'Trust-Native — decision grade';
     default: return level ?? 'Unknown';
   }
@@ -198,8 +198,8 @@ export function canonicalCredStatus(raw: string): string {
   const map: Record<string, string> = {
     VERIFIED: 'Verified',
     verified: 'Verified',
-    ACTIVE: 'Verified',
-    active: 'Verified',
+    ACTIVE: 'Active',
+    active: 'Active',
     PENDING: 'Pending',
     pending: 'Pending',
     UNVERIFIED: 'Pending',

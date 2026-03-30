@@ -524,7 +524,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
 
   return (
-    <section className="relative" style={{ background: '#080e1a' }}>
+    <section className="relative bg-background">
       {/* Radial */}
       <div
         aria-hidden
