@@ -36,6 +36,7 @@ import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCo
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import { readinessLevelLabel } from '@/lib/trust/status-language';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
@@ -770,7 +771,7 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
-              <p className="mt-1 text-lg font-semibold text-white">{readiness.level}</p>
+              <p className="mt-1 text-lg font-semibold text-white">{readinessLevelLabel(readiness.level)}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
