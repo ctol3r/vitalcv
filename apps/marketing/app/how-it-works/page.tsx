@@ -41,7 +41,7 @@ export default function HowItWorksPage() {
   return (
     <main className="bg-background">
       <section className="mx-auto max-w-[1200px] px-6 pt-20 pb-12 md:pt-28">
-        <p className="text-sm uppercase tracking-[0.2em] text-muted">YC flow</p>
+        <p className="text-sm uppercase tracking-[0.2em] text-muted">Credentialing flow</p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
           Lightweight trust loop for credentialing.
         </h1>

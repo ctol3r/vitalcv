@@ -17,8 +17,8 @@ export default function Providers({
     <RoleProvider initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
       <ThemeProvider
         attribute="class"
-        defaultTheme="dark"
-        enableSystem={false}
+        defaultTheme="system"
+        enableSystem={true}
         themes={['light', 'dark']}
       >
         {children}
