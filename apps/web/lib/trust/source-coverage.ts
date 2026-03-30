@@ -53,6 +53,8 @@ export function normalizePassportSourceCoverageChecks(
       state,
       reason,
       checkedAt: toTrimmedString(entry?.checkedAt) ?? null,
+      observedAt: toTrimmedString(entry?.observedAt) ?? null,
+      expiresAt: toTrimmedString(entry?.expiresAt) ?? null,
       artifactId: toTrimmedString(entry?.artifactId) ?? null,
       sourceUrl: toTrimmedString(entry?.sourceUrl) ?? null,
       rawArtifactRef: toTrimmedString(entry?.rawArtifactRef) ?? null,

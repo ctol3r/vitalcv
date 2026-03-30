@@ -23,16 +23,10 @@ export function HeroSection() {
 
       <div className="mt-10 flex items-center gap-6">
         <Link
-          href="/clinician"
+          href="https://vitalcv.com/passport"
           className="text-sm font-medium text-foreground underline underline-offset-4 decoration-border transition-theme hover:decoration-foreground"
         >
-          Clinician &rarr;
-        </Link>
-        <Link
-          href="/verifier"
-          className="text-sm font-medium text-foreground underline underline-offset-4 decoration-border transition-theme hover:decoration-foreground"
-        >
-          Verifier &rarr;
+          Check your readiness &rarr;
         </Link>
       </div>
     </section>

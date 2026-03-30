@@ -148,4 +148,78 @@ export interface PilotProofSummary {
   recentProgress: OutcomeStateChange[];
   topProofGaps: PilotProofGap[];
   remainingGaps: PilotProofGap[];
+  livePilot: {
+    windowDays: number;
+    measuredDelta: {
+      medianDaysFirstReviewToDecision: number | null;
+      medianDaysFirstReviewToReady: number | null;
+      medianDaysFirstReviewToStart: number | null;
+      medianDaysShareToDecision: number | null;
+      sampleSizes: {
+        reviewToDecision: number;
+        reviewToReady: number;
+        reviewToStart: number;
+        shareToDecision: number;
+      };
+    };
+    startOutcomes: {
+      totalStarts: number;
+      totalOutcomeRecords: number;
+      didNotStartCount: number;
+      nonStartReasons: Array<{
+        reason: string;
+        count: number;
+      }>;
+    };
+    eventChain: {
+      bundleShareEvents: number;
+      advisoryOutcomeEvents: number;
+      employerDecisionEvents: number;
+      blockerResolutionEvents: number;
+      blockerResolvedMetricEvents: number;
+      readinessChangeEvents: number;
+      startOutcomeEvents: number;
+      nonStartOutcomeEvents: number;
+      employerAcceptances: number;
+      startAttestations: number;
+    };
+    proofChain: {
+      totalEvents: number;
+      totalCases: number;
+      replayableCases: number;
+      partialCases: number;
+      cases: Array<{
+        caseKey: string;
+        entityId: string | null;
+        npi: string | null;
+        organizationContextId: string | null;
+        organizationId: string | null;
+        eventNames: Array<'packet_shared' | 'employer_review_opened' | 'employer_decision_recorded' | 'readiness_changed' | 'blocker_resolved' | 'start_outcome_recorded'>;
+        missingCoreEvents: Array<'packet_shared' | 'employer_review_opened' | 'employer_decision_recorded' | 'start_outcome_recorded'>;
+        replayable: boolean;
+        lastOccurredAt: string;
+        nonStartReason: string | null;
+      }>;
+      events: Array<{
+        eventName: 'packet_shared' | 'employer_review_opened' | 'employer_decision_recorded' | 'readiness_changed' | 'blocker_resolved' | 'start_outcome_recorded';
+        occurredAt: string;
+        caseKey: string;
+        entityId: string | null;
+        npi: string | null;
+        organizationContextId: string | null;
+        organizationId: string | null;
+        pilotId: string | null;
+        workflowLane: string | null;
+        geographyTag: string | null;
+        sourceRecordType: string;
+        sourceRecordId: string;
+        outcomeStatus: string | null;
+        detail: string | null;
+      }>;
+    };
+    exports: {
+      json: true;
+      csv: true;
+    };
+  };
 }

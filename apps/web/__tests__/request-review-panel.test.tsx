@@ -177,6 +177,8 @@ describe('request review panel', () => {
     expect(textContent(view.container)).toContain('Review link');
     expect(textContent(view.container)).toContain('Copy review link');
     expect(hrefForText(view.container, 'Open review')).toBe(reviewUrl);
+    expect(hrefForText(view.container, 'Open review')).toContain('/review/');
+    expect(hrefForText(view.container, 'Open review')).not.toContain('/pilot');
     expect(textContent(view.container)).not.toContain('verified review');
 
     await view.unmount();

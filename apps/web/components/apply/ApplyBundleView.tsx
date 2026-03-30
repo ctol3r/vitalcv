@@ -62,6 +62,7 @@ const MONITORING_META = {
 
 const STATUS_COLORS: Record<string, string> = {
   Verified: 'text-white/70',
+  Active: 'text-white/60',
   Pending: 'text-white/55',
   Unavailable: 'text-white/35',
 };

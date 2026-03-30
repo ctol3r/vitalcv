@@ -133,7 +133,8 @@ describe('employer request context flow', () => {
 
     expect(markup).toContain('Request a passport review');
     expect(markup).toContain('/review/request');
-    expect(markup).toContain('Are you an employer?');
+    // Updated: page now uses direct employer framing ("Employer review") instead of "Are you an employer?"
+    expect(markup).toContain('Employer review');
   });
 
   it('request-review API route returns 401 when unauthenticated', async () => {

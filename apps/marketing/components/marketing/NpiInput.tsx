@@ -67,8 +67,9 @@ export function NpiInput() {
         const data: { exists: boolean } = await res.json();
 
         if (data.exists) {
-          const refQuery = ref ? `&ref=${ref}` : '';
-          router.push(`/clinician?npi=${value}${refQuery}`);
+          // Route to the real live wedge on vitalcv.com
+          const webBase = process.env.NEXT_PUBLIC_WEB_APP_URL ?? 'https://vitalcv.com';
+          window.location.href = `${webBase}/passport?npi=${value}`;
         } else {
           setError('NPI not found');
         }

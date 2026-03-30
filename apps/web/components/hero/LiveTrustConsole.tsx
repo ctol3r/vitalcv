@@ -9,12 +9,12 @@
  *   1. POST /api/identity/[npi]/ingest  — real NPPES + OIG/LEIE query
  *   2. GET  /api/trust-state/[npi]      — real readiness state from ingested claims
  *   Both are real backend calls. If the backend is unreachable, the component
- *   falls back to demo data and labels it clearly.
+ *   preserves the entered NPI and renders a clearly degraded preview state.
  *
  * preview:
  *   ReadinessPreview receives either:
  *     realState: ClinicianTrustState  (from trust-state endpoint)
- *     null                            (backend unavailable — demo fallback)
+ *     null                            (backend unavailable — degraded fallback)
  *
  * Color rule: green is used ONLY on the CTA button.
  */
@@ -43,7 +43,11 @@ import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
 } from '@/lib/trust/status-language';
-import { ReadinessPreview, type ClinicianTrustState } from './ReadinessPreview';
+import {
+  ReadinessPreview,
+  type ClinicianTrustState,
+  type DegradedPreviewReason,
+} from './ReadinessPreview';
 
 type Phase = 'idle' | 'loading' | 'preview';
 
@@ -206,6 +210,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const [previewIn, setPreviewIn] = useState(false);
   const [realState, setRealState] = useState<ClinicianTrustState | null>(null);
   const [isDemo,    setIsDemo]    = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<DegradedPreviewReason | null>(null);
   const [previewNotice, setPreviewNotice] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [showLoadingPanel, setShowLoadingPanel] = useState(false);
@@ -301,6 +306,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     setPreviewIn(false);
     setRealState(null);
     setIsDemo(false);
+    setFallbackReason(null);
     setPreviewNotice(null);
     setFormMessage(null);
   }
@@ -348,7 +354,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
     }
 
     const submitId = activeSubmitIdRef.current + 1;
-    let previewName = 'Provider';
+    let previewName = `NPI ${trimmed}`;
     let previewErrorType: 'backend_unavailable' | 'partial_coverage' | null = null;
 
     function recordPreviewError(errorType: 'backend_unavailable' | 'partial_coverage') {
@@ -405,6 +411,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
           READINESS: 'skipped',
         }));
         setIsDemo(true);
+        setFallbackReason('backendUnavailable');
         setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
         recordPreviewError('backend_unavailable');
       } else {
@@ -426,6 +433,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         READINESS: 'skipped',
       }));
       setIsDemo(true);
+      setFallbackReason('backendUnavailable');
       setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
       recordPreviewError('backend_unavailable');
     }
@@ -447,6 +455,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
           setStages(prev => setStageStatus(prev, 'READINESS', 'ok'));
         } else {
           setIsDemo(true);
+          setFallbackReason('partialCoverage');
           setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
           setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
           recordPreviewError('partial_coverage');
@@ -454,12 +463,14 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       } catch {
         if (!isActiveSubmit(submitId)) return;
         setIsDemo(true);
+        setFallbackReason('partialCoverage');
         setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
         setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
         recordPreviewError('partial_coverage');
       }
     } else if (!ingestOk) {
       setIsDemo(true);
+      setFallbackReason((prev) => prev ?? 'partialCoverage');
       setPreviewNotice((prev) => prev ?? LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
       setStages(prev => setStageStatus(prev, 'READINESS', 'skipped'));
       recordPreviewError('partial_coverage');
@@ -513,7 +524,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
 
   return (
-    <section className="relative" style={{ background: '#080e1a' }}>
+    <section className="relative bg-background">
       {/* Radial */}
       <div
         aria-hidden
@@ -679,6 +690,12 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                   isDemo={isDemo}
                   visible={previewIn}
                   onContinue={handleContinue}
+                  fallbackReason={fallbackReason}
+                  fallbackSources={{
+                    nppes: stages.find((stage) => stage.id === 'NPPES_API')?.status ?? 'skipped',
+                    oig: stages.find((stage) => stage.id === 'OIG_LEIE')?.status ?? 'skipped',
+                    readiness: stages.find((stage) => stage.id === 'READINESS')?.status ?? 'failed',
+                  }}
                 />
               </div>
             )}

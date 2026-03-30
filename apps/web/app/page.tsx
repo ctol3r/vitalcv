@@ -7,7 +7,7 @@ import { HowItWorksSection } from '@/components/marketing/HomeSections';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#080e1a] dark:bg-[#080e1a]">
+    <div className="min-h-screen bg-background">
       <HeroWithAuthPrompt />
       <TrustStrip />
       <HowItWorksSection />

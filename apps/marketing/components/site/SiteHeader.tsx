@@ -1,27 +1,11 @@
 import Link from 'next/link';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/security', label: 'Security' },
-  { href: '/demo', label: 'Demo' },
-  { href: '/progress', label: 'Progress' },
-  { href: '/clinician', label: 'Clinician' },
-  { href: '/verifier', label: 'Verifier' },
+  { href: 'https://vitalcv.com/employers', label: 'For Employers' },
   { href: '/contact', label: 'Contact' },
 ];
-
-const actionLinks = [
-  { href: '/demo', label: 'Try demo', tone: 'primary' },
-  { href: '/security', label: 'Read security', tone: 'ghost' },
-  { href: '/progress', label: 'See progress', tone: 'ghost' },
- ] as const;
-
-function actionClass(tone: 'primary' | 'ghost'): string {
-  return tone === 'primary'
-    ? 'rounded-md border border-border bg-foreground px-3.5 py-1.5 text-sm font-medium text-background transition-theme hover:opacity-90'
-    : 'rounded-md border border-border px-3.5 py-1.5 text-sm font-medium text-foreground transition-theme hover:bg-surface';
-}
 
 export default function SiteHeader() {
   return (
@@ -49,16 +33,13 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {actionLinks.map((link) => (
-            <Link
-              href={link.href}
-              key={link.href}
-              className={actionClass(link.tone)}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-2">
+          <Link
+            href="https://vitalcv.com/passport"
+            className="rounded-md border border-border bg-foreground px-3.5 py-1.5 text-sm font-medium text-background transition-theme hover:opacity-90"
+          >
+            Check Readiness
+          </Link>
         </div>
       </div>
     </header>

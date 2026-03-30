@@ -43,7 +43,14 @@ export async function POST(
       `${BACKEND}/api/identity/${encodeURIComponent(npi)}/ingest`,
       {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Public wedge uses the demo pilot org context.
+          // This is required while the backend tenant guard awaits a Railway redeploy
+          // that adds /api/identity to the anonymous skip list (commit 342a83e8 in main).
+          // Remove this header once the backend is deployed from main.
+          'x-org-id': process.env.PUBLIC_WEDGE_ORG_ID ?? 'demo-pilot-org-alpha',
+        },
         // Only run the two fast authoritative sources for the homepage flow.
         // Slower sources (PUBMED, OPENALEX, STATE_BOARD) run separately via the
         // full ingest or background monitor.

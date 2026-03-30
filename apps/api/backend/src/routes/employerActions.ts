@@ -26,7 +26,6 @@ import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
 import { sha256ForPayload } from '../utils/deterministic';
 import {
-  captureAdvisoryEvent,
   captureEmployerDecision,
 } from '../services/seal/sealEventCapture';
 import { buildPassport } from '../services/entity/passportService';
@@ -72,6 +71,39 @@ function resolvePacketExportFormat(req: Request): 'json' | 'zip' {
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function buildEmployerDecisionMetadata(input: {
+  attribution: {
+    organizationContextId: string | null;
+    bundleShareEventId: string | null;
+    bundleId: string | null;
+    organizationId: string | null;
+    organizationName: string | null;
+    purposeOfUse: string | null;
+  };
+  scopeSource?: Record<string, unknown> | null;
+  extra?: Record<string, unknown>;
+}): Record<string, unknown> {
+  const scopeSource = input.scopeSource ?? {};
+
+  return {
+    eventName: 'employer_decision_recorded',
+    organizationContextId: input.attribution.organizationContextId ?? null,
+    bundleShareEventId: input.attribution.bundleShareEventId ?? null,
+    bundleId: input.attribution.bundleId ?? null,
+    organizationId: input.attribution.organizationId ?? null,
+    organizationName: input.attribution.organizationName ?? null,
+    purposeOfUse: input.attribution.purposeOfUse ?? null,
+    pilotId: readOptionalString(scopeSource.pilotId),
+    workflowLane: readOptionalString(scopeSource.workflowLane),
+    geographyTag: readOptionalString(scopeSource.geographyTag),
+    ...(input.extra ?? {}),
+  };
 }
 
 // ── Route registration ─────────────────────────────────────────────────────
@@ -138,6 +170,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       const snap = state.trustSnapshot;
       void captureEmployerDecision({
         entityId,
+        organizationContextId: state.attribution.organizationContextId,
         decision:                'PROCEED',
         reviewerRole:            'EMPLOYER',
         auditEventId:            state.auditEventId,
@@ -153,8 +186,16 @@ export function registerEmployerActionRoutes(app: Express): void {
           staleCredentials:      snap?.staleCredentialCount,
           snapshotHash:          snap?.snapshotHash,
         },
+        readinessScoreAtDecision: snap?.readinessScore ?? null,
         blockersAtDecision:      snap?.topBlockers ?? [],
-        metadata:                { role: role ?? null, facility: facility ?? null },
+        metadata:                buildEmployerDecisionMetadata({
+          attribution: state.attribution,
+          scopeSource: req.body ?? null,
+          extra: {
+            role: role ?? null,
+            facility: facility ?? null,
+          },
+        }),
       });
 
       return void res.status(201).json({ ok: true, state });
@@ -205,15 +246,40 @@ export function registerEmployerActionRoutes(app: Express): void {
         missingDomains: state.details.missingDomains,
       });
 
-      // SEAL: fire-and-forget refresh request signal
-      void captureAdvisoryEvent({
+      // SEAL: fire-and-forget refresh request decision with full trust snapshot
+      const snap = state.trustSnapshot;
+      void captureEmployerDecision({
         entityId,
-        advisoryVersion:       'employer-refresh-request',
-        eventType:             'EMPLOYER_REVIEW',
-        blockersAtEvent:       state.details.missingDomains,
-        readinessScoreAtEvent: null,
-        sourceCoverageAtEvent: { staleSources: state.details.staleSources },
-        metadata:              { auditEventId: state.auditEventId, reason: 'refresh_requested' },
+        organizationContextId: state.attribution.organizationContextId,
+        decision: 'REQUEST_REFRESH',
+        reviewerRole: 'EMPLOYER',
+        auditEventId: state.auditEventId,
+        trustSnapshotAtDecision: {
+          staleSources: state.details.staleSources,
+          missingDomains: state.details.missingDomains,
+          readinessStatus: snap?.readinessStatus,
+          readinessScore: snap?.readinessScore,
+          trustBand: snap?.trustBand,
+          trustScore: snap?.trustScore,
+          blockerCount: snap?.blockerCount,
+          topBlockers: snap?.topBlockers,
+          exclusionStatus: snap?.exclusionStatus,
+          snapshotHash: snap?.snapshotHash,
+        },
+        readinessScoreAtDecision: snap?.readinessScore ?? null,
+        blockersAtDecision: [...new Set([
+          ...(snap?.topBlockers ?? []),
+          ...state.details.missingDomains,
+        ])],
+        metadata: buildEmployerDecisionMetadata({
+          attribution: state.attribution,
+          scopeSource: req.body ?? null,
+          extra: {
+            staleSources: state.details.staleSources,
+            missingDomains: state.details.missingDomains,
+            reason: state.details.reason,
+          },
+        }),
       });
 
       return void res.status(201).json({ ok: true, state });
@@ -265,6 +331,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       // SEAL: fire-and-forget route-to-review decision signal with full trust snapshot
       void captureEmployerDecision({
         entityId,
+        organizationContextId: state.attribution.organizationContextId,
         decision:                'ROUTE_TO_REVIEW',
         reviewerRole:            'EMPLOYER',
         auditEventId:            state.auditEventId,
@@ -284,11 +351,16 @@ export function registerEmployerActionRoutes(app: Express): void {
             snapshotHash:        s?.snapshotHash,
           };
         })(),
+        readinessScoreAtDecision: state.trustSnapshot?.readinessScore ?? null,
         blockersAtDecision:      state.trustSnapshot?.topBlockers ?? [],
-        metadata:                {
-          reason: state.details.reason,
-          reviewItemCreated: state.persistence.reviewItemCreated,
-        },
+        metadata:                buildEmployerDecisionMetadata({
+          attribution: state.attribution,
+          scopeSource: req.body ?? null,
+          extra: {
+            reason: state.details.reason,
+            reviewItemCreated: state.persistence.reviewItemCreated,
+          },
+        }),
       });
 
       return void res.status(201).json({ ok: true, state });

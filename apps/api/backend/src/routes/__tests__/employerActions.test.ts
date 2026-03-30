@@ -475,10 +475,20 @@ describe('employer action routes', () => {
         }),
       }),
     }));
-    expect(captureAdvisoryEventMock).toHaveBeenCalledWith(expect.objectContaining({
-      blockersAtEvent: ['LICENSURE', 'BOARD_CERTIFICATION'],
-      sourceCoverageAtEvent: { staleSources: ['CMS PECOS', 'OIG LEIE'] },
+    expect(captureEmployerDecisionMock).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'REQUEST_REFRESH',
+      auditEventId: 'audit-1',
+      organizationContextId: null,
+      blockersAtDecision: ['LICENSURE', 'BOARD_CERTIFICATION'],
+      trustSnapshotAtDecision: expect.objectContaining({
+        staleSources: ['CMS PECOS', 'OIG LEIE'],
+        missingDomains: ['LICENSURE', 'BOARD_CERTIFICATION'],
+      }),
+      metadata: expect.objectContaining({
+        eventName: 'employer_decision_recorded',
+      }),
     }));
+    expect(captureAdvisoryEventMock).not.toHaveBeenCalled();
   });
 
   it('routes to review with both queue persistence and outbox persistence when a review item is created', async () => {

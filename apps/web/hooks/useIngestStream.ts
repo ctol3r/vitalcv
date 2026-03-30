@@ -100,6 +100,11 @@ export function useIngestStream() {
       setState(prev => ({
         ...prev,
         phase: 'error',
+        sources: {
+          nppes: 'error',
+          oig: 'error',
+          pecos: 'error',
+        },
         error: err instanceof Error ? err.message : 'Failed to start ingest.',
       }));
     }

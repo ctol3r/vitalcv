@@ -30,7 +30,7 @@ function readOptionalStringArray(value: unknown): string[] | undefined {
     .map((entry) => entry.trim())
     .filter(Boolean);
 
-  return normalized.length > 0 ? normalized : [];
+  return normalized.length > 0 ? [...new Set(normalized)] : [];
 }
 
 function isValidIsoDateString(value: unknown): value is string {
@@ -52,15 +52,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'entityId must be a valid UUID.' }, { status: 400 });
   }
 
+  const requestedStatus = readOptionalString(payload.status)?.toUpperCase();
+  if (requestedStatus && requestedStatus !== 'STARTED' && requestedStatus !== 'DID_NOT_START') {
+    return NextResponse.json({ error: 'status must be STARTED or DID_NOT_START.' }, { status: 400 });
+  }
+
+  const status = requestedStatus ?? 'STARTED';
+  const nonStartReason = readOptionalString(payload.nonStartReason);
   const startedAt = payload.startedAt;
-  if (!isValidIsoDateString(startedAt)) {
+
+  if (status === 'STARTED' && !isValidIsoDateString(startedAt)) {
     return NextResponse.json({ error: 'startedAt must be a valid ISO date string.' }, { status: 400 });
+  }
+
+  if (status === 'DID_NOT_START' && !nonStartReason) {
+    return NextResponse.json({ error: 'nonStartReason is required when status is DID_NOT_START.' }, { status: 400 });
   }
 
   const body: Record<string, unknown> = {
     entityId,
-    startedAt,
+    status,
   };
+
+  if (status === 'STARTED') {
+    body.startedAt = startedAt;
+  }
 
   const organizationContextId = readOptionalString(payload.organizationContextId);
   const pilotId = readOptionalString(payload.pilotId);
@@ -69,6 +85,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const readinessScoreAtStart = readOptionalNumber(payload.readinessScoreAtStart);
   const blockers = readOptionalStringArray(payload.blockers);
   const note = readOptionalString(payload.note);
+  const nonStartCategory = readOptionalString(payload.nonStartCategory);
+  const recordedAt = readOptionalString(payload.recordedAt);
 
   if (organizationContextId) {
     body.organizationContextId = organizationContextId;
@@ -90,6 +108,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
   if (note) {
     body.note = note;
+  }
+  if (status === 'DID_NOT_START' && nonStartReason) {
+    body.nonStartReason = nonStartReason;
+  }
+  if (status === 'DID_NOT_START' && nonStartCategory) {
+    body.nonStartCategory = nonStartCategory;
+  }
+  if (status === 'DID_NOT_START' && recordedAt) {
+    if (!isValidIsoDateString(recordedAt)) {
+      return NextResponse.json({ error: 'recordedAt must be a valid ISO date string.' }, { status: 400 });
+    }
+    body.recordedAt = recordedAt;
   }
 
   try {
@@ -117,7 +147,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json(upstreamPayload ?? { ok: true, entityId, startedAt }, { status: 202 });
+    return NextResponse.json(
+      upstreamPayload
+      ?? {
+        ok: true,
+        entityId,
+        status,
+        ...(body.startedAt ? { startedAt: body.startedAt } : {}),
+        ...(body.recordedAt ? { recordedAt: body.recordedAt } : {}),
+        ...(body.nonStartReason ? { nonStartReason: body.nonStartReason } : {}),
+      },
+      { status: 202 },
+    );
   } catch {
     return NextResponse.json({ error: 'Backend unreachable.' }, { status: 500 });
   }

@@ -9,6 +9,19 @@ export async function GET(req: NextRequest) {
     method: 'GET',
   });
 
+  const contentType = response.headers.get('content-type') ?? 'application/json';
+
+  if (contentType.includes('text/csv')) {
+    const csv = await response.text();
+    return new NextResponse(csv, {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': response.headers.get('content-disposition') ?? 'attachment; filename="vitalcv-pilot-proof.csv"',
+      },
+    });
+  }
+
   const payload = await response.json().catch(() => ({}));
   return NextResponse.json(payload, { status: response.status });
 }

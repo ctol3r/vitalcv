@@ -18,6 +18,7 @@ export {
   CANONICAL_TRUTH_RENDER_RULES,
   DECISION_GRADE_SOURCE_COVERAGE_STATES,
   LAUNCH_SPINE_SOURCE_IDS,
+  buildCanonicalSourceCoverageFreshness,
   coverageSatisfiesDecisionGradeTruth,
   createCanonicalTruth,
   createCanonicalSourceCoverage,
@@ -56,6 +57,17 @@ export {
   type TrustEvidenceKind,
   type TrustUiStatus,
 } from './sourceCoverage';
+
+export {
+  SOURCE_HEALTH_OPERATOR_STATUSES,
+  buildSourceHealthFreshness,
+  isSourceHealthFresh,
+  type SourceHealthEntry,
+  type SourceHealthFreshness,
+  type SourceHealthOperatorStatus,
+  type SourceHealthReport,
+  type SourceHealthSpineStatus,
+} from './sourceHealth';
 
 export type {
   BlockingReason,

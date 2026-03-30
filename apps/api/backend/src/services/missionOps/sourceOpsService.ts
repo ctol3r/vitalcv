@@ -1,7 +1,14 @@
 import {
+  buildSourceHealthFreshness,
+  createCanonicalSourceCoverage,
+  isSourceHealthFresh,
   resolveCanonicalSourceCoverageState,
+  summarizeCanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
-} from '../../../../../../packages/trust-state/sourceCoverage';
+  type SourceHealthEntry as SourceOpsEntry,
+  type SourceHealthOperatorStatus,
+  type SourceHealthReport as SourceOpsReport,
+} from '../../../../../../packages/trust-state';
 import { getIntegrationHealth } from '../externalIntegrations/integrationHealthTracker';
 import {
   isImplementedIngestSource,
@@ -16,28 +23,7 @@ import {
   type ConnectorHealthEntry,
 } from '../providers/connectors/connectorHealthTracker';
 
-export interface SourceOpsReport {
-  timestamp: string;
-  sources: SourceOpsEntry[];
-  spineStatus: 'HEALTHY' | 'DEGRADED' | 'STALE' | 'CRITICAL';
-  alerts: string[];
-}
-
-export interface SourceOpsEntry {
-  sourceId: string;
-  name: string;
-  isSpine: boolean;
-  decisionGrade: boolean;
-  coverageState: CanonicalSourceCoverageState;
-  featureFlag: {
-    key: string;
-    enabled: boolean;
-  };
-  lastSuccessAt: string | null;
-  lastFailureAt: string | null;
-  consecutiveFailures: number;
-  freshnessSlaHours: number;
-}
+export type { SourceOpsEntry, SourceOpsReport };
 
 export const OFFICIAL_SPINE_SOURCES = LAUNCH_SPINE_SOURCE_IDS;
 
@@ -88,15 +74,6 @@ function readSourceHealth(
   };
 }
 
-function isFresh(lastSuccessAt: string | null, freshnessSlaHours: number): boolean {
-  if (!lastSuccessAt) {
-    return false;
-  }
-
-  const ageMs = Date.now() - new Date(lastSuccessAt).getTime();
-  return ageMs <= freshnessSlaHours * 3_600_000;
-}
-
 function nextSpineStatus(
   current: SourceOpsReport['spineStatus'],
   next: SourceOpsReport['spineStatus'],
@@ -111,22 +88,100 @@ function nextSpineStatus(
   return order[next] > order[current] ? next : current;
 }
 
+function describeCoverageState(input: {
+  source: SourceDefinition;
+  coverageState: CanonicalSourceCoverageState;
+  sourceImplemented: boolean;
+  sourceEnabled: boolean;
+  connectorEntry: ConnectorHealthEntry | undefined;
+  sourceHealth: Pick<SourceOpsEntry, 'lastSuccessAt' | 'lastFailureAt' | 'consecutiveFailures'>;
+}): string {
+  const {
+    source,
+    coverageState,
+    sourceImplemented,
+    sourceEnabled,
+    connectorEntry,
+    sourceHealth,
+  } = input;
+
+  if (!sourceImplemented && sourceEnabled) {
+    return `${source.name} is flag-enabled but has no ingestion handler in the launch lane.`;
+  }
+
+  if (!sourceEnabled) {
+    return `${source.name} is disabled by feature flag ${source.envFlag}.`;
+  }
+
+  switch (coverageState) {
+    case 'checked':
+      return `${source.name} is inside its ${source.refreshSlaHours}h freshness window.`;
+    case 'stale':
+      return `${source.name} has missed its freshness SLA of ${source.refreshSlaHours}h.`;
+    case 'unavailable':
+      return connectorEntry?.status === 'UNREACHABLE'
+        ? `${source.name} connector is unreachable.`
+        : `${source.name} has not produced a supported launch-lane result.`;
+    case 'gated':
+      return `${source.name} requires institutional access before it can produce decision-grade coverage.`;
+    case 'accessRequired':
+      return `${source.name} requires an access-controlled lookup before it can produce coverage.`;
+    case 'reviewRequired':
+      return `${source.name} produced a result that requires operator review.`;
+    case 'notDecisionGrade':
+      return `${source.name} is outside the decision-grade launch lane.`;
+    case 'previewOnly':
+      return `${source.name} is preview-only and excluded from monitoring decisions.`;
+    case 'pending':
+      return sourceHealth.lastSuccessAt
+        ? `${source.name} has historical activity but is not active in this environment.`
+        : `${source.name} has not produced a successful fetch yet.`;
+  }
+}
+
+function readOperatorStatus(input: {
+  coverageState: CanonicalSourceCoverageState;
+  consecutiveFailures: number;
+}): SourceHealthOperatorStatus {
+  if (input.coverageState === 'unavailable') {
+    return 'CRITICAL';
+  }
+
+  if (input.coverageState === 'stale') {
+    return 'STALE';
+  }
+
+  if (input.consecutiveFailures >= 3) {
+    return 'DEGRADED';
+  }
+
+  return 'HEALTHY';
+}
+
 export function computeSourceOpsReport(): SourceOpsReport {
   const catalog = listSources();
   const connectorHealth = getConnectorHealth();
   const integrationHealth = getIntegrationHealth();
+  const now = new Date();
 
   const sources: SourceOpsEntry[] = [];
   const alerts: string[] = [];
+  const launchSpineCoverageChecks: ReturnType<typeof createCanonicalSourceCoverage>[] = [];
   let spineStatus: SourceOpsReport['spineStatus'] = 'HEALTHY';
 
   for (const source of catalog) {
-    const isSpine = OFFICIAL_SPINE_SOURCES.includes(source.id as (typeof OFFICIAL_SPINE_SOURCES)[number]);
+    const isSpine = OFFICIAL_SPINE_SOURCES.includes(
+      source.id as (typeof OFFICIAL_SPINE_SOURCES)[number],
+    );
     const sourceImplemented = isImplementedIngestSource(source.id);
     const connectorEntry = findConnectorEntry(source, connectorHealth.connectors);
     const sourceHealth = readSourceHealth(source, connectorEntry, integrationHealth);
     const sourceEnabled = readSourceEnabled(source);
-    const fresh = sourceImplemented && isFresh(sourceHealth.lastSuccessAt, source.refreshSlaHours);
+    const fresh = sourceImplemented && isSourceHealthFresh({
+      lastSuccessAt: sourceHealth.lastSuccessAt,
+      freshnessWindowHours: source.refreshSlaHours,
+      now,
+    });
     const governance = SOURCE_GOVERNANCE[source.id];
     const coverageState = !sourceImplemented
       ? sourceEnabled
@@ -138,9 +193,30 @@ export function computeSourceOpsReport(): SourceOpsReport {
             checked: Boolean(sourceHealth.lastSuccessAt),
             fresh,
             unavailable: connectorEntry?.status === 'UNREACHABLE',
-            gated: governance?.accessBoundary === 'institutional' || governance?.accessBoundary === 'gated',
+            gated:
+              governance?.accessBoundary === 'institutional'
+              || governance?.accessBoundary === 'gated',
             notDecisionGrade: !source.decisionGrade,
           });
+    const coverageReason = describeCoverageState({
+      source,
+      coverageState,
+      sourceImplemented,
+      sourceEnabled,
+      connectorEntry,
+      sourceHealth,
+    });
+    const operatorStatus = readOperatorStatus({
+      coverageState,
+      consecutiveFailures: sourceHealth.consecutiveFailures,
+    });
+    const coverage = createCanonicalSourceCoverage({
+      sourceId: source.id,
+      state: coverageState,
+      reason: coverageReason,
+      checkedAt: sourceHealth.lastSuccessAt,
+      freshnessWindowHours: source.refreshSlaHours,
+    });
 
     const decisionGrade = coverageState === 'checked';
     const isUnavailable = coverageState === 'unavailable';
@@ -154,6 +230,7 @@ export function computeSourceOpsReport(): SourceOpsReport {
       } else if (sourceHealth.consecutiveFailures >= 3) {
         spineStatus = nextSpineStatus(spineStatus, 'DEGRADED');
       }
+      launchSpineCoverageChecks.push(coverage);
     }
 
     if (
@@ -170,11 +247,15 @@ export function computeSourceOpsReport(): SourceOpsReport {
     }
 
     if (sourceHealth.consecutiveFailures >= 3) {
-      alerts.push(`FAILURE: Source ${source.name} has failed ${sourceHealth.consecutiveFailures} consecutive times.`);
+      alerts.push(
+        `FAILURE: Source ${source.name} has failed ${sourceHealth.consecutiveFailures} consecutive times.`,
+      );
     }
 
     if (!sourceEnabled && isSpine) {
-      alerts.push(`MISMATCH: Official spine source ${source.name} has feature flag ${source.envFlag} disabled.`);
+      alerts.push(
+        `MISMATCH: Official spine source ${source.name} has feature flag ${source.envFlag} disabled.`,
+      );
     }
 
     if (sourceEnabled && !sourceImplemented) {
@@ -187,8 +268,11 @@ export function computeSourceOpsReport(): SourceOpsReport {
       sourceId: source.id,
       name: source.name,
       isSpine,
+      supported: sourceImplemented,
       decisionGrade,
       coverageState,
+      coverageReason,
+      operatorStatus,
       featureFlag: {
         key: source.envFlag,
         enabled: sourceEnabled,
@@ -197,12 +281,22 @@ export function computeSourceOpsReport(): SourceOpsReport {
       lastFailureAt: sourceHealth.lastFailureAt,
       consecutiveFailures: sourceHealth.consecutiveFailures,
       freshnessSlaHours: source.refreshSlaHours,
+      freshness: buildSourceHealthFreshness({
+        coverageState,
+        lastSuccessAt: sourceHealth.lastSuccessAt,
+        freshnessWindowHours: source.refreshSlaHours,
+        now,
+      }),
     });
   }
 
   return {
-    timestamp: new Date().toISOString(),
+    timestamp: now.toISOString(),
     sources,
+    sourceCoverage: {
+      checks: launchSpineCoverageChecks,
+      summary: summarizeCanonicalSourceCoverage(launchSpineCoverageChecks),
+    },
     spineStatus,
     alerts,
   };
