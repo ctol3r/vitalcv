@@ -342,6 +342,37 @@ export function resolveCanonicalSourceCoverageState(input: {
   return 'pending';
 }
 
+export function buildCanonicalSourceCoverageFreshness(input: {
+  state: CanonicalSourceCoverageState;
+  checkedAt?: string | null;
+  observedAt?: string | null;
+  expiresAt?: string | null;
+  freshnessWindowHours?: number | null;
+}): CanonicalSourceCoverageFreshness {
+  const checkedAt = normalizeNullableString(input.checkedAt);
+  const observedAt = normalizeNullableString(input.observedAt) ?? checkedAt;
+  const freshnessWindowHours =
+    typeof input.freshnessWindowHours === 'number' && input.freshnessWindowHours > 0
+      ? input.freshnessWindowHours
+      : null;
+  const expiresAt =
+    normalizeNullableString(input.expiresAt)
+    ?? addHours(observedAt ?? checkedAt, freshnessWindowHours);
+
+  return Object.freeze({
+    status:
+      input.state === 'stale'
+        ? 'stale'
+        : input.state === 'checked' && (observedAt || checkedAt)
+          ? 'current'
+          : 'unknown',
+    checkedAt,
+    observedAt,
+    expiresAt,
+    freshnessWindowHours,
+  });
+}
+
 export function createCanonicalSourceCoverage(
   input: CreateCanonicalSourceCoverageInput,
 ): CanonicalSourceCoverage {
@@ -360,13 +391,8 @@ export function createCanonicalSourceCoverage(
   const expiresAt =
     normalizeNullableString(input.expiresAt)
     ?? addHours(observedAt ?? checkedAt, freshnessWindowHours);
-  const freshness: CanonicalSourceCoverageFreshness = Object.freeze({
-    status:
-      state === 'stale'
-        ? 'stale'
-        : state === 'checked' && (observedAt || checkedAt)
-          ? 'current'
-          : 'unknown',
+  const freshness = buildCanonicalSourceCoverageFreshness({
+    state,
     checkedAt,
     observedAt,
     expiresAt,

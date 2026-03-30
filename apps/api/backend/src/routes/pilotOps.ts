@@ -21,6 +21,7 @@ import {
   getClinicianProofSummary,
   getEmployerValueSignals,
   getPilotProofSnapshot as getPilotProofSnapshotService,
+  pilotProofSummaryToCsv,
 } from '../services/pilot/pilotProofService';
 
 const MONITORING_SECRET = process.env.MONITORING_SECRET?.trim() ?? '';
@@ -293,9 +294,18 @@ export function registerPilotOpsRoutes(app: Express): void {
     }
 
     try {
-      return res.status(200).json(await getPilotProofSnapshotService({
+      const snapshot = await getPilotProofSnapshotService({
         lookbackDays: readLookbackDays(req.query.lookbackDays),
-      }));
+      });
+
+      if (readTrimmedString(req.query.format)?.toLowerCase() === 'csv') {
+        const filename = `vitalcv-pilot-proof-${new Date().toISOString().slice(0, 10)}.csv`;
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.status(200).send(pilotProofSummaryToCsv(snapshot));
+      }
+
+      return res.status(200).json(snapshot);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to load pilot proof snapshot.';
       log('error', 'pilot_proof_snapshot_error', { error: message });

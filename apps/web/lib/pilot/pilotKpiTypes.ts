@@ -56,6 +56,9 @@ export interface BlockerKpi {
 
 export interface StartOutcomeStats {
   totalStarts:      number;
+  totalOutcomeRecords: number;
+  didNotStartCount: number;
+  nonStartReasons: Array<{ reason: string; count: number }>;
   distinctEntities: number;
   readinessAtStart: {
     avgScore:    number | null;
@@ -70,6 +73,53 @@ export interface ReadinessDistribution {
   blocked: number;
   total:   number;
   noScore: number;
+}
+
+export type PilotProofChainEventName =
+  | 'packet_shared'
+  | 'employer_review_opened'
+  | 'employer_decision_recorded'
+  | 'readiness_changed'
+  | 'blocker_resolved'
+  | 'start_outcome_recorded';
+
+export interface PilotProofChainEvent {
+  eventName: PilotProofChainEventName;
+  occurredAt: string;
+  caseKey: string;
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+  organizationId: string | null;
+  pilotId: string | null;
+  workflowLane: string | null;
+  geographyTag: string | null;
+  sourceRecordType: string;
+  sourceRecordId: string;
+  outcomeStatus: string | null;
+  detail: string | null;
+}
+
+export interface PilotProofChainCase {
+  caseKey: string;
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+  organizationId: string | null;
+  eventNames: PilotProofChainEventName[];
+  missingCoreEvents: Array<'packet_shared' | 'employer_review_opened' | 'employer_decision_recorded' | 'start_outcome_recorded'>;
+  replayable: boolean;
+  lastOccurredAt: string;
+  nonStartReason: string | null;
+}
+
+export interface PilotProofChainSummary {
+  totalEvents: number;
+  totalCases: number;
+  replayableCases: number;
+  partialCases: number;
+  cases: PilotProofChainCase[];
+  events: PilotProofChainEvent[];
 }
 
 export interface PilotFilter {
@@ -96,10 +146,14 @@ export interface PilotKpiSnapshot {
     advisoryOutcomeEvents:   number;
     employerDecisionEvents:  number;
     blockerResolutionEvents: number;
+    blockerResolvedMetricEvents: number;
+    readinessChangeEvents: number;
     startOutcomeEvents:      number;
+    nonStartOutcomeEvents: number;
     employerAcceptances:     number;
     startAttestations:       number;
   };
   readinessDistribution: ReadinessDistribution;
+  proofChain: PilotProofChainSummary;
   gaps: string[];
 }

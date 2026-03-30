@@ -8,14 +8,13 @@
  * ─────────────
  * - All VitalCV metrics come from real event data (no fabrication)
  * - Industry baselines are labeled with source and year
- * - "time saved" = industry baseline − VitalCV observed (never invented)
+ * - "time saved" = industry baseline − VitalCV observed only when the denominators match
  * - If insufficient data (< MIN_DECISIONS), confidence = LOW with explicit note
  * - Every metric shows sample size
+ * - Window-derived readiness mix is labeled as latest-review-in-window, not a live score
  *
  * INDUSTRY BASELINES (sourced)
  * ────────────────────────────
- * - Credentialing time: 90–120 days median
- *   Source: CAQH Index 2023 — "average initial credentialing 102 days"
  * - First-review-to-decision: 14 days
  *   Source: NAMSS 2022 Credentialing Survey — median employer decision latency
  * - Blocker resolution: 7–14 days per blocker
@@ -34,17 +33,12 @@ const BASELINES = {
     source: 'NAMSS 2022 Credentialing Survey',
     label: 'Median employer decision latency (industry)',
   },
-  medianDaysToStart: {
-    value: 102,
-    source: 'CAQH Index 2023 — initial credentialing median',
-    label: 'Median days from credentialing initiation to start (industry)',
-  },
   avgDaysPerBlockerResolution: {
     value: 10,
     source: 'CAQH 2023 — average per-gap resolution time',
     label: 'Average days per blocker resolution (industry)',
   },
-  percentReadyAtFirstReview: {
+  percentReadyAtReview: {
     value: 22,
     source: 'CAQH Index 2023 — providers fully verified at first review',
     label: 'Providers fully credentialed at first review, industry baseline (%)',
@@ -128,7 +122,7 @@ function deltaLabel(delta: number | null, unit: string): string {
   return 'On par with industry baseline';
 }
 
-function pctReadyAtFirstReview(snap: PilotKpiSnapshot): number | null {
+function pctReadyAtLatestReview(snap: PilotKpiSnapshot): number | null {
   const total = snap.readinessDistribution.total;
   if (total === 0) return null;
   const ready = snap.readinessDistribution.ready;
@@ -139,12 +133,29 @@ function resolvedBlockerCount(snap: PilotKpiSnapshot): number {
   return snap.blockers.reduce((sum, b) => sum + (b.resolvedCount ?? 0), 0);
 }
 
+function averageResolvedBlockerDays(snap: PilotKpiSnapshot): number | null {
+  let resolvedCount = 0;
+  let totalResolutionDays = 0;
+
+  for (const blocker of snap.blockers) {
+    if (blocker.resolvedCount <= 0 || blocker.avgResolutionDays === null) {
+      continue;
+    }
+
+    resolvedCount += blocker.resolvedCount;
+    totalResolutionDays += blocker.avgResolutionDays * blocker.resolvedCount;
+  }
+
+  return resolvedCount > 0 ? totalResolutionDays / resolvedCount : null;
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   const generatedAt = new Date().toISOString();
   const decisionCount = snap.decisions.total;
-  const conf = confidence(decisionCount);
+  const decisionLatencySampleSize = snap.velocity.sampleSizes.reviewToDecision;
+  const overallConfidence = confidence(decisionLatencySampleSize);
 
   // ── Decision latency metric ────────────────────────────────────────────────
   const observedLatency = snap.velocity.medianDaysFirstReviewToDecision;
@@ -163,77 +174,66 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     industryBaselineSource: BASELINES.medianDaysReviewToDecision.source,
     delta: latencyDelta,
     deltaLabel: deltaLabel(latencyDelta, 'days'),
-    confidence: conf,
-    sampleSize: decisionCount,
-    note: decisionCount < MIN_DECISIONS_FOR_HIGH_CONFIDENCE
-      ? `Based on ${decisionCount} decision${decisionCount === 1 ? '' : 's'} — more data will improve accuracy`
+    confidence: overallConfidence,
+    sampleSize: decisionLatencySampleSize,
+    note: decisionLatencySampleSize < MIN_DECISIONS_FOR_HIGH_CONFIDENCE
+      ? `Based on ${decisionLatencySampleSize} measured review-to-decision pair${decisionLatencySampleSize === 1 ? '' : 's'}${decisionCount !== decisionLatencySampleSize ? ` (${decisionCount} decision event${decisionCount === 1 ? '' : 's'} recorded overall)` : ''} — more data will improve accuracy`
       : null,
   };
 
   // ── Time-to-start metric ───────────────────────────────────────────────────
   const observedTts = snap.velocity.medianDaysFirstReviewToStart;
-  const ttsDelta =
-    observedTts !== null
-      ? Math.round(BASELINES.medianDaysToStart.value - observedTts)
-      : null;
-  const ttsConf = confidence(snap.startOutcomes.totalStarts);
+  const ttsSampleSize = snap.velocity.sampleSizes.reviewToStart;
+  const ttsConf = confidence(ttsSampleSize);
 
   const ttsMetric: RoiMetric = {
     id: 'time_to_start',
     label: 'Median days: first review → actual start',
     vcvValue: observedTts,
     vcvUnit: 'days',
-    industryBaseline: BASELINES.medianDaysToStart.value,
-    industryBaselineLabel: BASELINES.medianDaysToStart.label,
-    industryBaselineSource: BASELINES.medianDaysToStart.source,
-    delta: ttsDelta,
-    deltaLabel: deltaLabel(ttsDelta, 'days'),
+    industryBaseline: null,
+    industryBaselineLabel: 'No direct industry baseline for review-to-start yet',
+    industryBaselineSource: 'N/A',
+    delta: null,
+    deltaLabel: 'No direct industry comparison yet',
     confidence: ttsConf,
-    sampleSize: snap.startOutcomes.totalStarts,
+    sampleSize: ttsSampleSize,
     note: snap.startOutcomes.totalStarts === 0
       ? 'No confirmed start outcomes yet — record start outcomes via POST /api/internal/pilot/start-outcome'
-      : null,
+      : ttsSampleSize === 0
+        ? 'Confirmed start outcomes exist, but none are yet paired to a measured first-review timestamp.'
+        : 'Measured from first employer review to recorded start outcome. Not compared to credentialing-initiation baselines because the denominators do not match.',
   };
 
-  // ── Ready-at-first-review metric ───────────────────────────────────────────
-  const pctReady = pctReadyAtFirstReview(snap);
-  const readyDelta =
-    pctReady !== null
-      ? pctReady - BASELINES.percentReadyAtFirstReview.value
-      : null;
+  // ── Latest-review readiness mix metric ────────────────────────────────────
+  const pctReady = pctReadyAtLatestReview(snap);
   const readyConf = confidence(snap.readinessDistribution.total);
 
   const readyMetric: RoiMetric = {
-    id: 'ready_at_first_review',
-    label: '% of reviewed clinicians READY at first review',
+    id: 'ready_at_latest_review',
+    label: '% of reviewed clinicians READY at latest review in window',
     vcvValue: pctReady,
     vcvUnit: '%',
-    industryBaseline: BASELINES.percentReadyAtFirstReview.value,
-    industryBaselineLabel: BASELINES.percentReadyAtFirstReview.label,
-    industryBaselineSource: BASELINES.percentReadyAtFirstReview.source,
-    delta: readyDelta,
-    deltaLabel: readyDelta !== null
-      ? readyDelta >= 0
-        ? `${readyDelta}pp above industry baseline`
-        : `${Math.abs(readyDelta)}pp below baseline`
-      : 'Insufficient data',
+    industryBaseline: null,
+    industryBaselineLabel: 'No direct industry baseline for latest-review readiness mix',
+    industryBaselineSource: 'N/A',
+    delta: null,
+    deltaLabel: 'Window-derived readiness mix; not compared to first-review industry baselines',
     confidence: readyConf,
     sampleSize: snap.readinessDistribution.total,
-    note: null,
+    note: 'Derived from the latest employer review event per clinician in the selected window. This is not a live score or a first-review benchmark.',
   };
 
   // ── Blocker resolution metric ──────────────────────────────────────────────
   const resolvedCount = resolvedBlockerCount(snap);
-  const avgBlockerDays = snap.blockers.length > 0
-    ? snap.blockers.reduce((sum, b) => sum + (b.medianResolutionDays ?? 0), 0) / snap.blockers.filter(b => b.medianResolutionDays !== null).length
-    : null;
+  const avgBlockerDays = averageResolvedBlockerDays(snap);
   const blockerDelta = avgBlockerDays !== null
     ? Math.round(BASELINES.avgDaysPerBlockerResolution.value - avgBlockerDays)
     : null;
 
   const blockerMetric: RoiMetric = {
     id: 'blocker_resolution',
-    label: 'Median days per blocker resolved',
+    label: 'Average days per blocker resolved',
     vcvValue: avgBlockerDays !== null ? Math.round(avgBlockerDays) : null,
     vcvUnit: 'days',
     industryBaseline: BASELINES.avgDaysPerBlockerResolution.value,
@@ -243,7 +243,9 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     deltaLabel: deltaLabel(blockerDelta, 'days'),
     confidence: confidence(resolvedCount),
     sampleSize: resolvedCount,
-    note: `${resolvedCount} blocker${resolvedCount === 1 ? '' : 's'} resolved in this window.`,
+    note: resolvedCount === 0
+      ? 'No resolved blocker samples in this window.'
+      : `${resolvedCount} resolved blocker${resolvedCount === 1 ? '' : 's'} in this window. Derived from the live per-code averages in the KPI snapshot.`,
   };
 
   // ── Funnel metrics ─────────────────────────────────────────────────────────
@@ -309,11 +311,11 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   if (observedLatency !== null && latencyDelta !== null && latencyDelta > 0) {
     summaryParts.push(`${latencyDelta}-day reduction in employer decision latency vs industry baseline`);
   }
-  if (observedTts !== null && ttsDelta !== null && ttsDelta > 0) {
-    summaryParts.push(`${ttsDelta}-day reduction in time-to-start vs CAQH baseline`);
+  if (observedTts !== null) {
+    summaryParts.push(`${observedTts} median days from first review to confirmed start`);
   }
   if (pctReady !== null) {
-    summaryParts.push(`${pctReady}% of reviewed clinicians were READY at first review`);
+    summaryParts.push(`${pctReady}% of reviewed clinicians were READY at the latest review in the selected window`);
   }
   if (resolvedCount > 0) {
     summaryParts.push(`${resolvedCount} credential blocker${resolvedCount === 1 ? '' : 's'} resolved`);
@@ -321,20 +323,20 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
 
   const executiveSummary = summaryParts.length > 0
     ? `In this ${snap.windowDays}-day pilot window, VitalCV showed: ${summaryParts.join('; ')}.`
-    : `Pilot in early stage (${decisionCount} decision${decisionCount === 1 ? '' : 's'} recorded). ` +
+    : `Pilot in early stage (${decisionLatencySampleSize} measured review-to-decision pair${decisionLatencySampleSize === 1 ? '' : 's'}${decisionCount !== decisionLatencySampleSize ? `, ${decisionCount} decision event${decisionCount === 1 ? '' : 's'} recorded overall` : ''}). ` +
       'Share a passport and capture a start outcome to build ROI evidence.';
 
   // ── Data gaps ──────────────────────────────────────────────────────────────
-  const dataGaps: string[] = [...(snap.gaps ?? [])];
+  const dataGaps = new Set<string>(snap.gaps ?? []);
 
   if (snap.startOutcomes.totalStarts === 0) {
-    dataGaps.push('No start outcomes recorded — POST /api/internal/pilot/start-outcome when a clinician starts');
+    dataGaps.add('No start outcomes recorded — POST /api/internal/pilot/start-outcome when a clinician starts');
   }
-  if (decisionCount < MIN_DECISIONS_FOR_HIGH_CONFIDENCE) {
-    dataGaps.push(`Only ${decisionCount} employer decision${decisionCount === 1 ? '' : 's'} — need ${MIN_DECISIONS_FOR_HIGH_CONFIDENCE} for HIGH confidence`);
+  if (decisionLatencySampleSize < MIN_DECISIONS_FOR_HIGH_CONFIDENCE) {
+    dataGaps.add(`Only ${decisionLatencySampleSize} measured review-to-decision pair${decisionLatencySampleSize === 1 ? '' : 's'} — need ${MIN_DECISIONS_FOR_HIGH_CONFIDENCE} for HIGH confidence`);
   }
   if (snap.packetShares.total === 0) {
-    dataGaps.push('No packets shared — clinicians must share passports for funnel tracking');
+    dataGaps.add('No packets shared — clinicians must share passports for funnel tracking');
   }
 
   // ── Top-line ───────────────────────────────────────────────────────────────
@@ -353,9 +355,9 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     methodology: 'pilot-roi-report/v1.0',
     dataDisclaimer:
       'VitalCV metrics are derived from real event data. Industry baselines are cited estimates from publicly available research. ' +
-      'Time-saved figures assume baseline applies to this use case. All numbers show sample size for transparency.',
+      'Industry deltas are shown only where the baseline matches the measured pilot denominator. Latest-review readiness share is window-derived, not a live score or first-review benchmark. All numbers show sample size for transparency.',
     executiveSummary,
-    overallConfidence: conf,
+    overallConfidence,
     topLine,
     sections: [
       {
@@ -370,7 +372,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
         id: 'quality',
         title: 'Candidate Readiness Quality',
         headline: pctReady !== null
-          ? `${pctReady}% of candidates READY at first review (industry: ${BASELINES.percentReadyAtFirstReview.value}%)`
+          ? `${pctReady}% of candidates READY at the latest review in this window`
           : 'No readiness distribution data yet',
         metrics: [readyMetric, blockerMetric],
       },
@@ -384,7 +386,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
       },
     ],
     eventChain: snap.eventChain,
-    dataGaps,
+    dataGaps: [...dataGaps],
   };
 }
 
@@ -486,7 +488,7 @@ export function roiReportToHtml(report: RoiReport): string {
     <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:14px">
       <p style="font-size:11px;color:#7c3aed;margin:0 0 4px;text-transform:uppercase">Ready at review</p>
       <p style="font-size:28px;font-weight:800;color:#6d28d9;margin:0">${fmt(report.topLine.percentReadyAtFirstReview, '%')}</p>
-      <p style="font-size:11px;color:#c4b5fd;margin:2px 0 0">baseline: ${BASELINES.percentReadyAtFirstReview.value}%</p>
+      <p style="font-size:11px;color:#c4b5fd;margin:2px 0 0">latest review in selected window</p>
     </div>
     <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px">
       <p style="font-size:11px;color:#ea580c;margin:0 0 4px;text-transform:uppercase">Blockers resolved</p>

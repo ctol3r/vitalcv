@@ -1,0 +1,15 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - paragraph [ref=e8]: Employer review
+          - generic [ref=e9]: Sign in to request a review
+          - paragraph [ref=e10]: Employer review requests require an employer workspace. Sign in to create a review context and generate a shareable link.
+        - link "Sign in with employer workspace" [ref=e12] [cursor=pointer]:
+          - /url: /sign-in
+    - button "Send feedback" [ref=e13]:
+      - img [ref=e14]
+      - text: Feedback
+  - region "Notifications alt+T"
+  - alert [ref=e16]

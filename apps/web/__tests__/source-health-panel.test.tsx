@@ -48,12 +48,16 @@ function makeReport(overrides: Partial<SourceOpsReport> = {}): SourceOpsReport {
   };
 }
 
-const PILOT_SOURCE_IDS = ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'];
-
 function filterPilotSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
-  return sources.filter(
-    (s) => PILOT_SOURCE_IDS.includes(s.sourceId) || s.isSpine,
-  );
+  return sources.filter((source) => (
+    source.isSpine
+    || source.decisionGrade
+    || source.consecutiveFailures > 0
+    || source.lastFailureAt !== null
+    || source.coverageState === 'accessRequired'
+    || source.coverageState === 'reviewRequired'
+    || source.coverageState === 'gated'
+  ));
 }
 
 function formatAge(isoDate: string | null): string {
@@ -75,9 +79,17 @@ function coverageColor(state: SourceOpsEntry['coverageState']): string {
     case 'checked':
       return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400';
     case 'stale':
+    case 'reviewRequired':
       return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+    case 'accessRequired':
+    case 'gated':
+      return 'border-sky-500/30 bg-sky-500/10 text-sky-400';
     case 'unavailable':
       return 'border-rose-500/30 bg-rose-500/10 text-rose-400';
+    case 'pending':
+    case 'notDecisionGrade':
+    case 'previewOnly':
+      return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
     default:
       return 'border-zinc-600/30 bg-zinc-600/10 text-zinc-500';
   }
@@ -90,7 +102,30 @@ describe('SourceHealthPanel logic', () => {
     const names = pilotSources.map((s) => s.name);
     expect(names).toContain('CMS NPI Registry API');
     expect(names).toContain('OIG LEIE Exclusion List');
-    expect(names).toContain('CMS PECOS');
+    expect(names).not.toContain('CMS PECOS');
+  });
+
+  it('keeps non-spine decision-grade or access-required sources visible for later verifier rollouts', () => {
+    const report = makeReport({
+      sources: [
+        ...makeReport().sources,
+        {
+          sourceId: 'OFAC_SDN',
+          name: 'OFAC SDN',
+          isSpine: false,
+          decisionGrade: true,
+          coverageState: 'accessRequired',
+          lastSuccessAt: null,
+          lastFailureAt: null,
+          consecutiveFailures: 0,
+          freshnessSlaHours: 24,
+          featureFlag: { key: 'OFAC_SDN_ENABLED', enabled: true },
+        },
+      ],
+    });
+
+    const pilotSources = filterPilotSources(report.sources);
+    expect(pilotSources.map((source) => source.sourceId)).toContain('OFAC_SDN');
   });
 
   it('exposes spineStatus from the report', () => {
@@ -118,8 +153,11 @@ describe('SourceHealthPanel logic', () => {
     expect(formatAge(null)).toBe('never');
   });
 
-  it('applies amber class for stale and rose class for unavailable', () => {
+  it('applies distinct classes for stale, access-required, and unavailable states', () => {
     expect(coverageColor('stale')).toContain('amber');
+    expect(coverageColor('reviewRequired')).toContain('amber');
+    expect(coverageColor('accessRequired')).toContain('sky');
+    expect(coverageColor('gated')).toContain('sky');
     expect(coverageColor('unavailable')).toContain('rose');
     expect(coverageColor('checked')).toContain('emerald');
   });

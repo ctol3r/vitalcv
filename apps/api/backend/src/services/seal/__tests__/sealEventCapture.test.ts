@@ -13,6 +13,9 @@ jest.mock('../../../graphql/prisma_client', () => ({
     startOutcomeEvent: {
       create: jest.fn(),
     },
+    auditEvent: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -20,8 +23,13 @@ jest.mock('../../../obs/logger', () => ({
   log: jest.fn(),
 }));
 
+jest.mock('../../audit/auditLedger', () => ({
+  appendAuditEvent: jest.fn(),
+}));
+
 import prisma from '../../../graphql/prisma_client';
-import { captureStartOutcome } from '../sealEventCapture';
+import { appendAuditEvent } from '../../audit/auditLedger';
+import { captureReadinessChange, captureStartOutcome } from '../sealEventCapture';
 
 const prismaMock = prisma as unknown as {
   vcvEntity: {
@@ -36,7 +44,12 @@ const prismaMock = prisma as unknown as {
   startOutcomeEvent: {
     create: jest.Mock;
   };
+  auditEvent: {
+    create: jest.Mock;
+  };
 };
+
+const appendAuditEventMock = appendAuditEvent as jest.MockedFunction<typeof appendAuditEvent>;
 
 const EMPTY_COVERAGE = {
   checked: [],
@@ -58,6 +71,20 @@ describe('captureStartOutcome', () => {
     prismaMock.bundleShareEvent.findFirst.mockReset().mockResolvedValue(null);
     prismaMock.advisoryOutcomeEvent.findFirst.mockReset().mockResolvedValue(null);
     prismaMock.startOutcomeEvent.create.mockReset().mockResolvedValue({});
+    prismaMock.auditEvent.create.mockReset().mockResolvedValue({});
+    const auditEntry: ReturnType<typeof appendAuditEvent> = {
+      eventId: 'audit-event-1',
+      time: '2026-03-23T00:00:00.000Z',
+      traceId: 'trace-1',
+      category: ['READINESS_CHANGE'],
+      actor: 'system:seal',
+      resource: 'entity',
+      requestFields: {},
+      resultFields: {},
+      severity: 'INFO',
+      receiptHash: 'hash-1',
+    };
+    appendAuditEventMock.mockReset().mockReturnValue(auditEntry);
   });
 
   afterEach(() => {
@@ -117,7 +144,10 @@ describe('captureStartOutcome', () => {
         daysFromReady: 4,
         readinessScoreAtStart: 88,
         metadata: expect.objectContaining({
+          eventName: 'start_outcome_recorded',
+          outcomeStatus: 'STARTED',
           note: 'manual backfill',
+          organizationContextId: 'org-ctx-1',
           capturedAt: '2026-03-23T00:00:00.000Z',
         }),
       }),
@@ -170,5 +200,120 @@ describe('captureStartOutcome', () => {
       ([call]) => call.where?.eventType === 'SHARE_INITIATED',
     );
     expect(shareInitiatedCalls).toHaveLength(1);
+  });
+
+  it('derives scoped timings from pilot metadata and avoids unscoped bundle-share lookups', async () => {
+    prismaMock.advisoryOutcomeEvent.findFirst.mockImplementation(async ({
+      where,
+    }: {
+      where: {
+        eventType?: string;
+        readinessScoreAtEvent?: { gte: number };
+        AND?: Array<{ metadata: { path: string[]; equals: string } }>;
+      };
+    }) => {
+      if (where.eventType === 'EMPLOYER_REVIEW') {
+        return { eventTimestamp: new Date('2026-03-04T00:00:00.000Z') };
+      }
+      if (where.readinessScoreAtEvent?.gte === 60) {
+        return { eventTimestamp: new Date('2026-03-06T00:00:00.000Z') };
+      }
+      if (where.eventType === 'SHARE_INITIATED') {
+        return null;
+      }
+      return null;
+    });
+
+    await captureStartOutcome({
+      entityId: '00000000-0000-0000-0000-000000000333',
+      organizationContextId: 'org-ctx-2',
+      startedAt: new Date('2026-03-10T00:00:00.000Z'),
+      readinessScoreAtStart: 83,
+      blockersAtStart: [],
+      sourceCoverageAtStart: EMPTY_COVERAGE,
+      scope: {
+        pilotId: 'pilot-2',
+        workflowLane: 'locum-rn',
+        geographyTag: 'TX',
+      },
+    });
+
+    expect(prismaMock.bundleShareEvent.findFirst).not.toHaveBeenCalled();
+
+    const reviewCall = prismaMock.advisoryOutcomeEvent.findFirst.mock.calls.find(
+      ([call]) => call.where?.eventType === 'EMPLOYER_REVIEW',
+    );
+    expect(reviewCall?.[0].where.AND).toEqual(expect.arrayContaining([
+      { metadata: { path: ['pilotId'], equals: 'pilot-2' } },
+      { metadata: { path: ['workflowLane'], equals: 'locum-rn' } },
+      { metadata: { path: ['geographyTag'], equals: 'TX' } },
+    ]));
+
+    expect(prismaMock.startOutcomeEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        entityId: '00000000-0000-0000-0000-000000000333',
+        organizationContextId: 'org-ctx-2',
+        daysFromFirstReview: 6,
+        daysFromShare: null,
+        daysFromReady: 4,
+        metadata: expect.objectContaining({
+          eventName: 'start_outcome_recorded',
+          outcomeStatus: 'STARTED',
+          pilotId: 'pilot-2',
+          workflowLane: 'locum-rn',
+          geographyTag: 'TX',
+          capturedAt: '2026-03-23T00:00:00.000Z',
+        }),
+      }),
+    }));
+  });
+
+  it('records readiness changes into the pilot proof audit chain with resolved entity context', async () => {
+    prismaMock.vcvEntity.findFirst.mockResolvedValue({ id: '00000000-0000-0000-0000-000000000333' });
+
+    await captureReadinessChange({
+      npi: '1111111111',
+      previousBand: 'L1',
+      newBand: 'L2',
+      degraded: false,
+      triggerEventType: 'trust_recompute',
+      triggerEventId: 'trigger-1',
+      affectedCapsuleCount: 3,
+      processedAt: '2026-03-23T12:00:00.000Z',
+    });
+
+    expect(prismaMock.vcvEntity.findFirst).toHaveBeenCalledWith({
+      where: { npi: '1111111111' },
+      select: { id: true },
+    });
+    expect(appendAuditEventMock).toHaveBeenCalledWith(expect.objectContaining({
+      category: ['READINESS_CHANGE'],
+      requestFields: expect.objectContaining({
+        npi: '1111111111',
+        triggerEventType: 'trust_recompute',
+      }),
+      resultFields: expect.objectContaining({
+        previousBand: 'L1',
+        newBand: 'L2',
+        direction: 'IMPROVED',
+      }),
+    }));
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'PILOT_PROOF_EVENT',
+        referenceId: '00000000-0000-0000-0000-000000000333',
+        clinicianId: '1111111111',
+        createdAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: expect.objectContaining({
+          schema: 'vitalcv.pilot-proof.event.v1',
+          eventName: 'readiness_changed',
+          entityId: '00000000-0000-0000-0000-000000000333',
+          npi: '1111111111',
+          occurredAt: '2026-03-23T12:00:00.000Z',
+          previousBand: 'L1',
+          newBand: 'L2',
+        }),
+      }),
+    }));
   });
 });

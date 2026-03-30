@@ -18,6 +18,8 @@ function mockIntegrationHealth(): void {
 describe('sourceOpsService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-29T12:00:00.000Z'));
     process.env.NPPES_API_ENABLED = 'true';
     process.env.OIG_LEIE_ENABLED = 'true';
     process.env.PECOS_ENABLED = 'true';
@@ -28,6 +30,7 @@ describe('sourceOpsService', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     delete process.env.NPPES_API_ENABLED;
     delete process.env.OIG_LEIE_ENABLED;
     delete process.env.PECOS_ENABLED;
@@ -55,8 +58,16 @@ describe('sourceOpsService', () => {
 
     expect(nppes?.coverageState).toBe('checked');
     expect(nppes?.decisionGrade).toBe(true);
+    expect(nppes?.operatorStatus).toBe('HEALTHY');
+    expect(nppes?.freshness).toEqual(expect.objectContaining({
+      status: 'current',
+      freshnessWindowHours: 168,
+    }));
     expect(oig?.coverageState).toBe('pending');
     expect(oig?.decisionGrade).toBe(false);
+    expect(report.sourceCoverage.checks.map((check) => check.sourceId)).toEqual(
+      expect.arrayContaining(['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'STATE_BOARD']),
+    );
   });
 
   it('emits a mismatch alert when an official spine source is explicitly disabled', () => {
@@ -121,7 +132,10 @@ describe('sourceOpsService', () => {
     const ofac = report.sources.find((entry) => entry.sourceId === 'OFAC_SDN');
 
     expect(ofac?.featureFlag.enabled).toBe(true);
+    expect(ofac?.supported).toBe(false);
     expect(ofac?.coverageState).toBe('unavailable');
+    expect(ofac?.coverageReason).toContain('flag-enabled but has no ingestion handler');
+    expect(ofac?.operatorStatus).toBe('CRITICAL');
     expect(ofac?.decisionGrade).toBe(false);
     expect(report.alerts).toContain(
       'UNIMPLEMENTED: Source OFAC Specially Designated Nationals (SDN) List is flag-enabled but has no ingestion handler in the launch lane.',
@@ -145,8 +159,16 @@ describe('sourceOpsService', () => {
     const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
 
     expect(nppes?.coverageState).toBe('stale');
+    expect(nppes?.coverageReason).toContain('missed its freshness SLA of 168h');
+    expect(nppes?.operatorStatus).toBe('STALE');
+    expect(nppes?.freshness).toEqual(expect.objectContaining({
+      status: 'stale',
+      expiresAt: '2026-03-28T12:00:00.000Z',
+      ageHours: 192,
+    }));
     expect(nppes?.decisionGrade).toBe(false);
     expect(report.spineStatus).toBe('STALE');
+    expect(report.sourceCoverage.summary.stale).toEqual(['NPPES_API']);
     expect(report.alerts).toContain(
       'STALE: Decision-grade source CMS NPI Registry API has missed its freshness SLA of 168h.',
     );
@@ -169,12 +191,18 @@ describe('sourceOpsService', () => {
     const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
 
     expect(nppes?.coverageState).toBe('unavailable');
+    expect(nppes?.coverageReason).toBe('CMS NPI Registry API connector is unreachable.');
+    expect(nppes?.operatorStatus).toBe('CRITICAL');
     expect(nppes?.decisionGrade).toBe(false);
     expect(report.spineStatus).toBe('CRITICAL');
     expect(report.alerts).toContain(
       'FAILURE: Source CMS NPI Registry API has failed 4 consecutive times.',
     );
-    expect(report.alerts.some((alert) => alert.includes('STALE:') && alert.includes('CMS NPI Registry API'))).toBe(false);
+    expect(
+      report.alerts.some((alert) => (
+        alert.includes('STALE:') && alert.includes('CMS NPI Registry API')
+      )),
+    ).toBe(false);
   });
 
   it('returns HEALTHY spine status when all spine sources are fresh', () => {
@@ -242,9 +270,86 @@ describe('sourceOpsService', () => {
 
     const report = computeSourceOpsReport();
     const staleAlert = report.alerts.find(
-      (a) => a.includes('STALE:') && a.includes('CMS NPI Registry API'),
+      (alert) => alert.includes('STALE:') && alert.includes('CMS NPI Registry API'),
     );
     expect(staleAlert).toBeDefined();
     expect(staleAlert).toContain('missed its freshness SLA');
+  });
+
+  it('keeps checked coverage distinct from degraded operator health when failures pile up inside the freshness window', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          lastErrorAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          consecutiveErrors: 3,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
+
+    expect(nppes?.coverageState).toBe('checked');
+    expect(nppes?.operatorStatus).toBe('DEGRADED');
+    expect(nppes?.freshness.status).toBe('current');
+    expect(report.spineStatus).toBe('DEGRADED');
+    expect(report.alerts).toContain(
+      'FAILURE: Source CMS NPI Registry API has failed 3 consecutive times.',
+    );
+  });
+
+  it('keeps the operator sourceCoverage summary on the same canonical launch-spine contract', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+        {
+          connector: 'OIG',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+        {
+          connector: 'STATE_BOARD',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+    (getIntegrationHealth as jest.Mock).mockReturnValue({
+      nursysMode: 'live',
+      pecosMode: 'live',
+      lastNursysFetch: null,
+      lastPecosCheck: new Date().toISOString(),
+      healthy: true,
+    });
+
+    const report = computeSourceOpsReport();
+
+    expect(report.sourceCoverage.checks.map((check) => check.sourceId).sort()).toEqual([
+      'NPPES_API',
+      'OIG_LEIE',
+      'PECOS_PUBLIC',
+      'STATE_BOARD',
+    ]);
+    expect(report.sourceCoverage.summary.checked).toEqual([
+      'NPPES_API',
+      'OIG_LEIE',
+      'PECOS_PUBLIC',
+      'STATE_BOARD',
+    ]);
+    expect(report.sourceCoverage.summary.stale).toEqual([]);
+    expect(report.sourceCoverage.summary.unavailable).toEqual([]);
   });
 });
