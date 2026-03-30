@@ -90,7 +90,7 @@ const PUBLIC_WEDGE_BADGE_META: Readonly<
     label: getTrustStatusLabel('stale'),
   }),
   access_required: Object.freeze({
-    status: 'access required',
+    status: 'access_required',
     label: getTrustStatusLabel('access_required'),
   }),
   unavailable: Object.freeze({
@@ -98,7 +98,7 @@ const PUBLIC_WEDGE_BADGE_META: Readonly<
     label: getTrustStatusLabel('unavailable'),
   }),
   review_required: Object.freeze({
-    status: 'review required',
+    status: 'review_required',
     label: getTrustStatusLabel('review_required'),
   }),
   preview_only: Object.freeze({
@@ -174,9 +174,9 @@ export function resolvePublicWedgeSurfaceStateFromTruth(
       return 'checked';
     case 'PENDING':
     case 'UNAVAILABLE':
-    case 'ACCESS REQUIRED':
-    case 'REVIEW REQUIRED':
-    case 'NOT DECISION-GRADE':
+    case 'ACCESS_REQUIRED':
+    case 'REVIEW_REQUIRED':
+    case 'NOT_DECISION_GRADE':
     default:
       return resolvePublicWedgeSurfaceStateFromCoverage(truth.coverage.state);
   }

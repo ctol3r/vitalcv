@@ -202,7 +202,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
     {
       id: 'licensure',
       trigger: 'State Licensure / Authority',
-      triggerRight: accordionMeta(licStatus === 'checked' ? checkedMeta : 'access required'),
+      triggerRight: accordionMeta(licStatus === 'checked' ? checkedMeta : 'access_required'),
       status: licStatus,
       content: (
         <ProofDetailsList
@@ -241,7 +241,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
     {
       id: 'board',
       trigger: 'Board Certification',
-      triggerRight: accordionMeta('access required'),
+      triggerRight: accordionMeta('access_required'),
       status: 'access_required',
       content: (
         <ProofDetailsList
@@ -267,7 +267,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
     {
       id: 'dea',
       trigger: 'DEA / Controlled Substance',
-      triggerRight: accordionMeta('access required'),
+      triggerRight: accordionMeta('access_required'),
       status: 'access_required',
       content: (
         <ProofDetailsList
@@ -328,7 +328,7 @@ function buildDegradedAccordion(
   reason: DegradedPreviewReason,
 ): AccordionItem[] {
   const previewMeta = accordionMeta('preview only');
-  const accessRequiredMeta = accordionMeta('access required');
+  const accessRequiredMeta = accordionMeta('access_required');
   const unavailableMeta = accordionMeta('temporarily unavailable');
   const nppesChecked = sources.nppes === 'ok';
   const oigChecked = sources.oig === 'ok';

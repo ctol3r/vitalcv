@@ -47,10 +47,10 @@ export const CANONICAL_TRUTH_STATUSES = [
   'CLEAR',
   'ENROLLED',
   'PENDING',
+  'REVIEW_REQUIRED',
   'UNAVAILABLE',
-  'ACCESS REQUIRED',
-  'REVIEW REQUIRED',
-  'NOT DECISION-GRADE',
+  'ACCESS_REQUIRED',
+  'NOT_DECISION_GRADE',
 ] as const;
 
 export type CanonicalTruthStatus = (typeof CANONICAL_TRUTH_STATUSES)[number];
@@ -178,12 +178,12 @@ export const CANONICAL_TRUTH_RENDER_RULES: Readonly<
     'Stale, pending, or unsatisfied checked source results must render as PENDING.',
   UNAVAILABLE:
     'Only sources that were actually attempted but unavailable may render UNAVAILABLE.',
-  'ACCESS REQUIRED':
-    'Only gated or access-controlled sources may render ACCESS REQUIRED.',
-  'REVIEW REQUIRED':
-    'Only source results that require manual adjudication may render REVIEW REQUIRED.',
-  'NOT DECISION-GRADE':
-    'Unsupported, manual-only, synthetic preview, or otherwise non-decision-grade results must render NOT DECISION-GRADE.',
+  ACCESS_REQUIRED:
+    'Only gated or access-controlled sources may render ACCESS_REQUIRED.',
+  REVIEW_REQUIRED:
+    'Only source results that require manual adjudication may render REVIEW_REQUIRED.',
+  NOT_DECISION_GRADE:
+    'Unsupported, manual-only, synthetic preview, or otherwise non-decision-grade results must render NOT_DECISION_GRADE.',
 });
 
 type CreateCanonicalSourceCoverageInput = {
@@ -454,19 +454,19 @@ export function resolveCanonicalTruthStatus(input: {
   coverage: Pick<CanonicalSourceCoverage, 'state'>;
 }): CanonicalTruthStatus {
   if (input.coverage.state === 'reviewRequired') {
-    return 'REVIEW REQUIRED';
+    return 'REVIEW_REQUIRED';
   }
   if (input.coverage.state === 'unavailable') {
     return 'UNAVAILABLE';
   }
   if (input.coverage.state === 'gated' || input.coverage.state === 'accessRequired') {
-    return 'ACCESS REQUIRED';
+    return 'ACCESS_REQUIRED';
   }
   if (
     input.coverage.state === 'notDecisionGrade'
     || input.coverage.state === 'previewOnly'
   ) {
-    return 'NOT DECISION-GRADE';
+    return 'NOT_DECISION_GRADE';
   }
   if (input.coverage.state !== 'checked' || !input.satisfied) {
     return 'PENDING';
@@ -485,9 +485,11 @@ export function createCanonicalTruth(input: {
   satisfied: boolean;
   coverage: CanonicalSourceCoverage;
 }): CanonicalTruth {
+  const status = resolveCanonicalTruthStatus(input);
+  assertNonGatedIfPositive(status, input.coverage.state);
   return Object.freeze({
     kind: input.kind,
-    status: resolveCanonicalTruthStatus(input),
+    status,
     satisfied: Boolean(input.satisfied),
     decisionGrade: coverageSatisfiesDecisionGradeTruth(input.coverage),
     coverage: input.coverage,
@@ -498,6 +500,56 @@ export function isDecisionGradePositiveTruthStatus(
   status: CanonicalTruthStatus,
 ): status is DecisionGradePositiveTruthStatus {
   return status === 'VERIFIED' || status === 'CLEAR' || status === 'ENROLLED';
+}
+
+/**
+ * Gated/non-decision-grade truth statuses.
+ * Sources with these statuses must NEVER appear as VERIFIED or CLEAR
+ * and must NEVER contribute positively to readiness scoring.
+ */
+export const GATED_TRUTH_STATUSES = [
+  'ACCESS_REQUIRED',
+  'NOT_DECISION_GRADE',
+] as const;
+
+export type GatedTruthStatus = (typeof GATED_TRUTH_STATUSES)[number];
+
+export function isGatedTruthStatus(
+  status: CanonicalTruthStatus,
+): status is GatedTruthStatus {
+  return status === 'ACCESS_REQUIRED' || status === 'NOT_DECISION_GRADE';
+}
+
+/**
+ * Runtime guard: asserts that a gated/non-decision-grade source never
+ * resolves to a decision-grade positive status. Call this at any
+ * boundary where trust status is assigned to catch upstream bugs.
+ */
+export function assertNonGatedIfPositive(
+  status: CanonicalTruthStatus,
+  coverageState: CanonicalSourceCoverageState,
+): void {
+  if (
+    isDecisionGradePositiveTruthStatus(status)
+    && (coverageState === 'gated'
+      || coverageState === 'accessRequired'
+      || coverageState === 'notDecisionGrade'
+      || coverageState === 'previewOnly')
+  ) {
+    throw new Error(
+      `Trust parity violation: status '${status}' is not allowed for coverage state '${coverageState}'. `
+      + `Gated or non-decision-grade sources must never appear as VERIFIED, CLEAR, or ENROLLED.`,
+    );
+  }
+}
+
+/**
+ * Returns true if a truth entry should contribute positively to readiness scoring.
+ * ACCESS_REQUIRED and NOT_DECISION_GRADE must never contribute.
+ */
+export function isReadinessPositive(truth: Pick<CanonicalTruth, 'status' | 'decisionGrade'>): boolean {
+  if (isGatedTruthStatus(truth.status)) return false;
+  return truth.decisionGrade && isDecisionGradePositiveTruthStatus(truth.status);
 }
 
 const SOURCE_COVERAGE_STATE_LABELS: Readonly<

@@ -161,8 +161,8 @@ export async function buildDecisionTrustSnapshot(
 
     const blockers = passport.readiness?.nextActions ?? [];
     const gatedDomains: string[] = [];
-    if (passport.truth.authority.status === 'ACCESS REQUIRED') gatedDomains.push('STATE_LICENSE');
-    if (passport.truth.eligibility.status === 'ACCESS REQUIRED') gatedDomains.push('MEDICARE_ENROLLMENT');
+    if (passport.truth.authority.status === 'ACCESS_REQUIRED') gatedDomains.push('STATE_LICENSE');
+    if (passport.truth.eligibility.status === 'ACCESS_REQUIRED') gatedDomains.push('MEDICARE_ENROLLMENT');
 
     const bandMap: Record<string, string> = {
       READY: 'L3', PARTIAL: 'L2', BLOCKED: 'L0', UNKNOWN: 'L0',

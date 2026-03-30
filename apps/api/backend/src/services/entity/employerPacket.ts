@@ -277,10 +277,10 @@ function reviewRequiredForSource(
     case 'OIG_LEIE':
       return passport.standing.exclusionStatus === 'POSSIBLE_MATCH';
     case 'PECOS_PUBLIC':
-      return passport.truth.eligibility.status === 'REVIEW REQUIRED';
+      return passport.truth.eligibility.status === 'REVIEW_REQUIRED';
     case 'STATE_BOARD':
       return Boolean(findLicensureCredential(passport, sourceId)?.reviewRequired)
-        || passport.truth.authority.status === 'REVIEW REQUIRED';
+        || passport.truth.authority.status === 'REVIEW_REQUIRED';
     default:
       return false;
   }

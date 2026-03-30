@@ -903,7 +903,7 @@ describe('live path regression hardening', () => {
         ...buildPassport().truth,
         eligibility: {
           kind: 'enrollment',
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: createCanonicalSourceCoverage({
@@ -955,7 +955,7 @@ describe('live path regression hardening', () => {
         },
         eligibility: {
           kind: 'enrollment',
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: contextualEligibilityCoverage,

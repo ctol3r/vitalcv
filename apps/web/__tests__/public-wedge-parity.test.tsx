@@ -65,7 +65,7 @@ describe('public wedge parity helpers', () => {
       }),
     });
     const contextualTruth = buildTruth({
-      status: 'NOT DECISION-GRADE',
+      status: 'NOT_DECISION_GRADE',
       coverage: createCanonicalSourceCoverage({
         sourceId: 'PECOS_PUBLIC',
         state: 'notDecisionGrade',
@@ -128,7 +128,7 @@ describe('public wedge parity helpers', () => {
 
   it('renders unsupported source states without escalating them into strong trust badges', () => {
     const contextualTruth = buildTruth({
-      status: 'NOT DECISION-GRADE',
+      status: 'NOT_DECISION_GRADE',
       coverage: createCanonicalSourceCoverage({
         sourceId: 'PECOS_PUBLIC',
         state: 'notDecisionGrade',
