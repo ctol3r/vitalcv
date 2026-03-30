@@ -138,7 +138,9 @@ function buildTrustIndicators(detail: {
   const indicators: string[] = [];
 
   if (detail.verified) {
-    indicators.push(detail.verifiedSince ? `Verified since ${detail.verifiedSince.slice(0, 10)}` : 'Verified employer');
+    // Do not claim "Verified since [date]" — that implies continuous verification we cannot assert.
+    // "Directory listed" is the honest label for employers in this environment.
+    indicators.push('Directory listed');
   }
 
   if (detail.trustScore > 0) {
