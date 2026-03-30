@@ -305,7 +305,7 @@ const BUILD_SIGNALS = [
   { icon: CheckCircle2, text: 'Live NPI verification via NPPES (7M+ provider registry)' },
   { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
   { icon: CheckCircle2, text: 'Clinician identity graph: NPI → readiness → portable trust packet' },
-  { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept verified packets' },
+  { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept source-backed packets' },
   { icon: CheckCircle2, text: 'Audit ledger with scheduled license monitoring (HIPAA alignment in progress)' },
 ] as const;
 

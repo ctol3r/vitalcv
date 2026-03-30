@@ -11,16 +11,16 @@ const SECTIONS = [
   {
     icon: BookOpen,
     title: 'API Reference',
-    desc: 'Complete endpoint documentation for credential issuance, verification, revocation, and the federation protocol.',
+    desc: 'Endpoint documentation for the current credential verification, issuance, and revocation routes.',
     href: '/docs/api',
     badge: 'REST · JSON',
   },
   {
     icon: Code2,
     title: 'SDKs',
-    desc: 'Official client libraries for Node.js, Python, and Go with drop-in verification and wallet management.',
+    desc: 'TypeScript client libraries for verification, issuance, and wallet flows.',
     href: '/docs/sdk',
-    badge: 'Node · Python · Go',
+    badge: 'TypeScript',
   },
   {
     icon: Webhook,
@@ -48,9 +48,9 @@ const QUICK_LINKS = [
 ] as const;
 
 const PRINCIPLES = [
-  { icon: Shield, text: 'Zero-knowledge selective disclosure — reveal only what you choose' },
-  { icon: Zap,    text: 'Sub-100ms verification via in-memory trust substrate' },
-  { icon: Globe,  text: 'Federation-native — interoperates with Nursys, CAQH, ABMS' },
+  { icon: Shield, text: 'Selective disclosure — share only the credential fields you choose' },
+  { icon: Zap,    text: 'Fast verification against the current trust backend' },
+  { icon: Globe,  text: 'Federation-ready — designed to interoperate with Nursys, CAQH when connected' },
 ] as const;
 
 export default function DocsPage() {

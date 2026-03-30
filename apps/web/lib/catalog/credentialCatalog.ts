@@ -26,7 +26,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, { label: string; items: CredentialT
       { key: 'dea', label: 'DEA', required: false, description: 'If prescribing controlled substances.' },
       { key: 'malpractice', label: 'Malpractice / Claims', required: true, description: 'Coverage + claims history where applicable.' },
       { key: 'cv', label: 'Curriculum Vitae', required: true, description: 'Employment + training history.' },
-      { key: 'sanctions', label: 'Sanctions Check', required: true, description: 'OIG / NPDB / exclusions screening.' },
+      { key: 'sanctions', label: 'Sanctions Check', required: true, description: 'OIG exclusions screening. NPDB requires separate institutional access.' },
     ],
   },
   nurse_practitioner: {
