@@ -128,21 +128,27 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex gap-2 border-t border-white/10 pt-4">
-            <Link
-              href="/sign-in"
-              onClick={closeMenu}
-              className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-medium text-white/80"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/passport"
-              onClick={closeMenu}
-              className="flex-1 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-[oklch(0.22_0.01_60)]"
-            >
-              Check Readiness
-            </Link>
+          <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4">
+            <div className="flex gap-2">
+              <Link
+                href="/sign-in"
+                onClick={closeMenu}
+                className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-medium text-white/80"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/passport"
+                onClick={closeMenu}
+                className="flex-1 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-[oklch(0.22_0.01_60)]"
+              >
+                Check Readiness
+              </Link>
+            </div>
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-white/40">Theme</span>
+              <ThemeToggle />
+            </div>
           </div>
         </nav>
       )}

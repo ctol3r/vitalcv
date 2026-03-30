@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div 
-      className="min-h-screen flex flex-col justify-center items-center p-6 md:p-12 overflow-hidden relative"
+      className="min-h-screen flex flex-col justify-center items-center p-6 md:p-12 overflow-x-hidden relative"
       style={{
         background: 'linear-gradient(145deg, #080e1a 0%, #0b1220 50%, #07101e 100%)',
       }}
