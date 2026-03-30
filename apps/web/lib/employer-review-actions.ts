@@ -1,4 +1,4 @@
-export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
+export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'reject';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
 export type EmployerReviewPersistenceMode = 'durable_record' | 'audit_only';
 export type EmployerReviewPersistenceTarget =
@@ -78,6 +78,8 @@ export function employerReviewLoadingLabel(intent: EmployerReviewActionIntent): 
       return 'Recording refresh request...';
     case 'review':
       return 'Recording review routing...';
+    case 'reject':
+      return 'Recording rejection...';
     default:
       return 'Recording employer action...';
   }
@@ -93,6 +95,8 @@ export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionSt
       return state.persistence.reviewItemCreated
         ? 'Most recent persisted action: routed to review queue'
         : 'Most recent persisted action: review routing';
+    case 'reject':
+      return 'Most recent persisted action: candidate rejected';
     default:
       return 'Most recent persisted action';
   }

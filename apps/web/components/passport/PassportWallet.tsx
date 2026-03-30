@@ -36,6 +36,7 @@ import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
@@ -460,6 +461,7 @@ export default function PassportWallet({ passport }: Props) {
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const { identity, readiness, trustPosture } = passport;
   const cfg = STATUS_CONFIG[readiness.status];
@@ -643,19 +645,15 @@ export default function PassportWallet({ passport }: Props) {
             {!shared ? (
               <>
                 <Button
-                  onClick={handleShare}
-                  disabled={sharing}
+                  onClick={() => setShareModalOpen(true)}
                   variant="success"
                   className="h-14 w-full rounded-xl text-sm font-medium"
-                  aria-label="Generate shareable passport link"
+                  aria-label="Share credential packet"
                 >
-                  {sharing ? 'Generating link…' : 'Copy share link for employer'}
+                  Share credential packet
                 </Button>
-                {shareError && (
-                  <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
-                )}
                 <p className="text-center text-white/20 text-xs leading-relaxed">
-                  Generates a shareable link to this passport. Send it to an employer to open the review surface.
+                  Opens a share dialog with auth check, 24-hour expiry, and a shareable link for employer review.
                 </p>
               </>
             ) : (
@@ -668,6 +666,13 @@ export default function PassportWallet({ passport }: Props) {
             )}
           </div>
         </SectionReveal>
+
+        <SharePacketModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          npi={passport.npi ?? ''}
+          displayName={identity.displayName}
+        />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">

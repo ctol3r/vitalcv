@@ -9,7 +9,7 @@ const BACKEND =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review']);
+const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review', 'reject']);
 
 function unauthorizedResponse() {
   return NextResponse.json(

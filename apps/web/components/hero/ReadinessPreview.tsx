@@ -677,9 +677,22 @@ export function ReadinessPreview({
           <CardFooter className="border-t border-white/6 px-5 py-4">
             <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/38">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">What to fix next</p>
+                {gaps.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm font-medium text-white/72">
+                      {gaps.length === 1 ? 'Resolve this blocker' : `Resolve these ${gaps.length} blockers`} to improve your readiness.
+                    </p>
+                    <p className="text-xs leading-relaxed text-white/38">
+                      The highest-priority action: {gaps[0]}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm font-medium text-white/72">
+                    No blockers remain. Carry this snapshot into your passport to share.
+                  </p>
+                )}
+                <p className="mt-2 text-xs leading-relaxed text-white/38">
                   {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
               </div>
