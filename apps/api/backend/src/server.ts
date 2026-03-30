@@ -177,7 +177,7 @@ async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
-  const { ensureLaunchOpportunitiesBootstrapped } = await import('./services/opportunities/launchOpportunitySeed');
+  const { ensureLaunchOpportunitiesBootstrappedForStartup } = await import('./services/opportunities/launchOpportunitySeed');
   const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
@@ -189,7 +189,7 @@ async function bootstrapApp() {
   const config = loadEnv();
   await ensureInvestigationSeedDataBootstrapped({ logger: log });
   if (config.NODE_ENV === 'production') {
-    await ensureLaunchOpportunitiesBootstrapped({ logger: log });
+    await ensureLaunchOpportunitiesBootstrappedForStartup({ logger: log });
   }
 
   const productionDeployment = config.NODE_ENV === 'production';

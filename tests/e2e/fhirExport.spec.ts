@@ -10,6 +10,9 @@ describe('FHIR export', () => {
       lastName: clinician.lastName,
       credential: 'MD',
       organization: 'Wave 124 Health System',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       taxonomies: [{
         code: clinician.taxonomyCode,
         description: clinician.taxonomyDescription,

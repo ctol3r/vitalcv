@@ -1,4 +1,4 @@
-import { EmployerHiringStatus, type Prisma, type PrismaClient } from '@prisma/client';
+import { EmployerHiringStatus, Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 
 type SeedLogger = (
@@ -250,6 +250,11 @@ export interface LaunchOpportunitySeedSummary {
   skipped: boolean;
 }
 
+type LaunchOpportunityBootstrapper = (options: {
+  prismaClient?: PrismaClient;
+  logger?: SeedLogger;
+}) => Promise<LaunchOpportunitySeedSummary | null>;
+
 function requirementsAsJson(
   requirements: SeedOrganization['requirements'],
 ): Prisma.InputJsonValue {
@@ -474,4 +479,40 @@ export async function ensureLaunchOpportunitiesBootstrapped(options: {
   });
 
   return seedLaunchOpportunities(prismaClient, logger);
+}
+
+function isLaunchOpportunitySchemaCompatibilityError(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError
+    && (error.code === 'P2021' || error.code === 'P2022');
+}
+
+export async function ensureLaunchOpportunitiesBootstrappedForStartup(options: {
+  prismaClient?: PrismaClient;
+  logger?: SeedLogger;
+  bootstrap?: LaunchOpportunityBootstrapper;
+} = {}): Promise<LaunchOpportunitySeedSummary | null> {
+  const bootstrap = options.bootstrap ?? ensureLaunchOpportunitiesBootstrapped;
+
+  try {
+    return await bootstrap({
+      prismaClient: options.prismaClient,
+      logger: options.logger,
+    });
+  } catch (error) {
+    if (!isLaunchOpportunitySchemaCompatibilityError(error)) {
+      throw error;
+    }
+
+    const schemaError = error as Prisma.PrismaClientKnownRequestError;
+
+    options.logger?.('warn', 'launch_opportunity_seed.startup_skipped_schema_gap', {
+      event: 'launch_opportunity_seed.startup_skipped_schema_gap',
+      prisma_code: schemaError.code,
+      reason: 'schema_compatibility',
+      error: schemaError.message,
+    });
+    return null;
+  }
 }

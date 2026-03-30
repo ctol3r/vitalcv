@@ -152,6 +152,9 @@ describe('FHIR R4 Export', () => {
       credential: 'MD',
       gender: 'M',
       trustBand: 'L3',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       taxonomies: [{ code: '207R00000X', description: 'Internal Medicine', primary: true }],
       credentials: [{
         credentialId: 'cred-001',
@@ -181,6 +184,9 @@ describe('FHIR R4 Export', () => {
       npi: '1003000126',
       firstName: 'Jane',
       lastName: 'Doe',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       credentials: [{
         credentialId: 'cred-002',
         type: 'BoardCertification',
@@ -199,6 +205,9 @@ describe('FHIR R4 Export', () => {
       npi: '1003000126',
       firstName: 'John',
       lastName: 'Smith',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       taxonomies: [{ code: '207R00000X', description: 'Internal Medicine', primary: true, state: 'CA' }],
     });
 
@@ -214,6 +223,9 @@ describe('FHIR R4 Export', () => {
       firstName: 'Test',
       lastName: 'Provider',
       trustBand: 'L2',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
     });
 
     const practitioner = bundle.entry[0].resource as any;
