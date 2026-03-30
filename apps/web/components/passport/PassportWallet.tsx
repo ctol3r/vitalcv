@@ -533,6 +533,10 @@ export default function PassportWallet({ passport }: Props) {
           {identity.specialty && (
             <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
           )}
+          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/30">
+            {passport.npi && <span>NPI {passport.npi}</span>}
+            <span>{identity.entityType === 'PERSON' ? 'Individual provider' : 'Organization'}</span>
+          </div>
 
           {/* Readiness status — employer-visible trust level */}
           <div className="mt-3">
@@ -594,6 +598,38 @@ export default function PassportWallet({ passport }: Props) {
                   </div>
                 </div>
               ))}
+            </Card>
+          </SectionReveal>
+        )}
+
+        {/* ── Explicit missing items ─────────────────────────────────────── */}
+        {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
+          <SectionReveal delay={0.28}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+              <p className="text-white/50 text-sm font-medium">Data not yet available</p>
+              <p className="text-white/25 text-xs leading-relaxed">
+                These items are not covered in this snapshot. They require additional source access or have not been checked.
+              </p>
+              <div className="space-y-2 mt-1">
+                {trustPosture.missingItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Missing — not yet checked</p>
+                    </div>
+                  </div>
+                ))}
+                {trustPosture.gatedItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Gated — requires institutional access</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Card>
           </SectionReveal>
         )}

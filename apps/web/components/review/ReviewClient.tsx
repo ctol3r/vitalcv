@@ -1184,17 +1184,17 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
                 className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
               >
                 {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
-                  ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
-                  : 'Request refresh'}
+                  ? `Request Updated Data (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
+                  : 'Request Updated Data'}
               </Button>
               <Button
                 onClick={handleRouteToReview}
                 disabled={!canPersistActions || actionState.phase === 'downloading'}
                 variant="outline"
-                title="Route to your credentialing committee for manual review"
+                title="Send to your credentialing team for manual review"
                 className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
               >
-                Route to review
+                Send to Credentialing Team
               </Button>
             </div>
 

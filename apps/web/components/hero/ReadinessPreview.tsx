@@ -96,6 +96,32 @@ const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
   blocked: 'Blocked',
 };
 
+const READINESS_LEVEL_EXPLANATION: Record<string, string> = {
+  'L0': 'Foundation — minimum evidence is missing. Not ready for credentialing decisions.',
+  'L1': 'Provisional — some sources checked but gaps remain. Manual review required before proceeding.',
+  'L2': 'Source-backed — key sources verified. Ready to proceed with noted caveats.',
+  'L3': 'Trust-native — decision-grade evidence across all required sources.',
+};
+
+function resolveBlockerSeverity(blocker: string): 'critical' | 'high' | 'medium' {
+  const lower = blocker.toLowerCase();
+  if (lower.includes('excluded') || lower.includes('revoked') || lower.includes('blocked')) return 'critical';
+  if (lower.includes('expired') || lower.includes('missing') || lower.includes('identity')) return 'high';
+  return 'medium';
+}
+
+const SEVERITY_STYLES: Record<string, string> = {
+  critical: 'text-rose-300/80',
+  high: 'text-amber-300/70',
+  medium: 'text-white/50',
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: 'CRITICAL',
+  high: 'HIGH',
+  medium: 'MEDIUM',
+};
+
 const CHIPS_CLASSNAME =
   'rounded-full border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/60';
 
@@ -562,11 +588,35 @@ export function ReadinessPreview({
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
                   <p className="mt-2 text-sm font-semibold text-white">{ts.readiness_status}</p>
                   <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
+                  <p className="mt-2 text-[11px] leading-relaxed text-white/35">
+                    {READINESS_LEVEL_EXPLANATION[ts.readiness_level] ?? 'Readiness level not recognized.'}
+                  </p>
                 </div>
                 <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
                   Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
                 </p>
               </div>
+            </div>
+
+            {/* Per-source status summary */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Source coverage</p>
+              {[
+                { id: 'npi', label: 'NPI Registry (NPPES)', ok: ts.identityVerified },
+                { id: 'oig', label: 'OIG / LEIE Exclusions', ok: ts.exclusionClear },
+                { id: 'lic', label: 'State Licensure', ok: ts.licensureStatus === 'verified' },
+                { id: 'pecos', label: 'CMS PECOS Enrollment', ok: false },
+                { id: 'board', label: 'Board Certification (ABMS)', ok: false },
+              ].map(src => (
+                <div key={src.id} className="flex items-center justify-between rounded-lg border border-white/6 bg-black/10 px-3 py-2">
+                  <span className="text-xs text-white/55">{src.label}</span>
+                  <TrustStatusBadge
+                    status={src.ok ? 'checked' : (src.id === 'pecos' || src.id === 'board') ? 'access_required' : 'pending'}
+                    label={src.ok ? 'Checked' : (src.id === 'pecos' || src.id === 'board') ? 'Access required' : 'Pending'}
+                    size="sm"
+                  />
+                </div>
+              ))}
             </div>
 
             <div className="space-y-3">
@@ -579,12 +629,22 @@ export function ReadinessPreview({
                     <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
                     <span className="text-xs text-white/45">No blockers surfaced in this run.</span>
                   </div>
-                ) : gaps.slice(0, 3).map(gap => (
-                  <div key={gap} className="flex items-start gap-2">
-                    <span className="mt-px shrink-0 text-sm leading-none text-white/25">✖</span>
-                    <span className="text-xs leading-tight text-white/55">{gap}</span>
-                  </div>
-                ))}
+                ) : gaps.slice(0, 5).map(gap => {
+                  const severity = resolveBlockerSeverity(gap);
+                  return (
+                    <div key={gap} className="flex items-start gap-2">
+                      <span className="mt-px shrink-0 text-sm leading-none text-white/25">✖</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest ${SEVERITY_STYLES[severity]}`}>
+                            {SEVERITY_LABELS[severity]}
+                          </span>
+                        </div>
+                        <span className="text-xs leading-tight text-white/55">{gap}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               {confirmedItems.length > 0 ? (
                 <div className="space-y-3 border-t border-white/6 pt-3">
