@@ -306,7 +306,7 @@ const BUILD_SIGNALS = [
   { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
   { icon: CheckCircle2, text: 'Clinician identity graph: NPI → readiness → portable trust packet' },
   { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept verified packets' },
-  { icon: CheckCircle2, text: 'HIPAA-compliant audit ledger with continuous license monitoring' },
+  { icon: CheckCircle2, text: 'Audit ledger with scheduled license monitoring (HIPAA alignment in progress)' },
 ] as const;
 
 const COMPLIANCE_BADGES = [
@@ -397,7 +397,7 @@ export function TractionSection() {
         {/* CTA */}
         <FadeIn delay={0.4} className="text-center mt-12">
           <p className="glue-body text-sm mb-5">
-            See the product working in real time.
+            See the product working.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/passport" className="glue-btn glue-btn-primary">
@@ -650,8 +650,8 @@ export function MoneballSection() {
             </p>
             <p className="text-white/65 mt-3 max-w-2xl mx-auto">
               Every week a credentialed physician can&apos;t start is a week of care
-              that doesn&apos;t happen. VitalCV compresses that gap from months to hours —
-              and in doing so, unlocks the capacity the healthcare system already has.
+              that doesn&apos;t happen. VitalCV works to compress that gap —
+              and in doing so, helps unlock capacity the healthcare system already has.
             </p>
           </div>
         </FadeIn>
@@ -679,8 +679,8 @@ const PILLARS = [
   {
     number: '02',
     title: 'Free Specialty Job Board',
-    body: 'Every healthcare job, every specialty, free to post. Physicians, NPs, CRNAs, therapists — one platform for all of medicine. Employers stop paying $5,000 for a single oncology posting.',
-    tags: ['All Specialties', 'All Provider Types', 'Free to Post', 'Auto-Aggregated'],
+    body: 'Healthcare jobs across specialties, free to post. Physicians, NPs, CRNAs, therapists — one growing platform. Employers stop paying $5,000 for a single oncology posting.',
+    tags: ['Specialties', 'Provider Types', 'Free to Post', 'Auto-Aggregated'],
     color: 'emerald',
   },
   {
@@ -693,7 +693,7 @@ const PILLARS = [
   {
     number: '04',
     title: 'Clinic Capacity Intelligence',
-    body: 'For the first time, health systems can measure hiring capacity — not just headcount. How many physicians can actually start this quarter? VitalCV tells you, and tells you how to increase it.',
+    body: 'Health systems can start to measure hiring capacity — not just headcount. How many physicians can actually start this quarter? VitalCV surfaces the answer and shows how to improve it.',
     tags: ['Staffing Projections', 'Credentialing Velocity', 'Capacity Model', 'New Metric'],
     color: 'amber',
   },
@@ -717,9 +717,9 @@ const PILLAR_COLORS: Record<string, { border: string; tag: string; num: string }
 
 const NOVEL_CLAIMS = [
   {
-    claim: 'The first unified clinical identity graph',
+    claim: 'A unified clinical identity graph',
     // M1: "blockchain-anchored" → "cryptographically signed" — no blockchain in prod
-    detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed graph. No one has built this for healthcare.',
+    detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed graph.',
   },
   {
     claim: 'Credential-aware job matching',
@@ -733,7 +733,7 @@ const NOVEL_CLAIMS = [
   },
   {
     claim: 'Clinic hiring capacity as a measurable metric',
-    detail: 'No health system can currently answer "how many physicians can we actually onboard this year?" VitalCV answers it — and improves the number.',
+    detail: 'Most health systems struggle to answer "how many physicians can we actually onboard this quarter?" VitalCV surfaces the data to help answer — and improve — that number.',
   },
 ];
 
@@ -762,11 +762,11 @@ export function PlatformVisionSection() {
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight mb-4">
             Not just credentialing.
             <br />
-            <span className="text-violet-400">The infrastructure layer for all of US healthcare.</span>
+            <span className="text-violet-400">Building the infrastructure layer for US healthcare.</span>
           </h2>
           <p className="text-white/60 max-w-2xl mx-auto text-lg leading-relaxed">
-            VitalCV is building the definitive knowledge base for every clinician, every credential,
-            every specialty, and every career path in American medicine — backed by primary source
+            VitalCV is working toward a knowledge base for clinicians, credentials,
+            specialties, and career paths in American medicine — backed by primary source
             verification and cryptographic signing. Free for the people who need it most.
           </p>
         </FadeIn>

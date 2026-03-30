@@ -261,10 +261,30 @@ export interface OpenBlockerInput {
   entityId:    string;
   blockerCode: string;
   metadata?:   Record<string, unknown>;
+  scope?:      PilotScope | null;
 }
 
+/**
+ * openBlockerEvent — record a new blocker episode.
+ *
+ * Dedupe: if an OPEN row already exists for this entityId + blockerCode,
+ * the call is a no-op and returns the existing event ID.
+ */
 export async function openBlockerEvent(input: OpenBlockerInput): Promise<string | null> {
   try {
+    // ── Dedupe: same blocker cannot be opened twice ──────────────────
+    const existing = await prisma.blockerResolutionEvent.findFirst({
+      where: { entityId: input.entityId, blockerCode: input.blockerCode, status: 'OPEN' },
+      select: { id: true },
+    });
+    if (existing) {
+      log('debug', 'seal_blocker_open_deduped', {
+        blockerCode: input.blockerCode,
+        existingId: existing.id,
+      });
+      return existing.id;
+    }
+
     const event = await prisma.blockerResolutionEvent.create({
       data: {
         id:          randomUUID(),
@@ -272,7 +292,7 @@ export async function openBlockerEvent(input: OpenBlockerInput): Promise<string 
         blockerCode: input.blockerCode,
         openedAt:    new Date(),
         status:      'OPEN',
-        metadata:    JSON.parse(JSON.stringify(input.metadata ?? {})),
+        metadata:    JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
       },
     });
     return event.id;
@@ -457,14 +477,25 @@ export async function captureEmployerDecision(input: CaptureEmployerDecisionInpu
 
 // ── 4. Start Outcome Event ────────────────────────────────────────────────
 
+export type StartOutcomeStatus = 'STARTED' | 'NOT_STARTED';
+
 export interface CaptureStartOutcomeInput {
   /** Canonical entity UUID. Legacy callers may still pass NPI; this helper resolves it. */
   entityId:              string;
   organizationContextId?: string | null;
+  /** Outcome: started or not_started */
+  outcomeStatus?:        StartOutcomeStatus;
+  /** When the clinician actually started (required for STARTED, optional for NOT_STARTED) */
   startedAt:             Date;
+  /** Alias: explicit actual start date (overrides startedAt when provided) */
+  actualStartDate?:      Date | null;
   readinessScoreAtStart?: number | null;
   blockersAtStart:       string[];
   sourceCoverageAtStart: SourceCoverageSnapshot | Record<string, unknown>;
+  /** Human-readable reason (e.g., "offer rescinded", "visa delay") */
+  reason?:               string | null;
+  /** Free-text notes about blockers at the time of start/non-start */
+  blockerNotes?:         string | null;
   metadata?:             Record<string, unknown>;
   scope?:                PilotScope | null;
 }
@@ -474,9 +505,12 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     const entityId = await resolveStartOutcomeEntityId(input.entityId);
     if (!entityId) return;
 
+    const effectiveStatus: StartOutcomeStatus = input.outcomeStatus ?? 'STARTED';
+    const effectiveStartDate = input.actualStartDate ?? input.startedAt;
+
     const timings = await deriveStartOutcomeTimings(
       entityId,
-      input.startedAt,
+      effectiveStartDate,
       input.organizationContextId ?? null,
       input.scope ?? null,
     );
@@ -487,7 +521,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         id:                    randomUUID(),
         entityId,
         organizationContextId: input.organizationContextId ?? null,
-        startedAt:             input.startedAt,
+        startedAt:             effectiveStartDate,
         daysFromFirstReview:   timings.daysFromFirstReview,
         daysFromShare:         timings.daysFromShare,
         daysFromReady:         timings.daysFromReady,
@@ -497,15 +531,19 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         metadata:              JSON.parse(JSON.stringify(mergeScope({
           ...(input.metadata ?? {}),
           eventName: 'start_outcome_recorded',
-          outcomeStatus: 'STARTED',
+          outcomeStatus: effectiveStatus,
           organizationContextId: input.organizationContextId ?? null,
+          reason: input.reason ?? null,
+          blockerNotes: input.blockerNotes ?? null,
+          actualStartDate: effectiveStartDate.toISOString(),
           capturedAt,
         }, input.scope))),
       },
     });
     log('info', 'seal_start_outcome_captured', {
       entityId: entityId.slice(0, 8) + '…',
-      startedAt: input.startedAt.toISOString(),
+      outcomeStatus: effectiveStatus,
+      startedAt: effectiveStartDate.toISOString(),
     });
   } catch (err) {
     log('warn', 'seal_start_outcome_capture_failed', {
@@ -515,7 +553,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
 }
 
 export interface RecordPilotProofEventInput {
-  eventName: 'readiness_changed' | 'start_outcome_recorded';
+  eventName: 'readiness_changed' | 'start_outcome_recorded' | 'blocker_opened' | 'blocker_resolved';
   entityId?: string | null;
   organizationContextId?: string | null;
   organizationId?: string | null;
