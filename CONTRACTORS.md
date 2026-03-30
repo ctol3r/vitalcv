@@ -1,8 +1,8 @@
 # CONTRACTORS.md — VitalCV Handoff Reference
 
-> Written 2026-03-23. Keep this updated when routes, sources, or rules change.
-> 
-> **CRITICAL PILOT DOCS:** Before deploying or modifying logic, read [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md), [vitalcv-pilot-runbook.md](./docs/specs/vitalcv-pilot-runbook.md), [vitalcv-pilot-brief.md](./docs/specs/vitalcv-pilot-brief.md), and [vitalcv-pricing-doctrine.md](./docs/specs/vitalcv-pricing-doctrine.md). **DO NOT reintroduce demo theater. Build for truth.**
+> Updated 2026-03-30 (Wave 5). Keep this updated when routes, sources, or rules change.
+>
+> **CRITICAL PILOT DOCS:** Before deploying or modifying logic, read [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md), [vitalcv-pilot-runbook.md](./docs/specs/vitalcv-pilot-runbook.md), [vitalcv-pilot-brief.md](./docs/specs/vitalcv-pilot-brief.md), [vitalcv-pricing-doctrine.md](./docs/specs/vitalcv-pricing-doctrine.md), [vitalcv-source-coverage-matrix.md](./docs/specs/vitalcv-source-coverage-matrix.md), and [vitalcv-demo-script.md](./docs/specs/vitalcv-demo-script.md). **DO NOT reintroduce demo theater. Build for truth.**
 
 ---
 
@@ -199,3 +199,82 @@ OCR_PROVIDER=stub               # Set to 'openai' when OpenAI key available
 | ReviewClient UI | `apps/web/components/review/ReviewClient.tsx` |
 | InterviewClient UI | `apps/web/app/interview/InterviewClient.tsx` |
 | DB schema | `apps/api/backend/prisma/schema.prisma` |
+
+---
+
+## 11. Do Not Introduce
+
+**These are hard rules. Violating them blocks any PR from merging.**
+
+### 11.1 — Demo Theater (Fake UI States)
+
+Do not create, restore, or wire UI components that display readiness states, source results, scores, or employer actions that are not backed by real data flowing through the production trust pipeline. This includes:
+
+- Seeded "happy path" data rendered as if it were live verification results.
+- Mock readiness scores or trust levels not produced by `readinessEngine`.
+- Static JSON fixtures rendered in production routes (dev/test fixtures are fine in test environments).
+- Any route that produces a "verified" or "cleared" appearance without a real source check behind it.
+
+**Test:** If the data disappears when you disconnect all source adapters, it was real. If it still looks the same, it's theater.
+
+### 11.2 — Unsupported Source Claims
+
+Do not add NPDB, DEA, ABMS, CAQH ProView, or SAM.gov to any UI, marketing copy, source coverage display, or readiness calculation unless the source is actually integrated, enabled via env flag, and flowing data in production.
+
+Specifically:
+- Do not add these source names to `SourceHealthPanel`, passport lanes, readiness factors, or blocker lists.
+- Do not add "coming soon" labels that imply imminent availability.
+- Do not create gated source UI that looks like it's one toggle away from being live when no code path exists.
+
+**Reference:** See [vitalcv-source-coverage-matrix.md](./docs/specs/vitalcv-source-coverage-matrix.md) for the canonical status of every source.
+
+### 11.3 — Fake Signatures or PDF Theater
+
+Do not generate, display, or export documents that appear to be cryptographically signed, notarized, or officially stamped when the signing infrastructure is not actually in place. This includes:
+
+- Rendered signature lines, seals, or "digitally signed by" labels without actual signing.
+- PDF exports styled to look like official verification letters when they are evidence packets.
+- Any visual element that implies legal weight the document does not carry.
+
+### 11.4 — Fake Self-Serve Claims
+
+Do not display live checkout buttons, Stripe payment forms, or "subscribe now" CTAs unless card payment is actually enabled and processing. During pilot mode:
+
+- Pricing tiers can be shown for transparency.
+- CTAs must route to `mailto:` or the request-access flow.
+- Do not claim "instant activation" or "start your free trial" when access requires manual approval.
+
+### 11.5 — Platform Breadth Ahead of Wedge
+
+Do not build or ship features that imply VitalCV is a general recruiting marketplace, a full credentialing platform, or a workflow automation suite. The product has one launch wedge:
+
+```
+NPI -> Onboarding -> Passport -> Review -> Employer Decision
+```
+
+Do not add:
+- Job boards, candidate matching, or sourcing features.
+- Committee management, document collection workflows, or multi-step approval chains.
+- Multi-tenant admin panels for features that don't exist yet.
+- Dashboard shells for analytics that have no real data behind them.
+
+### 11.6 — Silent Source Failures Appearing as Clean/Verified
+
+A source that fails to respond, times out, or throws an error must NEVER render as `CLEAR`, `VERIFIED`, `ENROLLED`, or any positive state. It must render as:
+
+- `UNAVAILABLE` — source could not be reached.
+- `ERROR` — source returned an error.
+- `UNCHECKED` — source was never queried.
+
+**Test:** Kill the source adapter or block the network call. If the UI still shows a positive state, the error handling is wrong.
+
+### 11.7 — Bypassing Canonical Trust-Status Definitions
+
+The trust pipeline uses canonical status values defined in `packages/trust-state/`. Do not:
+
+- Invent new status strings without updating the canonical type definitions.
+- Map a negative source result to a positive display state (e.g., `NOT_FOUND` -> "Verified").
+- Skip the `trustStateEngine` or `readinessEngine` to produce a readiness score directly.
+- Allow an employer action to succeed without writing an `AuditEvent` in the same transaction.
+
+**Reference:** See the decision-grade rules in Section 4 of this document and the launch gate at [vitalcv-launch-gate.md](./docs/specs/vitalcv-launch-gate.md).

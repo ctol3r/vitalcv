@@ -2,17 +2,20 @@
 
 **MISSION:** Show one believable buyer story on the canonical wedge with no demo theater.
 
+**Last updated:** 2026-03-30 (Wave 5)
+
 ## Demo Promise
 
 This demo proves one thing: a credentialing / onboarding operator can move from NPI intake to a persisted employer action without restarting the review from scratch.
 
 ## Pre-Demo Checklist
 
-- Use the live wedge only: `/onboarding` -> `/passport/[id]` -> `/review/[entityId]`.
-- Use an approved pilot NPI. Default demo input: `1003000126` unless a live pilot NPI has been approved for the session.
-- Have a stopwatch ready for first-value and packet-to-decision timing.
-- Confirm packet export is available from the live review surface.
-- Confirm the review surface exposes the audit confirmation state before the session starts.
+- [ ] Use the live wedge only: `/onboarding` -> `/passport/[id]` -> `/review/[entityId]`.
+- [ ] Use an approved pilot NPI. Default demo NPI: `1003000126` unless a live pilot NPI has been approved for the session.
+- [ ] Have a stopwatch ready for first-value and packet-to-decision timing.
+- [ ] Confirm backend is reachable: `GET https://delightful-essence-production.up.railway.app/api/health`
+- [ ] Confirm packet export is available from the live review surface.
+- [ ] Confirm the review surface exposes the audit confirmation state before the session starts.
 
 ## Demo Rules
 
@@ -23,15 +26,19 @@ This demo proves one thing: a credentialing / onboarding operator can move from 
 
 ## Time Box
 
-- Opening: 20 seconds
-- NPI in: 45 seconds
-- Readiness appears: 60 seconds
-- Packet inspected: 75 seconds
-- Employer acts: 45 seconds
-- Audit confirmed: 35 seconds
-- Close: 20 seconds
+| Step | Duration | Running Total |
+| --- | --- | --- |
+| Opening | 20s | 0:20 |
+| NPI in | 45s | 1:05 |
+| Readiness appears | 60s | 2:05 |
+| Packet inspected | 75s | 3:20 |
+| Employer acts | 45s | 4:05 |
+| Audit confirmed | 35s | 4:40 |
+| Close + ask | 20s | 5:00 |
 
-Total target: about 4 minutes.
+Total target: about 5 minutes.
+
+---
 
 ## Opening
 
@@ -39,140 +46,166 @@ Say:
 
 > VitalCV is not trying to replace your entire credentialing stack. It gives your onboarding operator one truthful packet and one auditable decision path so you can move a start decision forward faster.
 
-## 1. NPI In
+---
 
-Route: `/onboarding`
+## Step 1 — NPI In
 
-Action:
+**URL:** `https://vitalcv.com/onboarding`
 
-1. Enter the approved pilot NPI.
-2. Submit and narrate only what is actually happening.
+**What operator does:**
+1. Navigate to `/onboarding`.
+2. Enter the approved pilot NPI (`1003000126` for demo, or a real NPI for live pilot).
+3. Submit and start the stopwatch.
 
-Say:
+**Say:**
 
-> We start with one NPI. VitalCV resolves identity and begins the launch-spine checks. If a source is not available, it stays visibly limited instead of getting papered over.
+> We start with one NPI. VitalCV resolves identity and begins the launch-spine checks — NPPES for identity, OIG/LEIE for sanctions, PECOS for Medicare enrollment. If a source is not available, it stays visibly limited instead of getting papered over.
 
-What to show:
+**What happens on screen:**
+- NPI input accepted.
+- Loading state while NPPES, OIG/LEIE, and PECOS are queried (~10-15 seconds).
+- Transition into the passport flow.
 
-- NPI input accepted
-- transition into the passport flow
+**Proof point:** This starts the first-value timer. Target: useful readiness snapshot in under 30 seconds.
 
-Proof point:
+---
 
-- This starts the first-value timer. The target is a useful readiness snapshot in under 30 seconds.
+## Step 2 — Readiness Appears
 
-## 2. Readiness Appears
+**URL:** `https://vitalcv.com/passport/[id]` (auto-navigated from onboarding, or click "View Passport")
 
-Route: `/passport/[id]`
+**What operator does:**
+1. Stop the first-value timer.
+2. Walk through each source lane.
 
-Action:
-
-1. Land on the passport.
-2. Pause on readiness score, blockers, and source coverage.
-
-Say:
+**Say:**
 
 > This is the first value moment. The operator can already see who the clinician is, what is checked, what is still blocked, and what needs more work.
 
-What to show:
+**Walk through each source lane:**
 
-- clinician identity
-- readiness score / level
-- blocker list
-- source coverage states
+| Source | Expected State | What to Say |
+| --- | --- | --- |
+| NPPES | CHECKED — identity confirmed | "Name, taxonomy, practice address — sourced directly from CMS" |
+| OIG/LEIE | CHECKED — no exclusion found | "Checked against the federal exclusion list — this clinician is clear" |
+| PECOS | CHECKED or PENDING | "Medicare enrollment status. If it shows PENDING, that's the quarterly refresh cadence — honest, not a bug" |
+| State Board | ACCESS_REQUIRED | "State licensure requires per-state agreements we don't have yet for this pilot. It says so plainly" |
 
-Proof point:
+**What the employer sees:**
+- Clinician identity (name, NPI, taxonomy, address).
+- Readiness score and level (L1/L2/L3).
+- Blocker list with explicit reasons.
+- Source coverage states with timestamps.
 
-- The product is useful before everything is perfect because it makes uncertainty explicit.
+**Proof point:** The product is useful before everything is perfect because it makes uncertainty explicit.
 
-## 3. Packet Inspected
+---
 
-Route: `/review/[entityId]`
+## Step 3 — Packet Inspected
 
-Action:
+**URL:** `https://vitalcv.com/review/[entityId]` (from employer review link or "Request employer review")
 
-1. Open employer review.
-2. Walk the buyer through identity, safety, authority, eligibility, freshness, and proof.
-3. Click `Export packet` and note that the packet is the same truth, not a separate slide deck.
+**What operator does:**
+1. Open the employer review surface.
+2. Walk through identity, safety, authority, eligibility, freshness sections.
+3. Click `Export packet` to download the evidence packet.
 
-Say:
+**Say:**
 
-> The employer is not getting a sales summary. They are getting the same source-backed readiness picture, plus the ability to export the packet they are relying on.
+> The employer is not getting a sales summary. They are getting the same source-backed readiness picture, plus the ability to export the packet they are relying on. The packet contains the exact same source states as this screen — if something shows as pending here, it shows as pending in the export.
 
-What to show:
+**What the employer sees:**
+- Readiness summary with overall score.
+- FreshnessPanel showing 4-layer freshness.
+- Source coverage with per-source status.
+- Packet export button (JSON or ZIP format).
 
-- readiness summary
-- freshness panel
-- proof sections
-- packet export button
+**Proof point:** Packet truth must match review truth. If the packet says more than the screen, the demo is invalid.
 
-Proof point:
+**API evidence:** `GET /api/employer-review/:entityId/packet` returns the same `sourceCoverage` object visible in the review UI.
 
-- Packet truth must match review truth. If the packet says more than the screen, the demo is invalid.
+---
 
-## 4. Employer Acts
+## Step 4 — Employer Acts
 
-Route: `/review/[entityId]`
+**URL:** `https://vitalcv.com/review/[entityId]` (same review page)
 
-Default action:
+**What operator does:**
+1. For a clean demo NPI: click `Accept as head start`.
+2. For a partial NPI: click `Request refresh` (honest next move when data is stale/missing).
+3. For a blocked NPI: click `Route to review` (honest next move when human review is needed).
 
-- Click `Accept as head start` for the approved clean demo NPI.
+**Say:**
 
-Fallback actions if the NPI is not decision-grade:
+> The buyer has three honest choices: accept as head start, ask for refresh, or route to review. The value is that they can act from a truthful packet instead of restarting the whole verification process.
 
-- Click `Request refresh` when stale or missing information is the honest next move.
-- Click `Route to review` when a human review queue is the honest next move.
+**What happens:**
+- `POST /api/employer-review/:entityId/accept` (or `/request-refresh` or `/route-to-review`).
+- `EmployerDecisionEvent` + `AuditEvent` written atomically before 2xx returned.
+- Success confirmation appears on screen.
 
-Say:
+**Proof point:** Packet-to-decision target is under 5 minutes for a trained operator.
 
-> The buyer has three honest choices: accept as head start, ask for refresh, or route to review. In KPI reporting that accept action is persisted as `PROCEED`, but the operator experience stays plain language. The value is that they can act from a truthful packet instead of restarting the whole verification process.
+---
 
-Proof point:
+## Step 5 — Audit Confirmed
 
-- The packet-to-decision target is under 5 minutes for a trained operator on this route.
+**URL:** Same review surface after action completes.
 
-## 5. Audit Confirmed
-
-Route: same review surface after action completes
-
-Action:
-
+**What operator does:**
 1. Wait for the success state.
 2. Point directly at the visible audit record.
 
-Say:
+**Say:**
 
-> The action is not considered real until the audit record is written. VitalCV shows the audit event ID and the trust snapshot that existed at the moment of decision.
+> The action is not considered real until the audit record is written. VitalCV shows the audit event ID and the trust snapshot that existed at the moment of decision. This is the receipt your compliance team needs.
 
-What to show:
+**What the employer sees:**
+- Success state with `Audit trail recorded`.
+- `auditEventId` visible.
+- Trust snapshot at time of decision.
 
-- success state
-- `Audit trail recorded`
-- `auditEventId`
-- trust snapshot at decision
+**Proof point:** This is the launch-safe close. The buyer acted, and the system can prove who did what and when.
 
-Proof point:
+---
 
-- This is the launch-safe close. The buyer acted, and the system can prove who did what and when.
+## Close + Pilot Ask
 
-## Close
-
-Say:
+**Say:**
 
 > That is the whole pilot: NPI in, readiness appears, packet inspected, employer acts, audit confirmed. If we then record starts against this same scoped cohort, we can measure whether Interview-to-Start Velocity actually improved.
 
-## Pilot Ask
-
-Say:
+**Pilot ask:**
 
 > The pilot ask is simple: give us one credentialing lead, one scoped NPI cohort, one operator lane, and start-outcome capture for that same cohort. We will prove whether this wedge moves review-to-start faster.
+
+---
+
+## Expected Questions and Answers
+
+| Question | Answer |
+| --- | --- |
+| "What sources do you check?" | "Three live federal sources today: NPPES for identity, OIG/LEIE for exclusions, and PECOS for Medicare enrollment. State licensure requires per-state agreements we're working on. We show what's checked and what isn't." |
+| "What about NPDB?" | "NPDB requires an institutional subscription — we can't query it as a platform. It's not part of the current pilot. We're transparent about that in the passport." |
+| "What about DEA / board certification?" | "Not integrated today. We won't claim we check something we don't. Those are on our roadmap, but right now the value is in the sources we actually have plus the honest visibility into what's missing." |
+| "How current is the data?" | "NPPES and OIG/LEIE are near real-time. PECOS refreshes quarterly, so data can be up to 90 days old — we show the last-checked timestamp so you know exactly how fresh it is." |
+| "What if a source is down?" | "It shows as unavailable, not as clear. We never paper over a source failure. You'll see the error state and can decide whether to wait or proceed with what's available." |
+| "Can we do all 50 states?" | "Not yet. State board verification requires per-state access agreements. We're starting with specific states and building out. For the pilot, state board shows as access-required — honest about the limitation." |
+| "How much does this cost?" | "Clinicians are free. Your organization pays per verified pull — the first access to a credential in a freshness band. Same-band repeat views are free. Government fees pass through at cost with no markup. We'll scope a pilot quote based on your cohort size." |
+| "Can this replace our credentialing team?" | "No — and we're not trying to. VitalCV gives your team a head start by resolving what can be checked from primary sources, so they can focus on the parts that actually need human judgment." |
+| "Is there a self-serve signup?" | "The pricing tiers are visible on our billing page, but pilot access currently routes through our team. We're not claiming live card checkout until it's actually built." |
+| "What happens after the pilot?" | "If TTS improves for the pilot cohort, we expand: more NPIs, more source coverage as agreements come online, and integration with your existing workflow tools. But first we prove the wedge works." |
+
+---
 
 ## Demo Failure Rules
 
 Stop and reset the story if any of the following happen:
 
-- the flow requires an archived demo route
-- a source is described as verified when the UI does not show a checked result
-- packet export disagrees with the review screen
-- the employer action succeeds without an audit confirmation
-- the operator needs unsupported narration to explain away a product gap
+- The flow requires an archived `/demo/*` route.
+- A source is described as verified when the UI does not show a checked result.
+- Packet export disagrees with the review screen.
+- The employer action succeeds without an audit confirmation.
+- The operator needs unsupported narration to explain away a product gap.
+- The first-value timer exceeds 60 seconds without visible readiness data.
+- Any "imagine if" language is used to describe current functionality.
