@@ -42,25 +42,7 @@ interface AuditTimelineProps {
 export function AuditTimeline({ events }: AuditTimelineProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Helper to generate consistent mock hash/signer if missing (for demo without backend changes)
-  const enhanceEvent = (event: TimelineEvent) => {
-    if (event.hash && event.signer) return event;
-
-    // Deterministic mock hash based on ID
-    const mockHash = '0x' + Array.from(event.id).reduce((hash, char) => {
-      return ((hash << 5) - hash) + char.charCodeAt(0) | 0;
-    }, 0).toString(16).replace('-', 'f').padStart(64, '0').substring(0, 16);
-
-    let mockSigner = event.employer || 'Network Authority';
-    if (event.type === 'VERIFICATION_COMPLETED') mockSigner = 'VitalCV Network';
-    if (event.type === 'DECAYED') mockSigner = 'System Observer';
-
-    return {
-      ...event,
-      hash: event.hash || mockHash,
-      signer: event.signer || mockSigner
-    };
-  };
+  
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -122,7 +104,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
             <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200 z-0" />
 
             {events.map((rawEvent, i) => {
-                const event = enhanceEvent(rawEvent);
+                const event = rawEvent;
                 return (
                 <div key={event.id} className="relative z-10 flex gap-3 items-start group">
                     <div className="mt-0.5 bg-white p-0.5 rounded-full border border-slate-100 shadow-sm group-hover:border-slate-300 transition-colors">

@@ -8,7 +8,7 @@
  * Wave 103: adds per-field claim selection for selective disclosure.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getApiBase } from '@/lib/api';
 import {
@@ -24,19 +24,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// ── Demo claim fields per credential (Wave 103) ───────────────────────
-const DEMO_CLAIM_FIELDS: Record<string, string[]> = {
-  'cred-demo-001': ['licenseNumber', 'state', 'expiryDate', 'specialty', 'npi'],
-  'cred-demo-002': ['certificationId', 'specialty', 'boardName', 'issuedDate', 'expiryDate'],
-  'cred-demo-003': ['deaNumber', 'schedules', 'expiryDate', 'state'],
-};
-
-// ── Demo credential IDs — replace with real wallet fetch ──────────────
-const DEMO_CREDENTIALS = [
-  { id: 'cred-demo-001', label: 'Medical License — California', selected: true },
-  { id: 'cred-demo-002', label: 'Board Certification — ABIM', selected: true },
-  { id: 'cred-demo-003', label: 'DEA Registration', selected: false },
-];
+interface WalletCredential {
+  id: string;
+  label: string;
+  claimFields: string[];
+}
 
 interface CredentialPresentationActionsProps {
   holderNpi?: string;
@@ -44,14 +36,15 @@ interface CredentialPresentationActionsProps {
 }
 
 export function CredentialPresentationActions({
-  holderNpi = '1234567890',
+  holderNpi = '',
   className = '',
 }: CredentialPresentationActionsProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'full' | 'selective'>('full');
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(DEMO_CREDENTIALS.filter((c) => c.selected).map((c) => c.id)),
-  );
+  const [credentials, setCredentials] = useState<WalletCredential[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(false);
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   // Wave 103: per-credential revealed fields (selective disclosure)
   const [revealedFields, setRevealedFields] = useState<Record<string, Set<string>>>({});
   const [expandedCred, setExpandedCred] = useState<string | null>(null);
@@ -61,6 +54,27 @@ export function CredentialPresentationActions({
   const [error, setError] = useState<string | null>(null);
 
   const base = getApiBase();
+
+  // Fetch real credentials from wallet on open
+  useEffect(() => {
+    if (!open || credentials.length > 0) return;
+    setCredentialsLoading(true);
+    setCredentialsError(null);
+    fetch('/api/credentials/mine')
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json() as Array<{ id: string; type?: string; credentialSubject?: Record<string, unknown> }>;
+        const mapped: WalletCredential[] = (Array.isArray(data) ? data : []).map((c) => ({
+          id: c.id,
+          label: (c.type ?? 'Credential').replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+          claimFields: Object.keys(c.credentialSubject ?? {}),
+        }));
+        setCredentials(mapped);
+        setSelected(new Set(mapped.slice(0, 2).map((c) => c.id)));
+      })
+      .catch((err: unknown) => setCredentialsError(err instanceof Error ? err.message : 'Failed to load credentials'))
+      .finally(() => setCredentialsLoading(false));
+  }, [open, credentials.length]);
 
   const toggleCredential = (id: string) => {
     setSelected((prev) => {
@@ -74,7 +88,8 @@ export function CredentialPresentationActions({
   // Wave 103: toggle individual claim field for selective disclosure
   const toggleField = (credId: string, field: string) => {
     setRevealedFields((prev) => {
-      const fields = new Set(prev[credId] ?? DEMO_CLAIM_FIELDS[credId] ?? []);
+      const cred = credentials.find((c) => c.id === credId);
+      const fields = new Set(prev[credId] ?? cred?.claimFields ?? []);
       if (fields.has(field)) fields.delete(field);
       else fields.add(field);
       return { ...prev, [credId]: fields };
@@ -82,7 +97,8 @@ export function CredentialPresentationActions({
   };
 
   const getRevealedForCred = (credId: string): string[] => {
-    return Array.from(revealedFields[credId] ?? DEMO_CLAIM_FIELDS[credId] ?? []);
+    const cred = credentials.find((c) => c.id === credId);
+    return Array.from(revealedFields[credId] ?? cred?.claimFields ?? []);
   };
 
   const handleCreate = useCallback(async () => {
@@ -238,7 +254,19 @@ export function CredentialPresentationActions({
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                         {mode === 'selective' ? 'Select Credential & Claims' : 'Select Credentials'}
                       </p>
-                      {DEMO_CREDENTIALS.map((cred) => (
+                      {credentialsLoading && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading credentials…
+                        </div>
+                      )}
+                      {credentialsError && (
+                        <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{credentialsError}</p>
+                      )}
+                      {!credentialsLoading && !credentialsError && credentials.length === 0 && (
+                        <p className="text-xs text-muted-foreground py-2">No credentials found in wallet.</p>
+                      )}
+                      {credentials.map((cred) => (
                         <div key={cred.id} className="rounded-xl border border-infra-border bg-infra-surface overflow-hidden">
                           <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/50 transition-colors">
                           <input
@@ -269,7 +297,7 @@ export function CredentialPresentationActions({
                                 Reveal Claims
                               </p>
                               <div className="flex flex-wrap gap-1.5">
-                                {(DEMO_CLAIM_FIELDS[cred.id] ?? []).map((field) => {
+                                {cred.claimFields.map((field) => {
                                   const revealed = getRevealedForCred(cred.id).includes(field);
                                   return (
                                     <button
@@ -288,7 +316,7 @@ export function CredentialPresentationActions({
                                 })}
                               </div>
                               <p className="text-[9px] text-muted-foreground mt-1">
-                                {getRevealedForCred(cred.id).length} of {(DEMO_CLAIM_FIELDS[cred.id] ?? []).length} claims revealed
+                                {getRevealedForCred(cred.id).length} of {cred.claimFields.length} claims revealed
                               </p>
                             </div>
                           )}
