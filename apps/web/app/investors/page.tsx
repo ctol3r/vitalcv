@@ -39,7 +39,7 @@ const VALUE_PROPS = [
     icon: '⚡',
     title: 'Speed: Source-level verified results',
     desc: 'Traditional credentialing takes 30–90 days. VitalCV delivers cryptographically-verified results as fast as the underlying source allows.',
-    stat: '30–90d', statLabel: 'cut to days',
+    stat: '30–90d', statLabel: 'traditional cycle',
   },
   {
     icon: '🔒',
@@ -50,17 +50,9 @@ const VALUE_PROPS = [
   {
     icon: '🌐',
     title: 'Scale: Network effects',
-    // M1: "250k+" is a market-size stat, not a platform count. Qualified.
-    desc: 'Every issuer and verifier on VitalCV increases the value for every other participant. Built for a market of 6.8M licensed healthcare workers.',
-    stat: '6.8M', statLabel: 'licensed healthcare workers (US)',
+    desc: 'Every issuer and verifier on VitalCV increases the value for every other participant. Built for the US healthcare workforce.',
+    stat: 'Network', statLabel: 'effects compound',
   },
-];
-
-const MARKET_STATS = [
-  { value: '$4.2B', label: 'US healthcare credentialing market' },
-  { value: '1.1M', label: 'Active physicians in the US' },
-  { value: '6.8M', label: 'Total licensed healthcare workers' },
-  { value: '37%', label: 'Annual credentialing spend growth' },
 ];
 
 export default function InvestorsPage() {
@@ -97,9 +89,9 @@ export default function InvestorsPage() {
             <span className="text-emerald-300 text-xs font-medium">Trust Infrastructure · Series Seed</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            Healthcare credentialing is a<br />
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">$4.2B problem.</span>
-            <br />VitalCV solves it.
+            Healthcare credentialing is{' '}
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">broken.</span>
+            <br />VitalCV is fixing it.
           </h1>
           <p className="text-xl text-vt-neutral-300 max-w-2xl mx-auto mb-10">
             {/* M1: "instant" removed — source latency varies (NPPES: live, PECOS: quarterly, boards: access-dependent) */}
@@ -139,23 +131,6 @@ export default function InvestorsPage() {
         </div>
       </section>
 
-      {/* Market Opportunity */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-white mb-4">The Market Opportunity</h2>
-          <p className="text-vt-neutral-400 text-center mb-12 max-w-xl mx-auto">
-            Every clinician in America needs to be credentialed. The process is broken. We fix it.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {MARKET_STATS.map(s => (
-              <div key={s.label} className="text-center">
-                <p className="text-4xl font-bold text-emerald-400 mb-2">{s.value}</p>
-                <p className="text-sm text-vt-neutral-500">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Value Props */}
       <section className="bg-vt-surface-ops-raised py-20 px-6">
@@ -212,7 +187,7 @@ export default function InvestorsPage() {
           <p className="text-center text-[11px] font-bold uppercase tracking-[0.25em] text-vt-neutral-500 mb-10">What&apos;s Next</p>
           <div className="grid sm:grid-cols-4 gap-6 text-center">
             {[
-              { phase: 'Now', label: 'MVP Live', desc: 'Two-sided marketplace, live NPI verification, cryptographic credentials', done: true },
+              { phase: 'Now', label: 'MVP Live', desc: 'Live NPI verification, cryptographic credentials, employer acceptance flow', done: true },
               { phase: 'Q2 2026', label: 'Pilot Hospitals', desc: '3–5 health systems onboarded, measurable time-to-start reduction', done: false },
               { phase: 'Q3 2026', label: 'Mobile App', desc: 'React Native clinician passport — credentials on your phone at every desk', done: false },
               { phase: 'Q4 2026', label: 'Series A', desc: '$8M to scale sales, compliance, and federation network', done: false },

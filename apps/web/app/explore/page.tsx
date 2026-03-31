@@ -53,7 +53,7 @@ export default function ExplorePage() {
             Demo data
           </span>
           <p className="mt-2 text-xs text-amber-100/80">
-            Marketplace results may include seeded launch-cohort employers and opportunities during rollout.
+            Results may include seeded launch-cohort employers and opportunities during rollout.
           </p>
         </div>
       </section>

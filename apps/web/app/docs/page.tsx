@@ -49,8 +49,8 @@ const QUICK_LINKS = [
 
 const PRINCIPLES = [
   { icon: Shield, text: 'Zero-knowledge selective disclosure — reveal only what you choose' },
-  { icon: Zap,    text: 'Sub-100ms verification via in-memory trust substrate' },
-  { icon: Globe,  text: 'Federation-native — interoperates with Nursys, CAQH, ABMS' },
+  { icon: Zap,    text: 'Source-backed verification from connected primary registries' },
+  { icon: Globe,  text: 'Federation-native — W3C VC, SD-JWT, OID4VCI/VP interoperability' },
 ] as const;
 
 export default function DocsPage() {

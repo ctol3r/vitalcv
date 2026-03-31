@@ -267,7 +267,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                   </div>
 
                   <p className="mt-6 text-sm leading-7 text-white/75">
-                    {opportunity.description ?? 'This active role is live in the marketplace feed. VitalCV is surfacing the employer requirements, compensation visibility, and readiness context from the current source-backed record.'}
+                    {opportunity.description ?? 'This active role is live in the opportunities feed. VitalCV is surfacing the employer requirements, compensation visibility, and readiness context from the current source-backed record.'}
                   </p>
 
                   {sourceUpdatedAt ? (

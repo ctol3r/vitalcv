@@ -189,7 +189,7 @@ function ResourceState({
     return (
       <div className="flex items-center justify-center py-12 text-white/45">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Loading live marketplace data…
+        Loading live data…
       </div>
     );
   }
@@ -714,7 +714,7 @@ export function EmployerDashboard() {
 
           <SectionShell
             title="Providers"
-            helper="Clinicians connected to your marketplace and live intelligence workspace."
+            helper="Clinicians connected to your workspace and live intelligence view."
             actionHref="/providers"
             actionLabel="Open providers"
           >
@@ -779,7 +779,7 @@ export function EmployerDashboard() {
 
           <SectionShell
             title="Actions Queue"
-            helper="Real actions your team can take to move providers through the marketplace loop."
+            helper="Real actions your team can take to move providers through the hiring loop."
             actionHref="/actions"
             actionLabel="Open actions"
           >
@@ -803,7 +803,7 @@ export function EmployerDashboard() {
           <div className="rounded-3xl border border-white/8 bg-white/[0.04] p-5">
             <div className="flex items-center gap-2 text-emerald-200">
               <Clock3 className="h-4 w-4" />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Marketplace timing</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Hiring timing</p>
             </div>
             <p className="mt-4 text-sm leading-6 text-white/55">
               Accepted clinicians can move straight into the separate hire/start flow from the inbox, using the billing-backed employer start endpoints already in the system.

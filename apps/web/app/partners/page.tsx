@@ -140,17 +140,12 @@ export default function PartnersPage() {
         </div>
       </section>
 
-      {/* Partner logo placeholders */}
+      {/* Partner inquiry prompt */}
       <section className="py-12 px-6 border-y border-white/10">
         <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs text-vt-neutral-500 uppercase tracking-widest font-medium mb-6">Trusted by leading healthcare organizations</p>
-          <div className="flex flex-wrap justify-center gap-8 opacity-40">
-            {['Epic', 'Cerner', 'CAQH', 'Nursys', 'ABIM', 'Joint Commission'].map(name => (
-              <div key={name} className="h-8 px-4 bg-white/10 rounded-lg flex items-center justify-center">
-                <span className="text-sm font-medium text-vt-neutral-300">{name}</span>
-              </div>
-            ))}
-          </div>
+          <p className="text-center text-sm text-vt-neutral-400">
+            Interested in partnering? <a href="#contact" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">Contact us</a>.
+          </p>
         </div>
       </section>
 

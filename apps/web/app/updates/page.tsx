@@ -41,7 +41,7 @@ const RECENT_CHANGES = [
     items: [
       'All 7 platform pillars live: Passport, Proof, Trust Graph, Simulation, Apply Bundle, Decision Capsules, OID4VP',
       'Document Intelligence — drag-drop OCR → credential parser → ingestion → audit',
-      'MATCHA — live credential enrichment from real DB opportunities',
+      'Credential enrichment from live opportunity data',
       'Capacity Score MVP (0–100 demand pipeline)',
       'OIG/LEIE exclusion check integrated into WalletPassport',
     ],

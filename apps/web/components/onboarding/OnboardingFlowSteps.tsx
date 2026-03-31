@@ -789,7 +789,7 @@ export function ActivateOnboardingStep({
                     {guestMatchTotal} live role{guestMatchTotal === 1 ? '' : 's'} align with this preview
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-sky-100/80">
-                    These matches come from the current marketplace feed. Guest mode does not activate, apply, or reserve anything.
+                    These matches come from the current opportunities feed. Guest mode does not activate, apply, or reserve anything.
                   </p>
                 </div>
                 <Link
@@ -818,7 +818,7 @@ export function ActivateOnboardingStep({
                   </div>
                 )) : (
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-sky-100/80">
-                    No exact specialty/state matches are live right now, but the marketplace feed is still available to browse.
+                    No exact specialty/state matches are live right now, but the opportunities feed is still available to browse.
                   </div>
                 )}
               </div>
@@ -910,7 +910,7 @@ export function ActivateOnboardingStep({
         <div className="space-y-6 py-4">
           <ResolverProgressIndicator durationPerStep={850} />
           <p className="text-center text-sm text-zinc-500">
-            Your credentials and readiness are being connected to the live VitalCV marketplace.
+            Your credentials and readiness are being connected to live VitalCV opportunities.
           </p>
         </div>
       )}

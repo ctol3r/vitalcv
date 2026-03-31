@@ -637,24 +637,9 @@ describe('post-release truth cleanup', () => {
     expectMarkupExcludes(profileMarkup, ['Trust Protocol']);
   });
 
-  it('keeps PlatformVisionSection pillar content as regression guard', async () => {
-    const { PlatformVisionSection } = await import('../components/marketing/HomeSections');
-    const markup = renderToStaticMarkup(<PlatformVisionSection />);
-
-    // Pillar 01 — Universal Clinical Identity
-    expect(markup).toContain('Universal Clinical Identity');
-    expect(markup).toContain('NPPES');
-    expect(markup).toContain('OIG / LEIE');
-
-    // Pillar 02 — current state: still contains "Every healthcare job" wording
-    // TODO: Content cleanup needed — "Every healthcare job" is aspirational, not current
-    expect(markup).toContain('Free Specialty Job Board');
-
-    // Pillar 03 — current state: still uses MATCHA branding
-    // TODO: Content cleanup needed — MATCHA is an internal project name, not public brand
-    expect(markup).toContain('MATCHA');
-
-    expectMarkupExcludes(markup, PROHIBITED_PUBLIC_STRINGS);
+  it('confirms PlatformVisionSection was removed in truth purge', async () => {
+    const mod = await import('../components/marketing/HomeSections');
+    expect((mod as Record<string, unknown>).PlatformVisionSection).toBeUndefined();
   });
 
   it('keeps employers hero, card, and status copy aligned with the public review wedge', async () => {

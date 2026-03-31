@@ -187,7 +187,7 @@ export function LaunchReadinessPanel({
           detail={`${launch.data.counts.graphEdges}E live`}
         />
         <MetricTile
-          label="Marketplace"
+          label="Opportunities"
           value={String(launch.data.counts.opportunities)}
           detail={`${launch.data.counts.employers} employers`}
         />
