@@ -221,3 +221,117 @@ button:hover, .vt-btn-micro:hover {
 .status-pulse {
   animation: status-pulse 2s ease-in-out infinite;
 }
+
+  /* ─── Sandbox Design System Utilities (ctol3r/vitalcv-ai-sandbox) ─────────
+   *
+   * Brutalist, flat-border, hover-invert pattern.
+   * Color variables: --sb-ink (#141414), --sb-bg (#E4E3E0), --sb-line (#141414)
+   * These utilities intentionally use NO gradients, NO shadows, NO blur.
+   */
+
+  /* Data row: full-width grid with hover ink/bg swap */
+  .sb-data-row {
+    display: grid;
+    padding: 1rem;
+    border-bottom: 1px solid var(--sb-line);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .sb-data-row:hover {
+    background: var(--sb-ink);
+    color: var(--sb-bg);
+  }
+
+  /* Column header: italic serif, muted uppercase */
+  .sb-col-header {
+    font-family: var(--font-serif, Georgia, serif);
+    font-style: italic;
+    font-size: 11px;
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Data value: mono, tight tracking */
+  .sb-data-value {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    letter-spacing: -0.02em;
+  }
+
+  /* Brutalist card: flat border, no radius, no shadow */
+  .sb-card {
+    border: 1px solid var(--sb-line);
+    background: var(--sb-bg);
+    padding: 1.5rem;
+  }
+
+  /* Ink button: full invert, flat, uppercase bold */
+  .sb-btn-ink {
+    background: var(--sb-ink);
+    color: var(--sb-bg);
+    border: 1px solid var(--sb-ink);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.75rem 1.5rem;
+    transition: opacity 0.15s ease;
+    cursor: pointer;
+  }
+  .sb-btn-ink:hover {
+    opacity: 0.88;
+  }
+
+  /* Ghost button: border-only, inverts on hover */
+  .sb-btn-ghost {
+    background: transparent;
+    color: var(--sb-ink);
+    border: 1px solid var(--sb-line);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.75rem 1.5rem;
+    transition: background 0.15s ease, color 0.15s ease;
+    cursor: pointer;
+  }
+  .sb-btn-ghost:hover {
+    background: var(--sb-ink);
+    color: var(--sb-bg);
+  }
+
+  /* Status pill: flat inline label */
+  .sb-status {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: var(--font-mono, monospace);
+    padding: 0.2rem 0.5rem;
+    border: 1px solid currentColor;
+  }
+
+  /* Readiness score: large mono display number */
+  .sb-score {
+    font-family: var(--font-mono, monospace);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  /* Section label: all-caps, wide tracking, muted */
+  .sb-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.4;
+  }
+
+  /* Serif italic accent (used in hero headings) */
+  .sb-serif-accent {
+    font-family: var(--font-serif, Georgia, serif);
+    font-style: italic;
+    font-weight: 500;
+    opacity: 0.8;
+  }

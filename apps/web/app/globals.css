@@ -79,14 +79,14 @@ body {
   --card-foreground: var(--vt-text-primary);
   --popover: var(--vt-surface);
   --popover-foreground: var(--vt-text-primary);
-  --primary: var(--vt-accent);
-  --primary-foreground: white;
+  --primary: var(--vt-text-primary);
+  --primary-foreground: var(--vt-bg);
   --secondary: var(--vt-surface-subtle);
   --secondary-foreground: var(--vt-text-primary);
   --muted: var(--vt-surface-subtle);
   --muted-foreground: var(--vt-text-secondary);
-  --accent: var(--vt-accent);
-  --accent-foreground: white;
+  --accent: var(--vt-text-primary);
+  --accent-foreground: var(--vt-bg);
   --destructive: var(--vt-severity-critical);
   --destructive-foreground: white;
   --border: var(--vt-border);

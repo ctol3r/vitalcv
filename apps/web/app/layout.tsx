@@ -6,7 +6,7 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
-import { Nunito_Sans } from 'next/font/google';
+import { JetBrains_Mono, Nunito_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
@@ -20,11 +20,18 @@ const nunitoSans = Nunito_Sans({
   variable: '--font-nunito-sans',
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-jetbrains-mono',
+});
+
 const fontVariables = {
   '--font-fraunces': "'Fraunces', Georgia, serif",
   '--font-inter': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
   '--font-plus-jakarta': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
-  '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
+  '--font-jetbrains': "var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, monospace",
   ...vdsCssVariables,
 } as React.CSSProperties;
 
@@ -78,7 +85,7 @@ export default async function RootLayout({
       lang="en"
       style={fontVariables}
       suppressHydrationWarning
-      className={nunitoSans.variable}
+      className={`${nunitoSans.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>

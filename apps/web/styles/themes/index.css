@@ -1,17 +1,68 @@
-/* Active theme bridge for the VitalCV Design System. */
+/* Active theme bridge for the VitalCV Design System.
+ *
+ * Sandbox influence (ctol3r/vitalcv-ai-sandbox):
+ *   Default is now LIGHT-FIRST: warm off-white bg (#E4E3E0) + near-black ink (#141414).
+ *   Brutalist flat border aesthetic; no gradients; hover-invert pattern.
+ *   Dark theme available via html.dark / data-theme="dark".
+ */
 
-:root,
+/* ── Default / Light theme (sandbox warm palette) ─────────── */
+:root {
+  --vt-bg: #E4E3E0;
+  --vt-surface: #DDDCD9;
+  --vt-surface-subtle: #D5D4D1;
+  --vt-surface-dim: #CCCBC8;
+  --vt-border: #141414;
+  --vt-border-subtle: #2a2a2a;
+  --vt-text-primary: #141414;
+  --vt-text-secondary: #3a3a38;
+  --vt-text-muted: #6a6a68;
+  --vt-accent: #141414;
+  --vt-focus-ring: #141414;
+  --vt-severity-critical: #c0392b;
+  --vt-severity-high: #b8820a;
+  --vt-severity-medium: #141414;
+  --vt-severity-low: #6a6a68;
+  --vt-status-new: #141414;
+  --vt-status-acknowledged: #6a6a68;
+  --vt-status-investigating: #141414;
+  --vt-status-resolved: #1a6640;
+  --vt-status-dismissed: #6a6a68;
+  --vt-risk-low: #1a6640;
+  --vt-risk-medium: #b8820a;
+  --vt-risk-high: #c0392b;
+  --vt-node-provider: #141414;
+  --vt-node-institution: #3a3a38;
+  --vt-node-publication: #6a6a68;
+  --vt-node-trial: #6a6a68;
+  --vt-node-company: #141414;
+  --vt-node-alert: #c0392b;
+  --vt-edge-co-author: #2a2a2a;
+  --vt-edge-co-investigator: #2a2a2a;
+  --vt-edge-co-grant: #2a2a2a;
+  --vt-edge-practice-group: #2a2a2a;
+  --vt-edge-industry-payment: #b8820a;
+  --vt-overlay: rgba(20, 20, 20, 0.6);
+
+  /* Sandbox ink/bg shorthand for brutalist hover-invert */
+  --sb-ink: #141414;
+  --sb-bg: #E4E3E0;
+  --sb-line: #141414;
+}
+
+/* ── Dark theme — explicit .dark class or data-theme="dark" ── */
+/* Dark theme — explicit .dark class or data-theme="dark" */
 html.dark,
 html[data-theme='dark'] {
-  --vt-bg: #000000;
-  --vt-surface: #0e0e11;
-  --vt-surface-subtle: #141418;
+  --vt-bg: #0d0d0d;
+  --vt-surface: #111113;
+  --vt-surface-subtle: #18181b;
   --vt-surface-dim: #0a0a0c;
-  --vt-border: #222226;
-  --vt-border-subtle: #18181b;
-  --vt-text-primary: #f4f4f5;
-  --vt-text-secondary: #a1a1aa;
-  --vt-text-muted: #52525b;
+  --vt-border: #242428;
+  --vt-border-subtle: #1c1c20;
+  --vt-text-primary: #eeeeec;
+  --vt-text-secondary: #9d9d9b;
+  --vt-text-muted: #505050;
   --vt-accent: #3b82f6; /* restrained blue */
   --vt-focus-ring: #3b82f6;
   
@@ -50,15 +101,19 @@ html[data-theme='dark'] {
 
 html.light,
 html[data-theme='light'] {
-  --vt-bg: #FFFFFF;
-  --vt-surface: #FAFAFA;
-  --vt-surface-subtle: #F4F4F5;
-  --vt-surface-dim: #E5E5E5;
-  --vt-border: #E4E4E7;
-  --vt-border-subtle: #F4F4F5;
-  --vt-text-primary: #0A0A0B;
-  --vt-text-secondary: #52525B;
-  --vt-text-muted: #A1A1AA;
+  /* Explicit light — same as :root defaults */
+  --vt-bg: #E4E3E0;
+  --vt-surface: #DDDCD9;
+  --vt-surface-subtle: #D5D4D1;
+  --vt-surface-dim: #CCCBC8;
+  --vt-border: #141414;
+  --vt-border-subtle: #2a2a2a;
+  --vt-text-primary: #141414;
+  --vt-text-secondary: #3a3a38;
+  --vt-text-muted: #6a6a68;
+  --sb-ink: #141414;
+  --sb-bg: #E4E3E0;
+  --sb-line: #141414;
   --vt-accent: #3b82f6; /* restrained blue */
   --vt-focus-ring: #3b82f6;
   --vt-severity-critical: #ef4444;

@@ -584,19 +584,19 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 }}
                 placeholder="Enter your 10-digit NPI"
                 aria-label="NPI number"
-                className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
-                  phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
+                className={`h-14 flex-1 min-w-0 rounded-none border-0 border-b-2 border-[var(--sb-line,#141414)] bg-transparent px-2 text-[16px] font-mono uppercase tracking-widest text-[var(--sb-ink,#141414)] placeholder:text-[var(--sb-ink,#141414)]/25 shadow-none transition-[border-color,opacity] duration-150 focus-visible:outline-none focus-visible:border-[var(--sb-ink,#141414)] ${
+                  phase === 'loading' ? 'cursor-default opacity-60' : ''
                 } ${
-                  formMessage ? 'border-amber-400/30' : ''
+                  formMessage ? 'border-amber-600' : ''
                 }`}
               />
               <Button
                 type="submit"
-                variant="success"
+                variant="default"
                 disabled={phase === 'loading'}
-                className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
+                className="sb-btn-ink h-14 w-full shrink-0 whitespace-nowrap rounded-none px-6 sm:w-auto"
               >
-                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
+                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Look up NPI'}</span>
               </Button>
             </form>
 
