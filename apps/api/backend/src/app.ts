@@ -45,6 +45,7 @@ import { startContinuousMonitor } from './workers/continuousMonitor';
 // Wave 41: Start Attestation Engine — ON Loop
 import { registerHiringRoutes } from './routes/hiring';
 import { registerEmployerActionRoutes } from './routes/employerActions'; // M2: Accept with Confidence
+import { registerEmployerNotificationRoutes } from './routes/employerNotifications'; // GAIS: employer notification polling
 import { registerSealTrainingRoutes }   from './routes/sealTraining';    // SEAL: training pipeline
 import { registerPilotKpiRoutes }       from './routes/pilotKpi';         // Pilot KPI loop
 import { registerReportRoutes }         from './routes/report';            // Credential Intelligence Report
@@ -3501,6 +3502,7 @@ registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);           // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerEmployerActionRoutes(app);   // M2: Accept with Confidence — accept/refresh/review/packet
+registerEmployerNotificationRoutes(app); // GAIS: employer notification polling
 registerSealTrainingRoutes(app);     // SEAL: training event capture + dataset export
 registerPilotKpiRoutes(app);         // Pilot KPI loop: 7 velocity KPIs + CSV export
 registerReportRoutes(app);           // Credential Intelligence Report: POST /api/report
