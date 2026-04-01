@@ -2281,6 +2281,8 @@ model EmployerAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
   /// Internal employer identifier (domain-level, not a FK to preserve loose coupling).
   employerId   String
+  /// Organization/workspace that recorded the acceptance when available.
+  acceptedByOrgId String?
   /// 10-digit NPI of the clinician being accepted.
   clinicianNpi String
   /// Optional: the VerificationArtifact that anchored the decision.
@@ -2288,12 +2290,17 @@ model EmployerAcceptance {
   /// PENDING | ACCEPTED | WITHDRAWN
   status       String   @default("ACCEPTED")
   acceptedAt   DateTime @default(now())
+  /// Scope contract: pilot | full | partial
+  acceptanceScope String @default("pilot")
+  /// Human-readable rationale for the acceptance decision.
+  acceptanceReason String?
   createdAt    DateTime @default(now())
 
   startAttestations StartAttestation[]
 
   @@index([clinicianNpi])
   @@index([employerId])
+  @@index([acceptedByOrgId])
   @@index([status])
   @@index([acceptedAt])
 }

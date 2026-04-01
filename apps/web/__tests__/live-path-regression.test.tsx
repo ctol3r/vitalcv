@@ -1141,7 +1141,33 @@ describe('live path regression hardening', () => {
           reason: null,
           priority: null,
         },
+        acceptance: {
+          acceptedByOrgId: 'org-1',
+          acceptedAt: '2026-03-21T11:30:00.000Z',
+          acceptanceScope: 'pilot',
+          acceptanceReason: 'Accepted as head start using VitalCV verification.',
+        },
       },
+    }) as never);
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      ok: true,
+      summary: {
+        acceptedOrganizationCount: 1,
+        hasPriorAcceptances: true,
+        headline: 'Accepted by 1 organization',
+        trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+      },
+      history: [
+        {
+          acceptanceId: 'accept_123',
+          orgLabel: 'Pilot organization 1',
+          isAnonymized: true,
+          acceptedByOrgId: 'org-1',
+          acceptedAt: '2026-03-21T11:30:00.000Z',
+          acceptanceScope: 'pilot',
+          acceptanceReason: 'Accepted as head start using VitalCV verification.',
+        },
+      ],
     }) as never);
 
     const passport = buildPassport();
@@ -1168,8 +1194,15 @@ describe('live path regression hardening', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          acceptanceScope: 'pilot',
           organizationContextId: 'ctx_employer',
         }),
+      },
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/employer-review/${passport.entityId}/acceptance-history`,
+      {
+        headers: { Accept: 'application/json' },
       },
     );
     expect(textContent(view.container)).toContain('Head start accepted');
@@ -1213,6 +1246,42 @@ describe('live path regression hardening', () => {
     expect(textContent(view.container)).toContain('Missing or access required');
     expect(textContent(view.container)).toContain('License verification — manual lane only (TX)');
     expect(textContent(view.container)).not.toContain('State Licensure / Authority');
+
+    await view.unmount();
+  });
+
+  it('renders scoped portable acceptance history on the review surface', async () => {
+    const passport = buildPassport();
+    const view = await renderNode(
+      <ReviewClient
+        passport={passport}
+        acceptanceHistory={{
+          ok: true,
+          summary: {
+            acceptedOrganizationCount: 1,
+            hasPriorAcceptances: true,
+            headline: 'Accepted by 1 organization',
+            trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+          },
+          history: [
+            {
+              acceptanceId: 'accept-1',
+              orgLabel: 'Pilot organization 1',
+              isAnonymized: true,
+              acceptedByOrgId: 'org-1',
+              acceptedAt: '2026-03-21T11:30:00.000Z',
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(textContent(view.container)).toContain('Accepted by 1 organization');
+    expect(textContent(view.container)).toContain('This clinician has already been accepted using VitalCV verification.');
+    expect(textContent(view.container)).toContain('Pilot organization 1');
+    expect(textContent(view.container)).toContain('Pilot');
 
     await view.unmount();
   });

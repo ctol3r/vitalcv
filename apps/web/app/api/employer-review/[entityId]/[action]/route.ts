@@ -10,6 +10,8 @@ const BACKEND =
   'http://localhost:4000';
 
 const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review']);
+const PUBLIC_READ_ACTIONS = new Set(['acceptance-history']);
+const AUTHENTICATED_READ_ACTIONS = new Set(['packet', 'status']);
 
 function unauthorizedResponse() {
   return NextResponse.json(
@@ -62,19 +64,20 @@ export async function GET(
 ) {
   const { entityId, action } = await context.params;
 
-  if (action !== 'packet' && action !== 'status') {
+  if (!PUBLIC_READ_ACTIONS.has(action) && !AUTHENTICATED_READ_ACTIONS.has(action)) {
     return NextResponse.json({ error: 'Unsupported employer-review action.' }, { status: 404 });
   }
 
+  const requiresAuth = AUTHENTICATED_READ_ACTIONS.has(action);
   const { userId } = await auth();
-  if (!userId) {
+  if (requiresAuth && !userId) {
     return unauthorizedResponse();
   }
 
   const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
     headers: {
       Accept: req.headers.get('accept') ?? 'application/json',
-      'x-clerk-user-id': userId,
+      ...(userId ? { 'x-clerk-user-id': userId } : {}),
     },
   });
 

@@ -33,7 +33,6 @@ import {
 } from '@/components/trust/passportProofSections';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
-import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -56,6 +55,8 @@ import {
   resolveLivePathReadinessStatus,
 } from '@/lib/live-path/contracts';
 import {
+  type EmployerAcceptanceHistoryEntry,
+  type EmployerAcceptanceHistoryResponse,
   employerReviewLoadingLabel,
   formatEmployerReviewPersistedDetail,
   formatEmployerReviewPersistedLabel,
@@ -65,7 +66,6 @@ import {
   type EmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import {
   buildPassportReviewTruthModel,
   resolvePassportTruthSet,
@@ -83,7 +83,6 @@ import {
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
 } from '@/lib/trust/passport-truth';
-import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 import type { CanonicalTruthSet } from '../../../../packages/trust-state';
 
 function latestCredentialObservationDate(
@@ -273,6 +272,169 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
   }
 }
 
+// ── BinaryDecisionCard ────────────────────────────────────────────────────────
+
+type DecisionReadiness = 'HIGH' | 'MEDIUM' | 'BLOCKED';
+
+function resolveDecisionReadiness(blocked: string[], identityStatus: TrustStatus, safetyRowStatus: TrustStatus): DecisionReadiness {
+  if (blocked.length > 0 || identityStatus === 'blocked' || safetyRowStatus === 'blocked') return 'BLOCKED';
+  if (identityStatus !== 'checked' || safetyRowStatus !== 'checked') return 'MEDIUM';
+  return 'HIGH';
+}
+
+interface BinaryDecisionCardProps {
+  passport: PassportData;
+  blocked: string[];
+  safetyRow: { status: TrustStatus };
+  identityStatus: TrustStatus;
+  authorityCredentials: PassportData['authority']['credentials'];
+  acceptanceHistorySummary: EmployerAcceptanceHistoryResponse['summary'];
+  canPersistActions: boolean;
+  previewOnlyMessage: string | null;
+  onAccept: () => void;
+  onRequestRefresh: () => void;
+  onRouteToReview: () => void;
+}
+
+function BinaryDecisionCard({
+  passport,
+  blocked,
+  safetyRow,
+  identityStatus,
+  authorityCredentials,
+  acceptanceHistorySummary,
+  canPersistActions,
+  previewOnlyMessage,
+  onAccept,
+  onRequestRefresh,
+  onRouteToReview,
+}: BinaryDecisionCardProps) {
+  const { identity, standing } = passport;
+  const decisionReadiness = resolveDecisionReadiness(blocked, identityStatus, safetyRow.status);
+
+  // Active license check
+  const hasActiveLicense = authorityCredentials.some(
+    (c) => c.domain === 'LICENSURE' && c.status === 'ACTIVE',
+  );
+
+  const DECISION_COLORS: Record<DecisionReadiness, string> = {
+    HIGH:    'border-emerald-500/30 bg-emerald-500/[0.06]',
+    MEDIUM:  'border-amber-500/30 bg-amber-500/[0.05]',
+    BLOCKED: 'border-rose-500/25 bg-rose-500/[0.05]',
+  };
+  const DECISION_TEXT: Record<DecisionReadiness, string> = {
+    HIGH:    'text-emerald-400',
+    MEDIUM:  'text-amber-400',
+    BLOCKED: 'text-rose-400',
+  };
+
+  // 3 canonical bullets
+  const bullets: { label: string; source: string; ok: boolean; reason?: string }[] = [
+    {
+      label: 'Identity verified',
+      source: 'NPPES',
+      ok: identityStatus === 'checked',
+      reason: identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined,
+    },
+    {
+      label: 'License verified',
+      source: 'State Board',
+      ok: hasActiveLicense,
+      reason: !hasActiveLicense ? 'No active license found in source data' : undefined,
+    },
+    {
+      label: 'Safety clear',
+      source: 'OIG/LEIE',
+      ok: standing.exclusionStatus === 'CLEAR',
+      reason: standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined,
+    },
+  ];
+
+  return (
+    <Card className={`rounded-2xl border px-5 py-5 shadow-none ${DECISION_COLORS[decisionReadiness]}`}>
+      {/* Name + decision readiness */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-white text-xl font-semibold leading-tight">{identity.displayName}</h1>
+          {identity.specialty && <p className="text-white/45 text-sm mt-0.5">{identity.specialty}</p>}
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Decision readiness</p>
+          <p className={`text-lg font-bold mt-0.5 ${DECISION_TEXT[decisionReadiness]}`}>{decisionReadiness}</p>
+        </div>
+      </div>
+
+      {/* 3 canonical bullets */}
+      <div className="mt-4 space-y-2.5">
+        {bullets.map((bullet) => (
+          <div key={bullet.label} className="flex items-start gap-3">
+            <span className={`mt-0.5 text-sm shrink-0 ${bullet.ok ? 'text-emerald-400' : 'text-rose-400/80'}`}>
+              {bullet.ok ? '✓' : '✗'}
+            </span>
+            <div>
+              <p className={`text-sm font-medium ${bullet.ok ? 'text-white/80' : 'text-white/60'}`}>
+                {bullet.label}
+              </p>
+              <p className="text-[11px] text-white/30 mt-0.5">
+                {bullet.ok ? bullet.source : (bullet.reason ?? bullet.source)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Blockers summary if any */}
+      {blocked.length > 0 && (
+        <p className="mt-3 text-xs text-white/40">
+          {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
+        </p>
+      )}
+
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Portable acceptance</p>
+        <p className="mt-1 text-sm font-medium text-white">{acceptanceHistorySummary.headline}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-white/36">
+          {acceptanceHistorySummary.trustCopy
+            ?? 'Any future VitalCV acceptance will appear here with its organization-specific scope.'}
+        </p>
+      </div>
+
+      {/* Action row */}
+      <div className="mt-5 space-y-2">
+        <Button
+          onClick={onAccept}
+          disabled={!canPersistActions}
+          variant="success"
+          className="h-12 w-full rounded-xl text-sm font-semibold"
+        >
+          Accept as head start{blocked.length > 0 ? ` (${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted)` : ''}
+        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={onRequestRefresh}
+            disabled={!canPersistActions}
+            variant="outline"
+            className="h-11 rounded-xl border-white/12 bg-white/[0.03] text-xs text-white/50 hover:border-white/20 hover:bg-white/6 hover:text-white/75"
+          >
+            Request missing info
+          </Button>
+          <Button
+            onClick={onRouteToReview}
+            disabled={!canPersistActions}
+            variant="outline"
+            className="h-11 rounded-xl border-white/12 bg-white/[0.03] text-xs text-white/50 hover:border-white/20 hover:bg-white/6 hover:text-white/75"
+          >
+            Route to review
+          </Button>
+        </div>
+        {previewOnlyMessage && (
+          <p className="text-center text-[10px] text-white/28 pt-1">{previewOnlyMessage}</p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ── Main review component ──────────────────────────────────────────────────────
 
 interface Props {
@@ -280,6 +442,7 @@ interface Props {
   contextId?: string;
   bundleId?:  string;
   sharedBy?:  string;
+  acceptanceHistory?: EmployerAcceptanceHistoryResponse;
 }
 
 // ── M2: Freshness helpers ──────────────────────────────────────────────────
@@ -381,9 +544,41 @@ type ActionState =
 
 type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review' | 'reject';
 
+class PilotFallbackError extends Error {
+  constructor(public readonly pilotMessage: string) {
+    super(pilotMessage);
+    this.name = 'PilotFallbackError';
+  }
+}
+
 // ── M2: API call helpers ───────────────────────────────────────────────────
 
 const API = '';
+
+function buildEmptyAcceptanceHistory(): EmployerAcceptanceHistoryResponse {
+  return {
+    ok: true,
+    summary: {
+      acceptedOrganizationCount: 0,
+      hasPriorAcceptances: false,
+      headline: 'No prior acceptances',
+      trustCopy: null,
+    },
+    history: [],
+  };
+}
+
+function formatAcceptanceScopeLabel(scope: EmployerAcceptanceHistoryEntry['acceptanceScope']): string {
+  switch (scope) {
+    case 'full':
+      return 'Full';
+    case 'partial':
+      return 'Partial';
+    case 'pilot':
+    default:
+      return 'Pilot';
+  }
+}
 
 function buildReviewScopeSearchParams(scope?: {
   contextId?: string;
@@ -401,14 +596,6 @@ function buildReviewScopeSearchParams(scope?: {
 
   const query = params.toString();
   return query ? `?${query}` : '';
-}
-
-/** Signals a pilot-mode fallback should be shown instead of a hard error. */
-class PilotFallbackError extends Error {
-  constructor(public readonly pilotMessage: string) {
-    super(pilotMessage);
-    this.name = 'PilotFallbackError';
-  }
 }
 
 async function postAction(
@@ -429,26 +616,13 @@ async function postAction(
       ...(scope?.bundleId ? { bundleId: scope.bundleId } : {}),
     }),
   });
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error_description?: string };
     const status = res.status;
-
-    // 401/403 with no notification system configured → pilot-mode fallback
-    // Surface a human confirmation instead of a silent failure or raw error.
     if (status === 401 || status === 403) {
-      if (endpoint === 'request-refresh') {
-        throw new PilotFallbackError(
-          'Request recorded — clinician will be notified during pilot',
-        );
-      }
-      if (endpoint === 'reject') {
-        throw new PilotFallbackError(
-          'Rejection recorded — decision logged for pilot audit trail',
-        );
-      }
+      if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
+      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision logged for pilot audit trail');
     }
-
     throw new Error(err.error_description ?? `Action failed (${status})`);
   }
   return res.json() as Promise<EmployerReviewActionResponse>;
@@ -476,9 +650,85 @@ async function getPersistedActionState(
   return payload.state ?? null;
 }
 
-export default function ReviewClient({ passport, contextId, bundleId, sharedBy }: Props) {
+async function getAcceptanceHistory(entityId: string): Promise<EmployerAcceptanceHistoryResponse> {
+  const res = await fetch(`${API}/api/employer-review/${entityId}/acceptance-history`, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Acceptance history lookup failed (${res.status})`);
+  }
+
+  return res.json() as Promise<EmployerAcceptanceHistoryResponse>;
+}
+
+function AcceptanceHistoryPanel({
+  acceptanceHistory,
+}: {
+  acceptanceHistory: EmployerAcceptanceHistoryResponse;
+}) {
+  return (
+    <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+          Acceptance history
+        </p>
+        <p className="text-sm font-medium text-white">
+          {acceptanceHistory.summary.headline}
+        </p>
+        <p className="text-xs leading-relaxed text-white/42">
+          {acceptanceHistory.summary.trustCopy
+            ?? 'No employer has recorded a prior VitalCV acceptance for this clinician yet. Future acceptances will appear here with their organization-specific scope.'}
+        </p>
+      </div>
+
+      {acceptanceHistory.history.length > 0 ? (
+        <div className="space-y-2">
+          {acceptanceHistory.history.map((entry, index) => (
+            <div
+              key={`${entry.acceptanceId ?? entry.orgLabel}-${entry.acceptedAt}-${index}`}
+              className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="text-sm font-medium text-white">{entry.orgLabel}</p>
+                <p className="mt-1 text-[11px] text-white/32">
+                  {entry.isAnonymized ? 'Anonymized for pilot portability' : 'Recorded organization'}
+                </p>
+              </div>
+              <div className="grid gap-2 text-left sm:text-right">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Date</p>
+                  <p className="mt-1 text-xs text-white/60">{formatProofDate(entry.acceptedAt) ?? 'Not recorded'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Scope</p>
+                  <p className="mt-1 text-xs text-white/60">{formatAcceptanceScopeLabel(entry.acceptanceScope)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-4 text-xs leading-relaxed text-white/42">
+          No acceptance history is attached yet. VitalCV records each employer decision with its own scope, not as universal approval.
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export default function ReviewClient({
+  passport,
+  contextId,
+  bundleId,
+  sharedBy,
+  acceptanceHistory,
+}: Props) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
+  const [acceptanceHistoryState, setAcceptanceHistoryState] = useState<EmployerAcceptanceHistoryResponse>(
+    () => acceptanceHistory ?? buildEmptyAcceptanceHistory(),
+  );
   const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
   const mountedRef = useRef(true);
   const actionInFlightRef = useRef(false);
@@ -500,7 +750,6 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
     ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
   ]));
   const reviewTruth = buildPassportReviewTruthModel(passport);
-  const timeToStartEstimate = buildPassportPilotTimeToStartEstimate(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
@@ -532,6 +781,12 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
     };
   }, []);
 
+  useEffect(() => {
+    if (acceptanceHistory) {
+      setAcceptanceHistoryState(acceptanceHistory);
+    }
+  }, [acceptanceHistory]);
+
   const freshnessEntries = reviewTruth.freshness.entries;
   const freshnessState = reviewTruth.freshness.label;
 
@@ -550,41 +805,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         source_mode: 'live',
       },
     });
-    void trackPilotFunnelEvent({
-      eventType: 'review_opened',
-      npi: passport.identity.npi ?? null,
-      route: `/review/${passport.entityId}`,
-      entity: {
-        kind: 'review',
-        id: passport.entityId,
-        label: passport.identity.displayName,
-        objectType: 'passport',
-      },
-      dedupeKey: `review-opened:${passport.entityId}:${contextId ?? 'global'}:${bundleId ?? 'none'}`,
-      details: {
-        authState,
-        blockersCount: blocked.length,
-        bundleId: bundleId ?? null,
-        contextId: contextId ?? null,
-        interactionResult: canPersistActions ? 'ready' : 'preview_only',
-        sharedContext: Boolean(sharedBy || contextId || bundleId),
-        surface: 'employer_review',
-      },
-    });
 
     reviewOpenedTrackedRef.current = true;
-  }, [
-    authState,
-    blocked.length,
-    bundleId,
-    canPersistActions,
-    contextId,
-    isLoaded,
-    passport.entityId,
-    passport.identity.displayName,
-    passport.identity.npi,
-    sharedBy,
-  ]);
+  }, [authState, blocked.length, bundleId, canPersistActions, contextId, isLoaded, sharedBy]);
 
   useEffect(() => {
     if (!canPersistActions) {
@@ -651,6 +874,17 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
     });
   }
 
+  async function refreshAcceptanceHistory() {
+    try {
+      const history = await getAcceptanceHistory(passport.entityId);
+      if (mountedRef.current) {
+        setAcceptanceHistoryState(history);
+      }
+    } catch {
+      // Acceptance history is supplemental. Keep the last known state on failure.
+    }
+  }
+
   async function runEmployerAction(config: {
     intent: EmployerReviewActionIntent;
     endpoint: EmployerActionEndpoint;
@@ -679,42 +913,17 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         phase: 'done',
         state: result.state,
       });
-      void trackPilotFunnelEvent({
-        eventType: 'employer_action_taken',
-        npi: passport.identity.npi ?? null,
-        route: `/review/${passport.entityId}`,
-        entity: {
-          kind: 'review',
-          id: passport.entityId,
-          label: passport.identity.displayName,
-          objectType: 'passport',
-        },
-        oncePerSession: false,
-        details: {
-          action: config.intent,
-          authState,
-          blockersCount: blocked.length,
-          bundleId: bundleId ?? null,
-          contextId: contextId ?? null,
-          interactionResult: 'persisted',
-          surface: 'employer_review',
-        },
-      });
+      if (config.intent === 'accept') {
+        void refreshAcceptanceHistory();
+      }
       trackEmployerActionResult(config.intent, 'success', startedAt);
     } catch (error) {
       if (!mountedRef.current) return;
-
-      // Pilot-mode: show a clear confirmation rather than an error
       if (error instanceof PilotFallbackError) {
-        setActionState({
-          phase: 'pilot_confirmation',
-          intent: config.intent,
-          message: error.pilotMessage,
-        });
+        setActionState({ phase: 'pilot_confirmation', intent: config.intent, message: error.pilotMessage });
         trackEmployerActionResult(config.intent, 'success', startedAt);
         return;
       }
-
       const message = resolveLivePathErrorMessage(error, 'Action failed');
       setActionState({ phase: 'error', intent: config.intent, message });
       trackEmployerActionResult(config.intent, 'error', startedAt, message);
@@ -727,7 +936,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
     await runEmployerAction({
       intent: 'accept',
       endpoint: 'accept',
-      body: {},
+      body: {
+        acceptanceScope: 'pilot',
+      },
     });
   }
 
@@ -753,19 +964,6 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           ? `Employer routed to review. Blockers: ${blocked.slice(0, 3).join(', ')}`
           : 'Employer routed for manual review.',
         priority: blocked.length > 0 ? 'HIGH' : 'NORMAL',
-      },
-    });
-  }
-
-  async function handleReject() {
-    await runEmployerAction({
-      intent: 'reject',
-      endpoint: 'reject',
-      body: {
-        reason: blocked.length > 0
-          ? `Employer rejected. Blockers: ${blocked.slice(0, 3).join(', ')}`
-          : 'Employer rejected this clinician for this review.',
-        blockers: blocked.slice(0, 5),
       },
     });
   }
@@ -855,6 +1053,109 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           </Card>
         )}
 
+        {/* ══════════════════════════════════════════════════════════════════
+            BINARY DECISION CARD — Above the fold. Employer decides here.
+            <10 seconds. Everything else is collapsed below.
+        ══════════════════════════════════════════════════════════════════ */}
+        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
+          <BinaryDecisionCard
+            passport={passport}
+            blocked={blocked}
+            safetyRow={safetyRow}
+            identityStatus={identityStatus}
+            authorityCredentials={authority.credentials}
+            acceptanceHistorySummary={acceptanceHistoryState.summary}
+            canPersistActions={canPersistActions}
+            previewOnlyMessage={previewOnlyMessage}
+            onAccept={handleAccept}
+            onRequestRefresh={handleRequestRefresh}
+            onRouteToReview={handleRouteToReview}
+          />
+        )}
+
+        {/* ── Action feedback states ─────────────────────────────────────── */}
+        {actionState.phase === 'loading' && (
+          <SectionReveal delay={0.05}>
+            <TrustStateCard
+              title={employerReviewLoadingLabel(actionState.intent)}
+              description="Writing the persisted audit record..."
+              centered
+            />
+          </SectionReveal>
+        )}
+
+        {actionState.phase === 'pilot_confirmation' && (
+          <SectionReveal delay={0.05}>
+            <TrustStateCard
+              title={actionState.message}
+              description={
+                actionState.intent === 'reject'
+                  ? 'Your rejection decision has been recorded in the pilot audit trail.'
+                  : 'Your request has been recorded. During the pilot, clinicians will be notified through the pilot operations channel.'
+              }
+              tone="success"
+              className="rounded-xl"
+              actions={(
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                  Back
+                </Button>
+              )}
+            />
+          </SectionReveal>
+        )}
+
+        {actionState.phase === 'done' && (
+          <SectionReveal delay={0.05}>
+            <TrustStateCard
+              title={actionState.state.summary.title}
+              description={actionState.state.summary.description}
+              tone="success"
+              className="rounded-xl"
+              actions={(
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                  Back
+                </Button>
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--vt-success)] text-sm">✔</span>
+                <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
+              </div>
+              <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
+                <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
+                <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
+                <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+              </div>
+            </TrustStateCard>
+          </SectionReveal>
+        )}
+
+        {actionState.phase === 'error' && (
+          <SectionReveal delay={0.05}>
+            <TrustStateCard
+              title="Action failed"
+              description={actionState.message}
+              tone="critical"
+              actions={(
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                  Try again
+                </Button>
+              )}
+            />
+          </SectionReveal>
+        )}
+
+        <AcceptanceHistoryPanel acceptanceHistory={acceptanceHistoryState} />
+
+        {/* ── Detail disclosure — collapsed by default ───────────────────── */}
+        <details className="group">
+          <summary className="flex cursor-pointer items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/25 hover:text-white/45 transition-colors list-none py-1">
+            <span className="group-open:hidden">▸</span>
+            <span className="hidden group-open:inline">▾</span>
+            Full credential detail
+          </summary>
+          <div className="mt-4 space-y-6">
+
         {/* ── Decision card — Exact Layout ──────────────────────────────── */}
         <SectionReveal delay={0}>
           <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-white/3 px-5 py-5 shadow-none">
@@ -897,7 +1198,7 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           </div>
 
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
-            <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Decision snapshot</p>
                 <p className="mt-1 text-sm leading-relaxed text-white/56">
@@ -906,11 +1207,10 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
                     : 'No visible blockers are attached to this review right now.'}
                 </p>
               </div>
+              <p className="text-xs text-white/34">
+                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
+              </p>
             </div>
-            <TimeToStartEstimateSummary
-              estimate={timeToStartEstimate}
-              className="mt-4 border-t border-white/6 pt-4"
-            />
           </div>
 
           {/* MS16-F: Employer 6-question flow — strict order */}
@@ -1041,6 +1341,11 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
                   ))}
                 </div>
               )}
+
+              <p className="text-white/50 pt-1">
+                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
+              </p>
+
               {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
               {reviewTruth.buckets.nextActions.length > 0 && (
                 <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
@@ -1147,7 +1452,7 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         <PassportSourceCoveragePanel checks={reviewTruth.sourceCoverageChecks} />
 
         {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
-        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && Boolean(true) && (
+        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
           <SectionReveal delay={0.05}>
             <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
@@ -1262,189 +1567,8 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           </SectionReveal>
         )}
 
-        {/* ── M2: Action panel — all actions write audit events ────────────── */}
-        {(actionState.phase === 'idle' || actionState.phase === 'downloading') ? (
-          <SectionReveal delay={0.1}>
-            <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
-            {/* Primary — Accept as head start */}
-            <div>
-              <Button
-                onClick={handleAccept}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
-                variant="success"
-                className="h-14 w-full rounded-xl text-sm font-medium"
-              >
-                {blocked.length > 0 ? `Accept as head start (${blocked.length} blocker${blocked.length === 1 ? '' : 's'} noted)` : 'Accept as head start'}
-              </Button>
-              <p className="mt-1.5 text-center text-[10px] text-white/30">
-                Proceed with credentialing using this verified snapshot
-              </p>
-            </div>
-
-            {/* Secondary row */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={handleRequestRefresh}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
-                variant="outline"
-                title={freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
-                  ? `${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale source${freshnessEntries.filter(e => e.stale || e.unchecked).length === 1 ? '' : 's'} will be included`
-                  : 'Request the clinician refresh their data'}
-                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
-              >
-                {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
-                  ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
-                  : 'Request refresh'}
-              </Button>
-              <Button
-                onClick={handleRouteToReview}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
-                variant="outline"
-                title="Route to your credentialing committee for manual review"
-                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
-              >
-                Route to review
-              </Button>
-            </div>
-
-            {/* Reject */}
-            <Button
-              onClick={handleReject}
-              disabled={!canPersistActions || actionState.phase === 'downloading'}
-              variant="outline"
-              title="Reject this clinician for the current review and record the decision"
-              className="w-full min-h-[44px] rounded-xl border-rose-500/20 bg-rose-500/5 py-3 text-xs text-rose-400/70 hover:border-rose-500/35 hover:bg-rose-500/10 hover:text-rose-300/90"
-            >
-              Reject
-            </Button>
-
-            {!canPersistActions && (
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                {CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn ? (
-                  <Link
-                    href={CLERK_SIGN_IN_URL}
-                    className="text-xs text-white/38 transition-colors hover:text-white/58"
-                  >
-                    Sign in with employer workspace
-                  </Link>
-                ) : (
-                  <Link
-                    href={buildPassportEntityHref(passport.entityId)}
-                    className="text-xs text-white/38 transition-colors hover:text-white/58"
-                  >
-                    Open full passport
-                  </Link>
-                )}
-              </div>
-            )}
-            </Card>
-          </SectionReveal>
-
-        ) : actionState.phase === 'loading' ? (
-          /* Loading state */
-          <SectionReveal delay={0.1}>
-            <TrustStateCard
-              title={employerReviewLoadingLabel(actionState.intent)}
-              description="Writing the persisted audit record..."
-              centered
-            />
-          </SectionReveal>
-
-        ) : actionState.phase === 'pilot_confirmation' ? (
-          /* Pilot mode — no notification system yet, show human confirmation */
-          <SectionReveal delay={0.1}>
-            <TrustStateCard
-              title={actionState.message}
-              description={
-                actionState.intent === 'reject'
-                  ? 'Your rejection decision has been recorded in the pilot audit trail.'
-                  : 'Your request has been recorded. During the pilot, clinicians will be notified through the pilot operations channel.'
-              }
-              tone="success"
-              className="rounded-xl"
-              actions={(
-                <Button
-                  onClick={() => setActionState({ phase: 'idle' })}
-                  variant="ghost"
-                  className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
-                >
-                  Back
-                </Button>
-              )}
-            />
-          </SectionReveal>
-
-        ) : actionState.phase === 'done' ? (
-          /* Success — show audit event ID for verifiability */
-          <SectionReveal delay={0.1}>
-            <TrustStateCard
-              title={actionState.state.summary.title}
-              description={actionState.state.summary.description}
-              tone="success"
-              className="rounded-xl"
-              actions={(
-                <Button
-                  onClick={() => setActionState({ phase: 'idle' })}
-                  variant="ghost"
-                  className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
-                >
-                  Back
-                </Button>
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[var(--vt-success)] text-sm">✔</span>
-                <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
-              </div>
-              {/* Audit event + trust snapshot at time of decision */}
-              <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
-                <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
-                <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-                <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
-                {(() => {
-                  const snap = actionState.state.trustSnapshot;
-                  if (!snap) return null;
-                  return (
-                    <div className="mt-2 pt-2 border-t border-white/6 space-y-1">
-                      <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                        <span className="text-white/25 text-[10px]">Readiness</span>
-                        <span className="text-white/50 text-[10px]">{snap.readinessStatus} · {snap.readinessScore}%</span>
-                        <span className="text-white/25 text-[10px]">Trust band</span>
-                        <span className="text-white/50 text-[10px]">{snap.trustBand} · {snap.trustBandLabel}</span>
-                        <span className="text-white/25 text-[10px]">Blockers noted</span>
-                        <span className="text-white/50 text-[10px]">{snap.blockerCount}</span>
-                        <span className="text-white/25 text-[10px]">Exclusion</span>
-                        <span className="text-white/50 text-[10px]">{snap.exclusionStatus}</span>
-                      </div>
-                      <p className="text-white/15 text-[10px] font-mono break-all mt-1">
-                        receipt: {snap.snapshotHash?.slice(0, 16)}…
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-            </TrustStateCard>
-          </SectionReveal>
-
-        ) : /* error */ (
-          <SectionReveal delay={0.1}>
-            <TrustStateCard
-              title="Action failed"
-              description={actionState.message}
-              tone="critical"
-              actions={(
-                <Button
-                  onClick={() => setActionState({ phase: 'idle' })}
-                  variant="ghost"
-                  className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40"
-                >
-                  Try again
-                </Button>
-              )}
-            />
-          </SectionReveal>
-        )}
+          </div>{/* end details inner */}
+        </details>
 
       </div>
     </main>

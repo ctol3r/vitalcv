@@ -188,4 +188,63 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
       }),
     });
   });
+
+  it('forwards public acceptance-history reads without requiring auth headers', async () => {
+    authMock.mockResolvedValue({ userId: null });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        ok: true,
+        summary: {
+          acceptedOrganizationCount: 1,
+          hasPriorAcceptances: true,
+          headline: 'Accepted by 1 organization',
+          trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+        },
+        history: [
+          {
+            acceptanceId: 'accept-1',
+            orgLabel: 'Pilot organization 1',
+            isAnonymized: true,
+            acceptedByOrgId: 'org-1',
+            acceptedAt: '2026-03-23T18:00:00.000Z',
+            acceptanceScope: 'pilot',
+            acceptanceReason: 'Accepted as head start using VitalCV verification.',
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/acceptance-history', {
+      headers: { Accept: 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'acceptance-history' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/employer-review/entity-1/acceptance-history',
+      expect.objectContaining({
+        headers: {
+          Accept: 'application/json',
+        },
+      }),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
+    expect(init.headers['x-clerk-user-id']).toBeUndefined();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      summary: expect.objectContaining({
+        headline: 'Accepted by 1 organization',
+      }),
+      history: expect.any(Array),
+    });
+  });
 });

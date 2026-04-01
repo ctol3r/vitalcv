@@ -380,6 +380,12 @@ describe('employer action routes', () => {
       entityId: 'entity-1',
       clinicianNpi: '1234567890',
       auditEventId: 'audit-1',
+      acceptance: {
+        acceptedByOrgId: null,
+        acceptedAt: expect.any(String),
+        acceptanceScope: 'pilot',
+        acceptanceReason: 'Head start only',
+      },
       persistence: expect.objectContaining({
         mode: 'durable_record',
         target: 'employer_acceptance',
@@ -420,7 +426,93 @@ describe('employer action routes', () => {
     expect(captureEmployerDecisionMock).toHaveBeenCalledWith(expect.objectContaining({
       auditEventId: 'audit-1',
       decision: 'PROCEED',
+      metadata: expect.objectContaining({
+        acceptanceScope: 'pilot',
+        acceptanceReason: 'Head start only',
+      }),
     }));
+  });
+
+  it('returns anonymized portable acceptance history without requiring employer auth', async () => {
+    prismaMock.auditEvent.findMany.mockResolvedValue([
+      {
+        id: 'audit-accept-1',
+        createdAt: new Date('2026-03-23T18:00:00.000Z'),
+        metadata: {
+          employerReviewAction: {
+            action: 'accept',
+            employerId: 'employer-1',
+            entityId: 'entity-1',
+            clinicianNpi: '1234567890',
+            requestId: 'req-accept-1',
+            attribution: {
+              source: 'organization_context',
+              organizationContextId: 'ctx-1',
+              bundleShareEventId: null,
+              bundleId: null,
+              requestorEntityId: 'org-entity-1',
+              organizationId: 'org-entity-1',
+              organizationName: 'Providence',
+              purposeOfUse: 'Employment review',
+            },
+            persistence: {
+              mode: 'durable_record',
+              target: 'employer_acceptance',
+              acceptanceId: 'accept-1',
+              reviewItemId: null,
+              outboxEventId: 'outbox-1',
+              reviewItemCreated: false,
+            },
+            summary: {
+              title: 'Head start accepted',
+              description: 'The employer acceptance was persisted and linked to an audit event.',
+            },
+            details: {
+              staleSources: [],
+              missingDomains: [],
+              reason: null,
+              priority: null,
+            },
+            context: {
+              role: null,
+              facility: null,
+              notes: null,
+            },
+            acceptance: {
+              acceptedByOrgId: 'org-entity-1',
+              acceptedAt: '2026-03-23T18:00:00.000Z',
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            },
+          },
+        },
+      },
+    ]);
+
+    const response = await request(buildApp())
+      .get('/api/employer-review/entity-1/acceptance-history')
+      .expect(200);
+
+    expect(response.body).toEqual({
+      ok: true,
+      summary: {
+        acceptedOrganizationCount: 1,
+        hasPriorAcceptances: true,
+        headline: 'Accepted by 1 organization',
+        trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+      },
+      history: [
+        {
+          acceptanceId: 'accept-1',
+          orgLabel: 'Pilot organization 1',
+          isAnonymized: true,
+          acceptedByOrgId: 'org-entity-1',
+          acceptedAt: '2026-03-23T18:00:00.000Z',
+          acceptanceScope: 'pilot',
+          acceptanceReason: 'Accepted as head start using VitalCV verification.',
+        },
+      ],
+    });
   });
 
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {
