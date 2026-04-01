@@ -32,6 +32,7 @@ import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
 import {
+  loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
   recordEmployerReviewAcceptance,
   recordEmployerReviewRefreshRequest,
@@ -143,6 +144,8 @@ export function registerEmployerActionRoutes(app: Express): void {
         role?:     string;
         facility?: string;
         notes?:    string;
+        acceptanceScope?: string;
+        acceptanceReason?: string;
         organizationContextId?: string;
         bundleId?: string;
       };
@@ -156,6 +159,8 @@ export function registerEmployerActionRoutes(app: Express): void {
         role,
         facility,
         notes,
+        acceptanceScope: req.body?.acceptanceScope,
+        acceptanceReason: req.body?.acceptanceReason,
       });
 
       log('info', 'employer_review_accepted', {
@@ -192,6 +197,9 @@ export function registerEmployerActionRoutes(app: Express): void {
           attribution: state.attribution,
           scopeSource: req.body ?? null,
           extra: {
+            acceptedByOrgId: state.acceptance?.acceptedByOrgId ?? null,
+            acceptanceScope: state.acceptance?.acceptanceScope ?? null,
+            acceptanceReason: state.acceptance?.acceptanceReason ?? null,
             role: role ?? null,
             facility: facility ?? null,
           },
@@ -394,6 +402,25 @@ export function registerEmployerActionRoutes(app: Express): void {
     }),
   );
 
+  app.get(
+    '/api/employer-review/:entityId/acceptance-history',
+    asyncHandler(async (req, res) => {
+      const { entityId } = req.params;
+
+      if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
+
+      const subject = await resolveEmployerReviewSubject(entityId);
+      if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
+
+      const history = await loadEmployerAcceptanceHistory({
+        entityId,
+        clinicianNpi: subject.clinicianNpi,
+      });
+
+      return void res.status(200).json(history);
+    }),
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // GET /api/employer-review/:entityId/packet
   // Evidence packet export — structured JSON or ZIP bundle of current trust state.
@@ -559,6 +586,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       'POST /api/employer-review/:entityId/request-refresh',
       'POST /api/employer-review/:entityId/route-to-review',
       'GET  /api/employer-review/:entityId/status',
+      'GET  /api/employer-review/:entityId/acceptance-history',
       'GET  /api/employer-review/:entityId/packet',
       'POST /api/employer-review/:entityId/share-packet',
     ],

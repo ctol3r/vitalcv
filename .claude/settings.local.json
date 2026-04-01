@@ -171,7 +171,8 @@
       "Bash(head -100 /Users/christoler/vitalcv/apps/mobile/app/\\\\\\(tabs\\\\\\)/present.tsx)",
       "Bash(bash ../../../scripts/backend-test-db.sh --testPathPattern=\"detailAgents|hiringAutomation|tenantGuard\" --forceExit)",
       "Bash(npx vitest:*)",
-      "Bash(cat /Users/christoler/vitalcv/apps/web/app/sign-in/[[...sign-in]]/page.tsx)"
+      "Bash(cat /Users/christoler/vitalcv/apps/web/app/sign-in/[[...sign-in]]/page.tsx)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

@@ -25,6 +25,31 @@ export type EmployerReviewPersistenceTarget =
   | 'review_queue_item'
   | 'outbox_event'
   | 'audit_event';
+export type EmployerAcceptanceScope = 'pilot' | 'full' | 'partial';
+
+export interface EmployerReviewAcceptanceRecord {
+  acceptedByOrgId: string | null;
+  acceptedAt: string;
+  acceptanceScope: EmployerAcceptanceScope;
+  acceptanceReason: string | null;
+}
+
+export interface EmployerAcceptanceHistoryEntry extends EmployerReviewAcceptanceRecord {
+  acceptanceId: string | null;
+  orgLabel: string;
+  isAnonymized: boolean;
+}
+
+export interface EmployerAcceptanceHistoryResponse {
+  ok: true;
+  summary: {
+    acceptedOrganizationCount: number;
+    hasPriorAcceptances: boolean;
+    headline: string;
+    trustCopy: string | null;
+  };
+  history: EmployerAcceptanceHistoryEntry[];
+}
 
 export interface EmployerReviewActionDetails {
   staleSources: string[];
@@ -260,6 +285,8 @@ interface EmployerReviewActionAuditMetadata {
   /** Immutable trust state at time of decision — core of the audit trail.
    *  Optional for backwards compat: records written before a43b82d0 won't have it. */
   trustSnapshot?: DecisionTrustSnapshot;
+  /** Acceptance payload for portable acceptance history. Present only for accept actions. */
+  acceptance?: EmployerReviewAcceptanceRecord;
 }
 
 export interface EmployerReviewActionState {
@@ -275,6 +302,8 @@ export interface EmployerReviewActionState {
   /** Trust state captured at the moment of this action — immutable audit record.
    *  Optional for backwards compat: records written before a43b82d0 won't have it. */
   trustSnapshot?: DecisionTrustSnapshot;
+  /** Portable acceptance payload. Present only for accept actions. */
+  acceptance?: EmployerReviewAcceptanceRecord;
 }
 
 export interface EmployerReviewActionResponse {
@@ -384,6 +413,19 @@ function normalizePriority(value: unknown): EmployerReviewPriority {
   }
 }
 
+function normalizeAcceptanceScope(value: unknown): EmployerAcceptanceScope {
+  if (typeof value !== 'string') return 'pilot';
+
+  switch (value.trim().toLowerCase()) {
+    case 'full':
+      return 'full';
+    case 'partial':
+      return 'partial';
+    default:
+      return 'pilot';
+  }
+}
+
 function buildActionSummary(
   action: EmployerReviewActionIntent,
   persistence: EmployerReviewActionPersistence,
@@ -449,6 +491,7 @@ function buildState(input: {
     summary: input.metadata.summary,
     details: input.metadata.details,
     trustSnapshot: input.metadata.trustSnapshot,
+    acceptance: input.metadata.acceptance,
   };
 }
 
@@ -489,6 +532,54 @@ function readMetadata(metadata: unknown): EmployerReviewActionAuditMetadata | nu
       record.trustSnapshot && typeof record.trustSnapshot === 'object'
         ? record.trustSnapshot
         : undefined,
+    acceptance:
+      record.acceptance && typeof record.acceptance === 'object'
+        ? {
+            acceptedByOrgId:
+              typeof record.acceptance.acceptedByOrgId === 'string'
+                ? record.acceptance.acceptedByOrgId
+                : null,
+            acceptedAt:
+              typeof record.acceptance.acceptedAt === 'string'
+                ? record.acceptance.acceptedAt
+                : new Date(0).toISOString(),
+            acceptanceScope: normalizeAcceptanceScope(record.acceptance.acceptanceScope),
+            acceptanceReason:
+              typeof record.acceptance.acceptanceReason === 'string'
+                ? record.acceptance.acceptanceReason
+                : null,
+          }
+        : undefined,
+  };
+}
+
+function buildAcceptanceHistoryHeadline(count: number): string {
+  if (count <= 0) return 'No prior acceptances';
+  if (count === 1) return 'Accepted by 1 organization';
+  return `Accepted by ${count} organizations`;
+}
+
+function buildAcceptanceHistoryTrustCopy(count: number): string | null {
+  if (count <= 0) return null;
+
+  return 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.';
+}
+
+function buildAcceptanceHistoryOrgLabel(input: {
+  acceptanceScope: EmployerAcceptanceScope;
+  organizationName: string | null;
+  anonymizedIndex: number;
+}): { orgLabel: string; isAnonymized: boolean } {
+  if (input.acceptanceScope !== 'pilot' && input.organizationName) {
+    return {
+      orgLabel: input.organizationName,
+      isAnonymized: false,
+    };
+  }
+
+  return {
+    orgLabel: `Pilot organization ${input.anonymizedIndex}`,
+    isAnonymized: true,
   };
 }
 
@@ -606,6 +697,8 @@ export async function recordEmployerReviewAcceptance(input: {
   role?: unknown;
   facility?: unknown;
   notes?: unknown;
+  acceptanceScope?: unknown;
+  acceptanceReason?: unknown;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
@@ -618,6 +711,15 @@ export async function recordEmployerReviewAcceptance(input: {
     role: sanitizeString(input.role, 80),
     facility: sanitizeString(input.facility, 120),
     notes: sanitizeString(input.notes, 500),
+  };
+  const acceptance: EmployerReviewAcceptanceRecord = {
+    acceptedByOrgId: attribution.organizationId ?? null,
+    acceptedAt: now.toISOString(),
+    acceptanceScope: normalizeAcceptanceScope(input.acceptanceScope),
+    acceptanceReason:
+      sanitizeString(input.acceptanceReason, 280)
+      ?? context.notes
+      ?? 'Accepted as head start using VitalCV verification.',
   };
 
   // ── Capture trust snapshot BEFORE transaction — immutable audit record ──
@@ -633,7 +735,7 @@ export async function recordEmployerReviewAcceptance(input: {
   };
 
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
-    const acceptance = await tx.employerAcceptance.create({
+    const acceptanceRow = await tx.employerAcceptance.create({
       data: {
         id: randomUUID(),
         employerId: input.employerId,
@@ -646,7 +748,7 @@ export async function recordEmployerReviewAcceptance(input: {
 
     const seededPersistence: EmployerReviewActionPersistence = {
       ...persistenceBase,
-      acceptanceId: acceptance.id,
+      acceptanceId: acceptanceRow.id,
     };
     const outboxEvent = await writeEmployerReviewOutboxEvent(
       tx as unknown as OutboxWriter,
@@ -665,6 +767,7 @@ export async function recordEmployerReviewAcceptance(input: {
           context,
           attribution,
           trustSnapshot,
+          acceptance,
         },
       },
     );
@@ -685,13 +788,14 @@ export async function recordEmployerReviewAcceptance(input: {
       context,
       attribution,
       trustSnapshot,
+      acceptance,
     };
 
     const auditEvent = await writeEmployerReviewAuditEvent(
       tx as unknown as AuditWriter,
       {
         type: 'EMPLOYER_REVIEW_ACCEPTED',
-        referenceId: acceptance.id,
+        referenceId: acceptanceRow.id,
         metadata,
       },
     );
@@ -969,4 +1073,92 @@ export async function loadEmployerReviewStatus(input: {
   }
 
   return null;
+}
+
+export async function loadEmployerAcceptanceHistory(input: {
+  entityId: string;
+  clinicianNpi: string;
+}): Promise<EmployerAcceptanceHistoryResponse> {
+  const auditEvents = await prisma.auditEvent.findMany({
+    where: {
+      type: 'EMPLOYER_REVIEW_ACCEPTED',
+      clinicianId: input.clinicianNpi,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      metadata: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 50,
+  });
+
+  const rawEntries = auditEvents.flatMap((auditEvent) => {
+    const metadata = readMetadata(auditEvent.metadata);
+    if (!metadata || metadata.action !== 'accept' || metadata.clinicianNpi !== input.clinicianNpi) {
+      return [];
+    }
+
+    const acceptedByOrgId = metadata.acceptance?.acceptedByOrgId
+      ?? metadata.attribution.organizationId
+      ?? metadata.employerId
+      ?? null;
+    const acceptedAt = metadata.acceptance?.acceptedAt ?? auditEvent.createdAt.toISOString();
+    const acceptanceScope = metadata.acceptance?.acceptanceScope ?? 'pilot';
+
+    return [{
+      acceptanceId: metadata.persistence.acceptanceId,
+      orgKey: acceptedByOrgId ?? `employer:${metadata.employerId}:${metadata.requestId}`,
+      organizationName: metadata.attribution.organizationName ?? null,
+      acceptedByOrgId,
+      acceptedAt,
+      acceptanceScope,
+      acceptanceReason:
+        metadata.acceptance?.acceptanceReason
+        ?? metadata.context.notes
+        ?? null,
+    }];
+  }).sort((left, right) => Date.parse(right.acceptedAt) - Date.parse(left.acceptedAt));
+
+  const anonymizedOrgIndex = new Map<string, number>();
+  let nextAnonymizedIndex = 1;
+
+  const history: EmployerAcceptanceHistoryEntry[] = rawEntries.map((entry) => {
+    let anonymizedIndex = anonymizedOrgIndex.get(entry.orgKey);
+    if (!anonymizedIndex) {
+      anonymizedIndex = nextAnonymizedIndex++;
+      anonymizedOrgIndex.set(entry.orgKey, anonymizedIndex);
+    }
+
+    const org = buildAcceptanceHistoryOrgLabel({
+      acceptanceScope: entry.acceptanceScope,
+      organizationName: entry.organizationName,
+      anonymizedIndex,
+    });
+
+    return {
+      acceptanceId: entry.acceptanceId,
+      orgLabel: org.orgLabel,
+      isAnonymized: org.isAnonymized,
+      acceptedByOrgId: entry.acceptedByOrgId,
+      acceptedAt: entry.acceptedAt,
+      acceptanceScope: entry.acceptanceScope,
+      acceptanceReason: entry.acceptanceReason,
+    };
+  });
+
+  const acceptedOrganizationCount = new Set(rawEntries.map((entry) => entry.orgKey)).size;
+
+  return {
+    ok: true,
+    summary: {
+      acceptedOrganizationCount,
+      hasPriorAcceptances: acceptedOrganizationCount > 0,
+      headline: buildAcceptanceHistoryHeadline(acceptedOrganizationCount),
+      trustCopy: buildAcceptanceHistoryTrustCopy(acceptedOrganizationCount),
+    },
+    history,
+  };
 }

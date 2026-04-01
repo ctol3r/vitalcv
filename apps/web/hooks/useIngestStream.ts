@@ -26,6 +26,8 @@ import {
   type IngestStreamState,
 } from './ingestStreamState';
 
+export { hydrateFromHomepagePreview };
+
 export type {
   IngestEvent,
   IngestEventType,

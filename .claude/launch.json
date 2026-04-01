@@ -9,8 +9,8 @@
     },
     {
       "name": "web-dev",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@vitalcv/web", "dev"],
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-l", "-c", "pnpm --filter @vitalcv/web dev"],
       "port": 3000,
       "autoPort": true
     },

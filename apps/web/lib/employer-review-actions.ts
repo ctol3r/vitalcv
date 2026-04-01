@@ -5,6 +5,7 @@ export type EmployerReviewPersistenceTarget =
   | 'employer_acceptance'
   | 'review_queue_item'
   | 'audit_event';
+export type EmployerAcceptanceScope = 'pilot' | 'full' | 'partial';
 
 export interface EmployerReviewActionDetails {
   staleSources: string[];
@@ -38,6 +39,30 @@ export interface DecisionTrustSnapshot {
   lastCheckedAt: string | null;
 }
 
+export interface EmployerReviewAcceptanceRecord {
+  acceptedByOrgId: string | null;
+  acceptedAt: string;
+  acceptanceScope: EmployerAcceptanceScope;
+  acceptanceReason: string | null;
+}
+
+export interface EmployerAcceptanceHistoryEntry extends EmployerReviewAcceptanceRecord {
+  acceptanceId: string | null;
+  orgLabel: string;
+  isAnonymized: boolean;
+}
+
+export interface EmployerAcceptanceHistoryResponse {
+  ok: true;
+  summary: {
+    acceptedOrganizationCount: number;
+    hasPriorAcceptances: boolean;
+    headline: string;
+    trustCopy: string | null;
+  };
+  history: EmployerAcceptanceHistoryEntry[];
+}
+
 export interface EmployerReviewActionState {
   action: EmployerReviewActionIntent;
   entityId: string;
@@ -58,6 +83,8 @@ export interface EmployerReviewActionState {
   details: EmployerReviewActionDetails;
   /** Immutable trust state at decision — present in all actions from this wave forward */
   trustSnapshot?: DecisionTrustSnapshot;
+  /** Portable acceptance payload — present for accept actions. */
+  acceptance?: EmployerReviewAcceptanceRecord;
 }
 
 export interface EmployerReviewActionResponse {

@@ -38,6 +38,7 @@ jest.mock('../../../obs/logger', () => ({
 
 import prisma from '../../../graphql/prisma_client';
 import {
+  loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
   recordEmployerReviewAcceptance,
 } from '../employerReviewActions';
@@ -146,6 +147,12 @@ describe('employerReviewActions service', () => {
         organizationId: 'org-entity-1',
         metadata: expect.objectContaining({
           employerReviewAction: expect.objectContaining({
+            acceptance: {
+              acceptedByOrgId: 'org-entity-1',
+              acceptedAt: expect.any(String),
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            },
             attribution: expect.objectContaining({
               source: 'organization_context',
               organizationContextId: 'ctx-1',
@@ -155,6 +162,141 @@ describe('employerReviewActions service', () => {
         }),
       }),
     }));
+  });
+
+  it('builds portable acceptance history with anonymized pilot organization labels', async () => {
+    prismaMock.auditEvent.findMany.mockResolvedValue([
+      {
+        id: 'audit-accept-2',
+        createdAt: new Date('2026-03-24T20:00:00.000Z'),
+        metadata: {
+          employerReviewAction: {
+            action: 'accept',
+            employerId: 'employer-2',
+            entityId: 'entity-1',
+            clinicianNpi: '1234567890',
+            requestId: 'req-accept-2',
+            attribution: {
+              source: 'organization_context',
+              organizationContextId: 'ctx-2',
+              bundleShareEventId: null,
+              bundleId: null,
+              requestorEntityId: 'org-entity-2',
+              organizationId: 'org-entity-2',
+              organizationName: 'Second Org',
+              purposeOfUse: 'Employment review',
+            },
+            persistence: {
+              mode: 'durable_record',
+              target: 'employer_acceptance',
+              acceptanceId: 'accept-2',
+              reviewItemId: null,
+              outboxEventId: 'outbox-2',
+              reviewItemCreated: false,
+            },
+            summary: {
+              title: 'Head start accepted',
+              description: 'The employer acceptance was persisted and linked to an audit event.',
+            },
+            details: {
+              staleSources: [],
+              missingDomains: [],
+              reason: null,
+              priority: null,
+            },
+            context: {
+              role: null,
+              facility: null,
+              notes: null,
+            },
+            acceptance: {
+              acceptedByOrgId: 'org-entity-2',
+              acceptedAt: '2026-03-24T20:00:00.000Z',
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            },
+          },
+        },
+      },
+      {
+        id: 'audit-accept-1',
+        createdAt: new Date('2026-03-23T18:00:00.000Z'),
+        metadata: {
+          employerReviewAction: {
+            action: 'accept',
+            employerId: 'employer-1',
+            entityId: 'entity-1',
+            clinicianNpi: '1234567890',
+            requestId: 'req-accept-1',
+            attribution: {
+              source: 'organization_context',
+              organizationContextId: 'ctx-1',
+              bundleShareEventId: null,
+              bundleId: null,
+              requestorEntityId: 'org-entity-1',
+              organizationId: 'org-entity-1',
+              organizationName: 'First Org',
+              purposeOfUse: 'Employment review',
+            },
+            persistence: {
+              mode: 'durable_record',
+              target: 'employer_acceptance',
+              acceptanceId: 'accept-1',
+              reviewItemId: null,
+              outboxEventId: 'outbox-1',
+              reviewItemCreated: false,
+            },
+            summary: {
+              title: 'Head start accepted',
+              description: 'The employer acceptance was persisted and linked to an audit event.',
+            },
+            details: {
+              staleSources: [],
+              missingDomains: [],
+              reason: null,
+              priority: null,
+            },
+            context: {
+              role: null,
+              facility: null,
+              notes: null,
+            },
+            acceptance: {
+              acceptedByOrgId: 'org-entity-1',
+              acceptedAt: '2026-03-23T18:00:00.000Z',
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            },
+          },
+        },
+      },
+    ]);
+
+    const history = await loadEmployerAcceptanceHistory({
+      entityId: 'entity-1',
+      clinicianNpi: '1234567890',
+    });
+
+    expect(history.summary).toEqual({
+      acceptedOrganizationCount: 2,
+      hasPriorAcceptances: true,
+      headline: 'Accepted by 2 organizations',
+      trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+    });
+    expect(history.history).toEqual([
+      expect.objectContaining({
+        acceptanceId: 'accept-2',
+        orgLabel: 'Pilot organization 1',
+        acceptanceScope: 'pilot',
+        isAnonymized: true,
+      }),
+      expect.objectContaining({
+        acceptanceId: 'accept-1',
+        orgLabel: 'Pilot organization 2',
+        acceptanceScope: 'pilot',
+        isAnonymized: true,
+      }),
+    ]);
   });
 
   it('persists bundle fallback attribution onto acceptance audit events using the canonical organization context', async () => {

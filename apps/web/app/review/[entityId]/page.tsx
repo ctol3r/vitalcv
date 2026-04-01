@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ReviewClient from '@/components/review/ReviewClient';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import type { EmployerAcceptanceHistoryResponse } from '@/lib/employer-review-actions';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
@@ -18,15 +19,44 @@ const DEFAULT_REVIEW_ERROR = 'Employer review is unavailable for this packet.';
 
 interface ReviewPageData {
   passport: PassportData | null;
+  acceptanceHistory: EmployerAcceptanceHistoryResponse;
   errorMessage: string | null;
+}
+
+function buildEmptyAcceptanceHistory(): EmployerAcceptanceHistoryResponse {
+  return {
+    ok: true,
+    summary: {
+      acceptedOrganizationCount: 0,
+      hasPriorAcceptances: false,
+      headline: 'No prior acceptances',
+      trustCopy: null,
+    },
+    history: [],
+  };
+}
+
+async function fetchAcceptanceHistory(entityId: string): Promise<EmployerAcceptanceHistoryResponse> {
+  try {
+    const res = await fetch(`${B}/api/employer-review/${entityId}/acceptance-history`, { cache: 'no-store' });
+    if (res.ok) {
+      return await res.json() as EmployerAcceptanceHistoryResponse;
+    }
+  } catch {
+    // Fall through to empty state.
+  }
+
+  return buildEmptyAcceptanceHistory();
 }
 
 async function fetchReviewPageData(entityId: string): Promise<ReviewPageData> {
   try {
     const res = await fetch(`${B}/api/passport/entity/${entityId}`, { cache: 'no-store' });
     if (res.ok) {
+      const passport = await res.json() as PassportData;
       return {
-        passport: await res.json() as PassportData,
+        passport,
+        acceptanceHistory: await fetchAcceptanceHistory(entityId),
         errorMessage: null,
       };
     }
@@ -38,11 +68,13 @@ async function fetchReviewPageData(entityId: string): Promise<ReviewPageData> {
 
     return {
       passport: null,
+      acceptanceHistory: buildEmptyAcceptanceHistory(),
       errorMessage: data.error_description ?? data.error ?? DEFAULT_REVIEW_ERROR,
     };
   } catch {
     return {
       passport: null,
+      acceptanceHistory: buildEmptyAcceptanceHistory(),
       errorMessage: DEFAULT_REVIEW_ERROR,
     };
   }
@@ -83,7 +115,7 @@ export default async function ReviewPage({
 }) {
   const { entityId }                    = await params;
   const { contextId, bundleId, from }   = await searchParams;
-  const { passport, errorMessage }      = await fetchReviewPageData(entityId);
+  const { passport, acceptanceHistory, errorMessage } = await fetchReviewPageData(entityId);
   const retryHref = `/review/${entityId}${contextId || bundleId || from
     ? `?${new URLSearchParams({
         ...(contextId ? { contextId } : {}),
@@ -134,6 +166,7 @@ export default async function ReviewPage({
       contextId={contextId}
       bundleId={bundleId}
       sharedBy={from}
+      acceptanceHistory={acceptanceHistory}
     />
   );
 }

@@ -76,6 +76,26 @@ describe('review page contract', () => {
           blockers: ['DEA_REGISTRATION'],
         },
       }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        summary: {
+          acceptedOrganizationCount: 1,
+          hasPriorAcceptances: true,
+          headline: 'Accepted by 1 organization',
+          trustCopy: 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.',
+        },
+        history: [
+          {
+            acceptanceId: 'accept-1',
+            orgLabel: 'Pilot organization 1',
+            isAnonymized: true,
+            acceptedByOrgId: 'org-1',
+            acceptedAt: '2026-03-23T18:00:00.000Z',
+            acceptanceScope: 'pilot',
+            acceptanceReason: 'Accepted as head start using VitalCV verification.',
+          },
+        ],
+      }))
       .mockResolvedValueOnce(jsonResponse({ ok: true }, 202));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -94,9 +114,14 @@ describe('review page contract', () => {
       contextId: 'ctx-1',
       bundleId: 'bundle-1',
       sharedBy: 'Ada Lovelace',
+      acceptanceHistory: expect.objectContaining({
+        summary: expect.objectContaining({
+          headline: 'Accepted by 1 organization',
+        }),
+      }),
     }));
 
-    const [, viewEventInit] = fetchMock.mock.calls[1] as [string, { body: string }];
+    const [, viewEventInit] = fetchMock.mock.calls[2] as [string, { body: string }];
     expect(JSON.parse(viewEventInit.body)).toEqual({
       organizationContextId: 'ctx-1',
       bundleId: 'bundle-1',
@@ -114,6 +139,16 @@ describe('review page contract', () => {
           blockers: [],
         },
       }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        summary: {
+          acceptedOrganizationCount: 0,
+          hasPriorAcceptances: false,
+          headline: 'No prior acceptances',
+          trustCopy: null,
+        },
+        history: [],
+      }))
       .mockResolvedValueOnce(jsonResponse({ ok: true }, 202));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -128,9 +163,14 @@ describe('review page contract', () => {
       contextId: undefined,
       bundleId: undefined,
       sharedBy: undefined,
+      acceptanceHistory: expect.objectContaining({
+        summary: expect.objectContaining({
+          headline: 'No prior acceptances',
+        }),
+      }),
     }));
 
-    const [, viewEventInit] = fetchMock.mock.calls[1] as [string, { body: string }];
+    const [, viewEventInit] = fetchMock.mock.calls[2] as [string, { body: string }];
     expect(JSON.parse(viewEventInit.body)).toEqual({
       organizationContextId: null,
       bundleId: null,
