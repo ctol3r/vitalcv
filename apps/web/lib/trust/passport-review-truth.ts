@@ -347,7 +347,7 @@ export function buildPassportTrustPosture(
       label: 'Exclusion check (OIG/LEIE)',
       state: dimensionStateFromTruthStatus(truth.safety),
       note: truth.safety.status === 'REVIEW REQUIRED'
-        ? 'Review required'
+        ? 'Needs review'
         : truth.safety.coverage.state !== 'checked'
           ? truth.safety.coverage.reason
           : undefined,

@@ -11,6 +11,42 @@ const BACKEND =
 
 const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review']);
 
+function extractProxyError(payload: unknown, fallback: string): {
+  error: string;
+  error_code?: string;
+} {
+  if (typeof payload === 'object' && payload !== null) {
+    const record = payload as {
+      error?: unknown;
+      error_description?: unknown;
+    };
+
+    if (typeof record.error_description === 'string' && record.error_description.trim().length > 0) {
+      return { error: record.error_description };
+    }
+
+    if (typeof record.error === 'string' && record.error.trim().length > 0) {
+      return { error: record.error };
+    }
+
+    if (typeof record.error === 'object' && record.error !== null) {
+      const structured = record.error as {
+        code?: unknown;
+        message?: unknown;
+      };
+
+      if (typeof structured.message === 'string' && structured.message.trim().length > 0) {
+        return {
+          error: structured.message,
+          ...(typeof structured.code === 'string' ? { error_code: structured.code } : {}),
+        };
+      }
+    }
+  }
+
+  return { error: fallback };
+}
+
 function unauthorizedResponse() {
   return NextResponse.json(
     {
@@ -49,8 +85,10 @@ export async function POST(
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend action failed';
-    return NextResponse.json({ error: errorMsg }, { status: response.status });
+    return NextResponse.json(
+      extractProxyError(payload, 'Backend action failed'),
+      { status: response.status },
+    );
   }
 
   return NextResponse.json(payload ?? {}, { status: response.status });
@@ -82,8 +120,10 @@ export async function GET(
   if (contentType.includes('application/json')) {
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend fetch failed';
-      return NextResponse.json({ error: errorMsg }, { status: response.status });
+      return NextResponse.json(
+        extractProxyError(payload, 'Backend fetch failed'),
+        { status: response.status },
+      );
     }
     return NextResponse.json(payload ?? {}, { status: response.status });
   }

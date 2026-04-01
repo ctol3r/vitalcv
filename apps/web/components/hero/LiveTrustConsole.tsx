@@ -39,6 +39,7 @@ import {
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
+import { resolvePublicProviderDisplayName } from '@/lib/trust/public-provider-identity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -101,9 +102,9 @@ function stageBadge(stage: SourceStage): {
     case 'ok':
       return { status: 'checked', label: 'Checked' };
     case 'failed':
-      return { status: 'unavailable', label: 'Unavailable — retrying' };
+      return { status: 'unavailable', label: 'Missing data — retrying' };
     case 'skipped':
-      return { status: 'unavailable', label: 'Unavailable' };
+      return { status: 'unavailable', label: 'Missing data' };
     case 'waiting':
     default:
       return { status: 'pending', label: 'Queued' };
@@ -448,7 +449,11 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
 
         if (tsRes.ok && tsData.npi) {
           const identityFact = tsData.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
-          previewName = identityFact?.details ?? previewName;
+          previewName = resolvePublicProviderDisplayName({
+            displayName: identityFact?.details,
+            npi: tsData.npi,
+            fallbackLabel: previewName,
+          });
           setRealState(tsData);
           setIsDemo(false);
           setPreviewNotice(null);

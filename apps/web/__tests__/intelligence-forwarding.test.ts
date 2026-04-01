@@ -807,8 +807,9 @@ describe('intelligence auth forwarding', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      error: 'organization_context_required',
-      error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
+      error: 'employer_context_required',
+      error_description: 'Employer context required',
+      message: 'Employer context required',
       workspaceSwitchHref: '/workspace/switch',
     });
   });
@@ -929,8 +930,9 @@ describe('intelligence auth forwarding', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      error: 'organization_context_required',
-      error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
+      error: 'employer_context_required',
+      error_description: 'Employer context required',
+      message: 'Employer context required',
       workspaceSwitchHref: '/workspace/switch',
     });
   });

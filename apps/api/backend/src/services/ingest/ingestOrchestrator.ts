@@ -328,6 +328,7 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
           readinessStatus: passport.readiness.status,
           readinessScore: passport.readiness.score,
           readinessLevel: passport.readiness.level,
+          readinessBreakdown: passport.readiness.breakdown ?? null,
           blockerCount: passport.readiness.blockers.length,
           credentialCount: passport.authority.credentials.length,
           checkedAt: passport.lastCheckedAt,

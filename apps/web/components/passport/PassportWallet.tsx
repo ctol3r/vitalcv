@@ -25,7 +25,7 @@ import Link from 'next/link';
 
 import { useState } from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
-import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
+import { useRoleContext } from '@/components/auth/RoleContext';
 import { Accordion } from '@/components/ui/accordion';
 import type { AccordionItem } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,18 @@ import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { ReadinessExplanationCard } from '@/components/trust/ReadinessExplanationCard';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import {
+  CLERK_PROVIDER_ENABLED,
+  CLERK_SIGN_IN_URL,
+} from '@/lib/auth/clerkConfig';
 import { formatProofDate } from '@/lib/trust/proof-language';
+import { buildPassportReadinessExplanation } from '@/lib/trust/readiness-explainer';
+import {
+  resolvePublicProviderDisplayName,
+  resolvePublicProviderSpecialty,
+} from '@/lib/trust/public-provider-identity';
 import {
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -148,6 +158,14 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 
 function buildIdentitySection(passport: PassportData): AccordionItem {
   const { identity, lastCheckedAt } = passport;
+  const displayName = resolvePublicProviderDisplayName({
+    displayName: identity.displayName,
+    npi: identity.npi ?? passport.npi,
+  });
+  const specialty = resolvePublicProviderSpecialty({
+    displayName: identity.displayName,
+    specialty: identity.specialty,
+  });
   return {
     id:      'identity',
     trigger: 'Identity',
@@ -156,8 +174,8 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
     status:  identity.status === 'ACTIVE' ? 'checked' : 'pending',
     content: (
       <div className="py-1">
-        <DetailRow label="Name"       value={identity.displayName} />
-        <DetailRow label="Specialty"  value={identity.specialty} />
+        <DetailRow label="Name"       value={displayName} />
+        <DetailRow label="Specialty"  value={specialty} />
         <DetailRow label="NPI"        value={identity.npi} />
         <DetailRow label="Type"       value={identity.entityType === 'PERSON' ? 'Individual provider' : 'Organization'} />
         <DetailRow label="Source"     value="CMS NPPES" />
@@ -304,19 +322,19 @@ function buildStandingSection(passport: PassportData): AccordionItem {
     safetyNegative.length === 0;
 
   const exclusionLabel =
-    standing.exclusionStatus === 'CLEAR' ? 'Clear'
-    : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Review required'
+    standing.exclusionStatus === 'CLEAR' ? 'Source-backed'
+    : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Needs review'
     : standing.exclusionStatus === 'EXCLUDED' ? 'Blocked'
-    : 'Unavailable';
+    : 'Missing data';
   const licensureLabel =
-    standing.licensureStatus === 'verified' ? 'Verified'
+    standing.licensureStatus === 'verified' ? 'Source-backed'
     : standing.licensureStatus === 'expired' ? 'Blocked'
     : standing.licensureStatus === 'pending' ? 'Pending'
-    : 'Unavailable';
+    : 'Missing data';
   const deaLabel =
-    standing.deaStatus === 'registered' ? 'Verified'
+    standing.deaStatus === 'registered' ? 'Source-backed'
     : standing.deaStatus === 'none' ? 'Not decision-grade'
-    : 'Unavailable';
+    : 'Missing data';
 
   return {
     id:      'standing',
@@ -456,16 +474,40 @@ interface Props {
   passport: PassportData;
 }
 
+interface ShareLinkState {
+  url: string;
+  expiresAt: string | null;
+}
+
 export default function PassportWallet({ passport }: Props) {
   const [sharing, setSharing] = useState(false);
-  const [shared,  setShared]  = useState(false);
+  const [shareLink, setShareLink] = useState<ShareLinkState | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
+  const { isLoaded, isSignedIn } = useRoleContext();
 
   const { identity, readiness, trustPosture } = passport;
   const cfg = STATUS_CONFIG[readiness.status];
+  const readinessExplanation = buildPassportReadinessExplanation(passport);
+  const displayName = resolvePublicProviderDisplayName({
+    displayName: identity.displayName,
+    npi: identity.npi ?? passport.npi,
+  });
+  const displaySpecialty = resolvePublicProviderSpecialty({
+    displayName: identity.displayName,
+    specialty: identity.specialty,
+  });
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
+  const canGenerateShareLink = CLERK_PROVIDER_ENABLED && isLoaded && isSignedIn;
+  const shareGateMessage =
+    !CLERK_PROVIDER_ENABLED
+      ? 'Sign in required to continue'
+      : !isLoaded
+        ? 'Checking sign-in before generating a share link.'
+        : !isSignedIn
+          ? 'Sign in required to continue'
+          : null;
 
   // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
@@ -477,6 +519,11 @@ export default function PassportWallet({ passport }: Props) {
   ];
 
   async function handleShare() {
+    if (!canGenerateShareLink) {
+      setShareError('Sign in required to continue');
+      return;
+    }
+
     if (!passport.npi) {
       setShareError('This passport is missing an NPI and cannot be shared.');
       return;
@@ -493,12 +540,17 @@ export default function PassportWallet({ passport }: Props) {
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error('Sign in to generate a shareable passport link.');
+        if (res.status === 401) throw new Error('Sign in required to continue');
         if (res.status === 404) throw new Error('Passport data not found. Run an NPI lookup first.');
         throw new Error('Could not generate share link. Try again.');
       }
 
-      const data = await res.json() as { bundleId?: string; bundleUrl?: string; error?: string };
+      const data = await res.json() as {
+        bundleId?: string;
+        bundleUrl?: string;
+        expiresAt?: string | null;
+        error?: string;
+      };
       if (!data.bundleId) throw new Error(data.error ?? 'Share link generation failed.');
 
       // Copy bundle URL to clipboard
@@ -507,7 +559,10 @@ export default function PassportWallet({ passport }: Props) {
         await navigator.clipboard.writeText(shareUrl);
       }
 
-      setShared(true);
+      setShareLink({
+        url: shareUrl,
+        expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : null,
+      });
     } catch (err) {
       setShareError(err instanceof Error ? err.message : 'Share failed.');
     } finally {
@@ -528,20 +583,29 @@ export default function PassportWallet({ passport }: Props) {
         <Card className={`gap-0 rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5 shadow-none`}>
           {/* Identity */}
           <h1 className="text-white text-2xl font-semibold tracking-tight leading-tight">
-            {identity.displayName}
+            {displayName}
           </h1>
-          {identity.specialty && (
-            <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+          {displaySpecialty && (
+            <p className="text-white/50 text-sm mt-0.5">{displaySpecialty}</p>
           )}
 
           {/* Readiness status — employer-visible trust level */}
           <div className="mt-3">
             <TrustStatusBadge
-              status={resolveLivePathReadinessStatus(readiness.status)}
+              status={readinessExplanation.badgeStatus}
+              label={readinessExplanation.label}
               size="sm"
             />
           </div>
         </Card>
+
+        <SectionReveal delay={0}>
+          <ReadinessExplanationCard
+            explanation={readinessExplanation}
+            title="Readiness explanation"
+            description="Identity, exclusion, licensure, and enrollment stay visible so the current state never stands alone."
+          />
+        </SectionReveal>
 
         {/* ── Trust Posture ─────────────────────────────────────────────────── */}
         <SectionReveal delay={0}>
@@ -604,17 +668,28 @@ export default function PassportWallet({ passport }: Props) {
         {/* ── Share section ─────────────────────────────────────────────────── */}
         <SectionReveal delay={0.3}>
           <div className="space-y-3 pt-2">
-            {!shared ? (
+            {!shareLink ? (
               <>
-                <Button
-                  onClick={handleShare}
-                  disabled={sharing}
-                  variant="success"
-                  className="h-14 w-full rounded-xl text-sm font-medium"
-                  aria-label="Generate shareable passport link"
-                >
-                  {sharing ? 'Generating link…' : 'Copy share link for employer'}
-                </Button>
+                {canGenerateShareLink ? (
+                  <Button
+                    onClick={handleShare}
+                    disabled={sharing}
+                    variant="success"
+                    className="h-14 w-full rounded-xl text-sm font-medium"
+                    aria-label="Generate shareable passport link"
+                  >
+                    {sharing ? 'Generating link…' : 'Copy share link for employer'}
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" className="h-14 w-full rounded-xl border-white/10 bg-white/4 text-sm font-medium text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
+                    <Link href={CLERK_SIGN_IN_URL}>
+                      Sign in to share
+                    </Link>
+                  </Button>
+                )}
+                {shareGateMessage && (
+                  <p className="text-white/34 text-xs text-center">{shareGateMessage}</p>
+                )}
                 {shareError && (
                   <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                 )}
@@ -625,7 +700,9 @@ export default function PassportWallet({ passport }: Props) {
             ) : (
               <TrustStateCard
                 title="Link copied"
-                description="The passport share link has been copied to your clipboard. Send it to an employer to open the review surface."
+                description={shareLink.expiresAt
+                  ? `The passport share link has been copied to your clipboard. It expires ${new Date(shareLink.expiresAt).toLocaleString()}.`
+                  : 'The passport share link has been copied to your clipboard. Send it to an employer to open the review surface.'}
                 tone="success"
                 centered
               />

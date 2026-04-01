@@ -9,6 +9,7 @@ export interface LivePathShareResponse {
   eventId: string;
   timestamp: string;
   status: string;
+  expiresAt: string | null;
 }
 
 export interface LivePathShareResponseShape {
@@ -16,6 +17,7 @@ export interface LivePathShareResponseShape {
   eventId?: string;
   timestamp?: string;
   status?: string;
+  expiresAt?: string | null;
 }
 
 export const LIVE_PATH_NPI_RE = /^\d{10}$/;
@@ -73,14 +75,78 @@ export function normalizeLivePathShareResponse(
     eventId: payload.shareEventId ?? payload.eventId ?? 'Recorded',
     timestamp: payload.timestamp ?? new Date().toISOString(),
     status: payload.status ?? 'delivered',
+    expiresAt: typeof payload.expiresAt === 'string' && payload.expiresAt.trim().length > 0
+      ? payload.expiresAt
+      : null,
   };
+}
+
+export function humanizePublicErrorMessage(
+  message: string | null | undefined,
+  fallback: string,
+): string {
+  const normalized = message?.trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  const lower = normalized.toLowerCase();
+
+  if (lower.includes('sign in required')) {
+    return 'Sign in required to continue.';
+  }
+
+  if (lower.includes('organization context') || lower.includes('employer context')) {
+    return 'Open this from an employer review request so the audit trail stays attached.';
+  }
+
+  if (
+    lower.includes('passport hydration')
+    || lower.includes('passport not found')
+    || lower.includes('no passport found')
+    || lower.includes('passport is missing')
+  ) {
+    return 'This passport is not ready yet. Ask the clinician to run the readiness check again.';
+  }
+
+  if (
+    lower.includes('review context is no longer available')
+    || lower.includes('review link is no longer available')
+  ) {
+    return 'This employer review link is no longer active.';
+  }
+
+  if (lower.includes('vcventity') || lower.includes('workspace')) {
+    return 'Create or switch into an employer workspace before continuing.';
+  }
+
+  if (
+    lower.includes('backend')
+    || lower.includes('fetch failed')
+    || lower.includes('network')
+    || lower.includes('timed out')
+    || lower.includes('timeout')
+    || lower.includes('upstream unavailable')
+    || lower.includes('service unavailable')
+    || lower.includes('backend unavailable')
+    || lower.includes('temporarily unavailable')
+  ) {
+    return fallback;
+  }
+
+  if (/http\s*\d{3}/i.test(normalized) || /\(\d{3}\)/.test(normalized)) {
+    return fallback;
+  }
+
+  return normalized;
 }
 
 export function resolveLivePathErrorMessage(
   error: unknown,
   fallback: string,
 ): string {
-  return error instanceof Error && error.message.trim().length > 0
-    ? error.message
-    : fallback;
+  return humanizePublicErrorMessage(
+    error instanceof Error ? error.message : null,
+    fallback,
+  );
 }

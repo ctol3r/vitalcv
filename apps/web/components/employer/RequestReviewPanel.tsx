@@ -26,6 +26,8 @@ import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
+import { humanizePublicErrorMessage } from '@/lib/live-path/contracts';
+import { resolvePublicProviderDisplayName } from '@/lib/trust/public-provider-identity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
@@ -94,7 +96,7 @@ export function RequestReviewPanel() {
           return;
         }
 
-        setErrorMsg(data.error ?? 'Could not create review context.');
+        setErrorMsg(humanizePublicErrorMessage(data.error, 'Could not create review context.'));
         setPhase('error');
         return;
       }
@@ -141,6 +143,13 @@ export function RequestReviewPanel() {
     setCopied(false);
     setSetupHint(undefined);
   }
+
+  const displayName = result
+    ? resolvePublicProviderDisplayName({
+        displayName: result.displayName,
+        npi: result.npi,
+      })
+    : null;
 
   // Not signed in
   if (CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn) {
@@ -242,9 +251,14 @@ export function RequestReviewPanel() {
               <span className="text-emerald-400 text-sm">✔</span>
               <p className="text-white/80 text-sm font-medium">Review context created</p>
             </div>
-            {result.displayName && (
+            {displayName && displayName !== `NPI ${result.npi}` && (
               <p className="mt-1 text-white/50 text-xs">
-                For: <span className="text-white/65">{result.displayName}</span> · NPI {result.npi}
+                For: <span className="text-white/65">{displayName}</span> · NPI {result.npi}
+              </p>
+            )}
+            {displayName === `NPI ${result.npi}` && (
+              <p className="mt-1 text-white/50 text-xs">
+                Clinician NPI {result.npi}
               </p>
             )}
             <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">

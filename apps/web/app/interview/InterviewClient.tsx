@@ -8,7 +8,9 @@ import {
   buildPassportProofSections,
   summarizePassportProofSections,
 } from '@/components/trust/passportProofSections';
+import { ReadinessExplanationCard } from '@/components/trust/ReadinessExplanationCard';
 import { Accordion } from '@/components/ui/accordion';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
@@ -18,10 +20,8 @@ import {
   normalizeLivePathShareResponse,
   resolveLivePathAuthState,
   resolveLivePathErrorMessage,
-  resolveLivePathReadinessStatus,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { VStatusPill } from '@/components/vds/primitives';
 import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
@@ -29,6 +29,11 @@ import {
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
 import { resolveAuthorityAccordionStatus } from '@/lib/trust/passport-truth';
+import { buildPassportReadinessExplanation } from '@/lib/trust/readiness-explainer';
+import {
+  resolvePublicProviderDisplayName,
+  resolvePublicProviderSpecialty,
+} from '@/lib/trust/public-provider-identity';
 
 interface Props {
   entityId: string;
@@ -39,7 +44,7 @@ interface Props {
 type ShareState =
   | { phase: 'idle' }
   | { phase: 'loading' }
-  | { phase: 'success'; eventId: string; timestamp: string; status: string }
+  | { phase: 'success'; eventId: string; timestamp: string; status: string; expiresAt: string | null }
   | { phase: 'error'; message: string };
 
 const SHARE_UNAVAILABLE_MESSAGE = 'Share is unavailable for this passport right now.';
@@ -171,9 +176,16 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
     );
   }
 
-  const displayName = passport.identity.displayName ?? `NPI ${passport.identity.npi ?? passport.npi ?? entityId}`;
-  const specialty = passport.identity.specialty ?? 'Healthcare Provider';
-  const readinessStatus = resolveLivePathReadinessStatus(passport.readiness.status);
+  const displayName = resolvePublicProviderDisplayName({
+    displayName: passport.identity.displayName,
+    npi: passport.identity.npi ?? passport.npi,
+    fallbackLabel: `NPI ${passport.identity.npi ?? passport.npi ?? entityId}`,
+  });
+  const specialty = resolvePublicProviderSpecialty({
+    displayName: passport.identity.displayName,
+    specialty: passport.identity.specialty,
+  }) ?? 'Healthcare provider';
+  const readinessExplanation = buildPassportReadinessExplanation(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = summarizePassportProofSections(proofItems);
   const checkedTags = buildCheckedTags(passport);
@@ -227,11 +239,12 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
         eventId?: string;
         status?: string;
         timestamp?: string;
+        expiresAt?: string | null;
       };
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Sign in to share this passport.');
+          throw new Error('Sign in required to continue');
         }
         if (response.status === 404) {
           throw new Error('The employer review context is no longer available.');
@@ -298,13 +311,17 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 <p className="text-2xl font-semibold tracking-tight text-white">{displayName}</p>
                 <p className="mt-1 text-sm text-white/45">{specialty}</p>
               </div>
-              <VStatusPill status={readinessStatus} size="sm" />
+              <TrustStatusBadge
+                status={readinessExplanation.badgeStatus}
+                label={readinessExplanation.label}
+                size="sm"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-left sm:min-w-[18rem]">
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
-                <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.score}/100</p>
+                <p className="mt-1 text-lg font-semibold text-white">{readinessExplanation.label}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Estimated start</p>
@@ -315,12 +332,20 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 <p className="mt-1 text-sm font-medium text-white">{formatShortDate(passport.lastCheckedAt)}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof coverage</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Attached proof</p>
                 <p className="mt-1 text-sm font-medium text-white">
-                  {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
+                  {proofSummary.decisionGradeCount + proofSummary.informationalCount} section{proofSummary.decisionGradeCount + proofSummary.informationalCount === 1 ? '' : 's'} visible
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="mt-5">
+            <ReadinessExplanationCard
+              explanation={readinessExplanation}
+              title="Readiness explanation"
+              description="Identity, exclusion, licensure, and enrollment stay visible before this passport moves into an employer conversation."
+            />
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -450,6 +475,12 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     {formatDateTime(shareState.timestamp)} · {shareState.status}
                   </p>
                 </div>
+                {shareState.expiresAt && (
+                  <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3 sm:col-span-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/22">Expires</p>
+                    <p className="mt-1 text-[11px] text-white/54">{formatDateTime(shareState.expiresAt)}</p>
+                  </div>
+                )}
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
@@ -470,9 +501,9 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
             <div className="mt-5 space-y-3">
               {!hasShareContext && (
                 <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <p className="text-sm font-medium text-white/70">Preview only</p>
+                  <p className="text-sm font-medium text-white/70">Employer context required</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
-                    A real employer review context is required before this passport can be shared. Continue from your passport flow or from an employer request that carries a valid context.
+                    Employer context required. Continue from your passport flow or from an employer request that carries a valid context.
                   </p>
                 </div>
               )}
@@ -488,7 +519,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
 
               {hasShareContext && CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn && (
                 <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <p className="text-sm font-medium text-white/70">Sign in required</p>
+                  <p className="text-sm font-medium text-white/70">Sign in required to continue</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
                     Sharing writes a real employer review event, so VitalCV requires an authenticated session before it will proceed.
                   </p>

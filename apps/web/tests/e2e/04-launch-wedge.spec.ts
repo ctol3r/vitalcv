@@ -24,7 +24,7 @@ async function runLaunchWedgeFlow(page: Page) {
   await expect(page.getByRole('heading', { name: /see your readiness snapshot/i })).toBeVisible();
 
   await page.getByLabel('NPI number').fill('1234567890');
-  await page.getByRole('button', { name: /see readiness/i }).click();
+  await page.getByRole('button', { name: /start with npi lookup/i }).click();
 
   await expect(
     page.locator('[data-slot="card-title"]').filter({
@@ -35,21 +35,23 @@ async function runLaunchWedgeFlow(page: Page) {
     page.locator('p').filter({ hasText: /^Readiness snapshot$/ }).first(),
   ).toBeVisible({ timeout: 10_000 });
   await expect(
-    page.getByText(/^Example preview$/),
-  ).toBeVisible();
-  await expect(
     page.getByText(/^Preview only$/).first(),
   ).toBeVisible();
   await expect(
-    page.getByText(/demo preview only · live data appears after a real source run/i),
+    page.getByText(/readiness check temporarily unavailable|could not reach the readiness service/i).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: /share in your next interview/i }),
+    page.getByText(/degraded preview|preview only/i).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /continue to passport/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/source-backed preview|preview only/i).first(),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: /share in your next interview/i }).click();
-  await expect(page.getByText('VitalCV could not build an interview packet from that input yet.')).toBeVisible();
-  await expect(page.getByRole('link', { name: /start with npi lookup/i })).toBeVisible();
+  await page.getByRole('button', { name: /continue to passport/i }).click();
+  await page.waitForURL(/\/passport\?npi=1234567890/);
 
   await page.goto('/review/00000000-0000-0000-0000-000000000000?contextId=demo-review', { waitUntil: 'networkidle' });
   await expect(page.getByText('Employer review unavailable')).toBeVisible();
@@ -57,11 +59,11 @@ async function runLaunchWedgeFlow(page: Page) {
 }
 
 test.describe('Launch wedge', () => {
-  test('homepage preview reaches explicit interview and review states on desktop', async ({ page }) => {
+  test('homepage preview reaches explicit passport and review states on desktop', async ({ page }) => {
     await runLaunchWedgeFlow(page);
   });
 
-  test('homepage preview reaches explicit interview and review states on mobile', async ({ page }) => {
+  test('homepage preview reaches explicit passport and review states on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await runLaunchWedgeFlow(page);
   });

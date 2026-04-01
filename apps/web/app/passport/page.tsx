@@ -25,9 +25,15 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ReadinessExplanationCard } from '@/components/trust/ReadinessExplanationCard';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { useIngestStream, type StreamPhase } from '@/hooks/useIngestStream';
+import { buildReadinessExplanation } from '@/lib/trust/readiness-explainer';
+import {
+  resolvePublicProviderDisplayName,
+  resolvePublicProviderSpecialty,
+} from '@/lib/trust/public-provider-identity';
 import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
@@ -86,7 +92,7 @@ const PHASE_LABEL: Record<StreamPhase, string> = {
 
 // ── Source row ─────────────────────────────────────────────────────────────────
 
-type SourceState = 'pending' | 'checking' | 'done' | 'error';
+type SourceState = 'pending' | 'checking' | 'done' | 'error' | 'access_required';
 
 function resolveSourceBadge(state: SourceState, displayValue: string): {
   status: TrustBadgeStatus;
@@ -98,6 +104,11 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
 
   if (state === 'pending') {
     return { status: 'pending', label: 'Queued' };
+  }
+
+  if (state === 'access_required') {
+    const meta = getPublicWedgeSurfaceBadgeMeta('access_required');
+    return { status: meta.status, label: meta.label };
   }
 
   if (state === 'error') {
@@ -113,13 +124,14 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
     case 'Not found':
     case 'Opted out':
     case 'Excluded':
+    case 'Needs review':
       surfaceState = 'review_required';
       break;
     case 'No profile yet':
+    case 'Missing data':
       surfaceState = 'unavailable';
       break;
-    case 'Verified':
-    case 'Clear':
+    case 'Source-backed':
     case 'Enrolled':
     case 'Checked':
     case 'Done':
@@ -135,22 +147,25 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   };
 }
 
-function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
+function SourceRow({ label, state, value, note }: { label: string; state: SourceState; value?: string; note?: string }) {
   const displayValue =
     state === 'checking' ? 'Checking…'
+    : state === 'access_required' ? 'Not yet integrated'
     : state === 'done' ? (value ?? 'Done')
-    : state === 'error' ? 'Unavailable'
+    : state === 'error' ? 'Missing data'
     : '—';
   const badge = resolveSourceBadge(state, displayValue);
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+    <div className="py-2 border-b border-white/5 last:border-0">
+      <div className="flex items-center justify-between">
       <div className="flex items-center gap-2.5">
         <span
           className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{
             backgroundColor:
               state === 'done'     ? 'rgba(255,255,255,0.45)' :
+              state === 'access_required' ? 'rgba(245,158,11,0.30)' :
               state === 'checking' ? 'rgba(255,255,255,0.20)' :
               state === 'error'    ? 'rgba(255,255,255,0.15)' :
                                      'rgba(255,255,255,0.08)',
@@ -160,6 +175,12 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
         <span className="text-white/55 text-sm">{label}</span>
       </div>
       <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
+      </div>
+      {(note ?? (state === 'access_required')) && (
+        <p className="mt-1 ml-4 text-[11px] text-white/25 leading-snug">
+          {note ?? 'State board data is not yet integrated. NPPES, OIG, and PECOS cover primary identity, sanctions, and enrollment.'}
+        </p>
+      )}
     </div>
   );
 }
@@ -179,19 +200,19 @@ function formatExclusionLabel(
   }
 
   if (exclusionClear === true) {
-    return 'Clear';
+    return 'Source-backed';
   }
 
   if (exclusionClear === false) {
-    return 'Flag found';
+    return 'Needs review';
   }
 
   if (exclusionStatus === 'POSSIBLE_MATCH') {
-    return 'Possible match';
+    return 'Needs review';
   }
 
   if (exclusionStatus === 'EXCLUDED') {
-    return 'Excluded';
+    return 'Needs review';
   }
 
   return 'Checked';
@@ -211,15 +232,15 @@ function formatEnrollmentLabel(
   }
 
   if (enrollmentStatus === 'ENROLLED') {
-    return 'Enrolled';
+    return 'Source-backed';
   }
 
   if (enrollmentStatus === 'NOT_FOUND') {
-    return 'Not found';
+    return 'Needs review';
   }
 
   if (enrollmentStatus === 'OPTED_OUT') {
-    return 'Opted out';
+    return 'Needs review';
   }
 
   return enrollmentStatus ?? 'Checked';
@@ -311,12 +332,34 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   );
   const identityLabel =
     identity.authoritative
-      ? 'Verified'
+      ? 'Source-backed'
       : noProfileYet
-        ? 'No profile yet'
+        ? 'Missing data'
         : state.identity.sourceResult === 'FAILED'
-          ? 'Unavailable'
+          ? 'Missing data'
           : undefined;
+  const readinessExplanation =
+    typeof state.readiness.score === 'number' && state.readiness.breakdown
+      ? buildReadinessExplanation({
+          score: state.readiness.score,
+          status: state.readiness.status,
+          breakdown: {
+            identityPct: state.readiness.breakdown.identityPct ?? 0,
+            exclusionPct: state.readiness.breakdown.exclusionPct ?? 0,
+            licensurePct: state.readiness.breakdown.licensurePct ?? 0,
+            enrollmentPct: state.readiness.breakdown.enrollmentPct ?? 0,
+            whatIsMissing: state.readiness.breakdown.whatIsMissing ?? [],
+          },
+        })
+      : null;
+  const displayName = resolvePublicProviderDisplayName({
+    displayName: identity.displayName,
+    npi: state.npi,
+  });
+  const displaySpecialty = resolvePublicProviderSpecialty({
+    displayName: identity.displayName,
+    specialty: identity.specialty,
+  });
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 sm:pt-24 pb-24">
@@ -382,10 +425,10 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               <Card className="gap-2 rounded-2xl border-white/10 bg-white/5 px-5 py-4 shadow-none">
                 <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Provider</p>
                 <h2 className="text-white text-xl font-semibold leading-tight">
-                  {identity.displayName}
+                  {displayName}
                 </h2>
-                {identity.specialty && (
-                  <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+                {displaySpecialty && (
+                  <p className="text-white/50 text-sm mt-0.5">{displaySpecialty}</p>
                 )}
                 <p className="text-white/25 text-xs mt-1">NPI {state.npi}</p>
               </Card>
@@ -394,30 +437,33 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Source status rows */}
             <Card className="animate-panel-enter gap-0 rounded-xl border-white/8 bg-white/3 px-4 py-2 shadow-none">
               <SourceRow
-                label="Identity"
+                label="NPPES"
                 state={sources.nppes}
                 value={identityLabel}
               />
               <SourceRow
-                label="Sanctions (OIG)"
+                label="OIG"
                 state={sources.oig}
                 value={exclusionLabel}
               />
               <SourceRow
-                label="Enrollment (CMS)"
+                label="PECOS"
                 state={sources.pecos}
                 value={enrollmentLabel}
               />
+              <SourceRow
+                label="State Board"
+                state="access_required"
+                value="Access required"
+              />
             </Card>
 
-            {/* Readiness score — appears when claims update */}
-            {state.readiness.score !== undefined && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-white/35 text-sm">Readiness</span>
-                <span className="text-white/65 text-sm tabular-nums">
-                  {state.readiness.score}/100
-                </span>
-              </div>
+            {readinessExplanation && (
+              <ReadinessExplanationCard
+                explanation={readinessExplanation}
+                title="Readiness explanation"
+                description="Identity, exclusion, licensure, and enrollment stay separate before you continue into the full passport."
+              />
             )}
 
             {/* Usable state — passport anchor is available */}

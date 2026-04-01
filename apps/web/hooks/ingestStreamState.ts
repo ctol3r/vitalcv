@@ -53,6 +53,13 @@ export interface StreamReadiness {
   score?: number;
   level?: string;
   status?: string;
+  breakdown?: {
+    identityPct?: number;
+    exclusionPct?: number;
+    licensurePct?: number;
+    enrollmentPct?: number;
+    whatIsMissing?: string[];
+  };
   claimCount?: number;
   blockerCount?: number;
   credentialCount?: number;
@@ -223,11 +230,21 @@ function mergeReadiness(
   payload: Record<string, unknown>,
 ): StreamReadiness {
   const credentialIds = readStringArray(payload, 'credentialIds');
+  const breakdownPayload = asRecord(payload.readinessBreakdown);
 
   return {
     score: readNumber(payload, 'readinessScore') ?? prev.score,
     level: readString(payload, 'readinessLevel') ?? prev.level,
     status: readString(payload, 'readinessStatus') ?? prev.status,
+    breakdown: breakdownPayload
+      ? {
+          identityPct: readNumber(breakdownPayload, 'identityPct') ?? prev.breakdown?.identityPct,
+          exclusionPct: readNumber(breakdownPayload, 'exclusionPct') ?? prev.breakdown?.exclusionPct,
+          licensurePct: readNumber(breakdownPayload, 'licensurePct') ?? prev.breakdown?.licensurePct,
+          enrollmentPct: readNumber(breakdownPayload, 'enrollmentPct') ?? prev.breakdown?.enrollmentPct,
+          whatIsMissing: readStringArray(breakdownPayload, 'whatIsMissing') ?? prev.breakdown?.whatIsMissing,
+        }
+      : prev.breakdown,
     claimCount: readNumber(payload, 'claimCount') ?? prev.claimCount,
     blockerCount: readNumber(payload, 'blockerCount') ?? prev.blockerCount,
     credentialCount:

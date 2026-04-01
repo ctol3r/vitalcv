@@ -80,13 +80,13 @@ export function renderCredentialGroupFreshness(
 
   const statuses = credentials.map(resolveAuthorityEvidenceStatus);
   if (statuses.some((status) => status === 'review_required' || status === 'blocked')) {
-    return 'Review required';
+    return 'Needs review';
   }
   if (statuses.some((status) => status === 'access_required')) {
     return 'Access required';
   }
   if (statuses.some((status) => status === 'unavailable' || status === 'pending')) {
-    return 'Unavailable';
+    return 'Missing data';
   }
 
   return 'Within freshness window';

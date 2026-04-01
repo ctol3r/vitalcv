@@ -4,6 +4,24 @@ import { HttpError } from "../utils/httpError";
 import { log } from '../obs/logger';
 import type { OperationalEventType } from '../types/auditEventTypes';
 
+function isPrismaSchemaCompatibilityError(error: unknown): error is { code: string } {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && (
+      (error as { code?: unknown }).code === 'P2021'
+      || (error as { code?: unknown }).code === 'P2022'
+    );
+}
+
+function resolveSchemaCompatibilityMessage(path: string): string {
+  if (path.startsWith('/api/employer-review/')) {
+    return 'Employer review actions are temporarily unavailable. Please try again shortly.';
+  }
+
+  return 'A required service dependency is temporarily unavailable. Please try again shortly.';
+}
+
 /**
  * Central API error handler.
  *
@@ -21,11 +39,16 @@ export function errorHandler(
   let status = 500;
   let message = "Internal Server Error";
   let errorCode = "INTERNAL_ERROR";
+  const requestPath = req.originalUrl || req.url;
 
   if (err instanceof HttpError) {
     status = err.status;
     message = err.message;
     errorCode = err.code;
+  } else if (isPrismaSchemaCompatibilityError(err)) {
+    status = 503;
+    message = resolveSchemaCompatibilityMessage(requestPath);
+    errorCode = 'SERVICE_UNAVAILABLE';
   } else if (err && typeof err === "object") {
     if ("status" in err && typeof (err as Record<string, unknown>).status === "number") {
       status = (err as Record<string, unknown>).status as number;
@@ -50,7 +73,7 @@ export function errorHandler(
     eventType,
     request_id: requestId,
     method: req.method,
-    path: req.originalUrl || req.url,
+    path: requestPath,
     status_code: status,
     message,
     code: errorCode,
@@ -62,7 +85,7 @@ export function errorHandler(
       extra: {
         request_id: requestId,
         method: req.method,
-        path: req.originalUrl || req.url,
+        path: requestPath,
         code: errorCode,
       },
     });

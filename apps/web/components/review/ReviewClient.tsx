@@ -33,6 +33,7 @@ import {
 } from '@/components/trust/passportProofSections';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { ReadinessExplanationCard } from '@/components/trust/ReadinessExplanationCard';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -52,7 +53,6 @@ import {
 import {
   resolveLivePathAuthState,
   resolveLivePathErrorMessage,
-  resolveLivePathReadinessStatus,
 } from '@/lib/live-path/contracts';
 import {
   employerReviewLoadingLabel,
@@ -69,6 +69,11 @@ import {
   resolvePassportTruthSet,
   type PassportTruthListItem,
 } from '@/lib/trust/passport-review-truth';
+import { buildPassportReadinessExplanation } from '@/lib/trust/readiness-explainer';
+import {
+  resolvePublicProviderDisplayName,
+  resolvePublicProviderSpecialty,
+} from '@/lib/trust/public-provider-identity';
 import {
   buildPassportEntityHref,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
@@ -121,7 +126,7 @@ function buildTruthStatusLabelRow(input: {
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Review required', 'requires verification']),
+        note: joinNoteParts(['Needs review', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
     case 'access_required':
@@ -135,7 +140,7 @@ function buildTruthStatusLabelRow(input: {
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Unavailable', 'requires verification']),
+        note: joinNoteParts(['Missing data', 'requires verification']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
     case 'preview_only':
@@ -180,7 +185,7 @@ function buildSafetyRow(passport: PassportData): {
       return {
         status: 'review_required',
         label: 'Exclusion check',
-        note: joinNoteParts(['Review required', checkedNote, confidence, 'requires verification']),
+        note: joinNoteParts(['Needs review', checkedNote, confidence, 'requires verification']),
         explanation: 'A potential OIG match needs manual adjudication before the employer can rely on this safety layer.',
       };
     case 'EXCLUDED':
@@ -197,7 +202,7 @@ function buildSafetyRow(passport: PassportData): {
       return buildTruthStatusLabelRow({
         truth: truth.safety,
         label: 'Exclusion check',
-        confirmedNote: joinNoteParts(['Clear', checkedNote, confidence]),
+        confirmedNote: joinNoteParts(['Source-backed', checkedNote, confidence]),
         confirmedExplanation: 'No exclusion entry was found in the current OIG LEIE check.',
         missingExplanation: 'No current OIG exclusion check is attached to this review.',
       });
@@ -250,7 +255,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
         status: 'review_required',
         label: 'Medicare enrollment',
         // MS16-A explicit label: "Not found in CMS enrollment data — may indicate not enrolled or data lag"
-        note: joinNoteParts(['Review required', freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
+        note: joinNoteParts(['Needs review', freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
         explanation:
           standing.enrollmentNote
           ?? 'Not finding a record may indicate non-enrollment or a quarterly CMS publication lag. Verify at pecos.cms.hhs.gov before relying on this layer.',
@@ -304,13 +309,13 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
             </span>
           </div>
           <span className="shrink-0 text-right text-[10px] text-[var(--vt-text-3)]">
-            {e.stale
-              ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
-              : e.unchecked
-                ? e.stateLabel ?? 'Unavailable'
-                : e.checkedAt
-                  ? new Date(e.checkedAt).toLocaleDateString()
-                  : 'unknown'}
+              {e.stale
+                ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
+                : e.unchecked
+                  ? e.stateLabel ?? 'Missing data'
+                  : e.checkedAt
+                    ? new Date(e.checkedAt).toLocaleDateString()
+                    : 'unknown'}
           </span>
         </div>
       ))}
@@ -418,8 +423,11 @@ async function postAction(
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error_description?: string };
-    throw new Error(err.error_description ?? `Action failed (${res.status})`);
+    const err = await res.json().catch(() => ({})) as {
+      error_description?: string;
+      error?: string;
+    };
+    throw new Error(err.error_description ?? err.error ?? `Action failed (${res.status})`);
   }
   return res.json() as Promise<EmployerReviewActionResponse>;
 }
@@ -438,8 +446,11 @@ async function getPersistedActionState(
     },
   );
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error_description?: string };
-    throw new Error(err.error_description ?? `Status lookup failed (${res.status})`);
+    const err = await res.json().catch(() => ({})) as {
+      error_description?: string;
+      error?: string;
+    };
+    throw new Error(err.error_description ?? err.error ?? `Status lookup failed (${res.status})`);
   }
 
   const payload = await res.json() as EmployerReviewStatusResponse;
@@ -455,8 +466,23 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
   const reviewOpenedTrackedRef = useRef(false);
 
   const { identity, readiness, standing, authority } = passport;
+  const displayName = resolvePublicProviderDisplayName({
+    displayName: identity.displayName,
+    npi: identity.npi ?? passport.npi,
+  });
+  const displaySpecialty = resolvePublicProviderSpecialty({
+    displayName: identity.displayName,
+    specialty: identity.specialty,
+  });
+  const sharedByLabel = sharedBy
+    ? resolvePublicProviderDisplayName({
+        displayName: sharedBy,
+        npi: identity.npi ?? passport.npi,
+        fallbackLabel: 'Clinician',
+      })
+    : null;
   const truth = resolvePassportTruthSet(passport);
-  const readinessStatus = resolveLivePathReadinessStatus(readiness.status);
+  const readinessExplanation = buildPassportReadinessExplanation(passport);
   const pecosEnrollmentStatus: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN' | 'UNCHECKED' | 'OPTED_OUT' =
     standing.pecosEnrollmentStatus ?? (
       standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
@@ -699,13 +725,13 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         {/* ── Review context attribution ────────────────────────────────────── */}
         {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
-            {sharedBy && (
+            {sharedByLabel && (
               <div className="flex justify-between text-xs">
                 <span className="text-white/35">Shared by</span>
-                <span className="text-white/55">{sharedBy}</span>
+                <span className="text-white/55">{sharedByLabel}</span>
               </div>
             )}
-            <div className={`flex justify-between text-xs ${sharedBy ? 'mt-1' : ''}`}>
+            <div className={`flex justify-between text-xs ${sharedByLabel ? 'mt-1' : ''}`}>
               <span className="text-white/35">Purpose</span>
               <span className="text-white/55">Employment review</span>
             </div>
@@ -753,24 +779,30 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
           {/* Identity */}
           <div>
             <h1 className="text-white text-xl font-semibold leading-tight">
-              {identity.displayName}
+              {displayName}
             </h1>
-            {identity.specialty && (
-              <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+            {displaySpecialty && (
+              <p className="text-white/50 text-sm mt-0.5">{displaySpecialty}</p>
             )}
             <div className="mt-3">
-              <TrustStatusBadge status={readinessStatus} size="sm" />
+              <TrustStatusBadge
+                status={readinessExplanation.badgeStatus}
+                label={readinessExplanation.label}
+                size="sm"
+              />
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
-              <p className="mt-1 text-lg font-semibold text-white">{readiness.score}/100</p>
+              <p className="mt-1 text-lg font-semibold text-white">{readinessExplanation.label}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
-              <p className="mt-1 text-lg font-semibold text-white">{readiness.level}</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Review warnings</p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {blocked.length > 0 ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}` : 'No blockers'}
+              </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
@@ -778,15 +810,21 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
               <p className="mt-1 text-[11px] text-white/30">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Attached proof</p>
               <p className="mt-1 text-sm font-medium text-white">
-                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
+                {proofSummary.decisionGradeCount + proofSummary.informationalCount} section{proofSummary.decisionGradeCount + proofSummary.informationalCount === 1 ? '' : 's'} visible
               </p>
               <p className="mt-1 text-[11px] text-white/30">
                 {proofSummary.warningCount > 0 ? `${proofSummary.warningCount} review warning${proofSummary.warningCount === 1 ? '' : 's'}` : 'No review warnings'}
               </p>
             </div>
           </div>
+
+          <ReadinessExplanationCard
+            explanation={readinessExplanation}
+            title="Readiness explanation"
+            description="Identity, exclusion, licensure, and enrollment stay broken out so the decision basis can be inspected before any action."
+          />
 
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -919,7 +957,7 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
             {/* Q5: What blocks start? + Q6: What do I do? */}
             <div className="border-t border-white/10 pt-4 space-y-1 text-sm">
               <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
-              <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
+              <p className="text-white/90 font-medium pb-1">{readinessExplanation.label}</p>
 
               {/* Q5: Blockers */}
               {blocked.length > 0 && (
@@ -1005,9 +1043,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
               <p className="mt-1 text-sm text-white/62">{freshnessState}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Attached proof</p>
               <p className="mt-1 text-sm text-white/62">
-                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
+                {proofSummary.decisionGradeCount + proofSummary.informationalCount} section{proofSummary.decisionGradeCount + proofSummary.informationalCount === 1 ? '' : 's'} visible
               </p>
             </div>
             <div>
@@ -1054,24 +1092,18 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-white/20 text-[10px] uppercase tracking-widest">
-                    Trust posture
+                    Current review basis
                   </p>
                   <p className="mt-0.5 text-sm font-medium text-white/60">
-                    {reviewTruth.posture.bandLabel}
-                    <span className="ml-1 text-xs font-mono text-white/25">
-                      {reviewTruth.posture.level}
-                    </span>
+                    {reviewTruth.posture.reliableLabel}
                   </p>
                   <p className="mt-1 text-[11px] text-white/30">
-                    {reviewTruth.posture.reliableLabel}
+                    {reviewTruth.posture.dimensions.length} core lane{reviewTruth.posture.dimensions.length === 1 ? '' : 's'} shown in this review.
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Score</p>
-                  <p className="text-lg font-semibold tabular-nums text-white/70">
-                    {reviewTruth.posture.score}
-                    <span className="text-xs text-white/25">/100</span>
-                  </p>
+                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Source-backed now</p>
+                  <p className="text-lg font-semibold text-white/70">{reviewTruth.posture.reliableCount}</p>
                 </div>
               </div>
               <p className="mt-3 text-[10px] leading-relaxed text-white/20">
@@ -1265,9 +1297,9 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
                       <p className="text-white/20 text-[10px] uppercase tracking-widest">Trust state recorded at decision</p>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
                         <span className="text-white/25 text-[10px]">Readiness</span>
-                        <span className="text-white/50 text-[10px]">{snap.readinessStatus} · {snap.readinessScore}%</span>
-                        <span className="text-white/25 text-[10px]">Trust band</span>
-                        <span className="text-white/50 text-[10px]">{snap.trustBand} · {snap.trustBandLabel}</span>
+                        <span className="text-white/50 text-[10px]">{snap.readinessStatus}</span>
+                        <span className="text-white/25 text-[10px]">Source-backed now</span>
+                        <span className="text-white/50 text-[10px]">{snap.verifiedCredentialCount}</span>
                         <span className="text-white/25 text-[10px]">Blockers noted</span>
                         <span className="text-white/50 text-[10px]">{snap.blockerCount}</span>
                         <span className="text-white/25 text-[10px]">Exclusion</span>

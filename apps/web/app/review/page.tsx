@@ -29,8 +29,8 @@ export default function ReviewLandingPage() {
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground/60">
-          No login required to view a shared passport link.
+        <p className="text-xs text-muted-foreground/60 leading-relaxed">
+          Shared passport links open without login. Creating a new review context requires employer sign-in.
         </p>
       </div>
     </main>

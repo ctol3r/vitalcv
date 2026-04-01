@@ -104,7 +104,7 @@ describe('PassportTrustPosture', () => {
     expect(markup).toContain('Partial trust');
     expect(markup).toContain('61');
     expect(markup).toContain('Identity');
-    expect(markup).toContain('Review required');
+    expect(markup).toContain('Needs review');
     expect(markup).toContain('Access required');
     expect(markup).toContain('Blocked');
     expect(markup).toContain('Safe to rely on now');

@@ -32,7 +32,7 @@ describe('trust source coverage contract', () => {
     expect(sourceCoveragePosture('stale')).toBe('degraded');
     expect(sourceCoveragePosture('reviewRequired')).toBe('degraded');
     expect(sourceCoverageBadgeLabel({ state: 'stale', decisionGrade: false })).toBe('Stale');
-    expect(sourceCoverageBadgeLabel({ state: 'reviewRequired', decisionGrade: false })).toBe('Review required');
+    expect(sourceCoverageBadgeLabel({ state: 'reviewRequired', decisionGrade: false })).toBe('Needs review');
     expect(mapSourceCoverageStateToTrustStatus('stale')).toBe('stale');
     expect(mapSourceCoverageStateToTrustStatus('reviewRequired')).toBe('review_required');
   });
@@ -56,7 +56,7 @@ describe('trust source coverage contract', () => {
 
     expect(staleMarkup).toContain('STATE_BOARD');
     expect(staleMarkup).toContain('Stale');
-    expect(reviewMarkup).toContain('Review required');
+    expect(reviewMarkup).toContain('Needs review');
   });
 
   it('renders shared passport and review source coverage copy from one presenter', () => {
@@ -81,7 +81,8 @@ describe('trust source coverage contract', () => {
     );
 
     expect(markup).toContain(PASSPORT_SOURCE_COVERAGE_TITLE);
-    expect(markup).toContain('NPPES_API');
+    expect(markup).toContain('NPPES');
+    expect(markup).toContain('Current source state');
     expect(markup).toContain(PASSPORT_SOURCE_COVERAGE_COPY);
   });
 

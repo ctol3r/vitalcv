@@ -173,7 +173,8 @@ describe('request review panel', () => {
     await flush();
 
     expect(textContent(view.container)).toContain('Review context created');
-    expect(textContent(view.container)).toContain('Ada Lovelace, MD');
+    expect(textContent(view.container)).toContain('Clinician NPI 1234567890');
+    expect(textContent(view.container)).not.toContain('Ada Lovelace, MD');
     expect(textContent(view.container)).toContain('Review link');
     expect(textContent(view.container)).toContain('Copy review link');
     expect(hrefForText(view.container, 'Open review')).toBe(reviewUrl);

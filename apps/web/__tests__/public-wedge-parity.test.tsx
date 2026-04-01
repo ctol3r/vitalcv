@@ -96,8 +96,8 @@ describe('public wedge parity helpers', () => {
       ['pending', 'Pending'],
       ['stale', 'Stale'],
       ['access_required', 'Access required'],
-      ['unavailable', 'Unavailable'],
-      ['review_required', 'Review required'],
+      ['unavailable', 'Missing data'],
+      ['review_required', 'Needs review'],
       ['preview_only', 'Preview only'],
     ]);
   });

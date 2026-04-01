@@ -181,6 +181,13 @@ export interface PassportReadiness {
   score:              number;    // 0–100
   readiness_score:    number;
   level:              string;    // L0–L3
+  breakdown?: {
+    identityPct: number;
+    exclusionPct: number;
+    licensurePct: number;
+    enrollmentPct: number;
+    whatIsMissing: string[];
+  };
   blockers:           string[];
   gaps:               string[];
   nextActions:        ReadinessNextAction[];
@@ -270,6 +277,68 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
 
 function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
+}
+
+function clampPercentage(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function fallbackReadinessDimensionPct(
+  truth: CanonicalTruthSet[keyof CanonicalTruthSet],
+): number {
+  if (truth.coverage.state === 'stale') {
+    return 60;
+  }
+
+  if (truth.coverage.state === 'reviewRequired') {
+    return 40;
+  }
+
+  if (truth.coverage.state === 'checked' && truth.satisfied) {
+    return 100;
+  }
+
+  return 0;
+}
+
+function buildPassportReadinessBreakdown(input: {
+  trustState: ClinicianTrustState | null;
+  truth: CanonicalTruthSet;
+  blockers: readonly string[];
+  gaps: readonly string[];
+}): NonNullable<PassportReadiness['breakdown']> {
+  const weights = input.trustState?.confidenceWeighting;
+
+  return {
+    identityPct: clampPercentage(
+      typeof weights?.identity === 'number'
+        ? weights.identity * 100
+        : fallbackReadinessDimensionPct(input.truth.identity),
+    ),
+    exclusionPct: clampPercentage(
+      typeof weights?.exclusion === 'number'
+        ? weights.exclusion * 100
+        : fallbackReadinessDimensionPct(input.truth.safety),
+    ),
+    licensurePct: clampPercentage(
+      typeof weights?.licensure === 'number'
+        ? weights.licensure * 100
+        : fallbackReadinessDimensionPct(input.truth.authority),
+    ),
+    enrollmentPct: clampPercentage(
+      typeof weights?.enrollment === 'number'
+        ? weights.enrollment * 100
+        : fallbackReadinessDimensionPct(input.truth.eligibility),
+    ),
+    whatIsMissing: dedupeStrings([
+      ...input.blockers,
+      ...input.gaps,
+    ]),
+  };
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1754,12 +1823,19 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     gaps: normalizedGaps,
     pecosEnrollmentStatus,
   });
+  const readinessBreakdown = buildPassportReadinessBreakdown({
+    trustState,
+    truth,
+    blockers: normalizedBlockers,
+    gaps: normalizedGaps,
+  });
 
   const readiness: PassportReadiness = {
     status:             readinessStatus,
     score:              readinessScore,
     readiness_score:    readinessScore,
     level:              trustState?.readiness_level ?? 'L1',
+    breakdown:          readinessBreakdown,
     blockers:           normalizedBlockers,
     gaps:               normalizedGaps,
     nextActions,

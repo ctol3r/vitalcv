@@ -18,9 +18,9 @@ const SECTIONS = [
   {
     icon: Code2,
     title: 'SDKs',
-    desc: 'Official client libraries for Node.js, Python, and Go with drop-in verification and wallet management.',
+    desc: 'Current TypeScript SDK packages in this workspace, with install and route examples for the preview branch.',
     href: '/docs/sdk',
-    badge: 'Node · Python · Go',
+    badge: 'TypeScript',
   },
   {
     icon: Webhook,
@@ -41,7 +41,7 @@ const SECTIONS = [
 const QUICK_LINKS = [
   { label: 'Verify a credential',    href: '/docs/api#verify' },
   { label: 'Issue a credential',     href: '/docs/api#issue' },
-  { label: 'Install the Node SDK',   href: '/docs/sdk#node' },
+  { label: 'Install the TypeScript SDK', href: '/docs/sdk#node' },
   { label: 'Subscribe to webhooks',  href: '/docs/webhooks#subscribe' },
   { label: 'Revoke a credential',    href: '/docs/api#revoke' },
   { label: 'Selective disclosure',   href: '/docs/api#selective-disclosure' },

@@ -23,6 +23,7 @@
  *   }
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { humanizePublicErrorMessage } from '@/lib/live-path/contracts';
 import {
   resolveEmployerWorkspaceRequestorContext,
 } from '@/lib/server/employer-workspace';
@@ -130,7 +131,10 @@ export async function POST(req: NextRequest) {
     const orgErr = await orgRes.json().catch(() => ({})) as { error?: string };
     return jsonError(
       {
-        error: orgErr.error ?? 'Could not create review context.',
+        error: humanizePublicErrorMessage(
+          orgErr.error,
+          'Could not create review context.',
+        ),
         hint: 'Employer must be registered as a VcvEntity. Contact VitalCV to set up an employer workspace.',
       },
       orgRes.status,

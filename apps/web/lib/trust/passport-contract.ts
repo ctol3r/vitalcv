@@ -53,6 +53,14 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
+export interface PassportReadinessBreakdown {
+  identityPct: number;
+  exclusionPct: number;
+  licensurePct: number;
+  enrollmentPct: number;
+  whatIsMissing: string[];
+}
+
 export interface PassportData {
   entityId:    string;
   npi?:        string;
@@ -143,6 +151,7 @@ export interface PassportData {
     status:             ReadinessStatus;
     score:              number;
     level:              string;
+    breakdown?:         PassportReadinessBreakdown;
     blockers:           string[];
     gaps:               string[];
     estimatedStartDays: number | null;

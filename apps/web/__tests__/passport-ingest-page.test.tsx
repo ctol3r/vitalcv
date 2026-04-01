@@ -79,11 +79,13 @@ describe('/passport ingest page', () => {
     }));
 
     expect(markup).toContain('Checking primary sources…');
-    expect(markup).toContain('Identity');
-    expect(markup).toContain('Sanctions (OIG)');
-    expect(markup).toContain('Enrollment (CMS)');
+    expect(markup).toContain('NPPES');
+    expect(markup).toContain('OIG');
+    expect(markup).toContain('PECOS');
+    expect(markup).toContain('State Board');
     expect(markup).toContain('Checking');
     expect(markup).toContain('Pending');
+    expect(markup).toContain('Access required');
     expect(markup).not.toContain('View full passport');
   });
 
@@ -178,8 +180,8 @@ describe('/passport ingest page', () => {
       },
     }));
 
-    expect(markup).toContain('Unavailable');
-    expect(markup).toContain('Review required');
+    expect(markup).toContain('Missing data');
+    expect(markup).toContain('Needs review');
     expect(markup).not.toContain('View full passport');
   });
 

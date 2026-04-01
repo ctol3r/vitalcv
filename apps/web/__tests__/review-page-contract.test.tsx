@@ -158,7 +158,7 @@ describe('review page contract', () => {
 
     expect(reviewClientSpy).not.toHaveBeenCalled();
     expect(markup).toContain('Employer review unavailable');
-    expect(markup).toContain('Passport hydration missing.');
+    expect(markup).toContain('This passport is not ready yet. Ask the clinician to run the readiness check again.');
     expect(markup).toContain('/review/entity-1?contextId=ctx-1&amp;bundleId=bundle-1&amp;from=Ada+Lovelace');
   });
 });

@@ -7,13 +7,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { SourceCoverageRow } from '@/components/trust/SourceCoverageRow';
-import type { PassportSourceCoverageCheck } from '@/lib/trust/source-coverage';
+import {
+  buildPassportSourceVisibilityChecks,
+  type PassportSourceCoverageCheck,
+} from '@/lib/trust/source-coverage';
 
 void React;
 
-export const PASSPORT_SOURCE_COVERAGE_TITLE = 'Sources checked';
+export const PASSPORT_SOURCE_COVERAGE_TITLE = 'Source visibility';
 export const PASSPORT_SOURCE_COVERAGE_COPY =
-  'Only checked sources are decision-grade. Pending, stale, review-required, access-required, preview-only, and not-decision-grade sources inform context but do not constitute primary-source verification.';
+  'VitalCV keeps NPPES, OIG, PECOS, and State Board coverage visible. Each row stays marked as checked, pending, access required, stale, needs review, or missing data.';
 
 interface PassportSourceCoveragePanelProps {
   checks: PassportSourceCoverageCheck[];
@@ -22,9 +25,7 @@ interface PassportSourceCoveragePanelProps {
 export function PassportSourceCoveragePanel({
   checks,
 }: PassportSourceCoveragePanelProps) {
-  if (checks.length === 0) {
-    return null;
-  }
+  const visibleChecks = buildPassportSourceVisibilityChecks(checks);
 
   return (
     <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] py-0 shadow-none">
@@ -33,17 +34,17 @@ export function PassportSourceCoveragePanel({
           {PASSPORT_SOURCE_COVERAGE_TITLE}
         </p>
         <CardTitle className="text-sm font-semibold text-white/80">
-          Trust-core coverage and contextual gaps
+          Current source state
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed text-white/42">
           {PASSPORT_SOURCE_COVERAGE_COPY}
         </CardDescription>
       </CardHeader>
       <CardContent className="px-5 py-2">
-        {checks.map((check, index) => (
+        {visibleChecks.map((check, index) => (
           <div
-            key={check.sourceId}
-            className={index === checks.length - 1 ? '' : 'border-b border-white/6'}
+            key={check.sourceLabel}
+            className={index === visibleChecks.length - 1 ? '' : 'border-b border-white/6'}
           >
             <SourceCoverageRow check={check} />
           </div>

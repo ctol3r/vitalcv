@@ -134,12 +134,12 @@ export function resolveAuthorityStatusLead(
 ): string {
   const status = resolveAuthorityEvidenceStatus(credential);
 
-  if (status === 'verified') return 'Verified';
-  if (status === 'review_required') return 'Review required';
+  if (status === 'verified') return 'Source-backed';
+  if (status === 'review_required') return 'Needs review';
   if (status === 'blocked') return 'Blocked';
   if (status === 'access_required') return 'Access required';
   if (credential.participationStatus === 'manual_verification_required') return 'Manual only';
-  if (status === 'unavailable') return 'Unavailable';
+  if (status === 'unavailable') return 'Missing data';
   return 'Pending';
 }
 
@@ -259,7 +259,7 @@ export function resolveAuthorityNote(
   }
 
   if (credential.authorityClaimCode === 'RN_LICENSE_DISCIPLINED') {
-    return 'A disciplinary action is recorded on this license. Review required before clinical placement.';
+    return 'A disciplinary action is recorded on this license. Needs review before clinical placement.';
   }
 
   return null;

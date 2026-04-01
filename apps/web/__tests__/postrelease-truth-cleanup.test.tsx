@@ -390,9 +390,10 @@ describe('post-release truth cleanup', () => {
     const homeMarkup = renderToStaticMarkup(<HowItWorksSection />);
 
     expect(navbarMarkup).toContain('Check Readiness');
-    expect(navbarMarkup).toContain('Explore Roles');
-    expect(navbarMarkup).toContain('For Employers');
+    expect(navbarMarkup).toContain('Employer Review');
     expect(navbarMarkup).toContain('Developers');
+    expect(navbarMarkup).not.toContain('Explore Roles');
+    expect(navbarMarkup).not.toContain('For Employers');
     expectMarkupExcludes(navbarMarkup, ['Get Verified', 'Get Verified Free']);
 
     expect(homeMarkup).toContain('Source-backed readiness snapshot');
@@ -427,12 +428,10 @@ describe('post-release truth cleanup', () => {
     expect(homepageMarkup).toContain('Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.');
 
     expect(navbarMarkup).toContain('Check Readiness');
-    expect(navbarMarkup).toContain('Explore Roles');
-    expect(navbarMarkup).toContain('For Employers');
+    expect(navbarMarkup).toContain('Employer Review');
     expect(navbarMarkup).toContain('Developers');
     expect(findHrefByText(navbarMarkup, 'Check Readiness')).toBe('/passport');
-    expect(findHrefByText(navbarMarkup, 'Explore Roles')).toBe('/explore');
-    expect(findHrefByText(navbarMarkup, 'For Employers')).toBe('/employers');
+    expect(findHrefByText(navbarMarkup, 'Employer Review')).toBe('/review');
     expect(findHrefByText(navbarMarkup, 'Developers')).toBe('/developers');
 
     expect(interviewTeaserMarkup).toContain('Passport Preview');
@@ -464,9 +463,9 @@ describe('post-release truth cleanup', () => {
     expect(markup).toContain('Checked in this run');
     expect(markup).toContain('Continue to passport');
     expect(markup).toContain('Source checks');
-    expect(markup).toContain('Source-backed preview');
+    expect(markup).toContain('Current snapshot');
     expect(markup).toContain('Access required');
-    expect(markup).toContain('Review required');
+    expect(markup).toContain('Needs review');
     expectMarkupExcludes(markup, ['Identity verified', 'Source verification']);
   });
 

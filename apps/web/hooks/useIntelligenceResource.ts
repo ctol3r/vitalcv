@@ -66,10 +66,10 @@ export function errorMessageFromPayload(payload: unknown, status: number): strin
 
   const resourceError = payload as ResourceErrorPayload;
 
-  if (resourceError.error === 'organization_context_required') {
+  if (resourceError.error === 'organization_context_required' || resourceError.error === 'employer_context_required') {
     const description = typeof resourceError.error_description === 'string' && resourceError.error_description.trim().length > 0
       ? resourceError.error_description.trim()
-      : 'Organization workspace required.';
+      : 'Employer context required';
     const workspaceSwitchHref = typeof resourceError.workspaceSwitchHref === 'string' && resourceError.workspaceSwitchHref.trim().length > 0
       ? resourceError.workspaceSwitchHref.trim()
       : null;

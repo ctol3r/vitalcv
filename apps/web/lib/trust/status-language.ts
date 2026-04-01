@@ -1,6 +1,5 @@
 import type { PassportSourceCoverageState } from '@/lib/trust/source-coverage';
 import {
-  getTrustStatusLabel,
   isDecisionGradePositiveTrustStatus,
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
@@ -32,63 +31,63 @@ export type TrustStatusTone =
 
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
-    label: getTrustStatusLabel('verified'),
+    label: 'Source-backed',
     badgeClassName: 'border-white/12 bg-white/6 text-white/70',
   },
   clear: {
-    label: getTrustStatusLabel('clear'),
+    label: 'Source-backed',
     badgeClassName: 'border-white/12 bg-white/6 text-white/70',
   },
   checked: {
-    label: getTrustStatusLabel('checked'),
+    label: 'Checked',
     badgeClassName: 'border-white/12 bg-white/6 text-white/65',
   },
   pending: {
-    label: getTrustStatusLabel('pending'),
+    label: 'Pending',
     badgeClassName: 'border-white/8 bg-white/4 text-white/45',
   },
   stale: {
-    label: getTrustStatusLabel('stale'),
+    label: 'Stale',
     badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
   },
   unavailable: {
-    label: getTrustStatusLabel('unavailable'),
+    label: 'Missing data',
     badgeClassName: 'border-white/8 bg-white/4 text-white/35',
   },
   access_required: {
-    label: getTrustStatusLabel('access_required'),
+    label: 'Access required',
     badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
   },
   review_required: {
-    label: getTrustStatusLabel('review_required'),
+    label: 'Needs review',
     badgeClassName: 'border-rose-500/25 bg-rose-500/10 text-rose-200',
   },
   demo: {
-    label: getTrustStatusLabel('demo'),
+    label: 'Preview only',
     badgeClassName: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
   },
 };
 
 const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
-  verified: ['Verified'],
-  clear: ['Clear', 'No sanctions found'],
-  checked: ['Checked'],
-  pending: ['Pending'],
+  verified: ['Source-backed'],
+  clear: ['Source-backed', 'No sanctions found'],
+  checked: ['Checked', 'Source-backed'],
+  pending: ['Pending', 'Needs review'],
   stale: ['Stale'],
-  unavailable: ['Unavailable'],
+  unavailable: ['Missing data', 'Unavailable'],
   access_required: ['Access required'],
-  review_required: ['Review required'],
+  review_required: ['Needs review', 'Review required'],
   demo: ['Demo', 'Preview only'],
 };
 
 const VDS_TRUST_STATUS_LABELS = {
-  verified: 'Verified',
-  clear: 'Clear',
+  verified: 'Source-backed',
+  clear: 'Source-backed',
   enrolled: 'Enrolled',
   pending: 'Pending',
   stale: 'Stale',
-  'review required': 'Review required',
-  unavailable: 'Unavailable',
+  'review required': 'Needs review',
+  unavailable: 'Missing data',
   'access required': 'Access required',
   'not decision-grade': 'Not decision-grade',
   blocked: 'Blocked',
@@ -104,6 +103,10 @@ export function getVdsTrustStatusLabel(
 
 export function getTrustStatusBadgeClassName(status: TrustUiStatus): string {
   return TRUST_STATUS_META[status].badgeClassName;
+}
+
+export function getTrustStatusLabel(status: TrustUiStatus): string {
+  return TRUST_STATUS_META[status].label;
 }
 
 function normalizeDisplayLabel(value: string): string {
@@ -173,7 +176,6 @@ export function getStatusDisplayLabel(
 }
 
 export {
-  getTrustStatusLabel,
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
 };
@@ -185,10 +187,10 @@ export function isDecisionGradePositiveStatus(status: TrustUiStatus): boolean {
 /** Maps a raw readiness level code to a human-readable label. */
 export function readinessLevelLabel(level: string | null | undefined): string {
   switch (level) {
-    case 'L0': return 'Foundation — not ready';
-    case 'L1': return 'Provisional — review required';
-    case 'L2': return 'Source-backed — ready to proceed';
-    case 'L3': return 'Trust-Native — decision grade';
+    case 'L0': return 'Missing data';
+    case 'L1': return 'Needs review';
+    case 'L2': return 'Source-backed';
+    case 'L3': return 'Source-backed';
     default: return level ?? 'Unknown';
   }
 }
@@ -196,8 +198,8 @@ export function readinessLevelLabel(level: string | null | undefined): string {
 /** Maps a raw API credential status string to a canonical display label. */
 export function canonicalCredStatus(raw: string): string {
   const map: Record<string, string> = {
-    VERIFIED: 'Verified',
-    verified: 'Verified',
+    VERIFIED: 'Source-backed',
+    verified: 'Source-backed',
     ACTIVE: 'Active',
     active: 'Active',
     PENDING: 'Pending',
@@ -210,10 +212,10 @@ export function canonicalCredStatus(raw: string): string {
     stale: 'Stale',
     GATED: 'Access required',
     gated: 'Access required',
-    REVIEW_REQUIRED: 'Review required',
-    review_required: 'Review required',
-    REVOKED: 'Unavailable',
-    revoked: 'Unavailable',
+    REVIEW_REQUIRED: 'Needs review',
+    review_required: 'Needs review',
+    REVOKED: 'Missing data',
+    revoked: 'Missing data',
     NOT_DECISION_GRADE: 'Not decision-grade',
     not_decision_grade: 'Not decision-grade',
   };

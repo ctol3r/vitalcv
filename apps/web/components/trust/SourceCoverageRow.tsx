@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import {
   getTrustStatusDescriptor,
   TrustStatusBadge,
@@ -7,57 +6,55 @@ import {
 } from '@/components/ui/trust-status-badge';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
-  sourceCoverageBadgeLabel,
-  type PassportSourceCoverageCheck,
+  sourceVisibilityBadgeLabel,
+  type PassportVisibleSourceCoverageCheck,
 } from '@/lib/trust/source-coverage';
 import { mapSourceCoverageStateToTrustStatus } from '@/lib/trust/status-language';
 
 void React;
 
 interface SourceCoverageRowProps {
-  check: PassportSourceCoverageCheck;
+  check: PassportVisibleSourceCoverageCheck;
 }
 
-function resolveCoverageBadge(check: PassportSourceCoverageCheck): {
+function resolveCoverageBadge(check: PassportVisibleSourceCoverageCheck): {
   status: TrustBadgeStatus;
   label: string;
 } {
-  if (check.state === 'checked') {
+  if (check.state === 'reviewRequired') {
     return {
-      status: 'verified',
-      label: sourceCoverageBadgeLabel({
-        state: check.state,
-        decisionGrade: true,
-      }),
+      status: 'review required',
+      label: sourceVisibilityBadgeLabel(check.state),
+    };
+  }
+
+  if (
+    check.state === 'unavailable'
+    || check.state === 'notDecisionGrade'
+    || check.state === 'previewOnly'
+  ) {
+    return {
+      status: 'unavailable',
+      label: sourceVisibilityBadgeLabel(check.state),
     };
   }
 
   return {
-    status: mapSourceCoverageStateToTrustStatus(check.state),
-    label: sourceCoverageBadgeLabel({
-      state: check.state,
-      decisionGrade: false,
-    }),
+    status: check.state === 'checked'
+      ? 'checked'
+      : mapSourceCoverageStateToTrustStatus(check.state),
+    label: sourceVisibilityBadgeLabel(check.state),
   };
 }
 
 export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
-  const decisionGrade = check.state === 'checked';
   const badge = resolveCoverageBadge(check);
   const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <div className="min-w-0 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium text-white/72">{check.sourceId}</p>
-          <Badge
-            variant="outline"
-            className="rounded-full border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
-          >
-            {decisionGrade ? 'Decision grade' : 'Not decision grade'}
-          </Badge>
-        </div>
+        <p className="text-sm font-medium text-white/72">{check.sourceLabel}</p>
         {statusDescriptor ? (
           <p className="text-[11px] leading-relaxed text-white/28">{statusDescriptor}</p>
         ) : null}

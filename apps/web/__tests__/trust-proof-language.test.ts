@@ -265,7 +265,7 @@ describe('trust proof language', () => {
         participationStatus: 'manual_verification_required',
         sourceScope: 'STATE_BOARD_MANUAL',
       },
-    ])).toBe('Unavailable');
+    ])).toBe('Missing data');
   });
 
   it('summarizes freshness with stale taking precedence over unchecked coverage', () => {
@@ -435,12 +435,12 @@ describe('trust proof language', () => {
     });
     expect(entries.find((entry) => entry.layer === 'Safety (OIG)')).toMatchObject({
       sourceState: 'reviewRequired',
-      stateLabel: 'Review required',
+      stateLabel: 'Needs review',
       unchecked: true,
     });
     expect(entries.find((entry) => entry.layer === 'Eligibility (PECOS)')).toMatchObject({
       sourceState: 'notDecisionGrade',
-      stateLabel: 'Not decision-grade',
+      stateLabel: 'Missing data',
       unchecked: true,
     });
   });

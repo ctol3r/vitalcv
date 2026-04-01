@@ -100,6 +100,38 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     });
   });
 
+  it('preserves structured backend error messages for action writes', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'Employer review actions are temporarily unavailable. Please try again shortly.',
+        },
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/accept', {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'accept' }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Employer review actions are temporarily unavailable. Please try again shortly.',
+      error_code: 'SERVICE_UNAVAILABLE',
+    });
+  });
+
   it('forwards authenticated persisted-status reads', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1' });
     const fetchMock = vi.fn().mockResolvedValue(new Response(

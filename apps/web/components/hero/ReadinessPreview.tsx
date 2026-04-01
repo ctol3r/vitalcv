@@ -10,8 +10,7 @@
  *      → preserve the entered NPI and show only limited preview structure
  *
  * Non-negotiables:
- *   - "Verified" only appears when identityVerified=true from real claim
- *   - "Clear" on exclusion only when exclusionClear=true from real artifact
+ *   - Source-backed labels only appear when live source evidence is attached
  *   - Gaps are surfaced directly from trustStateEngine output
  *   - Degraded fallback never substitutes a different clinician identity
  *   - Source names and checked timestamps shown where available
@@ -29,7 +28,13 @@ import {
 } from '@/components/ui/card';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
+import { ReadinessExplanationCard } from '@/components/trust/ReadinessExplanationCard';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
+import { buildTrustStateReadinessExplanation } from '@/lib/trust/readiness-explainer';
+import {
+  resolvePublicProviderDisplayName,
+  resolvePublicProviderSpecialty,
+} from '@/lib/trust/public-provider-identity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -61,6 +66,7 @@ export interface ClinicianTrustState {
   readiness_status:  string;
   readiness_score:   number;
   gap_summary:       string[];
+  confidenceWeighting?: Partial<Record<'identity' | 'exclusion' | 'licensure' | 'enrollment', number>>;
   methodology_version: string;
   computed_at:       string;
   facts:             CanonicalFact[];
@@ -91,9 +97,9 @@ const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
 };
 
 const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
-  clear: 'Checked',
-  pending: 'Pending',
-  blocked: 'Blocked',
+  clear: 'Source-backed',
+  pending: 'Needs review',
+  blocked: 'Needs review',
 };
 
 const CHIPS_CLASSNAME =
@@ -500,8 +506,6 @@ export function ReadinessPreview({
   fallbackReason = null,
   fallbackSources = null,
 }: Props) {
-  const checkedLabel = getTrustStatusLabel('checked');
-  const clearLabel = getTrustStatusLabel('clear');
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');
   const reviewRequiredLabel = getTrustStatusLabel('review_required');
@@ -517,16 +521,24 @@ export function ReadinessPreview({
 
     // Extract name from facts
     const identityFact = ts.facts.find(f => f.factType === 'PERSONAL_IDENTITY' || f.factType === 'NPI_IDENTITY');
-    const displayName  = identityFact?.details ?? `NPI ${ts.npi}`;
+    const displayName  = resolvePublicProviderDisplayName({
+      displayName: identityFact?.details,
+      npi: ts.npi,
+      fallbackLabel: `NPI ${ts.npi}`,
+    });
 
     // Specialty from facts
     const specFact    = ts.facts.find(f => f.factType === 'SPECIALTY');
-    const displaySpec = specFact?.details ?? 'Provider';
+    const displaySpec = resolvePublicProviderSpecialty({
+      displayName: identityFact?.details,
+      specialty: specFact?.details,
+    }) ?? 'Provider';
 
     // Readable gaps
     const gaps = ts.gap_summary.length > 0 ? ts.gap_summary : ts.gaps;
     const confirmedItems = buildConfirmedItems(ts);
     const readinessTone = resolveLiveReadinessTone(ts, gaps);
+    const readinessExplanation = buildTrustStateReadinessExplanation(ts);
 
     return (
       <div
@@ -539,7 +551,7 @@ export function ReadinessPreview({
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
-                  {ts.identityVerified ? 'Identity checked' : 'Identity record found'}
+                  {displayName.startsWith('NPI ') ? 'NPI resolved' : ts.identityVerified ? 'Identity checked' : 'Identity record found'}
                 </p>
                 <p className="text-lg font-bold leading-tight text-white">{displayName}</p>
                 <p className="text-sm text-white/40">{displaySpec}</p>
@@ -556,18 +568,12 @@ export function ReadinessPreview({
           </CardHeader>
 
           <CardContent className="space-y-5 px-5 py-4">
-            <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[readinessTone].panel)}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{ts.readiness_status}</p>
-                  <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
-                </div>
-                <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
-                  Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
-                </p>
-              </div>
-            </div>
+            <ReadinessExplanationCard
+              explanation={readinessExplanation}
+              title="Readiness explanation"
+              description="Identity, exclusion, licensure, and enrollment stay explicit before you continue into the passport."
+              className={cn('gap-0 rounded-xl border px-0 py-0 shadow-none', READINESS_TONE_STYLES[readinessTone].panel)}
+            />
 
             <div className="space-y-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
@@ -620,7 +626,7 @@ export function ReadinessPreview({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
                 <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
                 <p className="mt-1 text-xs leading-relaxed text-white/38">
-                  {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
+                  Source-backed sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
               </div>
               <Button
@@ -632,7 +638,7 @@ export function ReadinessPreview({
                 Continue to passport
               </Button>
               <p className="mt-2 text-center text-[10px] text-white/20">
-                Source-backed preview · {ts.methodology_version}
+                Current snapshot · {ts.methodology_version}
               </p>
             </div>
           </CardFooter>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ReviewClient from '@/components/review/ReviewClient';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { humanizePublicErrorMessage } from '@/lib/live-path/contracts';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
@@ -38,7 +39,10 @@ async function fetchReviewPageData(entityId: string): Promise<ReviewPageData> {
 
     return {
       passport: null,
-      errorMessage: data.error_description ?? data.error ?? DEFAULT_REVIEW_ERROR,
+      errorMessage: humanizePublicErrorMessage(
+        data.error_description ?? data.error,
+        DEFAULT_REVIEW_ERROR,
+      ),
     };
   } catch {
     return {

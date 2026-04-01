@@ -55,9 +55,12 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
 ]);
 
 const TRUST_STATUS_DESCRIPTORS: Record<string, string> = {
+  'source-backed': 'Attached to a live source result',
   checked: 'Confirmed in this run from the source',
   'access required': 'This source requires institutional access',
   pending: 'Not yet checked in this session',
+  'needs review': 'This state still needs review before it can be relied on',
+  'missing data': 'Required source data is still missing or unavailable',
   'preview only': 'Example data - not from a live source run',
   demo: 'Example data - not from a live source run',
 };

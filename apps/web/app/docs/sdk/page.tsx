@@ -90,7 +90,7 @@ export default function SdkDocsPage() {
   return (
     <div className="space-y-16 max-w-4xl">
       {/* Header */}
-      <div>
+      <div id="node">
         <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 mb-3">SDKs</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">Client Libraries</h1>
         <p className="text-zinc-400 leading-relaxed">
@@ -170,18 +170,16 @@ export default function SdkDocsPage() {
 
       {/* Diagnostics note */}
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm">
-        <p className="font-semibold text-emerald-300 mb-1">Built-in diagnostics</p>
+        <p className="font-semibold text-emerald-300 mb-1">Current preview check</p>
         <p className="text-zinc-400">
-          Each SDK exports <code className="text-emerald-300">runDiagnostics()</code> — call it to verify
-          the SDK is correctly configured and API-compatible. Results available at{' '}
-          <Link href="/api/mission-ops/sdk-diagnostics" className="text-emerald-400 hover:underline">/api/mission-ops/sdk-diagnostics</Link>.
+          Use the current install commands here together with the <Link href="/developers#sandbox" className="text-emerald-400 hover:underline">Developer Portal sandbox</Link> to confirm the preview routes available on this branch.
         </p>
       </div>
 
       {/* Footer nav */}
       <div className="flex justify-between text-sm">
-        <Link href="/docs/api" className="text-zinc-400 hover:text-white transition-colors">← API Reference</Link>
-        <Link href="/docs/webhooks" className="text-sky-400 hover:text-sky-300 transition-colors">Webhooks →</Link>
+        <Link href="/docs" className="text-zinc-400 hover:text-white transition-colors">← Docs overview</Link>
+        <Link href="/developers" className="text-sky-400 hover:text-sky-300 transition-colors">Developer Portal →</Link>
       </div>
     </div>
   );

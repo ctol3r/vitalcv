@@ -482,7 +482,7 @@ function buildTrustState() {
     exclusionStatus: 'CLEAR' as const,
     credentialCount: 2,
     readiness_level: 'L2' as const,
-    readiness_status: 'Verified — ready to proceed',
+    readiness_status: 'Source-backed',
     readiness_score: 88,
     gap_summary: [],
     methodology_version: 'trust-state@1.0.0',
@@ -690,10 +690,11 @@ describe('live path regression hardening', () => {
       { method: 'POST' },
     );
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/trust-state/1234567890');
-    expect(textContent(view.container)).toContain('Ada Lovelace');
-    expect(textContent(view.container)).toContain('Verified — ready to proceed');
+    expect(textContent(view.container)).toContain('NPI 1234567890');
+    expect(textContent(view.container)).toContain('Source-backed');
+    expect(textContent(view.container)).toContain('What is missing');
     expect(textContent(view.container)).not.toContain('Demo preview');
-    expect(onPreviewReady).toHaveBeenCalledWith('1234567890', 'Ada Lovelace');
+    expect(onPreviewReady).toHaveBeenCalledWith('1234567890', 'NPI 1234567890');
     expect(trackedEventNames()).toEqual(expect.arrayContaining([
       'page_loaded',
       'npi_submit_attempt',
@@ -842,7 +843,7 @@ describe('live path regression hardening', () => {
     expect(reviewHref?.startsWith(PUBLIC_WEDGE_ROUTE_TARGETS.interviewReviewPrefix)).toBe(true);
     expect(reviewHref).toBe(buildEmployerReviewHref(passport.entityId, {
       contextId: 'ctx_abc123',
-      from: 'Ada Lovelace',
+      from: 'NPI 1234567890',
     }));
     expect(trackedEventNames()).toEqual(expect.arrayContaining([
       'share_click',
@@ -924,8 +925,9 @@ describe('live path regression hardening', () => {
     expect(textContent(view.container)).toContain('Enrollment / Eligibility');
     expect(textContent(view.container)).toContain('Missing or access required');
     expect(textContent(view.container)).toContain('DEA / Controlled Substance');
-    expect(textContent(view.container)).toContain('Sources checked');
-    expect(textContent(view.container)).toContain('Only checked sources are decision-grade.');
+    expect(textContent(view.container)).toContain('Source visibility');
+    expect(textContent(view.container)).toContain('Current source state');
+    expect(textContent(view.container)).toContain('VitalCV keeps NPPES, OIG, PECOS, and State Board coverage visible.');
 
     await view.unmount();
   });

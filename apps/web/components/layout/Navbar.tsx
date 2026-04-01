@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * Navbar — Wave 181: Navigation Rewrite & Information Architecture
+ * Navbar — public wedge shell
  *
- * Public nav: Home · Explore · Employers · Search · Network · Developers
- * Auth CTA: Sign In + Get Started (unauthenticated), My Workspace (authenticated)
+ * Public nav stays focused on the current launch wedge:
+ * readiness, employer review, and developer docs.
+ * Auth CTA: Sign In + Check Readiness
  */
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
@@ -17,13 +18,11 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
-// See docs/VCV_UI_DOCTRINE.md §3 for the full Navbar ruleset.
-// Three primary paths. Features (passport, interview) are reachable from within flows.
-// Developers is secondary — present but not the wedge.
+// Keep routes that currently hang, dead-end, or show empty launch data
+// out of the primary shell.
 const NAV_ITEMS = [
   { href: '/passport',    label: 'Check Readiness' },
-  { href: '/explore',     label: 'Explore Roles' },
-  { href: '/employers',   label: 'For Employers' },
+  { href: '/review',      label: 'Employer Review' },
   { href: '/developers',  label: 'Developers' },
 ] as const;
 

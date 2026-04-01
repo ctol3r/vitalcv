@@ -13,10 +13,10 @@ import {
 
 describe('trust status language', () => {
   it('keeps shared label mapping aligned between accordion and VDS pills', () => {
-    expect(getTrustStatusLabel('review_required')).toBe('Review required');
+    expect(getTrustStatusLabel('review_required')).toBe('Needs review');
     expect(getTrustStatusLabel('access_required')).toBe('Access required');
 
-    expect(getVdsTrustStatusLabel('review required')).toBe('Review required');
+    expect(getVdsTrustStatusLabel('review required')).toBe('Needs review');
     expect(getVdsTrustStatusLabel('access required')).toBe('Access required');
     expect(getVdsTrustStatusLabel('not decision-grade')).toBe('Not decision-grade');
   });

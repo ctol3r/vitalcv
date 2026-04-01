@@ -10,6 +10,8 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/mobile',
   '/explore',
   '/employers',
+  '/review',
+  '/review/request',
   '/search',
   '/ask',
   '/get-ready',

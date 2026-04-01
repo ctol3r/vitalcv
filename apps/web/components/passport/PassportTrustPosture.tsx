@@ -24,12 +24,12 @@ const BAND_CONFIG: Record<string, { labelClass: string; scoreClass: string }> = 
 };
 
 const POSTURE_STATE_BADGE: Record<PassportTrustPostureState, { status: TrustBadgeStatus; label?: string }> = {
-  current: { status: 'verified', label: 'Current' },
+  current: { status: 'checked', label: 'Source-backed' },
   stale: { status: 'stale', label: 'Stale' },
   gated: { status: 'access required', label: 'Access required' },
-  review_required: { status: 'review required', label: 'Review required' },
+  review_required: { status: 'review required', label: 'Needs review' },
   blocked: { status: 'blocked', label: 'Blocked' },
-  missing: { status: 'unavailable', label: 'Missing' },
+  missing: { status: 'unavailable', label: 'Missing data' },
 };
 
 function ListSection({
@@ -85,11 +85,11 @@ export function PassportTrustPosture({
     : posture.reviewRequiredItems.length > 0 ? 'review required'
     : posture.gatedItems.length > 0 ? 'access required'
     : posture.staleItems.length > 0 ? 'stale'
-    : safeItems.length > 0 ? 'verified'
+    : safeItems.length > 0 ? 'checked'
     : 'pending';
   const summaryLabel =
     posture.blockers.length > 0 ? 'Blockers attached'
-    : posture.reviewRequiredItems.length > 0 ? 'Manual review still needed'
+    : posture.reviewRequiredItems.length > 0 ? 'Needs review'
     : posture.gatedItems.length > 0 ? 'Source access still needed'
     : posture.staleItems.length > 0 ? 'Refresh recommended'
     : safeItems.length > 0 ? 'Source-backed now'
@@ -111,7 +111,7 @@ export function PassportTrustPosture({
               <p className={`text-4xl font-semibold tabular-nums tracking-tight ${band.scoreClass}`}>
                 {posture.score}
               </p>
-              <p className="text-[10px] text-white/24">{posture.band} / 100</p>
+              <p className="text-[10px] text-white/24">Overall score / 100</p>
             </div>
             <div className="sm:mt-3">
               <TrustStatusBadge status={summaryStatus} label={summaryLabel} size="sm" />
@@ -163,7 +163,7 @@ export function PassportTrustPosture({
           {attentionCount > 0 ? (
             <div className="space-y-4">
               <ListSection title="Blockers impacting readiness" items={posture.blockers} tone="warning" />
-              <ListSection title="Review required" items={posture.reviewRequiredItems} tone="warning" />
+              <ListSection title="Needs review" items={posture.reviewRequiredItems} tone="warning" />
               <ListSection title="Access required" items={posture.gatedItems} tone="warning" />
               <ListSection title="Stale" items={posture.staleItems} tone="warning" />
               <ListSection title="Missing or unresolved" items={posture.missingItems} tone="warning" />

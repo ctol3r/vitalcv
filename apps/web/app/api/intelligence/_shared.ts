@@ -169,9 +169,9 @@ export function decorateAuthFailurePayload<T>(payload: T, status: number): T {
   if (record.error === 'organization_context_required') {
     return {
       ...record,
-      error_description: typeof record.error_description === 'string' && record.error_description.trim().length > 0
-        ? record.error_description
-        : 'Organization workspace required. Switch to an organization workspace to continue.',
+      error: 'employer_context_required',
+      message: 'Employer context required',
+      error_description: 'Employer context required',
       workspaceSwitchHref: typeof record.workspaceSwitchHref === 'string'
         ? record.workspaceSwitchHref
         : WORKSPACE_SWITCH_HREF,
@@ -181,9 +181,9 @@ export function decorateAuthFailurePayload<T>(payload: T, status: number): T {
   if (record.error === 'authentication_required' || record.error === 'unauthorized') {
     return {
       ...record,
-      error_description: typeof record.error_description === 'string' && record.error_description.trim().length > 0
-        ? record.error_description
-        : 'Sign in to access intelligence.',
+      error: 'sign_in_required',
+      message: 'Sign in required to continue',
+      error_description: 'Sign in required to continue',
       signInHref: typeof record.signInHref === 'string'
         ? record.signInHref
         : SIGN_IN_HREF,
@@ -251,15 +251,17 @@ export async function resolveIntelligenceAuthContext(): Promise<IntelligenceAuth
 export function buildAuthFailurePayload(context: IntelligenceAuthContext) {
   if (context.status === 'missing_session') {
     return {
-      error: 'authentication_required',
-      error_description: 'Sign in to access intelligence.',
+      error: 'sign_in_required',
+      message: 'Sign in required to continue',
+      error_description: 'Sign in required to continue',
       signInHref: SIGN_IN_HREF,
     };
   }
 
   return {
-    error: 'organization_context_required',
-    error_description: 'Organization workspace required. Switch to an organization workspace to continue.',
+    error: 'employer_context_required',
+    message: 'Employer context required',
+    error_description: 'Employer context required',
     workspaceSwitchHref: WORKSPACE_SWITCH_HREF,
   };
 }
