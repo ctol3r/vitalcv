@@ -49,6 +49,7 @@ import {
   type ClinicianTrustState,
   type DegradedPreviewReason,
 } from './ReadinessPreview';
+import { TimeToStartCard } from './TimeToStartCard';
 
 type Phase = 'idle' | 'loading' | 'preview';
 
@@ -625,7 +626,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 disabled={phase === 'loading'}
                 className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
               >
-                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
+                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check your credential readiness'}</span>
               </Button>
             </form>
 
@@ -634,6 +635,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 {formMessage}
               </p>
             )}
+
+            <TimeToStartCard className="mt-5" />
           </motion.div>
         ) : (
           <div className="mb-3 flex items-start justify-between gap-3">
