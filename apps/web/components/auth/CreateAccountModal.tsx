@@ -15,6 +15,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { resolvePublicWedgeDisplayName } from '@/lib/trust/public-wedge-parity';
 
 interface CreateAccountModalProps {
   npi:         string;
@@ -25,6 +26,7 @@ interface CreateAccountModalProps {
 export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccountModalProps) {
   const router  = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
+  const resolvedDisplayName = resolvePublicWedgeDisplayName(displayName, npi);
 
   // Close on Escape
   useEffect(() => {
@@ -41,7 +43,7 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
   };
 
   const handleClaim = () => {
-    const params = new URLSearchParams({ npi, displayName });
+    const params = new URLSearchParams({ npi, displayName: resolvedDisplayName });
     router.push(`/sign-up?${params.toString()}`);
   };
 
@@ -76,7 +78,7 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
             Your profile is ready
           </h2>
           <p className="text-white/55 text-sm">
-            {displayName} · NPI {npi}
+            {resolvedDisplayName} · NPI {npi}
           </p>
         </div>
 

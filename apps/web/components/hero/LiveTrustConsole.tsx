@@ -38,7 +38,11 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
+import {
+  buildPassportLookupHref,
+  resolvePublicWedgeDisplayName,
+} from '@/lib/trust/public-wedge-parity';
+import { writePublicWedgePreviewSession } from '@/lib/trust/public-wedge-preview-session';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -149,6 +153,15 @@ const FLOW_STEPS = [
   'Review readiness',
   'Open passport',
 ] as const;
+
+function extractFactDetails(
+  facts: ClinicianTrustState['facts'] | undefined,
+  factTypes: string[],
+): string | null {
+  const matchedFact = facts?.find((fact) => factTypes.includes(fact.factType));
+  const details = matchedFact?.details?.trim();
+  return details && details.length > 0 ? details : null;
+}
 
 function resolveFlowStepState(
   phase: Phase,
@@ -531,6 +544,22 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     const dest = LIVE_PATH_NPI_RE.test(trimmed)
       ? `/readiness?npi=${encodeURIComponent(trimmed)}`
       : '/readiness';
+    const displayName = resolvePublicWedgeDisplayName(
+      extractFactDetails(realState?.facts, ['PERSONAL_IDENTITY', 'NPI_IDENTITY']),
+      trimmed,
+    );
+    const specialty = extractFactDetails(realState?.facts, ['SPECIALTY']);
+
+    if (LIVE_PATH_NPI_RE.test(trimmed)) {
+      writePublicWedgePreviewSession({
+        capturedAt: new Date().toISOString(),
+        npi: trimmed,
+        displayName,
+        specialty,
+        readinessScore: typeof realState?.readiness_score === 'number' ? realState.readiness_score : null,
+        mode: realState && !isDemo ? 'live' : 'preview_only',
+      });
+    }
 
     trackUxEvent({
       event_name: UX_EVENTS.SHARE_CTA_CLICKED,

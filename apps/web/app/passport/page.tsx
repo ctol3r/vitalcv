@@ -32,8 +32,14 @@ import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeDisplayName,
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
+import {
+  clearPublicWedgePreviewSession,
+  readPublicWedgePreviewSession,
+  type PublicWedgePreviewSession,
+} from '@/lib/trust/public-wedge-preview-session';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
@@ -265,7 +271,20 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   const autoTriggered = useRef(false);
   const [npi,       setNpi]       = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [handoffPreview, setHandoffPreview] = useState<PublicWedgePreviewSession | null>(null);
+  const [handoffResolved, setHandoffResolved] = useState(!Boolean(initialNpi && /^\d{10}$/.test(initialNpi)));
   const { state, startIngest, reset } = useIngestStream();
+
+  useEffect(() => {
+    if (!(initialNpi && /^\d{10}$/.test(initialNpi))) {
+      setHandoffPreview(null);
+      setHandoffResolved(true);
+      return;
+    }
+
+    setHandoffPreview(readPublicWedgePreviewSession(initialNpi));
+    setHandoffResolved(true);
+  }, [initialNpi]);
 
   useEffect(() => {
     if (initialNpi && /^\d{10}$/.test(initialNpi) && !autoTriggered.current) {
@@ -309,6 +328,14 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
     && !disconnected
     && !noProfileYet;
   const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
+  const showHandoffPreview =
+    Boolean(handoffPreview)
+    && !hasTerminalState
+    && !state.identity.authoritative
+    && !canViewPassport;
+  const handoffBadge = handoffPreview
+    ? getPublicWedgeSurfaceBadgeMeta(handoffPreview.mode === 'live' ? 'checked' : 'preview_only')
+    : null;
   const retryNpi = state.npi ?? npi.trim();
   const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
 
@@ -317,10 +344,18 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
     const trimmed = npi.trim();
     if (!/^\d{10}$/.test(trimmed)) { setInputError('Enter a valid 10-digit NPI.'); return; }
     setInputError(null);
-    startIngest(trimmed);
+    clearPublicWedgePreviewSession();
+    setHandoffPreview(null);
+    void startIngest(trimmed);
   }
 
   function handleSecondaryAction() {
+    const preserveHandoffPreview = handoffPreview?.npi === retryNpi;
+    if (!preserveHandoffPreview) {
+      clearPublicWedgePreviewSession();
+      setHandoffPreview(null);
+    }
+
     if (genericError && /^\d{10}$/.test(retryNpi)) {
       setInputError(null);
       void startIngest(retryNpi);
@@ -370,7 +405,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
         </div>
 
         {/* NPI entry — hidden while running */}
-        {!isActive && (
+        {!isActive && handoffResolved && !showHandoffPreview && (
           <form onSubmit={handleSubmit} className="space-y-3">
             <label htmlFor="passport-npi" className="sr-only">Your NPI number</label>
             <Input
@@ -401,8 +436,42 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
         )}
 
         {/* Live ingest panel */}
-        {isActive && (
+        {(isActive || showHandoffPreview || !handoffResolved) && (
           <div className="space-y-5 animate-fade-in-up">
+            {!handoffResolved && !isActive && (
+              <p className="text-white/40 text-sm text-center">
+                Rehydrating your readiness snapshot…
+              </p>
+            )}
+
+            {showHandoffPreview && handoffPreview && handoffBadge && (
+              <Card className="gap-3 rounded-2xl border-white/10 bg-white/5 px-5 py-4 shadow-none">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-white/30 text-xs uppercase tracking-widest">Snapshot carried from home</p>
+                    <h2 className="text-white text-xl font-semibold leading-tight">
+                      {resolvePublicWedgeDisplayName(handoffPreview.displayName, handoffPreview.npi)}
+                    </h2>
+                    {handoffPreview.specialty && (
+                      <p className="text-white/50 text-sm">{handoffPreview.specialty}</p>
+                    )}
+                    <p className="text-white/25 text-xs">NPI {handoffPreview.npi}</p>
+                  </div>
+                  <TrustStatusBadge status={handoffBadge.status} label={handoffBadge.label} size="sm" />
+                </div>
+                {typeof handoffPreview.readinessScore === 'number' && (
+                  <div className="flex items-center justify-between rounded-xl border border-white/6 bg-black/10 px-4 py-3">
+                    <span className="text-white/35 text-sm">Readiness</span>
+                    <span className="text-white/70 text-sm tabular-nums">
+                      {handoffPreview.readinessScore}/100
+                    </span>
+                  </div>
+                )}
+                <p className="text-white/35 text-xs leading-relaxed">
+                  Keeping the homepage snapshot visible while VitalCV refreshes live source checks for this NPI.
+                </p>
+              </Card>
+            )}
 
             {/* Phase label */}
             {isRunning && (
