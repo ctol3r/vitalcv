@@ -85,7 +85,7 @@ const STAGE_SYMBOL: Record<SourceStage['status'], string> = {
 };
 
 const STAGE_COLOR: Record<SourceStage['status'], string> = {
-  waiting: 'text-white/20',
+  waiting: 'text-muted-foreground/40',
   loading: 'text-sky-200',
   ok:      'text-sky-200',
   skipped: 'text-amber-200',
@@ -171,12 +171,12 @@ function resolveFlowStepState(
 function flowStepClassName(state: 'complete' | 'active' | 'upcoming'): string {
   switch (state) {
     case 'complete':
-      return 'border-white/8 bg-white/[0.03] text-white/58';
+      return 'border-border bg-card text-muted-foreground';
     case 'active':
-      return 'border-white/12 bg-white/[0.06] text-white/78';
+      return 'border-border bg-accent text-foreground';
     case 'upcoming':
     default:
-      return 'border-white/6 bg-black/10 text-white/34';
+      return 'border-border bg-muted/50 text-muted-foreground/60';
   }
 }
 
@@ -567,7 +567,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 key={step}
                 className={`rounded-2xl border px-4 py-3 transition-colors ${flowStepClassName(stepState)}`}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/40">
                   Step {index + 1}
                 </p>
                 <p className="mt-1 text-xs font-medium">{step}</p>
@@ -582,13 +582,13 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/50">
               NPI first. Honest coverage.
             </p>
-            <h1 className="mb-3 text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-white">
-              See your readiness snapshot in <span className="text-emerald-400">about 10 seconds.</span>
+            <h1 className="mb-3 text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-foreground">
+              See your readiness snapshot in <span className="text-emerald-600 dark:text-emerald-400">about 10 seconds.</span>
             </h1>
-            <p className="mb-6 text-sm leading-relaxed text-white/50 sm:text-base">
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:text-base">
               VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -609,8 +609,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 }}
                 placeholder="Enter your 10-digit NPI"
                 aria-label="NPI number"
-                className={`h-14 flex-1 min-w-0 rounded-xl border-white/12 bg-white/5 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-white/7 focus-visible:ring-white/10 ${
-                  phase === 'loading' ? 'cursor-default bg-white/6 opacity-80' : ''
+                className={`h-14 flex-1 min-w-0 rounded-xl border-input bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-muted focus-visible:ring-ring ${
+                  phase === 'loading' ? 'cursor-default bg-muted/50 opacity-80' : ''
                 } ${
                   formMessage ? 'border-amber-400/30' : ''
                 }`}
@@ -626,7 +626,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             </form>
 
             {formMessage && (
-              <p className="mt-3 text-xs leading-relaxed text-amber-200/80">
+              <p className="mt-3 text-xs leading-relaxed text-destructive">
                 {formMessage}
               </p>
             )}
@@ -636,10 +636,10 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         ) : (
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/50">
                 Readiness snapshot
               </p>
-              <p className="mt-1 text-xs text-white/40 sm:text-sm">
+              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
                 Step 2 is visible. Step 3 carries this snapshot into your passport flow.
               </p>
             </div>
@@ -668,7 +668,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                     return (
                       <div
                         key={stage.id}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5"
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2.5"
                         style={{ animation: `vcv-stage-in 150ms ease-out ${index * 140}ms both` }}
                       >
                         <div className="flex items-start gap-2.5">
@@ -681,12 +681,12 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                           )}
                           <div>
                             <span className={`text-xs transition-colors duration-150 ${
-                              stage.status === 'loading' ? 'text-white/72' : stage.status === 'waiting' ? 'text-white/25' : 'text-white/52'
+                              stage.status === 'loading' ? 'text-foreground' : stage.status === 'waiting' ? 'text-muted-foreground/40' : 'text-muted-foreground'
                             }`}>
                               {stage.label}
                             </span>
                             {statusDescriptor ? (
-                              <p className="mt-1 text-[10px] leading-relaxed text-white/24">
+                              <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/40">
                                 {statusDescriptor}
                               </p>
                             ) : null}
@@ -707,7 +707,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             {phase === 'preview' && (
               <div className={`relative z-0 ${previewIn ? 'animate-fade-in-up' : ''}`}>
                 {previewNotice && isDemo && (
-                  <p className="pt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-amber-200/80">
+                  <p className="pt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-destructive">
                     {previewNotice}
                   </p>
                 )}
@@ -731,7 +731,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
         {/* Footer hint — idle only */}
         {phase === 'idle' && (
-          <p className="mt-3 text-[11px] text-white/25">
+          <p className="mt-3 text-[11px] text-muted-foreground/40">
             No signup required to preview. Other checks appear only when that source has actually run.
           </p>
         )}

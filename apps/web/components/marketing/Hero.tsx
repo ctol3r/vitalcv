@@ -123,14 +123,14 @@ export function Hero() {
               </span>
             </div>
 
-            <h1 className="text-[clamp(2.4rem,5vw,4.8rem)] font-bold leading-[1.05] tracking-tight text-white">
+            <h1 className="text-[clamp(2.4rem,5vw,4.8rem)] font-bold leading-[1.05] tracking-tight text-foreground">
               Start clinicians{' '}
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
                 faster.
               </span>
             </h1>
 
-            <p className="max-w-xl text-lg leading-relaxed text-white/55">
+            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
               VitalCV automates primary source verification and generates
               audit-ready credential packets — so you can start clinicians
               in days, not months.
@@ -140,14 +140,14 @@ export function Hero() {
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
                 href="/demo"
-                className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+                className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white dark:text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
               >
                 Request a Demo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/developers"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-7 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-7 py-3 text-sm font-semibold text-foreground/80 transition hover:bg-muted hover:text-foreground"
               >
                 <Terminal className="h-4 w-4" />
                 API Docs
@@ -159,7 +159,7 @@ export function Hero() {
               {['HIPAA-aligned', 'W3C VC'].map((badge) => (
                 <span
                   key={badge}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/25"
+                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
                 >
                   <Shield className="h-3 w-3" />
                   {badge}
