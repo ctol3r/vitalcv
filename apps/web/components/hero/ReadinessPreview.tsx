@@ -34,10 +34,7 @@ import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
 } from '@/lib/trust/status-language';
-import {
-  getTrustStatusDescriptor,
-  TrustStatusBadge,
-} from '@/components/ui/trust-status-badge';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -327,7 +324,6 @@ function buildDegradedAccordion(
   sources: DegradedPreviewSources,
   reason: DegradedPreviewReason,
 ): AccordionItem[] {
-  const previewMeta = accordionMeta('preview only');
   const accessRequiredMeta = accordionMeta('access required');
   const unavailableMeta = accordionMeta('temporarily unavailable');
   const nppesChecked = sources.nppes === 'ok';
@@ -413,7 +409,7 @@ function buildDegradedAccordion(
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'Example gaps stay explicitly labeled as preview or access required until a real board-history source is attached.',
+              value: 'Example gaps stay explicitly labeled as access required or unavailable until a real board-history source is attached.',
               tone: 'muted',
             },
           ]}
@@ -423,23 +419,23 @@ function buildDegradedAccordion(
     {
       id: 'pecos',
       trigger: 'Medicare Enrollment',
-      triggerRight: previewMeta,
-      status: 'demo',
+      triggerRight: unavailableMeta,
+      status: 'unavailable',
       content: (
         <ProofDetailsList
           rows={[
             { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: 'Passport retry required' },
-            { id: 'freshness', label: 'Freshness', value: 'Preview structure only' },
+            { id: 'checked', label: 'Last checked', value: 'Not available in this lookup' },
+            { id: 'freshness', label: 'Freshness', value: 'Retry required' },
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: 'Homepage preview does not attach a live PECOS enrollment result in this degraded state.',
+              value: 'PECOS did not return a live enrollment result for this degraded lookup.',
             },
             {
               id: 'status-note',
               label: 'Status note',
-              value: 'PECOS remains preview only until passport can complete a live retry.',
+              value: 'PECOS stays unavailable until passport can complete a live retry.',
               tone: 'muted',
             },
           ]}
@@ -507,7 +503,6 @@ export function ReadinessPreview({
   const reviewRequiredLabel = getTrustStatusLabel('review_required');
   const unavailableLabel = getTrustStatusLabel('unavailable');
   const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
-  const demoDescriptor = getTrustStatusDescriptor('demo', previewOnlyLabel);
 
   // ── Real-data path ───────────────────────────────────────
   if (realState && !isDemo) {
@@ -674,18 +669,15 @@ export function ReadinessPreview({
         <CardHeader className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Degraded preview</p>
-              <p className="text-lg font-bold leading-tight text-white">NPI {npi}</p>
-              <p className="text-sm text-white/45">Limited preview only</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Degraded state</p>
+              <p className="text-lg font-bold leading-tight text-white">Preview unavailable — using your NPI only</p>
+              <p className="text-sm text-white/45">NPI {npi}</p>
               <p className="text-[9px] text-amber-200/50 leading-relaxed mt-1">
                 VitalCV kept your entered NPI, but this card does not claim a resolved clinician identity until a live retry succeeds.
               </p>
             </div>
             <div className="space-y-2 text-right">
-              <TrustStatusBadge status="demo" label={previewOnlyLabel} size="sm" />
-              {demoDescriptor ? (
-                <p className="text-[10px] leading-relaxed text-white/24">{demoDescriptor}</p>
-              ) : null}
+              <TrustStatusBadge status="unavailable" label={unavailableLabel} size="sm" />
             </div>
           </div>
         </CardHeader>
@@ -736,7 +728,7 @@ export function ReadinessPreview({
           <EvidenceDisclosureCard
             eyebrow="Proof"
             title="Source checks"
-            description="Completed checks stay marked as checked. Unavailable lanes stay unavailable, and preview-only sections stay explicitly non-decision-grade."
+            description="Completed checks stay marked as checked. Everything else remains pending, access required, or unavailable until a live retry finishes."
             className="rounded-xl border-white/6 bg-black/10"
             contentClassName="px-5 py-1"
           >
@@ -753,7 +745,7 @@ export function ReadinessPreview({
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
               <p className="mt-1 text-sm font-medium text-white/72">Continue to passport with this NPI.</p>
               <p className="mt-1 text-xs leading-relaxed text-white/38">
-                Passport retries the live lookup. Completed checks stay visible, and unresolved lanes remain marked as {unavailableLabel} or {previewOnlyLabel}.
+                Passport retries the live lookup. Completed checks stay visible, and unresolved lanes remain marked as {pendingLabel}, {accessRequiredLabel}, or {unavailableLabel}.
               </p>
             </div>
             <Button
@@ -765,7 +757,7 @@ export function ReadinessPreview({
               Continue to passport
             </Button>
             <p className="mt-2 text-center text-[10px] text-white/20">
-              {previewOnlyLabel} only - the entered NPI is preserved until a live source run finishes
+              NPI-only carryover until a live source run finishes
             </p>
           </div>
         </CardFooter>

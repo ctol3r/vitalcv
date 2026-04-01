@@ -20,7 +20,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import { Button } from '@/components/ui/button';
@@ -38,11 +38,8 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import {
-  buildPassportLookupHref,
-  resolvePublicWedgeDisplayName,
-} from '@/lib/trust/public-wedge-parity';
-import { writePublicWedgePreviewSession } from '@/lib/trust/public-wedge-preview-session';
+import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
+import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -101,16 +98,16 @@ function stageBadge(stage: SourceStage): {
 } {
   switch (stage.status) {
     case 'loading':
-      return { status: 'pending', label: 'Checking' };
+      return { status: 'pending', label: 'Pending' };
     case 'ok':
       return { status: 'checked', label: 'Checked' };
     case 'failed':
-      return { status: 'unavailable', label: 'Unavailable — retrying' };
+      return { status: 'unavailable', label: 'Unavailable' };
     case 'skipped':
       return { status: 'unavailable', label: 'Unavailable' };
     case 'waiting':
     default:
-      return { status: 'pending', label: 'Queued' };
+      return { status: 'pending', label: 'Pending' };
   }
 }
 
@@ -138,7 +135,7 @@ function setStageStatuses(
 }
 
 function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
-  if (isDemo) return 'Preparing demo preview…';
+  if (isDemo) return 'Preparing NPI-only fallback…';
   if (stages.find((stage) => stage.id === 'READINESS')?.status === 'loading') {
     return 'Building your snapshot…';
   }
@@ -153,15 +150,6 @@ const FLOW_STEPS = [
   'Review readiness',
   'Open passport',
 ] as const;
-
-function extractFactDetails(
-  facts: ClinicianTrustState['facts'] | undefined,
-  factTypes: string[],
-): string | null {
-  const matchedFact = facts?.find((fact) => factTypes.includes(fact.factType));
-  const details = matchedFact?.details?.trim();
-  return details && details.length > 0 ? details : null;
-}
 
 function resolveFlowStepState(
   phase: Phase,
@@ -214,11 +202,9 @@ interface IngestResponse {
 interface LiveTrustConsoleProps {
   /** Called when the readiness preview becomes visible — receives resolved NPI + display name */
   onPreviewReady?: (npi: string, displayName: string) => void;
-  /** Pre-populated NPI from URL query param (?npi=). Passed in from a Suspense-wrapped shell. */
-  initialNpi?: string;
 }
 
-export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsoleProps = {}) {
+export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {}) {
   const [npi,       setNpi]       = useState('');
   const [phase,     setPhase]     = useState<Phase>('idle');
   const [stages,    setStages]    = useState<SourceStage[]>(INITIAL_STAGES);
@@ -233,7 +219,6 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   const { isLoaded, isSignedIn } = useRoleContext();
   const router   = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const autoTriggeredRef = useRef(false);
   const timers   = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pageLoadTrackedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -335,33 +320,6 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     };
   }, []);
 
-  // Auto-trigger lookup when initialNpi (from ?npi= query param) is provided
-  const autoTriggerNpiRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (autoTriggeredRef.current || !isLoaded || !initialNpi) return;
-    const paramNpi = initialNpi.replace(/\D/g, '');
-    if (LIVE_PATH_NPI_RE.test(paramNpi) && phase === 'idle') {
-      autoTriggeredRef.current = true;
-      autoTriggerNpiRef.current = paramNpi;
-      setNpi(paramNpi);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, initialNpi]);
-
-  // Fire submit once npi state has settled from auto-trigger
-  useEffect(() => {
-    if (!autoTriggerNpiRef.current) return;
-    if (npi !== autoTriggerNpiRef.current) return;
-    if (phase !== 'idle') return;
-    autoTriggerNpiRef.current = null;
-    const t = setTimeout(() => {
-      const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
-      void handleSubmit(syntheticEvent);
-    }, 60);
-    timers.current.push(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [npi, phase]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (phase !== 'idle') return;
@@ -395,6 +353,17 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       });
       return;
     }
+
+    void trackPilotFunnelEvent({
+      eventType: 'npi_submitted',
+      npi: trimmed,
+      route: '/',
+      dedupeKey: `npi-submitted:homepage:${trimmed}`,
+      details: {
+        authState,
+        surface: 'homepage_hero',
+      },
+    });
 
     const submitId = activeSubmitIdRef.current + 1;
     let previewName = `NPI ${trimmed}`;
@@ -541,25 +510,9 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
   function handleContinue() {
     const trimmed = npi.trim();
-    const dest = LIVE_PATH_NPI_RE.test(trimmed)
-      ? `/readiness?npi=${encodeURIComponent(trimmed)}`
-      : '/readiness';
-    const displayName = resolvePublicWedgeDisplayName(
-      extractFactDetails(realState?.facts, ['PERSONAL_IDENTITY', 'NPI_IDENTITY']),
-      trimmed,
+    const dest = buildPassportLookupHref(
+      LIVE_PATH_NPI_RE.test(trimmed) ? trimmed : null,
     );
-    const specialty = extractFactDetails(realState?.facts, ['SPECIALTY']);
-
-    if (LIVE_PATH_NPI_RE.test(trimmed)) {
-      writePublicWedgePreviewSession({
-        capturedAt: new Date().toISOString(),
-        npi: trimmed,
-        displayName,
-        specialty,
-        readinessScore: typeof realState?.readiness_score === 'number' ? realState.readiness_score : null,
-        mode: realState && !isDemo ? 'live' : 'preview_only',
-      });
-    }
 
     trackUxEvent({
       event_name: UX_EVENTS.SHARE_CTA_CLICKED,
@@ -672,11 +625,11 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 Readiness snapshot
               </p>
               <p className="mt-1 text-xs text-white/40 sm:text-sm">
-                Your readiness check is complete. Open your passport to share it with an employer.
+                Step 2 is visible. Step 3 carries this snapshot into your passport flow.
               </p>
             </div>
             {isDemo && (
-              <TrustStatusBadge status="demo" label="Preview only" size="sm" />
+              <TrustStatusBadge status="unavailable" label={unavailableLabel} size="sm" />
             )}
           </div>
         )}
