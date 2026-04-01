@@ -304,9 +304,9 @@ const TRACTION_STATS = [
 const BUILD_SIGNALS = [
   { icon: CheckCircle2, text: 'Live NPI verification via NPPES (7M+ provider registry)' },
   { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
-  { icon: CheckCircle2, text: 'Clinician identity graph: NPI → readiness → portable trust packet' },
+  { icon: CheckCircle2, text: 'Clinician identity chain: NPI → readiness → portable trust packet' },
   { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept verified packets' },
-  { icon: CheckCircle2, text: 'HIPAA-compliant audit ledger with continuous license monitoring' },
+  { icon: CheckCircle2, text: 'HIPAA-aligned audit trail with continuous license monitoring' },
 ] as const;
 
 const COMPLIANCE_BADGES = [
