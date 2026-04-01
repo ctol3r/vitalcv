@@ -1,0 +1,14 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e5]
+      - heading "System Interruption" [level=1] [ref=e7]
+    - paragraph [ref=e8]: The platform encountered a temporary issue. Your data is safe. Please refresh to continue.
+    - paragraph [ref=e9]: If this persists, share the reference below in a support request.
+    - generic [ref=e10]:
+      - button "Refresh View" [ref=e11]:
+        - img [ref=e12]
+        - text: Refresh View
+      - link "Return home" [ref=e17] [cursor=pointer]:
+        - /url: /
+      - button "Contact support" [ref=e18]

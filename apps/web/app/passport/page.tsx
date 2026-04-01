@@ -56,7 +56,10 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
   const normalized = raw.toLowerCase().replace(/[_\s]+/g, '_');
 
   if (normalized.includes('organization_context') || normalized.includes('org_required')) {
-    return degradedCopy;
+    return {
+      title: 'Additional context is required to generate your passport.',
+      description: 'Please complete your profile first.',
+    };
   }
   if (normalized.includes('npi') && normalized.includes('invalid')) {
     return {
@@ -97,7 +100,8 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   }
 
   if (state === 'pending') {
-    return { status: 'pending', label: 'Queued' };
+    const meta = getPublicWedgeSurfaceBadgeMeta('pending');
+    return { status: meta.status, label: meta.label };
   }
 
   if (state === 'error') {
@@ -106,6 +110,7 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   }
 
   let surfaceState: PublicWedgeSurfaceState = 'checked';
+  const normalized = displayValue.trim().toLowerCase().replace(/[_\s-]+/g, ' ');
 
   switch (displayValue) {
     case 'Flag found':
@@ -126,6 +131,19 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
     default:
       surfaceState = 'checked';
       break;
+  }
+
+  if (normalized === 'unsupported' || normalized === 'access required' || normalized === 'gated') {
+    surfaceState = 'access_required';
+  } else if (
+    normalized === 'degraded'
+    || normalized === 'unavailable'
+    || normalized === 'failed'
+    || normalized === 'error'
+  ) {
+    surfaceState = 'unavailable';
+  } else if (normalized === 'preview only' || normalized === 'not decision grade') {
+    surfaceState = 'preview_only';
   }
 
   const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
@@ -194,6 +212,14 @@ function formatExclusionLabel(
     return 'Excluded';
   }
 
+  if (exclusionStatus === 'UNSUPPORTED') {
+    return 'Unsupported';
+  }
+
+  if (exclusionStatus === 'DEGRADED') {
+    return 'Degraded';
+  }
+
   return 'Checked';
 }
 
@@ -220,6 +246,14 @@ function formatEnrollmentLabel(
 
   if (enrollmentStatus === 'OPTED_OUT') {
     return 'Opted out';
+  }
+
+  if (enrollmentStatus === 'UNSUPPORTED') {
+    return 'Unsupported';
+  }
+
+  if (enrollmentStatus === 'DEGRADED') {
+    return 'Degraded';
   }
 
   return enrollmentStatus ?? 'Checked';
@@ -439,8 +473,8 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Terminal no-profile state */}
             {noProfileYet && (
               <TrustStateCard
-                title="No profile found for this NPI yet."
-                description="The ingest run completed, but NPPES did not return an authoritative provider record."
+                title="We could not retrieve your NPI profile."
+                description="Please verify your NPI is correct."
                 centered
               />
             )}

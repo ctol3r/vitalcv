@@ -774,13 +774,20 @@ describe('live path regression hardening', () => {
     await advance(260);
     await flush();
 
-    // Updated: degraded state now shows "Degraded preview" (honest) instead of
-    // "Demo preview" with a synthetic clinician name. The entered NPI is preserved.
     const content = textContent(view.container);
-    expect(
-      content.includes('Demo preview') || content.includes('Degraded preview') || content.includes('Preview only')
-    ).toBe(true);
-    expect(textContent(view.container)).toContain('Coverage data is being refreshed');
+    expect(content).toContain('Degraded preview');
+    expect(content).toContain('NPI 1234567890');
+    expect(content).toContain('Limited preview only');
+    expect(content).toContain('Coverage data is being refreshed');
+    expect(content).not.toContain('Demo preview');
+    expect(content).not.toContain('Ada Lovelace');
+    expect(content).not.toContain('Verified — ready to proceed');
+    expect(content).not.toContain('Identity checked');
+
+    await clickByText(view.container, 'Continue to passport');
+    await flush();
+
+    expect(routerPushMock).toHaveBeenCalledWith(buildPassportLookupHref('1234567890'));
 
     const previewVisibleCall = trackUxEventMock.mock.calls
       .map((call) => call[0])

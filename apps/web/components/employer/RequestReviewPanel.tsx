@@ -26,6 +26,10 @@ import {
   CLERK_PROVIDER_ENABLED,
   CLERK_SIGN_IN_URL,
 } from '@/lib/auth/clerkConfig';
+import {
+  isRequestReviewErrorPayload,
+  type RequestReviewErrorPayload,
+} from '@/lib/request-review-contract';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
@@ -77,18 +81,31 @@ export function RequestReviewPanel() {
       });
 
       const data = await res.json() as ReviewRequestResult & {
+        code?: string;
         error?: string;
         hint?: string;
+        nextStep?: RequestReviewErrorPayload['nextStep'];
       };
 
       if (!res.ok) {
-        // Employer workspace not registered — show bootstrap inline
-        if (res.status === 404 && data.hint?.includes('VcvEntity')) {
+        if (
+          isRequestReviewErrorPayload(data)
+          && (
+            data.nextStep === 'create_workspace'
+            || data.nextStep === 'complete_workspace_identity'
+          )
+        ) {
           setSetupHint(data.hint);
           setPhase('needs_setup');
           return;
         }
-        if (res.status === 422 && data.hint?.includes('VcvEntity')) {
+
+        // Preserve the backend entity-registration recovery path until that
+        // route emits the same structured contract.
+        if (
+          (res.status === 404 || res.status === 422)
+          && data.hint?.includes('VcvEntity')
+        ) {
           setSetupHint(data.hint);
           setPhase('needs_setup');
           return;

@@ -28,18 +28,26 @@ type SetupPhase = 'form' | 'loading' | 'done' | 'error';
 
 export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
   const [orgName, setOrgName] = useState('');
+  const [organizationNpi, setOrganizationNpi] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
+  const [npiError, setNpiError] = useState<string | null>(null);
   const [phase, setPhase] = useState<SetupPhase>('form');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = orgName.trim();
+    const trimmedNpi = organizationNpi.trim();
     if (!trimmed) {
       setNameError('Organization name is required.');
       return;
     }
+    if (!/^\d{10}$/.test(trimmedNpi)) {
+      setNpiError('Enter a valid 10-digit Type 2 NPI.');
+      return;
+    }
     setNameError(null);
+    setNpiError(null);
     setPhase('loading');
     setErrorMsg(null);
 
@@ -47,7 +55,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
       const res = await fetch('/api/employer/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({ name: trimmed, npi: trimmedNpi }),
       });
 
       const data = await res.json() as { organizationId?: string; error?: string };
@@ -100,6 +108,28 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
             )}
           </div>
 
+          <div>
+            <label htmlFor="org-npi" className="text-xs text-white/40 mb-1 block">
+              Organization Type 2 NPI
+            </label>
+            <Input
+              id="org-npi"
+              type="text"
+              inputMode="numeric"
+              maxLength={10}
+              value={organizationNpi}
+              onChange={e => {
+                setOrganizationNpi(e.target.value.replace(/\D/g, ''));
+                if (npiError) setNpiError(null);
+              }}
+              placeholder="Organization NPI (10 digits)"
+              className="h-12 w-full rounded-xl border-white/12 bg-white/6 px-4 text-sm text-white placeholder:text-white/25 shadow-none focus-visible:border-white/30 focus-visible:ring-white/10"
+            />
+            {npiError && (
+              <p className="mt-1 text-xs text-red-400/70">{npiError}</p>
+            )}
+          </div>
+
           {errorMsg && (
             <Card className="rounded-xl border-rose-500/20 bg-rose-500/8 px-3 py-2 shadow-none">
               <p className="text-xs text-rose-300/80">{errorMsg}</p>
@@ -109,13 +139,13 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
           <Button
             type="submit"
             variant="outline"
-            disabled={!orgName.trim()}
+            disabled={!orgName.trim() || organizationNpi.length !== 10}
             className="h-11 w-full rounded-xl border-white/15 bg-white/5 text-sm font-medium text-white/70 hover:border-white/25 hover:bg-white/8 hover:text-white disabled:opacity-40"
           >
             Set up employer workspace
           </Button>
           <p className="text-center text-white/20 text-[10px] leading-relaxed">
-            This registers your account as an employer workspace. You can add more details later.
+            This registers your account as an employer workspace and links the active org&apos;s Type 2 NPI.
           </p>
         </form>
       ) : phase === 'loading' ? (

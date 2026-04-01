@@ -1,0 +1,49 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "VitalCV" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e6]:
+          - link "Check Readiness" [ref=e7] [cursor=pointer]:
+            - /url: /passport
+          - link "Employer Review" [ref=e8] [cursor=pointer]:
+            - /url: /review
+          - link "Developers" [ref=e9] [cursor=pointer]:
+            - /url: /developers
+        - generic [ref=e10]:
+          - button "Switch to dark mode" [ref=e11]:
+            - img [ref=e12]
+          - link "Sign In" [ref=e14] [cursor=pointer]:
+            - /url: /sign-in
+          - link "Check Readiness" [ref=e15] [cursor=pointer]:
+            - /url: /passport
+    - main [ref=e17]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - paragraph [ref=e21]: Employer review
+          - heading "Request a passport review" [level=1] [ref=e22]
+          - paragraph [ref=e23]: Enter the clinician's NPI to create a review context. You'll get a link to send them — they open their passport, you open the review surface with full proof and actions.
+        - generic [ref=e44]:
+          - generic [ref=e45]: Clinician NPI
+          - textbox "Clinician NPI" [ref=e46]:
+            - /placeholder: Clinician NPI (10 digits)
+            - text: "1003000126"
+          - paragraph [ref=e48]: Sign in required to continue.
+          - button "Create review context" [ref=e49]
+    - contentinfo [ref=e27]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - paragraph [ref=e31]: © VitalCV
+          - link "Dev · just now" [ref=e32] [cursor=pointer]:
+            - /url: /updates
+            - generic [ref=e34]: Dev
+            - generic [ref=e35]: ·
+            - generic [ref=e36]: just now
+        - link "Updates" [ref=e38] [cursor=pointer]:
+          - /url: /updates
+    - button "Send feedback" [ref=e39]:
+      - img [ref=e40]
+      - text: Feedback
+  - region "Notifications alt+T"
+  - alert [ref=e42]

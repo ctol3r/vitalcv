@@ -154,6 +154,7 @@ describe('EmployerWorkspaceSetup', () => {
     expect(markup).toContain('Employer workspace required');
     expect(markup).toContain('Set up employer workspace');
     expect(markup).toContain('Organization name');
+    expect(markup).toContain('Organization Type 2 NPI');
   });
 
   it('shows custom hint when provided', async () => {

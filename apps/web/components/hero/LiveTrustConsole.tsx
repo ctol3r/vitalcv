@@ -528,9 +528,9 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
   function handleContinue() {
     const trimmed = npi.trim();
-    const dest = buildPassportLookupHref(
-      LIVE_PATH_NPI_RE.test(trimmed) ? trimmed : null,
-    );
+    const dest = LIVE_PATH_NPI_RE.test(trimmed)
+      ? `/readiness?npi=${encodeURIComponent(trimmed)}`
+      : '/readiness';
 
     trackUxEvent({
       event_name: UX_EVENTS.SHARE_CTA_CLICKED,
