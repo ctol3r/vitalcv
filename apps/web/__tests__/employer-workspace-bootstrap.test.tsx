@@ -110,6 +110,25 @@ describe('/api/request-review route', () => {
     expect(data.error).toContain('Sign in');
   });
 
+  it('returns 401 when Clerk auth context is unavailable', async () => {
+    const { auth } = await import('@clerk/nextjs/server');
+    (auth as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('clerk unavailable'));
+
+    const { POST } = await import('../app/api/request-review/route');
+    const { NextRequest } = await import('next/server');
+
+    const req = new NextRequest('http://localhost/api/request-review', {
+      method: 'POST',
+      body: JSON.stringify({ npi: '1234567890' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json() as { error: string };
+    expect(data.error).toContain('Sign in');
+  });
+
   it('returns 400 for invalid NPI format when authenticated', async () => {
     const { auth } = await import('@clerk/nextjs/server');
     (auth as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ userId: 'test-user-id' });

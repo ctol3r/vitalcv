@@ -200,4 +200,22 @@ describe('request review panel', () => {
 
     await view.unmount();
   });
+
+  it('surfaces sign-in guidance returned by the API instead of a generic network error', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      error: 'Sign in with an employer workspace to request a review.',
+    }, 401) as never);
+
+    const view = await renderNode(<RequestReviewPanel />);
+
+    await setInputValue(view.container, '#employer-npi', '1234567890');
+    await clickByText(view.container, 'Create review context');
+    await flush();
+
+    expect(textContent(view.container)).toContain('Sign in required to continue.');
+    expect(textContent(view.container)).not.toContain('Request failed. Check your connection and try again.');
+
+    await view.unmount();
+  });
 });

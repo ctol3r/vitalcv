@@ -109,7 +109,16 @@ async function readJson<T>(response: Response): Promise<T | null> {
 }
 
 export async function resolveEmployerWorkspaceAuthContext(): Promise<EmployerWorkspaceAuthContext> {
-  const session = await auth();
+  let session: Awaited<ReturnType<typeof auth>>;
+  try {
+    session = await auth();
+  } catch {
+    return {
+      status: 'missing_session',
+      userId: null,
+      email: null,
+    };
+  }
   const userId = session.userId ?? null;
   const email = parseSessionEmail(session);
 

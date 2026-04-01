@@ -471,6 +471,113 @@ describe('passportService', () => {
     expect(passport?.trustPosture.blockers).toContain('OIG/LEIE possible match requires review');
   });
 
+  it('keeps mixed exclusion sources truthful when SAM review coexists with OIG clear', async () => {
+    prismaMock.vcvCredential.findMany.mockResolvedValue([
+      buildCredential(),
+      buildCredential({
+        id: 'cred-exclusion-oig',
+        domain: 'EXCLUSION_CHECK',
+        credentialType: 'OIG_LEIE_CHECK',
+        metadata: {
+          sourceId: 'OIG_LEIE',
+          claimState: 'CLEAR',
+          claimConfidenceLabel: 'HIGH',
+          dataFreshnessLabel: 'Monthly',
+        },
+        claimValue: {
+          claimState: 'CLEAR',
+        },
+      }),
+      buildCredential({
+        id: 'cred-exclusion-sam',
+        domain: 'EXCLUSION_CHECK',
+        status: 'REVIEW_REQUIRED',
+        credentialType: 'SAM_GOV_EXCLUSION_CHECK',
+        metadata: {
+          sourceId: 'SAM_GOV',
+          claimState: 'POSSIBLE_MATCH',
+          claimConfidenceLabel: 'UNVERIFIED',
+          dataFreshnessLabel: 'Daily',
+        },
+        claimValue: {
+          claimState: 'POSSIBLE_MATCH',
+        },
+      }),
+      buildCredential({
+        id: 'cred-pecos',
+        domain: 'MEDICARE_ENROLLMENT',
+        credentialType: 'PECOS_ENROLLMENT',
+        metadata: {
+          sourceId: 'PECOS_PUBLIC',
+          claimState: 'ENROLLED',
+          dataVersion: '2026-Q1',
+          claimConfidenceLabel: 'HIGH',
+          dataFreshnessLabel: 'Quarterly',
+        },
+        claimValue: {
+          claimState: 'ENROLLED',
+        },
+      }),
+    ]);
+    (getCachedTrustState as jest.Mock).mockResolvedValue({
+      licensureStatus: 'verified',
+      exclusionStatus: 'CLEAR',
+      pecosStatus: 'ENROLLED',
+      readiness_level: 'L2',
+      readiness_score: 67,
+      gap_summary: [],
+      blockers: [],
+      sourceCoverage: [
+        createCanonicalSourceCoverage({
+          sourceId: 'NPPES_API',
+          state: 'checked',
+          reason: 'NPPES identity checked',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'OIG_LEIE',
+          state: 'checked',
+          reason: 'OIG LEIE check clear',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'STATE_BOARD',
+          state: 'checked',
+          reason: 'Licensure checked',
+        }),
+        createCanonicalSourceCoverage({
+          sourceId: 'PECOS_PUBLIC',
+          state: 'checked',
+          reason: 'CMS PECOS confirms enrolled status in the current quarterly release',
+        }),
+      ],
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport).not.toBeNull();
+    expect(passport?.sourceCoverage.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: 'SAM_GOV',
+          state: 'reviewRequired',
+          reason: 'SAM.gov exclusion check requires manual review',
+        }),
+      ]),
+    );
+    expect(passport?.trustPosture.reviewRequiredItems).toContain(
+      'SAM.gov exclusion check requires manual review',
+    );
+    expect(passport?.trustPosture.blockers).toContain('SAM.gov exclusion check requires review');
+    expect(passport?.trustPosture.blockers).not.toContain('OIG/LEIE possible match requires review');
+    expect(passport?.trustPosture.freshness.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'safety',
+          source: 'SAM.gov',
+        }),
+      ]),
+    );
+  });
+
   it('withholds unbacked credentials from public-safe passport truth and readiness', async () => {
     prismaMock.vcvCredential.findMany.mockResolvedValue([
       buildCredential({

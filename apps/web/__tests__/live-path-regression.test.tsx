@@ -732,6 +732,47 @@ describe('live path regression hardening', () => {
     await view.unmount();
   });
 
+  it('shows the resolved clinician name when trust-state identity arrives as IdentityClaim', async () => {
+    const fetchMock = vi.mocked(fetch);
+    const trustState = buildTrustState();
+    trustState.facts = [
+      {
+        factType: 'IdentityClaim',
+        source: 'CMS NPPES',
+        status: 'verified',
+        details: 'Ardalan Enkeshafi',
+      },
+      {
+        factType: 'SPECIALTY',
+        source: 'CMS NPPES',
+        status: 'verified',
+        details: 'Hospitalist',
+      },
+    ];
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      npi: '1234567890',
+      results: [
+        { source: 'NPPES_API', status: 'SUCCESS', claimsEmitted: 1, latencyMs: 12 },
+        { source: 'OIG_LEIE', status: 'SUCCESS', claimsEmitted: 1, latencyMs: 9 },
+      ],
+    }) as never);
+    fetchMock.mockResolvedValueOnce(jsonResponse(trustState) as never);
+
+    const view = await renderNode(<LiveTrustConsole />);
+
+    await setInputValue(view.container, 'NPI number', '1234567890');
+    await clickByText(view.container, 'Start with NPI lookup');
+    await flush();
+    await advance(260);
+    await flush();
+
+    expect(textContent(view.container)).toContain('Ardalan Enkeshafi');
+    expect(textContent(view.container)).toContain('Hospitalist');
+
+    await view.unmount();
+  });
+
   it('keeps invalid NPIs in place and explains the next step', async () => {
     const fetchMock = vi.mocked(fetch);
     const view = await renderNode(<LiveTrustConsole />);

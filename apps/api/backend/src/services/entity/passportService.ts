@@ -315,12 +315,20 @@ function normalizePublicExclusionStatus(
   return undefined;
 }
 
+type ExclusionCredentialLike = {
+  status: string;
+  metadata?: unknown;
+  claimValue?: unknown;
+  claimState?: string | null;
+  sourceId?: string | null;
+  issuerName?: string | null;
+  observedAt?: string | Date | null;
+  verifiedAt?: string | Date | null;
+  stale?: boolean;
+};
+
 function exclusionStatusFromCredential(
-  credential: {
-    status: string;
-    metadata: unknown;
-    claimValue: unknown;
-  } | null | undefined,
+  credential: ExclusionCredentialLike | null | undefined,
 ): PassportStanding['exclusionStatus'] {
   if (!credential) {
     return 'UNKNOWN';
@@ -331,7 +339,8 @@ function exclusionStatusFromCredential(
   const explicit =
     normalizePublicExclusionStatus(stringValue(metadata.claimState))
     ?? normalizePublicExclusionStatus(stringValue(claimValue.claimState))
-    ?? normalizePublicExclusionStatus(stringValue(claimValue.verdict));
+    ?? normalizePublicExclusionStatus(stringValue(claimValue.verdict))
+    ?? normalizePublicExclusionStatus(credential.claimState ?? undefined);
   if (explicit) {
     return explicit;
   }
@@ -342,6 +351,149 @@ function exclusionStatusFromCredential(
   if (normalized === 'REVIEW_REQUIRED') return 'POSSIBLE_MATCH';
   if (normalized === 'UNCERTAIN') return 'UNCHECKED';
   return 'UNKNOWN';
+}
+
+function isExclusionCredential(
+  credential: Pick<PassportCredential, 'domain'>,
+): boolean {
+  return credential.domain === 'EXCLUSION_CHECK';
+}
+
+function credentialDeclaredSourceId(credential: ExclusionCredentialLike | null | undefined): string | undefined {
+  if (!credential) {
+    return undefined;
+  }
+
+  return stringValue(credential.sourceId) ?? stringValue(asRecord(credential.metadata).sourceId);
+}
+
+function credentialDeclaredIssuerName(credential: ExclusionCredentialLike | null | undefined): string | undefined {
+  if (!credential) {
+    return undefined;
+  }
+
+  return stringValue(credential.issuerName) ?? stringValue(asRecord(credential.metadata).issuerName);
+}
+
+function isoTimestamp(value: string | Date | null | undefined): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return null;
+}
+
+function normalizedExclusionSourceId(sourceId: string | null | undefined): string | undefined {
+  const normalized = sourceId?.trim().toUpperCase();
+  return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
+function exclusionCoverageLabel(input: {
+  sourceId?: string | null;
+  issuerName?: string | null;
+}): string {
+  const sourceId = normalizedExclusionSourceId(input.sourceId);
+  if (sourceId === 'OIG_LEIE' || sourceId === 'OIG' || sourceId === 'LEIE') {
+    return 'OIG LEIE';
+  }
+  if (sourceId === 'SAM_GOV') {
+    return 'SAM.gov';
+  }
+  return input.issuerName?.trim() || input.sourceId?.trim() || 'Exclusion';
+}
+
+function exclusionNarrativeLabel(input: {
+  sourceId?: string | null;
+  issuerName?: string | null;
+}): string {
+  const sourceId = normalizedExclusionSourceId(input.sourceId);
+  if (sourceId === 'OIG_LEIE' || sourceId === 'OIG' || sourceId === 'LEIE') {
+    return 'OIG/LEIE';
+  }
+  return exclusionCoverageLabel(input);
+}
+
+function exclusionFindingMessage(input: {
+  status: PassportStanding['exclusionStatus'];
+  sourceId?: string | null;
+  issuerName?: string | null;
+}): string {
+  const narrativeLabel = exclusionNarrativeLabel(input);
+  if (input.status === 'EXCLUDED') {
+    return narrativeLabel === 'OIG/LEIE'
+      ? 'OIG/LEIE exclusion confirmed'
+      : `${narrativeLabel} exclusion confirmed`;
+  }
+  if (input.status === 'POSSIBLE_MATCH') {
+    return narrativeLabel === 'OIG/LEIE'
+      ? 'OIG/LEIE possible match requires review'
+      : `${narrativeLabel} exclusion check requires review`;
+  }
+  return narrativeLabel === 'OIG/LEIE'
+    ? 'OIG/LEIE check not yet verified'
+    : `${narrativeLabel} exclusion check not yet verified`;
+}
+
+function exclusionCoverageReason(input: {
+  status: PassportStanding['exclusionStatus'];
+  sourceId?: string | null;
+  issuerName?: string | null;
+}): string {
+  const coverageLabel = exclusionCoverageLabel(input);
+  if (input.status === 'CLEAR') {
+    return `${coverageLabel} check clear`;
+  }
+  if (input.status === 'EXCLUDED') {
+    return `${coverageLabel} exclusion confirmed`;
+  }
+  if (input.status === 'POSSIBLE_MATCH') {
+    return coverageLabel === 'OIG LEIE'
+      ? 'OIG LEIE returned a possible match and requires human adjudication'
+      : `${coverageLabel} exclusion check requires manual review`;
+  }
+  return coverageLabel === 'OIG LEIE'
+    ? 'OIG LEIE outcome could not be resolved from the current source result'
+    : `${coverageLabel} outcome could not be resolved from the current source result`;
+}
+
+function exclusionCoverageState(input: {
+  status: PassportStanding['exclusionStatus'];
+  stale?: boolean;
+}): CanonicalSourceCoverageState {
+  if (input.stale) {
+    return 'stale';
+  }
+  if (input.status === 'POSSIBLE_MATCH') {
+    return 'reviewRequired';
+  }
+  if (input.status === 'CLEAR' || input.status === 'EXCLUDED') {
+    return 'checked';
+  }
+  return 'pending';
+}
+
+function primaryExclusionCredential<T extends ExclusionCredentialLike>(credentials: readonly T[]): T | undefined {
+  const priority: Record<PassportStanding['exclusionStatus'], number> = {
+    EXCLUDED: 0,
+    POSSIBLE_MATCH: 1,
+    CLEAR: 2,
+    UNCHECKED: 3,
+    UNKNOWN: 4,
+  };
+
+  return [...credentials].sort((left, right) => {
+    const leftPriority = priority[exclusionStatusFromCredential(left)];
+    const rightPriority = priority[exclusionStatusFromCredential(right)];
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    const leftSource = normalizedExclusionSourceId(credentialDeclaredSourceId(left)) ?? '';
+    const rightSource = normalizedExclusionSourceId(credentialDeclaredSourceId(right)) ?? '';
+    return leftSource.localeCompare(rightSource);
+  })[0];
 }
 
 function getVerificationReceiptRecordClient(): {
@@ -589,8 +741,36 @@ function buildPassportSourceCoverage(input: {
         standing: input.standing,
         lastCheckedAt: input.lastCheckedAt,
       });
+  const baseSourceIds = new Set(baseChecks.map((check) => check.sourceId));
+  const syntheticExclusionChecks = input.authority.credentials
+    .filter(isExclusionCredential)
+    .flatMap((credential) => {
+      const sourceId = credentialDeclaredSourceId(credential);
+      if (!sourceId || baseSourceIds.has(sourceId)) {
+        return [];
+      }
 
-  const checks = baseChecks
+      const status = exclusionStatusFromCredential(credential);
+      return [createCanonicalSourceCoverage({
+        sourceId,
+        state: exclusionCoverageState({
+          status,
+          stale: credential.stale,
+        }),
+        reason: exclusionCoverageReason({
+          status,
+          sourceId,
+          issuerName: credentialDeclaredIssuerName(credential),
+        }),
+        checkedAt:
+          isoTimestamp(credential.observedAt)
+          ?? isoTimestamp(credential.verifiedAt)
+          ?? null,
+        freshnessWindowHours: getSourceFreshnessWindowHours(sourceId),
+      })];
+    });
+
+  const checks = [...baseChecks, ...syntheticExclusionChecks]
     .map((check) => {
       const proof = input.proofBySource.get(check.sourceId) ?? null;
       const latestArtifact = latestArtifactForSource(check.sourceId);
@@ -747,6 +927,16 @@ function buildPassportTruth(input: {
   const licensureCredentials = input.authority.credentials.filter(
     (credential) => credential.domain === 'LICENSURE',
   );
+  const exclusionCredentials = input.authority.credentials.filter(isExclusionCredential);
+  const safetySourceIds = dedupeStrings([
+    ...exclusionCredentials
+      .map((credential) => credential.sourceId)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+    'OIG_LEIE',
+    'OIG',
+  ]);
+  const fallbackExclusionCredential = primaryExclusionCredential(exclusionCredentials);
+  const fallbackSafetySourceId = credentialDeclaredSourceId(fallbackExclusionCredential) ?? 'OIG_LEIE';
   const authorityCoverage = selectCoverageCheck(
     input.sourceCoverage,
     dedupeStrings([
@@ -793,10 +983,13 @@ function buildPassportTruth(input: {
       satisfied: input.standing.exclusionStatus === 'CLEAR',
       coverage: selectCoverageCheck(
         input.sourceCoverage,
-        ['OIG_LEIE', 'OIG'],
+        safetySourceIds,
         {
-          sourceId: 'OIG_LEIE',
-          reason: 'OIG LEIE source not yet checked',
+          sourceId: fallbackSafetySourceId,
+          reason: `${exclusionCoverageLabel({
+            sourceId: fallbackSafetySourceId,
+            issuerName: credentialDeclaredIssuerName(fallbackExclusionCredential),
+          })} source not yet checked`,
         },
       ),
     }),
@@ -868,7 +1061,25 @@ function buildPassportTrustPosture(input: {
   const blockers = [...input.readiness.blockers];
 
   const identityChecks = findCoverageChecks(input.sourceCoverage, ['NPPES_API', 'NPPES']);
-  const safetyChecks = findCoverageChecks(input.sourceCoverage, ['OIG_LEIE', 'OIG']);
+  const exclusionCredentials = input.authority.credentials.filter(isExclusionCredential);
+  const primarySafetyCredential = primaryExclusionCredential(exclusionCredentials);
+  const safetySourceIds = dedupeStrings([
+    input.truth.safety.coverage.sourceId,
+    ...exclusionCredentials
+      .map((credential) => credential.sourceId)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
+    'OIG_LEIE',
+    'OIG',
+  ]);
+  const safetyChecks = findCoverageChecks(input.sourceCoverage, safetySourceIds);
+  const safetySourceLabel = exclusionCoverageLabel({
+    sourceId: input.truth.safety.coverage.sourceId ?? credentialDeclaredSourceId(primarySafetyCredential),
+    issuerName: credentialDeclaredIssuerName(primarySafetyCredential),
+  });
+  const safetyNarrativeLabel = exclusionNarrativeLabel({
+    sourceId: input.truth.safety.coverage.sourceId ?? credentialDeclaredSourceId(primarySafetyCredential),
+    issuerName: credentialDeclaredIssuerName(primarySafetyCredential),
+  });
   const licensureCredentials = input.authority.credentials.filter((credential) => credential.domain === 'LICENSURE');
   const authorityChecks = findCoverageChecks(
     input.sourceCoverage,
@@ -946,18 +1157,18 @@ function buildPassportTrustPosture(input: {
   );
   const safetyDetail =
     safetyState === 'current'
-      ? 'Current OIG/LEIE exclusion screening is clear.'
+      ? `Current ${safetyNarrativeLabel} exclusion screening is clear.`
       : safetyState === 'blocked'
-        ? 'Current OIG/LEIE screening shows an exclusion record that blocks readiness.'
+        ? `Current ${safetyNarrativeLabel} screening shows an exclusion record that blocks readiness.`
         : safetyState === 'review_required'
-          ? findPrioritizedCoverageCheck(safetyChecks, ['reviewRequired'])?.reason ?? 'OIG/LEIE returned a possible match and requires manual review.'
+          ? findPrioritizedCoverageCheck(safetyChecks, ['reviewRequired'])?.reason ?? `${safetyNarrativeLabel} exclusion screening requires manual review.`
           : safetyState === 'stale'
-            ? findPrioritizedCoverageCheck(safetyChecks, ['stale'])?.reason ?? 'OIG/LEIE screening is stale and should be refreshed.'
+            ? findPrioritizedCoverageCheck(safetyChecks, ['stale'])?.reason ?? `${safetyNarrativeLabel} screening is stale and should be refreshed.`
             : safetyState === 'gated'
-              ? findPrioritizedCoverageCheck(safetyChecks, COVERAGE_GATED_STATES)?.reason ?? 'OIG/LEIE access is currently gated.'
-              : input.truth.safety.coverage.reason || findPrioritizedCoverageCheck(safetyChecks, COVERAGE_MISSING_STATES)?.reason || 'OIG/LEIE screening has not been confirmed yet.';
+              ? findPrioritizedCoverageCheck(safetyChecks, COVERAGE_GATED_STATES)?.reason ?? `${safetyNarrativeLabel} access is currently gated.`
+              : input.truth.safety.coverage.reason || findPrioritizedCoverageCheck(safetyChecks, COVERAGE_MISSING_STATES)?.reason || `${safetyNarrativeLabel} screening has not been confirmed yet.`;
   if (safetyState === 'current') {
-    pushUniqueValue(safeToRelyOnNow, 'OIG/LEIE exclusion check is clear.');
+    pushUniqueValue(safeToRelyOnNow, `${safetyNarrativeLabel} exclusion check is clear.`);
   } else if (safetyState === 'blocked') {
     pushUniqueValue(blockers, safetyDetail);
   } else if (safetyState === 'review_required') {
@@ -1155,7 +1366,7 @@ function buildPassportTrustPosture(input: {
     {
       id: 'safety',
       label: 'Safety',
-      source: 'OIG LEIE',
+      source: safetySourceLabel,
       state: freshnessStateForLayer({
         checks: safetyChecks,
         stale: safetyStale,
@@ -1489,7 +1700,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   };
 
   // ── Standing — from trust state or credential status ──────────────────────
-  const exclusionCred  = usableCredentials.find((credential) => credential.domain === 'EXCLUSION_CHECK');
+  const exclusionCred  = primaryExclusionCredential(usableCredentials.filter(isExclusionCredential));
   const licensureCred  = usableCredentials.find((credential) => credential.domain === 'LICENSURE');
   const deaCred        = usableCredentials.find((credential) => credential.domain === 'DEA_REGISTRATION');
   const pecosCred      = usableCredentials.find((credential) => credential.domain === 'MEDICARE_ENROLLMENT');
@@ -1501,11 +1712,25 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       ? credentialExclusionStatus
       : trustStateExclusionStatus ?? 'UNCHECKED';
   const exclusionClear = exclusionStatus === 'CLEAR';
+  const exclusionSourceId = credentialDeclaredSourceId(exclusionCred);
+  const exclusionIssuerName = credentialDeclaredIssuerName(exclusionCred);
 
   const negativeFindings: string[] = [];
-  if (exclusionStatus === 'EXCLUDED') negativeFindings.push('OIG/LEIE exclusion confirmed');
-  if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push('OIG/LEIE possible match requires review');
-  if (exclusionStatus === 'UNCHECKED') negativeFindings.push('OIG/LEIE check not yet verified');
+  if (exclusionStatus === 'EXCLUDED') negativeFindings.push(exclusionFindingMessage({
+    status: 'EXCLUDED',
+    sourceId: exclusionSourceId,
+    issuerName: exclusionIssuerName,
+  }));
+  if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push(exclusionFindingMessage({
+    status: 'POSSIBLE_MATCH',
+    sourceId: exclusionSourceId,
+    issuerName: exclusionIssuerName,
+  }));
+  if (exclusionStatus === 'UNCHECKED') negativeFindings.push(exclusionFindingMessage({
+    status: 'UNCHECKED',
+    sourceId: exclusionSourceId,
+    issuerName: exclusionIssuerName,
+  }));
   if (trustState?.licensureStatus === 'expired') negativeFindings.push('License expired');
   if (trustState?.blockers?.includes('LICENSE_DISCIPLINED')) negativeFindings.push('License discipline requires resolution');
   if (trustState?.blockers?.includes('BOARD_ORDER_BLOCK')) negativeFindings.push('Board order severity blocks readiness');

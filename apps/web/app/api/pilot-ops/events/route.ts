@@ -6,7 +6,16 @@ import { buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
+  let session: Awaited<ReturnType<typeof auth>>;
+  try {
+    session = await auth();
+  } catch {
+    session = {
+      userId: null,
+      sessionClaims: undefined,
+      orgId: null,
+    } as unknown as Awaited<ReturnType<typeof auth>>;
+  }
   const body = await req.text();
   const headers = buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',

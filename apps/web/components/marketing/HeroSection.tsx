@@ -151,7 +151,7 @@ export function HeroSection() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/verifier">Employer Portal</Link>
+                <Link href="/review">Employer Review</Link>
               </Button>
             </div>
 
