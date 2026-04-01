@@ -33,39 +33,39 @@ export type TrustStatusTone =
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
     label: getTrustStatusLabel('verified'),
-    badgeClassName: 'border-white/12 bg-white/6 text-white/70',
+    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
   },
   clear: {
     label: getTrustStatusLabel('clear'),
-    badgeClassName: 'border-white/12 bg-white/6 text-white/70',
+    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
   },
   checked: {
     label: getTrustStatusLabel('checked'),
-    badgeClassName: 'border-white/12 bg-white/6 text-white/65',
+    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/65',
   },
   pending: {
     label: getTrustStatusLabel('pending'),
-    badgeClassName: 'border-white/8 bg-white/4 text-white/45',
+    badgeClassName: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-white/8 dark:bg-white/4 dark:text-white/45',
   },
   stale: {
     label: getTrustStatusLabel('stale'),
-    badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
+    badgeClassName: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200',
   },
   unavailable: {
     label: getTrustStatusLabel('unavailable'),
-    badgeClassName: 'border-white/8 bg-white/4 text-white/35',
+    badgeClassName: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-white/8 dark:bg-white/4 dark:text-white/35',
   },
   access_required: {
     label: getTrustStatusLabel('access_required'),
-    badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
+    badgeClassName: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200',
   },
   review_required: {
     label: getTrustStatusLabel('review_required'),
-    badgeClassName: 'border-rose-500/25 bg-rose-500/10 text-rose-200',
+    badgeClassName: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200',
   },
   demo: {
     label: getTrustStatusLabel('demo'),
-    badgeClassName: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
+    badgeClassName: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200',
   },
 };
 
