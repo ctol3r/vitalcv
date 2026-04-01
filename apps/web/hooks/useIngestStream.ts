@@ -38,7 +38,7 @@ export type {
   StreamStanding,
 } from './ingestStreamState';
 
-export { hydrateFromHomepagePreview } from './ingestStreamState';
+
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
