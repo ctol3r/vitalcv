@@ -264,6 +264,13 @@ export function computeSourceOpsReport(): SourceOpsReport {
       );
     }
 
+    if (coverageState === 'gated' && isSpine) {
+      const boundary = governance?.accessBoundary ?? 'institutional';
+      alerts.push(
+        `GATED: Spine source ${source.name} requires ${boundary} access. Set ${source.envFlag} and configure credentials to enable.`,
+      );
+    }
+
     sources.push({
       sourceId: source.id,
       name: source.name,

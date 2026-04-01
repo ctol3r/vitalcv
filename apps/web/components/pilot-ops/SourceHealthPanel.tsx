@@ -158,6 +158,27 @@ export function SourceHealthPanel() {
                   <p className="text-[10px] text-zinc-600">
                     SLA: {source.freshnessSlaHours}h
                   </p>
+                  {/* Operator remediation hints */}
+                  {source.operatorStatus === 'CRITICAL' && (
+                    <p className="mt-0.5 text-[10px] text-rose-400/80">
+                      → Source unreachable. Check connector config and env flags.
+                    </p>
+                  )}
+                  {source.operatorStatus === 'DEGRADED' && (
+                    <p className="mt-0.5 text-[10px] text-amber-400/70">
+                      → {source.consecutiveFailures} consecutive failures. Check API credentials and network access.
+                    </p>
+                  )}
+                  {source.operatorStatus === 'STALE' && (
+                    <p className="mt-0.5 text-[10px] text-yellow-400/60">
+                      → Data is stale. Trigger a manual refresh or verify the ingest schedule.
+                    </p>
+                  )}
+                  {source.coverageState === 'gated' && (
+                    <p className="mt-0.5 text-[10px] text-sky-400/70">
+                      → Institutional access required. Configure credentials and set env flag to enable.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
