@@ -565,3 +565,85 @@ export function parseIngestStartResponse(input: {
     ?? (input.ok ? 'Ingest run did not return a runId.' : `Failed to start ingest (${input.status}).`),
   );
 }
+
+// ── Homepage → Passport hydration ───────────────────────────────────────────
+
+interface HomepagePreviewData {
+  npi: string;
+  realState: {
+    identityVerified: boolean;
+    exclusionClear: boolean;
+    exclusionStatus?: string;
+    readiness_level?: string;
+    readiness_score?: number;
+    credentialCount?: number;
+    gaps?: string[];
+    facts?: Array<{
+      factType: string;
+      source: string;
+      status: string;
+      details?: string;
+    }>;
+  } | null;
+  stages: Array<{ id: string; status: string }>;
+  isDemo: boolean;
+}
+
+export function hydrateFromHomepagePreview(preview: HomepagePreviewData): IngestStreamState | null {
+  if (!preview.realState || preview.isDemo) {
+    return null;
+  }
+
+  const { realState } = preview;
+
+  // Map homepage SourceStage statuses to passport source statuses
+  function mapSourceStatus(stageId: string): 'pending' | 'checking' | 'done' | 'error' {
+    const stage = preview.stages.find(s => s.id === stageId);
+    if (!stage) return 'pending';
+    if (stage.status === 'ok') return 'done';
+    if (stage.status === 'loading') return 'checking';
+    if (stage.status === 'failed') return 'error';
+    return 'pending';
+  }
+
+  const nppesStatus = mapSourceStatus('NPPES_API');
+  const oigStatus = mapSourceStatus('OIG_LEIE');
+
+  // Extract identity from facts
+  const nameFact = realState.facts?.find(f =>
+    f.factType === 'provider_name' || f.factType === 'identity'
+  );
+  const specialtyFact = realState.facts?.find(f => f.factType === 'specialty');
+
+  return {
+    phase: 'enrollment', // NPPES + OIG done, PECOS still pending
+    npi: preview.npi,
+    identity: {
+      displayName: nameFact?.details,
+      specialty: specialtyFact?.details,
+      authoritative: realState.identityVerified,
+      sourceResult: nppesStatus === 'done' ? 'SUCCESS' : undefined,
+    },
+    standing: {
+      exclusionChecked: oigStatus === 'done',
+      exclusionClear: realState.exclusionClear,
+      exclusionStatus: realState.exclusionStatus,
+      enrollmentChecked: false,
+    },
+    readiness: {
+      score: realState.readiness_score,
+      level: realState.readiness_level,
+      credentialCount: realState.credentialCount,
+      blockerCount: realState.gaps?.length,
+    },
+    sources: {
+      nppes: nppesStatus,
+      oig: oigStatus,
+      pecos: 'pending',
+    },
+    events: [],
+    isUsable: false, // Not yet — passport_ready hasn't fired
+    disconnected: false,
+    startedAt: new Date().toISOString(),
+  };
+}

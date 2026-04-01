@@ -34,7 +34,7 @@ import {
   getPublicWedgeSurfaceBadgeMeta,
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
-import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 
 // ── Status label helper ────────────────────────────────────────────────────────
@@ -46,29 +46,22 @@ import { UX_EVENTS } from '@/lib/analytics/ux-events';
 function resolveIngestErrorCopy(raw: string | undefined | null): {
   title: string;
   description: string;
-  signInRequired?: boolean;
 } {
   const degradedCopy = {
     title: "We couldn't load your readiness snapshot right now.",
     description: 'Try this NPI again in a moment.',
-    signInRequired: false,
   } as const;
 
   if (!raw) return degradedCopy;
   const normalized = raw.toLowerCase().replace(/[_\s]+/g, '_');
 
   if (normalized.includes('organization_context') || normalized.includes('org_required')) {
-    return {
-      title: 'Sign in to generate your credential passport',
-      description: 'Your NPI is preserved, but passport generation needs a signed-in organization context.',
-      signInRequired: true,
-    };
+    return degradedCopy;
   }
   if (normalized.includes('npi') && normalized.includes('invalid')) {
     return {
       title: 'That NPI was not found.',
       description: 'Check the 10-digit number and try this NPI again.',
-      signInRequired: false,
     };
   }
   if (normalized.includes('timeout') || normalized.includes('timed_out')) {
@@ -100,11 +93,11 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   label: string;
 } {
   if (state === 'checking') {
-    return { status: 'pending', label: 'Pending' };
+    return { status: 'pending', label: 'Checking' };
   }
 
   if (state === 'pending') {
-    return { status: 'pending', label: 'Pending' };
+    return { status: 'pending', label: 'Queued' };
   }
 
   if (state === 'error') {
@@ -232,7 +225,7 @@ function formatEnrollmentLabel(
   return enrollmentStatus ?? 'Checked';
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── SessionStorage handoff ─────────────────────────────────────────────────────
 
 const PREVIEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -241,73 +234,47 @@ function readHomepagePreview(npi: string) {
     const raw = sessionStorage.getItem(`vitalcv:preview:${npi}`);
     if (!raw) return null;
     sessionStorage.removeItem(`vitalcv:preview:${npi}`);
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as { timestamp?: number; realState?: unknown; stages?: unknown; isDemo?: unknown };
     if (typeof parsed.timestamp === 'number' && Date.now() - parsed.timestamp > PREVIEW_TTL_MS) {
       return null;
     }
-    return hydrateFromHomepagePreview({ npi, ...parsed });
+    return hydrateFromHomepagePreview({ npi, ...parsed } as Parameters<typeof hydrateFromHomepagePreview>[0]);
   } catch {
     return null;
   }
 }
 
-function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
-  const normalizedInitialNpi =
-    typeof initialNpi === 'string' && /^\d{10}$/.test(initialNpi.trim())
-      ? initialNpi.trim()
-      : null;
-  const autoTriggeredNpi = useRef<string | null>(null);
-  const trackedPassportViewRef = useRef<Set<string>>(new Set());
-  const [npi,       setNpi]       = useState(normalizedInitialNpi ?? '');
-  const [inputError, setInputError] = useState<string | null>(null);
+// ── Main page ─────────────────────────────────────────────────────────────────
 
-  // Check sessionStorage for pre-hydrated state from homepage LiveTrustConsole
-  const hydratedRef = useRef(
-    normalizedInitialNpi ? readHomepagePreview(normalizedInitialNpi) : null,
+function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
+  const autoTriggered = useRef(false);
+  const [npi,       setNpi]       = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
+  const hydratedRef = useRef<ReturnType<typeof readHomepagePreview>>(
+    initialNpi && /^\d{10}$/.test(initialNpi) ? readHomepagePreview(initialNpi) : null,
   );
   const { state, startIngest, reset } = useIngestStream(hydratedRef.current);
 
   useEffect(() => {
-    if (normalizedInitialNpi && autoTriggeredNpi.current !== normalizedInitialNpi) {
-      autoTriggeredNpi.current = normalizedInitialNpi;
+    if (initialNpi && /^\d{10}$/.test(initialNpi) && !autoTriggered.current) {
+      autoTriggered.current = true;
       setInputError(null);
-      setNpi(normalizedInitialNpi);
-      // If we hydrated from homepage preview, still run ingest to get PECOS + deeper checks
-      void startIngest(normalizedInitialNpi);
+      setNpi(initialNpi);
+      void startIngest(initialNpi);
     }
-  }, [normalizedInitialNpi, startIngest]);
+  }, [initialNpi, startIngest]);
 
   useEffect(() => {
-    const passportNpi = state.npi ?? normalizedInitialNpi;
-    if (!passportNpi || !/^\d{10}$/.test(passportNpi)) {
-      return;
-    }
-    if (trackedPassportViewRef.current.has(passportNpi)) {
-      return;
-    }
-
-    trackedPassportViewRef.current.add(passportNpi);
-    void trackPilotFunnelEvent({
+    void trackPilotEvent({
       eventType: UX_EVENTS.PASSPORT_VIEWED,
-      npi: passportNpi,
       route: '/passport',
-      dedupeKey: `passport-viewed:${passportNpi}`,
-      message: 'Passport viewed',
-      details: {
-        surface: 'passport',
-      },
+      oncePerSession: true,
+      message: 'Passport page viewed',
     });
-  }, [normalizedInitialNpi, state.npi]);
+  }, []);
 
-  const isBootstrappingInitialNpi =
-    normalizedInitialNpi !== null
-    && state.phase === 'idle'
-    && autoTriggeredNpi.current !== normalizedInitialNpi;
-  const displayPhase = isBootstrappingInitialNpi ? 'starting' : state.phase;
-  const isActive = isBootstrappingInitialNpi || state.phase !== 'idle';
-  const hasTerminalState =
-    !isBootstrappingInitialNpi
-    && (Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error');
+  const isActive = state.phase !== 'idle';
+  const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
   const anchorEntityId = state.anchorEntityId ?? state.identity.entityId;
   const canViewPassport = state.isUsable && Boolean(anchorEntityId);
   const noProfileYet =
@@ -330,29 +297,19 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
     && !disconnected
     && !noProfileYet;
   const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
-  const retryNpi = state.npi ?? normalizedInitialNpi ?? npi.trim();
+  const retryNpi = state.npi ?? npi.trim();
   const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
-  const requiresSignIn = errorCopy?.signInRequired === true;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = npi.trim();
     if (!/^\d{10}$/.test(trimmed)) { setInputError('Enter a valid 10-digit NPI.'); return; }
     setInputError(null);
-    void trackPilotFunnelEvent({
-      eventType: 'npi_submitted',
-      npi: trimmed,
-      route: '/passport',
-      dedupeKey: `npi-submitted:passport:${trimmed}`,
-      details: {
-        surface: 'passport',
-      },
-    });
     startIngest(trimmed);
   }
 
   function handleSecondaryAction() {
-    if (genericError && /^\d{10}$/.test(retryNpi) && !requiresSignIn) {
+    if (genericError && /^\d{10}$/.test(retryNpi)) {
       setInputError(null);
       void startIngest(retryNpi);
       return;
@@ -438,7 +395,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Phase label */}
             {isRunning && (
               <p className="text-white/40 text-sm text-center">
-                {PHASE_LABEL[displayPhase]}
+                {PHASE_LABEL[state.phase]}
               </p>
             )}
 
@@ -452,7 +409,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                 {identity.specialty && (
                   <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
                 )}
-                <p className="text-white/25 text-xs mt-1">NPI {state.npi ?? normalizedInitialNpi}</p>
+                <p className="text-white/25 text-xs mt-1">NPI {state.npi}</p>
               </Card>
             )}
 
@@ -536,11 +493,6 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                 description={errorCopy?.description ?? 'Try this NPI again in a moment.'}
                 tone="critical"
                 centered
-                actions={requiresSignIn ? (
-                  <Button asChild variant="success" className="h-11 rounded-full px-5 text-sm font-medium">
-                    <Link href="/sign-in">Sign in</Link>
-                  </Button>
-                ) : undefined}
               />
             )}
 
@@ -551,7 +503,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                 variant="ghost"
                 className="min-h-[44px] px-4 text-xs text-white/25 hover:bg-transparent hover:text-white/45"
               >
-                {genericError && /^\d{10}$/.test(retryNpi) && !requiresSignIn
+                {genericError && /^\d{10}$/.test(retryNpi)
                   ? 'Try this NPI again'
                   : canViewPassport || hasTerminalState
                     ? 'Check another NPI'

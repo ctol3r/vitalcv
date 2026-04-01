@@ -38,7 +38,6 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 import {
   getStatusDisplayLabel,
@@ -99,16 +98,16 @@ function stageBadge(stage: SourceStage): {
 } {
   switch (stage.status) {
     case 'loading':
-      return { status: 'pending', label: 'Pending' };
+      return { status: 'pending', label: 'Checking' };
     case 'ok':
       return { status: 'checked', label: 'Checked' };
     case 'failed':
-      return { status: 'unavailable', label: 'Unavailable' };
+      return { status: 'unavailable', label: 'Unavailable — retrying' };
     case 'skipped':
       return { status: 'unavailable', label: 'Unavailable' };
     case 'waiting':
     default:
-      return { status: 'pending', label: 'Pending' };
+      return { status: 'pending', label: 'Queued' };
   }
 }
 
@@ -136,7 +135,7 @@ function setStageStatuses(
 }
 
 function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
-  if (isDemo) return 'Preparing NPI-only fallback…';
+  if (isDemo) return 'Preparing demo preview…';
   if (stages.find((stage) => stage.id === 'READINESS')?.status === 'loading') {
     return 'Building your snapshot…';
   }
@@ -234,6 +233,13 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     isDemo,
     hasLiveState: Boolean(realState),
   });
+
+  // Sync NPI input when initialNpi resolves (e.g., after Suspense hydration)
+  useEffect(() => {
+    if (initialNpi && phase === 'idle' && npi !== initialNpi) {
+      setNpi(initialNpi);
+    }
+  }, [initialNpi, npi, phase]);
 
   useEffect(() => {
     if (pageLoadTrackedRef.current || !isLoaded) return;
@@ -356,17 +362,6 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       });
       return;
     }
-
-    void trackPilotFunnelEvent({
-      eventType: 'npi_submitted',
-      npi: trimmed,
-      route: '/',
-      dedupeKey: `npi-submitted:homepage:${trimmed}`,
-      details: {
-        authState,
-        surface: 'homepage_hero',
-      },
-    });
 
     const submitId = activeSubmitIdRef.current + 1;
     let previewName = `NPI ${trimmed}`;
@@ -527,7 +522,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       },
     });
 
-    // Carry homepage trust state across to /passport via sessionStorage
+    // Write preview state to sessionStorage so /passport can skip re-asking for NPI
     try {
       sessionStorage.setItem(
         `vitalcv:preview:${trimmed}`,
@@ -539,7 +534,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         }),
       );
     } catch {
-      // sessionStorage unavailable (SSR, private browsing quota) — passport falls back to full ingest
+      // sessionStorage unavailable — passport falls back to full ingest
     }
 
     router.push(dest);
@@ -626,7 +621,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 disabled={phase === 'loading'}
                 className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
               >
-                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check your credential readiness'}</span>
+                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
               </Button>
             </form>
 
@@ -649,7 +644,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               </p>
             </div>
             {isDemo && (
-              <TrustStatusBadge status="unavailable" label={unavailableLabel} size="sm" />
+              <TrustStatusBadge status="demo" label="Preview only" size="sm" />
             )}
           </div>
         )}

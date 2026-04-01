@@ -1,185 +1,154 @@
 'use client';
 
-/**
- * ClinicianReadinessCheck — inline NPI → readiness → TTS check on employer profiles.
- *
- * Runs the same ingest + trust-state API calls as the homepage LiveTrustConsole,
- * then shows a compact readiness summary with a TTS estimate specific to this employer.
- */
-
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import { TTSEstimateCard } from '@/components/tts/TTSEstimateCard';
-import {
-  estimateTimeToStart,
-  type EmployerTTSInput,
-  type ClinicianTTSInput,
-} from '@/lib/tts/estimator';
-import { LIVE_PATH_NPI_RE } from '@/lib/live-path/contracts';
+import { estimateTimeToStart } from '@/lib/tts/estimator';
+import type { ClinicianTrustState } from '@/components/hero/ReadinessPreview';
 
-interface ClinicianTrustState {
-  npi: string;
-  identityVerified: boolean;
-  exclusionClear: boolean;
-  exclusionStatus?: string;
-  readiness_level: string;
-  readiness_score: number;
-  readiness_status: string;
-  gap_summary: string[];
-  gaps: string[];
-  facts: Array<{ factType: string; source: string; status: string; details?: string }>;
-}
-
-type CheckPhase = 'idle' | 'loading' | 'done' | 'error';
-
-interface Props {
+interface ClinicianReadinessCheckProps {
   employerName: string;
   employerSlug: string;
-  employer: EmployerTTSInput;
+  timeToStart: string;
+  requirements: Array<{ label: string; level: string; note?: string }>;
 }
 
-export function ClinicianReadinessCheck({ employerName, employerSlug, employer }: Props) {
+type CheckPhase = 'idle' | 'loading' | 'result' | 'error';
+
+export default function ClinicianReadinessCheck({
+  employerName,
+  employerSlug,
+  timeToStart,
+  requirements,
+}: ClinicianReadinessCheckProps) {
   const [npi, setNpi] = useState('');
   const [phase, setPhase] = useState<CheckPhase>('idle');
   const [trustState, setTrustState] = useState<ClinicianTrustState | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = npi.trim();
-
-    if (!LIVE_PATH_NPI_RE.test(trimmed)) {
-      setErrorMessage('Enter a valid 10-digit NPI.');
-      inputRef.current?.focus({ preventScroll: true });
-      return;
-    }
+    if (!/^\d{10}$/.test(trimmed)) return;
 
     setPhase('loading');
-    setErrorMessage(null);
-    setTrustState(null);
+    setErrorMsg(null);
 
     try {
-      // Step 1: Ingest
-      await fetch(`/api/identity/${encodeURIComponent(trimmed)}/ingest`, { method: 'POST' });
-
-      // Step 2: Fetch trust state
-      const tsRes = await fetch(`/api/trust-state/${encodeURIComponent(trimmed)}`);
-      const tsData = await tsRes.json() as ClinicianTrustState;
-
-      if (tsRes.ok && tsData.npi) {
-        setTrustState(tsData);
-        setPhase('done');
-      } else {
-        setErrorMessage('Could not load readiness snapshot for this NPI. Try again in a moment.');
-        setPhase('error');
+      // Start ingest + fetch trust state
+      const ingestRes = await fetch(`/api/ingest/${trimmed}`, { method: 'POST' });
+      if (!ingestRes.ok) {
+        throw new Error(`Ingest failed (${ingestRes.status})`);
       }
-    } catch {
-      setErrorMessage('Could not reach the readiness service. Try again in a moment.');
+
+      // Wait briefly for ingest to populate, then fetch trust state
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const tsRes = await fetch(`/api/trust-state/${trimmed}`);
+      if (!tsRes.ok) {
+        throw new Error(`Trust state unavailable (${tsRes.status})`);
+      }
+
+      const data = (await tsRes.json()) as ClinicianTrustState;
+      setTrustState(data);
+      setPhase('result');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong.');
       setPhase('error');
     }
   }
 
-  const identityFact = trustState?.facts.find(
-    f => f.factType === 'PERSONAL_IDENTITY' || f.factType === 'NPI_IDENTITY',
-  );
-  const displayName = identityFact?.details ?? (trustState ? `NPI ${trustState.npi}` : null);
-  const specFact = trustState?.facts.find(f => f.factType === 'SPECIALTY');
+  const ttsEstimate = trustState
+    ? estimateTimeToStart(
+        { name: employerName, timeToStart, requirements },
+        {
+          readinessLevel: trustState.readiness_level,
+          readinessScore: trustState.readiness_score,
+          gaps: trustState.gaps,
+          facts: trustState.facts.map(f => ({ factType: f.factType, status: f.status })),
+        },
+      )
+    : null;
 
-  const ttsEstimate = trustState ? estimateTimeToStart(employer, {
-    identityVerified: trustState.identityVerified,
-    exclusionClear: trustState.exclusionClear,
-    readinessLevel: trustState.readiness_level,
-    readinessScore: trustState.readiness_score,
-    gaps: [...trustState.gap_summary, ...trustState.gaps],
-    facts: trustState.facts,
-  } satisfies ClinicianTTSInput) : null;
+  const displayName = trustState?.facts.find(f => f.factType === 'provider_name')?.details
+    ?? trustState?.facts.find(f => f.factType === 'identity')?.details
+    ?? `NPI ${npi}`;
 
   return (
     <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
       <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">
         Check readiness
       </p>
-      <p className="mt-2 text-sm text-white/65">
-        Enter a clinician&apos;s NPI to check readiness for {employerName}.
+      <p className="mt-2 text-sm text-white/60">
+        Enter a clinician NPI to check readiness for {employerName}
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
+      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
         <Input
-          ref={inputRef}
           type="text"
           inputMode="numeric"
+          pattern="[0-9]{10}"
           maxLength={10}
           value={npi}
-          readOnly={phase === 'loading'}
-          onChange={(e) => {
-            setErrorMessage(null);
-            setNpi(e.target.value.replace(/\D/g, ''));
-          }}
-          placeholder="10-digit NPI"
-          aria-label="Clinician NPI"
-          className={`h-11 flex-1 rounded-xl border-white/12 bg-white/5 px-3 text-sm text-white placeholder:text-white/30 shadow-none focus-visible:border-emerald-500/40 focus-visible:ring-white/10 ${
-            errorMessage ? 'border-amber-400/30' : ''
-          }`}
+          onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
+          placeholder="NPI (10 digits)"
+          className="h-10 flex-1 rounded-xl border-white/12 bg-white/6 px-3 text-sm tracking-wider text-white placeholder:text-white/20"
+          disabled={phase === 'loading'}
         />
         <Button
           type="submit"
-          variant="success"
-          disabled={phase === 'loading'}
-          className="h-11 shrink-0 rounded-xl px-4 text-sm font-semibold"
+          variant="outline"
+          disabled={npi.length !== 10 || phase === 'loading'}
+          className="h-10 rounded-xl border-white/10 bg-white/[0.04] px-3 text-white/75"
         >
-          {phase === 'loading' ? (
-            <span className="h-4 w-4 rounded-full border-2 border-black/30 border-t-transparent animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
+          <Search className="h-4 w-4" />
         </Button>
       </form>
 
-      {errorMessage && (
-        <p className="mt-2 text-xs text-amber-200/80">{errorMessage}</p>
+      {phase === 'loading' && (
+        <p className="mt-3 text-xs text-white/40 animate-pulse">
+          Checking sources…
+        </p>
       )}
 
-      {phase === 'done' && trustState && (
-        <div className="mt-4 space-y-4 animate-fade-in-up">
-          {/* Clinician identity summary */}
-          <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-white">{displayName}</p>
-                {specFact?.details && (
-                  <p className="mt-0.5 text-xs text-white/40">{specFact.details}</p>
-                )}
-              </div>
-              <TrustStatusBadge
-                status={trustState.readiness_level === 'L3' ? 'clear' : trustState.readiness_level === 'L2' ? 'pending' : 'blocked'}
-                label={trustState.readiness_status}
-                size="sm"
-              />
+      {phase === 'error' && (
+        <p className="mt-3 text-xs text-red-400/70">
+          {errorMsg}
+        </p>
+      )}
+
+      {phase === 'result' && trustState && (
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">{displayName}</p>
+              <p className="text-xs text-white/40">NPI {npi}</p>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-white/40">
-              {trustState.identityVerified && <span>Identity checked</span>}
-              {trustState.exclusionClear && <span>Sanctions clear</span>}
-              <span>{trustState.readiness_score}/100</span>
-            </div>
+            <TrustStatusBadge
+              status={
+                trustState.readiness_level === 'L3' ? 'checked'
+                : trustState.readiness_level === 'L2' ? 'pending'
+                : 'review_required'
+              }
+              label={`${trustState.readiness_level} — ${trustState.readiness_score}/100`}
+              size="sm"
+            />
           </div>
 
-          {/* TTS estimate */}
           {ttsEstimate && (
             <TTSEstimateCard estimate={ttsEstimate} employerName={employerName} />
           )}
 
-          {/* CTA */}
           <Link
-            href={`/review?npi=${encodeURIComponent(trustState.npi)}&employer=${encodeURIComponent(employerSlug)}`}
-            className="mt-2 inline-flex w-full items-center justify-between rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            href={`/review?npi=${npi}&employer=${encodeURIComponent(employerSlug)}`}
+            className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
           >
-            <span>Request full review</span>
-            <ArrowRight className="h-4 w-4" />
+            Request full review
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       )}

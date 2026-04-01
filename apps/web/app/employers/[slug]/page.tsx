@@ -10,7 +10,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import RequirementsTable from '@/components/employers/RequirementsTable';
-import { ClinicianReadinessCheck } from '@/components/employers/ClinicianReadinessCheck';
+import ClinicianReadinessCheck from '@/components/employers/ClinicianReadinessCheck';
 import {
   fetchLaunchEmployer,
   fetchLaunchOpportunities,
@@ -136,37 +136,38 @@ export default async function EmployerProfilePage({ params }: Props) {
             </div>
 
             <div className="w-full max-w-sm space-y-3">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Current actions</p>
+                <div className="mt-4 flex flex-col gap-3">
+                  <Link
+                    href={scopedOnboardingHref}
+                    className="inline-flex items-center justify-between rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Stethoscope className="h-4 w-4" />
+                      Clinician onboarding
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href={scopedExploreHref}
+                    className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      Current roles
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+
               <ClinicianReadinessCheck
                 employerName={employer.name}
                 employerSlug={employer.slug}
-                employer={{
-                  timeToStart: employer.timeToStart,
-                  requirements: employer.requirements,
-                }}
+                timeToStart={employer.timeToStart}
+                requirements={employer.requirements}
               />
-
-              <div className="flex flex-col gap-2">
-                <Link
-                  href={scopedExploreHref}
-                  className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4" />
-                    Current roles
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href={scopedOnboardingHref}
-                  className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4" />
-                    Clinician onboarding
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
 
               {employer.trustIndicators.length > 0 ? (
                 <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
