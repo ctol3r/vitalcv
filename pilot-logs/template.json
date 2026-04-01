@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-04-01T04:24:00Z",
+  "user_type": "clinician|employer",
+  "session_id": "",
+  "friction_points": [
+    {
+      "step": "",
+      "description": "",
+      "severity": "low|medium|high"
+    }
+  ],
+  "trust_issues": [],
+  "time_to_complete_seconds": 0,
+  "completed": true,
+  "notes": ""
+}
