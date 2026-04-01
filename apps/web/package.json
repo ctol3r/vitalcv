@@ -53,7 +53,10 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tippy.js": "^6.3.7",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.12",
+    "@trustgraph/client": "^1.6.0",
+    "@trustgraph/react-state": "^1.6.1",
+    "@trustgraph/react-provider": "^1.4.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
