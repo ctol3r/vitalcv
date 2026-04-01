@@ -8,6 +8,7 @@ import {
   trackClinicianEventOncePerSession,
 } from '@/lib/mobile/analytics';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -247,6 +248,17 @@ export function NpiOnboardingStep({
       setError('Enter a valid 10-digit NPI to continue.');
       return;
     }
+
+    void trackPilotFunnelEvent({
+      eventType: 'npi_submitted',
+      npi,
+      route: '/onboarding',
+      dedupeKey: `npi-submitted:onboarding:${npi}`,
+      details: {
+        guestMode,
+        surface: 'onboarding',
+      },
+    });
 
     writeOnboardingStorage(STORAGE_KEYS.npi, npi);
     if (returnTo) {
@@ -541,11 +553,15 @@ export function ActivateOnboardingStep({
   const [guestLoading, setGuestLoading] = useState(guestMode);
 
   useEffect(() => {
-    void trackPilotEvent({
+    void trackPilotFunnelEvent({
       eventType: 'readiness_viewed',
+      npi: readStoredNpi(),
+      route: '/onboarding/readiness',
+      dedupeKey: `readiness-viewed:onboarding:${readStoredNpi()}`,
       details: {
         guestMode,
         step: 'onboarding-readiness',
+        surface: 'onboarding',
       },
     });
   }, [guestMode]);

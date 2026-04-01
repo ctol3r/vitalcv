@@ -8,6 +8,7 @@ import {
   buildPassportProofSections,
   summarizePassportProofSections,
 } from '@/components/trust/passportProofSections';
+import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { Accordion } from '@/components/ui/accordion';
 import {
   CLERK_PROVIDER_ENABLED,
@@ -29,6 +30,7 @@ import {
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
 import { resolveAuthorityAccordionStatus } from '@/lib/trust/passport-truth';
+import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 
 interface Props {
   entityId: string;
@@ -65,12 +67,6 @@ function formatShortDate(value?: string | null): string {
     day: 'numeric',
     year: 'numeric',
   });
-}
-
-function formatEstimatedStart(days: number | null): string {
-  if (days === null) return 'Blocked';
-  if (days === 0) return '0 days';
-  return `~${days} days`;
 }
 
 function dedupe(values: string[]): string[] {
@@ -178,6 +174,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
   const proofSummary = summarizePassportProofSections(proofItems);
   const checkedTags = buildCheckedTags(passport);
   const missingTags = buildMissingTags(passport);
+  const timeToStartEstimate = buildPassportPilotTimeToStartEstimate(passport);
   const hasShareContext = Boolean(contextId);
   const canShare = hasShareContext && isLoaded && isSignedIn;
   // Employer review is available for all readiness states — BLOCKED passports still
@@ -307,8 +304,8 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.score}/100</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Estimated start</p>
-                <p className="mt-1 text-lg font-semibold text-white">{formatEstimatedStart(passport.readiness.estimatedStartDays)}</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
+                <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.level}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last checked</p>
@@ -321,6 +318,10 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
+            <TimeToStartEstimateSummary estimate={timeToStartEstimate} />
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">

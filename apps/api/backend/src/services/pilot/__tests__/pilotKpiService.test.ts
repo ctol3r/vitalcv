@@ -1,11 +1,13 @@
 import { PILOT_METRIC_EVENT_TYPES } from '../pilotOpsService';
 
 describe('PILOT_METRIC_EVENT_TYPES funnel coverage', () => {
-  it('includes passport_viewed, review_requested, review_opened for funnel tracking', () => {
+  it('includes the launch funnel events needed for proof capture', () => {
     const types = PILOT_METRIC_EVENT_TYPES as readonly string[];
+    expect(types).toContain('npi_submitted');
+    expect(types).toContain('readiness_viewed');
     expect(types).toContain('passport_viewed');
-    expect(types).toContain('review_requested');
     expect(types).toContain('review_opened');
+    expect(types).toContain('employer_action_taken');
   });
 });
 

@@ -13,16 +13,14 @@ import { useEffect, useState } from 'react';
 const TERMINAL_LINES = [
   { text: '> Resolving NPI 1003000126…', delay: 0 },
   { text: '  ✓ NPPES identity confirmed', delay: 600 },
-  { text: '> Querying CA-BRN primary source…', delay: 1200 },
-  { text: '  ✓ Medical license ACTIVE (exp 2027-03-15)', delay: 2000 },
-  { text: '> Querying OIG/LEIE exclusion registry…', delay: 2600 },
-  { text: '  ✓ Not excluded', delay: 3200 },
-  { text: '> Querying Nursys (state board network)…', delay: 3800 },
-  { text: '  ⚠ Nursys: institutional access required', delay: 4500 },
-  { text: '> Signing credential bundle (ES256)…', delay: 5000 },
-  { text: '  ✓ Bundle signed — ready to share', delay: 5700 },
-  { text: '> Running ReadinessEvaluator…', delay: 6200 },
-  { text: '  ✓ CLEARED — ready to start', delay: 6900 },
+  { text: '> Querying OIG/LEIE exclusion registry…', delay: 1200 },
+  { text: '  ✓ Not excluded', delay: 1800 },
+  { text: '> Checking state board (Nursys)…', delay: 2400, gated: true },
+  { text: '  ⚠ Institutional access required', delay: 3000, gated: true },
+  { text: '> Signing credential bundle (ES256)…', delay: 3600 },
+  { text: '  ✓ Bundle signed — ready to share', delay: 4200 },
+  { text: '> Running ReadinessEvaluator…', delay: 4800 },
+  { text: '  ✓ PARTIAL — 2 of 3 sources checked', delay: 5400 },
 ] as const;
 
 function VerificationTerminal() {
@@ -73,11 +71,13 @@ function VerificationTerminal() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.25 }}
                 className={
-                  isCleared
-                    ? 'text-emerald-400 font-bold'
-                    : isSuccess
-                      ? 'text-emerald-500/90'
-                      : 'text-white/50'
+                  line.text.includes('PARTIAL')
+                    ? 'text-amber-300 font-bold'
+                    : 'gated' in line && line.gated
+                      ? 'text-amber-400/70'
+                      : isSuccess
+                        ? 'text-emerald-500/90'
+                        : 'text-white/50'
                 }
               >
                 {line.text}
@@ -131,9 +131,8 @@ export function Hero() {
             </h1>
 
             <p className="max-w-xl text-lg leading-relaxed text-white/55">
-              VitalCV is the source-backed credentialing infrastructure for healthcare.
-              We automate primary source verification, generate audit-ready credential
-              packets, and continuously monitor compliance — so you can start clinicians
+              VitalCV automates primary source verification and generates
+              audit-ready credential packets — so you can start clinicians
               in days, not months.
             </p>
 
@@ -143,7 +142,7 @@ export function Hero() {
                 href="/demo"
                 className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
               >
-                See it live
+                Request a Demo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -157,7 +156,7 @@ export function Hero() {
 
             {/* Trust badges */}
             <div className="flex flex-wrap items-center gap-5 pt-4">
-              {['HIPAA-aligned', 'W3C VC', 'ES256'].map((badge) => (
+              {['HIPAA-aligned', 'W3C VC'].map((badge) => (
                 <span
                   key={badge}
                   className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/25"

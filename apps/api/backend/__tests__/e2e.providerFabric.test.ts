@@ -153,6 +153,9 @@ describe('FHIR R4 Export', () => {
       gender: 'M',
       trustBand: 'L3',
       taxonomies: [{ code: '207R00000X', description: 'Internal Medicine', primary: true }],
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       credentials: [{
         credentialId: 'cred-001',
         type: 'MedicalLicense',
@@ -181,6 +184,9 @@ describe('FHIR R4 Export', () => {
       npi: '1003000126',
       firstName: 'Jane',
       lastName: 'Doe',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       credentials: [{
         credentialId: 'cred-002',
         type: 'BoardCertification',
@@ -199,6 +205,9 @@ describe('FHIR R4 Export', () => {
       npi: '1003000126',
       firstName: 'John',
       lastName: 'Smith',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       taxonomies: [{ code: '207R00000X', description: 'Internal Medicine', primary: true, state: 'CA' }],
     });
 
@@ -213,6 +222,9 @@ describe('FHIR R4 Export', () => {
       npi: '1003000126',
       firstName: 'Test',
       lastName: 'Provider',
+      licenses: [],
+      boardCerts: [],
+      educations: [],
       trustBand: 'L2',
     });
 

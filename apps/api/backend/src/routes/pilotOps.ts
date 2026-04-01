@@ -18,6 +18,10 @@ import {
 } from '../services/pilot/pilotOpsService';
 import { updatePilotQueueItem } from '../services/pilot/pilotOpsService';
 import {
+  getPilotFunnelSnapshot,
+  pilotFunnelSnapshotToLog,
+} from '../services/pilot/pilotFunnelService';
+import {
   getClinicianProofSummary,
   getEmployerValueSignals,
   getPilotProofSnapshot as getPilotProofSnapshotService,
@@ -309,6 +313,27 @@ export function registerPilotOpsRoutes(app: Express): void {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to load pilot proof snapshot.';
       log('error', 'pilot_proof_snapshot_error', { error: message });
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/internal/pilot-funnel', async (req: Request, res: Response) => {
+    if (!requireMonitoringSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const snapshot = await getPilotFunnelSnapshot(readLookbackDays(req.query.lookbackDays));
+
+      if (readTrimmedString(req.query.format)?.toLowerCase() === 'log') {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.status(200).send(pilotFunnelSnapshotToLog(snapshot));
+      }
+
+      return res.status(200).json(snapshot);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load pilot funnel snapshot.';
+      log('error', 'pilot_funnel_snapshot_error', { error: message });
       return res.status(500).json({ error: message });
     }
   });

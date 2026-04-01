@@ -775,19 +775,13 @@ describe('live path regression hardening', () => {
     await flush();
 
     const content = textContent(view.container);
-    expect(content).toContain('Degraded preview');
+    expect(content).toContain('Preview unavailable — using your NPI only');
     expect(content).toContain('NPI 1234567890');
-    expect(content).toContain('Limited preview only');
-    expect(content).toContain('Coverage data is being refreshed');
-    expect(content).not.toContain('Demo preview');
-    expect(content).not.toContain('Ada Lovelace');
-    expect(content).not.toContain('Verified — ready to proceed');
-    expect(content).not.toContain('Identity checked');
-
-    await clickByText(view.container, 'Continue to passport');
-    await flush();
-
-    expect(routerPushMock).toHaveBeenCalledWith(buildPassportLookupHref('1234567890'));
+    expect(content).toContain('Pending');
+    expect(content).toContain('Access required');
+    expect(content).toContain('Unavailable');
+    expect(content).not.toContain('Sarah Chen');
+    expect(content).not.toContain('Preview only');
 
     const previewVisibleCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
@@ -1009,6 +1003,101 @@ describe('live path regression hardening', () => {
     expect(textContent(interviewView.container)).not.toContain('Licensure attached');
     expect(textContent(interviewView.container)).toContain('OIG evidence stale');
     expect(textContent(interviewView.container)).toContain('Quarterly snapshot is contextual only');
+    await interviewView.unmount();
+  });
+
+  it('renders the pilot time-to-start estimate on review and interview surfaces', async () => {
+    const basePassport = buildPassport();
+    const identityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'NPPES_API',
+      state: 'checked',
+      reason: 'NPPES identity checked',
+      checkedAt: '2026-03-20T10:30:00.000Z',
+    });
+    const safetyCoverage = createCanonicalSourceCoverage({
+      sourceId: 'OIG_LEIE',
+      state: 'checked',
+      reason: 'OIG LEIE check clear',
+      checkedAt: '2026-03-20T10:30:00.000Z',
+    });
+    const authorityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'STATE_BOARD',
+      state: 'pending',
+      reason: 'State board verification still pending',
+    });
+    const eligibilityCoverage = createCanonicalSourceCoverage({
+      sourceId: 'PECOS_PUBLIC',
+      state: 'accessRequired',
+      reason: 'PECOS access required for this lane',
+    });
+    const checks = [
+      identityCoverage,
+      safetyCoverage,
+      authorityCoverage,
+      eligibilityCoverage,
+    ] as const;
+    const passport = buildPassport({
+      readiness: {
+        ...basePassport.readiness,
+        status: 'PARTIAL',
+        score: 65,
+        blockers: ['DEA_REGISTRATION'],
+      },
+      sourceCoverage: {
+        checks: [...checks],
+        summary: summarizeCanonicalSourceCoverage(checks),
+      },
+      truth: {
+        ...basePassport.truth,
+        identity: {
+          ...basePassport.truth.identity,
+          coverage: identityCoverage,
+        },
+        safety: {
+          ...basePassport.truth.safety,
+          coverage: safetyCoverage,
+        },
+        authority: {
+          kind: 'verification',
+          status: 'PENDING',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: authorityCoverage,
+        },
+        eligibility: {
+          kind: 'enrollment',
+          status: 'ACCESS REQUIRED',
+          satisfied: false,
+          decisionGrade: false,
+          coverage: eligibilityCoverage,
+        },
+      },
+      trustPosture: {
+        ...basePassport.trustPosture,
+        score: 65,
+        missingItems: ['PECOS access required for this lane'],
+        blockers: ['DEA_REGISTRATION'],
+      },
+    });
+
+    const reviewView = await renderNode(<ReviewClient passport={passport} contextId="ctx_time_to_start" />);
+    expect(textContent(reviewView.container)).toContain('Estimated start');
+    expect(textContent(reviewView.container)).toContain('45–60 days');
+    expect(textContent(reviewView.container)).toContain('Without VitalCV');
+    expect(textContent(reviewView.container)).toContain('~90 days');
+    expect(textContent(reviewView.container)).toContain('Time saved');
+    expect(textContent(reviewView.container)).toContain('~30–45 days');
+    expect(textContent(reviewView.container)).toContain('Pilot estimate — based on current credential readiness');
+    await reviewView.unmount();
+
+    const interviewView = await renderNode(<InterviewClient entityId={passport.entityId} passport={passport} />);
+    expect(textContent(interviewView.container)).toContain('Estimated start');
+    expect(textContent(interviewView.container)).toContain('45–60 days');
+    expect(textContent(interviewView.container)).toContain('Without VitalCV');
+    expect(textContent(interviewView.container)).toContain('~90 days');
+    expect(textContent(interviewView.container)).toContain('Time saved');
+    expect(textContent(interviewView.container)).toContain('~30–45 days');
+    expect(textContent(interviewView.container)).toContain('Pilot estimate — based on current credential readiness');
     await interviewView.unmount();
   });
 
