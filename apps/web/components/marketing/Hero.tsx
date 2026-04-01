@@ -18,7 +18,7 @@ const TERMINAL_LINES = [
   { text: '> Querying OIG/LEIE exclusion registry…', delay: 2600 },
   { text: '  ✓ Not excluded', delay: 3200 },
   { text: '> Querying Nursys (state board network)…', delay: 3800 },
-  { text: '  ✓ License standing confirmed', delay: 4500 },
+  { text: '  ⚠ Nursys: institutional access required', delay: 4500 },
   { text: '> Signing credential bundle (ES256)…', delay: 5000 },
   { text: '  ✓ Bundle signed — ready to share', delay: 5700 },
   { text: '> Running ReadinessEvaluator…', delay: 6200 },
@@ -119,7 +119,7 @@ export function Hero() {
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-1.5">
               <Shield className="h-3.5 w-3.5 text-emerald-400" />
               <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-emerald-400">
-                Zero-Trust Credentialing Infrastructure
+                Source-Backed Credentialing
               </span>
             </div>
 
@@ -131,18 +131,19 @@ export function Hero() {
             </h1>
 
             <p className="max-w-xl text-lg leading-relaxed text-white/55">
-              VitalCV is the cryptographic trust infrastructure for healthcare.
-              We automate primary source verification, anchor it to a zero-trust
-              ledger, and continuously monitor compliance — so you can hire instantly.
+              VitalCV is the source-backed credentialing infrastructure for healthcare.
+              We automate primary source verification, generate audit-ready credential
+              packets, and continuously monitor compliance — so you can start clinicians
+              in days, not months.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
-                href="/verifier"
+                href="/demo"
                 className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
               >
-                Request a Demo
+                See it live
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -156,7 +157,7 @@ export function Hero() {
 
             {/* Trust badges */}
             <div className="flex flex-wrap items-center gap-5 pt-4">
-              {['SOC 2', 'HIPAA', 'NCQA', 'ES256'].map((badge) => (
+              {['HIPAA-aligned', 'W3C VC', 'ES256'].map((badge) => (
                 <span
                   key={badge}
                   className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/25"
