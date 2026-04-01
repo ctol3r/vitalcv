@@ -27,7 +27,8 @@ export type ArtifactEventType =
 export type EmployerReviewEventType =
   | 'EMPLOYER_REVIEW_ACCEPTED'
   | 'EMPLOYER_REVIEW_REFRESH_REQUESTED'
-  | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW';
+  | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW'
+  | 'EMPLOYER_PACKET_SHARED';
 
 // ── Trust chain (wedge domain) ───────────────────────────────
 export type TrustChainEventType =

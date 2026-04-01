@@ -490,6 +490,69 @@ export function registerEmployerActionRoutes(app: Express): void {
     }),
   );
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // POST /api/employer-review/:entityId/share-packet
+  // Generate an ephemeral share link and log an EMPLOYER_PACKET_SHARED audit event.
+  // Returns: { ok, shareUrl, auditEventId }
+  // ─────────────────────────────────────────────────────────────────────────
+  app.post(
+    '/api/employer-review/:entityId/share-packet',
+    asyncHandler(async (req, res) => {
+      const employerId = requireClerkUserId(req);
+      const { entityId } = req.params;
+
+      if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
+
+      const subject = await resolveEmployerReviewSubject(entityId);
+      if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
+
+      const { npi: bodyNpi } = (req.body ?? {}) as { npi?: string };
+      const clinicianNpi = bodyNpi ?? subject.clinicianNpi;
+
+      // Generate ephemeral share token
+      const shareToken = `chk_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
+      const shareUrl = `${req.protocol}://${req.get('host')}/review/${shareToken}`;
+
+      const auditMetadata = toJsonValue({
+        schema: 'vitalcv.employer.packet-shared.v1',
+        employerId,
+        entityId,
+        clinicianNpi,
+        shareToken,
+        shareUrl,
+        sharedAt: new Date().toISOString(),
+      });
+
+      const auditEvent = await prisma.auditEvent.create({
+        data: {
+          type: 'EMPLOYER_PACKET_SHARED',
+          hash: sha256ForPayload({
+            type: 'EMPLOYER_PACKET_SHARED',
+            referenceId: entityId,
+            metadata: auditMetadata,
+          }),
+          referenceId: entityId,
+          clinicianId: clinicianNpi,
+          metadata: auditMetadata,
+        },
+      });
+
+      log('info', 'employer_packet_shared', {
+        auditEventId: auditEvent.id,
+        entityId,
+        employerId,
+        npi_prefix: clinicianNpi.slice(0, 4) + '····',
+        shareToken,
+      });
+
+      return void res.status(201).json({
+        ok: true,
+        shareUrl,
+        auditEventId: auditEvent.id,
+      });
+    }),
+  );
+
   log('info', 'employer_action_routes_registered', {
     routes: [
       'POST /api/employer-review/:entityId/accept',
@@ -497,6 +560,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       'POST /api/employer-review/:entityId/route-to-review',
       'GET  /api/employer-review/:entityId/status',
       'GET  /api/employer-review/:entityId/packet',
+      'POST /api/employer-review/:entityId/share-packet',
     ],
   });
 }
