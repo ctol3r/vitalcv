@@ -24,6 +24,24 @@ export function buildPassportLookupHref(
     : PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry;
 }
 
+export function resolvePublicWedgeDisplayName(
+  displayName?: string | null,
+  npi?: string | null,
+): string {
+  const normalizedDisplayName = typeof displayName === 'string' ? displayName.trim() : '';
+  const normalizedNpi = typeof npi === 'string' ? npi.trim() : '';
+
+  if (!normalizedDisplayName) {
+    return 'Clinician Name Unavailable';
+  }
+
+  if (normalizedNpi && normalizedDisplayName.toLowerCase() === `npi ${normalizedNpi}`.toLowerCase()) {
+    return 'Clinician Name Unavailable';
+  }
+
+  return normalizedDisplayName;
+}
+
 export function buildPassportEntityHref(
   entityId: string,
 ): string {

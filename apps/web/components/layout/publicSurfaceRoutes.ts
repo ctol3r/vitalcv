@@ -23,7 +23,7 @@ export function isPublicSafe(route: string): boolean {
     '/intelligence', '/graph', '/findings', '/providers',
     '/storylines', '/investigations', '/actions', '/network',
     '/calibration', '/system-health', '/status', '/labs',
-    '/interview', '/passport'
+    '/interview'
   ];
   return !unsafePrefixes.some(p => route === p || route.startsWith(`${p}/`));
 }
@@ -48,6 +48,8 @@ const PREFIX_MATCHERS = [
   '/demo',
   '/sign-in',
   '/sign-up',
+  '/passport',
+  '/review',
   '/employers',
   '/opportunities',
   '/docs',
