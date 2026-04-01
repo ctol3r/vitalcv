@@ -43,13 +43,18 @@ export default async function PassportEntityPage({
         <div className="w-full max-w-sm animate-fade-in-up">
           <TrustStateCard
             eyebrow="Passport"
-            title="Passport not found"
-            description="VitalCV could not hydrate a passport record for this entity."
+            title="Passport not ready yet"
+            description="Your NPI was checked but hasn't been fully indexed. Complete NPI verification to activate your passport."
             centered
             actions={(
-              <Button asChild variant="outline" className="h-11 rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
-                <Link href="/passport">Try another NPI</Link>
-              </Button>
+              <div className="flex flex-col gap-2 w-full">
+                <Button asChild variant="default" className="h-11 w-full rounded-full">
+                  <Link href="/onboarding">Verify my NPI</Link>
+                </Button>
+                <Button asChild variant="outline" className="h-11 w-full rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
+                  <Link href="/passport">Try a different NPI</Link>
+                </Button>
+              </div>
             )}
           />
         </div>

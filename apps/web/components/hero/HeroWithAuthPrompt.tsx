@@ -13,11 +13,19 @@
  * Wave A3 — Auth Architecture
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { LiveTrustConsole } from './LiveTrustConsole';
 import { CreateAccountModal } from '@/components/auth/CreateAccountModal';
 import { useAuthPrompt } from '@/hooks/useAuthPrompt';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+
+/** Reads ?npi= and passes it to LiveTrustConsole. Must live inside a <Suspense> boundary. */
+function LiveTrustConsoleWithNpiParam({ onPreviewReady }: { onPreviewReady?: (npi: string, name: string) => void }) {
+  const searchParams = useSearchParams();
+  const initialNpi = searchParams.get('npi') ?? undefined;
+  return <LiveTrustConsole onPreviewReady={onPreviewReady} initialNpi={initialNpi} />;
+}
 
 function HeroWithPromptShell() {
   const [resolvedNpi,  setResolvedNpi]  = useState<string | null>(null);
@@ -55,7 +63,10 @@ function HeroWithPromptShell() {
 
   return (
     <>
-      <LiveTrustConsole onPreviewReady={handlePreviewReady} />
+      {/* Suspense required: LiveTrustConsoleWithNpiParam uses useSearchParams() */}
+      <Suspense fallback={<LiveTrustConsole />}>
+        <LiveTrustConsoleWithNpiParam onPreviewReady={handlePreviewReady} />
+      </Suspense>
 
       {showModal && shouldPrompt && resolvedNpi && (
         <CreateAccountModal
@@ -70,7 +81,11 @@ function HeroWithPromptShell() {
 
 export function HeroWithAuthPrompt() {
   if (!CLERK_PROVIDER_ENABLED) {
-    return <LiveTrustConsole />;
+    return (
+      <Suspense fallback={<LiveTrustConsole />}>
+        <LiveTrustConsoleWithNpiParam />
+      </Suspense>
+    );
   }
 
   return <HeroWithPromptShell />;

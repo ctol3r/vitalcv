@@ -24,6 +24,8 @@ import Link from 'next/link';
  */
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { CLERK_PROVIDER_ENABLED, CLERK_SIGN_IN_URL } from '@/lib/auth/clerkConfig';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
 import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 import { Accordion } from '@/components/ui/accordion';
@@ -461,6 +463,14 @@ export default function PassportWallet({ passport }: Props) {
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
+  // Pre-check auth before showing share UI — prevents click-then-error UX
+  const { isSignedIn, isLoaded } = CLERK_PROVIDER_ENABLED
+    ? // eslint-disable-next-line react-hooks/rules-of-hooks
+      useAuth()
+    : { isSignedIn: true, isLoaded: true };
+  const isAuthReady = !CLERK_PROVIDER_ENABLED || isLoaded;
+  const canShare    = !CLERK_PROVIDER_ENABLED || isSignedIn;
+
   const { identity, readiness, trustPosture } = passport;
   const cfg = STATUS_CONFIG[readiness.status];
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
@@ -606,21 +616,38 @@ export default function PassportWallet({ passport }: Props) {
           <div className="space-y-3 pt-2">
             {!shared ? (
               <>
-                <Button
-                  onClick={handleShare}
-                  disabled={sharing}
-                  variant="success"
-                  className="h-14 w-full rounded-xl text-sm font-medium"
-                  aria-label="Generate shareable passport link"
-                >
-                  {sharing ? 'Generating link…' : 'Copy share link for employer'}
-                </Button>
-                {shareError && (
-                  <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
+                {isAuthReady && !canShare ? (
+                  /* Unauthenticated — show sign-in prompt, never a click-then-fail button */
+                  <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-4 space-y-3 text-center">
+                    <p className="text-white/60 text-sm leading-relaxed">
+                      Sign in to generate a shareable passport link.
+                    </p>
+                    <Link
+                      href={`${CLERK_SIGN_IN_URL}?redirect_url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                      className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-black hover:bg-emerald-400 transition-colors"
+                    >
+                      Sign in to share
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      onClick={handleShare}
+                      disabled={sharing || !isAuthReady}
+                      variant="success"
+                      className="h-14 w-full rounded-xl text-sm font-medium"
+                      aria-label="Generate shareable passport link"
+                    >
+                      {sharing ? 'Generating link…' : 'Copy share link for employer'}
+                    </Button>
+                    {shareError && (
+                      <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
+                    )}
+                    <p className="text-center text-white/20 text-xs leading-relaxed">
+                      Generates a shareable link. Send it to an employer to open the review surface.
+                    </p>
+                  </>
                 )}
-                <p className="text-center text-white/20 text-xs leading-relaxed">
-                  Generates a shareable link to this passport. Send it to an employer to open the review surface.
-                </p>
               </>
             ) : (
               <TrustStateCard

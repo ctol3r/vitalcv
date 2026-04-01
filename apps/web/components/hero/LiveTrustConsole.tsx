@@ -20,7 +20,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import { Button } from '@/components/ui/button';
@@ -201,9 +201,11 @@ interface IngestResponse {
 interface LiveTrustConsoleProps {
   /** Called when the readiness preview becomes visible — receives resolved NPI + display name */
   onPreviewReady?: (npi: string, displayName: string) => void;
+  /** Pre-populated NPI from URL query param (?npi=). Passed in from a Suspense-wrapped shell. */
+  initialNpi?: string;
 }
 
-export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {}) {
+export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsoleProps = {}) {
   const [npi,       setNpi]       = useState('');
   const [phase,     setPhase]     = useState<Phase>('idle');
   const [stages,    setStages]    = useState<SourceStage[]>(INITIAL_STAGES);
@@ -218,6 +220,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const { isLoaded, isSignedIn } = useRoleContext();
   const router   = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoTriggeredRef = useRef(false);
   const timers   = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pageLoadTrackedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -318,6 +321,33 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
       clearTimers();
     };
   }, []);
+
+  // Auto-trigger lookup when initialNpi (from ?npi= query param) is provided
+  const autoTriggerNpiRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoTriggeredRef.current || !isLoaded || !initialNpi) return;
+    const paramNpi = initialNpi.replace(/\D/g, '');
+    if (LIVE_PATH_NPI_RE.test(paramNpi) && phase === 'idle') {
+      autoTriggeredRef.current = true;
+      autoTriggerNpiRef.current = paramNpi;
+      setNpi(paramNpi);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, initialNpi]);
+
+  // Fire submit once npi state has settled from auto-trigger
+  useEffect(() => {
+    if (!autoTriggerNpiRef.current) return;
+    if (npi !== autoTriggerNpiRef.current) return;
+    if (phase !== 'idle') return;
+    autoTriggerNpiRef.current = null;
+    const t = setTimeout(() => {
+      const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
+      void handleSubmit(syntheticEvent);
+    }, 60);
+    timers.current.push(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [npi, phase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -613,7 +643,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
                 Readiness snapshot
               </p>
               <p className="mt-1 text-xs text-white/40 sm:text-sm">
-                Step 2 is visible. Step 3 carries this snapshot into your passport flow.
+                Your readiness check is complete. Open your passport to share it with an employer.
               </p>
             </div>
             {isDemo && (

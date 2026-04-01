@@ -1162,60 +1162,72 @@ export default function ReviewClient({ passport, contextId, bundleId, sharedBy }
         {actionState.phase === 'idle' || actionState.phase === 'downloading' ? (
           <SectionReveal delay={0.1}>
             <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
-            {/* Primary — Accept as head start */}
-            <Button
-              onClick={handleAccept}
-              disabled={!canPersistActions || actionState.phase === 'downloading'}
-              variant="success"
-              className="h-14 w-full rounded-xl text-sm font-medium"
-            >
-              {blocked.length > 0 ? `Accept as head start (${blocked.length} blocker${blocked.length === 1 ? '' : 's'} noted)` : 'Accept as head start'}
-            </Button>
 
-            {/* Secondary row */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={handleRequestRefresh}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
-                variant="outline"
-                title={freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
-                  ? `${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale source${freshnessEntries.filter(e => e.stale || e.unchecked).length === 1 ? '' : 's'} will be included`
-                  : 'Request the clinician refresh their data'}
-                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
-              >
-                {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
-                  ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
-                  : 'Request refresh'}
-              </Button>
-              <Button
-                onClick={handleRouteToReview}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
-                variant="outline"
-                title="Route to your credentialing committee for manual review"
-                className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
-              >
-                Route to review
-              </Button>
-            </div>
-
-            {!canPersistActions && (
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+            {/* Auth wall — shown instead of disabled buttons when employer not signed in */}
+            {!canPersistActions ? (
+              <div className="space-y-3 text-center py-2">
+                <p className="text-white/60 text-sm leading-relaxed">
+                  {CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn
+                    ? 'Sign in with your employer account to record this decision and create an auditable trail.'
+                    : previewOnlyMessage ?? 'Sign in to record this decision.'}
+                </p>
                 {CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn ? (
                   <Link
                     href={CLERK_SIGN_IN_URL}
-                    className="text-xs text-white/38 transition-colors hover:text-white/58"
+                    className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-white/10 border border-white/15 text-sm font-semibold text-white hover:bg-white/15 transition-colors"
                   >
                     Sign in with employer workspace
                   </Link>
                 ) : (
                   <Link
                     href={buildPassportEntityHref(passport.entityId)}
-                    className="text-xs text-white/38 transition-colors hover:text-white/58"
+                    className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/10 text-sm text-white/60 hover:text-white transition-colors"
                   >
                     Open full passport
                   </Link>
                 )}
               </div>
+            ) : (
+              <>
+                {/* Primary — Approve to proceed */}
+                <Button
+                  onClick={handleAccept}
+                  disabled={actionState.phase === 'downloading'}
+                  variant="success"
+                  className="h-14 w-full rounded-xl text-sm font-medium"
+                  title="Records your decision to move forward. Creates an auditable timestamp."
+                >
+                  {blocked.length > 0
+                    ? `Approve to proceed (${blocked.length} blocker${blocked.length === 1 ? '' : 's'} noted)`
+                    : 'Approve to proceed'}
+                </Button>
+
+                {/* Secondary row */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleRequestRefresh}
+                    disabled={actionState.phase === 'downloading'}
+                    variant="outline"
+                    title={freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
+                      ? `${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale source${freshnessEntries.filter(e => e.stale || e.unchecked).length === 1 ? '' : 's'} will be included`
+                      : 'Request the clinician refresh their data'}
+                    className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
+                  >
+                    {freshnessEntries.filter(e => e.stale || e.unchecked).length > 0
+                      ? `Request refresh (${freshnessEntries.filter(e => e.stale || e.unchecked).length} stale)`
+                      : 'Request refresh'}
+                  </Button>
+                  <Button
+                    onClick={handleRouteToReview}
+                    disabled={actionState.phase === 'downloading'}
+                    variant="outline"
+                    title="Route to your credentialing committee for manual review"
+                    className="min-h-[48px] rounded-xl border-white/10 bg-white/4 py-3.5 text-xs text-white/55 hover:border-white/20 hover:bg-white/8 hover:text-white/80"
+                  >
+                    Route to review
+                  </Button>
+                </div>
+              </>
             )}
             </Card>
           </SectionReveal>
