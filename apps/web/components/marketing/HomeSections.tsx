@@ -304,7 +304,7 @@ const TRACTION_STATS = [
 const BUILD_SIGNALS = [
   { icon: CheckCircle2, text: 'Live NPI verification via NPPES (7M+ provider registry)' },
   { icon: CheckCircle2, text: 'Cryptographic SD-JWT credentials — W3C VC + OID4VCI compliant' },
-  { icon: CheckCircle2, text: 'Clinician identity chain: NPI → readiness → portable trust packet' },
+  { icon: CheckCircle2, text: 'Clinician identity chain: NPI → readiness → portable credential packet' },
   { icon: CheckCircle2, text: 'Employer acceptance flow — review and accept verified packets' },
   { icon: CheckCircle2, text: 'HIPAA-aligned audit trail with continuous license monitoring' },
 ] as const;
@@ -717,9 +717,9 @@ const PILLAR_COLORS: Record<string, { border: string; tag: string; num: string }
 
 const NOVEL_CLAIMS = [
   {
-    claim: 'The first unified clinical identity graph',
+    claim: 'The first unified clinical identity chain',
     // M1: "blockchain-anchored" → "cryptographically signed" — no blockchain in prod
-    detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed graph. No one has built this for healthcare.',
+    detail: 'NPI → credentials → publications → career history — one traversable, source-backed, cryptographically-signed chain. No one has built this for healthcare.',
   },
   {
     claim: 'Credential-aware job matching',

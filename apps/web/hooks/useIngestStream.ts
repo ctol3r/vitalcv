@@ -20,6 +20,7 @@ import {
   applyIngestDisconnect,
   applyIngestEvent,
   createInitialIngestStreamState,
+  hydrateFromHomepagePreview,
   parseIngestEventData,
   parseIngestStartResponse,
   type IngestStreamState,
@@ -35,10 +36,14 @@ export type {
   StreamStanding,
 } from './ingestStreamState';
 
+export { hydrateFromHomepagePreview } from './ingestStreamState';
+
 // ── Hook ───────────────────────────────────────────────────────────────────────
 
-export function useIngestStream() {
-  const [state, setState] = useState<IngestStreamState>(() => createInitialIngestStreamState());
+export function useIngestStream(initialState?: IngestStreamState | null) {
+  const [state, setState] = useState<IngestStreamState>(
+    () => initialState ?? createInitialIngestStreamState(),
+  );
   const esRef = useRef<EventSource | null>(null);
 
   const startIngest = useCallback(async (npi: string) => {

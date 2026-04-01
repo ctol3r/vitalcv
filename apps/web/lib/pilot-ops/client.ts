@@ -22,8 +22,9 @@ export type PilotMetricEventType =
   | 'support_triggered'
   | 'auth_failure'
   | 'route_failure'
-  // UX-8: UX friction telemetry events
   | 'npi_submitted'
+  | 'employer_action_taken'
+  // UX-8: UX friction telemetry events
   | 'npi_submit_attempt'
   | 'npi_invalid'
   | 'source_check_started'

@@ -693,7 +693,8 @@ describe('post-release truth cleanup', () => {
     expect(employerProfileMarkup).toContain('Directory profile');
     expect(employerProfileMarkup).toContain('Directory signal');
     expect(employerProfileMarkup).toContain('Profile first listed');
-    expect(findHrefByText(employerProfileMarkup, 'Employer review')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.employerEntry);
+    // Employer profile now has inline ClinicianReadinessCheck instead of static "Employer review" link
+    expect(employerProfileMarkup).toContain('Check readiness');
     expect(findHrefByText(employerProfileMarkup, 'Current roles')).toBe('/explore?organizationSlug=sample-health');
     expectMarkupExcludes(employerProfileMarkup, PROHIBITED_EMPLOYER_PUBLIC_STRINGS);
   }, 20000);

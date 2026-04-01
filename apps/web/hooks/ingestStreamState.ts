@@ -250,6 +250,79 @@ export function createInitialIngestStreamState(): IngestStreamState {
   };
 }
 
+/**
+ * Hydrate an IngestStreamState from the homepage preview's ClinicianTrustState.
+ * Used when navigating from LiveTrustConsole → /passport to avoid re-running
+ * NPPES and OIG checks that already completed on the homepage.
+ *
+ * The returned state has NPPES and OIG marked as done, PECOS still pending
+ * (the passport SSE stream will fill it in). Phase is set to 'enrollment'
+ * so the passport page knows to start from the PECOS check.
+ */
+export function hydrateFromHomepagePreview(preview: {
+  npi: string;
+  realState: {
+    identityVerified: boolean;
+    exclusionClear: boolean;
+    exclusionStatus?: string;
+    readiness_score: number;
+    readiness_level: string;
+    readiness_status: string;
+    credentialCount: number;
+    computed_at: string;
+    methodology_version: string;
+    facts: Array<{ factType: string; details?: string; source: string; status: string }>;
+  } | null;
+  stages: Array<{ id: string; status: string }>;
+  isDemo: boolean;
+}): IngestStreamState | null {
+  const { realState } = preview;
+  if (!realState || preview.isDemo) {
+    return null;
+  }
+
+  const identityFact = realState.facts.find(
+    f => f.factType === 'PERSONAL_IDENTITY' || f.factType === 'NPI_IDENTITY',
+  );
+  const specFact = realState.facts.find(f => f.factType === 'SPECIALTY');
+
+  const nppesStage = preview.stages.find(s => s.id === 'NPPES_API');
+  const oigStage = preview.stages.find(s => s.id === 'OIG_LEIE');
+
+  return {
+    phase: 'enrollment',
+    npi: preview.npi,
+    identity: {
+      displayName: identityFact?.details ?? `NPI ${preview.npi}`,
+      specialty: specFact?.details,
+      authoritative: realState.identityVerified,
+      status: realState.identityVerified ? 'VERIFIED' : 'UNKNOWN',
+    },
+    standing: {
+      exclusionChecked: true,
+      exclusionClear: realState.exclusionClear,
+      exclusionStatus: realState.exclusionStatus,
+      enrollmentChecked: false,
+    },
+    readiness: {
+      score: realState.readiness_score,
+      level: realState.readiness_level,
+      status: realState.readiness_status,
+      credentialCount: realState.credentialCount,
+      checkedAt: realState.computed_at,
+    },
+    sources: {
+      nppes: nppesStage?.status === 'ok' ? 'done' : 'pending',
+      oig: oigStage?.status === 'ok' ? 'done' : 'pending',
+      pecos: 'pending',
+    },
+    events: [],
+    isUsable: false,
+    disconnected: false,
+    startedAt: new Date().toISOString(),
+  };
+}
+
 export function normalizeIngestEvent(input: unknown): IngestEvent | null {
   const rawEvent = asRecord(input);
   if (!rawEvent) {

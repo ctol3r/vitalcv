@@ -16,6 +16,7 @@ import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton'
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
 function deltaCopy(deltaScore: number | null): string {
@@ -119,17 +120,20 @@ export default function ClinicianReadinessSurface() {
       readinessLevel: current?.readinessLevel ?? null,
       blockerCount: data.blockers.length,
     });
-    void trackPilotEvent({
+    void trackPilotFunnelEvent({
       eventType: 'readiness_viewed',
+      npi,
       entity: {
         kind: 'passport',
         id: npi,
         label: npi,
         objectType: 'passport',
       },
+      dedupeKey: `readiness-viewed:clinician:${npi}`,
       details: {
         readinessLevel: current?.readinessLevel ?? null,
         blockerCount: data.blockers.length,
+        surface: 'clinician_readiness',
       },
     });
 

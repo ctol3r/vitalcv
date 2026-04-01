@@ -27,7 +27,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
-import { useIngestStream, type StreamPhase } from '@/hooks/useIngestStream';
+import { useIngestStream, hydrateFromHomepagePreview, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
@@ -234,6 +234,23 @@ function formatEnrollmentLabel(
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+const PREVIEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function readHomepagePreview(npi: string) {
+  try {
+    const raw = sessionStorage.getItem(`vitalcv:preview:${npi}`);
+    if (!raw) return null;
+    sessionStorage.removeItem(`vitalcv:preview:${npi}`);
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.timestamp === 'number' && Date.now() - parsed.timestamp > PREVIEW_TTL_MS) {
+      return null;
+    }
+    return hydrateFromHomepagePreview({ npi, ...parsed });
+  } catch {
+    return null;
+  }
+}
+
 function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   const normalizedInitialNpi =
     typeof initialNpi === 'string' && /^\d{10}$/.test(initialNpi.trim())
@@ -243,13 +260,19 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   const trackedPassportViewRef = useRef<Set<string>>(new Set());
   const [npi,       setNpi]       = useState(normalizedInitialNpi ?? '');
   const [inputError, setInputError] = useState<string | null>(null);
-  const { state, startIngest, reset } = useIngestStream();
+
+  // Check sessionStorage for pre-hydrated state from homepage LiveTrustConsole
+  const hydratedRef = useRef(
+    normalizedInitialNpi ? readHomepagePreview(normalizedInitialNpi) : null,
+  );
+  const { state, startIngest, reset } = useIngestStream(hydratedRef.current);
 
   useEffect(() => {
     if (normalizedInitialNpi && autoTriggeredNpi.current !== normalizedInitialNpi) {
       autoTriggeredNpi.current = normalizedInitialNpi;
       setInputError(null);
       setNpi(normalizedInitialNpi);
+      // If we hydrated from homepage preview, still run ingest to get PECOS + deeper checks
       void startIngest(normalizedInitialNpi);
     }
   }, [normalizedInitialNpi, startIngest]);

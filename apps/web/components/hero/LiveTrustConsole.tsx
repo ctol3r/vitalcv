@@ -202,10 +202,12 @@ interface IngestResponse {
 interface LiveTrustConsoleProps {
   /** Called when the readiness preview becomes visible — receives resolved NPI + display name */
   onPreviewReady?: (npi: string, displayName: string) => void;
+  /** Pre-fill the NPI input (used by /demo route) */
+  initialNpi?: string;
 }
 
-export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {}) {
-  const [npi,       setNpi]       = useState('');
+export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsoleProps = {}) {
+  const [npi,       setNpi]       = useState(initialNpi ?? '');
   const [phase,     setPhase]     = useState<Phase>('idle');
   const [stages,    setStages]    = useState<SourceStage[]>(INITIAL_STAGES);
   const [previewIn, setPreviewIn] = useState(false);
@@ -523,6 +525,21 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
         source_mode: sourceMode,
       },
     });
+
+    // Carry homepage trust state across to /passport via sessionStorage
+    try {
+      sessionStorage.setItem(
+        `vitalcv:preview:${trimmed}`,
+        JSON.stringify({
+          realState,
+          stages,
+          isDemo,
+          timestamp: Date.now(),
+        }),
+      );
+    } catch {
+      // sessionStorage unavailable (SSR, private browsing quota) — passport falls back to full ingest
+    }
 
     router.push(dest);
   }
