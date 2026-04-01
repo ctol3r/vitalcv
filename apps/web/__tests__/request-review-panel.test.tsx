@@ -23,6 +23,10 @@ vi.mock('@/lib/auth/clerkConfig', () => ({
   CLERK_SIGN_IN_URL: '/sign-in',
 }));
 
+vi.mock('@/lib/pilot-ops/client', () => ({
+  trackPilotEvent: vi.fn(async () => undefined),
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -197,6 +201,50 @@ describe('request review panel', () => {
     expect(textContent(view.container)).toContain('Request failed. Check your connection and try again.');
     expect(textContent(view.container)).toContain('Create review context');
     expect(textContent(view.container)).not.toContain('Review context created');
+
+    await view.unmount();
+  });
+
+  it('opens inline workspace setup when the API asks for workspace creation', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      code: 'EMPLOYER_WORKSPACE_REQUIRED',
+      error: 'Employer workspace required to request a review.',
+      hint: 'Create or switch into an employer workspace before requesting a clinician review.',
+      nextStep: 'create_workspace',
+    }, 403) as never);
+
+    const view = await renderNode(<RequestReviewPanel />);
+
+    await setInputValue(view.container, '#employer-npi', '1234567890');
+    await clickByText(view.container, 'Create review context');
+    await flush();
+
+    expect(textContent(view.container)).toContain('Employer workspace required');
+    expect(textContent(view.container)).toContain('Organization Type 2 NPI');
+    expect(textContent(view.container)).not.toContain('Could not create review context.');
+
+    await view.unmount();
+  });
+
+  it('reopens inline workspace setup when the API asks to complete workspace identity', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      code: 'EMPLOYER_WORKSPACE_IDENTITY_REQUIRED',
+      error: 'Employer workspace is missing a resolvable organization NPI.',
+      hint: 'Add a valid Type 2 NPI to the active employer workspace before requesting a clinician review.',
+      nextStep: 'complete_workspace_identity',
+    }, 409) as never);
+
+    const view = await renderNode(<RequestReviewPanel />);
+
+    await setInputValue(view.container, '#employer-npi', '1234567890');
+    await clickByText(view.container, 'Create review context');
+    await flush();
+
+    expect(textContent(view.container)).toContain('Employer workspace required');
+    expect(textContent(view.container)).toContain('Organization Type 2 NPI');
+    expect(textContent(view.container)).not.toContain('Employer workspace is missing a resolvable organization NPI.');
 
     await view.unmount();
   });

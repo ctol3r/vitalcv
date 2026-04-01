@@ -19,7 +19,7 @@ export function NpiLookupInput() {
       return;
     }
     setError('');
-    router.push(`/verify/${trimmed}`);
+    router.push(`/readiness?npi=${encodeURIComponent(trimmed)}`);
   }
 
   return (

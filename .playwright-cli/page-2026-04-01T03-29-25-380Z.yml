@@ -1,0 +1,83 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "VitalCV" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e6]:
+          - link "Check Readiness" [ref=e7] [cursor=pointer]:
+            - /url: /passport
+          - link "Employer Review" [ref=e8] [cursor=pointer]:
+            - /url: /review
+          - link "Developers" [ref=e9] [cursor=pointer]:
+            - /url: /developers
+        - generic [ref=e10]:
+          - button "Switch to dark mode" [ref=e47]:
+            - img [ref=e48]
+          - link "Sign In" [ref=e12] [cursor=pointer]:
+            - /url: /sign-in
+          - link "Check Readiness" [ref=e13] [cursor=pointer]:
+            - /url: /passport
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: Step 1
+          - paragraph [ref=e21]: Enter NPI
+        - generic [ref=e22]:
+          - paragraph [ref=e23]: Step 2
+          - paragraph [ref=e24]: Review readiness
+        - generic [ref=e25]:
+          - paragraph [ref=e26]: Step 3
+          - paragraph [ref=e27]: Open passport
+      - generic [ref=e28]:
+        - paragraph [ref=e29]: NPI first. Honest coverage.
+        - heading "See your readiness snapshot in about 10 seconds." [level=1] [ref=e30]
+        - paragraph [ref=e31]: VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as Checked, Pending, Access required, Missing data, or Preview only.
+        - generic [ref=e32]:
+          - textbox "NPI number" [disabled] [active] [ref=e33]:
+            - /placeholder: Enter your 10-digit NPI
+            - text: "1234567890"
+          - button "Building your snapshot…" [disabled]:
+            - generic: Building your snapshot…
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: Building your snapshot…
+          - paragraph [ref=e69]: Connected sources only flip complete when they actually return.
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]: –
+              - generic [ref=e75]:
+                - text: Primary identity (NPPES)
+                - paragraph [ref=e76]: Required source data is still missing or unavailable
+            - generic [ref=e77]: Missing data
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: ✓
+              - generic [ref=e81]:
+                - text: Sanctions (OIG / LEIE)
+                - paragraph [ref=e82]: Confirmed in this run from the source
+            - generic [ref=e83]: Checked
+          - generic [ref=e84]:
+            - generic [ref=e87]:
+              - text: Readiness snapshot
+              - paragraph [ref=e88]: Not yet checked in this session
+            - generic [ref=e89]: Pending
+    - contentinfo [ref=e37]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - paragraph [ref=e41]: © VitalCV
+          - link "Dev · just now" [ref=e50] [cursor=pointer]:
+            - /url: /updates
+            - generic [ref=e52]: Dev
+            - generic [ref=e53]: ·
+            - generic [ref=e54]: just now
+        - link "Updates" [ref=e43] [cursor=pointer]:
+          - /url: /updates
+    - button "Send feedback" [ref=e44]:
+      - img [ref=e45]
+      - text: Feedback
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e60] [cursor=pointer]:
+    - img [ref=e61]
+  - alert [ref=e64]

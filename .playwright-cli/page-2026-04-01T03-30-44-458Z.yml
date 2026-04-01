@@ -1,0 +1,32 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - main [ref=e286]:
+      - generic [ref=e287]:
+        - generic [ref=e288]:
+          - text: VitalCV
+          - heading "Check your readiness" [level=1] [ref=e289]
+        - generic [ref=e290]:
+          - paragraph [ref=e291]: Connecting to primary sources…
+          - generic [ref=e292]:
+            - generic [ref=e294]:
+              - generic [ref=e297]: NPPES
+              - generic [ref=e298]: Pending
+            - generic [ref=e300]:
+              - generic [ref=e303]: OIG
+              - generic [ref=e304]: Pending
+            - generic [ref=e306]:
+              - generic [ref=e309]: PECOS
+              - generic [ref=e310]: Pending
+            - generic [ref=e311]:
+              - generic [ref=e312]:
+                - generic [ref=e315]: State Board
+                - generic [ref=e316]: Access required
+              - paragraph [ref=e317]: State board data is not yet integrated. NPPES, OIG, and PECOS cover primary identity, sanctions, and enrollment.
+          - button "Cancel" [ref=e319]
+    - button "Send feedback" [ref=e44]:
+      - img [ref=e45]
+      - text: Feedback
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e60] [cursor=pointer]:
+    - img [ref=e61]
+  - alert [ref=e64]

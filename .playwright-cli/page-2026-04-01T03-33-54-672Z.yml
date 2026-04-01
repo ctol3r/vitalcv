@@ -1,0 +1,59 @@
+- generic:
+  - generic [active]:
+    - generic [ref=e5] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e6]:
+        - img [ref=e7]
+      - generic [ref=e10]:
+        - button "Open issues overlay" [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: "0"
+            - generic [ref=e14]: "1"
+          - generic [ref=e15]: Issue
+        - button "Collapse issues badge" [ref=e16]:
+          - img [ref=e17]
+    - generic [ref=e21]:
+      - dialog "Runtime Error" [ref=e22]:
+        - generic [ref=e24]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e29]: Runtime Error
+              - generic [ref=e30]:
+                - button "Copy Stack Trace" [ref=e31] [cursor=pointer]:
+                  - img [ref=e32]
+                - button "No related documentation found" [disabled] [ref=e34]:
+                  - img [ref=e35]
+                - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools" [ref=e37] [cursor=pointer]:
+                  - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+                  - img [ref=e38]
+            - paragraph [ref=e47]: "TypeError: __webpack_modules__[moduleId] is not a function"
+          - contentinfo [ref=e50]:
+            - paragraph [ref=e51]: This error happened while generating the page. Any console logs will be displayed in the terminal window.
+            - region "Error feedback" [ref=e52]:
+              - paragraph [ref=e53]:
+                - link "Was this helpful?" [ref=e54] [cursor=pointer]:
+                  - /url: https://nextjs.org/telemetry#error-feedback
+              - button "Mark as helpful" [ref=e55] [cursor=pointer]:
+                - img [ref=e56]
+              - button "Mark as not helpful" [ref=e59] [cursor=pointer]:
+                - img [ref=e60]
+          - generic [ref=e62]:
+            - generic [ref=e63]: "1"
+            - generic [ref=e64]: "2"
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - navigation [ref=e67]:
+            - button "previous" [disabled] [ref=e68]:
+              - img "previous" [ref=e69]
+            - generic [ref=e71]:
+              - generic [ref=e72]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e73]:
+              - img "next" [ref=e74]
+          - img
+        - generic [ref=e76]:
+          - link "Next.js 15.2.8 (outdated)" [ref=e77] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/version-staleness
+            - img [ref=e78]
+            - generic "An outdated version detected (latest is 16.2.2), upgrade is highly recommended!" [ref=e80]: Next.js 15.2.8 (outdated)
+          - img
+  - alert [ref=e81]

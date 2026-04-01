@@ -58,6 +58,8 @@ export interface CandidateResult {
   completeness: number;
 }
 
+const NPI_RE = /^\d{10}$/;
+
 /* ── Internal helpers ────────────────────────────────────────── */
 
 async function getPersonProfile(clerkUserId: string) {
@@ -84,6 +86,7 @@ export async function upsertOrgProfile(
   clerkUserId: string,
   input: {
     name: string;
+    npi?: string;
     facilityType?: string;
     specialties?: string[];
     statesCovered?: string[];
@@ -103,9 +106,14 @@ export async function upsertOrgProfile(
     name: input.name,
     website: input.website,
   });
+  const normalizedNpi = typeof input.npi === 'string' ? input.npi.trim() : '';
 
   if (canonicalIdentity.domain && isPlaceholderOrganizationDomain(canonicalIdentity.domain)) {
     throw new HttpError(400, 'Public employer profiles must use a real employer domain.');
+  }
+
+  if (normalizedNpi && !NPI_RE.test(normalizedNpi)) {
+    throw new HttpError(400, 'Organization NPI must be exactly 10 digits.');
   }
 
   // Ensure PersonProfile exists (verifiers may not have NPI yet)
@@ -154,6 +162,7 @@ export async function upsertOrgProfile(
     await prisma.organizationProfile.update({
       where: { id: existingMembership.organizationProfileId },
       data: {
+        ...(normalizedNpi ? { npi: normalizedNpi } : {}),
         facilityType: input.facilityType,
         specialties: input.specialties ?? [],
         statesCovered: input.statesCovered ?? [],
@@ -182,6 +191,7 @@ export async function upsertOrgProfile(
       slug: canonicalIdentity.slug,
       organizationProfile: {
         create: {
+          ...(normalizedNpi ? { npi: normalizedNpi } : {}),
           facilityType: input.facilityType ?? 'hospital',
           specialties: input.specialties ?? [],
           statesCovered: input.statesCovered ?? [],

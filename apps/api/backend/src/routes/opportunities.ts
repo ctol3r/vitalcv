@@ -64,6 +64,7 @@ export function registerOpportunityRoutes(app: Express): void {
       const clerkUserId = requireClerkUserId(req);
       const body = req.body as {
         name?: string;
+        npi?: string;
         facilityType?: string;
         specialties?: string[];
         statesCovered?: string[];
@@ -82,6 +83,7 @@ export function registerOpportunityRoutes(app: Express): void {
 
       const result = await upsertOrgProfile(clerkUserId, {
         name: body.name.trim(),
+        npi: body.npi,
         facilityType: body.facilityType,
         specialties: body.specialties,
         statesCovered: body.statesCovered,

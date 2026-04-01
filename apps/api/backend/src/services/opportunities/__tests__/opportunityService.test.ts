@@ -227,4 +227,31 @@ describe('opportunityService org profile pilot policy', () => {
       }),
     }));
   });
+
+  it('persists an organization NPI when employer setup includes one', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue({
+      organizationProfileId: 'org-profile-1',
+      organizationProfile: {
+        organizationId: 'org-1',
+        requirements: [],
+        organization: { name: 'General Hospital' },
+      },
+    });
+    prismaMock.organization.findUnique.mockResolvedValue(null);
+    prismaMock.organization.update.mockResolvedValue({});
+    prismaMock.organizationProfile.update.mockResolvedValue({});
+
+    await upsertOrgProfile('clerk-user-1', {
+      name: 'General Hospital',
+      npi: '1999999999',
+    });
+
+    expect(prismaMock.organizationProfile.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        npi: '1999999999',
+      }),
+    }));
+  });
 });

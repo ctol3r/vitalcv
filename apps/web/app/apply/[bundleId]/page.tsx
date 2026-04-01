@@ -110,18 +110,30 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
   const messages = {
     expired: {
       emoji: '⏱',
-      title: 'This bundle has expired',
-      body: 'Credential bundles are valid for 24 hours. Ask the clinician to generate a new one.',
+      title: 'This link has expired',
+      body: 'Passport links are valid for 24 hours.',
+      primaryLabel: 'Return to your passport',
+      primaryHref: '/holder',
+      secondaryLabel: 'Start a new NPI lookup',
+      secondaryHref: '/passport',
     },
     not_found: {
       emoji: '🔍',
-      title: 'Bundle not found',
-      body: 'This bundle link is invalid or has been revoked.',
+      title: 'Link not found',
+      body: 'This link is invalid or has been revoked.',
+      primaryLabel: 'Start a new NPI lookup',
+      primaryHref: '/passport',
+      secondaryLabel: null,
+      secondaryHref: null,
     },
     error: {
       emoji: '⚠️',
-      title: 'Connection Interrupted',
-      body: 'We could not fetch this bundle right now. Please try again in a few minutes.',
+      title: 'Connection interrupted',
+      body: 'We could not load this passport right now. Try again in a moment.',
+      primaryLabel: 'Try again',
+      primaryHref: null, // reload
+      secondaryLabel: 'Start a new NPI lookup',
+      secondaryHref: '/passport',
     },
   };
 
@@ -133,12 +145,31 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
         <div className="text-5xl">{msg.emoji}</div>
         <h1 className="text-xl font-bold text-white">{msg.title}</h1>
         <p className="text-sm text-white/40">{msg.body}</p>
-        <a
-          href="https://vitalcv.com"
-          className="mt-4 inline-block rounded-xl border border-white/6 bg-[var(--vt-surface-dim)] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/8"
-        >
-          Go to VitalCV
-        </a>
+        <div className="flex flex-col gap-2 pt-2">
+          {msg.primaryHref ? (
+            <a
+              href={msg.primaryHref}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-white/10 border border-white/15 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+            >
+              {msg.primaryLabel}
+            </a>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-white/10 border border-white/15 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+            >
+              {msg.primaryLabel}
+            </button>
+          )}
+          {msg.secondaryHref && (
+            <a
+              href={msg.secondaryHref}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              {msg.secondaryLabel}
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

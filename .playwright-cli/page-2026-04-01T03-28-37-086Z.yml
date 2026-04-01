@@ -1,0 +1,48 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "VitalCV" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e6]:
+          - link "Check Readiness" [ref=e7] [cursor=pointer]:
+            - /url: /passport
+          - link "Employer Review" [ref=e8] [cursor=pointer]:
+            - /url: /review
+          - link "Developers" [ref=e9] [cursor=pointer]:
+            - /url: /developers
+        - generic [ref=e10]:
+          - link "Sign In" [ref=e12] [cursor=pointer]:
+            - /url: /sign-in
+          - link "Check Readiness" [ref=e13] [cursor=pointer]:
+            - /url: /passport
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: Step 1
+          - paragraph [ref=e21]: Enter NPI
+        - generic [ref=e22]:
+          - paragraph [ref=e23]: Step 2
+          - paragraph [ref=e24]: Review readiness
+        - generic [ref=e25]:
+          - paragraph [ref=e26]: Step 3
+          - paragraph [ref=e27]: Open passport
+      - generic [ref=e28]:
+        - paragraph [ref=e29]: NPI first. Honest coverage.
+        - heading "See your readiness snapshot in about 10 seconds." [level=1] [ref=e30]
+        - paragraph [ref=e31]: VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as Checked, Pending, Access required, Missing data, or Preview only.
+        - generic [ref=e32]:
+          - textbox "NPI number" [ref=e33]:
+            - /placeholder: Enter your 10-digit NPI
+          - button "Start with NPI lookup" [ref=e34]:
+            - generic [ref=e35]: Start with NPI lookup
+      - paragraph [ref=e36]: No signup required to preview. Other checks appear only when that source has actually run.
+    - contentinfo [ref=e37]:
+      - generic [ref=e39]:
+        - paragraph [ref=e41]: © VitalCV
+        - link "Updates" [ref=e43] [cursor=pointer]:
+          - /url: /updates
+    - button "Send feedback" [ref=e44]:
+      - img [ref=e45]
+      - text: Feedback
+  - region "Notifications alt+T"
