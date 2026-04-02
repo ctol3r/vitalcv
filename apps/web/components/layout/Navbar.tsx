@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { href: '/explore',     label: 'Explore Roles' },
   { href: '/employers',   label: 'For Employers' },
   { href: '/developers',  label: 'Developers' },
+  { href: '/pilot',       label: 'Pilot' },
 ] as const;
 
 export default function Navbar() {
