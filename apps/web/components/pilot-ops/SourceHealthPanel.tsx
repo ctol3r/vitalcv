@@ -182,7 +182,10 @@ export function SourceHealthPanel() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-zinc-500">
+                <span
+                  className="text-[10px] text-zinc-500"
+                  title={source.lastSuccessAt ?? 'never'}
+                >
                   {formatAge(source.lastSuccessAt)}
                 </span>
                 {source.consecutiveFailures >= 1 && (

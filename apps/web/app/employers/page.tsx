@@ -2,14 +2,7 @@ import type { Metadata } from 'next';
 import { getBackendBase } from '@/lib/api';
 import { resolveEmployerDirectoryCountSummary } from '@/lib/employers/directory-count-summary';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
-import {
-  ArrowRight,
-  BriefcaseBusiness,
-  ShieldCheck,
-  Stethoscope,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldCheck, Users } from 'lucide-react';
 
 interface EmployerSummary {
   id: string;
@@ -40,7 +33,7 @@ const BACKEND = getBackendBase();
 export const metadata: Metadata = {
   title: 'Employers — VitalCV',
   description:
-    'Employer directory with trust signals, role counts, and clinician readiness snapshots.',
+    'Employer pilot entry for source-backed clinician readiness review and hiring decisions.',
 };
 
 function hiringStatusLabel(value: string): string {
@@ -88,37 +81,6 @@ async function fetchOpportunitySummary(): Promise<OpportunityListPayload> {
   }
 }
 
-function RoleEntryCard({
-  icon,
-  title,
-  detail,
-  href,
-  action,
-}: {
-  icon: ReactNode;
-  title: string;
-  detail: string;
-  href: string;
-  action: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-foreground/80">
-        {icon}
-      </div>
-      <h2 className="mt-4 text-lg font-semibold text-foreground">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-foreground">{detail}</p>
-      <Link
-        href={href}
-        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
-      >
-        {action}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
-  );
-}
-
 export default async function EmployersPage() {
   const [employerPayload, opportunityPayload] = await Promise.all([
     fetchEmployers(),
@@ -136,16 +98,40 @@ export default async function EmployersPage() {
         <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
-              Current Employer Directory
+              Employer pilot entry
             </span>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground">
-              See current employers, roles, and review entry points.
+              Reduce credentialing decision time with source-backed clinician review.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-foreground/60">
-              This page stays scoped to the current employer directory and public opportunity feed in
-              this environment. Counts reflect what is visible here so the directory does not imply
-              broader coverage than the current feed can support.
+              VitalCV helps credentialing and recruiting operations run one practical workflow: NPI lookup,
+              readiness snapshot, passport proof, and employer review actions. This page stays scoped to what
+              is currently visible in the public wedge and pilot flow.
             </p>
+          </div>
+
+          <div className="mt-8 rounded-3xl border border-emerald-300/20 bg-emerald-400/10 p-6">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-foreground/80">Primary action</p>
+            <h2 className="mt-2 text-2xl font-semibold text-foreground">Start an employer pilot intake</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground/75">
+              Share the clinician NPI, run readiness, and open review with audit-backed decisions. Pilot scope
+              stays narrow: faster initial credentialing decisions for real candidate review.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href="/pilot"
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-300"
+              >
+                Request pilot
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/review"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-foreground/70 transition hover:text-foreground"
+              >
+                Open review entry
+              </Link>
+            </div>
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -172,27 +158,27 @@ export default async function EmployersPage() {
           </div>
 
           <div className="mt-10 grid gap-4 lg:grid-cols-3">
-            <RoleEntryCard
-              icon={<Stethoscope className="h-5 w-5" />}
-              title="Clinician entry"
-              detail="Check clinician readiness, then continue into the current explore flow with the same public role context."
-              href="/onboarding?returnTo=%2Fexplore"
-              action="Check clinician readiness"
-            />
-            <RoleEntryCard
-              icon={<BriefcaseBusiness className="h-5 w-5" />}
-              title="Employer entry"
-              detail="Employer review opens from a real passport share. Start there when a clinician has shared current packet context."
-              href="/review"
-              action="Open employer review"
-            />
-            <RoleEntryCard
-              icon={<ShieldCheck className="h-5 w-5" />}
-              title="Current roles"
-              detail="Browse the current public role feed attached to this employer directory without leaving the public wedge."
-              href="/explore"
-              action="Browse current roles"
-            />
+            <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-foreground/80">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">1) NPI into readiness</h2>
+              <p className="mt-2 text-sm leading-6 text-foreground/60">Start with clinician NPI and confirm source-backed readiness coverage before employer action.</p>
+            </div>
+            <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-foreground/80">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">2) Passport proof in review</h2>
+              <p className="mt-2 text-sm leading-6 text-foreground/60">Review the passport packet with explicit source status so unsupported checks are never implied.</p>
+            </div>
+            <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-foreground/80">
+                <Users className="h-5 w-5" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">3) Decision + audit trail</h2>
+              <p className="mt-2 text-sm leading-6 text-foreground/60">Record accept or reject decisions against the review context and keep pilot decisions traceable.</p>
+            </div>
           </div>
         </div>
       </section>

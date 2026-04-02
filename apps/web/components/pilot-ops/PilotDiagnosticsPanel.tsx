@@ -139,9 +139,31 @@ export function PilotDiagnosticsPanel() {
             </h4>
             <div className="space-y-1">
               {spineSources.map((source) => (
-                <div key={source.sourceId} className="flex items-center justify-between px-1 py-1">
-                  <span className="text-[11px] text-zinc-400">{source.name}</span>
-                  <span className="text-[11px] text-zinc-500">{formatAge(source.lastSuccessAt)}</span>
+                <div key={source.sourceId} className="px-1 py-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-zinc-400">{source.name}</span>
+                    <span
+                      className="text-[11px] text-zinc-500"
+                      title={source.lastSuccessAt ?? 'never'}
+                    >
+                      {formatAge(source.lastSuccessAt)}
+                    </span>
+                  </div>
+                  {source.coverageState === 'unavailable' && (
+                    <p className="mt-0.5 text-[10px] text-rose-400/80">
+                      → Source unreachable. Check connector config and env flags.
+                    </p>
+                  )}
+                  {source.coverageState === 'stale' && (
+                    <p className="mt-0.5 text-[10px] text-amber-400/70">
+                      → Data is stale. Trigger a manual refresh or verify the ingest schedule.
+                    </p>
+                  )}
+                  {source.coverageState === 'gated' && (
+                    <p className="mt-0.5 text-[10px] text-sky-400/70">
+                      → Institutional access required. Configure credentials and set env flag to enable.
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

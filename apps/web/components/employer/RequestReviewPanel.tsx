@@ -222,7 +222,7 @@ export function RequestReviewPanel() {
             disabled={npi.length !== 10}
             className="h-14 w-full rounded-xl text-sm font-medium"
           >
-            Create review context
+            Create pilot review
           </Button>
         </form>
       )}

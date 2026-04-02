@@ -1,19 +1,30 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Start a Pilot — VitalCV',
-  description:
-    'Start a VitalCV pilot. Source-backed credential verification, employer decision surfaces, and credential readiness scoring for healthcare organizations.',
+  description: 'Start a focused employer pilot for NPI-to-review credential readiness decisions.',
 };
 
-const INCLUDES = [
-  'Source-backed verification from NPPES, OIG/LEIE, and PECOS',
-  'Employer review decision surface with audit trail',
-  'Credential Readiness Score (CRS) — 0–100, deterministic, explainable',
-  'Operator diagnostics and source health monitoring',
-];
+const PILOT_STEPS = [
+  {
+    title: 'What this pilot is',
+    body: 'A focused employer pilot for faster credentialing decisions using source-backed clinician readiness and passport review.',
+  },
+  {
+    title: 'What you provide',
+    body: 'A real clinician NPI and the hiring or credentialing team member who will run review decisions.',
+  },
+  {
+    title: 'What VitalCV does',
+    body: 'Runs NPI-linked readiness checks, assembles the current passport packet, and opens employer review actions with audit context.',
+  },
+  {
+    title: 'What success looks like',
+    body: 'Your team can move from NPI to a documented review decision with less manual back-and-forth and no inflated source claims.',
+  },
+] as const;
 
 const SCOPE_GUARDS = [
   'We do not claim universal state board coverage — licensure lanes are configured per pilot geography',
@@ -23,34 +34,60 @@ const SCOPE_GUARDS = [
 
 export default function PilotPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-6 py-24">
-        <h1 className="text-3xl font-bold text-foreground">
-          Start a Pilot
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-          VitalCV reduces clinician time-to-start by replacing repeated verification
-          with source-backed, reusable trust. We work with payer credential teams
-          and staffing vendors in single-tenant deployments.
-        </p>
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
+      <div className="mx-auto max-w-4xl space-y-10">
+        <div className="space-y-4">
+          <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
+            Employer pilot
+          </span>
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Start a focused pilot: NPI to readiness, passport, and review.
+          </h1>
+          <p className="max-w-3xl text-base leading-7 text-muted-foreground">
+            This is the buyer entry for healthcare employers, credentialing teams, and recruiting operators.
+            Scope stays narrow to what is shipping today: source-backed readiness where available, explicit
+            pending coverage where not, and one review workflow.
+          </p>
+        </div>
 
-        {/* What's included */}
-        <section className="mt-16">
-          <h2 className="text-lg font-semibold text-foreground">
-            What pilots include
-          </h2>
-          <ul className="mt-4 space-y-3">
-            {INCLUDES.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+        <section className="grid gap-4 md:grid-cols-2">
+          {PILOT_STEPS.map((step) => (
+            <article key={step.title} className="rounded-2xl border border-border/70 bg-card p-5">
+              <div className="mb-3 inline-flex rounded-full bg-emerald-500/10 p-2 text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-semibold">{step.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">One next step</p>
+          <h2 className="mt-2 text-2xl font-semibold">Request pilot review setup</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Use a clinician NPI to create a review context and start the pilot motion immediately.
+            If you already have a shared passport link, you can open employer review directly.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/review/request"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            >
+              Request review
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/review"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              Open review entry
+            </Link>
+          </div>
         </section>
 
         {/* Scope guard */}
-        <section className="mt-12 rounded-lg border border-border bg-muted/40 px-5 py-5">
+        <section className="rounded-lg border border-border bg-muted/40 px-5 py-5">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <AlertTriangle className="h-4 w-4" />
             Scope boundaries
@@ -65,7 +102,7 @@ export default function PilotPage() {
         </section>
 
         {/* Request form */}
-        <section className="mt-12">
+        <section>
           <h2 className="text-lg font-semibold text-foreground">
             Request access
           </h2>
@@ -140,6 +177,6 @@ export default function PilotPage() {
           </p>
         </section>
       </div>
-    </div>
+    </main>
   );
 }
