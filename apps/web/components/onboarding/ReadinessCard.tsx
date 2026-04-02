@@ -61,22 +61,22 @@ export function ReadinessCard({ state, title, summary, passportId, className }: 
         <div className={cn("absolute inset-0 opacity-20 blur-[100px]", config.bg)} />
 
         <div className="relative z-10 flex flex-col items-center space-y-8">
-          <div className={cn("flex items-center gap-3 px-4 py-2 rounded-full border bg-white/5", config.border)}>
+          <div className={cn("flex items-center gap-3 px-4 py-2 rounded-full border bg-muted", config.border)}>
             <Icon className={cn("h-5 w-5", config.color)} />
             <span className={cn("text-sm font-bold tracking-[0.2em] uppercase", config.color)}>
               {config.label}
             </span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-white text-balance">
+          <h2 className="text-4xl md:text-5xl font-heading font-extrabold text-foreground text-balance">
             {title}
           </h2>
 
-          <p className="text-xl text-white/60 max-w-lg mx-auto leading-relaxed">
+          <p className="text-xl text-foreground max-w-lg mx-auto leading-relaxed">
             {summary}
           </p>
 
-          <div className="pt-8 w-full border-t border-white/10 mt-8 flex justify-center">
+          <div className="pt-8 w-full border-t border-border mt-8 flex justify-center">
             <MagneticButton>
               <Link href={`/onboarding/success`} className="glue-btn glue-btn-primary">
                 Activate Profile

@@ -22,15 +22,15 @@ export function TimeToStartEstimateSummary({
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Estimated start</p>
-          <p className="mt-1 text-lg font-semibold text-white">{estimate.estimatedStartLabel}</p>
+          <p className="mt-1 text-lg font-semibold text-foreground">{estimate.estimatedStartLabel}</p>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Without VitalCV</p>
-          <p className="mt-1 text-sm font-medium text-white">{estimate.baselineLabel}</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{estimate.baselineLabel}</p>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Time saved</p>
-          <p className="mt-1 text-sm font-medium text-white">{estimate.timeSavedLabel}</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{estimate.timeSavedLabel}</p>
         </div>
       </div>
 

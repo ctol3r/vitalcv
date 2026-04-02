@@ -556,15 +556,15 @@ export default function VCommandBar() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -14 }}
             transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-            className="fixed left-1/2 top-[8vh] z-[9999] w-[min(94vw,78rem)] -translate-x-1/2 overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(8,12,20,0.94)] shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+            className="fixed left-1/2 top-[8vh] z-[9999] w-[min(94vw,78rem)] -translate-x-1/2 overflow-hidden rounded-[28px] border border-border bg-[rgba(8,12,20,0.94)] shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
           >
-            <div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(17,24,39,0.95),rgba(11,15,23,0.82))] px-5 py-4">
+            <div className="border-b border-border bg-[linear-gradient(180deg,rgba(17,24,39,0.95),rgba(11,15,23,0.82))] px-5 py-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
                   <Command className="h-3.5 w-3.5" />
                   VCommandBar
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-slate-300">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium text-slate-300">
                   {input.mode === 'command' ? <TerminalSquare className="h-3.5 w-3.5" /> : null}
                   {input.mode === 'search' ? <Search className="h-3.5 w-3.5" /> : null}
                   {input.mode === 'copilot' ? <Bot className="h-3.5 w-3.5" /> : null}
@@ -575,7 +575,7 @@ export default function VCommandBar() {
                 ) : null}
               </div>
 
-              <div className="mt-4 flex items-center gap-3 rounded-[22px] border border-white/10 bg-black/20 px-4 py-3">
+              <div className="mt-4 flex items-center gap-3 rounded-[22px] border border-border bg-black/20 px-4 py-3">
                 <Search className="h-4 w-4 shrink-0 text-slate-400" />
                 <input
                   autoFocus
@@ -585,7 +585,7 @@ export default function VCommandBar() {
                     setError(null);
                   }}
                   placeholder='Search providers, ask Copilot, or run >commands'
-                  className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-slate-500"
+                  className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-slate-500"
                   spellCheck={false}
                   autoComplete="off"
                 />
@@ -593,7 +593,7 @@ export default function VCommandBar() {
                   type="button"
                   onClick={saveCurrentQuery}
                   disabled={!input.normalized || input.mode === 'command'}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-border hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Bookmark className="h-3.5 w-3.5" />
                   Save query
@@ -601,7 +601,7 @@ export default function VCommandBar() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-full border border-white/10 p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                  className="rounded-full border border-border p-2 text-slate-400 transition hover:bg-muted hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -609,8 +609,8 @@ export default function VCommandBar() {
             </div>
 
             <div className="grid min-h-[34rem] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-              <div className="border-b border-white/10 lg:border-b-0 lg:border-r">
-                <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <div className="border-b border-border lg:border-b-0 lg:border-r">
+                <div className="flex items-center justify-between border-b border-border px-5 py-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Results</p>
                     <p className="mt-1 text-sm text-slate-300">
@@ -656,7 +656,7 @@ export default function VCommandBar() {
                         }`}
                       >
                         <div className={`mt-0.5 rounded-2xl border p-2 ${
-                          selected ? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100' : 'border-white/10 bg-white/5 text-slate-400'
+                          selected ? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100' : 'border-border bg-muted text-slate-400'
                         }`}
                         >
                           <Icon className="h-4 w-4" />
@@ -670,7 +670,7 @@ export default function VCommandBar() {
                               <p className="mt-1 truncate text-xs text-slate-400">{result.subtitle}</p>
                             </div>
                             {typeof result.trustScore === 'number' ? (
-                              <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-200">
+                              <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-slate-200">
                                 {Math.round(result.trustScore)}
                               </span>
                             ) : null}
@@ -681,7 +681,7 @@ export default function VCommandBar() {
                               {result.badges.map((badge) => (
                                 <span
                                   key={`${result.id}:${badge}`}
-                                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300"
+                                  className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-slate-300"
                                 >
                                   {badge}
                                 </span>
@@ -699,11 +699,11 @@ export default function VCommandBar() {
               <div className="max-h-[34rem] overflow-y-auto px-5 py-5">
                 {selectedResult ? (
                   <div className="space-y-5">
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Preview</p>
-                          <h2 className="mt-2 text-xl font-semibold text-white">{selectedResult.title}</h2>
+                          <h2 className="mt-2 text-xl font-semibold text-foreground">{selectedResult.title}</h2>
                           <p className="mt-1 text-sm text-slate-400">{selectedResult.subtitle}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -711,7 +711,7 @@ export default function VCommandBar() {
                             <button
                               type="button"
                               onClick={() => executeSelection(selectedResult)}
-                              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
+                              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-muted"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                               Open entity
@@ -721,7 +721,7 @@ export default function VCommandBar() {
                       </div>
 
                       {parsePreview ? (
-                        <div className="mt-4 rounded-[20px] border border-white/10 bg-slate-950/40 p-4">
+                        <div className="mt-4 rounded-[20px] border border-border bg-slate-950/40 p-4">
                           <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                             <Sparkles className="h-3.5 w-3.5" />
                             Parsed query
@@ -771,14 +771,14 @@ export default function VCommandBar() {
                         />
 
                         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                          <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                          <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Latest findings</p>
                             <div className="mt-4 space-y-3">
                               {(findingsPreview.data?.findings ?? []).slice(0, 4).map((finding) => (
-                                <div key={finding.id} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                                <div key={finding.id} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
                                   <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-semibold text-white">{finding.title}</p>
-                                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-slate-300">
+                                    <p className="text-sm font-semibold text-foreground">{finding.title}</p>
+                                    <span className="rounded-full border border-border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-slate-300">
                                       {finding.severity}
                                     </span>
                                   </div>
@@ -791,27 +791,27 @@ export default function VCommandBar() {
                             </div>
                           </div>
 
-                          <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                          <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Relationship preview</p>
                             <div className="mt-4 grid gap-3">
                               <div className="grid grid-cols-3 gap-2">
-                                <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Nodes</p>
-                                  <p className="mt-1 text-xl font-semibold text-white">{graphPreview.data?.stats.totalNodes ?? 0}</p>
+                                  <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.totalNodes ?? 0}</p>
                                 </div>
-                                <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Edges</p>
-                                  <p className="mt-1 text-xl font-semibold text-white">{graphPreview.data?.stats.totalEdges ?? 0}</p>
+                                  <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.totalEdges ?? 0}</p>
                                 </div>
-                                <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">AI links</p>
-                                  <p className="mt-1 text-xl font-semibold text-white">{graphPreview.data?.stats.aiSuggestedLinks ?? 0}</p>
+                                  <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.aiSuggestedLinks ?? 0}</p>
                                 </div>
                               </div>
                               <div className="space-y-3">
                                 {graphNeighbors.map((neighbor) => (
-                                  <div key={neighbor.id} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                                    <p className="text-sm font-semibold text-white">{neighbor.title}</p>
+                                  <div key={neighbor.id} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                    <p className="text-sm font-semibold text-foreground">{neighbor.title}</p>
                                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">{neighbor.detail}</p>
                                   </div>
                                 ))}
@@ -827,7 +827,7 @@ export default function VCommandBar() {
 
                     {!providerDetail.data && selectedResult.kind === 'copilot' ? (
                       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                        <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Copilot explanation</p>
                           <p className="mt-4 text-sm leading-7 text-slate-300">
                             {selectedCopilotExplanation?.summary ?? selectedResult.explanation ?? selectedResult.summary}
@@ -835,7 +835,7 @@ export default function VCommandBar() {
                           {selectedCopilotExplanation?.because?.length ? (
                             <div className="mt-4 space-y-2">
                               {selectedCopilotExplanation.because.slice(0, 4).map((reason) => (
-                                <div key={reason} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-slate-200">
+                                <div key={reason} className="rounded-2xl border border-border bg-black/20 px-3 py-3 text-sm text-slate-200">
                                   {reason}
                                 </div>
                               ))}
@@ -844,7 +844,7 @@ export default function VCommandBar() {
                           {selectedResult.sourceCoverage?.length ? (
                             <div className="mt-4 flex flex-wrap gap-2">
                               {selectedResult.sourceCoverage.map((source) => (
-                                <span key={`${selectedResult.id}:${source}`} className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-slate-300">
+                                <span key={`${selectedResult.id}:${source}`} className="rounded-full border border-border px-2.5 py-1 text-[11px] text-slate-300">
                                   {source}
                                 </span>
                               ))}
@@ -852,12 +852,12 @@ export default function VCommandBar() {
                           ) : null}
                         </div>
 
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                        <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Related insights</p>
                           <div className="mt-4 space-y-3">
                             {selectedGraphInsights.slice(0, 4).map((insight, index) => (
-                              <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                                <p className="text-sm font-semibold text-white">{insight.summary}</p>
+                              <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                <p className="text-sm font-semibold text-foreground">{insight.summary}</p>
                                 <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
                                   depth {insight.depth} • {insight.type.replace(/_/g, ' ')}
                                 </p>
@@ -877,14 +877,14 @@ export default function VCommandBar() {
                     ) : null}
 
                     {selectedResult.kind === 'command' ? (
-                      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                      <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Command behavior</p>
                         <div className="mt-4 grid gap-3">
-                          <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-                            <p className="text-sm font-semibold text-white">{selectedResult.title}</p>
+                          <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                            <p className="text-sm font-semibold text-foreground">{selectedResult.title}</p>
                             <p className="mt-2 text-sm leading-6 text-slate-300">{selectedResult.summary}</p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+                          <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
                             <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open entity</p>
                             <p className="mt-2 font-mono text-sm text-slate-200">{selectedResult.href ?? 'Unavailable'}</p>
                           </div>
@@ -893,7 +893,7 @@ export default function VCommandBar() {
                     ) : null}
 
                     {selectedResult.kind === 'saved-query' && selectedResult.query ? (
-                      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                      <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Saved query</p>
                         <p className="mt-4 text-sm leading-7 text-slate-300">
                           Press Enter to restore this query into the command bar.
@@ -902,20 +902,20 @@ export default function VCommandBar() {
                     ) : null}
 
                     {loading && !visibleResults.length ? (
-                      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-slate-300">
+                      <div className="rounded-[24px] border border-border bg-white/[0.03] px-4 py-6 text-sm text-slate-300">
                         Loading command results...
                       </div>
                     ) : null}
                   </div>
                 ) : (
-                  <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
+                  <div className="rounded-[24px] border border-border bg-white/[0.03] p-6 text-sm text-slate-400">
                     Type a provider name, an NPI, a natural-language intelligence query, or an intelligence command.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-black/20 px-5 py-3 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-black/20 px-5 py-3 text-[11px] text-slate-400">
               <div className="flex flex-wrap items-center gap-3">
                 <span>⌘K open</span>
                 <span>/ quick launch</span>

@@ -38,7 +38,7 @@ export function CredentialInspector({ node, onClose }: CredentialInspectorProps)
           </div>
           <button 
             onClick={onClose} 
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-foreground hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -46,7 +46,7 @@ export function CredentialInspector({ node, onClose }: CredentialInspectorProps)
 
         <div className="flex-1 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-slate-700">
           <div className="flex items-start justify-between mb-6 gap-4">
-            <h3 className="text-xl font-medium text-white leading-tight">{node.label}</h3>
+            <h3 className="text-xl font-medium text-foreground leading-tight">{node.label}</h3>
             {isVerified ? (
               <ShieldCheck className="w-8 h-8 text-emerald-500 shrink-0" />
             ) : (

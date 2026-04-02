@@ -188,7 +188,7 @@ export function WalletPassport({
 
   if (loading && !trustState) {
     return (
-      <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-white">
+      <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground">
         <div className="flex items-center gap-3 text-sm text-zinc-300">
           <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
           Loading your live wallet passport...
@@ -199,7 +199,7 @@ export function WalletPassport({
 
   if (error && !trustState) {
     return (
-      <div className="rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-5 text-white">
+      <div className="rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-5 text-foreground">
         <PilotFailureSignal
           title="Passport sync interrupted"
           message={error}
@@ -209,7 +209,7 @@ export function WalletPassport({
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-200" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">Passport sync interrupted</p>
+            <p className="text-sm font-semibold text-foreground">Passport sync interrupted</p>
             <p className="mt-1 text-sm leading-6 text-rose-100/80">The connection to the trust engine was interrupted. Your passport is safe and will retry shortly.</p>
           </div>
         </div>
@@ -224,7 +224,7 @@ export function WalletPassport({
           </button>
           <Link
             href="/holder/readiness"
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.08] active:scale-[0.98]"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
           >
             Open readiness
             <ArrowRight className="h-4 w-4" />
@@ -233,7 +233,7 @@ export function WalletPassport({
             label="Contact support"
             title="Passport sync interrupted"
             messagePrefill={error}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.08] active:scale-[0.98]"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
           />
         </div>
       </div>
@@ -247,13 +247,13 @@ export function WalletPassport({
   const TrustIcon = trustIcon(trustState.readiness_level);
 
   return (
-    <div className="space-y-4 rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-white shadow-sm">
+    <div className="space-y-4 rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
             Your readiness
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
             Source-backed credential state
           </h2>
           <p className="mt-1 text-sm text-zinc-400">
@@ -271,7 +271,7 @@ export function WalletPassport({
             type="button"
             onClick={() => void loadTrustState(true)}
             disabled={refreshing}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/60 text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:opacity-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/60 text-zinc-300 transition hover:border-zinc-500 hover:text-foreground disabled:opacity-50"
             aria-label="Refresh wallet passport"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -283,14 +283,14 @@ export function WalletPassport({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted">
                 <TrustIcon className="h-5 w-5 text-emerald-300" />
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   Live trust state
                 </p>
-                <p className="mt-1 text-lg font-semibold text-white">{trustState.readiness_status}</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">{trustState.readiness_status}</p>
               </div>
             </div>
           </div>
@@ -300,7 +300,7 @@ export function WalletPassport({
         </div>
 
         <div className="mt-5 flex items-end gap-2">
-          <span className="text-4xl font-semibold tracking-tight text-white">{trustState.readiness_score}</span>
+          <span className="text-4xl font-semibold tracking-tight text-foreground">{trustState.readiness_score}</span>
           <span className="pb-1 text-lg text-zinc-500">/100</span>
         </div>
 
@@ -314,19 +314,19 @@ export function WalletPassport({
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Identity</p>
-            <p className="mt-2 text-sm text-white">{trustState.identityVerified ? 'Verified' : 'Needs review'}</p>
+            <p className="mt-2 text-sm text-foreground">{trustState.identityVerified ? 'Verified' : 'Needs review'}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Licensure</p>
-            <p className="mt-2 text-sm text-white">{licensureLabel(trustState.licensureStatus)}</p>
+            <p className="mt-2 text-sm text-foreground">{licensureLabel(trustState.licensureStatus)}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Credential artifacts</p>
-            <p className="mt-2 text-sm text-white">{trustState.credentialCount}</p>
+            <p className="mt-2 text-sm text-foreground">{trustState.credentialCount}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Top blocker</p>
-            <p className="mt-2 text-sm text-white">{trustState.gap_summary[0] ?? 'No blocking gaps detected'}</p>
+            <p className="mt-2 text-sm text-foreground">{trustState.gap_summary[0] ?? 'No blocking gaps detected'}</p>
           </div>
         </div>
       </section>
@@ -339,7 +339,7 @@ export function WalletPassport({
           <div className="mt-4 space-y-3">
             {topFacts.map((fact) => {
               const statusKey = fact.status.trim().toUpperCase();
-              const factStatusStyle = FACT_STATUS_STYLES[statusKey] ?? 'border-white/10 bg-white/[0.03] text-white/70';
+              const factStatusStyle = FACT_STATUS_STYLES[statusKey] ?? 'border-border bg-white/[0.03] text-foreground/70';
 
               return (
                 <div
@@ -348,7 +348,7 @@ export function WalletPassport({
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">{formatFactLabel(fact.factType)}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatFactLabel(fact.factType)}</p>
                       <p className="mt-1 text-xs text-zinc-400">{fact.source}</p>
                     </div>
                     <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${factStatusStyle}`}>
@@ -389,7 +389,7 @@ export function WalletPassport({
         </Link>
         <Link
           href={`/passport/${trustState.npi}`}
-          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.08] active:scale-[0.98]"
+          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
         >
           Open public passport
           <ArrowRight className="h-4 w-4" />

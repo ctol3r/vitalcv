@@ -19,7 +19,7 @@ export default function SignUpPage() {
             headerSubtitle: 'text-zinc-400',
             formButtonPrimary: 'bg-emerald-500 hover:bg-emerald-600 text-white',
             formFieldInput:
-              'bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500',
+              'bg-zinc-800 border-zinc-700 text-foreground placeholder:text-zinc-500',
             footerActionLink: 'text-emerald-400 hover:text-emerald-300',
             identityPreviewEditButton: 'text-emerald-400',
           },

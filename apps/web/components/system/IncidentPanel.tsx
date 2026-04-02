@@ -76,7 +76,7 @@ export function IncidentPanel({ incidents, className = '' }: IncidentPanelProps)
                   </span>
                 )}
               </div>
-              <p className="text-xs text-white font-medium">{inc.title}</p>
+              <p className="text-xs text-foreground font-medium">{inc.title}</p>
               <p className="text-[10px] text-zinc-500 mt-0.5">{inc.description}</p>
             </motion.div>
           );

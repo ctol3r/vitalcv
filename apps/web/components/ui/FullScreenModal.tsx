@@ -37,20 +37,20 @@ export function FullScreenModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col bg-[#0a0a0f] text-white animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex flex-col bg-[#0a0a0f] text-foreground animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0f1115] shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#0f1115] shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+            className="p-1.5 rounded-md hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="h-6 w-[1px] bg-white/10" />
+          <div className="h-6 w-[1px] bg-muted" />
           <h2 className="text-base font-medium tracking-tight">
             {title}
           </h2>

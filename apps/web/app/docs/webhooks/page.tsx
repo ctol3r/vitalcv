@@ -158,7 +158,7 @@ export default function WebhooksPage() {
 
       {/* Footer nav */}
       <div className="flex justify-between text-sm">
-        <Link href="/docs/sdk" className="text-zinc-400 hover:text-white transition-colors">← SDKs</Link>
+        <Link href="/docs/sdk" className="text-zinc-400 hover:text-foreground transition-colors">← SDKs</Link>
         <Link href="/developers" className="text-sky-400 hover:text-sky-300 transition-colors">Developer Portal →</Link>
       </div>
     </div>

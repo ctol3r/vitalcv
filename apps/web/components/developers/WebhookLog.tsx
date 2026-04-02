@@ -150,12 +150,12 @@ export function WebhookLog() {
   return (
     <section
       aria-label="Live Webhook Log"
-      className="flex flex-col rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-xl overflow-hidden"
+      className="flex flex-col rounded-2xl border border-border bg-slate-950/80 backdrop-blur-xl overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/8 px-6 py-4">
         <Activity className="h-4 w-4 text-emerald-400" />
-        <h2 className="text-sm font-semibold text-white">Webhook Event Preview</h2>
+        <h2 className="text-sm font-semibold text-foreground">Webhook Event Preview</h2>
 
         {/* Live pulse badge */}
         <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-400 ring-1 ring-emerald-500/30">
@@ -172,7 +172,7 @@ export function WebhookLog() {
           {/* Toggle */}
           <button
             onClick={listening ? stopListening : startListening}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-muted hover:text-foreground"
             aria-label={listening ? 'Pause listener' : 'Start listener'}
           >
             <Radio className="h-4 w-4" />
@@ -181,7 +181,7 @@ export function WebhookLog() {
           <button
             onClick={clearLog}
             disabled={events.length === 0}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:opacity-30"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-muted hover:text-foreground disabled:opacity-30"
             aria-label="Clear log"
           >
             <X className="h-4 w-4" />

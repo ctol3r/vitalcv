@@ -60,19 +60,19 @@ export function DeployBadge() {
     ? 'bg-emerald-400'
     : isPrev
       ? 'bg-amber-400'
-      : 'bg-white/30';
+      : 'bg-muted';
 
   const label = isProd ? 'Live' : isPrev ? 'Preview' : 'Dev';
 
   return (
     <Link
       href="/updates"
-      className="inline-flex items-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground/70 transition-colors"
       title={`${info.sha} · ${info.message}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dot} ${isProd ? 'animate-pulse' : ''}`} />
       <span>{label}</span>
-      <span className="text-white/25">·</span>
+      <span className="text-muted-foreground/50">·</span>
       <span>{relativeTime(info.deployedAt)}</span>
     </Link>
   );

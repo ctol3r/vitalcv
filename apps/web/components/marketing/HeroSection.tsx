@@ -112,7 +112,7 @@ export function HeroSection() {
                         setError('');
                       }
                     }}
-                    className="bg-white/70 backdrop-blur-md dark:bg-white/10 border border-white/35"
+                    className="bg-white/70 backdrop-blur-md dark:bg-muted border border-white/35"
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? 'hero-npi-error' : undefined}
                   />
@@ -144,7 +144,7 @@ export function HeroSection() {
             </form>
 
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button asChild size="lg" className="gap-2 bg-white/35 dark:bg-white/5">
+              <Button asChild size="lg" className="gap-2 bg-card5 dark:bg-muted">
                 <Link href="/demo">
                   Launch Demo
                   <Sparkles className="h-4 w-4" />
@@ -182,7 +182,7 @@ export function HeroSection() {
           {/* ── Right column: NPI Terminal / Clearance State ── */}
           <motion.div
             layout
-            className="rounded-3xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-white/40 dark:bg-white/5 backdrop-blur-xl p-6"
+            className="rounded-3xl border border-border shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-muted dark:bg-muted backdrop-blur-xl p-6"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, layout: { type: 'spring', stiffness: 200, damping: 30 } }}

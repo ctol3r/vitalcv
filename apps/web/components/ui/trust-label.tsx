@@ -33,14 +33,14 @@ interface TrustLabelProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opacity: string }> = {
-  checked: { glyph: '✔', text: 'text-white/72', glyph_opacity: 'text-white/35' },
-  pending: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-white/20' },
-  stale: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-white/30' },
-  access_required: { glyph: '○', text: 'text-white/40', glyph_opacity: 'text-white/22' },
-  unavailable: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-white/20' },
-  review_required: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-white/30' },
-  preview_only: { glyph: '·', text: 'text-white/35', glyph_opacity: 'text-white/20' },
-  blocked: { glyph: '✕', text: 'text-white/45', glyph_opacity: 'text-white/24' },
+  checked: { glyph: '✔', text: 'text-white/72', glyph_opacity: 'text-muted-foreground' },
+  pending: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-muted-foreground/40' },
+  stale: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-muted-foreground/60' },
+  access_required: { glyph: '○', text: 'text-muted-foreground', glyph_opacity: 'text-white/22' },
+  unavailable: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-muted-foreground/40' },
+  review_required: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-muted-foreground/60' },
+  preview_only: { glyph: '·', text: 'text-muted-foreground', glyph_opacity: 'text-muted-foreground/40' },
+  blocked: { glyph: '✕', text: 'text-foreground', glyph_opacity: 'text-white/24' },
 };
 
 function resolveBadgeMeta(

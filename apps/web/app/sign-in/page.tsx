@@ -92,15 +92,15 @@ function SignInShell({ redirectUrl }: { redirectUrl: string }) {
     <main className="min-h-screen bg-vt-surface-ops-base flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <span className="text-white font-semibold tracking-tight text-lg">VitalCV</span>
+          <span className="text-foreground font-semibold tracking-tight text-lg">VitalCV</span>
         </div>
 
-        <div className="bg-black/20 border border-white/10 rounded-2xl p-8 space-y-6">
+        <div className="bg-black/20 border border-border rounded-2xl p-8 space-y-6">
           {mode === 'primary' ? (
             <>
               <div className="space-y-1.5">
-                <h1 className="text-white text-xl font-semibold tracking-tight">Sign in</h1>
-                <p className="text-white/55 text-sm">Use Face ID, Touch ID, or a passkey</p>
+                <h1 className="text-foreground text-xl font-semibold tracking-tight">Sign in</h1>
+                <p className="text-foreground text-sm">Use Face ID, Touch ID, or a passkey</p>
               </div>
 
               {/* The actual hook call lives in HookBridge below */}
@@ -115,23 +115,23 @@ function SignInShell({ redirectUrl }: { redirectUrl: string }) {
               )}
 
               <div className="flex items-center gap-3">
-                <div className="flex-1 border-t border-white/10" />
-                <span className="text-white/25 text-xs">or</span>
-                <div className="flex-1 border-t border-white/10" />
+                <div className="flex-1 border-t border-border" />
+                <span className="text-muted-foreground/50 text-xs">or</span>
+                <div className="flex-1 border-t border-border" />
               </div>
 
               <button
                 onClick={() => setMode('magic')}
-                className="w-full bg-white/6 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full bg-muted hover:bg-muted border border-border text-foreground/70 hover:text-foreground rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <MailIcon />
                 Send me a magic link
               </button>
 
-              <p className="text-center text-white/30 text-xs pt-1">
+              <p className="text-center text-muted-foreground/60 text-xs pt-1">
                 <Link
                   href="/sign-in/factor-one"
-                  className="underline underline-offset-2 hover:text-white/55 transition-colors"
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
                 >
                   Use email + verification code
                 </Link>
@@ -142,9 +142,9 @@ function SignInShell({ redirectUrl }: { redirectUrl: string }) {
           )}
         </div>
 
-        <p className="text-center text-white/30 text-xs mt-6">
+        <p className="text-center text-muted-foreground/60 text-xs mt-6">
           New to VitalCV?{' '}
-          <Link href="/sign-up" className="text-white/55 underline underline-offset-2 hover:text-white/75 transition-colors">
+          <Link href="/sign-up" className="text-foreground underline underline-offset-2 hover:text-foreground/70 transition-colors">
             Create an account
           </Link>
         </p>
@@ -182,7 +182,7 @@ function HookBridge({
         onPasskeyClick(signIn);
       }}
       disabled={loading || !isLoaded}
-      className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-50 text-white rounded-full py-3.5 text-sm font-medium transition-all flex items-center justify-center gap-2 min-h-[48px]"
+      className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-50 text-foreground rounded-full py-3.5 text-sm font-medium transition-all flex items-center justify-center gap-2 min-h-[48px]"
     >
       <FaceIdIcon />
       {loading ? 'Authenticating…' : 'Sign in with passkey'}
@@ -224,12 +224,12 @@ function MagicLinkForm({ onBack }: { onBack: () => void }) {
   if (sent) {
     return (
       <div className="text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
           <MailIcon />
         </div>
-        <p className="text-white/80 text-sm">Check your inbox at <span className="text-white font-medium">{email}</span></p>
-        <p className="text-white/45 text-xs">The link expires in 10 minutes.</p>
-        <button onClick={onBack} className="text-white/45 text-xs underline underline-offset-2 mt-2">Use a different method</button>
+        <p className="text-foreground/80 text-sm">Check your inbox at <span className="text-foreground font-medium">{email}</span></p>
+        <p className="text-foreground text-xs">The link expires in 10 minutes.</p>
+        <button onClick={onBack} className="text-foreground text-xs underline underline-offset-2 mt-2">Use a different method</button>
       </div>
     );
   }
@@ -246,19 +246,19 @@ function MagicLinkForm({ onBack }: { onBack: () => void }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && send()}
-        className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3.5 text-white placeholder:text-white/30 text-[16px] focus:outline-none focus:border-white/35 focus:bg-white/12 transition-all"
+        className="w-full bg-muted border border-border rounded-xl px-4 py-3.5 text-foreground placeholder:text-muted-foreground/60 text-[16px] focus:outline-none focus:border-white/35 focus:bg-white/12 transition-all"
         aria-label="Your email address"
       />
       {error && <p className="text-red-400/80 text-xs">{error}</p>}
       <button
         onClick={send}
         disabled={loading || !email.trim()}
-        className="w-full bg-white/10 hover:bg-white/15 disabled:opacity-40 text-white rounded-xl py-3.5 text-sm font-medium transition-all flex items-center justify-center gap-2 min-h-[48px]"
+        className="w-full bg-muted hover:bg-muted disabled:opacity-40 text-foreground rounded-xl py-3.5 text-sm font-medium transition-all flex items-center justify-center gap-2 min-h-[48px]"
       >
         <MailIcon />
         {loading ? 'Sending…' : 'Send magic link'}
       </button>
-      <button onClick={onBack} className="w-full text-white/45 text-xs py-2 hover:text-white/65 transition-colors min-h-[44px]">
+      <button onClick={onBack} className="w-full text-foreground text-xs py-2 hover:text-foreground/60 transition-colors min-h-[44px]">
         ← Back
       </button>
     </div>

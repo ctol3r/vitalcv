@@ -77,10 +77,10 @@ export function EmergencySwitch({ onDeclareEmergency, isEmergencyActive }: Emerg
               <button
                 onClick={handleTrigger}
                 disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-rose-600 text-white font-bold hover:bg-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.4)] transition-all flex justify-center items-center"
+                className="flex-1 px-4 py-2 rounded-lg bg-rose-600 text-foreground font-bold hover:bg-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.4)] transition-all flex justify-center items-center"
               >
                 {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-5 h-5 border-2 border-border border-t-white rounded-full animate-spin" />
                 ) : (
                   'CONFIRM DECLARATION'
                 )}

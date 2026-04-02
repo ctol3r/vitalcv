@@ -31,7 +31,7 @@ export function ClaimExplanation({
       <div className="p-4 bg-neutral-50 border border-neutral-200 mb-4 rounded-sm">
         <p className="text-lg leading-snug">
           <span className="font-semibold">{issuer}</span> asserts that{' '}
-          <span className="bg-black text-white px-1.5 py-0.5 rounded-sm text-sm inline-block mx-1">
+          <span className="bg-black text-foreground px-1.5 py-0.5 rounded-sm text-sm inline-block mx-1">
             {subject}
           </span>{' '}
           <span className="italic text-neutral-600 font-medium">{predicate}</span>{' '}

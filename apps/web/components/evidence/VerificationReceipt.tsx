@@ -20,10 +20,10 @@ export interface VerificationReceiptProps {
 
 export function VerificationReceipt({ data, className }: VerificationReceiptProps) {
   return (
-    <div className={cn("bg-black text-white font-mono p-1 rounded-sm shadow-xl max-w-2xl w-full", className)}>
-      <div className="border border-white/20 p-6">
-        <header className="flex justify-between items-center border-b border-white/20 pb-4 mb-6">
-          <div className="flex items-center gap-2 text-white">
+    <div className={cn("bg-black text-foreground font-mono p-1 rounded-sm shadow-xl max-w-2xl w-full", className)}>
+      <div className="border border-border p-6">
+        <header className="flex justify-between items-center border-b border-border pb-4 mb-6">
+          <div className="flex items-center gap-2 text-foreground">
             <ShieldCheck className="w-5 h-5" />
             <h3 className="text-xs uppercase tracking-[0.2em] font-bold">Cryptographic Receipt</h3>
           </div>
@@ -47,25 +47,25 @@ export function VerificationReceipt({ data, className }: VerificationReceiptProp
             />
           </div>
 
-          <div className="h-px bg-white/10 w-full" />
+          <div className="h-px bg-muted w-full" />
 
           {/* DIDs Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <span className="block text-[10px] text-neutral-500 uppercase tracking-widest">Issuer DID</span>
-              <div className="text-xs text-neutral-300 break-all bg-white/5 p-2 border border-white/10">
+              <div className="text-xs text-neutral-300 break-all bg-muted p-2 border border-border">
                 {data.issuerDid}
               </div>
             </div>
             <div className="space-y-1">
               <span className="block text-[10px] text-neutral-500 uppercase tracking-widest">Subject DID</span>
-              <div className="text-xs text-neutral-300 break-all bg-white/5 p-2 border border-white/10">
+              <div className="text-xs text-neutral-300 break-all bg-muted p-2 border border-border">
                 {data.subjectDid}
               </div>
             </div>
           </div>
 
-          <div className="h-px bg-white/10 w-full" />
+          <div className="h-px bg-muted w-full" />
 
           {/* Signature & Timing */}
           <div className="space-y-3">
@@ -100,7 +100,7 @@ function OmissionText({ text }: { text: string }) {
 
 function ReceiptRow({ icon, label, value, isHighlight }: { icon: React.ReactNode, label: string, value: string, isHighlight?: boolean }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 hover:bg-white/5 transition-colors">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 hover:bg-muted transition-colors">
       <div className="flex items-center gap-2 text-neutral-400">
         {icon}
         <span className="text-xs uppercase tracking-wider">{label}</span>

@@ -68,14 +68,14 @@ export function HeroAppPreview() {
         className="relative w-full"
       >
         {/* ── Outer chrome frame ────────────────────────── */}
-        <div className="rounded-2xl border border-white/10 bg-slate-950/90 shadow-[0_40px_80px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden">
+        <div className="rounded-2xl border border-border bg-slate-950/90 shadow-[0_40px_80px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden">
 
           {/* Window traffic-light bar */}
           <div className="flex items-center gap-2 border-b border-white/5 bg-slate-900/80 px-5 py-3">
             <span className="h-3 w-3 rounded-full bg-red-500/70" />
             <span className="h-3 w-3 rounded-full bg-amber-500/70" />
             <span className="h-3 w-3 rounded-full bg-emerald-500/70" />
-            <div className="ml-4 flex-1 rounded-full bg-white/5 px-4 py-1 text-center text-[10px] font-mono text-white/30">
+            <div className="ml-4 flex-1 rounded-full bg-muted px-4 py-1 text-center text-[10px] font-mono text-muted-foreground/60">
               vitalcv.ai/verifier
             </div>
           </div>
@@ -87,7 +87,7 @@ export function HeroAppPreview() {
             <nav className="hidden w-52 shrink-0 border-r border-white/5 bg-slate-900/60 p-4 sm:flex flex-col gap-1">
               <div className="mb-4 flex items-center gap-2 px-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                <span className="text-xs font-semibold text-white/70">VitalCV</span>
+                <span className="text-xs font-semibold text-foreground/70">VitalCV</span>
               </div>
               {[
                 { icon: Search,    label: 'Verify Provider', active: true },
@@ -101,7 +101,7 @@ export function HeroAppPreview() {
                     'flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs',
                     active
                       ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'text-white/30 hover:text-white/50',
+                      : 'text-muted-foreground/60 hover:text-foreground/70',
                   ].join(' ')}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -116,8 +116,8 @@ export function HeroAppPreview() {
               {/* Header bar */}
               <div className="flex items-center justify-between border-b border-white/5 bg-slate-900/40 px-5 py-3">
                 <div>
-                  <p className="text-xs font-semibold text-white/80">Provider Verification</p>
-                  <p className="text-[10px] text-white/30">4 clinicians in queue</p>
+                  <p className="text-xs font-semibold text-foreground/80">Provider Verification</p>
+                  <p className="text-[10px] text-muted-foreground/60">4 clinicians in queue</p>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 ring-1 ring-emerald-500/30">
                   <CheckCircle2 className="h-3 w-3 text-emerald-400" />
@@ -139,8 +139,8 @@ export function HeroAppPreview() {
                     >
                       {/* Name + specialty */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-white/80">{row.name}</p>
-                        <p className="text-[10px] text-white/30">{row.specialty}</p>
+                        <p className="truncate text-xs font-medium text-foreground/80">{row.name}</p>
+                        <p className="text-[10px] text-muted-foreground/60">{row.specialty}</p>
                       </div>
 
                       {/* CRS score mini ring */}
@@ -171,7 +171,7 @@ export function HeroAppPreview() {
                 {[
                   { icon: CheckCircle2, label: '3 Verified',   color: 'text-emerald-400' },
                   { icon: Clock,        label: '1 Expiring',   color: 'text-amber-400'   },
-                  { icon: TrendingUp,   label: '↓ 88% faster', color: 'text-white/40'    },
+                  { icon: TrendingUp,   label: '↓ 88% faster', color: 'text-muted-foreground'    },
                 ].map(({ icon: Icon, label, color }) => (
                   <div key={label} className={`flex items-center gap-1.5 text-[10px] font-medium ${color}`}>
                     <Icon className="h-3 w-3 shrink-0" />

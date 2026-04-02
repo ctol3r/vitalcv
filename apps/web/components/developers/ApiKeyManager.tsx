@@ -57,14 +57,14 @@ export function ApiKeyManager() {
   return (
     <section
       aria-label="API Key Manager"
-      className="rounded-2xl border border-white/10 bg-slate-950/80 p-6 backdrop-blur-xl"
+      className="rounded-2xl border border-border bg-slate-950/80 p-6 backdrop-blur-xl"
     >
       {/* Header row */}
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <h2 className="text-sm font-semibold text-white">API Keys</h2>
+            <h2 className="text-sm font-semibold text-foreground">API Keys</h2>
           </div>
           <p className="text-xs text-slate-400">
             Generate a test key to authenticate against the VitalCV sandbox environment.
@@ -109,7 +109,7 @@ export function ApiKeyManager() {
           <button
             onClick={() => setVisible((v) => !v)}
             aria-label={visible ? 'Hide key' : 'Show key'}
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-muted hover:text-foreground"
           >
             {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -120,7 +120,7 @@ export function ApiKeyManager() {
           <button
             onClick={copyKey}
             aria-label="Copy API key"
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-muted hover:text-foreground"
           >
             <AnimatePresence mode="wait">
               {copied ? (

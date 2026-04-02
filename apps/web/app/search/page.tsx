@@ -60,14 +60,14 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white surface-operator">
+    <div className="min-h-screen bg-ops-gradient text-foreground surface-operator">
       <main className="mx-auto max-w-3xl px-6 py-16">
 
         <div className="mb-10 text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-vt-info/10 px-4 py-1.5 tag text-vt-info ring-1 ring-vt-info/20">
             <Sparkles className="h-3 w-3" /> Trust Intelligence Search
           </span>
-          <h1 className="heading-xl mt-3 text-white">Search VitalCV</h1>
+          <h1 className="heading-xl mt-3 text-foreground">Search VitalCV</h1>
           <p className="body-lg mx-auto mt-3 max-w-md text-vt-neutral-200">
             Source-backed results across opportunities, employers, and credentialing guides.
           </p>
@@ -79,10 +79,10 @@ export default function SearchPage() {
             <Search className="h-6 w-6 shrink-0 text-vt-neutral-800" />
             <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
               placeholder="Search opportunities, employers, requirements..."
-              className="flex-1 bg-transparent px-4 py-4 body-lg text-white placeholder:text-vt-neutral-800 focus:outline-none"
+              className="flex-1 bg-transparent px-4 py-4 body-lg text-foreground placeholder:text-vt-neutral-800 focus:outline-none"
               aria-label="Search query" />
             <button type="submit" disabled={!query.trim() || loading}
-              className="flex items-center gap-2 rounded-2xl bg-vt-info px-8 py-3.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-vt-info/90 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+              className="flex items-center gap-2 rounded-2xl bg-vt-info px-8 py-3.5 text-sm font-semibold text-foreground disabled:opacity-40 hover:bg-vt-info/90 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ArrowRight className="h-5 w-5" />Search</>}
             </button>
           </div>
@@ -95,7 +95,7 @@ export default function SearchPage() {
             <div className="flex flex-wrap gap-2">
               {EXAMPLE_QUERIES.map((q) => (
                 <button key={q} onClick={() => { setQuery(q); doSearch(q); }}
-                  className="rounded-full vt-glass px-4 py-2 text-sm text-vt-neutral-200 hover:bg-vt-surface-ops-raised hover:text-white transition">
+                  className="rounded-full vt-glass px-4 py-2 text-sm text-vt-neutral-200 hover:bg-vt-surface-ops-raised hover:text-foreground transition">
                   {q}
                 </button>
               ))}
@@ -121,14 +121,14 @@ export default function SearchPage() {
               <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/20 p-10 text-center">
                 <p className="heading-md text-vt-neutral-100">No results found</p>
                 <p className="body-sm mt-2 text-vt-neutral-200">Try different terms or ask VitalCV AI.</p>
-                <Link href="/ask" className="mt-4 inline-flex items-center gap-2 rounded-full bg-vt-info px-5 py-2 text-sm font-semibold text-white hover:bg-vt-info/90 transition">
+                <Link href="/ask" className="mt-4 inline-flex items-center gap-2 rounded-full bg-vt-info px-5 py-2 text-sm font-semibold text-foreground hover:bg-vt-info/90 transition">
                   Ask AI <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             ) : results.results.map((r) => (
               <div key={r.id} className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5 hover:border-vt-neutral-700 transition-colors">
                 <div className="mb-2 flex items-start justify-between gap-3">
-                  <h2 className="heading-sm text-white">{r.title}</h2>
+                  <h2 className="heading-sm text-foreground">{r.title}</h2>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 tag ring-1 ${TYPE_COLORS[r.type] ?? TYPE_COLORS.default}`}>
                     {TYPE_LABELS[r.type] ?? r.type}
                   </span>

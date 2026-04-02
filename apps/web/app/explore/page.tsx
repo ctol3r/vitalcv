@@ -17,14 +17,14 @@ export const metadata: Metadata = {
 
 export default function ExplorePage() {
   return (
-    <div className="min-h-screen bg-ops-gradient text-white surface-operator">
+    <div className="min-h-screen bg-ops-gradient text-foreground surface-operator">
       {/* Hero */}
       <section className="border-b border-vt-neutral-800 px-6 py-16 text-center">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-vt-success/10 px-4 py-1.5 tag text-vt-success ring-1 ring-vt-success/20">
           <Sparkles className="h-3 w-3" />
           Trust-Native Matching
         </span>
-        <h1 className="heading-xl mt-3 text-white">
+        <h1 className="heading-xl mt-3 text-foreground">
           Explore<br />
           <span className="text-vt-success">Clinical Opportunities.</span>
         </h1>
@@ -39,7 +39,7 @@ export default function ExplorePage() {
           />
           <Link
             href="/ask"
-            className="inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-white transition hover:bg-vt-surface-ops-raised"
+            className="inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-foreground transition hover:bg-vt-surface-ops-raised"
           >
             Ask about a role
           </Link>

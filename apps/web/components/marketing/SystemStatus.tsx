@@ -73,7 +73,7 @@ export function SystemStatus() {
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {/* Status */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -95,7 +95,7 @@ export function SystemStatus() {
 
           {/* Uptime */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 }}
@@ -112,7 +112,7 @@ export function SystemStatus() {
 
           {/* Bundles Generated */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.12 }}
@@ -139,7 +139,7 @@ export function SystemStatus() {
 
           {/* Verifications Performed */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}

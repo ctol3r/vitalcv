@@ -42,8 +42,8 @@ export function AdvisoryPanelUI({
     if (state === 'UNAVAILABLE') return null;
     return (
       <div className="flex items-center gap-2 text-xs border-t border-white/5 pt-2 mt-2">
-        <Compass className="w-3 h-3 text-white/25" aria-hidden />
-        <span className="text-white/40">
+        <Compass className="w-3 h-3 text-muted-foreground/50" aria-hidden />
+        <span className="text-muted-foreground">
           {state === 'HIGH_UNCERTAINTY' ? 'Recommendation has limited confidence due to missing source coverage.' : summary}
         </span>
       </div>
@@ -56,11 +56,11 @@ export function AdvisoryPanelUI({
         aria-label="Advisory panel"
         className="rounded-2xl border border-white/6 bg-white/2 px-5 py-4"
       >
-        <p className="text-white/30 text-[11px] uppercase tracking-widest flex items-center gap-2 font-medium">
+        <p className="text-muted-foreground/60 text-[11px] uppercase tracking-widest flex items-center gap-2 font-medium">
           <Compass className="w-3.5 h-3.5" aria-hidden />
           {title}
         </p>
-        <p className="text-white/35 text-xs mt-3">No guidance available yet.</p>
+        <p className="text-muted-foreground text-xs mt-3">No guidance available yet.</p>
       </section>
     );
   }
@@ -90,7 +90,7 @@ export function AdvisoryPanelUI({
       aria-label="Advisory panel"
       className="rounded-2xl border border-white/6 bg-white/2 px-5 py-5 flex flex-col gap-5"
     >
-      <header className="flex items-center gap-2 text-white/30">
+      <header className="flex items-center gap-2 text-muted-foreground/60">
         <Compass className="w-3.5 h-3.5" aria-hidden />
         <h2 className="text-[11px] uppercase tracking-widest font-medium">
           {title}
@@ -100,14 +100,14 @@ export function AdvisoryPanelUI({
       <div className="space-y-4">
         {/* 1. Recommendation summary (largest emphasis) */}
         {summary && (
-          <div className="text-white/80 text-sm font-medium leading-relaxed">
+          <div className="text-foreground/80 text-sm font-medium leading-relaxed">
             {summary}
           </div>
         )}
         
         {/* 2. Risk / friction notes (smaller) */}
         {details && (
-          <div className="text-white/45 text-xs leading-relaxed">
+          <div className="text-foreground text-xs leading-relaxed">
             {details}
           </div>
         )}
@@ -117,14 +117,14 @@ export function AdvisoryPanelUI({
           <div className="space-y-3 pt-4 border-t border-white/5">
             {estimatedPath && (
               <div>
-                <span className="text-white/25 text-[10px] uppercase tracking-widest block mb-1 font-medium">Estimated path</span>
-                <div className="text-white/55 text-xs leading-relaxed">{estimatedPath}</div>
+                <span className="text-muted-foreground/50 text-[10px] uppercase tracking-widest block mb-1 font-medium">Estimated path</span>
+                <div className="text-foreground text-xs leading-relaxed">{estimatedPath}</div>
               </div>
             )}
             {suggestedAction && (
               <div className="pt-1">
-                <span className="text-white/25 text-[10px] uppercase tracking-widest block mb-1 font-medium">Suggested action</span>
-                <div className="text-white/65 text-xs font-medium leading-relaxed">{suggestedAction}</div>
+                <span className="text-muted-foreground/50 text-[10px] uppercase tracking-widest block mb-1 font-medium">Suggested action</span>
+                <div className="text-foreground/60 text-xs font-medium leading-relaxed">{suggestedAction}</div>
               </div>
             )}
           </div>
@@ -132,7 +132,7 @@ export function AdvisoryPanelUI({
       </div>
 
       <footer className="pt-4 border-t border-white/5 mt-1">
-        <p className="text-white/20 text-[10px] leading-relaxed">
+        <p className="text-muted-foreground/40 text-[10px] leading-relaxed">
           Based on observed patterns and available source data. Not a source verification.
         </p>
       </footer>
@@ -158,7 +158,7 @@ export function EmployerAdvisoryPanel({ passport, context }: { passport: Passpor
     <div className="space-y-1">
       <p>{recString}</p>
       {result.reasoning.length > 0 && (
-        <p className="text-white/55 font-normal">
+        <p className="text-foreground font-normal">
           {result.reasoning.join(' ')}
         </p>
       )}
@@ -234,7 +234,7 @@ export function PassportAdvisoryPanel({ passport, context }: { passport: Passpor
     <div className="space-y-1">
       <p>{isClosest ? 'You are closest to ready for roles.' : 'Multiple items are needed before you are ready for roles.'}</p>
       {mySteps.length > 0 && (
-        <p className="text-white/55 font-normal">
+        <p className="text-foreground font-normal">
           Your biggest blocker is {mySteps[0].action.toLowerCase()}.
         </p>
       )}

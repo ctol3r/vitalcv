@@ -110,15 +110,15 @@ function formatPercent(value: number | undefined): string {
 function statusTone(status: string): string {
   const normalized = status.toLowerCase();
   if (normalized.includes('verified') || normalized.includes('active') || normalized.includes('accepted')) {
-    return 'border-white/20 bg-white/10 text-white';
+    return 'border-border bg-muted text-white';
   }
   if (normalized.includes('pending') || normalized.includes('observed') || normalized.includes('derived')) {
-    return 'border-white/12 bg-white/[0.04] text-white/70';
+    return 'border-border bg-white/[0.04] text-foreground/70';
   }
   if (normalized.includes('rejected') || normalized.includes('revoked')) {
-    return 'border-white/18 bg-white/[0.06] text-white/85';
+    return 'border-white/18 bg-white/[0.06] text-foreground/85';
   }
-  return 'border-white/10 bg-white/[0.03] text-white/70';
+  return 'border-border bg-white/[0.03] text-foreground/70';
 }
 
 function extractString(value: unknown): string | null {
@@ -201,10 +201,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.025] p-4">
+    <section className="space-y-3 rounded-3xl border border-border bg-white/[0.025] p-4">
       <div className="space-y-1">
-        <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">{eyebrow}</p>
-        <h2 className="text-sm font-medium tracking-[0.04em] text-white">{title}</h2>
+        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p>
+        <h2 className="text-sm font-medium tracking-[0.04em] text-foreground">{title}</h2>
       </div>
       {children}
     </section>
@@ -221,7 +221,7 @@ function ContextLink({
   return (
     <Link
       href={normalizeIntelligenceHref(href)}
-      className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs text-white/72 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+      className="inline-flex items-center rounded-full border border-border bg-white/[0.04] px-3 py-1.5 text-xs text-white/72 transition-colors hover:border-border hover:bg-white/[0.08] hover:text-foreground"
     >
       {label}
     </Link>
@@ -239,7 +239,7 @@ function SummaryCell({
 }) {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3">
-      <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
       <p className={cn('mt-2 text-sm text-white/72', emphasis && 'text-base text-white')}>
         {value}
       </p>
@@ -277,12 +277,12 @@ function EvidenceButton({
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-xl border border-white/10 bg-black/70 p-2">
-          <Icon className="h-3.5 w-3.5 text-white/70" />
+        <div className="mt-0.5 rounded-xl border border-border bg-black/70 p-2">
+          <Icon className="h-3.5 w-3.5 text-foreground/70" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-white">{title}</p>
+            <p className="text-sm text-foreground">{title}</p>
             <span className={cn('rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-[0.18em]', statusTone(status))}>
               {status}
             </span>
@@ -300,7 +300,7 @@ function EvidenceButton({
 function ClaimPreview({ claim }: { claim: ClaimDetail | null }) {
   if (!claim) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+      <div className="rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-foreground">
         No claim selected.
       </div>
     );
@@ -310,14 +310,14 @@ function ClaimPreview({ claim }: { claim: ClaimDetail | null }) {
     <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Selected claim</p>
-          <h3 className="mt-2 text-base text-white">{claim.label}</h3>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Selected claim</p>
+          <h3 className="mt-2 text-base text-foreground">{claim.label}</h3>
         </div>
         <span className={cn('rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.18em]', statusTone(claim.status))}>
           {claim.status}
         </span>
       </div>
-      <p className="mt-3 text-xl text-white">{claim.value}</p>
+      <p className="mt-3 text-xl text-foreground">{claim.value}</p>
       <p className="mt-3 text-sm leading-6 text-white/54">{claim.summary}</p>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <SummaryCell label="Receipts" value={String(claim.supportingReceiptCount)} />
@@ -330,7 +330,7 @@ function ClaimPreview({ claim }: { claim: ClaimDetail | null }) {
 function ArtifactPreview({ artifact }: { artifact: ArtifactDetail | null }) {
   if (!artifact) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+      <div className="rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-foreground">
         No source artifact selected.
       </div>
     );
@@ -338,10 +338,10 @@ function ArtifactPreview({ artifact }: { artifact: ArtifactDetail | null }) {
 
   return (
     <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Source artifact</p>
+      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Source artifact</p>
       <div className="mt-2 flex items-center justify-between gap-3">
-        <h3 className="text-base text-white">{artifact.title}</h3>
-        <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/60">
+        <h3 className="text-base text-foreground">{artifact.title}</h3>
+        <span className="rounded-full border border-border px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-foreground">
           {artifact.kind}
         </span>
       </div>
@@ -357,7 +357,7 @@ function ArtifactPreview({ artifact }: { artifact: ArtifactDetail | null }) {
 function ReceiptViewer({ receipt }: { receipt: ReceiptDetail | null }) {
   if (!receipt) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/45">
+      <div className="rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-foreground">
         No receipt available for this node.
       </div>
     );
@@ -368,14 +368,14 @@ function ReceiptViewer({ receipt }: { receipt: ReceiptDetail | null }) {
       <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Receipt header</p>
-            <h3 className="mt-2 text-base text-white">{receipt.title}</h3>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Receipt header</p>
+            <h3 className="mt-2 text-base text-foreground">{receipt.title}</h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn('rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.18em]', statusTone(receipt.status))}>
               {receipt.status}
             </span>
-            <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/60">
+            <span className="rounded-full border border-border px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-foreground">
               {receipt.direction}
             </span>
           </div>
@@ -390,7 +390,7 @@ function ReceiptViewer({ receipt }: { receipt: ReceiptDetail | null }) {
       </div>
 
       <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Raw receipt payload</p>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Raw receipt payload</p>
         <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/8 bg-black px-3 py-3 text-[11px] leading-6 text-white/56">
           {JSON.stringify(receipt.payload, null, 2)}
         </pre>
@@ -443,7 +443,7 @@ function ClaimExplanation({
             {String(index + 1).padStart(2, '0')}
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">{step.label}</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{step.label}</p>
             <p className="mt-2 text-sm leading-6 text-white/68">{step.value}</p>
           </div>
         </div>
@@ -590,17 +590,17 @@ export default function NodeDetail({
   }, [entityContext.findingIds, entityContext.providerNpi, entityContext.storylineIds]);
 
   return (
-    <aside className="fixed inset-y-4 right-4 z-50 w-[min(38rem,calc(100vw-1rem))] overflow-hidden rounded-[30px] border border-white/12 bg-black/95 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
+    <aside className="fixed inset-y-4 right-4 z-50 w-[min(38rem,calc(100vw-1rem))] overflow-hidden rounded-[30px] border border-border bg-black/95 text-foreground shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
       <div className="flex h-full flex-col">
-        <header className="border-b border-white/10 px-6 py-5">
+        <header className="border-b border-border px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+              <div className="rounded-2xl border border-border bg-white/[0.04] p-3">
                 <NodeIcon className="h-5 w-5 text-white/72" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-white/38">{humanize(node.type)}</p>
-                <h1 className="mt-2 truncate text-xl tracking-[0.02em] text-white">{node.label}</h1>
+                <h1 className="mt-2 truncate text-xl tracking-[0.02em] text-foreground">{node.label}</h1>
                 <p className="mt-2 text-sm leading-6 text-white/48">
                   Evidence-grade node detail surface for claims, receipts, source artifacts, and relationship context.
                 </p>
@@ -609,7 +609,7 @@ export default function NodeDetail({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 text-white/45 transition-colors hover:border-white/18 hover:text-white"
+              className="rounded-2xl border border-border bg-white/[0.03] p-2 text-foreground transition-colors hover:border-white/18 hover:text-foreground"
               aria-label="Close node detail"
             >
               <X className="h-4 w-4" />
@@ -617,19 +617,19 @@ export default function NodeDetail({
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+            <span className="rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
               {node.layer}
             </span>
-            <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+            <span className="rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
               {node.degree} links
             </span>
             {node.trustBand ? (
-              <span className="rounded-full border border-white/16 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white">
+              <span className="rounded-full border border-white/16 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-foreground">
                 {node.trustBand}
               </span>
             ) : null}
             {node.trustTier ? (
-              <span className="rounded-full border border-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
+              <span className="rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/58">
                 {node.trustTier}
               </span>
             ) : null}
@@ -666,7 +666,7 @@ export default function NodeDetail({
 
                   {entityContext.findingIds.length > 0 ? (
                     <div className="space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Linked findings</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Linked findings</p>
                       <div className="flex flex-wrap gap-2">
                         {entityContext.findingIds.slice(0, 4).map((findingId) => (
                           <ContextLink
@@ -676,7 +676,7 @@ export default function NodeDetail({
                           />
                         ))}
                         {entityContext.findingIds.length > 4 ? (
-                          <span className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/42">
+                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-white/42">
                             +{entityContext.findingIds.length - 4} more
                           </span>
                         ) : null}
@@ -686,7 +686,7 @@ export default function NodeDetail({
 
                   {entityContext.storylineIds.length > 0 ? (
                     <div className="space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">Linked storylines</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Linked storylines</p>
                       <div className="flex flex-wrap gap-2">
                         {entityContext.storylineIds.slice(0, 4).map((storylineId) => (
                           <ContextLink
@@ -696,7 +696,7 @@ export default function NodeDetail({
                           />
                         ))}
                         {entityContext.storylineIds.length > 4 ? (
-                          <span className="inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/42">
+                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-white/42">
                             +{entityContext.storylineIds.length - 4} more
                           </span>
                         ) : null}
@@ -705,7 +705,7 @@ export default function NodeDetail({
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm leading-6 text-white/45">
+                <p className="text-sm leading-6 text-foreground">
                   This node does not currently resolve to a provider, finding, or storyline in the graph payload.
                 </p>
               )}
@@ -723,7 +723,7 @@ export default function NodeDetail({
               {model.claims.slice(0, 4).map((claim) => (
                 <div key={claim.id} className="rounded-2xl border border-white/8 bg-black/35 px-3 py-3">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/34">{claim.label}</p>
-                  <p className="mt-2 text-sm text-white">{claim.value}</p>
+                  <p className="mt-2 text-sm text-foreground">{claim.value}</p>
                   <p className="mt-2 text-xs leading-5 text-white/46">{claim.summary}</p>
                 </div>
               ))}
@@ -732,9 +732,9 @@ export default function NodeDetail({
 
           <Section title="Evidence Stack" eyebrow="02">
             <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-white/38">
-              <span className="rounded-full border border-white/10 px-2 py-1">{model.claims.length} claims</span>
-              <span className="rounded-full border border-white/10 px-2 py-1">{model.receipts.length} receipts</span>
-              <span className="rounded-full border border-white/10 px-2 py-1">{model.artifacts.length} artifacts</span>
+              <span className="rounded-full border border-border px-2 py-1">{model.claims.length} claims</span>
+              <span className="rounded-full border border-border px-2 py-1">{model.receipts.length} receipts</span>
+              <span className="rounded-full border border-border px-2 py-1">{model.artifacts.length} artifacts</span>
             </div>
             <div className="space-y-2">
               {model.evidenceStack.map((entry) => (
@@ -780,14 +780,14 @@ export default function NodeDetail({
                   className="flex w-full items-start justify-between gap-3 rounded-2xl border border-white/8 bg-black/35 px-4 py-3 text-left transition-colors hover:border-white/16 hover:bg-white/[0.04]"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm text-white">{relationship.label}</p>
+                    <p className="text-sm text-foreground">{relationship.label}</p>
                     <p className="mt-1 text-xs leading-5 text-white/46">{relationship.explanation}</p>
                     <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/32">
                       {relationship.edgeTypes.map((edgeType) => humanize(edgeType)).join(' · ')}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm text-white">{formatPercent(relationship.confidence)}</p>
+                    <p className="text-sm text-foreground">{formatPercent(relationship.confidence)}</p>
                     <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/34">{relationship.direction}</p>
                     <ChevronRight className="ml-auto mt-2 h-3.5 w-3.5 text-white/38" />
                   </div>
@@ -801,15 +801,15 @@ export default function NodeDetail({
               {model.timeline.map((event) => (
                 <div key={event.id} className="flex gap-3">
                   <div className="flex w-10 shrink-0 flex-col items-center">
-                    <div className="rounded-full border border-white/12 bg-black/70 p-1.5">
+                    <div className="rounded-full border border-border bg-black/70 p-1.5">
                       <Clock3 className="h-3 w-3 text-white/56" />
                     </div>
-                    <div className="mt-2 h-full w-px bg-white/10" />
+                    <div className="mt-2 h-full w-px bg-muted" />
                   </div>
                   <div className="min-w-0 rounded-2xl border border-white/8 bg-black/35 px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm text-white">{event.title}</p>
-                      <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/34">
+                      <p className="text-sm text-foreground">{event.title}</p>
+                      <span className="rounded-full border border-border px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white/34">
                         {event.tone}
                       </span>
                     </div>
@@ -828,10 +828,10 @@ export default function NodeDetail({
                   <div key={suggestion.id} className="rounded-2xl border border-white/8 bg-black/35 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm text-white">{suggestion.targetLabel}</p>
+                        <p className="text-sm text-foreground">{suggestion.targetLabel}</p>
                         <p className="mt-1 text-xs leading-5 text-white/46">{suggestion.explanation}</p>
                       </div>
-                      <span className="rounded-full border border-white/12 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/58">
+                      <span className="rounded-full border border-border px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-white/58">
                         {formatPercent(suggestion.confidence)}
                       </span>
                     </div>
@@ -839,14 +839,14 @@ export default function NodeDetail({
                       <button
                         type="button"
                         onClick={() => onAcceptSuggestion(suggestion.id)}
-                        className="flex-1 rounded-xl border border-white/14 bg-white/[0.06] px-3 py-2 text-xs text-white transition-colors hover:bg-white/[0.12]"
+                        className="flex-1 rounded-xl border border-white/14 bg-white/[0.06] px-3 py-2 text-xs text-foreground transition-colors hover:bg-white/[0.12]"
                       >
                         Accept
                       </button>
                       <button
                         type="button"
                         onClick={() => onRejectSuggestion(suggestion.id)}
-                        className="flex-1 rounded-xl border border-white/10 bg-black px-3 py-2 text-xs text-white/64 transition-colors hover:border-white/16 hover:text-white"
+                        className="flex-1 rounded-xl border border-border bg-black px-3 py-2 text-xs text-white/64 transition-colors hover:border-white/16 hover:text-foreground"
                       >
                         Reject
                       </button>

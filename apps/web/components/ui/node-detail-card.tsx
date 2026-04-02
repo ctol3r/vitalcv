@@ -24,7 +24,7 @@ export const NodeDetailCard = React.forwardRef<HTMLDivElement, NodeDetailCardPro
     return (
       <Card 
         ref={ref} 
-        className={cn('bg-black/40 border border-white/10 backdrop-blur-md overflow-hidden', className)} 
+        className={cn('bg-black/40 border border-border backdrop-blur-md overflow-hidden', className)} 
         {...props}
       >
         <CardHeader className="border-b border-white/5 pb-4 space-y-4">
@@ -34,7 +34,7 @@ export const NodeDetailCard = React.forwardRef<HTMLDivElement, NodeDetailCardPro
                 {title}
               </CardTitle>
               {subtitle && (
-                <CardDescription className="text-sm text-white/50">
+                <CardDescription className="text-sm text-foreground/70">
                   {subtitle}
                 </CardDescription>
               )}
@@ -42,7 +42,7 @@ export const NodeDetailCard = React.forwardRef<HTMLDivElement, NodeDetailCardPro
             <div className="flex flex-col items-end gap-2">
               <ClaimBadge level={claimLevel} />
               {statusText && (
-                <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
                   {statusText}
                 </span>
               )}
@@ -55,11 +55,11 @@ export const NodeDetailCard = React.forwardRef<HTMLDivElement, NodeDetailCardPro
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               {metadata.map((item, index) => (
                 <div key={index} className="space-y-1">
-                  <dt className="text-[11px] uppercase tracking-wider text-white/30 font-semibold">
+                  <dt className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
                     {item.label}
                   </dt>
-                  <dd className="text-sm text-white/80 font-medium break-words">
-                    {item.value || <span className="text-white/20">—</span>}
+                  <dd className="text-sm text-foreground/80 font-medium break-words">
+                    {item.value || <span className="text-muted-foreground/40">—</span>}
                   </dd>
                 </div>
               ))}

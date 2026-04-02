@@ -103,7 +103,7 @@ export function CommandCenterDashboard() {
                     <div className="text-sm font-medium text-[var(--vt-text-1)] group-hover:text-vt-info transition-colors">{rec.action}</div>
                     <div className="text-xs text-[var(--vt-text-1)]0 mt-0.5">{rec.context}</div>
                   </div>
-                  <button className="px-3 py-1.5 bg-[var(--vt-surface-2)] hover:bg-white/20 text-[var(--vt-text-1)] rounded-md text-xs font-semibold uppercase tracking-wide transition-colors">
+                  <button className="px-3 py-1.5 bg-[var(--vt-surface-2)] hover:bg-muted text-[var(--vt-text-1)] rounded-md text-xs font-semibold uppercase tracking-wide transition-colors">
                     Execute
                   </button>
                 </div>

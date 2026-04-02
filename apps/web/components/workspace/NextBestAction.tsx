@@ -43,10 +43,10 @@ export default function NextBestAction({ actions, heading = 'Next Best Action' }
             >
               <span className={`mt-1.5 sm:mt-0 h-2 w-2 shrink-0 rounded-full ${DOT_STYLE[action.priority]}`} aria-hidden="true" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white leading-tight">{action.title}</p>
+                <p className="text-sm font-semibold text-foreground leading-tight">{action.title}</p>
                 <p className="mt-1 text-xs text-vt-neutral-300 leading-relaxed">{action.description}</p>
               </div>
-              <ArrowRight className="mt-0.5 sm:mt-0 h-4 w-4 shrink-0 text-white/50" />
+              <ArrowRight className="mt-0.5 sm:mt-0 h-4 w-4 shrink-0 text-foreground/70" />
             </Link>
           </li>
         ))}

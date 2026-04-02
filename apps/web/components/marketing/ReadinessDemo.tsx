@@ -83,7 +83,7 @@ const PROFILES = [
 const SEVERITY_COLOR: Record<string, string> = {
   high:   'text-red-400',
   medium: 'text-amber-400',
-  low:    'text-white/40',
+  low:    'text-muted-foreground',
 };
 
 // ── Component ─────────────────────────────────────────────────
@@ -110,14 +110,14 @@ export function ReadinessDemo() {
 
         {/* Label */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-1.5 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Live demo — no login required</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-foreground/70">Live demo — no login required</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
             This is what your profile looks like.
           </h2>
-          <p className="text-sm sm:text-base text-white/40 max-w-lg mx-auto">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
             Real readiness data, real verified sources, real blockers — surfaced instantly.
           </p>
         </div>
@@ -132,7 +132,7 @@ export function ReadinessDemo() {
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                 active === i
                   ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300'
-                  : 'border-white/10 bg-white/3 text-white/40 hover:text-white/70 hover:border-white/20'
+                  : 'border-border bg-card text-muted-foreground hover:text-foreground/70 hover:border-border'
               }`}
             >
               {p.name.split(' ')[1]} {p.name.split(' ')[2]}
@@ -148,32 +148,32 @@ export function ReadinessDemo() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className={`rounded-2xl border border-white/10 bg-white/3 overflow-hidden ring-1 ${profile.ring}`}
+            className={`rounded-2xl border border-border bg-card overflow-hidden ring-1 ${profile.ring}`}
           >
             {/* Identity header */}
             <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-5 border-b border-white/6 bg-gradient-to-r from-white/4 to-transparent">
               <div className="flex items-center gap-4">
-                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${profile.gradient} opacity-20 flex items-center justify-center shrink-0 text-lg font-bold text-white/60`}>
+                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${profile.gradient} opacity-20 flex items-center justify-center shrink-0 text-lg font-bold text-foreground`}>
                   {profile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
                 <div>
-                  <p className="font-semibold text-white">{profile.name}</p>
-                  <p className="text-xs text-white/40 mt-0.5">{profile.title}</p>
+                  <p className="font-semibold text-foreground">{profile.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{profile.title}</p>
                 </div>
               </div>
               <div className={`shrink-0 flex flex-col items-end text-right ring-1 ${profile.ring} rounded-xl px-3 py-2`}>
-                <span className="text-2xl font-bold text-white leading-none">{profile.score}</span>
-                <span className="text-[9px] text-white/30 uppercase tracking-wide">{profile.level} · Readiness</span>
+                <span className="text-2xl font-bold text-foreground leading-none">{profile.score}</span>
+                <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide">{profile.level} · Readiness</span>
               </div>
             </div>
 
             {/* Score bar */}
             <div className="px-5 sm:px-6 py-3 border-b border-white/6">
               <div className="flex justify-between text-[10px] mb-2">
-                <span className="text-white/30 uppercase tracking-wide">Readiness score</span>
+                <span className="text-muted-foreground/60 uppercase tracking-wide">Readiness score</span>
                 <span className={profile.statusColor + ' font-semibold'}>{profile.status}</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-white/8 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${profile.score}%` }}
@@ -186,7 +186,7 @@ export function ReadinessDemo() {
             <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/6">
               {/* Verified sources */}
               <div className="px-5 sm:px-6 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">
                   Verified Sources — {profile.verified.length}
                 </p>
                 <div className="space-y-2.5">
@@ -194,8 +194,8 @@ export function ReadinessDemo() {
                     <div key={v.label} className="flex items-center gap-2.5">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white/80 truncate">{v.label}</p>
-                        <p className="text-[10px] text-white/30">{v.issuer} · {v.date}</p>
+                        <p className="text-sm text-foreground/80 truncate">{v.label}</p>
+                        <p className="text-[10px] text-muted-foreground/60">{v.issuer} · {v.date}</p>
                       </div>
                       <span className="text-[10px] text-emerald-400 font-semibold shrink-0">✓</span>
                     </div>
@@ -206,7 +206,7 @@ export function ReadinessDemo() {
               {/* Blockers + share */}
               <div className="px-5 sm:px-6 py-4 flex flex-col gap-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25 mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50 mb-3">
                     Blockers — {profile.blockers.length}
                   </p>
                   {profile.blockers.length === 0 ? (
@@ -219,7 +219,7 @@ export function ReadinessDemo() {
                       {profile.blockers.map(b => (
                         <div key={b.label} className="flex items-start gap-2">
                           <span className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${b.severity === 'high' ? 'bg-red-400' : 'bg-amber-400'}`} />
-                          <p className={`text-sm ${SEVERITY_COLOR[b.severity] ?? 'text-white/40'}`}>{b.label}</p>
+                          <p className={`text-sm ${SEVERITY_COLOR[b.severity] ?? 'text-muted-foreground'}`}>{b.label}</p>
                         </div>
                       ))}
                     </div>
@@ -230,11 +230,11 @@ export function ReadinessDemo() {
                 <div className="mt-auto pt-2">
                   <Link
                     href="/get-ready"
-                    className="flex items-center justify-center gap-1.5 w-full min-h-[44px] rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                    className="flex items-center justify-center gap-1.5 w-full min-h-[44px] rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
                   >
                     Build my profile
                   </Link>
-                  <p className="text-center text-[10px] text-white/20 mt-2">
+                  <p className="text-center text-[10px] text-muted-foreground/40 mt-2">
                     Takes ~30 seconds · No credit card
                   </p>
                 </div>
@@ -243,10 +243,10 @@ export function ReadinessDemo() {
 
             {/* Footer */}
             <div className="px-5 sm:px-6 py-3 border-t border-white/6 flex items-center justify-between bg-white/1">
-              <p className="text-[10px] text-white/20">Demo data · NPI {profile.npi}</p>
+              <p className="text-[10px] text-muted-foreground/40">Demo data · NPI {profile.npi}</p>
               <div className="flex items-center gap-1.5">
                 <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[10px] text-white/30">Real verification running in production</p>
+                <p className="text-[10px] text-muted-foreground/60">Real verification running in production</p>
               </div>
             </div>
           </motion.div>
@@ -259,7 +259,7 @@ export function ReadinessDemo() {
               key={i}
               type="button"
               onClick={() => setActive(i)}
-              className={`rounded-full transition-all ${active === i ? 'h-1.5 w-4 bg-emerald-400' : 'h-1.5 w-1.5 bg-white/20 hover:bg-white/40'}`}
+              className={`rounded-full transition-all ${active === i ? 'h-1.5 w-4 bg-emerald-400' : 'h-1.5 w-1.5 bg-muted hover:bg-muted'}`}
             />
           ))}
         </div>

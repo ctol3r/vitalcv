@@ -22,7 +22,7 @@ import { StorylineCard } from './StorylineCard';
 const GlobalMapWorkspace = dynamic(
   () => import('./GlobalMapWorkspace').then(m => ({ default: m.GlobalMapWorkspace })),
   { ssr: false, loading: () => (
-    <div className="flex h-full items-center justify-center text-sm text-white/30">
+    <div className="flex h-full items-center justify-center text-sm text-muted-foreground/60">
       Loading map…
     </div>
   )},

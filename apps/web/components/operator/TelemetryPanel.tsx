@@ -14,16 +14,16 @@ export function TelemetryPanel({ title, value, trend, chart, className }: Teleme
   return (
     <div className={cn("flex flex-col p-4 bg-[#0f1115] border border-white/5 rounded-xl", className)}>
       <div className="flex items-start justify-between mb-2">
-        <h3 className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">{title}</h3>
+        <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{title}</h3>
       </div>
 
       <div className="flex items-baseline gap-2 mb-1">
-        <span className="text-2xl font-semibold text-white tracking-tight">{value}</span>
+        <span className="text-2xl font-semibold text-foreground tracking-tight">{value}</span>
         {trend && (
           <span className={cn(
             "text-[10px] font-medium px-1.5 py-0.5 rounded-sm",
             trend.positive ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400",
-            trend.positive === undefined ? "bg-white/5 text-white/40" : ""
+            trend.positive === undefined ? "bg-muted text-muted-foreground" : ""
           )}>
             {trend.value}
           </span>

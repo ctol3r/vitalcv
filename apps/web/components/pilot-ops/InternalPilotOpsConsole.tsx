@@ -272,7 +272,7 @@ function TriageIssueRow({
                 });
               });
             }}
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-semibold text-foreground transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? 'Saving...' : 'Save'}
           </button>
@@ -289,7 +289,7 @@ function TriageIssueRow({
                 });
               });
             }}
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-violet-700 px-4 text-sm font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-violet-700 px-4 text-sm font-semibold text-foreground transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? 'Queueing...' : 'Queue hotfix'}
           </button>
@@ -369,7 +369,7 @@ function SurfaceControlRow({
               });
             });
           }}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-neutral-950 px-4 text-sm font-semibold text-foreground transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? 'Saving...' : 'Apply'}
         </button>

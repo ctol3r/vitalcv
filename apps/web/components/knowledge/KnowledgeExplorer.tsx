@@ -152,9 +152,9 @@ export function KnowledgeExplorer({
   const entityTypes: EntityType[] = ['clinician', 'credential', 'issuer', 'verifier', 'decision'];
 
   return (
-    <div className={`rounded-2xl border border-infra-border bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden ${className}`}>
+    <div className={`rounded-2xl border border-infra-border bg-card backdrop-blur-sm shadow-sm overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="px-5 py-4 border-b border-infra-border/50 bg-white/40 backdrop-blur-md">
+      <div className="px-5 py-4 border-b border-infra-border/50 bg-muted backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <div className="rounded-xl p-2 bg-violet-50 text-violet-600">
             <Network className="h-4 w-4" />
@@ -277,7 +277,7 @@ export function KnowledgeExplorer({
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-t border-infra-border/50"
           >
-            <div className="px-5 py-4 bg-white/60 backdrop-blur-sm space-y-4">
+            <div className="px-5 py-4 bg-card backdrop-blur-sm space-y-4">
               {/* Entity header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -335,7 +335,7 @@ export function KnowledgeExplorer({
                       <button
                         key={relationship.id}
                         onClick={() => setSelectedEntity(entity)}
-                        className={`w-full flex items-center gap-2 rounded-xl border ${colors.border} bg-white/50 px-3 py-2 text-left transition-colors hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40`}
+                        className={`w-full flex items-center gap-2 rounded-xl border ${colors.border} bg-card px-3 py-2 text-left transition-colors hover:bg-card dark:bg-black/20 dark:hover:bg-black/40`}
                       >
                         <div className={`rounded-lg p-1 ${colors.bg} ${colors.text}`}>
                           <Icon className="h-3 w-3" />

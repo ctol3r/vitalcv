@@ -83,7 +83,7 @@ export default function PrequalifyBar({ steps = DEFAULT_STEPS, dismissed = false
             <button
               onClick={() => setHidden(true)}
               aria-label="Dismiss prequalification bar"
-              className="rounded-full p-1.5 text-vt-neutral-800 hover:bg-vt-surface-ops-raised hover:text-white transition"
+              className="rounded-full p-1.5 text-vt-neutral-800 hover:bg-vt-surface-ops-raised hover:text-foreground transition"
             >
               <X className="h-3.5 w-3.5" />
             </button>

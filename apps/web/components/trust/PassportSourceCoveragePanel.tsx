@@ -29,10 +29,10 @@ export function PassportSourceCoveragePanel({
   return (
     <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] py-0 shadow-none">
       <CardHeader className="border-b border-white/6 px-5 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
           {PASSPORT_SOURCE_COVERAGE_TITLE}
         </p>
-        <CardTitle className="text-sm font-semibold text-white/80">
+        <CardTitle className="text-sm font-semibold text-foreground/80">
           Trust-core coverage and contextual gaps
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed text-white/42">

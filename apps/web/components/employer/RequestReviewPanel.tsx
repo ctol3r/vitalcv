@@ -181,13 +181,13 @@ export function RequestReviewPanel() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
           Employer review
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
           Request a passport review
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-white/50">
+        <p className="mt-2 text-sm leading-relaxed text-foreground/70">
           Enter the clinician&apos;s NPI to create a review context. You&apos;ll get a link to send
           them — they open their passport, you open the review surface with full proof and actions.
         </p>
@@ -208,7 +208,7 @@ export function RequestReviewPanel() {
               if (npiError) setNpiError(null);
             }}
             placeholder="Clinician NPI (10 digits)"
-            className="h-14 w-full rounded-xl border-white/12 bg-white/6 px-4 text-[16px] text-white placeholder:text-white/30 shadow-none focus-visible:border-white/30 focus-visible:bg-white/8 focus-visible:ring-white/10"
+            className="h-14 w-full rounded-xl border-border bg-muted px-4 text-[16px] text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:border-border focus-visible:bg-muted focus-visible:ring-white/10"
           />
           {npiError && <p className="text-xs text-red-400/70">{npiError}</p>}
           {phase === 'error' && errorMsg && (
@@ -229,9 +229,9 @@ export function RequestReviewPanel() {
 
       {/* Loading */}
       {phase === 'loading' && (
-        <Card className="rounded-xl border-white/8 bg-white/3 px-5 py-6 shadow-none text-center">
-          <p className="text-white/50 text-sm">Creating review context…</p>
-          <p className="mt-1 text-white/25 text-xs">Resolving NPI and registering context.</p>
+        <Card className="rounded-xl border-white/8 bg-card px-5 py-6 shadow-none text-center">
+          <p className="text-foreground/70 text-sm">Creating review context…</p>
+          <p className="mt-1 text-muted-foreground/50 text-xs">Resolving NPI and registering context.</p>
         </Card>
       )}
 
@@ -257,31 +257,31 @@ export function RequestReviewPanel() {
           <Card className="rounded-xl border-emerald-500/20 bg-emerald-500/8 px-5 py-4 shadow-none">
             <div className="flex items-center gap-2">
               <span className="text-emerald-400 text-sm">✔</span>
-              <p className="text-white/80 text-sm font-medium">Review context created</p>
+              <p className="text-foreground/80 text-sm font-medium">Review context created</p>
             </div>
             {result.displayName && (
-              <p className="mt-1 text-white/50 text-xs">
-                For: <span className="text-white/65">{result.displayName}</span> · NPI {result.npi}
+              <p className="mt-1 text-foreground/70 text-xs">
+                For: <span className="text-foreground/60">{result.displayName}</span> · NPI {result.npi}
               </p>
             )}
             <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
-              <span className="text-white/25">Context ID</span>
-              <span className="text-white/50 font-mono break-all">{result.contextId.slice(0, 8)}…</span>
-              <span className="text-white/25">Status</span>
-              <span className="text-white/50">{result.status}</span>
+              <span className="text-muted-foreground/50">Context ID</span>
+              <span className="text-foreground/70 font-mono break-all">{result.contextId.slice(0, 8)}…</span>
+              <span className="text-muted-foreground/50">Status</span>
+              <span className="text-foreground/70">{result.status}</span>
             </div>
           </Card>
 
-          <Card className="rounded-xl border-white/8 bg-white/3 px-5 py-4 shadow-none space-y-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+          <Card className="rounded-xl border-white/8 bg-card px-5 py-4 shadow-none space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
               Review link
             </p>
-            <p className="text-xs leading-relaxed text-white/40">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Send this to the clinician, or open it yourself to see their passport in employer
               review mode. Employer actions on this review will be recorded in the audit trail.
             </p>
             <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">
-              <p className="text-[11px] font-mono text-white/55 break-all">{result.reviewUrl}</p>
+              <p className="text-[11px] font-mono text-foreground break-all">{result.reviewUrl}</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -291,7 +291,7 @@ export function RequestReviewPanel() {
               >
                 {copied ? 'Copied ✔' : 'Copy review link'}
               </Button>
-              <Button asChild variant="outline" className="h-11 rounded-xl border-white/10 bg-white/4 text-white/60 hover:border-white/20 hover:bg-white/7 hover:text-white">
+              <Button asChild variant="outline" className="h-11 rounded-xl border-border bg-card text-foreground hover:border-border hover:bg-white/7 hover:text-foreground">
                 <Link href={result.reviewUrl} target="_blank" rel="noopener noreferrer">
                   Open review
                 </Link>
@@ -299,7 +299,7 @@ export function RequestReviewPanel() {
             </div>
           </Card>
 
-          <p className="text-center text-white/20 text-xs leading-relaxed">
+          <p className="text-center text-muted-foreground/40 text-xs leading-relaxed">
             Employer actions on this review are recorded against context{' '}
             <span className="font-mono">{result.contextId.slice(0, 8)}…</span> in the audit trail.
           </p>
@@ -307,7 +307,7 @@ export function RequestReviewPanel() {
           <Button
             onClick={handleReset}
             variant="ghost"
-            className="w-full text-xs text-white/25 hover:text-white/40 hover:bg-transparent"
+            className="w-full text-xs text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
           >
             Request another review
           </Button>

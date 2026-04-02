@@ -47,7 +47,7 @@ const statusColors: Record<SignalStatus, string> = {
   detected: 'text-[var(--control-accent)] bg-[var(--control-accent)]/10',
   ready: 'text-[var(--control-success)] bg-[var(--control-success)]/10',
   required: 'text-amber-400 bg-amber-500/10',
-  resolved: 'text-[var(--control-text-muted)] bg-white/5',
+  resolved: 'text-[var(--control-text-muted)] bg-muted',
 };
 
 /**

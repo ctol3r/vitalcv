@@ -176,12 +176,12 @@ export function ApiSandbox() {
   return (
     <section
       aria-label="Interactive cURL Sandbox"
-      className="rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-xl overflow-hidden"
+      className="rounded-2xl border border-border bg-slate-950/80 backdrop-blur-xl overflow-hidden"
     >
       {/* Panel header */}
       <div className="flex items-center gap-3 border-b border-white/8 px-6 py-4">
         <Terminal className="h-4 w-4 text-emerald-400" />
-        <h2 className="text-sm font-semibold text-white">Interactive cURL Sandbox</h2>
+        <h2 className="text-sm font-semibold text-foreground">Interactive cURL Sandbox</h2>
         <span className="ml-auto rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-sky-300 ring-1 ring-sky-500/30">
           Preview
         </span>
@@ -206,7 +206,7 @@ export function ApiSandbox() {
               value={npi}
               onChange={(e) => setNpi(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="10-digit NPI…"
-              className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 font-mono text-sm text-slate-200 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full rounded-xl border border-border bg-slate-900/60 px-4 py-2.5 font-mono text-sm text-slate-200 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 

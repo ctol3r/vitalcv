@@ -26,15 +26,15 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
     return (
       <div 
         ref={ref} 
-        className={cn('flex flex-col border border-white/10 rounded overflow-hidden font-mono bg-black text-white/80', className)}
+        className={cn('flex flex-col border border-border rounded overflow-hidden font-mono bg-black text-foreground/80', className)}
         {...props}
       >
-        <div className="flex flex-wrap text-[10px] sm:text-xs items-center justify-between border-b border-white/10 bg-white/5 py-2 px-3">
+        <div className="flex flex-wrap text-[10px] sm:text-xs items-center justify-between border-b border-border bg-muted py-2 px-3">
           <div className="flex flex-col sm:flex-row sm:gap-4 gap-1">
-            <span className="text-white/40">RECEIPT_ID: <span className="text-white/90">{receiptId}</span></span>
-            <span className="text-white/40">SOURCE: <span className="text-white/90">{sourceId}</span></span>
+            <span className="text-muted-foreground">RECEIPT_ID: <span className="text-white/90">{receiptId}</span></span>
+            <span className="text-muted-foreground">SOURCE: <span className="text-white/90">{sourceId}</span></span>
           </div>
-          <span className="text-white/40">{timestamp}</span>
+          <span className="text-muted-foreground">{timestamp}</span>
         </div>
         
         <ScrollArea className="h-48 sm:h-64 bg-black/50 p-3 sm:p-4 text-[11px] leading-relaxed">
@@ -43,9 +43,9 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
           </pre>
         </ScrollArea>
         
-        <div className="border-t border-white/10 bg-white/[0.02] p-2 px-3 flex items-center gap-2">
+        <div className="border-t border-border bg-white/[0.02] p-2 px-3 flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
-          <span className="text-[10px] text-white/40 tracking-widest uppercase font-semibold">
+          <span className="text-[10px] text-muted-foreground tracking-widest uppercase font-semibold">
             Cryptographically Verified
           </span>
         </div>

@@ -23,7 +23,7 @@ export function CardPattern({ children, className, glowColor = 'rgba(255, 255, 2
   return (
     <div
       className={cn(
-        'group relative rounded-2xl border border-zinc-200 bg-white/50 p-6 shadow-sm backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/80 overflow-hidden',
+        'group relative rounded-2xl border border-zinc-200 bg-card p-6 shadow-sm backdrop-blur-xl transition-colors hover:bg-card dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/80 overflow-hidden',
         className
       )}
       onMouseMove={handleMouseMove}

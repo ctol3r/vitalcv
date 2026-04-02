@@ -77,7 +77,7 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Set up your your readiness</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your your readiness</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
               VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
@@ -119,11 +119,11 @@ export default function HolderPage() {
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
         <div className="max-w-sm text-center space-y-4">
           <AlertCircle className="h-8 w-8 text-red-400 mx-auto" />
-          <p className="text-white font-medium">Couldn&apos;t load your profile</p>
+          <p className="text-foreground font-medium">Couldn&apos;t load your profile</p>
           <p className="text-sm text-zinc-400">Try refreshing the page. If it keeps happening, check your connection.</p>
           <button
             onClick={() => { setPhase('loading'); }}
-            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 hover:text-white transition"
+            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 hover:text-foreground transition"
           >
             Try again
           </button>
@@ -140,7 +140,7 @@ export default function HolderPage() {
 
   /* ── Has NPI — full passport ── */
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-zinc-950 text-foreground">
       {/* Greeting + Upload CTA */}
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pb-0 pt-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-8">
         {profile?.firstName && (

@@ -99,22 +99,22 @@ export default function AskAboutEmployer({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col gap-4">
+    <div className="rounded-2xl border border-border bg-white/[0.03] p-5 flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <MessageCircle className="w-4 h-4 text-blue-400" />
-        <h3 className="text-sm font-semibold text-white">Ask about {employerName}</h3>
+        <h3 className="text-sm font-semibold text-foreground">Ask about {employerName}</h3>
       </div>
 
       {/* Example queries (show when no messages) */}
       {messages.length === 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-white/40">Try asking:</p>
+          <p className="text-xs text-muted-foreground">Try asking:</p>
           <div className="flex flex-col gap-1.5">
             {EXAMPLE_QUERIES.map(q => (
               <button
                 key={q}
                 onClick={() => sendQuery(q)}
-                className="text-left text-xs px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-all"
+                className="text-left text-xs px-3 py-2 rounded-lg bg-muted hover:bg-muted text-foreground hover:text-foreground/80 transition-all"
               >
                 {q}
               </button>
@@ -131,14 +131,14 @@ export default function AskAboutEmployer({
               <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl leading-relaxed ${
                 msg.role === 'user'
                   ? 'bg-blue-600/30 text-blue-100'
-                  : 'bg-white/5 text-white/80'
+                  : 'bg-muted text-foreground/80'
               }`}>
                 {msg.text}
               </div>
               {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   {msg.sources.map(src => (
-                    <span key={src} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 text-xs text-white/30">
+                    <span key={src} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted text-xs text-muted-foreground/60">
                       {SOURCE_ICONS[src] ?? <FileText className="w-3 h-3" />}
                       {src}
                     </span>
@@ -148,7 +148,7 @@ export default function AskAboutEmployer({
             </div>
           ))}
           {loading && (
-            <div className="flex items-center gap-2 text-white/40 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Searching…</span>
             </div>
@@ -163,13 +163,13 @@ export default function AskAboutEmployer({
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={`Ask about ${employerName}…`}
-          className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+          className="flex-1 px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground placeholder-white/30 focus:outline-none focus:border-blue-500/50"
           disabled={loading}
         />
         <button
           type="submit"
           disabled={!input.trim() || loading}
-          className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+          className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-foreground transition-colors"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>

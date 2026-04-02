@@ -96,9 +96,9 @@ function KpiTile({
   };
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className={`mt-2 text-3xl font-semibold tabular-nums ${toneClass[tone]}`}>{value}</p>
-      {sub && <p className="mt-1 text-xs text-white/30">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-muted-foreground/60">{sub}</p>}
     </div>
   );
 }
@@ -106,8 +106,8 @@ function KpiTile({
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="mt-10 mb-4">
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/25">{title}</p>
-      {sub && <p className="mt-1 text-xs text-white/20">{sub}</p>}
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">{title}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground/40">{sub}</p>}
     </div>
   );
 }
@@ -154,7 +154,7 @@ export default async function PilotOpsPage({
       <main className="min-h-screen bg-[#080e1a] flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <p className="text-amber-400 font-semibold text-sm">MONITORING_SECRET not set</p>
-          <p className="text-white/40 text-xs mt-2">
+          <p className="text-muted-foreground text-xs mt-2">
             Set MONITORING_SECRET in your environment variables to access this page.
           </p>
         </div>
@@ -167,7 +167,7 @@ export default async function PilotOpsPage({
       <main className="min-h-screen bg-[#080e1a] flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <p className="text-red-400 font-semibold text-sm">KPI data unavailable</p>
-          <p className="text-white/40 text-xs mt-2">
+          <p className="text-muted-foreground text-xs mt-2">
             Backend unreachable or monitoring secret mismatch.
             Check BACKEND_URL and MONITORING_SECRET.
           </p>
@@ -187,15 +187,15 @@ export default async function PilotOpsPage({
   ].filter((entry): entry is { label: string; value: string } => typeof entry.value === 'string' && entry.value.length > 0);
 
   return (
-    <main className="min-h-screen bg-[#080e1a] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#080e1a] px-6 py-10 text-foreground">
       <div className="mx-auto max-w-5xl">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-2">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">VitalCV — Internal</p>
-            <h1 className="mt-1 text-2xl font-semibold text-white">Pilot Operations KPIs</h1>
-            <p className="mt-1 text-sm text-white/35">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/50">VitalCV — Internal</p>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">Pilot Operations KPIs</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Interview-to-Start Velocity · {days}-day window · Generated {new Date(kpi.generatedAt).toLocaleString()}
             </p>
           </div>
@@ -206,8 +206,8 @@ export default async function PilotOpsPage({
                 href={buildPilotOpsHref(Number(d), filter)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   String(days) === d
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/35 hover:text-white/60'
+                    ? 'bg-muted text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {d}d
@@ -215,13 +215,13 @@ export default async function PilotOpsPage({
             ))}
             <a
               href={exportUrl}
-              className="ml-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-white/50 hover:text-white transition"
+              className="ml-2 rounded-lg border border-border bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground transition"
             >
               ↓ CSV
             </a>
             <a
               href={jsonExportUrl}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-white/50 hover:text-white transition"
+              className="rounded-lg border border-border bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground transition"
             >
               ↓ JSON
             </a>
@@ -229,8 +229,8 @@ export default async function PilotOpsPage({
         </div>
 
         <div className="mb-6 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">Scope Filters</p>
-          <p className="mt-1 text-xs text-white/30">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">Scope Filters</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">
             Narrow the KPI window to a single org context, pilot, workflow lane, or geography.
           </p>
           <ScopeFilterForm
@@ -243,11 +243,11 @@ export default async function PilotOpsPage({
         </div>
 
         {appliedScope.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
-            <span className="font-semibold uppercase tracking-[0.16em] text-white/30">Applied Scope</span>
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-foreground">
+            <span className="font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">Applied Scope</span>
             {appliedScope.map((entry) => (
-              <span key={entry.label} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-white/65">
-                {entry.label}: <span className="font-mono text-white/85">{entry.value}</span>
+              <span key={entry.label} className="rounded-full border border-border bg-black/20 px-2.5 py-1 text-foreground/60">
+                {entry.label}: <span className="font-mono text-foreground/85">{entry.value}</span>
               </span>
             ))}
           </div>
@@ -381,14 +381,14 @@ export default async function PilotOpsPage({
         {/* KPI 7 — Blockers */}
         <SectionHeader title="Blocker Resolution" sub="Categories, open count, avg resolution time" />
         {kpi.blockers.length === 0 ? (
-          <p className="text-sm text-white/25 mt-2">
+          <p className="text-sm text-muted-foreground/50 mt-2">
             No blocker events yet. Wire syncBlockerEvents() at readiness recompute to populate.
           </p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/6 bg-white/[0.02]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/6 text-left text-[10px] font-bold uppercase tracking-widest text-white/25">
+                <tr className="border-b border-white/6 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
                   <th className="px-4 py-3">Blocker Code</th>
                   <th className="px-4 py-3">Open</th>
                   <th className="px-4 py-3">Resolved</th>
@@ -399,17 +399,17 @@ export default async function PilotOpsPage({
               <tbody>
                 {kpi.blockers.map((b) => (
                   <tr key={b.code} className="border-b border-white/4 last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs text-white/70">{b.code}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground/70">{b.code}</td>
                     <td className="px-4 py-3 tabular-nums text-amber-300">
-                      {b.openCount > 0 ? b.openCount : <span className="text-white/20">0</span>}
+                      {b.openCount > 0 ? b.openCount : <span className="text-muted-foreground/40">0</span>}
                     </td>
                     <td className="px-4 py-3 tabular-nums text-emerald-300">
-                      {b.resolvedCount > 0 ? b.resolvedCount : <span className="text-white/20">0</span>}
+                      {b.resolvedCount > 0 ? b.resolvedCount : <span className="text-muted-foreground/40">0</span>}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-white/60">
+                    <td className="px-4 py-3 tabular-nums text-foreground">
                       {b.avgResolutionDays !== null ? `${b.avgResolutionDays}d` : '—'}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-white/60">
+                    <td className="px-4 py-3 tabular-nums text-foreground">
                       {b.medianResolutionDays !== null ? `${b.medianResolutionDays}d` : '—'}
                     </td>
                   </tr>
@@ -425,7 +425,7 @@ export default async function PilotOpsPage({
           sub="READY/PARTIAL/BLOCKED counts based on latest advisory score per reviewed clinician"
         />
         {kpi.readinessDistribution.total === 0 ? (
-          <p className="text-sm text-white/25 mt-2">
+          <p className="text-sm text-muted-foreground/50 mt-2">
             No reviewed clinicians yet — readiness distribution will populate once employer reviews fire.
           </p>
         ) : (
@@ -468,8 +468,8 @@ export default async function PilotOpsPage({
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 text-xs font-mono">
           {(Object.entries(kpi.eventChain) as [string, number][]).map(([key, count]) => (
             <div key={key} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-              <span className="text-white/35 text-[10px]">{key.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}</span>
-              <span className={count > 0 ? 'text-emerald-400' : 'text-white/20'}>{count}</span>
+              <span className="text-muted-foreground text-[10px]">{key.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}</span>
+              <span className={count > 0 ? 'text-emerald-400' : 'text-muted-foreground/40'}>{count}</span>
             </div>
           ))}
         </div>
@@ -478,10 +478,10 @@ export default async function PilotOpsPage({
         <StartOutcomeForm filter={filter} />
 
         {/* Footer */}
-        <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-xs text-white/20">
-          <Link href="/" className="hover:text-white/50 transition">Home</Link>
-          <Link href="/mission-ops" className="hover:text-white/50 transition">Mission Ops</Link>
-          <a href={exportUrl} className="hover:text-white/50 transition">Download CSV</a>
+        <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-xs text-muted-foreground/40">
+          <Link href="/" className="hover:text-foreground/70 transition">Home</Link>
+          <Link href="/mission-ops" className="hover:text-foreground/70 transition">Mission Ops</Link>
+          <a href={exportUrl} className="hover:text-foreground/70 transition">Download CSV</a>
           <span className="ml-auto">INTERNAL — not for public distribution</span>
         </div>
 

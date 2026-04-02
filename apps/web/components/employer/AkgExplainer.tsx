@@ -153,7 +153,7 @@ function GraphPathStep({
         {/* Content */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-white/80">{node.label}</span>
+            <span className="text-xs font-semibold text-foreground/80">{node.label}</span>
             <span className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] ring-1 ${meta.bg} ${meta.color}`}>
               {node.kind}
             </span>
@@ -272,7 +272,7 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 340, damping: 38 }}
-              className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-lg flex-col border-l border-white/10 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60"
+              className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60"
               role="dialog"
               aria-label="AI Reasoning Trace"
             >
@@ -282,13 +282,13 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
                   <Brain className="h-4 w-4 text-violet-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold text-white">AI Reasoning Trace</h2>
+                  <h2 className="text-sm font-semibold text-foreground">AI Reasoning Trace</h2>
                   <p className="text-xs text-slate-500">Authority-Bound Knowledge Graph</p>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-muted hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>

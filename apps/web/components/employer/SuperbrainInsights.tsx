@@ -142,7 +142,7 @@ export function SuperbrainInsights({ npi: initialNpi }: SuperbrainInsightsProps)
           <Button
             type="submit"
             disabled={scanning || !npi || !state || !specialty}
-            className="w-full gap-2 bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
+            className="w-full gap-2 bg-violet-600 text-foreground hover:bg-violet-500 disabled:opacity-40"
           >
             {scanning ? 'Evaluating…' : 'Run Superbrain Evaluation'}
           </Button>

@@ -669,23 +669,23 @@ export function CommandPalette() {
         onClick={() => setOpen(false)}
       />
 
-      <div className="relative flex w-full max-w-4xl overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08111d] shadow-[0_30px_120px_rgba(2,6,23,0.55)]">
+      <div className="relative flex w-full max-w-4xl overflow-hidden rounded-[1.35rem] border border-border bg-[#08111d] shadow-[0_30px_120px_rgba(2,6,23,0.55)]">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="border-b border-white/8 px-4 py-3">
             <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 focus-within:border-cyan-400/20">
-              <Search className="h-4 w-4 shrink-0 text-white/45" />
+              <Search className="h-4 w-4 shrink-0 text-foreground" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={handleInputKeyDown}
                 placeholder="Search providers, findings, storylines, or type > for commands"
-                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
               ) : (
-                <kbd className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                <kbd className="rounded-full border border-border bg-white/[0.04] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   esc
                 </kbd>
               )}
@@ -694,13 +694,13 @@ export function CommandPalette() {
 
           <div ref={resultsRef} className="max-h-[28rem] overflow-y-auto px-2 py-2">
             {resultGroups.length === 0 ? (
-              <div className="px-3 py-8 text-center text-sm text-white/45">
+              <div className="px-3 py-8 text-center text-sm text-foreground">
                 No operator matches for &quot;{effectiveQuery || query}&quot;
               </div>
             ) : (
               resultGroups.map((group) => (
                 <section key={group.label} className="pb-2">
-                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     {group.label}
                   </div>
                   <div className="grid gap-1">
@@ -719,10 +719,10 @@ export function CommandPalette() {
                           className={`flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition ${
                             selected
                               ? 'bg-cyan-400/[0.08] text-white'
-                              : 'text-white/75 hover:bg-white/[0.04]'
+                              : 'text-foreground/70 hover:bg-white/[0.04]'
                           }`}
                         >
-                          <div className={`mt-0.5 rounded-xl border p-2 ${selected ? 'border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-200' : 'border-white/8 bg-white/[0.03] text-white/50'}`}>
+                          <div className={`mt-0.5 rounded-xl border p-2 ${selected ? 'border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-200' : 'border-white/8 bg-white/[0.03] text-foreground/70'}`}>
                             <Icon className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -753,20 +753,20 @@ export function CommandPalette() {
           </div>
 
           <div className="flex items-center gap-4 border-t border-white/8 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-white/38">
-            <span><kbd className="rounded border border-white/10 px-1.5 py-0.5">↑↓</kbd> navigate</span>
-            <span><kbd className="rounded border border-white/10 px-1.5 py-0.5">↵</kbd> open</span>
-            <span><kbd className="rounded border border-white/10 px-1.5 py-0.5">tab</kbd> autofill</span>
-            <span><kbd className="rounded border border-white/10 px-1.5 py-0.5">&gt;</kbd> commands</span>
+            <span><kbd className="rounded border border-border px-1.5 py-0.5">↑↓</kbd> navigate</span>
+            <span><kbd className="rounded border border-border px-1.5 py-0.5">↵</kbd> open</span>
+            <span><kbd className="rounded border border-border px-1.5 py-0.5">tab</kbd> autofill</span>
+            <span><kbd className="rounded border border-border px-1.5 py-0.5">&gt;</kbd> commands</span>
           </div>
         </div>
 
         {preview ? (
           <aside className="hidden w-72 shrink-0 border-l border-white/8 bg-white/[0.02] p-4 lg:block">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <Command className="h-3.5 w-3.5" />
               <span>{preview.group}</span>
             </div>
-            <h3 className="mt-4 text-base font-semibold text-white">{preview.title}</h3>
+            <h3 className="mt-4 text-base font-semibold text-foreground">{preview.title}</h3>
             <p className="mt-1 text-sm text-white/52">{preview.subtitle}</p>
             <p className="mt-3 text-sm leading-6 text-white/68">{preview.detail}</p>
             {preview.href ? (

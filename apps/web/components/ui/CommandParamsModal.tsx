@@ -78,7 +78,7 @@ export function CommandParamsModal({ commandName, schemaInfo, initialData, onClo
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-lg text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all hover:shadow-indigo-500/40 active:scale-95"
+              className="px-6 py-2 rounded-lg text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-foreground shadow-lg shadow-indigo-500/20 transition-all hover:shadow-indigo-500/40 active:scale-95"
             >
               Execute Command
             </button>

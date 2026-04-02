@@ -212,33 +212,33 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
   };
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white surface-operator">
+    <div className="min-h-screen bg-ops-gradient text-foreground surface-operator">
       <OpportunityViewedTracker
         opportunityId={opportunity.id}
         organizationName={opportunity.organizationName}
         title={opportunity.title}
       />
       <div className="mx-auto max-w-7xl px-6 py-10">
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-white/45">
-          <Link href="/" className="transition hover:text-white/70">Home</Link>
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-foreground">
+          <Link href="/" className="transition hover:text-foreground/70">Home</Link>
           <span>/</span>
-          <Link href="/explore" className="transition hover:text-white/70">Explore</Link>
+          <Link href="/explore" className="transition hover:text-foreground/70">Explore</Link>
           <span>/</span>
-          <span className="text-white/70">{opportunity.title}</span>
+          <span className="text-foreground/70">{opportunity.title}</span>
         </nav>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.95fr)]">
           <section className="space-y-6">
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-8">
+            <div className="rounded-[28px] border border-border bg-white/[0.04] p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="max-w-4xl">
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-white/75">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-foreground/70">
                       <Building2 className="h-7 w-7" />
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="text-3xl font-semibold tracking-tight text-white">{opportunity.title}</h1>
+                        <h1 className="text-3xl font-semibold tracking-tight text-foreground">{opportunity.title}</h1>
                         <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${LEVEL_COLOR[opportunity.requirementLevel] ?? LEVEL_COLOR.L1}`}>
                           {opportunity.requirementLevel}
                         </span>
@@ -248,47 +248,47 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm text-white/60">{opportunity.organizationName}</p>
+                      <p className="mt-2 text-sm text-foreground">{opportunity.organizationName}</p>
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-sm text-white/70">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-sm text-foreground/70">
                     <DetailChip icon={<MapPin className="h-4 w-4" />} label={opportunity.remote ? `Remote (${opportunity.state})` : opportunity.state} />
                     <DetailChip icon={<Users className="h-4 w-4" />} label={formatHiringType(opportunity.hiringType)} />
                     <DetailChip icon={<DollarSign className="h-4 w-4" />} label={opportunity.payRange ?? 'Pay not disclosed'} />
                     <DetailChip icon={<Clock3 className="h-4 w-4" />} label={opportunity.startTimeline ?? employer?.timeToStart ?? 'Start timing not stated'} />
                   </div>
 
-                  <div className="mt-6 flex flex-wrap gap-2 text-xs text-white/70">
+                  <div className="mt-6 flex flex-wrap gap-2 text-xs text-foreground/70">
                     <TagPill>{opportunity.specialty}</TagPill>
                     <TagPill>{formatPayModel(opportunity.payModel)}</TagPill>
                     <TagPill>{formatVisaStatus(opportunity.visaSponsorshipStatus)}</TagPill>
                     <TagPill>{formatFreshness(opportunity.freshness)}</TagPill>
                   </div>
 
-                  <p className="mt-6 text-sm leading-7 text-white/75">
+                  <p className="mt-6 text-sm leading-7 text-foreground/70">
                     {opportunity.description ?? 'This active role is live in the marketplace feed. VitalCV is surfacing the employer requirements, compensation visibility, and readiness context from the current source-backed record.'}
                   </p>
 
                   {sourceUpdatedAt ? (
-                    <p className="mt-4 text-xs text-white/45">
+                    <p className="mt-4 text-xs text-foreground">
                       Source updated {sourceUpdatedAt}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Market truth</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{opportunity.transparency?.employerDataCompleteness ?? 'Source coverage unavailable'}</p>
-                  <p className="mt-2 text-xs text-white/50">{opportunity.transparency?.listingFreshness ?? 'Freshness not stated'}</p>
+                <div className="rounded-2xl border border-border bg-black/20 px-4 py-3 text-right">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-foreground">Market truth</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">{opportunity.transparency?.employerDataCompleteness ?? 'Source coverage unavailable'}</p>
+                  <p className="mt-2 text-xs text-foreground/70">{opportunity.transparency?.listingFreshness ?? 'Freshness not stated'}</p>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-              <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What This Job Is, Really</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Clarity before you spend time</h2>
+              <section className="rounded-3xl border border-border bg-white/[0.04] p-6">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">What This Job Is, Really</p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">Clarity before you spend time</h2>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <TruthCard
                     icon={<DollarSign className="h-4 w-4" />}
@@ -317,9 +317,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer Transparency</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">What the current record proves</h2>
+              <section className="rounded-3xl border border-border bg-white/[0.04] p-6">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Employer Transparency</p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">What the current record proves</h2>
                 <div className="mt-6 grid gap-3">
                   <SignalRow label="Hiring state" value={opportunity.transparency?.hiringState ?? employer?.hiringStatus ?? 'unknown'} />
                   <SignalRow label="Listing freshness" value={opportunity.transparency?.listingFreshness ?? 'unknown'} />
@@ -328,9 +328,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                   <SignalRow label="Employer data" value={opportunity.transparency?.employerDataCompleteness ?? 'unknown'} />
                 </div>
                 {opportunity.transparency?.evidence?.length ? (
-                  <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Evidence</p>
-                    <div className="mt-3 space-y-2 text-sm text-white/70">
+                  <div className="mt-5 rounded-2xl border border-border bg-black/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Evidence</p>
+                    <div className="mt-3 space-y-2 text-sm text-foreground/70">
                       {opportunity.transparency.evidence.map((entry) => (
                         <p key={entry}>{entry}</p>
                       ))}
@@ -340,11 +340,11 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               </section>
             </div>
 
-            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+            <section className="rounded-3xl border border-border bg-white/[0.04] p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Readiness-To-Opportunity</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Readiness-To-Opportunity</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-foreground">
                     {comparison ? 'What you already satisfy, what is still in the way' : 'What this employer checks before you start'}
                   </h2>
                 </div>
@@ -394,8 +394,8 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                 </>
               ) : (
                 <div className="mt-5 rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                  <h3 className="text-lg font-semibold text-white">Clinician comparison is not attached yet</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/70">
+                  <h3 className="text-lg font-semibold text-foreground">Clinician comparison is not attached yet</h3>
+                  <p className="mt-2 text-sm leading-6 text-foreground/70">
                     VitalCV can still show the employer&apos;s stated requirements, but a clinician-specific gap view needs a signed-in clinician context or an `npi` query on this detail page.
                   </p>
                 </div>
@@ -405,11 +405,11 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                 {opportunity.credentialRequirements?.map((requirement) => (
                   <div
                     key={`${requirement.label}-${requirement.level}-${requirement.key ?? 'unmapped'}`}
-                    className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                    className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-black/20 px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-medium text-white">{requirement.label}</p>
-                      <p className="mt-1 text-xs leading-5 text-white/50">
+                      <p className="text-sm font-medium text-foreground">{requirement.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-foreground/70">
                         {requirement.note ?? (requirement.priority === 'preferred' ? 'Employer marked this as preferred.' : 'Employer marked this as required.')}
                       </p>
                     </div>
@@ -421,9 +421,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               </div>
             </section>
 
-            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Why This Fits / Doesn&apos;t Fit</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Inspectable reasoning only</h2>
+            <section className="rounded-3xl border border-border bg-white/[0.04] p-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Why This Fits / Doesn&apos;t Fit</p>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">Inspectable reasoning only</h2>
               <div className="mt-6 grid gap-4 xl:grid-cols-2">
                 <ExplanationCard title="Why this may fit" items={explanation.whyThisMayFit} />
                 <ExplanationCard title="What may block you" items={explanation.whatMayBlockYou} />
@@ -437,7 +437,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
             <div className="rounded-3xl border border-emerald-500/25 bg-emerald-500/10 p-5">
               <div className="flex items-center gap-2">
                 <BriefcaseBusiness className="h-5 w-5 text-emerald-300" />
-                <p className="text-sm font-semibold text-white">Apply with context</p>
+                <p className="text-sm font-semibold text-foreground">Apply with context</p>
               </div>
               <p className="mt-3 text-sm leading-6 text-emerald-100/85">
                 You should know the pay visibility, requirement gap, freshness, and employer transparency before you spend time here.
@@ -452,7 +452,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                 </Link>
                 <Link
                   href={onboardingHref}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100/85 transition hover:text-white"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100/85 transition hover:text-foreground"
                 >
                   <span>Check readiness first</span>
                   <ArrowRight className="h-4 w-4" />
@@ -460,10 +460,10 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Employer</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">{opportunity.organizationName}</h2>
-              <div className="mt-4 space-y-3 text-sm text-white/65">
+            <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Employer</p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground">{opportunity.organizationName}</h2>
+              <div className="mt-4 space-y-3 text-sm text-foreground/60">
                 <p>{employer?.tagline ?? 'Live employer profile is linked to this opportunity.'}</p>
                 {employer ? (
                   <>
@@ -483,8 +483,8 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
 
             {!employer ? (
               <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5">
-                <h3 className="text-lg font-semibold text-white">Employer detail fallback</h3>
-                <p className="mt-2 text-sm leading-6 text-white/65">
+                <h3 className="text-lg font-semibold text-foreground">Employer detail fallback</h3>
+                <p className="mt-2 text-sm leading-6 text-foreground/60">
                   The opportunity truth model is live, but the linked employer profile payload did not load for this page.
                 </p>
                 <div className="mt-4">
@@ -492,7 +492,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
                     label="Contact support"
                     title="Opportunity detail missing employer profile"
                     messagePrefill={`Opportunity ${opportunity.id} did not load linked employer profile details.`}
-                    className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/75 transition hover:text-white"
+                    className="inline-flex items-center justify-center rounded-2xl border border-border bg-white/[0.04] px-4 py-3 text-sm font-medium text-foreground/70 transition hover:text-foreground"
                   />
                 </div>
               </div>
@@ -500,7 +500,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
 
             <Link
               href="/explore"
-              className="inline-flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
+              className="inline-flex items-center gap-2 text-sm text-foreground transition hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to live roles
@@ -520,7 +520,7 @@ function DetailChip({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.04] px-3 py-1.5">
       {icon}
       {label}
     </span>
@@ -529,7 +529,7 @@ function DetailChip({
 
 function TagPill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+    <span className="rounded-full border border-border bg-white/[0.04] px-3 py-1.5">
       {children}
     </span>
   );
@@ -547,13 +547,13 @@ function TruthCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-white/45">
+    <div className="rounded-2xl border border-border bg-black/20 p-4">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-foreground">
         {icon}
         {title}
       </div>
-      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-white/65">{detail}</p>
+      <p className="mt-3 text-lg font-semibold text-foreground">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-foreground/60">{detail}</p>
     </div>
   );
 }
@@ -566,9 +566,9 @@ function SignalRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-      <span className="text-white/50">{label}</span>
-      <span className="max-w-[16rem] text-right text-white/80">{value}</span>
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-border bg-black/20 px-4 py-3 text-sm">
+      <span className="text-foreground/70">{label}</span>
+      <span className="max-w-[16rem] text-right text-foreground/80">{value}</span>
     </div>
   );
 }
@@ -588,19 +588,19 @@ function ComparisonColumn({
     ? 'border-emerald-400/20 bg-emerald-400/10'
     : tone === 'warning'
       ? 'border-amber-400/20 bg-amber-400/10'
-      : 'border-white/10 bg-black/20';
+      : 'border-border bg-black/20';
 
   return (
     <div className={`rounded-3xl border p-4 ${toneClasses}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">{title}</p>
       <div className="mt-4 space-y-3">
         {items.length === 0 ? (
-          <p className="text-sm text-white/60">{emptyLabel}</p>
+          <p className="text-sm text-foreground">{emptyLabel}</p>
         ) : (
           items.map((item) => (
-            <div key={`${title}-${item.label}-${item.detail}`} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="mt-1 text-sm leading-6 text-white/65">{item.detail}</p>
+            <div key={`${title}-${item.label}-${item.detail}`} className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+              <p className="text-sm font-medium text-foreground">{item.label}</p>
+              <p className="mt-1 text-sm leading-6 text-foreground/60">{item.detail}</p>
               {item.nextStep ? (
                 <p className="mt-2 text-xs font-medium text-emerald-200">{item.nextStep}</p>
               ) : null}
@@ -622,12 +622,12 @@ function SummaryPanel({
   icon: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-white/45">
+    <div className="rounded-2xl border border-border bg-black/20 p-4">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-foreground">
         {icon}
         {title}
       </div>
-      <p className="mt-3 text-sm leading-6 text-white/75">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-foreground/70">{value}</p>
     </div>
   );
 }
@@ -640,15 +640,15 @@ function ExplanationCard({
   items: string[];
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+    <div className="rounded-3xl border border-border bg-black/20 p-5">
       <div className="flex items-center gap-2">
         {title === 'Why this may fit' ? <Sparkles className="h-4 w-4 text-emerald-300" /> : null}
         {title === 'What may block you' ? <CircleAlert className="h-4 w-4 text-amber-300" /> : null}
         {title === 'What to resolve next' ? <ArrowRight className="h-4 w-4 text-cyan-300" /> : null}
-        {title === 'What is still unknown' ? <Stethoscope className="h-4 w-4 text-white/60" /> : null}
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        {title === 'What is still unknown' ? <Stethoscope className="h-4 w-4 text-foreground" /> : null}
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       </div>
-      <div className="mt-4 space-y-3 text-sm leading-6 text-white/70">
+      <div className="mt-4 space-y-3 text-sm leading-6 text-foreground/70">
         {items.length === 0 ? (
           <p>No additional signal is available from the current source data.</p>
         ) : (

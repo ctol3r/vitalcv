@@ -18,7 +18,7 @@ interface Props {
 export function ApplyWidgetSection({ npi }: Props) {
   if (!npi) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-white/3 px-5 py-4">
+      <div className="rounded-2xl border border-white/8 bg-card px-5 py-4">
         <p className="text-xs font-semibold text-zinc-500 mb-1">Apply with VitalCV</p>
         <p className="text-xs text-zinc-600 mb-3">
           Complete onboarding to activate your clinician profile and generate a shareable credential bundle.

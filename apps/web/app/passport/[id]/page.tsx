@@ -51,7 +51,7 @@ export default async function PassportEntityPage({
                 <Button asChild variant="default" className="h-11 w-full rounded-full">
                   <Link href="/onboarding">Verify my NPI</Link>
                 </Button>
-                <Button asChild variant="outline" className="h-11 w-full rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
+                <Button asChild variant="outline" className="h-11 w-full rounded-full border-border bg-card text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground">
                   <Link href="/passport">Try a different NPI</Link>
                 </Button>
               </div>

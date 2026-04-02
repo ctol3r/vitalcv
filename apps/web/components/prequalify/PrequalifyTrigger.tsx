@@ -23,7 +23,7 @@ export default function PrequalifyTrigger({
 
   const base = variant === 'primary'
     ? 'inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-3 text-sm font-semibold text-black hover:bg-vt-success/90 transition'
-    : 'inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-white hover:bg-vt-surface-ops-raised transition';
+    : 'inline-flex items-center gap-2 rounded-full vt-glass px-6 py-3 text-sm font-medium text-foreground hover:bg-vt-surface-ops-raised transition';
 
   return (
     <Link href="/passport" className={`${base} ${className}`}>

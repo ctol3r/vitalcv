@@ -33,8 +33,8 @@ export function InspectorPanel({ items, title, badge, className }: InspectorPane
     <div className={cn("flex flex-col h-full bg-[#0a0a0f]", className)}>
       {/* Header */}
       {(title || badge) && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
-          {title && <span className="text-[11px] font-semibold text-white/60 tracking-widest uppercase">{title}</span>}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-white/[0.02]">
+          {title && <span className="text-[11px] font-semibold text-foreground tracking-widest uppercase">{title}</span>}
           {badge && (
             <span
               className="text-[10px] px-2 py-0.5 rounded-sm font-medium tracking-wide uppercase"
@@ -61,18 +61,18 @@ export function InspectorPanel({ items, title, badge, className }: InspectorPane
                 item.colSpan === 2 ? "col-span-2 border-t border-white/5 pt-3 mt-1" : "col-span-1"
               )}
             >
-              <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">{item.label}</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
               <div className="flex items-start justify-between gap-2 group">
                 <span className={cn(
                   "text-xs text-white/90 break-words leading-relaxed",
-                  item.mono ? "font-mono text-[11px] bg-white/5 px-1.5 py-0.5 rounded text-white/70" : ""
+                  item.mono ? "font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded text-foreground/70" : ""
                 )}>
                   {item.value}
                 </span>
                 {item.copy && typeof item.value === 'string' && (
                   <button
                     onClick={() => copy(item.value)}
-                    className="shrink-0 p-1 rounded hover:bg-white/10 text-white/30 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                    className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all opacity-0 group-hover:opacity-100"
                     title="Copy to clipboard"
                   >
                     {copied === item.value ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}

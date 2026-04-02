@@ -79,11 +79,11 @@ export default function ClinicianReadinessCheck({
     ?? `NPI ${npi}`;
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+    <div className="rounded-3xl border border-border bg-black/20 p-5">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">
         Check readiness
       </p>
-      <p className="mt-2 text-sm text-white/60">
+      <p className="mt-2 text-sm text-foreground">
         Enter a clinician NPI to check readiness for {employerName}
       </p>
 
@@ -96,21 +96,21 @@ export default function ClinicianReadinessCheck({
           value={npi}
           onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
           placeholder="NPI (10 digits)"
-          className="h-10 flex-1 rounded-xl border-white/12 bg-white/6 px-3 text-sm tracking-wider text-white placeholder:text-white/20"
+          className="h-10 flex-1 rounded-xl border-border bg-muted px-3 text-sm tracking-wider text-foreground placeholder:text-muted-foreground/40"
           disabled={phase === 'loading'}
         />
         <Button
           type="submit"
           variant="outline"
           disabled={npi.length !== 10 || phase === 'loading'}
-          className="h-10 rounded-xl border-white/10 bg-white/[0.04] px-3 text-white/75"
+          className="h-10 rounded-xl border-border bg-white/[0.04] px-3 text-foreground/70"
         >
           <Search className="h-4 w-4" />
         </Button>
       </form>
 
       {phase === 'loading' && (
-        <p className="mt-3 text-xs text-white/40 animate-pulse">
+        <p className="mt-3 text-xs text-muted-foreground animate-pulse">
           Checking sources…
         </p>
       )}
@@ -125,8 +125,8 @@ export default function ClinicianReadinessCheck({
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-white">{displayName}</p>
-              <p className="text-xs text-white/40">NPI {npi}</p>
+              <p className="text-sm font-medium text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">NPI {npi}</p>
             </div>
             <TrustStatusBadge
               status={

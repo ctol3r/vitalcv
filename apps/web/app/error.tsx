@@ -31,7 +31,7 @@ export default function Error({
       />
       <div className="max-w-md animate-fade-in-up px-6 text-center">
         <div className="text-5xl mb-6 opacity-80">💭</div>
-        <h1 className="text-2xl font-semibold mb-3 text-white">
+        <h1 className="text-2xl font-semibold mb-3 text-foreground">
           View Interrupted
         </h1>
         <p className="text-slate-400 mb-8 text-sm leading-relaxed">
@@ -46,7 +46,7 @@ export default function Error({
           </button>
           <Link
             href="/"
-            className="rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white/85 transition hover:border-white/30 hover:text-white"
+            className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground/85 transition hover:border-border hover:text-foreground"
           >
             Return home
           </Link>
@@ -54,7 +54,7 @@ export default function Error({
             label="Contact support"
             title="View interrupted"
             messagePrefill={error.message}
-            className="rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white/85 transition hover:border-white/30 hover:text-white"
+            className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground/85 transition hover:border-border hover:text-foreground"
           />
         </div>
       </div>

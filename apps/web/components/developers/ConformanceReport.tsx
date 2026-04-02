@@ -230,7 +230,7 @@ export function ConformanceReport({ className = '' }: { className?: string }) {
                       </button>
                       {isExpanded && (
                         <div className="px-3 pb-3">
-                          <p className="text-xs text-foreground font-mono bg-white/70 rounded-lg px-3 py-2 border border-white/50">
+                          <p className="text-xs text-foreground font-mono bg-white/70 rounded-lg px-3 py-2 border border-border">
                             {check.detail}
                           </p>
                         </div>

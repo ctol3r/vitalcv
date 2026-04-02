@@ -104,7 +104,7 @@ function StatCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="flex items-center gap-3 rounded-xl border border-infra-border bg-white/80 backdrop-blur-sm px-4 py-3 shadow-sm"
+      className="flex items-center gap-3 rounded-xl border border-infra-border bg-card backdrop-blur-sm px-4 py-3 shadow-sm"
     >
       <div className={`rounded-lg p-2 ${color}`}>
         <Icon className="h-4 w-4" />
@@ -166,7 +166,7 @@ export function SystemConsole() {
               <MagneticButton>
                 <Link
                   href="/demo"
-                  className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
+                  className="inline-flex items-center gap-2 rounded-xl bg-infra-blue px-6 py-3 text-sm font-semibold text-foreground transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-infra-blue focus:ring-offset-2"
                 >
                   Try VitalCV
                   <Zap className="h-4 w-4" />

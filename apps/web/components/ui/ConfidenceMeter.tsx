@@ -30,7 +30,7 @@ export function ConfidenceMeter({ value, size = 'sm', className }: ConfidenceMet
     <div className={cn('flex items-center gap-2', className)}>
       <div
         className={cn(
-          'relative overflow-hidden rounded-full bg-white/8',
+          'relative overflow-hidden rounded-full bg-muted',
           size === 'sm' ? 'h-1 w-16' : 'h-1.5 w-24'
         )}
       >

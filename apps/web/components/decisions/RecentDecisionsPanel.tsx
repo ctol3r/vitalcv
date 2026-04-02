@@ -36,16 +36,16 @@ export function RecentDecisionsPanel({
   if (loading) {
     return (
       <div
-        className="rounded-2xl border border-white/10 p-5"
+        className="rounded-2xl border border-border p-5"
         style={{ background: 'rgba(8, 14, 26, 0.6)', backdropFilter: 'blur(12px)' }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <History className="h-4 w-4 text-white/30" />
+          <History className="h-4 w-4 text-muted-foreground/60" />
           <h3 className="text-sm font-semibold text-white/90">{heading}</h3>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl bg-white/5" />
+            <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
           ))}
         </div>
       </div>
@@ -55,8 +55,8 @@ export function RecentDecisionsPanel({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <History className="h-4 w-4 text-white/40" />
-        <h3 className="text-sm font-semibold text-white/70">{heading}</h3>
+        <History className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground/70">{heading}</h3>
       </div>
       <DecisionTimeline
         capsules={capsules}

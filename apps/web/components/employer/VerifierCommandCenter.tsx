@@ -272,7 +272,7 @@ export function VerifierCommandCenter() {
                           key={cred.name}
                           align="start"
                           trigger={
-                            <li className="flex items-center gap-3 p-1 rounded hover:bg-white/5 cursor-help transition-colors">
+                            <li className="flex items-center gap-3 p-1 rounded hover:bg-muted cursor-help transition-colors">
                               <span className={cn('h-2 w-2 rounded-full shrink-0', CREDENTIAL_STATUS_DOT[cred.status] ?? 'bg-muted-foreground/40')} />
                               <span className="flex-1 text-sm text-foreground truncate">{cred.name}</span>
                               <ClaimBadge level={cred.claimLevel} showLabel={false} className="shrink-0" />

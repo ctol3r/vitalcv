@@ -30,7 +30,7 @@ export function ApplyWithVitalCV({ npi, shareUrl, className = '' }: ApplyWithVit
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full py-3 bg-vt-success hover:bg-vt-success/90 rounded-xl text-sm font-semibold text-white transition-colors"
+        className="w-full py-3 bg-vt-success hover:bg-vt-success/90 rounded-xl text-sm font-semibold text-foreground transition-colors"
         onClick={handleCopy}
       >
         {copied ? 'Link Copied!' : 'Apply with VitalCV'}

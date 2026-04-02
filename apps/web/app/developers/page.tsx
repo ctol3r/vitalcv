@@ -66,7 +66,7 @@ export default function DeveloperPortalPage() {
   const publicApiBase = getPublicApiBase();
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white">
+    <div className="min-h-screen bg-ops-gradient text-foreground">
       {/* ── Hero header ──────────────────────────────────── */}
       <header className="relative overflow-hidden border-b border-vt-neutral-800 px-6 py-20 text-center">
         {/* Ambient glow */}
@@ -86,7 +86,7 @@ export default function DeveloperPortalPage() {
             Developer Portal Preview
           </span>
 
-          <h1 className="heading-xl mt-4 text-white">
+          <h1 className="heading-xl mt-4 text-foreground">
             Build against the
             <br />
             <span className="text-vt-success">current VitalCV API preview.</span>
@@ -106,7 +106,7 @@ export default function DeveloperPortalPage() {
             </Link>
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl vt-glass px-6 py-3 text-sm font-semibold text-white transition hover:bg-vt-surface-ops-raised"
+              className="inline-flex items-center gap-2 rounded-xl vt-glass px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-vt-surface-ops-raised"
             >
               <BookOpen className="h-4 w-4" />
               Read the Docs
@@ -125,7 +125,7 @@ export default function DeveloperPortalPage() {
               </div>
               <div>
                 <p className="text-xs text-vt-neutral-800">{label}</p>
-                <p className="text-sm font-semibold text-white">{value}</p>
+                <p className="text-sm font-semibold text-foreground">{value}</p>
               </div>
             </div>
           ))}
@@ -248,7 +248,7 @@ const profile = await verifier.getPublicProfile('1234567890');
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{label}</p>
+                  <p className="text-sm font-semibold text-foreground">{label}</p>
                   <p className="mt-0.5 text-xs text-vt-neutral-800">{desc}</p>
                 </div>
                 <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-vt-neutral-700 transition group-hover:text-vt-success" />

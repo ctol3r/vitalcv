@@ -356,7 +356,7 @@ export function PilotReporterHost() {
                   <button
                     type="submit"
                     disabled={submitting || (type === 'nps' && score === null)}
-                    className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitting ? 'Sending…' : submitLabel(kind)}
                   </button>

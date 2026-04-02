@@ -81,7 +81,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/70">
           Employer workspace required
         </p>
-        <p className="mt-1 text-xs text-white/50 leading-relaxed">
+        <p className="mt-1 text-xs text-foreground/70 leading-relaxed">
           {hint ?? 'Your account needs an employer workspace to create review contexts. Set one up now to continue.'}
         </p>
       </Card>
@@ -89,7 +89,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
       {phase === 'form' || phase === 'error' ? (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label htmlFor="org-name" className="text-xs text-white/40 mb-1 block">
+            <label htmlFor="org-name" className="text-xs text-muted-foreground mb-1 block">
               Organization name
             </label>
             <Input
@@ -101,7 +101,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
                 if (nameError) setNameError(null);
               }}
               placeholder="Hospital name, practice, or organization"
-              className="h-12 w-full rounded-xl border-white/12 bg-white/6 px-4 text-sm text-white placeholder:text-white/25 shadow-none focus-visible:border-white/30 focus-visible:ring-white/10"
+              className="h-12 w-full rounded-xl border-border bg-muted px-4 text-sm text-foreground placeholder:text-muted-foreground/50 shadow-none focus-visible:border-border focus-visible:ring-white/10"
             />
             {nameError && (
               <p className="mt-1 text-xs text-red-400/70">{nameError}</p>
@@ -109,7 +109,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
           </div>
 
           <div>
-            <label htmlFor="org-npi" className="text-xs text-white/40 mb-1 block">
+            <label htmlFor="org-npi" className="text-xs text-muted-foreground mb-1 block">
               Organization Type 2 NPI
             </label>
             <Input
@@ -123,7 +123,7 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
                 if (npiError) setNpiError(null);
               }}
               placeholder="Organization NPI (10 digits)"
-              className="h-12 w-full rounded-xl border-white/12 bg-white/6 px-4 text-sm text-white placeholder:text-white/25 shadow-none focus-visible:border-white/30 focus-visible:ring-white/10"
+              className="h-12 w-full rounded-xl border-border bg-muted px-4 text-sm text-foreground placeholder:text-muted-foreground/50 shadow-none focus-visible:border-border focus-visible:ring-white/10"
             />
             {npiError && (
               <p className="mt-1 text-xs text-red-400/70">{npiError}</p>
@@ -140,17 +140,17 @@ export function EmployerWorkspaceSetup({ onSetupComplete, hint }: Props) {
             type="submit"
             variant="outline"
             disabled={!orgName.trim() || organizationNpi.length !== 10}
-            className="h-11 w-full rounded-xl border-white/15 bg-white/5 text-sm font-medium text-white/70 hover:border-white/25 hover:bg-white/8 hover:text-white disabled:opacity-40"
+            className="h-11 w-full rounded-xl border-border bg-muted text-sm font-medium text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground disabled:opacity-40"
           >
             Set up employer workspace
           </Button>
-          <p className="text-center text-white/20 text-[10px] leading-relaxed">
+          <p className="text-center text-muted-foreground/40 text-[10px] leading-relaxed">
             This registers your account as an employer workspace and links the active org&apos;s Type 2 NPI.
           </p>
         </form>
       ) : phase === 'loading' ? (
-        <Card className="rounded-xl border-white/8 bg-white/3 px-4 py-4 shadow-none text-center">
-          <p className="text-white/45 text-sm">Setting up workspace…</p>
+        <Card className="rounded-xl border-white/8 bg-card px-4 py-4 shadow-none text-center">
+          <p className="text-foreground text-sm">Setting up workspace…</p>
         </Card>
       ) : null}
     </div>

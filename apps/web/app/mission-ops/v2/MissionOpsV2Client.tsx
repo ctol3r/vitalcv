@@ -103,7 +103,7 @@ const COLS: ColumnDef<MissionOpsRecord>[] = [
     key: 'id',
     label: 'UID',
     width: 80,
-    render: (row) => <span className="font-mono text-white/40">{row.id.slice(-8)}</span>,
+    render: (row) => <span className="font-mono text-muted-foreground">{row.id.slice(-8)}</span>,
   },
   { key: 'name', label: 'Subject Name', sortable: true, width: 200 },
   {
@@ -126,14 +126,14 @@ const COLS: ColumnDef<MissionOpsRecord>[] = [
     key: 'role',
     label: 'Role Type',
     width: 120,
-    render: (row) => <span className="text-white/60">{row.role}</span>,
+    render: (row) => <span className="text-foreground">{row.role}</span>,
   },
   {
     key: 'updatedAt',
     label: 'Last Synced',
     width: 140,
     align: 'right',
-    render: (row) => <span className="text-white/50">{row.updatedAt}</span>,
+    render: (row) => <span className="text-foreground/70">{row.updatedAt}</span>,
   },
   {
     key: 'riskScore',
@@ -156,20 +156,20 @@ export default function MissionOpsV2Client() {
   const activeSectionLabel = NAV_SECTIONS.find((item) => item.key === section)?.label ?? section;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#050508] font-sans text-white">
+    <div className="flex h-screen overflow-hidden bg-[#050508] font-sans text-foreground">
       <div className="flex w-[220px] flex-shrink-0 flex-col border-r border-white/5 bg-[#0a0a0f]">
         <div className="flex shrink-0 items-center justify-between border-b border-white/5 p-5">
           <div>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
               VitalCV Base
             </div>
             <div className="text-sm font-medium tracking-tight">Mission Ops</div>
           </div>
-          <Terminal className="h-4 w-4 text-white/20" />
+          <Terminal className="h-4 w-4 text-muted-foreground/40" />
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="mb-2 px-5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+          <div className="mb-2 px-5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Core Modules
           </div>
           <div className="mb-6 space-y-0.5 px-2">
@@ -190,7 +190,7 @@ export default function MissionOpsV2Client() {
                     'flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs transition-all',
                     isActive
                       ? 'bg-vt-info/10 font-medium text-vt-info'
-                      : 'text-white/50 hover:bg-white/[0.03] hover:text-white/80',
+                      : 'text-foreground/70 hover:bg-white/[0.03] hover:text-foreground/80',
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -200,7 +200,7 @@ export default function MissionOpsV2Client() {
             })}
           </div>
 
-          <div className="mb-2 flex items-center justify-between px-5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+          <div className="mb-2 flex items-center justify-between px-5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             Saved Views
             <Filter className="h-3 w-3" />
           </div>
@@ -213,7 +213,7 @@ export default function MissionOpsV2Client() {
                 aria-pressed={activeView === view}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-md px-3 py-1.5 text-xs transition-all',
-                  activeView === view ? 'bg-white/5 text-white' : 'text-white/40 hover:text-white/70',
+                  activeView === view ? 'bg-muted text-white' : 'text-muted-foreground hover:text-foreground/70',
                 )}
               >
                 <Database className="h-3 w-3 shrink-0 opacity-50" />
@@ -223,7 +223,7 @@ export default function MissionOpsV2Client() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-white/5 p-4 font-mono text-[10px] tracking-widest text-white/20">
+        <div className="flex items-center gap-2 border-t border-white/5 p-4 font-mono text-[10px] tracking-widest text-muted-foreground/40">
           <div className="h-1.5 w-1.5 rounded-full bg-green-500/50 motion-safe:animate-pulse" />
           SYSTEM ONLINE
         </div>
@@ -233,8 +233,8 @@ export default function MissionOpsV2Client() {
         <div className="flex-shrink-0 border-b border-white/5">
           <div className="flex h-14 items-center justify-between px-6">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-white/40">Mission Ops</span>
-              <span className="text-white/20">/</span>
+              <span className="text-sm text-muted-foreground">Mission Ops</span>
+              <span className="text-muted-foreground/40">/</span>
               <span className="text-sm font-medium text-white/90">{activeSectionLabel}</span>
             </div>
 
@@ -244,14 +244,14 @@ export default function MissionOpsV2Client() {
               </div>
             ) : (
               <div className="relative group">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30 transition-colors group-focus-within:text-vt-info" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 transition-colors group-focus-within:text-vt-info" />
                 <input
                   type="text"
                   aria-label="Filter sample mission ops records"
                   placeholder="Filter sample records…"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  className="w-64 rounded-md border border-white/10 bg-white/[0.02] py-1.5 pl-9 pr-4 text-xs text-white placeholder:text-white/30 transition-all focus:border-vt-info/50 focus:outline-none focus:ring-1 focus:ring-vt-info/50"
+                  className="w-64 rounded-md border border-border bg-white/[0.02] py-1.5 pl-9 pr-4 text-xs text-foreground placeholder:text-muted-foreground/60 transition-all focus:border-vt-info/50 focus:outline-none focus:ring-1 focus:ring-vt-info/50"
                 />
               </div>
             )}
@@ -275,14 +275,14 @@ export default function MissionOpsV2Client() {
 
         {!isLiveSection && (
           <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.01] px-6 py-2 text-xs">
-            <div className="flex items-center gap-4 font-medium text-white/50">
+            <div className="flex items-center gap-4 font-medium text-foreground/70">
               <span className="text-white">{filteredRecords.length} Sample Records</span>
-              <div className="h-3 w-px bg-white/10" />
+              <div className="h-3 w-px bg-muted" />
               <span className="text-amber-200/60">Read-only preview</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-white/30">Layout:</span>
-              <span className="rounded bg-white/10 px-2 py-0.5 text-white">Split</span>
+              <span className="text-muted-foreground/60">Layout:</span>
+              <span className="rounded bg-muted px-2 py-0.5 text-foreground">Split</span>
             </div>
           </div>
         )}
@@ -305,12 +305,12 @@ export default function MissionOpsV2Client() {
               {selected && (
                 <div className="flex w-[400px] flex-shrink-0 flex-col border-l border-white/5 bg-[#08080c] shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
                   <div className="flex shrink-0 items-center justify-between border-b border-white/5 bg-[#0f1115] px-4 py-3">
-                    <h3 className="text-xs font-semibold text-white">Record Details</h3>
+                    <h3 className="text-xs font-semibold text-foreground">Record Details</h3>
                     <button
                       type="button"
                       onClick={() => setSelected(null)}
                       aria-label="Close record details"
-                      className="p-1 text-white/30 transition hover:text-white/70"
+                      className="p-1 text-muted-foreground/60 transition hover:text-foreground/70"
                     >
                       ✕
                     </button>

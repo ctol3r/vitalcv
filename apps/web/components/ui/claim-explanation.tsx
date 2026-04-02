@@ -28,7 +28,7 @@ export const ClaimExplanation = React.forwardRef<HTMLDivElement, ClaimExplanatio
       >
         <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02]">
           <h4 className="text-sm font-semibold tracking-tight text-white/90">
-            Why we verified <span className="text-white/40 italic">"{claimLabel}"</span>
+            Why we verified <span className="text-muted-foreground italic">"{claimLabel}"</span>
           </h4>
         </div>
         <CardContent className="pt-4 pb-5">
@@ -36,16 +36,16 @@ export const ClaimExplanation = React.forwardRef<HTMLDivElement, ClaimExplanatio
             {steps.map((step, index) => (
               <li key={index} className="flex gap-4">
                 <div className="flex flex-col items-center mt-0.5">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/70 shadow-[0_0_0_1px_rgba(255,255,255,0.05)_inset]">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-foreground/70 shadow-[0_0_0_1px_rgba(255,255,255,0.05)_inset]">
                     {index + 1}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="w-[1px] h-full bg-white/5 my-1" />
+                    <div className="w-[1px] h-full bg-muted my-1" />
                   )}
                 </div>
                 <div className="pb-4">
                   <h5 className="text-sm font-medium text-white/90 mb-1">{step.title}</h5>
-                  <p className="text-xs text-white/50 leading-relaxed block max-w-[90%]">
+                  <p className="text-xs text-foreground/70 leading-relaxed block max-w-[90%]">
                     {step.description}
                   </p>
                 </div>

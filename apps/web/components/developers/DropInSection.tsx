@@ -31,7 +31,7 @@ export function DropInSection() {
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
             Drop-in Widget SDK
           </p>
-          <h2 className="mt-1 font-fraunces text-xl font-semibold text-white">
+          <h2 className="mt-1 font-fraunces text-xl font-semibold text-foreground">
             One tag. One div. Done.
           </h2>
           <p className="mt-1.5 max-w-md text-sm text-slate-400">
@@ -76,7 +76,7 @@ export function DropInSection() {
             size="sm"
             variant="ghost"
             onClick={handleCopy}
-            className="h-7 gap-1.5 px-2 text-xs text-slate-400 hover:text-white"
+            className="h-7 gap-1.5 px-2 text-xs text-slate-400 hover:text-foreground"
           >
             {copied
               ? <Check className="h-3.5 w-3.5 text-emerald-400" />

@@ -21,7 +21,7 @@ export function ApplyWithVitalCVWidget({
   return (
     <div className="p-4 border border-slate-200 rounded-2xl bg-white shadow-sm max-w-sm flex items-center justify-between hover:shadow-md transition-shadow group cursor-pointer" onClick={onInitiate}>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-foreground shrink-0 group-hover:scale-105 transition-transform">
           <ShieldCheck className="w-5 h-5" />
         </div>
         <div>

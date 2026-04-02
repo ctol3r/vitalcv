@@ -57,7 +57,7 @@ export function AuditBundlePreview({ npi, bundleId, signatureStatus, sizeBytes, 
         </div>
       </div>
 
-      <button className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 transition-colors font-medium">
+      <button className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-foreground dark:text-slate-900 transition-colors font-medium">
         <Download className="w-4 h-4" />
         Download Complete Bundle
       </button>

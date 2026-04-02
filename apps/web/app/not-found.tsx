@@ -6,8 +6,8 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-vt-surface-ops-base text-slate-200">
       <NotFoundTracker />
       <div className="max-w-md animate-fade-in-up px-6 text-center">
-        <div className="text-6xl font-bold mb-4 text-white/20">404</div>
-        <h1 className="text-2xl font-semibold mb-3 text-white">
+        <div className="text-6xl font-bold mb-4 text-muted-foreground/40">404</div>
+        <h1 className="text-2xl font-semibold mb-3 text-foreground">
           Page not found
         </h1>
         <p className="text-slate-400 mb-8 text-sm leading-relaxed">

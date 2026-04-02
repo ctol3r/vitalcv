@@ -70,8 +70,8 @@ function CircularRing({ score }: { score: number }) {
       </svg>
       {/* Score text */}
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-black text-white leading-none">{clampedScore}</span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mt-0.5">
+        <span className="text-3xl font-black text-foreground leading-none">{clampedScore}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mt-0.5">
           score
         </span>
       </div>
@@ -92,11 +92,11 @@ function MetricRow({
 }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-      <div className="flex items-center gap-2 text-white/50">
+      <div className="flex items-center gap-2 text-foreground/70">
         <Icon className="h-3.5 w-3.5 flex-shrink-0" />
         <span className="text-xs">{label}</span>
       </div>
-      <span className="text-sm font-semibold text-white">{value}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -141,14 +141,14 @@ export default function CapacityPanel({ organizationId, systemMode = false }: Ca
       {/* Header */}
       <div className="flex items-center gap-2 mb-5">
         <Activity className="h-4 w-4 text-emerald-400" />
-        <h3 className="text-sm font-bold uppercase tracking-widest text-white/50">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/70">
           Capacity Score
         </h3>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center h-32">
-          <div className="text-white/30 text-sm animate-pulse">Computing…</div>
+          <div className="text-muted-foreground/60 text-sm animate-pulse">Computing…</div>
         </div>
       )}
 
@@ -164,10 +164,10 @@ export default function CapacityPanel({ organizationId, systemMode = false }: Ca
           <div className="flex items-center gap-6 mb-6">
             <CircularRing score={data.capacityScore} />
             <div className="flex-1">
-              <p className="text-2xl font-black text-white leading-tight">
+              <p className="text-2xl font-black text-foreground leading-tight">
                 {data.startsEnabled}
               </p>
-              <p className="text-xs text-white/40 mt-1 leading-snug">
+              <p className="text-xs text-muted-foreground mt-1 leading-snug">
                 more physicians can start this quarter
               </p>
               {data.acceptedThisQuarter > 0 && (
@@ -214,7 +214,7 @@ export default function CapacityPanel({ organizationId, systemMode = false }: Ca
           </div>
 
           {/* Footer */}
-          <p className="mt-4 text-[10px] text-white/20 text-right">
+          <p className="mt-4 text-[10px] text-muted-foreground/40 text-right">
             Computed {new Date(data.computedAt).toLocaleTimeString()}
           </p>
         </>

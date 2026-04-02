@@ -35,7 +35,7 @@ export function SourceProvenanceDrawer({
         {/* Source Details */}
         {retrieval && (
           <section className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-white/10 pb-2">Retrieval Details</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-border pb-2">Retrieval Details</h4>
             <dl className="grid grid-cols-2 gap-6 text-sm">
               <div>
                 <dt className="text-slate-500 mb-1">Source Name</dt>
@@ -60,7 +60,7 @@ export function SourceProvenanceDrawer({
         {/* Cryptographic Integrity */}
         {integrity && (
           <section className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-white/10 pb-2">Cryptographic Integrity</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-border pb-2">Cryptographic Integrity</h4>
             <div className="bg-[#12141a] border border-white/5 rounded-md p-4 font-mono text-xs break-all space-y-4">
               <div>
                 <span className="text-slate-500 block mb-1 uppercase text-[10px] tracking-wider">Algorithm</span>

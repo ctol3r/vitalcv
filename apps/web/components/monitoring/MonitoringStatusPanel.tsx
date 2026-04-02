@@ -125,19 +125,19 @@ export default function MonitoringStatusPanel({
 
   return (
     <div
-      className={`rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 flex flex-col gap-3 ${className}`}
+      className={`rounded-xl border border-border bg-muted backdrop-blur-sm p-4 flex flex-col gap-3 ${className}`}
       style={{ minWidth: 240 }}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-blue-400" />
-          <span className="text-sm font-semibold text-white">Async Trust Monitor</span>
+          <span className="text-sm font-semibold text-foreground">Async Trust Monitor</span>
         </div>
         <button
           onClick={() => void fetchStatus()}
           title="Refresh"
-          className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          className="p-1 rounded hover:bg-muted text-gray-400 hover:text-foreground transition-colors"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -191,7 +191,7 @@ export default function MonitoringStatusPanel({
 
           {/* Last cycle */}
           {status.lastCycle ? (
-            <div className="rounded-lg bg-white/5 px-3 py-2 flex flex-col gap-1.5">
+            <div className="rounded-lg bg-muted px-3 py-2 flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
@@ -201,16 +201,16 @@ export default function MonitoringStatusPanel({
               </div>
               <div className="flex gap-3 text-xs">
                 <span className="text-gray-400">
-                  <span className="text-white font-medium">{status.lastCycle.npisScanned}</span> scanned
+                  <span className="text-foreground font-medium">{status.lastCycle.npisScanned}</span> scanned
                 </span>
                 <span className="text-gray-400">
-                  <span className={status.lastCycle.stateChanges > 0 ? 'text-yellow-400 font-medium' : 'text-white font-medium'}>
+                  <span className={status.lastCycle.stateChanges > 0 ? 'text-yellow-400 font-medium' : 'text-foreground font-medium'}>
                     {status.lastCycle.stateChanges}
                   </span>{' '}
                   changes
                 </span>
                 <span className="text-gray-400">
-                  <span className={status.lastCycle.alerts > 0 ? 'text-red-400 font-medium' : 'text-white font-medium'}>
+                  <span className={status.lastCycle.alerts > 0 ? 'text-red-400 font-medium' : 'text-foreground font-medium'}>
                     {status.lastCycle.alerts}
                   </span>{' '}
                   alerts
@@ -277,7 +277,7 @@ function StatTile({
   highlight?: 'warn' | 'ok';
 }) {
   return (
-    <div className="rounded-lg bg-white/5 px-3 py-2 flex flex-col gap-1">
+    <div className="rounded-lg bg-muted px-3 py-2 flex flex-col gap-1">
       <div className="flex items-center gap-1.5 text-gray-400">
         {icon}
         <span className="text-[10px] uppercase tracking-wider">{label}</span>

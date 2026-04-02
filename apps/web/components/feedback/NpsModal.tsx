@@ -92,7 +92,7 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
                         type="button"
                         onClick={() => setType(t)}
                         className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                          type === t ? 'bg-zinc-900 text-white border-zinc-900 shadow-md' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                          type === t ? 'bg-zinc-900 text-foreground border-zinc-900 shadow-md' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
                         }`}
                       >
                         {label}
@@ -111,7 +111,7 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
                             type="button"
                             onClick={() => setScore(i)}
                             className={`w-7 h-8 rounded-lg text-xs font-bold transition-all border ${
-                              score === i ? 'bg-zinc-900 text-white border-zinc-900 scale-110 shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                              score === i ? 'bg-zinc-900 text-foreground border-zinc-900 scale-110 shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
                             }`}
                           >
                             {i}
@@ -154,7 +154,7 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
                   <button
                     type="submit"
                     disabled={submitting || (type === 'nps' && score === null)}
-                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-400 text-foreground font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98]"
                   >
                     {submitting ? 'Sending...' : 'Share with product team'}
                   </button>

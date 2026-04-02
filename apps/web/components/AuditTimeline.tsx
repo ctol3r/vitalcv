@@ -100,7 +100,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
 
   return (
     <TooltipProvider>
-    <Card className="w-full border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-white/40 dark:bg-white/5 backdrop-blur-xl">
+    <Card className="w-full border-border shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-muted dark:bg-muted backdrop-blur-xl">
       <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-slate-500" />

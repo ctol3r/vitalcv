@@ -132,7 +132,7 @@ export default function SdkDocsPage() {
             <p className="text-xs font-mono uppercase tracking-wider text-zinc-600 mb-2">Key Methods</p>
             <div className="flex flex-wrap gap-2">
               {sdk.methods.map((m) => (
-                <code key={m} className="text-xs px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-zinc-300 font-mono">
+                <code key={m} className="text-xs px-2.5 py-1 rounded-md bg-muted border border-white/5 text-zinc-300 font-mono">
                   {m}
                 </code>
               ))}
@@ -180,7 +180,7 @@ export default function SdkDocsPage() {
 
       {/* Footer nav */}
       <div className="flex justify-between text-sm">
-        <Link href="/docs/api" className="text-zinc-400 hover:text-white transition-colors">← API Reference</Link>
+        <Link href="/docs/api" className="text-zinc-400 hover:text-foreground transition-colors">← API Reference</Link>
         <Link href="/docs/webhooks" className="text-sky-400 hover:text-sky-300 transition-colors">Webhooks →</Link>
       </div>
     </div>

@@ -240,7 +240,7 @@ export function CredentialPresentationActions({
                       </p>
                       {DEMO_CREDENTIALS.map((cred) => (
                         <div key={cred.id} className="rounded-xl border border-infra-border bg-infra-surface overflow-hidden">
-                          <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/50 transition-colors">
+                          <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-card transition-colors">
                           <input
                             type="checkbox"
                             checked={selected.has(cred.id)}

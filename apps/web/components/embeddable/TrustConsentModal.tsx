@@ -29,7 +29,7 @@ export function TrustConsentModal({ requestingParty = 'Acme Health', purposes = 
 
                     <div className="flex gap-3">
                         <button className="flex-1 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition-colors">Decline</button>
-                        <button onClick={handleConsent} className="flex-1 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors shadow-sm">Authorize</button>
+                        <button onClick={handleConsent} className="flex-1 py-2.5 rounded-lg bg-indigo-600 text-foreground font-medium hover:bg-indigo-700 transition-colors shadow-sm">Authorize</button>
                     </div>
                  </motion.div>
                )}

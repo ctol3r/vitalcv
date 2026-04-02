@@ -164,12 +164,12 @@ function StepShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] text-white sm:px-6 sm:py-10">
+    <div className="min-h-[100dvh] bg-zinc-950 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] text-foreground sm:px-6 sm:py-10">
       <div className="mx-auto flex max-w-3xl flex-col gap-6 sm:gap-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-white"
+            className="inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -180,7 +180,7 @@ function StepShell({
             </div>
             <Link
               href={exitHref}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-zinc-800 bg-zinc-900/70 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-zinc-800 bg-zinc-900/70 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300 transition hover:border-zinc-700 hover:text-foreground"
             >
               {exitLabel}
             </Link>
@@ -188,7 +188,7 @@ function StepShell({
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{title}</h1>
           <p className="max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>
         </div>
 
@@ -288,13 +288,13 @@ export function NpiOnboardingStep({
       >
         {guestMode ? (
           <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4 text-sm text-sky-100">
-            <p className="font-medium text-white">Preview only</p>
+            <p className="font-medium text-foreground">Preview only</p>
             <p className="mt-1 text-sky-100/80">
               We&apos;ll resolve your public NPI and preview live role fit, but activation and credential ingestion stay protected until you sign in.
             </p>
             <Link
               href={buildSignInHref('/onboarding', returnTo)}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-sky-200 hover:text-white"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-sky-200 hover:text-foreground"
             >
               Sign in to continue onboarding
               <ArrowRight className="h-4 w-4" />
@@ -328,7 +328,7 @@ export function NpiOnboardingStep({
             placeholder="1234567890"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'onboarding-npi-error' : undefined}
-            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-4 font-mono text-xl tracking-[0.16em] text-white placeholder:text-zinc-700 focus:border-emerald-400 focus:outline-none sm:text-2xl sm:tracking-[0.2em]"
+            className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-4 font-mono text-xl tracking-[0.16em] text-foreground placeholder:text-zinc-700 focus:border-emerald-400 focus:outline-none sm:text-2xl sm:tracking-[0.2em]"
           />
           <p className="text-sm text-zinc-500">
             Type 1 clinician NPIs are supported in this flow. {npi.length > 0 && npi.length < 10
@@ -458,7 +458,7 @@ export function IdentityOnboardingStep({
             dedupeKey={`onboarding:identity:${npi}:${error}`}
           />
           <div className="space-y-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-200">
-            <p className="font-semibold text-white">Profile check interrupted</p>
+            <p className="font-semibold text-foreground">Profile check interrupted</p>
             <p>{error}</p>
             <p className="text-rose-100/80">
               The public registry may be temporarily unavailable. You can try another NPI or retry this search in a few minutes.
@@ -474,7 +474,7 @@ export function IdentityOnboardingStep({
           <button
             type="button"
             onClick={() => void resolveBootstrap()}
-            className="inline-flex items-center gap-2 text-sm text-white/75 transition hover:text-white"
+            className="inline-flex items-center gap-2 text-sm text-foreground/70 transition hover:text-foreground"
           >
             Retry profile lookup
             <ArrowRight className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function IdentityOnboardingStep({
         <div className="space-y-6">
           {guestMode ? (
             <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4 text-sm text-sky-100">
-              <p className="font-medium text-white">Read-only guest preview</p>
+              <p className="font-medium text-foreground">Read-only guest preview</p>
               <p className="mt-1 text-sky-100/80">
                 This step confirms the public provider match only. Signing in is still required before any workspace, credential import, or activation write occurs.
               </p>
@@ -493,25 +493,25 @@ export function IdentityOnboardingStep({
 
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/80 p-5">
             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Resolved provider</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-foreground">
               {clinicianName ?? 'Clinician profile'}
             </h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">NPI</p>
-                <p className="mt-1 font-mono text-white">{npi}</p>
+                <p className="mt-1 font-mono text-foreground">{npi}</p>
               </div>
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Specialty</p>
-                <p className="mt-1 text-white">{bootstrap.specialty ?? 'Not available yet'}</p>
+                <p className="mt-1 text-foreground">{bootstrap.specialty ?? 'Not available yet'}</p>
               </div>
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">State</p>
-                <p className="mt-1 text-white">{bootstrap.state ?? 'Not available yet'}</p>
+                <p className="mt-1 text-foreground">{bootstrap.state ?? 'Not available yet'}</p>
               </div>
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Status</p>
-                <p className="mt-1 text-white">
+                <p className="mt-1 text-foreground">
                   {bootstrap.alreadyRegistered
                     ? 'Existing VitalCV profile found'
                     : guestMode
@@ -748,7 +748,7 @@ export function ActivateOnboardingStep({
             <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-4 text-red-200">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
               <div className="space-y-2 text-sm">
-                <p className="font-semibold text-white">Guest preview is blocked right now</p>
+                <p className="font-semibold text-foreground">Guest preview is blocked right now</p>
                 <p>{error}</p>
                 <p className="text-red-100/80">
                   Next step: go back to the profile review and retry the live opportunity lookup, or continue into the main explore feed instead.
@@ -767,7 +767,7 @@ export function ActivateOnboardingStep({
           <div className="space-y-6">
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950/80 p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Guest preview scope</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">
                 {[guestBootstrap.firstName, guestBootstrap.lastName]
                   .filter((value): value is string => Boolean(value))
                   .join(' ')
@@ -776,19 +776,19 @@ export function ActivateOnboardingStep({
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">NPI</p>
-                  <p className="mt-1 font-mono text-white">{guestBootstrap.npi}</p>
+                  <p className="mt-1 font-mono text-foreground">{guestBootstrap.npi}</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Specialty</p>
-                  <p className="mt-1 text-white">{guestBootstrap.specialty ?? 'Not available yet'}</p>
+                  <p className="mt-1 text-foreground">{guestBootstrap.specialty ?? 'Not available yet'}</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">State</p>
-                  <p className="mt-1 text-white">{guestBootstrap.state ?? 'Not available yet'}</p>
+                  <p className="mt-1 text-foreground">{guestBootstrap.state ?? 'Not available yet'}</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Activation</p>
-                  <p className="mt-1 text-white">
+                  <p className="mt-1 text-foreground">
                     {guestBootstrap.alreadyRegistered
                       ? 'Sign in to continue with the existing profile'
                       : 'Sign in to create and persist your workspace'}
@@ -801,7 +801,7 @@ export function ActivateOnboardingStep({
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Live role preview</p>
-                  <h3 className="mt-2 text-xl font-semibold text-white">
+                  <h3 className="mt-2 text-xl font-semibold text-foreground">
                     {guestMatchTotal} live role{guestMatchTotal === 1 ? '' : 's'} align with this preview
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-sky-100/80">
@@ -810,7 +810,7 @@ export function ActivateOnboardingStep({
                 </div>
                 <Link
                   href={guestExploreHref}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                   Open matching roles
                   <ArrowRight className="h-4 w-4" />
@@ -819,21 +819,21 @@ export function ActivateOnboardingStep({
 
               <div className="mt-4 space-y-3">
                 {guestMatches.length > 0 ? guestMatches.map((opportunity) => (
-                  <div key={opportunity.id} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                  <div key={opportunity.id} className="rounded-2xl border border-border bg-black/20 px-4 py-3">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-white">{opportunity.title}</p>
+                        <p className="text-sm font-semibold text-foreground">{opportunity.title}</p>
                         <p className="mt-1 text-sm text-sky-100/75">
                           {opportunity.organizationName} - {opportunity.remote ? `Remote (${opportunity.state})` : opportunity.state}
                         </p>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/70">
+                      <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground/70">
                         {opportunity.requirementLevel}
                       </span>
                     </div>
                   </div>
                 )) : (
-                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-sky-100/80">
+                  <div className="rounded-2xl border border-border bg-black/20 px-4 py-4 text-sm text-sky-100/80">
                     No exact specialty/state matches are live right now, but the marketplace feed is still available to browse.
                   </div>
                 )}
@@ -850,7 +850,7 @@ export function ActivateOnboardingStep({
               </Link>
               <Link
                 href={guestExploreHref}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:border-zinc-700"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-950 px-5 py-3 text-sm font-semibold text-foreground transition hover:border-zinc-700"
               >
                 Continue exploring
                 <ArrowRight className="h-4 w-4" />
@@ -907,7 +907,7 @@ export function ActivateOnboardingStep({
           <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-4 text-red-200">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
             <div className="space-y-2 text-sm">
-              <p className="font-semibold text-white">Workspace activation paused</p>
+              <p className="font-semibold text-foreground">Workspace activation paused</p>
               <p>{error}</p>
               <p className="text-rose-100/80">
                 Your progress is saved. Please go back and retry activation. If this continues, our team will automatically investigate the interruption.

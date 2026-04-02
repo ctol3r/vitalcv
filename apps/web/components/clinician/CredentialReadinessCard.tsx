@@ -107,7 +107,7 @@ export function CredentialReadinessCard({
       {/* Main Score & Status */}
       <div className="flex flex-col gap-2">
         <div className="flex items-end gap-3">
-          <h1 className="text-6xl sm:text-7xl font-semibold tracking-tighter text-white">
+          <h1 className="text-6xl sm:text-7xl font-semibold tracking-tighter text-foreground">
             {score}
           </h1>
           <div className="pb-1.5 sm:pb-2">
@@ -115,7 +115,7 @@ export function CredentialReadinessCard({
           </div>
         </div>
         <div>
-          <h2 className="text-lg font-medium text-white mb-1">
+          <h2 className="text-lg font-medium text-foreground mb-1">
             {trustLevel} Trust Level
           </h2>
           <p className="text-sm text-slate-400 font-medium">
@@ -140,7 +140,7 @@ export function CredentialReadinessCard({
                 <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{alert.description}</p>
               </div>
               {alert.daysRemaining !== undefined && (
-                <div className="shrink-0 px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-slate-400 uppercase tracking-wide">
+                <div className="shrink-0 px-2 py-1 rounded bg-muted border border-border text-[10px] font-mono text-slate-400 uppercase tracking-wide">
                   {alert.daysRemaining} days
                 </div>
               )}
@@ -159,7 +159,7 @@ export function CredentialReadinessCard({
             {config.actionLabel}
           </span>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 group-hover:bg-slate-800 transition-colors">
-            <ChevronRight className="w-4 h-4 text-white" />
+            <ChevronRight className="w-4 h-4 text-foreground" />
           </div>
         </button>
       </div>

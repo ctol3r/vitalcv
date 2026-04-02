@@ -278,7 +278,7 @@ export function TrustGraphPrimary({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-infra-border bg-white/80 backdrop-blur-sm shadow-sm ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-infra-border bg-card backdrop-blur-sm shadow-sm ${className}`}
     >
       {/* Dot grid background */}
       <div

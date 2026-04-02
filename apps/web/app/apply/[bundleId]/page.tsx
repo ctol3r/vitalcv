@@ -140,23 +140,23 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
   const msg = messages[reason];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-ops-gradient px-4 text-foreground">
       <div className="w-full max-w-sm text-center space-y-4">
         <div className="text-5xl">{msg.emoji}</div>
-        <h1 className="text-xl font-bold text-white">{msg.title}</h1>
-        <p className="text-sm text-white/40">{msg.body}</p>
+        <h1 className="text-xl font-bold text-foreground">{msg.title}</h1>
+        <p className="text-sm text-muted-foreground">{msg.body}</p>
         <div className="flex flex-col gap-2 pt-2">
           {msg.primaryHref ? (
             <a
               href={msg.primaryHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-white/10 border border-white/15 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               {msg.primaryLabel}
             </a>
           ) : (
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-white/10 border border-white/15 px-6 text-sm font-semibold text-white transition-colors hover:bg-white/15"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
               {msg.primaryLabel}
             </button>
@@ -164,7 +164,7 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
           {msg.secondaryHref && (
             <a
               href={msg.secondaryHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-white/50 transition-colors hover:text-white"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/6 px-6 text-sm text-foreground/70 transition-colors hover:text-foreground"
             >
               {msg.secondaryLabel}
             </a>

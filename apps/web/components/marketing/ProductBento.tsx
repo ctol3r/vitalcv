@@ -87,7 +87,7 @@ export function ProductBento() {
         >
           {/* Card 1 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
             variants={cardVariants}
             whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
           >
@@ -136,7 +136,7 @@ export function ProductBento() {
 
           {/* Card 2 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
             variants={cardVariants}
             whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
           >
@@ -172,7 +172,7 @@ export function ProductBento() {
 
           {/* Card 3 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
             variants={cardVariants}
             whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
           >
@@ -205,7 +205,7 @@ export function ProductBento() {
 
           {/* Card 4 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
             variants={cardVariants}
             whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
           >

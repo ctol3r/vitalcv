@@ -106,7 +106,7 @@ function TrustBandCard({ label, state, isProjected = false }: {
 }) {
   const band = state.readiness_level ?? 'L0';
   return (
-    <div className={`rounded-xl border p-4 ${BAND_BG[band] ?? 'bg-white/5 border-white/10'}`}>
+    <div className={`rounded-xl border p-4 ${BAND_BG[band] ?? 'bg-muted border-border'}`}>
       <p className="text-[9px] uppercase tracking-widest font-mono mb-2 text-zinc-500">
         {label}
       </p>
@@ -119,7 +119,7 @@ function TrustBandCard({ label, state, isProjected = false }: {
         )}
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
               band === 'L3' ? 'bg-emerald-500' :
@@ -223,7 +223,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
       {/* Header */}
       <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-white">Live Simulation Engine</h2>
+          <h2 className="text-sm font-semibold text-foreground">Live Simulation Engine</h2>
           <p className="text-[10px] text-zinc-500 mt-0.5">What if? — connected to real credential data</p>
         </div>
         <span className="text-[9px] font-mono text-violet-400 bg-violet-500/10 px-2 py-1 rounded-full border border-violet-500/20">
@@ -269,7 +269,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                   onChange={(e) => setNpi(e.target.value)}
                   placeholder="1234567890"
                   maxLength={10}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
                 />
               </div>
               <div>
@@ -277,7 +277,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                 <select
                   value={credentialType}
                   onChange={(e) => setCredType(e.target.value)}
-                  className="w-full rounded-lg border border-white/[0.08] bg-[#080e1a] px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#080e1a] px-3 py-2 text-sm text-foreground focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
                 >
                   {CREDENTIAL_TYPES.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -298,7 +298,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                   onChange={(e) => setNpi(e.target.value)}
                   placeholder="1234567890"
                   maxLength={10}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
                 />
               </div>
               <div>
@@ -307,7 +307,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                   type="date"
                   value={expirationDate}
                   onChange={(e) => setExpDate(e.target.value)}
-                  className="w-full rounded-lg border border-white/[0.08] bg-[#080e1a] px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors [color-scheme:dark]"
+                  className="w-full rounded-lg border border-white/[0.08] bg-[#080e1a] px-3 py-2 text-sm text-foreground focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors [color-scheme:dark]"
                 />
               </div>
             </div>
@@ -323,7 +323,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                   onChange={(e) => setRule(e.target.value)}
                   placeholder="e.g. All clinicians must have active board certification and DEA registration"
                   rows={2}
-                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors resize-none"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -334,7 +334,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                     value={complianceSpec}
                     onChange={(e) => setSpec(e.target.value)}
                     placeholder="e.g. Anesthesiology"
-                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
                   />
                 </div>
                 <div>
@@ -345,7 +345,7 @@ export function LiveSimulationPanel({ initialNpi = '' }: { initialNpi?: string }
                     onChange={(e) => setStateVal(e.target.value)}
                     placeholder="e.g. CA"
                     maxLength={2}
-                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-foreground placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
                   />
                 </div>
               </div>

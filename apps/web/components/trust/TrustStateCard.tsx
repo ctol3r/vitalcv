@@ -55,9 +55,9 @@ export function TrustStateCard({
             {eyebrow}
           </p>
         ) : null}
-        <CardTitle className="text-sm font-semibold text-white/75">{title}</CardTitle>
+        <CardTitle className="text-sm font-semibold text-foreground/70">{title}</CardTitle>
         {description ? (
-          <p className="text-xs leading-relaxed text-white/40">{description}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </CardHeader>
       {children ? (

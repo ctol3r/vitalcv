@@ -561,7 +561,7 @@ export default function IssuerOnboardingPanel({
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed text-foreground text-xs font-medium transition-colors"
                   >
                     {submitting ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

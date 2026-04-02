@@ -20,12 +20,12 @@ const COVERAGE_STATE_STYLES: Record<SourceOpsCoverageState, string> = {
   checked: 'bg-vt-success/10 text-vt-success border-vt-success/20',
   pending: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   stale: 'bg-vt-danger/10 text-vt-danger/90 border-vt-danger/30',
-  unavailable: 'bg-white/5 text-white/45 border-white/10',
+  unavailable: 'bg-muted text-foreground border-border',
   gated: 'bg-vt-info/10 text-vt-info border-vt-info/20',
   accessRequired: 'bg-vt-info/10 text-vt-info border-vt-info/20',
   reviewRequired: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
   previewOnly: 'bg-vt-warning/10 text-vt-warning border-vt-warning/20',
-  notDecisionGrade: 'bg-white/10 text-white/60 border-white/20',
+  notDecisionGrade: 'bg-muted text-foreground border-border',
 };
 
 const SPINE_STATUS_STYLES: Record<SourceOpsReport['spineStatus'], string> = {
@@ -99,7 +99,7 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
             </span>
           )}
         </div>
-        <div className="text-xs font-mono text-white/40">{source.sourceId}</div>
+        <div className="text-xs font-mono text-muted-foreground">{source.sourceId}</div>
       </td>
       <td className="px-4 py-4 align-top">
         <div className="mb-1.5 flex items-center gap-2">
@@ -110,9 +110,9 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
             )}
             aria-hidden="true"
           />
-          <span className="text-xs text-white/70">{source.featureFlag.key}</span>
+          <span className="text-xs text-foreground/70">{source.featureFlag.key}</span>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {source.featureFlag.enabled ? 'Enabled' : 'Disabled'}
         </div>
         {source.decisionGrade && (
@@ -140,14 +140,14 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
         )}
       </td>
       <td className="px-4 py-4 text-right align-top">
-        <div className="mb-1 text-xs font-mono text-white/80">
+        <div className="mb-1 text-xs font-mono text-foreground/80">
           {formatTimestamp(source.lastSuccessAt)}
         </div>
-        <div className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {source.freshnessSlaHours}h SLA
         </div>
         {source.lastFailureAt && (
-          <div className="mt-1 text-[10px] text-white/35">
+          <div className="mt-1 text-[10px] text-muted-foreground">
             Last failure {formatTimestamp(source.lastFailureAt)}
           </div>
         )}
@@ -203,7 +203,7 @@ export function SourceOpsPanel() {
   if (!report && !error) {
     return (
       <div
-        className="flex flex-1 items-center justify-center px-8 text-sm text-white/55"
+        className="flex flex-1 items-center justify-center px-8 text-sm text-foreground"
         role="status"
         aria-live="polite"
       >
@@ -219,18 +219,18 @@ export function SourceOpsPanel() {
     return (
       <div className="flex flex-1 items-center justify-center px-6">
         <div
-          className="max-w-md rounded-xl border border-vt-danger/20 bg-vt-danger/5 p-5 text-sm text-white/75"
+          className="max-w-md rounded-xl border border-vt-danger/20 bg-vt-danger/5 p-5 text-sm text-foreground/70"
           role="alert"
         >
           <div className="flex items-start gap-3">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-vt-danger" aria-hidden="true" />
             <div>
               <p className="font-medium text-vt-danger">Source health unavailable</p>
-              <p className="mt-1 text-xs text-white/55">{error ?? 'No report was returned.'}</p>
+              <p className="mt-1 text-xs text-foreground">{error ?? 'No report was returned.'}</p>
               <button
                 type="button"
                 onClick={() => setRequestKey((value) => value + 1)}
-                className="mt-4 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:border-white/20 hover:text-white"
+                className="mt-4 inline-flex items-center gap-2 rounded-md border border-border bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-foreground/70 transition hover:border-border hover:text-foreground"
               >
                 <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" />
                 Retry
@@ -244,25 +244,25 @@ export function SourceOpsPanel() {
 
   if (report.sources.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center px-8 text-sm text-white/55" role="status">
+      <div className="flex flex-1 items-center justify-center px-8 text-sm text-foreground" role="status">
         No monitored sources are configured for this environment.
       </div>
     );
   }
 
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#050508] text-white">
+    <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#050508] text-foreground">
       <div className="shrink-0 border-b border-white/5 bg-[#0a0a0f] p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-medium tracking-tight text-white">Source Ops Health</h2>
-            <p className="mt-1 text-xs text-white/40">
+            <h2 className="text-lg font-medium tracking-tight text-foreground">Source Ops Health</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
               Live source coverage and connector freshness.
               Generated {` ${formatTimestamp(report.timestamp)}`}.
             </p>
           </div>
           <div className="text-right">
-            <div className="mb-2 text-xs text-white/40">Spine status</div>
+            <div className="mb-2 text-xs text-muted-foreground">Spine status</div>
             <div
               className={cn(
                 'inline-flex rounded border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]',
@@ -274,7 +274,7 @@ export function SourceOpsPanel() {
           </div>
         </div>
 
-        <p className="mt-4 text-[11px] text-white/45">
+        <p className="mt-4 text-[11px] text-foreground">
           Canonical coverage labels stay literal here: checked, stale, gated, unavailable, pending, and preview-only are not softened.
         </p>
 
@@ -287,7 +287,7 @@ export function SourceOpsPanel() {
             </h3>
             <ul className="mt-2 space-y-1.5">
               {report.alerts.map((alert) => (
-                <li key={alert} className="flex items-start gap-2 text-xs text-white/70">
+                <li key={alert} className="flex items-start gap-2 text-xs text-foreground/70">
                   <span className="mt-0.5 text-vt-danger/50" aria-hidden="true">
                     •
                   </span>
@@ -305,7 +305,7 @@ export function SourceOpsPanel() {
             <table className="min-w-full border-collapse text-left">
               <caption className="sr-only">Live source operations report</caption>
               <thead className="sticky top-0 z-10 bg-[#0f1115] shadow-[0_1px_0_rgba(255,255,255,0.08)]">
-                <tr className="text-[10px] uppercase tracking-[0.16em] text-white/40">
+                <tr className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Source Identity</th>
                   <th className="px-4 py-3 font-medium">Configuration</th>
                   <th className="px-4 py-3 font-medium">Coverage State</th>

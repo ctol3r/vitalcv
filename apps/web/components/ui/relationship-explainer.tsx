@@ -37,39 +37,39 @@ export const RelationshipExplainer = React.forwardRef<HTMLDivElement, Relationsh
     return (
       <Card 
         ref={ref} 
-        className={cn('bg-black/40 border border-white/10 p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6', className)}
+        className={cn('bg-black/40 border border-border p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6', className)}
         {...props}
       >
         {/* Source Node */}
-        <div className={cn(nodeClass, "bg-white/[0.03] border-white/20 shadow-sm")}>
-          <span className="text-[10px] uppercase tracking-widest text-white/30 mb-1 font-semibold">
+        <div className={cn(nodeClass, "bg-white/[0.03] border-border shadow-sm")}>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1 font-semibold">
             {sourceNode.type}
           </span>
           <span className="text-sm font-medium text-white/90">{sourceNode.label}</span>
           {sourceNode.sublabel && (
-            <span className="text-xs text-white/40 mt-0.5">{sourceNode.sublabel}</span>
+            <span className="text-xs text-muted-foreground mt-0.5">{sourceNode.sublabel}</span>
           )}
         </div>
 
         {/* Connector */}
         <div className={cn("flex flex-col items-center gap-1 min-w-[100px]", confidenceOpacities[confidence])}>
-          <span className="text-[10px] uppercase tracking-wider text-white/50 text-center px-2 bg-black z-10 font-bold">
+          <span className="text-[10px] uppercase tracking-wider text-foreground/70 text-center px-2 bg-black z-10 font-bold">
             {relationLabel}
           </span>
           <div className="w-full flex items-center justify-center -mt-2">
-            <div className="h-[1px] w-full bg-white/20" />
+            <div className="h-[1px] w-full bg-muted" />
             <div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white/20 -ml-1 flex-shrink-0" />
           </div>
         </div>
 
         {/* Target Node */}
-        <div className={cn(nodeClass, "bg-white/[0.05] border-white/30 shadow-md")}>
-          <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1 font-semibold">
+        <div className={cn(nodeClass, "bg-white/[0.05] border-border shadow-md")}>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 font-semibold">
             {targetNode.type}
           </span>
-          <span className="text-sm font-semibold text-white">{targetNode.label}</span>
+          <span className="text-sm font-semibold text-foreground">{targetNode.label}</span>
           {targetNode.sublabel && (
-            <span className="text-xs text-white/50 mt-0.5">{targetNode.sublabel}</span>
+            <span className="text-xs text-foreground/70 mt-0.5">{targetNode.sublabel}</span>
           )}
         </div>
       </Card>

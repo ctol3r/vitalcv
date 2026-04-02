@@ -115,7 +115,7 @@ const STATUS_CONFIG: Record<LabStatus, { label: string; dot: string; text: strin
   STABLE:     { label: 'Stable',     dot: 'bg-emerald-400',    text: 'text-emerald-300', badge: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' },
   PREVIEW:    { label: 'Preview',    dot: 'bg-sky-400',        text: 'text-sky-300',     badge: 'bg-sky-500/10 border-sky-500/20 text-sky-300' },
   EXPERIMENT: { label: 'Experiment', dot: 'bg-amber-400',      text: 'text-amber-300',   badge: 'bg-amber-500/10 border-amber-500/20 text-amber-300' },
-  INTERNAL:   { label: 'Internal',   dot: 'bg-white/20',       text: 'text-white/30',    badge: 'bg-white/5 border-white/10 text-white/30' },
+  INTERNAL:   { label: 'Internal',   dot: 'bg-muted',       text: 'text-muted-foreground/60',    badge: 'bg-muted border-border text-muted-foreground/60' },
 };
 
 function resolveLabHref(entry: LabEntry): string {
@@ -131,14 +131,14 @@ export default function LabsPage() {
   const internalEntries = LABS.filter((e) => e.status === 'INTERNAL');
 
   return (
-    <div className="min-h-screen bg-vt-surface-ops-base px-4 sm:px-6 py-12 sm:py-16 text-white">
+    <div className="min-h-screen bg-vt-surface-ops-base px-4 sm:px-6 py-12 sm:py-16 text-foreground">
       <div className="mx-auto max-w-3xl">
 
         {/* Header */}
         <div className="mb-10 sm:mb-14">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">VitalCV</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Labs</h1>
-          <p className="text-sm text-white/40 max-w-xl">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/60">VitalCV</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Labs</h1>
+          <p className="text-sm text-muted-foreground max-w-xl">
             Active experiments and preview surfaces. Everything here is in development.
             Stable features are in active production use.
           </p>
@@ -149,7 +149,7 @@ export default function LabsPage() {
           {(Object.entries(STATUS_CONFIG) as [LabStatus, typeof STATUS_CONFIG[LabStatus]][])
             .filter(([s]) => s !== 'INTERNAL')
             .map(([status, cfg]) => (
-              <div key={status} className="flex items-center gap-1.5 text-xs text-white/40">
+              <div key={status} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
               </div>
@@ -166,7 +166,7 @@ export default function LabsPage() {
               <Link
                 key={entry.href + entry.title}
                 href={href}
-                className="group relative flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 rounded-2xl border border-white/6 bg-white/2 p-4 sm:p-5 transition-all hover:bg-white/5 hover:border-white/12 active:scale-[0.99]"
+                className="group relative flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 rounded-2xl border border-white/6 bg-white/2 p-4 sm:p-5 transition-all hover:bg-muted hover:border-border active:scale-[0.99]"
               >
                 {/* Status dot */}
                 <div className="flex items-center gap-2 sm:hidden">
@@ -183,7 +183,7 @@ export default function LabsPage() {
                 {/* Body */}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-sm font-semibold text-white group-hover:text-white transition-colors">
+                    <h2 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">
                       {entry.title}
                     </h2>
                     {entry.requiresAuth ? (
@@ -193,12 +193,12 @@ export default function LabsPage() {
                       </span>
                     ) : null}
                     {entry.tags?.map((tag) => (
-                      <span key={tag} className="hidden sm:inline-flex text-[9px] font-bold uppercase tracking-wide bg-white/6 text-white/30 px-1.5 py-0.5 rounded">
+                      <span key={tag} className="hidden sm:inline-flex text-[9px] font-bold uppercase tracking-wide bg-muted text-muted-foreground/60 px-1.5 py-0.5 rounded">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <p className="text-sm text-white/40 leading-relaxed">{entry.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{entry.description}</p>
                 </div>
 
                 {/* Desktop status badge */}
@@ -216,7 +216,7 @@ export default function LabsPage() {
                 </div>
 
                 {/* Arrow */}
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10 group-hover:text-white/30 transition-colors hidden sm:block">→</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/20 group-hover:text-muted-foreground/60 transition-colors hidden sm:block">→</span>
               </Link>
             );
           })}
@@ -224,8 +224,8 @@ export default function LabsPage() {
 
         {/* Internal section — clearly labeled */}
         <section>
-          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Internal — Ops Only</p>
-          <p className="mb-4 text-xs text-white/25">
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">Internal — Ops Only</p>
+          <p className="mb-4 text-xs text-muted-foreground/50">
             These surfaces are for operators and investigators. They require authentication and are not linked publicly.
           </p>
           <div className="grid grid-cols-1 gap-2">
@@ -238,8 +238,8 @@ export default function LabsPage() {
                 >
                   <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${cfg.dot}`} />
                   <div>
-                    <p className="text-sm text-white/40 font-medium">{entry.title}</p>
-                    <p className="text-xs text-white/20 mt-0.5">{entry.description}</p>
+                    <p className="text-sm text-muted-foreground font-medium">{entry.title}</p>
+                    <p className="text-xs text-muted-foreground/40 mt-0.5">{entry.description}</p>
                   </div>
                 </div>
               );
@@ -248,10 +248,10 @@ export default function LabsPage() {
         </section>
 
         {/* Footer nav */}
-        <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-sm text-white/30">
-          <Link href="/" className="hover:text-white transition-colors">Home</Link>
-          <Link href="/updates" className="hover:text-white transition-colors">Updates</Link>
-          <Link href="/status" className="hover:text-white transition-colors">Status</Link>
+        <div className="mt-12 pt-8 border-t border-white/6 flex flex-wrap gap-4 text-sm text-muted-foreground/60">
+          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+          <Link href="/updates" className="hover:text-foreground transition-colors">Updates</Link>
+          <Link href="/status" className="hover:text-foreground transition-colors">Status</Link>
         </div>
 
       </div>

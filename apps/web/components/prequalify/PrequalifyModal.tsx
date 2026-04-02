@@ -77,7 +77,7 @@ function StepRole({ onNext }: { onNext: (role: Role) => void }) {
         >
           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-vt-neutral-100" />
           <div>
-            <p className="heading-sm text-white">{title}</p>
+            <p className="heading-sm text-foreground">{title}</p>
             <p className="body-sm mt-0.5 text-vt-neutral-200">{body}</p>
           </div>
           <ChevronRight className="ml-auto mt-0.5 h-4 w-4 shrink-0 text-vt-neutral-800" />
@@ -111,7 +111,7 @@ function StepIdentity({ data, onNext }: { data: StepData; onNext: (npi: string) 
           value={npi}
           onChange={(e) => { setNpi(e.target.value.replace(/\D/g, '')); setError(''); }}
           placeholder="1234567890"
-          className="w-full rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 px-4 py-3 body text-white placeholder:text-vt-neutral-800 focus:border-vt-info/60 focus:outline-none focus:ring-1 focus:ring-vt-info/30"
+          className="w-full rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 px-4 py-3 body text-foreground placeholder:text-vt-neutral-800 focus:border-vt-info/60 focus:outline-none focus:ring-1 focus:ring-vt-info/30"
         />
         {error && <p className="body-sm mt-1.5 text-vt-danger">{error}</p>}
         <p className="body-sm mt-2 text-vt-neutral-800">
@@ -133,7 +133,7 @@ function StepIdentity({ data, onNext }: { data: StepData; onNext: (npi: string) 
       </button>
       <button
         onClick={() => onNext('')}
-        className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-white transition"
+        className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-foreground transition"
       >
         Skip for now
       </button>
@@ -159,7 +159,7 @@ function StepLinks({ data, onNext }: { data: StepData; onNext: (linkedin: string
             value={value}
             onChange={(e) => set(e.target.value)}
             placeholder={placeholder}
-            className="w-full rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 px-4 py-3 body text-white placeholder:text-vt-neutral-800 focus:border-vt-info/60 focus:outline-none focus:ring-1 focus:ring-vt-info/30"
+            className="w-full rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/50 px-4 py-3 body text-foreground placeholder:text-vt-neutral-800 focus:border-vt-info/60 focus:outline-none focus:ring-1 focus:ring-vt-info/30"
           />
         </div>
       ))}
@@ -169,7 +169,7 @@ function StepLinks({ data, onNext }: { data: StepData; onNext: (linkedin: string
       >
         Continue <ChevronRight className="inline h-4 w-4" />
       </button>
-      <button onClick={() => onNext('', '')} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-white transition">
+      <button onClick={() => onNext('', '')} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-foreground transition">
         Skip
       </button>
     </div>
@@ -193,7 +193,7 @@ function StepWorkAuth({ onNext }: { onNext: (status: string) => void }) {
           onClick={() => onNext(value)}
           className="w-full flex items-center justify-between rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 px-5 py-3.5 text-left hover:border-vt-neutral-700 transition-colors"
         >
-          <span className="body text-white">{label}</span>
+          <span className="body text-foreground">{label}</span>
           <ChevronRight className="h-4 w-4 text-vt-neutral-800" />
         </button>
       ))}
@@ -212,7 +212,7 @@ function StepCredentials({ onNext }: { onNext: () => void }) {
         <Upload className="mx-auto mb-3 h-8 w-8 text-vt-neutral-800" />
         <p className="heading-sm text-vt-neutral-100">Drop files here</p>
         <p className="body-sm mt-1 text-vt-neutral-800">State license · Board cert · DEA · Malpractice</p>
-        <button className="mt-4 rounded-full vt-glass px-5 py-2 text-sm text-vt-neutral-200 hover:text-white transition">
+        <button className="mt-4 rounded-full vt-glass px-5 py-2 text-sm text-vt-neutral-200 hover:text-foreground transition">
           Browse files
         </button>
       </div>
@@ -222,7 +222,7 @@ function StepCredentials({ onNext }: { onNext: () => void }) {
       >
         Continue <ChevronRight className="inline h-4 w-4" />
       </button>
-      <button onClick={onNext} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-white transition">
+      <button onClick={onNext} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-foreground transition">
         Skip — I'll add credentials later
       </button>
     </div>
@@ -236,7 +236,7 @@ function StepComplete({ data, onClose }: { data: StepData; onClose: () => void }
         <Zap className="h-7 w-7 text-vt-success" />
       </div>
       <div>
-        <h3 className="heading-lg text-white">
+        <h3 className="heading-lg text-foreground">
           {data.role === 'VERIFIER' ? 'Employer profile created.' : 'Trust profile created.'}
         </h3>
         <p className="body mt-2 text-vt-neutral-200">
@@ -258,7 +258,7 @@ function StepComplete({ data, onClose }: { data: StepData; onClose: () => void }
         >
           Go to my workspace
         </a>
-        <button onClick={onClose} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-white transition">
+        <button onClick={onClose} className="w-full rounded-xl vt-glass py-2.5 text-sm text-vt-neutral-200 hover:text-foreground transition">
           Keep browsing
         </button>
       </div>
@@ -342,14 +342,14 @@ export default function PrequalifyModal({ open, onClose }: PrequalifyModalProps)
                 <p className="label text-vt-neutral-800">
                   Step {step + 1} of {STEPS.length}
                 </p>
-                <h2 className="heading-md text-white">
+                <h2 className="heading-md text-foreground">
                   {isLast ? 'Profile Created ✨' : currentStep.label}
                 </h2>
               </div>
               <button
                 onClick={close}
                 aria-label="Close"
-                className="rounded-full p-2 text-vt-neutral-800 hover:bg-vt-surface-ops-raised hover:text-white transition"
+                className="rounded-full p-2 text-vt-neutral-800 hover:bg-vt-surface-ops-raised hover:text-foreground transition"
               >
                 <X className="h-4 w-4" />
               </button>

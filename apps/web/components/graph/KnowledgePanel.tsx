@@ -146,10 +146,10 @@ export function KnowledgePanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white/70 backdrop-blur-xl border-l border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] overflow-y-auto dark:bg-black/40 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white/70 backdrop-blur-xl border-l border-border shadow-[0_8px_32px_rgba(0,0,0,0.1)] overflow-y-auto dark:bg-black/40 dark:border-border dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white/40 backdrop-blur-md border-b border-infra-border/50 px-6 py-4 flex items-start justify-between dark:bg-black/40">
+            <div className="sticky top-0 bg-muted backdrop-blur-md border-b border-infra-border/50 px-6 py-4 flex items-start justify-between dark:bg-black/40">
               <div className="flex items-center gap-3">
                 <div className={`rounded-xl p-2.5 ${colorClass}`}>
                   <Icon className="h-5 w-5" />
@@ -218,7 +218,7 @@ export function KnowledgePanel({
                         return (
                           <div
                             key={cn.id}
-                            className="flex items-center justify-between rounded-xl border border-white/20 bg-white/50 backdrop-blur-sm px-3 py-2.5 shadow-sm dark:bg-black/30 dark:border-white/10 transition-colors hover:bg-white/70 dark:hover:bg-black/50"
+                            className="flex items-center justify-between rounded-xl border border-border bg-card backdrop-blur-sm px-3 py-2.5 shadow-sm dark:bg-black/30 dark:border-border transition-colors hover:bg-white/70 dark:hover:bg-black/50"
                           >
                             <div className="flex items-center gap-2.5">
                               <div className={`rounded-lg p-1.5 ${groupColor}`}>

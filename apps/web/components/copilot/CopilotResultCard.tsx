@@ -58,10 +58,10 @@ export function CopilotResultCard({
             </div>
             <p className="text-blue-400/80 font-medium tracking-wide flex items-center gap-2">
               {specialty}
-              <span className="w-1 h-1 rounded-full bg-white/20"></span>
-              <span className="text-white/40 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> {institution}</span>
-              <span className="w-1 h-1 rounded-full bg-white/20"></span>
-              <span className="text-white/40 flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> {location}</span>
+              <span className="w-1 h-1 rounded-full bg-muted"></span>
+              <span className="text-muted-foreground flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> {institution}</span>
+              <span className="w-1 h-1 rounded-full bg-muted"></span>
+              <span className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/> {location}</span>
             </p>
           </div>
         </div>
@@ -73,8 +73,8 @@ export function CopilotResultCard({
               <Shield className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <div className="text-white/80 font-medium">Verified Sources</div>
-              <div className="text-sm text-white/40 mt-0.5">NPI, NIH, State Board</div>
+              <div className="text-foreground/80 font-medium">Verified Sources</div>
+              <div className="text-sm text-muted-foreground mt-0.5">NPI, NIH, State Board</div>
             </div>
           </div>
           
@@ -83,15 +83,15 @@ export function CopilotResultCard({
               <Network className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <div className="text-white/80 font-medium">Network Gravity</div>
-              <div className="text-sm text-white/40 mt-0.5">{connectionsCount} High-value connections</div>
+              <div className="text-foreground/80 font-medium">Network Gravity</div>
+              <div className="text-sm text-muted-foreground mt-0.5">{connectionsCount} High-value connections</div>
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-2">
-          <div className="flex gap-2 text-xs text-white/30 hidden sm:flex">
+          <div className="flex gap-2 text-xs text-muted-foreground/60 hidden sm:flex">
              <span>{evidenceCount} Evidence Claims</span>
              <span>•</span>
              <span>Last verified 2h ago</span>
@@ -99,13 +99,13 @@ export function CopilotResultCard({
           
           <div className="flex items-center gap-3">
             {/* View Graph */}
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-foreground hover:text-foreground hover:bg-muted transition-colors text-sm font-medium">
               <Network className="w-4 h-4" />
               View Graph
             </button>
             
             {/* View Evidence */}
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-foreground hover:text-foreground hover:bg-muted transition-colors text-sm font-medium">
               <Shield className="w-4 h-4" />
               Evidence
             </button>

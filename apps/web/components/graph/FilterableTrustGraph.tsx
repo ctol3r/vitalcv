@@ -91,7 +91,7 @@ function GraphStats({ nodes, edges, filtered }: { nodes: GraphNode[]; edges: Gra
   }, [nodes]);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/30">
+    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground/60">
       <span>{nodes.length} nodes</span>
       <span>·</span>
       <span>{edges.length} edges</span>
@@ -220,7 +220,7 @@ export function FilterableTrustGraph({
         {/* Search */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/25 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
             <input
               type="text"
               value={query}
@@ -231,7 +231,7 @@ export function FilterableTrustGraph({
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground/70 transition"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -241,7 +241,7 @@ export function FilterableTrustGraph({
           {isFiltered && (
             <button
               onClick={resetFilters}
-              className="flex-shrink-0 rounded-xl border border-white/10 bg-white/4 px-3 py-2 text-xs text-white/40 hover:text-white/70 hover:border-white/20 transition"
+              className="flex-shrink-0 rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground hover:text-foreground/70 hover:border-border transition"
             >
               Reset
             </button>
@@ -259,10 +259,10 @@ export function FilterableTrustGraph({
                 key={type}
                 onClick={() => toggleType(type)}
                 className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-all ${
-                  isAll || isActive ? cfg.active : 'border-white/8 text-white/20 bg-transparent'
+                  isAll || isActive ? cfg.active : 'border-white/8 text-muted-foreground/40 bg-transparent'
                 }`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${isAll || isActive ? cfg.dot : 'bg-white/15'}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${isAll || isActive ? cfg.dot : 'bg-muted'}`} />
                 {cfg.label}
               </button>
             );
@@ -283,9 +283,9 @@ export function FilterableTrustGraph({
       <div style={{ height: `${height}px` }} className="relative">
         {filteredNodes.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <Search className="h-8 w-8 text-white/10" />
-            <p className="text-sm text-white/25">No nodes match your filters.</p>
-            <button onClick={resetFilters} className="text-xs text-white/35 hover:text-white/60 transition underline">
+            <Search className="h-8 w-8 text-muted-foreground/20" />
+            <p className="text-sm text-muted-foreground/50">No nodes match your filters.</p>
+            <button onClick={resetFilters} className="text-xs text-muted-foreground hover:text-foreground transition underline">
               Reset filters
             </button>
           </div>
@@ -306,16 +306,16 @@ export function FilterableTrustGraph({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`h-2 w-2 rounded-full ${TYPE_CONFIG[selectedNode.type].dot}`} />
-              <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/40">
+              <span className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 {TYPE_CONFIG[selectedNode.type].label.replace(/s$/, '')}
               </span>
             </div>
-            <p className="text-base font-semibold text-white">{selectedNode.label}</p>
+            <p className="text-base font-semibold text-foreground">{selectedNode.label}</p>
             {selectedNode.meta && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                 {Object.entries(selectedNode.meta).map(([k, v]) => (
-                  <span key={k} className="text-xs text-white/35">
-                    <span className="text-white/20">{k}:</span> {v}
+                  <span key={k} className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground/40">{k}:</span> {v}
                   </span>
                 ))}
               </div>
@@ -329,7 +329,7 @@ export function FilterableTrustGraph({
                   const otherId = e.source === selectedNode.id ? e.target : e.source;
                   const other = rawNodes.find(n => n.id === otherId);
                   return other ? (
-                    <span key={i} className="text-[10px] rounded-full border border-white/8 bg-white/4 px-2 py-0.5 text-white/35">
+                    <span key={i} className="text-[10px] rounded-full border border-white/8 bg-card px-2 py-0.5 text-muted-foreground">
                       {e.label} · {other.label}
                     </span>
                   ) : null;
@@ -338,7 +338,7 @@ export function FilterableTrustGraph({
           </div>
           <button
             onClick={() => setSelectedNode(null)}
-            className="text-white/20 hover:text-white/50 transition flex-shrink-0"
+            className="text-muted-foreground/40 hover:text-foreground/70 transition flex-shrink-0"
           >
             <X className="h-4 w-4" />
           </button>

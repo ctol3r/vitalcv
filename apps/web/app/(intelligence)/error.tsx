@@ -18,7 +18,7 @@ export default function IntelligenceError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-vt-surface-ops-base px-6 py-16 text-white">
+    <div className="min-h-screen bg-vt-surface-ops-base px-6 py-16 text-foreground">
       <PilotFailureSignal
         title="Intelligence workspace interrupted"
         message={error.message}
@@ -28,13 +28,13 @@ export default function IntelligenceError({
       />
 
       <main className="mx-auto max-w-2xl">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8">
-          <div className="flex items-center gap-3 text-white">
+        <div className="rounded-2xl border border-border bg-white/[0.04] p-8">
+          <div className="flex items-center gap-3 text-foreground">
             <AlertTriangle className="h-5 w-5 text-amber-300" />
             <h1 className="text-2xl font-semibold">Intelligence unavailable</h1>
           </div>
 
-          <p className="mt-4 text-sm leading-6 text-white/70">
+          <p className="mt-4 text-sm leading-6 text-foreground/70">
             VitalCV could not load the intelligence workspace right now. No data was changed. Refresh the view or return to the monitor surface.
           </p>
 
@@ -49,7 +49,7 @@ export default function IntelligenceError({
             </button>
             <Link
               href="/intelligence"
-              className="inline-flex items-center justify-center rounded-md border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground/80 transition hover:border-border hover:text-foreground"
             >
               Return to monitor
             </Link>
@@ -57,12 +57,12 @@ export default function IntelligenceError({
               label="Contact support"
               title="Intelligence workspace interrupted"
               messagePrefill={error.message}
-              className="inline-flex items-center justify-center rounded-md border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground/80 transition hover:border-border hover:text-foreground"
             />
           </div>
 
           {error.digest ? (
-            <p className="mt-5 text-xs text-white/45">
+            <p className="mt-5 text-xs text-foreground">
               Reference: <span className="font-mono">{error.digest}</span>
             </p>
           ) : null}

@@ -23,15 +23,15 @@ export function ReadinessDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-white/20 p-6 md:p-12 lg:p-24 flex flex-col gap-12">
+    <div className="min-h-screen bg-[#0A0A0A] text-foreground selection:bg-muted p-6 md:p-12 lg:p-24 flex flex-col gap-12">
       {/* Header */}
       <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 w-fit mb-4">
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border w-fit mb-4">
           <Activity className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-[10px] font-mono uppercase tracking-widest text-white/70">VitalCV Live Network</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-foreground/70">VitalCV Live Network</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-serif tracking-tight text-white">Readiness Dashboard</h1>
-        <p className="text-white/50 font-mono text-sm max-w-xl leading-relaxed mt-2">
+        <h1 className="text-4xl md:text-5xl font-serif tracking-tight text-foreground">Readiness Dashboard</h1>
+        <p className="text-foreground/70 font-mono text-sm max-w-xl leading-relaxed mt-2">
           Your cryptographic credentials, verified trust state, and operational readiness. 
           No clutter. Just the facts.
         </p>
@@ -60,10 +60,10 @@ export function ReadinessDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * i }}
-            className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+            className="p-6 rounded-2xl bg-muted border border-white/5 hover:bg-muted transition-colors"
           >
-            <item.icon className="w-5 h-5 text-white/40 mb-4" />
-            <div className="text-sm font-mono text-white/50">{item.label}</div>
+            <item.icon className="w-5 h-5 text-muted-foreground mb-4" />
+            <div className="text-sm font-mono text-foreground/70">{item.label}</div>
             <div className="text-lg font-medium text-white/90 mt-1">{item.value}</div>
           </motion.div>
         ))}

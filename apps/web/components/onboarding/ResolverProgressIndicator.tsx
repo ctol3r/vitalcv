@@ -47,8 +47,8 @@ export function ResolverProgressIndicator({
   return (
     <div className="mx-auto w-full max-w-md space-y-5">
       <div className="mb-6 text-center">
-        <h3 className="mb-2 text-xl font-heading font-bold text-white sm:text-2xl">Activating trust profile</h3>
-        <p className="text-white/50 text-sm font-mono tracking-widest uppercase">Syncing verified records</p>
+        <h3 className="mb-2 text-xl font-heading font-bold text-foreground sm:text-2xl">Activating trust profile</h3>
+        <p className="text-foreground/70 text-sm font-mono tracking-widest uppercase">Syncing verified records</p>
       </div>
 
       <div className="space-y-3">
@@ -67,15 +67,15 @@ export function ResolverProgressIndicator({
               className={cn(
                 "flex items-center gap-3 rounded-xl border p-3.5 transition-all duration-500 sm:gap-4 sm:p-4",
                 isCompleted ? "bg-emerald-500/10 border-emerald-500/20" :
-                isCurrent ? "bg-white/5 border-white/10" :
+                isCurrent ? "bg-muted border-border" :
                 "bg-transparent border-transparent opacity-40"
               )}
             >
               <div className={cn(
                 "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500 sm:h-10 sm:w-10",
-                isCompleted ? "bg-emerald-500 text-white" :
-                isCurrent ? "bg-white/10 text-white" :
-                "bg-transparent text-white/40"
+                isCompleted ? "bg-emerald-500 text-foreground" :
+                isCurrent ? "bg-muted text-foreground" :
+                "bg-transparent text-muted-foreground"
               )}>
                 {isCompleted ? (
                   <Check className="w-5 h-5" />
@@ -91,7 +91,7 @@ export function ResolverProgressIndicator({
                   "font-medium tracking-wide transition-colors duration-500",
                   isCompleted ? "text-emerald-50" :
                   isCurrent ? "text-white" :
-                  "text-white/40"
+                  "text-muted-foreground"
                 )}>
                   {step.label}
                 </span>

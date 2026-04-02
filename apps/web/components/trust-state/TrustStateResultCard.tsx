@@ -65,7 +65,7 @@ export function TrustStateResultCard({
       <div className={`p-6 sm:p-8 rounded-[1.35rem] ${config.bg} transition-colors duration-300`}>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-2xl bg-white/50 dark:bg-black/20 ${config.color}`}>
+            <div className={`p-3 rounded-2xl bg-card dark:bg-black/20 ${config.color}`}>
               <Icon className="w-8 h-8" strokeWidth={1.5} />
             </div>
             <div>

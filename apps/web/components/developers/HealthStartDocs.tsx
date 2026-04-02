@@ -83,11 +83,11 @@ export function HealthStartDocs() {
         <div className="flex items-center gap-3">
           <Shield className="h-4 w-4 text-emerald-400" />
           <div>
-            <h3 className="text-sm font-semibold text-white">HealthStart Control Inheritance</h3>
+            <h3 className="text-sm font-semibold text-foreground">HealthStart Control Inheritance</h3>
             <p className="text-xs text-slate-500">Inherited security controls by deployment profile</p>
           </div>
         </div>
-        <button onClick={fetchControls} className="text-slate-600 hover:text-white transition-colors">
+        <button onClick={fetchControls} className="text-slate-600 hover:text-foreground transition-colors">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -161,7 +161,7 @@ export function HealthStartDocs() {
                               ) : (
                                 <AlertCircle className="h-3 w-3 text-amber-400 shrink-0" />
                               )}
-                              <span className="text-xs font-medium text-white">{c.name}</span>
+                              <span className="text-xs font-medium text-foreground">{c.name}</span>
                               <span className="text-[9px] font-mono text-slate-600">{c.id}</span>
                             </div>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[c.status]}`}>
@@ -189,7 +189,7 @@ export function HealthStartDocs() {
           {/* SSP Evidence Download */}
           <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-white">System Security Plan Evidence Pack</p>
+              <p className="text-xs font-medium text-foreground">System Security Plan Evidence Pack</p>
               <p className="text-[10px] text-slate-500">Auto-generated from live system state for {PROFILE_META[profile].label}</p>
             </div>
             <a

@@ -112,7 +112,7 @@ function OverlayContent({
       <button
         onClick={onClose}
         aria-label="Close Focus Mode"
-        className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/60 transition hover:bg-white/20 hover:text-white"
+        className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground transition hover:bg-muted hover:text-foreground"
       >
         <X className="h-6 w-6" />
       </button>
@@ -153,10 +153,10 @@ function OverlayContent({
 
         {/* Issuer — largest text after QR */}
         <div className="space-y-1">
-          <p className="text-[13px] font-semibold uppercase tracking-widest text-white/40">
+          <p className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
             Issued by
           </p>
-          <p className="text-[28px] font-bold leading-tight text-white">
+          <p className="text-[28px] font-bold leading-tight text-foreground">
             {credential.issuer}
           </p>
         </div>
@@ -166,40 +166,40 @@ function OverlayContent({
 
         {/* Clinician name */}
         <div>
-          <p className="text-[13px] font-semibold uppercase tracking-widest text-white/40 mb-1">
+          <p className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
             Presented by
           </p>
-          <p className="text-[24px] font-semibold text-white">{clinicianName}</p>
+          <p className="text-[24px] font-semibold text-foreground">{clinicianName}</p>
         </div>
 
         {/* Credential details grid */}
-        <div className="w-full rounded-2xl border border-white/10 bg-white/5 divide-y divide-white/10">
+        <div className="w-full rounded-2xl border border-border bg-muted divide-y divide-white/10">
           {/* Credential name */}
           <div className="px-5 py-4 text-left">
-            <p className="text-[12px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
               Credential
             </p>
-            <p className="text-[18px] font-semibold text-white">{credential.name}</p>
+            <p className="text-[18px] font-semibold text-foreground">{credential.name}</p>
           </div>
 
           {/* License ID */}
           {credential.licenseId && (
             <div className="px-5 py-4 text-left">
-              <p className="text-[12px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 License / ID
               </p>
-              <p className="font-mono text-[18px] text-white">{credential.licenseId}</p>
+              <p className="font-mono text-[18px] text-foreground">{credential.licenseId}</p>
             </div>
           )}
 
           {/* Validity window */}
           <div className="px-5 py-4 text-left">
-            <p className="text-[12px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
               Valid
             </p>
-            <p className="text-[18px] font-medium text-white">
+            <p className="text-[18px] font-medium text-foreground">
               {fmtDate(credential.issueDate)}
-              <span className="text-white/50"> – </span>
+              <span className="text-foreground/70"> – </span>
               {credential.expirationDate
                 ? fmtDate(credential.expirationDate)
                 : 'No expiration'}
@@ -213,9 +213,9 @@ function OverlayContent({
         </div>
 
         {/* Verification level */}
-        <p className="text-[14px] text-white/30">
+        <p className="text-[14px] text-muted-foreground/60">
           Verification level:{' '}
-          <span className="text-white/60 font-semibold">
+          <span className="text-foreground font-semibold">
             {credential.claimLevel} — {
               { L0: 'Unverified', L1: 'Self-Reported', L2: 'Document Verified', L3: 'Primary Source Verified' }[credential.claimLevel]
             }

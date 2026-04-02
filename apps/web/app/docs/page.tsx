@@ -141,7 +141,7 @@ export default function DocsPage() {
           </div>
           <Link
             href="/developers"
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--vt-accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--vt-accent)] px-4 py-2 text-sm font-medium text-foreground transition hover:opacity-90"
           >
             Get API Key
             <ArrowRight className="h-3.5 w-3.5" />

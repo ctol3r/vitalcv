@@ -175,8 +175,8 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 shrink-0">
         <Globe2 className="h-4 w-4 text-indigo-400" />
-        <span className="text-sm font-semibold text-white/80">Global Intelligence Map</span>
-        <span className="text-xs text-white/30 ml-1">— enrichment context, not decision-grade</span>
+        <span className="text-sm font-semibold text-foreground/80">Global Intelligence Map</span>
+        <span className="text-xs text-muted-foreground/60 ml-1">— enrichment context, not decision-grade</span>
         {normalizedQuery.length >= 2 && (
           <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-medium"
             style={{ background: '#6366f122', color: '#a5b4fc', border: '1px solid #6366f133' }}>
@@ -186,7 +186,7 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
 
         <div className="ml-auto flex items-center gap-2">
           {isLoading && (
-            <span className="flex items-center gap-1.5 text-xs text-white/40">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3 animate-spin" />
               Loading
             </span>
@@ -194,7 +194,7 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
 
           {/* Layer toggles */}
           <div className="flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-white/30" />
+            <Layers className="h-3.5 w-3.5 text-muted-foreground/60" />
             {([
               { id: 'shortages' as MapLayer, label: 'Shortages', color: '#991b1b' },
               { id: 'institutions' as MapLayer, label: 'Institutions', color: '#22c55e' },
@@ -206,8 +206,8 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
                 className={`
                   flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all border
                   ${activeLayers.has(layer.id)
-                    ? 'text-white border-transparent'
-                    : 'text-white/40 border-white/10 bg-transparent'
+                    ? 'text-foreground border-transparent'
+                    : 'text-muted-foreground border-border bg-transparent'
                   }
                 `}
                 style={activeLayers.has(layer.id) ? { background: layer.color + '33', borderColor: layer.color + '66' } : {}}
@@ -373,7 +373,7 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
         {/* Hover tooltip */}
         {tooltipPos && (hoveredInstitution || hoveredNode) && (
           <div
-            className="fixed z-50 pointer-events-none max-w-xs rounded-lg border border-white/12 px-3 py-2.5 shadow-xl"
+            className="fixed z-50 pointer-events-none max-w-xs rounded-lg border border-border px-3 py-2.5 shadow-xl"
             style={{
               left: tooltipPos.x + 14,
               top: tooltipPos.y - 10,
@@ -383,10 +383,10 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
           >
             {hoveredInstitution && (
               <>
-                <p className="text-xs font-semibold text-white mb-1">{hoveredInstitution.name}</p>
-                <p className="text-[10px] text-white/50">{hoveredInstitution.city}, {hoveredInstitution.state}</p>
+                <p className="text-xs font-semibold text-foreground mb-1">{hoveredInstitution.name}</p>
+                <p className="text-[10px] text-foreground/70">{hoveredInstitution.city}, {hoveredInstitution.state}</p>
                 <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] text-white/60">
+                  <span className="text-[10px] text-foreground">
                     {hoveredInstitution.providerCount.toLocaleString()} providers
                   </span>
                   {hoveredInstitution.avgTrustScore !== null && (
@@ -422,10 +422,10 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
             )}
             {hoveredNode && (
               <>
-                <p className="text-xs font-semibold text-white mb-1">{hoveredNode.label}</p>
-                <p className="text-[10px] text-white/50 capitalize">{hoveredNode.nodeType.replace(/_/g, ' ')}</p>
+                <p className="text-xs font-semibold text-foreground mb-1">{hoveredNode.label}</p>
+                <p className="text-[10px] text-foreground/70 capitalize">{hoveredNode.nodeType.replace(/_/g, ' ')}</p>
                 <div className="mt-1.5 flex items-center gap-2">
-                  <span className="text-[10px] text-white/60">
+                  <span className="text-[10px] text-foreground">
                     {hoveredNode.providerCount.toLocaleString()} providers
                   </span>
                   <span
@@ -445,12 +445,12 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
 
         {/* Legend */}
         <div
-          className="absolute bottom-4 left-4 rounded-lg border border-white/10 p-3 text-xs space-y-2"
+          className="absolute bottom-4 left-4 rounded-lg border border-border p-3 text-xs space-y-2"
           style={{ background: '#0a0f1edd' }}
         >
           {shortagesEnabled && (
             <div>
-              <p className="text-white/40 font-medium uppercase tracking-wide text-[10px] mb-1.5">Shortage Severity</p>
+              <p className="text-muted-foreground font-medium uppercase tracking-wide text-[10px] mb-1.5">Shortage Severity</p>
               <div className="flex gap-2 flex-wrap">
                 {(['critical', 'high', 'moderate', 'low'] as ShortageLevel[]).map(level => (
                   <span key={level} className="flex items-center gap-1">
@@ -458,7 +458,7 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
                       className="w-2.5 h-2.5 rounded-sm"
                       style={{ background: SHORTAGE_COLORS[level], opacity: SHORTAGE_OPACITY[level] + 0.2 }}
                     />
-                    <span className="text-white/50 capitalize">{level}</span>
+                    <span className="text-foreground/70 capitalize">{level}</span>
                   </span>
                 ))}
               </div>
@@ -466,28 +466,28 @@ export function GlobalMapWorkspace({ onSelectProvider, searchQuery = '' }: Globa
           )}
           {institutionsEnabled && (
             <div>
-              <p className="text-white/40 font-medium uppercase tracking-wide text-[10px] mb-1.5">Institution Trust Score</p>
+              <p className="text-muted-foreground font-medium uppercase tracking-wide text-[10px] mb-1.5">Institution Trust Score</p>
               <div className="flex gap-2">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /><span className="text-white/50">≥85</span></span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /><span className="text-white/50">70–84</span></span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /><span className="text-white/50">&lt;70</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /><span className="text-foreground/70">≥85</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /><span className="text-foreground/70">70–84</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /><span className="text-foreground/70">&lt;70</span></span>
               </div>
             </div>
           )}
           {networkEnabled && (
             <div>
-              <p className="text-white/40 font-medium uppercase tracking-wide text-[10px] mb-1.5">Network</p>
+              <p className="text-muted-foreground font-medium uppercase tracking-wide text-[10px] mb-1.5">Network</p>
               <div className="flex gap-2 flex-wrap">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /><span className="text-white/50">Launch spine</span></span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" /><span className="text-white/50">Institution</span></span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-400" /><span className="text-white/50">Staffing</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /><span className="text-foreground/70">Launch spine</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" /><span className="text-foreground/70">Institution</span></span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-400" /><span className="text-foreground/70">Staffing</span></span>
               </div>
             </div>
           )}
         </div>
 
         {/* Data note */}
-        <div className="absolute bottom-4 right-4 text-[10px] text-white/20 max-w-56 text-right leading-4">
+        <div className="absolute bottom-4 right-4 text-[10px] text-muted-foreground/40 max-w-56 text-right leading-4">
           Contextual intelligence — enrichment only, not decision-grade.
           Shortage data: HRSA HPSA 2024.
         </div>

@@ -68,7 +68,7 @@ export function ImpactPanel() {
 
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-8"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-8"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -88,7 +88,7 @@ export function ImpactPanel() {
           </motion.div>
 
           <motion.div
-            className="rounded-3xl border border-white/35 bg-white/80 backdrop-blur-md p-8"
+            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-8"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}

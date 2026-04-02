@@ -77,7 +77,7 @@ export default function WorkspaceSwitchPage() {
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <p className="body-sm uppercase tracking-[0.24em] text-vt-neutral-800">Workspace Graph</p>
-          <h1 className="heading-lg mt-4 text-white">Choose the identity surface you want to operate in.</h1>
+          <h1 className="heading-lg mt-4 text-foreground">Choose the identity surface you want to operate in.</h1>
           <p className="body-sm mt-4 text-vt-neutral-200">
             VitalCV can hold your clinician identity, your organization workspace, or both. Pick a mode now and switch later without logging out.
           </p>
@@ -106,7 +106,7 @@ export default function WorkspaceSwitchPage() {
                 </div>
 
                 <div className="mt-8">
-                  <h2 className="heading-sm text-white">{option.title}</h2>
+                  <h2 className="heading-sm text-foreground">{option.title}</h2>
                   <p className="body-sm mt-3 text-vt-neutral-200">{option.body}</p>
                 </div>
 

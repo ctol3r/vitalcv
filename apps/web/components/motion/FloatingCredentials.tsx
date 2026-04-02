@@ -137,7 +137,7 @@ export function FloatingCredentials() {
             <ChipIcon kind={chip.icon} className={c.icon} />
             <div>
               <p className={`text-[11px] font-semibold ${c.text} leading-none`}>{chip.label}</p>
-              <p className="text-[10px] text-white/40 leading-none mt-0.5">{chip.sublabel}</p>
+              <p className="text-[10px] text-muted-foreground leading-none mt-0.5">{chip.sublabel}</p>
             </div>
           </div>
         );

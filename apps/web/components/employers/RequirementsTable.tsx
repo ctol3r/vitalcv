@@ -33,7 +33,7 @@ export default function RequirementsTable({ requirements }: { requirements: Requ
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mb-4">
         {Object.entries(LEVEL_META).map(([key, meta]) => (
-          <div key={key} className="flex items-center gap-1.5 text-xs text-white/50">
+          <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/70">
             <span className={`px-1.5 py-0.5 rounded border text-xs ${meta.color}`}>{meta.label}</span>
             <span>{meta.description}</span>
           </div>
@@ -45,9 +45,9 @@ export default function RequirementsTable({ requirements }: { requirements: Requ
         return (
           <div key={i} className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-0">
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white/80 font-medium">{req.label}</p>
+              <p className="text-sm text-foreground/80 font-medium">{req.label}</p>
               {req.note && (
-                <p className="text-xs text-white/40 mt-0.5">{req.note}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{req.note}</p>
               )}
             </div>
             <span className={`px-2 py-0.5 rounded border text-xs flex-shrink-0 ${meta.color}`}>

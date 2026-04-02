@@ -58,7 +58,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
                   key={col.key}
                   style={{ width: col.width }}
                   className={cn(
-                    "py-2 px-3 text-[10px] font-semibold tracking-wider uppercase text-white/50 select-none",
+                    "py-2 px-3 text-[10px] font-semibold tracking-wider uppercase text-foreground/70 select-none",
                     col.sortable && "cursor-pointer hover:bg-white/[0.03] transition-colors",
                     col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                   )}
@@ -75,7 +75,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
                   <div className={cn("flex items-center gap-1", col.align === 'right' && "justify-end", col.align === 'center' && "justify-center")}>
                     {col.label}
                     {sortKey === col.key && (
-                      sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-white/80" /> : <ArrowDown className="w-3 h-3 text-white/80" />
+                      sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-foreground/80" /> : <ArrowDown className="w-3 h-3 text-foreground/80" />
                     )}
                   </div>
                 </th>
@@ -99,7 +99,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
                   }}
                   className={cn(
                     "group h-9 text-xs transition-colors outline-none cursor-pointer",
-                    isSelected ? "bg-vt-info/10 text-white" : "text-white/80 hover:bg-white/[0.02]",
+                    isSelected ? "bg-vt-info/10 text-foreground" : "text-foreground/80 hover:bg-white/[0.02]",
                     isFocused && !isSelected && "bg-white/[0.04] ring-1 ring-inset ring-white/10"
                   )}
                 >
@@ -109,7 +109,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
                       className={cn(
                         "py-1 px-3 truncate max-w-[200px]",
                         col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                        isSelected ? "text-white" : "text-white/70 group-hover:text-white/90"
+                        isSelected ? "text-white" : "text-foreground/70 group-hover:text-foreground/90"
                       )}
                     >
                       {col.render ? col.render(row) : String(row[col.key] ?? '')}
@@ -122,7 +122,7 @@ export function DataTable<T extends Record<string, unknown>>({ columns, data, on
             {sorted.length === 0 && (
               <tr>
                 <td colSpan={columns.length} className="py-12 px-3 text-center">
-                  <span className="text-xs text-white/30">No relative data available</span>
+                  <span className="text-xs text-muted-foreground/60">No relative data available</span>
                 </td>
               </tr>
             )}

@@ -161,7 +161,7 @@ export default function MissionOpsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-vt-surface-ops-base text-white surface-operator">
+    <main className="min-h-screen bg-vt-surface-ops-base text-foreground surface-operator">
       {/* Header */}
       <motion.header {...fadeUp} className="border-b border-vt-neutral-800 px-6 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">

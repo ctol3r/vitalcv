@@ -30,7 +30,7 @@ export const ButtonPattern = forwardRef<HTMLButtonElement, ButtonPatternProps>(
             'h-14 px-8 text-lg': size === 'lg',
             'bg-zinc-100 text-zinc-900 hover:bg-white dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700':
               variant === 'primary',
-            'bg-transparent text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5':
+            'bg-transparent text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-muted':
               variant === 'ghost',
             'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30':
               variant === 'destructive',

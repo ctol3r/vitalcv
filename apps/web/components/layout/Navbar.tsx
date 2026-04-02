@@ -48,7 +48,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-vt-surface-ops-base/90 text-white backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-foreground backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}
@@ -72,7 +72,7 @@ export default function Navbar() {
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
                     ? 'bg-white/12 text-white'
-                    : 'text-white/70 hover:bg-white/8 hover:text-white'
+                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {item.label}
@@ -86,7 +86,7 @@ export default function Navbar() {
           <ThemeToggle />
           <Link
             href="/sign-in"
-            className="rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/40 hover:text-white transition"
+            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground/80 hover:border-border hover:text-foreground transition"
           >
             Sign In
           </Link>
@@ -102,7 +102,7 @@ export default function Navbar() {
         <button
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
-          className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white transition md:hidden"
+          className="rounded-lg p-2 text-foreground/70 hover:bg-muted hover:text-foreground transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -111,7 +111,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="border-t border-white/10 bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
+        <nav className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
@@ -121,7 +121,7 @@ export default function Navbar() {
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isRouteActive(pathname, item.href)
                       ? 'bg-white/12 text-white'
-                      : 'text-white/70 hover:bg-white/8 hover:text-white'
+                      : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {item.label}
@@ -129,11 +129,11 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex gap-2 border-t border-white/10 pt-4">
+          <div className="mt-4 flex gap-2 border-t border-border pt-4">
             <Link
               href="/sign-in"
               onClick={closeMenu}
-              className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-medium text-white/80"
+              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-foreground/80"
             >
               Sign In
             </Link>

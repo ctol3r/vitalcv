@@ -37,7 +37,7 @@ export function FocusModeQR({ open, onClose, npi, name }: FocusModeQRProps) {
           aria-label="Focus Mode QR"
         >
           <motion.div
-            className="relative w-full max-w-sm rounded-3xl border border-white/20 bg-white/95 p-8 text-center shadow-2xl backdrop-blur-md dark:bg-white/10"
+            className="relative w-full max-w-sm rounded-3xl border border-border bg-white/95 p-8 text-center shadow-2xl backdrop-blur-md dark:bg-muted"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}

@@ -89,7 +89,7 @@ export function Drawer({ open, onClose, title, width = 'md', children, actions, 
                 <button
                   onClick={onClose}
                   aria-label="Close"
-                  className="rounded-md p-1.5 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground"
                   style={{
                     color: 'var(--vital-ops-text-muted)',
                     transitionDuration: 'var(--ui-motion-duration-fast)',

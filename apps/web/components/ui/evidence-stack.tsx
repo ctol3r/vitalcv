@@ -36,18 +36,18 @@ export const EvidenceStack = React.forwardRef<HTMLDivElement, EvidenceStackProps
         {...props}
       >
         <div className="px-4 py-3 border-b border-white/5 bg-white/[0.01]">
-          <h4 className="text-xs uppercase tracking-widest text-white/50 font-semibold">Evidence Log</h4>
+          <h4 className="text-xs uppercase tracking-widest text-foreground/70 font-semibold">Evidence Log</h4>
         </div>
         <ScrollArea 
           style={{ maxHeight }} 
           className="p-4"
         >
           {items.length === 0 ? (
-            <div className="py-8 text-center text-sm text-white/30 italic">
+            <div className="py-8 text-center text-sm text-muted-foreground/60 italic">
               No evidence available.
             </div>
           ) : (
-            <div className="flex flex-col gap-3 relative before:absolute before:inset-y-4 before:left-[22px] before:w-[1px] before:bg-white/5">
+            <div className="flex flex-col gap-3 relative before:absolute before:inset-y-4 before:left-[22px] before:w-[1px] before:bg-muted">
               {items.map((item) => (
                 <div key={item.id} className="relative z-10">
                   <TrustLabel
@@ -57,7 +57,7 @@ export const EvidenceStack = React.forwardRef<HTMLDivElement, EvidenceStackProps
                     timestamp={item.timestamp}
                     note={item.note}
                     explanation={item.explanation}
-                    className="shadow-md bg-black/60 border-white/10"
+                    className="shadow-md bg-black/60 border-border"
                   />
                 </div>
               ))}

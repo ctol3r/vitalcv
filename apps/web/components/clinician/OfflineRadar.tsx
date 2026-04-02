@@ -130,7 +130,7 @@ export function OfflineRadar() {
             className={`px-8 py-3 rounded-xl font-bold transition-all text-sm uppercase tracking-wider
               ${isBroadcasting
                 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50 hover:bg-rose-500/30'
-                : 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)]'
+                : 'bg-indigo-600 text-foreground shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)]'
               }`}
           >
             {isBroadcasting ? 'Stop Transmission' : 'Broadcast Presentation'}

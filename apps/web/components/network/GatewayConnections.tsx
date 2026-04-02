@@ -56,7 +56,7 @@ export function GatewayConnections({ className = '' }: GatewayConnectionsProps) 
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+            <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
       ) : connections.length === 0 ? (
@@ -79,7 +79,7 @@ export function GatewayConnections({ className = '' }: GatewayConnectionsProps) 
               <div className="flex items-center gap-3">
                 <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[conn.status] ?? 'bg-zinc-500'}`} />
                 <div>
-                  <p className="text-xs text-white font-medium">{conn.name}</p>
+                  <p className="text-xs text-foreground font-medium">{conn.name}</p>
                   <p className="text-[10px] text-zinc-500 font-mono">{conn.type}</p>
                 </div>
               </div>

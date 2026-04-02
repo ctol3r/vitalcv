@@ -797,7 +797,7 @@ export function PlatformVisionSection() {
 
           {/* Sixth cell — the integration network */}
           <FadeIn delay={0.4}>
-            <div className="group h-full rounded-2xl border border-white/8 bg-white/2 p-6 transition-all hover:bg-white/4">
+            <div className="group h-full rounded-2xl border border-white/8 bg-white/2 p-6 transition-all hover:bg-card">
               <div className="mb-4">
                 <span className="text-4xl font-black text-muted-foreground/20">06</span>
               </div>
@@ -823,7 +823,7 @@ export function PlatformVisionSection() {
                     key={src}
                     title={live ? 'Connected' : 'Requires institutional access or configuration'}
                     className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      live ? 'bg-white/8 text-muted-foreground' : 'bg-card hover:bg-muted text-foreground/35'
+                      live ? 'bg-muted text-muted-foreground' : 'bg-card hover:bg-muted text-foreground/35'
                     }`}
                   >
                     {src}{!live ? ' ·' : ''}

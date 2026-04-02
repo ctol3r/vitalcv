@@ -16,9 +16,9 @@ export default function ActivationSuccessPage() {
 
   if (!passportId) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-6 py-20 text-white">
+      <div className="flex min-h-screen items-center justify-center px-6 py-20 text-foreground">
         <div className="w-full max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-900/70 p-8 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-white">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Activation session required
           </h1>
           <p className="mt-4 text-base leading-7 text-zinc-400">
@@ -65,10 +65,10 @@ export default function ActivationSuccessPage() {
       </motion.div>
 
       <motion.div variants={fadeInUp} className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-5xl md:text-7xl font-heading font-extrabold text-white tracking-tight">
+        <h1 className="text-5xl md:text-7xl font-heading font-extrabold text-foreground tracking-tight">
           Profile Activated
         </h1>
-        <p className="text-xl md:text-2xl text-white/50 leading-relaxed max-w-xl mx-auto font-medium">
+        <p className="text-xl md:text-2xl text-foreground/70 leading-relaxed max-w-xl mx-auto font-medium">
           Your credentials have been securely registered to the VitalCV trust network. You're ready to go.
         </p>
       </motion.div>

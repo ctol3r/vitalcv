@@ -27,7 +27,7 @@ export function WidgetDemoFlow() {
             className="p-8 border border-slate-200 rounded-3xl bg-white shadow-2xl max-w-sm mx-auto"
           >
             <div className="flex flex-col items-center text-center gap-6">
-              <div className="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-black text-foreground rounded-full flex items-center justify-center">
                 <ShieldCheck className="w-8 h-8" />
               </div>
 
@@ -52,7 +52,7 @@ export function WidgetDemoFlow() {
                   setState('processing');
                   setTimeout(() => setState('success'), 2000);
                 }}
-                className="w-full bg-black text-white font-mono text-sm py-4 rounded-xl hover:bg-slate-800 transition-colors focus:ring-4 focus:ring-slate-200 outline-none"
+                className="w-full bg-black text-foreground font-mono text-sm py-4 rounded-xl hover:bg-slate-800 transition-colors focus:ring-4 focus:ring-slate-200 outline-none"
               >
                 Confirm & Apply
               </button>

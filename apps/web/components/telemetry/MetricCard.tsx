@@ -44,7 +44,7 @@ export default function MetricCard({
 
   return (
     <div
-      className={`rounded-xl border border-white/5 bg-white/2 p-4 space-y-3 hover:border-white/10 transition-colors ${className}`}
+      className={`rounded-xl border border-white/5 bg-white/2 p-4 space-y-3 hover:border-border transition-colors ${className}`}
     >
       <div className="flex items-start justify-between">
         <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">{title}</p>
@@ -56,7 +56,7 @@ export default function MetricCard({
       </div>
 
       <div className="flex items-end gap-1.5">
-        <span className="text-2xl font-bold font-mono text-white leading-none">{value}</span>
+        <span className="text-2xl font-bold font-mono text-foreground leading-none">{value}</span>
         {unit && <span className="text-xs text-zinc-500 mb-0.5">{unit}</span>}
       </div>
 

@@ -54,13 +54,13 @@ export function AuditProofViewer() {
             {/* Credential Summary & Verification Evidence */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="bg-slate-900 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3 text-white">
+                <div className="flex items-center gap-3 text-foreground">
                   <FileText className="w-5 h-5 text-indigo-400" />
                   <h2 className="font-mono font-medium text-sm">Medical Degree Artifact</h2>
                 </div>
                 <div className="flex gap-2">
-                  <button className="text-white/60 hover:text-white p-2 transition-colors"><Download className="w-4 h-4" /></button>
-                  <button className="text-white/60 hover:text-white p-2 transition-colors"><ExternalLink className="w-4 h-4" /></button>
+                  <button className="text-foreground hover:text-foreground p-2 transition-colors"><Download className="w-4 h-4" /></button>
+                  <button className="text-foreground hover:text-foreground p-2 transition-colors"><ExternalLink className="w-4 h-4" /></button>
                 </div>
               </div>
               
@@ -143,7 +143,7 @@ export function AuditProofViewer() {
                 
                 <div className="relative z-10">
                   <div className="w-6 h-6 absolute -left-9 bg-indigo-500 rounded-full flex items-center justify-center ring-4 ring-white">
-                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <CheckCircle2 className="w-4 h-4 text-foreground" />
                   </div>
                   <h4 className="text-sm font-bold text-slate-900">Current Validation</h4>
                   <p className="text-xs font-mono text-slate-500 mt-1">Zero-knowledge proof verified. Complete integrity confirmed.</p>

@@ -52,7 +52,7 @@ export function AnnouncementBar({ message, type = 'info', dismissible = true, ct
         <span className="text-[11px] font-medium text-white/90">
           {message}
           {ctaText && ctaHref && (
-            <a href={ctaHref} className={cn("ml-3 font-semibold underline hover:text-white transition-colors", config.text)}>
+            <a href={ctaHref} className={cn("ml-3 font-semibold underline hover:text-foreground transition-colors", config.text)}>
               {ctaText}
             </a>
           )}
@@ -62,7 +62,7 @@ export function AnnouncementBar({ message, type = 'info', dismissible = true, ct
       {dismissible && (
         <button
           onClick={handleDismiss}
-          className="shrink-0 p-1 rounded-sm text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+          className="shrink-0 p-1 rounded-sm text-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
           aria-label="Dismiss announcement"
         >
           <X className="w-3.5 h-3.5" />

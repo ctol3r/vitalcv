@@ -67,7 +67,7 @@ export default function BillingPage() {
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
@@ -115,7 +115,7 @@ export default function BillingPage() {
             </div>
             <a
               href={`mailto:${ACCESS_EMAIL}?subject=VitalCV+organization+access+request`}
-              className="shrink-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 transition-colors"
+              className="shrink-0 rounded-lg bg-amber-500 hover:bg-amber-600 text-foreground text-xs font-semibold px-4 py-2 transition-colors"
             >
               Request access →
             </a>
@@ -148,7 +148,7 @@ export default function BillingPage() {
                 }`}
               >
                 {isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-foreground text-xs font-semibold px-3 py-1 rounded-full">
                     Most Popular
                   </span>
                 )}
@@ -304,7 +304,7 @@ export default function BillingPage() {
                 <button
                   onClick={handleKeyRequest}
                   disabled={!newKeyName.trim()}
-                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
                   Submit request
                 </button>

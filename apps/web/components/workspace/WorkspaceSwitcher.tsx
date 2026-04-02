@@ -132,7 +132,7 @@ export function WorkspaceSwitcher() {
         <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex flex-1 items-center justify-between rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base px-3 py-2.5 text-left body-sm text-vt-neutral-100 transition hover:border-vt-brand-primary/40 hover:text-white"
+            className="inline-flex flex-1 items-center justify-between rounded-xl border border-vt-neutral-800 bg-vt-surface-ops-base px-3 py-2.5 text-left body-sm text-vt-neutral-100 transition hover:border-vt-brand-primary/40 hover:text-foreground"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-label="Switch active workspace persona"
@@ -147,7 +147,7 @@ export function WorkspaceSwitcher() {
           </button>
           <Link
             href="/workspace/switch"
-            className="inline-flex items-center rounded-xl border border-vt-neutral-800 px-3 py-2.5 body-sm text-vt-neutral-200 transition hover:border-vt-brand-primary/40 hover:text-white"
+            className="inline-flex items-center rounded-xl border border-vt-neutral-800 px-3 py-2.5 body-sm text-vt-neutral-200 transition hover:border-vt-brand-primary/40 hover:text-foreground"
           >
             View
           </Link>
@@ -171,7 +171,7 @@ export function WorkspaceSwitcher() {
                     'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left body-sm transition',
                     active
                       ? 'bg-vt-surface-ops-raised text-white'
-                      : 'text-vt-neutral-200 hover:bg-vt-surface-ops-raised hover:text-white',
+                      : 'text-vt-neutral-200 hover:bg-vt-surface-ops-raised hover:text-foreground',
                   )}
                   disabled={pendingPersona !== null}
                   onClick={() => void handleSwitch(persona)}

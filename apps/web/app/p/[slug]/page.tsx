@@ -466,7 +466,7 @@ function ProofCard({ proof }: { proof: NpiProfile['proof'] }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <a
           href={proof.jsonUrl}
-          className="rounded-lg bg-green-600 px-4 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-green-700"
+          className="rounded-lg bg-green-600 px-4 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-green-700"
         >
           Download JSON Proof
         </a>
@@ -619,7 +619,7 @@ function SlugEmployerHook({ slug, name }: { slug: string; name: string }) {
           <p className="text-xs text-muted-foreground">Request the full credential bundle</p>
         </div>
         <a href={`/verifier/signup?intent=${encodeURIComponent(slug)}&ref=golden-link`}
-          className="shrink-0 rounded-md bg-green-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+          className="shrink-0 rounded-md bg-green-600 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
           Request Full Bundle →
         </a>
       </div>

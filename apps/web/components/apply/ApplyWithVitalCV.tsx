@@ -308,7 +308,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+        className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 font-semibold text-foreground shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/50 transition-all hover:bg-emerald-400 hover:shadow-emerald-400/30 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
         aria-label={label}
       >
         <VCVIcon />
@@ -326,18 +326,18 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeModal} />
 
-      <div className="relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-white/10 bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto">
+      <div className="relative w-full max-w-lg mt-auto sm:mt-0 rounded-t-3xl sm:rounded-2xl border-t sm:border border-border bg-zinc-900/95 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-xl overflow-hidden pointer-events-auto">
 
         {/* Mobile grabber */}
         <div className="absolute top-0 inset-x-0 flex justify-center py-2 sm:hidden">
-          <div className="h-1.5 w-12 rounded-full bg-white/20" />
+          <div className="h-1.5 w-12 rounded-full bg-muted" />
         </div>
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-white/8 px-6 py-4 mt-2 sm:mt-0">
           <div className="flex items-center gap-2">
             <VCVIcon className="h-5 w-5" />
-            <span className="text-sm font-semibold text-white">Apply with VitalCV</span>
+            <span className="text-sm font-semibold text-foreground">Apply with VitalCV</span>
             {/* Step indicator */}
             <div className="flex items-center gap-1 ml-2">
               {(['credentials', 'org_context', 'confirmed'] as Step[]).map((s, i) => (
@@ -345,8 +345,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   key={s}
                   className={`h-1.5 w-1.5 rounded-full transition-colors ${
                     step === s ? 'bg-emerald-400' :
-                    (['credentials', 'org_context', 'confirmed'].indexOf(step) > i) ? 'bg-white/40' :
-                    'bg-white/15'
+                    (['credentials', 'org_context', 'confirmed'].indexOf(step) > i) ? 'bg-muted' :
+                    'bg-muted'
                   }`}
                 />
               ))}
@@ -355,7 +355,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
           <button
             type="button"
             onClick={closeModal}
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/8 hover:text-white transition-colors"
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-muted hover:text-foreground transition-colors"
             aria-label="Close"
           >
             <XIcon />
@@ -377,18 +377,18 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
           {!isLoading && step === 'credentials' && trustState && (
             <>
               {/* Trust state */}
-              <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-4 space-y-2">
+              <div className="rounded-xl border border-white/8 bg-card px-4 py-4 space-y-2">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Trust Readiness</p>
                 <div className="flex items-center gap-3">
                   <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold ring-1 ${levelColor}`}>
                     {trustState.readiness_level}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-white">{trustState.readiness_status}</p>
+                    <p className="text-sm font-semibold text-foreground">{trustState.readiness_status}</p>
                     <p className="text-xs text-zinc-500">Score: {trustState.readiness_score}/100</p>
                   </div>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-white/8 overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
                     style={{ width: `${trustState.readiness_score}%` }}
@@ -408,16 +408,16 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                     {credentials.map((cred) => (
                       <label
                         key={cred.type}
-                        className="flex items-center min-h-[52px] gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-3 cursor-pointer hover:bg-white/6 transition-colors"
+                        className="flex items-center min-h-[52px] gap-3 rounded-xl border border-white/8 bg-card px-4 py-3 cursor-pointer hover:bg-muted transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={selectedTypes.has(cred.type)}
                           onChange={() => toggleCredential(cred.type)}
-                          className="h-5 w-5 rounded border-white/20 bg-black/20 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0"
+                          className="h-5 w-5 rounded border-border bg-black/20 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{credentialTypeLabel(cred.type)}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{credentialTypeLabel(cred.type)}</p>
                           <p className="text-[11px] text-zinc-400 mt-0.5">{cred.issuer}</p>
                         </div>
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-black/20 ${STATUS_COLORS[cred.status] ?? 'text-zinc-400'}`}>
@@ -449,7 +449,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   value={orgCtx.name}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, name: e.target.value }))}
                   placeholder="e.g. Stanford Health Care"
-                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-transparent"
                 />
                 {orgCtxErrors.name && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.name}</p>}
               </div>
@@ -465,7 +465,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   value={orgCtx.organization_id}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, organization_id: e.target.value }))}
                   placeholder="e.g. stanford-health-care or 1234567890"
-                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 />
                 {orgCtxErrors.organization_id && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.organization_id}</p>}
               </div>
@@ -478,7 +478,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 <select
                   value={orgCtx.purpose_of_use}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, purpose_of_use: e.target.value }))}
-                  className="w-full rounded-xl border border-white/12 bg-zinc-900 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  className="w-full rounded-xl border border-border bg-zinc-900 px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 >
                   {PURPOSE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
@@ -495,7 +495,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   value={orgCtx.callback_url}
                   onChange={(e) => setOrgCtx((p) => ({ ...p, callback_url: e.target.value }))}
                   placeholder="https://ehr.example.com/vcv-webhook"
-                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-sm text-foreground placeholder-zinc-600 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 />
                 {orgCtxErrors.callback_url && <p className="mt-1 text-[10px] text-red-400">{orgCtxErrors.callback_url}</p>}
               </div>
@@ -539,7 +539,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">Bundle link</p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-zinc-300 truncate font-mono">
+                  <code className="flex-1 rounded-lg border border-border bg-black/30 px-3 py-2 text-xs text-zinc-300 truncate font-mono">
                     {shareResult.bundleUrl}
                   </code>
                   <button
@@ -550,7 +550,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                         setTimeout(() => setCopied(false), 2000);
                       });
                     }}
-                    className="shrink-0 rounded-lg border border-white/10 bg-white/8 px-3 py-2 text-xs font-medium text-white hover:bg-white/12 transition-colors"
+                    className="shrink-0 rounded-lg border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground hover:bg-white/12 transition-colors"
                   >
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
@@ -564,7 +564,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {Array.from(selectedTypes).map((type) => (
-                    <span key={type} className="inline-flex text-[10px] font-medium bg-white/6 text-zinc-300 px-2 py-1 rounded-lg">
+                    <span key={type} className="inline-flex text-[10px] font-medium bg-muted text-zinc-300 px-2 py-1 rounded-lg">
                       {credentialTypeLabel(type)}
                     </span>
                   ))}
@@ -597,7 +597,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 type="button"
                 onClick={() => setStep('org_context')}
                 disabled={selectedTypes.size === 0}
-                className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 Next: Share destination ({selectedTypes.size} credential{selectedTypes.size !== 1 ? 's' : ''}) →
               </button>
@@ -608,7 +608,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 <button
                   type="button"
                   onClick={() => setStep('credentials')}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-xs font-medium text-zinc-400 hover:text-white hover:border-white/20 transition-colors"
+                  className="flex-1 py-3 rounded-xl border border-border text-xs font-medium text-zinc-400 hover:text-foreground hover:border-border transition-colors"
                 >
                   ← Back
                 </button>
@@ -616,7 +616,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   type="button"
                   onClick={handleShare}
                   disabled={isSharing || isConfirming}
-                  className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-white hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
                 </button>
@@ -628,7 +628,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                  className="flex-1 py-3 rounded-xl border border-border text-xs font-medium text-zinc-400 hover:text-foreground transition-colors"
                 >
                   Done
                 </button>
@@ -639,7 +639,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                     setShareResult(null);
                     setOrgCtx({ organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0] });
                   }}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                  className="flex-1 py-3 rounded-xl border border-border text-xs font-medium text-zinc-400 hover:text-foreground transition-colors"
                 >
                   Share again
                 </button>

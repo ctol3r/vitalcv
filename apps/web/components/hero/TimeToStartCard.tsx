@@ -38,7 +38,7 @@ export function TimeToStartCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className="inline-flex items-center justify-center text-white/28 transition-colors hover:text-white/48"
+                className="inline-flex items-center justify-center text-white/28 transition-colors hover:text-foreground/48"
                 role="img"
                 aria-label="Time-to-start estimate details"
               >

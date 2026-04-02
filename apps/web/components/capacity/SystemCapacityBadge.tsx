@@ -38,7 +38,7 @@ export default function SystemCapacityBadge() {
           {data.totalStartsEnabled} physician start{data.totalStartsEnabled !== 1 ? 's' : ''} enabled this quarter
         </span>
         {data.totalOpenPositions > 0 && (
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-muted-foreground/60">
             · {data.totalOpenPositions} open positions
           </span>
         )}

@@ -470,39 +470,39 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/6">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-blue-400" />
-          <span className="text-sm font-medium text-white/80">
+          <span className="text-sm font-medium text-foreground/80">
             {npi ? `Trust Graph — NPI ${npi}` : 'Global Trust Network'}
           </span>
           {loading && (
-            <span className="ml-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-blue-400" />
+            <span className="ml-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-blue-400" />
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => zoomBy(1.2)}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition"
+            className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted transition"
             title="Zoom in"
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => zoomBy(0.8)}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition"
+            className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted transition"
             title="Zoom out"
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={resetView}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition"
+            className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted transition"
             title="Reset view"
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => fetchGraph(npi)}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition"
+            className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground/70 hover:bg-muted transition"
             title="Refresh"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -512,7 +512,7 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
 
       {/* Stats */}
       {stats && (
-        <div className="flex items-center gap-4 px-5 py-2 border-b border-white/4 text-[11px] text-white/35">
+        <div className="flex items-center gap-4 px-5 py-2 border-b border-white/4 text-[11px] text-muted-foreground">
           <span>{stats.nodeCount} nodes</span>
           <span>·</span>
           <span>{stats.edgeCount} edges</span>
@@ -529,7 +529,7 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
           </div>
         )}
         {!loading && !error && nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-white/20">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground/40">
             No graph data available
           </div>
         )}
@@ -548,17 +548,17 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="pointer-events-none absolute z-10 rounded-xl border border-white/10 bg-[#0d1528]/95 px-3 py-2 text-xs shadow-xl backdrop-blur-sm max-w-[200px]"
+            className="pointer-events-none absolute z-10 rounded-xl border border-border bg-[#0d1528]/95 px-3 py-2 text-xs shadow-xl backdrop-blur-sm max-w-[200px]"
             style={{
               left: Math.min(tooltip.x + 12, (canvasRef.current?.offsetWidth ?? 400) - 220),
               top: Math.max(tooltip.y - 80, 4),
             }}
           >
             <div className="font-medium text-white/90 truncate">{tooltip.node.label}</div>
-            <div className="mt-1 space-y-0.5 text-white/40">
-              <div>Type: <span className="text-white/60">{tooltip.node.type}</span></div>
-              <div>Trust: <span className="text-white/60">{tooltip.node.trustLevel}</span></div>
-              <div>Status: <span className="text-white/60">{tooltip.node.status}</span></div>
+            <div className="mt-1 space-y-0.5 text-muted-foreground">
+              <div>Type: <span className="text-foreground">{tooltip.node.type}</span></div>
+              <div>Trust: <span className="text-foreground">{tooltip.node.trustLevel}</span></div>
+              <div>Status: <span className="text-foreground">{tooltip.node.status}</span></div>
             </div>
             <div className="mt-1.5 text-blue-400/60 text-[10px]">Click to expand</div>
           </div>
@@ -568,7 +568,7 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-t border-white/4">
         {(Object.entries(NODE_COLORS) as [NodeType, string][]).map(([type, color]) => (
-          <div key={type} className="flex items-center gap-1.5 text-[11px] text-white/30">
+          <div key={type} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
             <span className="h-2 w-2 rounded-full inline-block" style={{ background: color }} />
             {type}
           </div>

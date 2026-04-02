@@ -88,12 +88,12 @@ export default async function ClipVerifyPage({ params }: Props) {
       </div>
 
       {/* ── Receipt Card ───────────────────────────────────────── */}
-      <div className="w-full rounded-2xl border border-neutral-200/60 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+      <div className="w-full rounded-2xl border border-neutral-200/60 bg-card p-6 shadow-sm backdrop-blur-sm">
         {/* Clinician identity */}
         <div className="flex items-center gap-3.5 mb-5">
           {/* Initials circle (no image import needed) */}
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-semibold text-sm text-white"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-semibold text-sm text-foreground"
             style={{ backgroundColor: 'oklch(0.55 0.10 220)' }}
             aria-label={`Avatar for ${data.displayName}`}
           >

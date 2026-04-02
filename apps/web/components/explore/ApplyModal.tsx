@@ -407,7 +407,7 @@ export default function ApplyModal({
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.2, type: 'spring', stiffness: 300, damping: 25 }}
                   >
-                    <CheckCircle2 className="h-10 w-10 text-white" />
+                    <CheckCircle2 className="h-10 w-10 text-foreground" />
                   </motion.div>
                 </div>
                 <div>
@@ -452,7 +452,7 @@ export default function ApplyModal({
                 <div className="space-y-3 pt-4 px-2">
                   <Link
                     href={activeApplicationHref}
-                    className="inline-flex min-h-[56px] w-full items-center justify-between rounded-2xl bg-zinc-900 px-6 font-bold text-white shadow-lg transition-all hover:bg-zinc-800 active:scale-[0.98]"
+                    className="inline-flex min-h-[56px] w-full items-center justify-between rounded-2xl bg-zinc-900 px-6 font-bold text-foreground shadow-lg transition-all hover:bg-zinc-800 active:scale-[0.98]"
                     onClick={onClose}
                   >
                     <span>View application</span>
@@ -542,7 +542,7 @@ export default function ApplyModal({
                   <Link
                     href={existingApplicationHref}
                     onClick={onClose}
-                    className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-zinc-800 active:scale-[0.98]"
+                    className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-bold text-foreground shadow-md transition-all hover:bg-zinc-800 active:scale-[0.98]"
                   >
                     View application
                   </Link>
@@ -664,7 +664,7 @@ export default function ApplyModal({
                 <button
                   type="submit"
                   disabled={phase === 'submitting'}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3.5 text-sm font-bold text-foreground shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all hover:bg-emerald-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {phase === 'submitting' ? (
                     <>

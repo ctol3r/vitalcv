@@ -54,7 +54,7 @@ function VerificationTerminal() {
         <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-        <span className="ml-3 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+        <span className="ml-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
           vitalcv trust-engine
         </span>
       </div>
@@ -77,7 +77,7 @@ function VerificationTerminal() {
                       ? 'text-amber-400/70'
                       : isSuccess
                         ? 'text-emerald-500/90'
-                        : 'text-white/50'
+                        : 'text-foreground/70'
                 }
               >
                 {line.text}
@@ -140,7 +140,7 @@ export function Hero() {
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
                 href="/demo"
-                className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white dark:text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+                className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-foreground dark:text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
               >
                 Request a Demo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

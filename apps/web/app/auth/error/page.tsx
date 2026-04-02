@@ -5,7 +5,7 @@ import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton'
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-16 text-white">
+    <div className="min-h-screen bg-zinc-950 px-6 py-16 text-foreground">
       <PilotFailureSignal
         eventType="auth_failure"
         title="Sign-in issue"
@@ -21,7 +21,7 @@ export default function AuthErrorPage() {
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Sign-in issue</p>
-              <h1 className="mt-1 text-2xl font-semibold text-white">We couldn&apos;t finish signing you in</h1>
+              <h1 className="mt-1 text-2xl font-semibold text-foreground">We couldn&apos;t finish signing you in</h1>
             </div>
           </div>
 
@@ -44,7 +44,7 @@ export default function AuthErrorPage() {
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:text-white"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:text-foreground"
             >
               <Home className="h-4 w-4" />
               Return home
@@ -53,7 +53,7 @@ export default function AuthErrorPage() {
               label="Contact support"
               title="Sign-in issue"
               messagePrefill="Authentication or workspace matching failed."
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:text-white"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950 px-5 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:text-foreground"
             />
           </div>
 

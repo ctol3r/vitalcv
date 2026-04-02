@@ -30,7 +30,7 @@ export function ActionInput({
       animate="visible"
       className={cn("w-full max-w-3xl mx-auto flex flex-col items-center", className)}
     >
-      <label className="text-2xl md:text-4xl text-white/50 mb-8 font-medium text-center">
+      <label className="text-2xl md:text-4xl text-foreground/70 mb-8 font-medium text-center">
         {label}
       </label>
       
@@ -38,7 +38,7 @@ export function ActionInput({
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent border-b-2 border-white/20 pb-4 text-center text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold text-white focus:outline-none focus:border-emerald-400 placeholder:text-white/10 transition-colors"
+          className="w-full bg-transparent border-b-2 border-border pb-4 text-center text-5xl md:text-7xl lg:text-8xl font-heading font-extrabold text-foreground focus:outline-none focus:border-emerald-400 placeholder:text-muted-foreground/20 transition-colors"
           {...props}
         />
         
@@ -48,7 +48,7 @@ export function ActionInput({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={onAction}
-            className="absolute right-4 bottom-6 h-12 w-12 md:h-16 md:w-16 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-[0_0_30px_rgba(52,211,153,0.3)]"
+            className="absolute right-4 bottom-6 h-12 w-12 md:h-16 md:w-16 rounded-full bg-emerald-500 text-foreground flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-[0_0_30px_rgba(52,211,153,0.3)]"
           >
             <ArrowRight className="h-6 w-6 md:h-8 md:w-8" />
           </motion.button>

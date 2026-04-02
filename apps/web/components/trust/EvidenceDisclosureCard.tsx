@@ -33,11 +33,11 @@ export function EvidenceDisclosureCard({
       <CardHeader className="border-b border-white/6 px-5 py-4">
         <div className="space-y-1">
           {eyebrow ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
               {eyebrow}
             </p>
           ) : null}
-          <CardTitle className="text-sm font-semibold text-white/80">{title}</CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground/80">{title}</CardTitle>
           {description ? (
             <CardDescription className="text-xs leading-relaxed text-white/42">
               {description}

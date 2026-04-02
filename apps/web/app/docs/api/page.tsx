@@ -250,7 +250,7 @@ export default function ApiReferencePage() {
 
       {/* Footer nav */}
       <div className="flex justify-between text-sm">
-        <Link href="/docs" className="text-zinc-400 hover:text-white transition-colors">← Overview</Link>
+        <Link href="/docs" className="text-zinc-400 hover:text-foreground transition-colors">← Overview</Link>
         <Link href="/docs/sdk" className="text-violet-400 hover:text-violet-300 transition-colors">SDKs →</Link>
       </div>
     </div>

@@ -17,11 +17,11 @@ export default function Footer() {
   }
 
   return (
-    <footer className="mt-auto shrink-0 border-t border-white/10 bg-vt-surface-ops-base text-white">
+    <footer className="mt-auto shrink-0 border-t border-border bg-vt-surface-ops-base text-foreground">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <p className="text-white/50 text-sm">&copy; VitalCV</p>
+            <p className="text-foreground/70 text-sm">&copy; VitalCV</p>
             <DeployBadge />
           </div>
           <div className="flex flex-wrap items-center gap-5">
@@ -29,7 +29,7 @@ export default function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-white/50 text-sm transition hover:text-white"
+                className="text-foreground/70 text-sm transition hover:text-foreground"
               >
                 {link.label}
               </Link>

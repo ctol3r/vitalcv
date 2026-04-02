@@ -48,7 +48,7 @@ export function EvidenceArtifactPreview({
                     xxxxxxxxxxxxxx
                   </span>
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[9px] font-semibold tracking-wider uppercase text-slate-500 bg-white/80 px-1 rounded shadow-sm">Redacted</span>
+                    <span className="text-[9px] font-semibold tracking-wider uppercase text-slate-500 bg-card px-1 rounded shadow-sm">Redacted</span>
                   </div>
                 </div>
               ))}

@@ -592,7 +592,7 @@ export function GraphWorkbenchPanel({
                     {summary.meta.map((item) => (
                       <span
                         key={item}
-                        className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-[var(--vt-text-1)]"
+                        className="rounded-full border border-border bg-black/20 px-2 py-0.5 text-[10px] text-[var(--vt-text-1)]"
                       >
                         {item}
                       </span>

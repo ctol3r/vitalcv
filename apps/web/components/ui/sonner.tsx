@@ -6,15 +6,15 @@ import { Toaster as Sonner, type ToasterProps } from 'sonner'
 const TOAST_OPTIONS: ToasterProps['toastOptions'] = {
   classNames: {
     toast:
-      'group border border-white/10 bg-[#0f1522] text-white shadow-[0_20px_60px_rgba(8,14,26,0.45)]',
+      'group border border-border bg-[#0f1522] text-foreground shadow-[0_20px_60px_rgba(8,14,26,0.45)]',
     title: 'text-sm font-medium text-white',
-    description: 'text-xs text-white/55',
+    description: 'text-xs text-foreground',
     actionButton:
-      'bg-[var(--vt-success)] text-white hover:bg-[var(--vt-success)]/90',
+      'bg-[var(--vt-success)] text-foreground hover:bg-[var(--vt-success)]/90',
     cancelButton:
-      'border border-white/10 bg-white/5 text-white/65 hover:bg-white/10 hover:text-white',
+      'border border-border bg-muted text-foreground/60 hover:bg-muted hover:text-foreground',
     closeButton:
-      'border border-white/10 bg-black/30 text-white/55 hover:bg-white/10 hover:text-white',
+      'border border-border bg-black/30 text-foreground hover:bg-muted hover:text-foreground',
   },
 }
 
