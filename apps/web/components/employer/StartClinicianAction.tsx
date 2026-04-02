@@ -358,7 +358,7 @@ export function StartClinicianAction({
             >
               <p className="text-sm text-muted-foreground">
                 Formally accept this clinician&apos;s verified credential bundle.
-                This records your hiring decision on the VitalCV trust ledger.
+                This records your hiring decision on the VitalCV audit trail.
               </p>
 
               <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4 space-y-1.5">
@@ -420,7 +420,7 @@ export function StartClinicianAction({
 
               <p className="text-sm text-muted-foreground">
                 Signal the exact start date and facility. This timestamp is
-                cryptographically anchored to the VitalCV Merkle audit ledger.
+                cryptographically anchored to the VitalCV Merkle audit trail.
               </p>
 
               <div className="space-y-3">
@@ -471,7 +471,7 @@ export function StartClinicianAction({
                 {effectivePhase === 'STARTING' ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Anchoring to Merkle ledger…
+                    Anchoring to Merkle audit trail…
                   </>
                 ) : (
                   <>

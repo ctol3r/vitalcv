@@ -131,10 +131,10 @@ export default async function EnterpriseSignalsPage() {
           />
 
           <SignalCard
-            title="Trust ledger integrity"
+            title="Audit trail integrity"
             entries={[
               {
-                label: 'Append-only ledger',
+                label: 'Append-only audit trail',
                 value: compliance ? formatFlag(compliance.trustLedgerAppendOnly) : 'unknown',
               },
               {

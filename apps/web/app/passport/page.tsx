@@ -455,6 +455,19 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                     View as employer
                   </Link>
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const retry = state.npi ?? npi.trim();
+                    if (/^\d{10}$/.test(retry)) {
+                      reset();
+                      setTimeout(() => startIngest(retry), 50);
+                    }
+                  }}
+                  className="h-10 w-full rounded-full border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Re-check sources
+                </button>
               </div>
             )}
 

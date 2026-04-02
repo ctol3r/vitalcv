@@ -394,7 +394,7 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
                         {result.auditAnchor}
                       </p>
                       <p className="mt-1.5 text-[10px] text-slate-600">
-                        SHA-256 of all path hashes — anchors this response to the transparency ledger.
+                        SHA-256 of all path hashes — anchors this response to the audit trail.
                       </p>
                     </section>
 
