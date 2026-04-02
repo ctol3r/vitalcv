@@ -50,7 +50,7 @@ export function CopilotResultCard({
         <div className="flex justify-between items-start mb-6">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h2 className="text-2xl font-semibold text-white/90 tracking-tight">{name}</h2>
+              <h2 className="text-2xl font-semibold text-foreground tracking-tight">{name}</h2>
               <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${activeStatus.border} ${activeStatus.bg}`}>
                 <StatusIcon className={`w-3.5 h-3.5 ${activeStatus.color}`} />
                 <span className={`text-xs font-semibold tracking-wide ${activeStatus.color}`}>{trustScore}%</span>

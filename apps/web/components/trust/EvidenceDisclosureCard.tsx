@@ -39,7 +39,7 @@ export function EvidenceDisclosureCard({
           ) : null}
           <CardTitle className="text-sm font-semibold text-foreground/80">{title}</CardTitle>
           {description ? (
-            <CardDescription className="text-xs leading-relaxed text-white/42">
+            <CardDescription className="text-xs leading-relaxed text-muted-foreground">
               {description}
             </CardDescription>
           ) : null}

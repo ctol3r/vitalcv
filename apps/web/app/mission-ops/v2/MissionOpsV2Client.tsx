@@ -235,7 +235,7 @@ export default function MissionOpsV2Client() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Mission Ops</span>
               <span className="text-muted-foreground/40">/</span>
-              <span className="text-sm font-medium text-white/90">{activeSectionLabel}</span>
+              <span className="text-sm font-medium text-foreground">{activeSectionLabel}</span>
             </div>
 
             {isLiveSection ? (

@@ -64,7 +64,7 @@ export function InspectorPanel({ items, title, badge, className }: InspectorPane
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
               <div className="flex items-start justify-between gap-2 group">
                 <span className={cn(
-                  "text-xs text-white/90 break-words leading-relaxed",
+                  "text-xs text-foreground break-words leading-relaxed",
                   item.mono ? "font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded text-foreground/70" : ""
                 )}>
                   {item.value}

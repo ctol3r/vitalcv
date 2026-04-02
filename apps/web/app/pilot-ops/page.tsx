@@ -246,7 +246,7 @@ export default async function PilotOpsPage({
           <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] text-foreground">
             <span className="font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">Applied Scope</span>
             {appliedScope.map((entry) => (
-              <span key={entry.label} className="rounded-full border border-border bg-black/20 px-2.5 py-1 text-foreground/60">
+              <span key={entry.label} className="rounded-full border border-border bg-muted px-2.5 py-1 text-foreground/60">
                 {entry.label}: <span className="font-mono text-foreground/85">{entry.value}</span>
               </span>
             ))}

@@ -43,7 +43,7 @@ export default function InterviewBlockedState({
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-vt-surface-ops-base">
       <div className="w-full max-w-sm animate-fade-in-up space-y-5 text-center">
         <p className="text-white/58 text-base leading-relaxed">{title}</p>
-        <p className="text-white/32 text-sm leading-relaxed">{description}</p>
+        <p className="text-muted-foreground/50 text-sm leading-relaxed">{description}</p>
         <Link
           href={primaryHref ?? PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
           className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-foreground text-sm font-semibold py-4 transition-all text-center"

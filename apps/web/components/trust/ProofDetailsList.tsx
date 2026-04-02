@@ -10,8 +10,8 @@ export interface ProofDetailRow {
 
 const VALUE_TONE_CLASS: Record<NonNullable<ProofDetailRow['tone']>, string> = {
   default: 'text-foreground',
-  muted: 'text-white/42',
-  strong: 'text-white/72',
+  muted: 'text-muted-foreground',
+  strong: 'text-foreground/70',
 };
 
 export function ProofDetailsList({

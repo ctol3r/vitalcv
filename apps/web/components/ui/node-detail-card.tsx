@@ -24,13 +24,13 @@ export const NodeDetailCard = React.forwardRef<HTMLDivElement, NodeDetailCardPro
     return (
       <Card 
         ref={ref} 
-        className={cn('bg-black/40 border border-border backdrop-blur-md overflow-hidden', className)} 
+        className={cn('bg-card border border-border backdrop-blur-md overflow-hidden', className)} 
         {...props}
       >
         <CardHeader className="border-b border-white/5 pb-4 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1.5">
-              <CardTitle className="text-xl tracking-tight text-white/90">
+              <CardTitle className="text-xl tracking-tight text-foreground">
                 {title}
               </CardTitle>
               {subtitle && (

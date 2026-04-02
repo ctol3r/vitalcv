@@ -110,11 +110,11 @@ function PassportFreshnessCard({
       </div>
       <div className="space-y-2 border-t border-white/6 pt-3">
         {freshness.items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-white/6 bg-black/10 px-3 py-3">
+          <div key={item.id} className="rounded-xl border border-white/6 bg-muted px-3 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs text-foreground/70">{item.label}</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-white/42">{item.note}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{item.note}</p>
               </div>
               <TrustStatusBadge
                 status={item.state === 'current' ? 'checked' : item.state === 'stale' ? 'stale' : 'pending'}
@@ -123,7 +123,7 @@ function PassportFreshnessCard({
                 className="shrink-0"
               />
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/24">
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground/30">
               <span>{item.source}</span>
               <span>{item.checkedAt ? `Checked ${formatProofDate(item.checkedAt)}` : 'Not yet checked'}</span>
             </div>

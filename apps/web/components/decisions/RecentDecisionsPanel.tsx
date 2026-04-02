@@ -41,7 +41,7 @@ export function RecentDecisionsPanel({
       >
         <div className="mb-4 flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground/60" />
-          <h3 className="text-sm font-semibold text-white/90">{heading}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{heading}</h3>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (

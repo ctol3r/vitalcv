@@ -13,23 +13,23 @@ export function TimeToStartEstimateSummary({
   return (
     <div className={cn('space-y-3', className)}>
       <div>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Time-to-start</p>
-        <p className="mt-1 text-sm leading-relaxed text-white/56">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Time-to-start</p>
+        <p className="mt-1 text-sm leading-relaxed text-foreground">
           Conservative pilot range based on current readiness, incomplete source lanes, and active blockers.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Estimated start</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Estimated start</p>
           <p className="mt-1 text-lg font-semibold text-foreground">{estimate.estimatedStartLabel}</p>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Without VitalCV</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Without VitalCV</p>
           <p className="mt-1 text-sm font-medium text-foreground">{estimate.baselineLabel}</p>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Time saved</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Time saved</p>
           <p className="mt-1 text-sm font-medium text-foreground">{estimate.timeSavedLabel}</p>
         </div>
       </div>

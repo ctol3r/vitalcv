@@ -167,10 +167,10 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
             ])}
           </p>
           {resolveAuthorityNote(credential) && (
-            <p className="mt-1 text-white/32">{resolveAuthorityNote(credential)}</p>
+            <p className="mt-1 text-muted-foreground/50">{resolveAuthorityNote(credential)}</p>
           )}
           {credential.sourceDisclaimer && (
-            <p className="mt-1 text-white/28">{credential.sourceDisclaimer}</p>
+            <p className="mt-1 text-muted-foreground/40">{credential.sourceDisclaimer}</p>
           )}
         </div>
       ))}

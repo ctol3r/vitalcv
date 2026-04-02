@@ -739,8 +739,8 @@ export function CommandPalette() {
                                 </span>
                               ) : null}
                             </div>
-                            <p className="truncate text-xs text-white/48">{result.subtitle}</p>
-                            <p className="mt-1 line-clamp-2 text-xs text-white/62">{result.detail}</p>
+                            <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
+                            <p className="mt-1 line-clamp-2 text-xs text-foreground/60">{result.detail}</p>
                           </div>
                           {selected ? <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-cyan-300" /> : null}
                         </button>
@@ -752,7 +752,7 @@ export function CommandPalette() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 border-t border-white/8 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-white/38">
+          <div className="flex items-center gap-4 border-t border-white/8 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
             <span><kbd className="rounded border border-border px-1.5 py-0.5">↑↓</kbd> navigate</span>
             <span><kbd className="rounded border border-border px-1.5 py-0.5">↵</kbd> open</span>
             <span><kbd className="rounded border border-border px-1.5 py-0.5">tab</kbd> autofill</span>
@@ -767,7 +767,7 @@ export function CommandPalette() {
               <span>{preview.group}</span>
             </div>
             <h3 className="mt-4 text-base font-semibold text-foreground">{preview.title}</h3>
-            <p className="mt-1 text-sm text-white/52">{preview.subtitle}</p>
+            <p className="mt-1 text-sm text-foreground/50">{preview.subtitle}</p>
             <p className="mt-3 text-sm leading-6 text-white/68">{preview.detail}</p>
             {preview.href ? (
               <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-cyan-200/80">

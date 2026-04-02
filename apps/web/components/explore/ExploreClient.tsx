@@ -834,7 +834,7 @@ function OpportunityCard({
           </>
         );
       })() : (
-        <div className="rounded-2xl border border-border bg-black/20 px-4 py-4 mt-2 flex items-center justify-between">
+        <div className="rounded-2xl border border-border bg-muted px-4 py-4 mt-2 flex items-center justify-between">
            <div>
              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
                <ShieldCheck className="w-3 h-3" /> Readiness Engine

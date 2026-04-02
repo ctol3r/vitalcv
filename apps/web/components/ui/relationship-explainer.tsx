@@ -37,7 +37,7 @@ export const RelationshipExplainer = React.forwardRef<HTMLDivElement, Relationsh
     return (
       <Card 
         ref={ref} 
-        className={cn('bg-black/40 border border-border p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6', className)}
+        className={cn('bg-card border border-border p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6', className)}
         {...props}
       >
         {/* Source Node */}
@@ -45,7 +45,7 @@ export const RelationshipExplainer = React.forwardRef<HTMLDivElement, Relationsh
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-1 font-semibold">
             {sourceNode.type}
           </span>
-          <span className="text-sm font-medium text-white/90">{sourceNode.label}</span>
+          <span className="text-sm font-medium text-foreground">{sourceNode.label}</span>
           {sourceNode.sublabel && (
             <span className="text-xs text-muted-foreground mt-0.5">{sourceNode.sublabel}</span>
           )}

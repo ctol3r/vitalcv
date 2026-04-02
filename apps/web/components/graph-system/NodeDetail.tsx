@@ -221,7 +221,7 @@ function ContextLink({
   return (
     <Link
       href={normalizeIntelligenceHref(href)}
-      className="inline-flex items-center rounded-full border border-border bg-white/[0.04] px-3 py-1.5 text-xs text-white/72 transition-colors hover:border-border hover:bg-white/[0.08] hover:text-foreground"
+      className="inline-flex items-center rounded-full border border-border bg-white/[0.04] px-3 py-1.5 text-xs text-foreground/70 transition-colors hover:border-border hover:bg-white/[0.08] hover:text-foreground"
     >
       {label}
     </Link>
@@ -240,7 +240,7 @@ function SummaryCell({
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3">
       <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
-      <p className={cn('mt-2 text-sm text-white/72', emphasis && 'text-base text-white')}>
+      <p className={cn('mt-2 text-sm text-foreground/70', emphasis && 'text-base text-white')}>
         {value}
       </p>
     </div>
@@ -287,7 +287,7 @@ function EvidenceButton({
               {status}
             </span>
           </div>
-          <p className="mt-1 text-xs leading-5 text-white/48">{summary}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{summary}</p>
           {stamp ? (
             <p className="mt-2 text-[11px] text-white/34">{formatDateTime(stamp)}</p>
           ) : null}
@@ -391,7 +391,7 @@ function ReceiptViewer({ receipt }: { receipt: ReceiptDetail | null }) {
 
       <div className="rounded-2xl border border-white/8 bg-black/35 p-4">
         <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Raw receipt payload</p>
-        <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/8 bg-black px-3 py-3 text-[11px] leading-6 text-white/56">
+        <pre className="mt-3 overflow-x-auto rounded-2xl border border-white/8 bg-black px-3 py-3 text-[11px] leading-6 text-foreground">
           {JSON.stringify(receipt.payload, null, 2)}
         </pre>
       </div>
@@ -439,7 +439,7 @@ function ClaimExplanation({
     <div className="space-y-2">
       {steps.map((step, index) => (
         <div key={step.label} className="flex gap-3 rounded-2xl border border-white/8 bg-black/35 px-4 py-4">
-          <div className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-white/28">
+          <div className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/40">
             {String(index + 1).padStart(2, '0')}
           </div>
           <div>
@@ -596,12 +596,12 @@ export default function NodeDetail({
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
               <div className="rounded-2xl border border-border bg-white/[0.04] p-3">
-                <NodeIcon className="h-5 w-5 text-white/72" />
+                <NodeIcon className="h-5 w-5 text-foreground/70" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-white/38">{humanize(node.type)}</p>
+                <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground/70">{humanize(node.type)}</p>
                 <h1 className="mt-2 truncate text-xl tracking-[0.02em] text-foreground">{node.label}</h1>
-                <p className="mt-2 text-sm leading-6 text-white/48">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   Evidence-grade node detail surface for claims, receipts, source artifacts, and relationship context.
                 </p>
               </div>
@@ -676,7 +676,7 @@ export default function NodeDetail({
                           />
                         ))}
                         {entityContext.findingIds.length > 4 ? (
-                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-white/42">
+                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
                             +{entityContext.findingIds.length - 4} more
                           </span>
                         ) : null}
@@ -696,7 +696,7 @@ export default function NodeDetail({
                           />
                         ))}
                         {entityContext.storylineIds.length > 4 ? (
-                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-white/42">
+                          <span className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
                             +{entityContext.storylineIds.length - 4} more
                           </span>
                         ) : null}
@@ -731,7 +731,7 @@ export default function NodeDetail({
           </Section>
 
           <Section title="Evidence Stack" eyebrow="02">
-            <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-white/38">
+            <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
               <span className="rounded-full border border-border px-2 py-1">{model.claims.length} claims</span>
               <span className="rounded-full border border-border px-2 py-1">{model.receipts.length} receipts</span>
               <span className="rounded-full border border-border px-2 py-1">{model.artifacts.length} artifacts</span>
@@ -782,14 +782,14 @@ export default function NodeDetail({
                   <div className="min-w-0">
                     <p className="text-sm text-foreground">{relationship.label}</p>
                     <p className="mt-1 text-xs leading-5 text-white/46">{relationship.explanation}</p>
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/32">
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/50">
                       {relationship.edgeTypes.map((edgeType) => humanize(edgeType)).join(' · ')}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm text-foreground">{formatPercent(relationship.confidence)}</p>
                     <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/34">{relationship.direction}</p>
-                    <ChevronRight className="ml-auto mt-2 h-3.5 w-3.5 text-white/38" />
+                    <ChevronRight className="ml-auto mt-2 h-3.5 w-3.5 text-muted-foreground/70" />
                   </div>
                 </button>
               ))}
@@ -802,7 +802,7 @@ export default function NodeDetail({
                 <div key={event.id} className="flex gap-3">
                   <div className="flex w-10 shrink-0 flex-col items-center">
                     <div className="rounded-full border border-border bg-black/70 p-1.5">
-                      <Clock3 className="h-3 w-3 text-white/56" />
+                      <Clock3 className="h-3 w-3 text-foreground" />
                     </div>
                     <div className="mt-2 h-full w-px bg-muted" />
                   </div>
@@ -814,7 +814,7 @@ export default function NodeDetail({
                       </span>
                     </div>
                     <p className="mt-1 text-xs leading-5 text-white/46">{event.detail}</p>
-                    <p className="mt-2 text-[11px] text-white/32">{formatDateTime(event.at)}</p>
+                    <p className="mt-2 text-[11px] text-muted-foreground/50">{formatDateTime(event.at)}</p>
                   </div>
                 </div>
               ))}

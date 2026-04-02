@@ -64,7 +64,7 @@ export function ReadinessDashboard() {
           >
             <item.icon className="w-5 h-5 text-muted-foreground mb-4" />
             <div className="text-sm font-mono text-foreground/70">{item.label}</div>
-            <div className="text-lg font-medium text-white/90 mt-1">{item.value}</div>
+            <div className="text-lg font-medium text-foreground mt-1">{item.value}</div>
           </motion.div>
         ))}
       </section>

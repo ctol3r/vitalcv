@@ -31,14 +31,14 @@ export function TimeToStartCard({
   return (
     <div className={`rounded-2xl border border-white/6 bg-black/15 p-4 ${className}`.trim()}>
       <div className="flex items-center gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">
           Time-to-Start
         </p>
         <TooltipProvider delayDuration={150}>
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className="inline-flex items-center justify-center text-white/28 transition-colors hover:text-foreground/48"
+                className="inline-flex items-center justify-center text-muted-foreground/40 transition-colors hover:text-foreground/48"
                 role="img"
                 aria-label="Time-to-start estimate details"
               >
@@ -54,7 +54,7 @@ export function TimeToStartCard({
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-white/6 bg-white/[0.03] px-3 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/28">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/40">
             Without VitalCV
           </p>
           <p className="mt-1 text-sm font-semibold text-white/78">
@@ -70,7 +70,7 @@ export function TimeToStartCard({
           </p>
         </div>
         <div className="rounded-xl border border-white/6 bg-white/[0.03] px-3 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/28">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/40">
             Time Saved
           </p>
           <p className="mt-1 text-sm font-semibold text-white/78">
@@ -80,7 +80,7 @@ export function TimeToStartCard({
       </div>
 
       {estimate.penaltyDays > 0 ? (
-        <p className="mt-3 text-[10px] leading-relaxed text-white/28">
+        <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/40">
           Adjusted from the blockers and stale verification signals surfaced in this snapshot.
         </p>
       ) : null}

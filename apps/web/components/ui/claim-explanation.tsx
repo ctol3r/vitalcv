@@ -23,11 +23,11 @@ export const ClaimExplanation = React.forwardRef<HTMLDivElement, ClaimExplanatio
     return (
       <Card 
         ref={ref} 
-        className={cn('bg-black/20 border border-white/5 rounded-xl text-white', className)} 
+        className={cn('bg-muted border border-white/5 rounded-xl text-white', className)} 
         {...props}
       >
         <div className="px-4 py-3 border-b border-white/5 bg-white/[0.02]">
-          <h4 className="text-sm font-semibold tracking-tight text-white/90">
+          <h4 className="text-sm font-semibold tracking-tight text-foreground">
             Why we verified <span className="text-muted-foreground italic">"{claimLabel}"</span>
           </h4>
         </div>
@@ -44,7 +44,7 @@ export const ClaimExplanation = React.forwardRef<HTMLDivElement, ClaimExplanatio
                   )}
                 </div>
                 <div className="pb-4">
-                  <h5 className="text-sm font-medium text-white/90 mb-1">{step.title}</h5>
+                  <h5 className="text-sm font-medium text-foreground mb-1">{step.title}</h5>
                   <p className="text-xs text-foreground/70 leading-relaxed block max-w-[90%]">
                     {step.description}
                   </p>

@@ -51,7 +51,7 @@ export function TrustStateCard({
     >
       <CardHeader className={cn('px-5 py-4', centered && 'items-center text-center')}>
         {eyebrow ? (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/40">
             {eyebrow}
           </p>
         ) : null}

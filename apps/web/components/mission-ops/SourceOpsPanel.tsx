@@ -92,7 +92,7 @@ function SourceOpsRow({ source }: { source: SourceOpsEntry }) {
     >
       <td className="px-4 py-4 align-top">
         <div className="mb-1 flex items-center gap-2">
-          <span className="font-medium text-white/90">{source.name}</span>
+          <span className="font-medium text-foreground">{source.name}</span>
           {source.isSpine && (
             <span className="rounded border border-vt-info/20 bg-vt-info/10 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-vt-info">
               Official Spine

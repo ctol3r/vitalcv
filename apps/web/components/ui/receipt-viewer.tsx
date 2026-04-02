@@ -31,8 +31,8 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
       >
         <div className="flex flex-wrap text-[10px] sm:text-xs items-center justify-between border-b border-border bg-muted py-2 px-3">
           <div className="flex flex-col sm:flex-row sm:gap-4 gap-1">
-            <span className="text-muted-foreground">RECEIPT_ID: <span className="text-white/90">{receiptId}</span></span>
-            <span className="text-muted-foreground">SOURCE: <span className="text-white/90">{sourceId}</span></span>
+            <span className="text-muted-foreground">RECEIPT_ID: <span className="text-foreground">{receiptId}</span></span>
+            <span className="text-muted-foreground">SOURCE: <span className="text-foreground">{sourceId}</span></span>
           </div>
           <span className="text-muted-foreground">{timestamp}</span>
         </div>

@@ -49,7 +49,7 @@ export function AnnouncementBar({ message, type = 'info', dismissible = true, ct
     )}>
       <div className="flex items-center gap-3">
         <Icon className={cn("w-4 h-4 shrink-0", config.text)} />
-        <span className="text-[11px] font-medium text-white/90">
+        <span className="text-[11px] font-medium text-foreground">
           {message}
           {ctaText && ctaHref && (
             <a href={ctaHref} className={cn("ml-3 font-semibold underline hover:text-foreground transition-colors", config.text)}>

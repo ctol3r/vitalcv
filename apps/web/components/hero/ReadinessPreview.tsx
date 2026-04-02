@@ -557,7 +557,7 @@ export function ReadinessPreview({
                   <p className="mt-2 text-sm font-semibold text-foreground">{ts.readiness_status}</p>
                   <p className="mt-1 text-[11px] text-foreground">{ts.readiness_score}/100 · {ts.readiness_level}</p>
                 </div>
-                <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
+                <p className="text-[11px] leading-relaxed text-muted-foreground sm:max-w-[220px] sm:text-right">
                   Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
                 </p>
               </div>
@@ -598,7 +598,7 @@ export function ReadinessPreview({
               eyebrow="Proof"
               title="Source checks"
               description="Expand each section to see where the snapshot is checked, access required, or still missing."
-              className="rounded-xl border-white/6 bg-black/10"
+              className="rounded-xl border-white/6 bg-muted"
               contentClassName="px-5 py-1"
             >
               <Accordion
@@ -611,9 +611,9 @@ export function ReadinessPreview({
           <CardFooter className="border-t border-white/6 px-5 py-4">
             <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-                <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/38">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
+                <p className="mt-1 text-sm font-medium text-foreground/70">Carry this snapshot into your passport.</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground/70">
                   {checkedLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
               </div>
@@ -728,7 +728,7 @@ export function ReadinessPreview({
             eyebrow="Proof"
             title="Source checks"
             description="Completed checks stay marked as checked. Everything else remains pending, access required, or unavailable until a live retry finishes."
-            className="rounded-xl border-white/6 bg-black/10"
+            className="rounded-xl border-white/6 bg-muted"
             contentClassName="px-5 py-1"
           >
             <Accordion
@@ -741,9 +741,9 @@ export function ReadinessPreview({
         <CardFooter className="border-t border-white/6 px-5 py-4">
           <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
-              <p className="mt-1 text-sm font-medium text-white/72">Continue to passport with this NPI.</p>
-              <p className="mt-1 text-xs leading-relaxed text-white/38">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
+              <p className="mt-1 text-sm font-medium text-foreground/70">Continue to passport with this NPI.</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/70">
                 Passport retries the live lookup. Completed checks stay visible, and unresolved lanes remain marked as {pendingLabel}, {accessRequiredLabel}, or {unavailableLabel}.
               </p>
             </div>

@@ -401,7 +401,7 @@ export function CommandPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex-none p-2 border-t border-border bg-black/40 text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
+              <div className="flex-none p-2 border-t border-border bg-card text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↑↓</kbd> to navigate</span>
                   <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↵</kbd> to select</span>

@@ -55,7 +55,7 @@ export default function NpsModal({ isOpen, onClose }: NpsModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-muted backdrop-blur-sm z-50"
           />
           {/* Modal */}
           <motion.div

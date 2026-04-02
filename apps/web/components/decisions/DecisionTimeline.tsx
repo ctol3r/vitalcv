@@ -192,7 +192,7 @@ function CapsuleRow({ capsule, compact }: { capsule: DecisionCapsuleEntry; compa
     return (
       <div className="flex items-center gap-3 py-2 text-sm">
         <span className={`h-2 w-2 shrink-0 rounded-full ${cfg.dot}`} />
-        <span className="font-medium text-white/90">
+        <span className="font-medium text-foreground">
           {DECISION_TYPE_LABEL[capsule.decisionType] ?? capsule.decisionType}
         </span>
         <span className="text-muted-foreground">{formatDate(capsule.decisionTimestamp)}</span>
@@ -290,7 +290,7 @@ export function DecisionTimeline({
     >
       {heading && (
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white/90">{heading}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{heading}</h3>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground ring-1 ring-white/10">
             {capsules.length} capsule{capsules.length !== 1 ? 's' : ''}
           </span>

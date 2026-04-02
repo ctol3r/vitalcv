@@ -14,7 +14,7 @@ const TOAST_OPTIONS: ToasterProps['toastOptions'] = {
     cancelButton:
       'border border-border bg-muted text-foreground/60 hover:bg-muted hover:text-foreground',
     closeButton:
-      'border border-border bg-black/30 text-foreground hover:bg-muted hover:text-foreground',
+      'border border-border bg-muted text-foreground hover:bg-muted hover:text-foreground',
   },
 }
 

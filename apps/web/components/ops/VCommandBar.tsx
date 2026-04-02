@@ -575,7 +575,7 @@ export default function VCommandBar() {
                 ) : null}
               </div>
 
-              <div className="mt-4 flex items-center gap-3 rounded-[22px] border border-border bg-black/20 px-4 py-3">
+              <div className="mt-4 flex items-center gap-3 rounded-[22px] border border-border bg-muted px-4 py-3">
                 <Search className="h-4 w-4 shrink-0 text-slate-400" />
                 <input
                   autoFocus
@@ -775,7 +775,7 @@ export default function VCommandBar() {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Latest findings</p>
                             <div className="mt-4 space-y-3">
                               {(findingsPreview.data?.findings ?? []).slice(0, 4).map((finding) => (
-                                <div key={finding.id} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                <div key={finding.id} className="rounded-2xl border border-border bg-muted px-3 py-3">
                                   <div className="flex items-center justify-between gap-3">
                                     <p className="text-sm font-semibold text-foreground">{finding.title}</p>
                                     <span className="rounded-full border border-border px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-slate-300">
@@ -795,22 +795,22 @@ export default function VCommandBar() {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Relationship preview</p>
                             <div className="mt-4 grid gap-3">
                               <div className="grid grid-cols-3 gap-2">
-                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-muted px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Nodes</p>
                                   <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.totalNodes ?? 0}</p>
                                 </div>
-                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-muted px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Edges</p>
                                   <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.totalEdges ?? 0}</p>
                                 </div>
-                                <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                <div className="rounded-2xl border border-border bg-muted px-3 py-3">
                                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">AI links</p>
                                   <p className="mt-1 text-xl font-semibold text-foreground">{graphPreview.data?.stats.aiSuggestedLinks ?? 0}</p>
                                 </div>
                               </div>
                               <div className="space-y-3">
                                 {graphNeighbors.map((neighbor) => (
-                                  <div key={neighbor.id} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                                  <div key={neighbor.id} className="rounded-2xl border border-border bg-muted px-3 py-3">
                                     <p className="text-sm font-semibold text-foreground">{neighbor.title}</p>
                                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">{neighbor.detail}</p>
                                   </div>
@@ -835,7 +835,7 @@ export default function VCommandBar() {
                           {selectedCopilotExplanation?.because?.length ? (
                             <div className="mt-4 space-y-2">
                               {selectedCopilotExplanation.because.slice(0, 4).map((reason) => (
-                                <div key={reason} className="rounded-2xl border border-border bg-black/20 px-3 py-3 text-sm text-slate-200">
+                                <div key={reason} className="rounded-2xl border border-border bg-muted px-3 py-3 text-sm text-slate-200">
                                   {reason}
                                 </div>
                               ))}
@@ -856,7 +856,7 @@ export default function VCommandBar() {
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Related insights</p>
                           <div className="mt-4 space-y-3">
                             {selectedGraphInsights.slice(0, 4).map((insight, index) => (
-                              <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                              <div key={`${insight.summary}-${index}`} className="rounded-2xl border border-border bg-muted px-3 py-3">
                                 <p className="text-sm font-semibold text-foreground">{insight.summary}</p>
                                 <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
                                   depth {insight.depth} • {insight.type.replace(/_/g, ' ')}
@@ -880,11 +880,11 @@ export default function VCommandBar() {
                       <div className="rounded-[24px] border border-border bg-white/[0.03] p-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Command behavior</p>
                         <div className="mt-4 grid gap-3">
-                          <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                          <div className="rounded-2xl border border-border bg-muted px-3 py-3">
                             <p className="text-sm font-semibold text-foreground">{selectedResult.title}</p>
                             <p className="mt-2 text-sm leading-6 text-slate-300">{selectedResult.summary}</p>
                           </div>
-                          <div className="rounded-2xl border border-border bg-black/20 px-3 py-3">
+                          <div className="rounded-2xl border border-border bg-muted px-3 py-3">
                             <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Open entity</p>
                             <p className="mt-2 font-mono text-sm text-slate-200">{selectedResult.href ?? 'Unavailable'}</p>
                           </div>
@@ -915,7 +915,7 @@ export default function VCommandBar() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-black/20 px-5 py-3 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted px-5 py-3 text-[11px] text-slate-400">
               <div className="flex flex-wrap items-center gap-3">
                 <span>⌘K open</span>
                 <span>/ quick launch</span>

@@ -554,7 +554,7 @@ export function LiveTrustGraph({ npi, height = 500, initialGraph }: Props) {
               top: Math.max(tooltip.y - 80, 4),
             }}
           >
-            <div className="font-medium text-white/90 truncate">{tooltip.node.label}</div>
+            <div className="font-medium text-foreground truncate">{tooltip.node.label}</div>
             <div className="mt-1 space-y-0.5 text-muted-foreground">
               <div>Type: <span className="text-foreground">{tooltip.node.type}</span></div>
               <div>Trust: <span className="text-foreground">{tooltip.node.trustLevel}</span></div>

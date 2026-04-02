@@ -35,7 +35,7 @@ export function PassportSourceCoveragePanel({
         <CardTitle className="text-sm font-semibold text-foreground/80">
           Trust-core coverage and contextual gaps
         </CardTitle>
-        <CardDescription className="text-xs leading-relaxed text-white/42">
+        <CardDescription className="text-xs leading-relaxed text-muted-foreground">
           {PASSPORT_SOURCE_COVERAGE_COPY}
         </CardDescription>
       </CardHeader>

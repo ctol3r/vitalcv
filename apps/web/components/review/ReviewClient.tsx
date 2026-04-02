@@ -391,9 +391,9 @@ function BinaryDecisionCard({
       )}
 
       <div className="mt-4 rounded-2xl border border-border bg-black/15 px-4 py-3">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Portable acceptance</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Portable acceptance</p>
         <p className="mt-1 text-sm font-medium text-foreground">{acceptanceHistorySummary.headline}</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-white/36">
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/60">
           {acceptanceHistorySummary.trustCopy
             ?? 'Any future VitalCV acceptance will appear here with its organization-specific scope.'}
         </p>
@@ -428,7 +428,7 @@ function BinaryDecisionCard({
           </Button>
         </div>
         {previewOnlyMessage && (
-          <p className="text-center text-[10px] text-white/28 pt-1">{previewOnlyMessage}</p>
+          <p className="text-center text-[10px] text-muted-foreground/40 pt-1">{previewOnlyMessage}</p>
         )}
       </div>
     </Card>
@@ -460,7 +460,7 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
         <TrustStatusBadge status="stale" label="Refresh recommended" size="sm" />
       </div>
       {entries.map(e => (
-        <div key={e.layer} className="flex items-start justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5">
+        <div key={e.layer} className="flex items-start justify-between gap-3 rounded-xl border border-white/6 bg-muted px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <span className="w-2 shrink-0 text-[10px] text-[var(--vt-text-3)]">
               {e.stale ? '⚠' : e.unchecked ? '○' : '✔'}
@@ -511,9 +511,9 @@ function ReviewTruthBucket({
               {icon}
             </span>
             <div>
-              <p className="text-white/62">{item.label}</p>
+              <p className="text-foreground/60">{item.label}</p>
               {item.detail && (
-                <p className="mt-0.5 text-[10px] leading-relaxed text-white/28">
+                <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/40">
                   {item.detail}
                 </p>
               )}
@@ -676,7 +676,7 @@ function AcceptanceHistoryPanel({
         <p className="text-sm font-medium text-foreground">
           {acceptanceHistory.summary.headline}
         </p>
-        <p className="text-xs leading-relaxed text-white/42">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           {acceptanceHistory.summary.trustCopy
             ?? 'No employer has recorded a prior VitalCV acceptance for this clinician yet. Future acceptances will appear here with their organization-specific scope.'}
         </p>
@@ -691,17 +691,17 @@ function AcceptanceHistoryPanel({
             >
               <div>
                 <p className="text-sm font-medium text-foreground">{entry.orgLabel}</p>
-                <p className="mt-1 text-[11px] text-white/32">
+                <p className="mt-1 text-[11px] text-muted-foreground/50">
                   {entry.isAnonymized ? 'Anonymized for pilot portability' : 'Recorded organization'}
                 </p>
               </div>
               <div className="grid gap-2 text-left sm:text-right">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Date</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Date</p>
                   <p className="mt-1 text-xs text-foreground">{formatProofDate(entry.acceptedAt) ?? 'Not recorded'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Scope</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Scope</p>
                   <p className="mt-1 text-xs text-foreground">{formatAcceptanceScopeLabel(entry.acceptanceScope)}</p>
                 </div>
               </div>
@@ -709,7 +709,7 @@ function AcceptanceHistoryPanel({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-black/10 px-4 py-4 text-xs leading-relaxed text-white/42">
+        <div className="rounded-2xl border border-dashed border-border bg-muted px-4 py-4 text-xs leading-relaxed text-muted-foreground">
           No acceptance history is attached yet. VitalCV records each employer decision with its own scope, not as universal approval.
         </div>
       )}
@@ -1040,7 +1040,7 @@ export default function ReviewClient({
               <span className="text-muted-foreground">Review context</span>
               <span className="text-amber-300/70">None — direct view</span>
             </div>
-            <p className="text-[10px] text-white/28 leading-relaxed mt-0.5">
+            <p className="text-[10px] text-muted-foreground/40 leading-relaxed mt-0.5">
               Actions here are not tied to a confirmed employer context.{' '}
               <Link
                 href="/review/request"
@@ -1174,20 +1174,20 @@ export default function ReviewClient({
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Readiness</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{readiness.score}/100</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Trust band</p>
               <p className="mt-1 text-lg font-semibold text-foreground">{readiness.level}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Freshness</p>
               <p className="mt-1 text-sm font-medium text-foreground">{freshnessState}</p>
               <p className="mt-1 text-[11px] text-muted-foreground/60">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Proof completeness</p>
               <p className="mt-1 text-sm font-medium text-foreground">
                 {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
               </p>
@@ -1200,8 +1200,8 @@ export default function ReviewClient({
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Decision snapshot</p>
-                <p className="mt-1 text-sm leading-relaxed text-white/56">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Decision snapshot</p>
+                <p className="mt-1 text-sm leading-relaxed text-foreground">
                   {blocked.length > 0
                     ? `Proceed only as a head start. ${blocked.length} blocker${blocked.length === 1 ? '' : 's'} still need review or refresh.`
                     : 'No visible blockers are attached to this review right now.'}
@@ -1241,12 +1241,12 @@ export default function ReviewClient({
             <div className="border-t border-border pt-4 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold">Trust stack</h2>
-                <span className="text-white/18 text-[11px] uppercase tracking-[0.18em]">Safety · Authority · Eligibility</span>
+                <span className="text-muted-foreground/20 text-[11px] uppercase tracking-[0.18em]">Safety · Authority · Eligibility</span>
               </div>
 
               {/* Q2: Safe? */}
               <div className="space-y-2">
-                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Safety</h3>
+                <h3 className="text-muted-foreground/30 text-[10px] uppercase tracking-widest font-semibold">Safety</h3>
                 <TrustLabel
                   status={safetyRow.status}
                   label={safetyRow.label}
@@ -1259,7 +1259,7 @@ export default function ReviewClient({
 
               {/* Q3: Licensed? */}
               <div className="space-y-2">
-                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Authority</h3>
+                <h3 className="text-muted-foreground/30 text-[10px] uppercase tracking-widest font-semibold">Authority</h3>
                 {(() => {
                   const licCreds = authority.credentials.filter((credential) => credential.domain === 'LICENSURE');
                   const certCreds = authority.credentials.filter((credential) => credential.domain === 'BOARD_CERTIFICATION');
@@ -1313,7 +1313,7 @@ export default function ReviewClient({
 
               {/* Q4: Eligible? — MS16-B: 4-state canonical rendering */}
               <div className="space-y-2">
-                <h3 className="text-white/24 text-[10px] uppercase tracking-widest font-semibold">Eligibility</h3>
+                <h3 className="text-muted-foreground/30 text-[10px] uppercase tracking-widest font-semibold">Eligibility</h3>
                 <TrustLabel
                   status={eligibilityRow.status}
                   label={eligibilityRow.label}
@@ -1328,7 +1328,7 @@ export default function ReviewClient({
             {/* Q5: What blocks start? + Q6: What do I do? */}
             <div className="border-t border-border pt-4 space-y-1 text-sm">
               <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
-              <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
+              <p className="text-foreground font-medium pb-1">{readiness.score}% ready</p>
 
               {/* Q5: Blockers */}
               {blocked.length > 0 && (
@@ -1406,44 +1406,44 @@ export default function ReviewClient({
         <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] px-4 py-4 shadow-none">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last synced</p>
-              <p className="mt-1 text-sm text-white/62">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Last synced</p>
+              <p className="mt-1 text-sm text-foreground/60">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
-              <p className="mt-1 text-sm text-white/62">{freshnessState}</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Freshness</p>
+              <p className="mt-1 text-sm text-foreground/60">{freshnessState}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
-              <p className="mt-1 text-sm text-white/62">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Proof completeness</p>
+              <p className="mt-1 text-sm text-foreground/60">
                 {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Review warnings</p>
-              <p className="mt-1 text-sm text-white/62">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Review warnings</p>
+              <p className="mt-1 text-sm text-foreground/60">
                 {blocked.length > 0 ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}` : 'No blockers'}
               </p>
             </div>
           </div>
           {persistedActionState ? (
             <div className="mt-4 border-t border-white/8 pt-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">
                 {formatEmployerReviewPersistedLabel(persistedActionState)}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-white/36">
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/60">
                 {formatEmployerReviewPersistedDetail(persistedActionState)}
               </p>
             </div>
           ) : previewOnlyMessage ? (
             <div className="mt-4 border-t border-white/8 pt-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Preview</p>
-              <p className="mt-1 text-xs leading-relaxed text-white/48">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Preview</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {previewOnlyMessage}
               </p>
             </div>
           ) : (
-            <p className="mt-4 text-xs leading-relaxed text-white/36">
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground/60">
               Employer actions below are real. VitalCV waits for the backend audit event before it renders success.
             </p>
           )}
@@ -1534,7 +1534,7 @@ export default function ReviewClient({
                 title="Missing or access required"
                 items={reviewTruth.buckets.missingOrAccessRequired}
                 icon="–"
-                accentClassName="text-white/28"
+                accentClassName="text-muted-foreground/40"
                 emptyLabel="No missing Passport proof sections are flagged right now."
               />
             </div>

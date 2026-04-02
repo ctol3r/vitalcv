@@ -33,14 +33,14 @@ interface TrustLabelProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const STATUS_STYLE: Record<TrustStatus, { glyph: string; text: string; glyph_opacity: string }> = {
-  checked: { glyph: '✔', text: 'text-white/72', glyph_opacity: 'text-muted-foreground' },
-  pending: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-muted-foreground/40' },
-  stale: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-muted-foreground/60' },
+  checked: { glyph: '✔', text: 'text-foreground/70', glyph_opacity: 'text-muted-foreground' },
+  pending: { glyph: '○', text: 'text-muted-foreground/60', glyph_opacity: 'text-muted-foreground/40' },
+  stale: { glyph: '⚠', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/60' },
   access_required: { glyph: '○', text: 'text-muted-foreground', glyph_opacity: 'text-white/22' },
-  unavailable: { glyph: '○', text: 'text-white/36', glyph_opacity: 'text-muted-foreground/40' },
-  review_required: { glyph: '⚠', text: 'text-white/56', glyph_opacity: 'text-muted-foreground/60' },
+  unavailable: { glyph: '○', text: 'text-muted-foreground/60', glyph_opacity: 'text-muted-foreground/40' },
+  review_required: { glyph: '⚠', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/60' },
   preview_only: { glyph: '·', text: 'text-muted-foreground', glyph_opacity: 'text-muted-foreground/40' },
-  blocked: { glyph: '✕', text: 'text-foreground', glyph_opacity: 'text-white/24' },
+  blocked: { glyph: '✕', text: 'text-foreground', glyph_opacity: 'text-muted-foreground/30' },
 };
 
 function resolveBadgeMeta(
@@ -79,17 +79,17 @@ export function TrustLabel({ status, label, source, timestamp, note, explanation
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className={cn('text-sm font-medium', text)}>{label}</span>
                 {source && (
-                  <span className="text-[11px] text-white/32">Source: {source}</span>
+                  <span className="text-[11px] text-muted-foreground/50">Source: {source}</span>
                 )}
                 {timestamp && (
                   <span className="text-[11px] text-white/22">{timestamp}</span>
                 )}
               </div>
               {note && (
-                <p className="mt-2 text-[11px] leading-relaxed text-white/28">{note}</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground/40">{note}</p>
               )}
               {explanation && (
-                <p className="mt-1 text-xs leading-relaxed text-white/38">{explanation}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground/70">{explanation}</p>
               )}
             </div>
             <TrustStatusBadge
