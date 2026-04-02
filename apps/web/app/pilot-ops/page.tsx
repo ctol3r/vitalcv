@@ -323,7 +323,7 @@ export default async function PilotOpsPage({
           <KpiTile
             label="Actual Starts"
             value={kpi.startOutcomes.totalStarts}
-            sub={`${kpi.startOutcomes.distinctEntities} clinicians started`}
+            sub={`${kpi.startOutcomes.distinctEntities} via product · ${kpi.eventChain.startAttestations} attested`}
             tone={kpi.startOutcomes.totalStarts > 0 ? 'green' : 'neutral'}
           />
           <KpiTile

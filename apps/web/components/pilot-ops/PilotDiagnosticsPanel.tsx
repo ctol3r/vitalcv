@@ -6,6 +6,8 @@ import {
   type SourceOpsReport,
 } from '@/lib/mission-ops/sourceOpsTypes';
 
+const POLL_INTERVAL_MS = 60_000;
+
 type ErrorClass = 'connectivity' | 'freshness' | 'config';
 
 interface ErrorGroup {
@@ -81,7 +83,8 @@ export function PilotDiagnosticsPanel() {
     }
 
     fetchData();
-    return () => { mountedRef.current = false; };
+    const interval = setInterval(fetchData, POLL_INTERVAL_MS);
+    return () => { mountedRef.current = false; clearInterval(interval); };
   }, []);
 
   if (loading) {

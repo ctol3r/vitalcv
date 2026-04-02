@@ -23,7 +23,7 @@ import Link from 'next/link';
  *   - Touch targets ≥ 44px, font-size ≥ 16px
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { CLERK_PROVIDER_ENABLED, CLERK_SIGN_IN_URL } from '@/lib/auth/clerkConfig';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
@@ -452,6 +452,16 @@ export default function PassportWallet({ passport }: Props) {
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [pendingRefreshCount, setPendingRefreshCount] = useState(0);
+
+  useEffect(() => {
+    const npi = passport.npi ?? passport.identity?.npi;
+    if (!npi || !/^\d{10}$/.test(npi)) return;
+    fetch(`/api/employer-review/npi/${npi}/refresh-requests`)
+      .then((res) => res.ok ? res.json() as Promise<{ count: number }> : Promise.resolve({ count: 0 }))
+      .then((data) => setPendingRefreshCount(data.count))
+      .catch(() => void 0);
+  }, [passport.npi, passport.identity?.npi]);
 
   // Pre-check auth before showing share UI — prevents click-then-error UX
   const { isSignedIn, isLoaded } = CLERK_PROVIDER_ENABLED
@@ -523,6 +533,20 @@ export default function PassportWallet({ passport }: Props) {
         <div className="text-center">
           <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
         </div>
+
+        {/* ── Employer refresh request notification ─────────────────────────── */}
+        {pendingRefreshCount > 0 && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
+            <p className="text-amber-400 text-xs font-semibold">
+              {pendingRefreshCount === 1
+                ? 'An employer has requested updated credentials.'
+                : `${pendingRefreshCount} employers have requested updated credentials.`}
+            </p>
+            <p className="text-amber-300/60 text-[10px] mt-1">
+              Run a new NPI check to refresh your credential data.
+            </p>
+          </div>
+        )}
 
         {/* ── Passport card — primary object ────────────────────────────────── */}
         <Card className={`gap-0 rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5 shadow-none`}>

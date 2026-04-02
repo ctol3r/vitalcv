@@ -82,7 +82,7 @@ export function emitAuditEvent(input: StructuredAuditEventInput): AuditEntry {
       referenceId: entry.resource,
       clinicianId: entry.actor,
       anchored: false,
-      metadata: {
+      metadata: JSON.parse(JSON.stringify({
         traceId: entry.traceId,
         category: entry.category,
         actor: entry.actor,
@@ -90,7 +90,7 @@ export function emitAuditEvent(input: StructuredAuditEventInput): AuditEntry {
         requestFields: entry.requestFields,
         resultFields: entry.resultFields,
         severity: entry.severity,
-      },
+      })),
     },
   }).catch((error: unknown) => {
     log('error', 'audit_ledger_persist_failed', {

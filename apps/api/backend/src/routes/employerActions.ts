@@ -722,6 +722,48 @@ export function registerEmployerActionRoutes(app: Express): void {
     }),
   );
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/employer-review/npi/:npi/refresh-requests
+  // Returns recent pending refresh requests for a clinician NPI.
+  // Clinician-facing: surfaces "an employer has requested updated credentials."
+  // No auth required — NPI is already public; the response contains no PII beyond count.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get(
+    '/api/employer-review/npi/:npi([0-9]{10})/refresh-requests',
+    asyncHandler(async (req, res) => {
+      const { npi } = req.params;
+
+      const LOOKBACK_DAYS = 30;
+      const since = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+
+      const latest = await prisma.auditEvent.findFirst({
+        where: {
+          type:        'EMPLOYER_REVIEW_REFRESH_REQUESTED',
+          clinicianId: npi,
+          createdAt:   { gte: since },
+        },
+        orderBy: { createdAt: 'desc' },
+        select:  { id: true, createdAt: true },
+      });
+
+      const count = latest
+        ? await prisma.auditEvent.count({
+            where: {
+              type:        'EMPLOYER_REVIEW_REFRESH_REQUESTED',
+              clinicianId: npi,
+              createdAt:   { gte: since },
+            },
+          })
+        : 0;
+
+      return void res.status(200).json({
+        hasPendingRequest: count > 0,
+        count,
+        latestAt: latest?.createdAt.toISOString() ?? null,
+      });
+    }),
+  );
+
   log('info', 'employer_action_routes_registered', {
     routes: [
       'POST /api/employer-review/:entityId/accept',
@@ -732,6 +774,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       'GET  /api/employer-review/:entityId/packet',
       'POST /api/employer-review/:entityId/share-packet',
       'POST /api/employer-review/:entityId/confirm-start',
+      'GET  /api/employer-review/npi/:npi/refresh-requests',
     ],
   });
 }
