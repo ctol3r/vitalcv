@@ -29,13 +29,12 @@ import {
 } from '@/lib/trust/passport-truth';
 
 export type PassportTrustDimensionState =
-  | 'verified'
+  | 'checked'
   | 'stale'
   | 'pending'
   | 'gated'
   | 'unavailable'
-  | 'review_required'
-  | 'clear';
+  | 'review_required';
 
 export interface PassportTrustDimension {
   label: string;
@@ -106,10 +105,9 @@ function dimensionStateFromTruthStatus(
 
   switch (truth.status) {
     case 'VERIFIED':
-    case 'ENROLLED':
-      return 'verified';
     case 'CLEAR':
-      return 'clear';
+    case 'ENROLLED':
+      return 'checked';
     case 'ACCESS REQUIRED':
       return 'gated';
     case 'REVIEW REQUIRED':
@@ -368,14 +366,12 @@ export function buildPassportTrustPosture(
   if (training.hasDegree || training.hasResidency) {
     dimensions.push({
       label: 'Training record',
-      state: training.degreeVerified ? 'verified' : 'pending',
+      state: training.degreeVerified ? 'checked' : 'pending',
       note: training.degreeVerified ? undefined : 'Self-reported',
     });
   }
 
-  const reliableCount = dimensions.filter((dimension) => (
-    dimension.state === 'verified' || dimension.state === 'clear'
-  )).length;
+  const reliableCount = dimensions.filter((dimension) => dimension.state === 'checked').length;
 
   return {
     level,
@@ -394,11 +390,8 @@ function bucketForProofStatus(
   status: AccordionItem['status'],
 ): keyof PassportReviewTruthModel['buckets'] | null {
   switch (status) {
-    case 'verified':
-    case 'clear':
-      return 'sourceBackedNow';
     case 'checked':
-      return 'contextualOnly';
+      return 'sourceBackedNow';
     case 'stale':
       return 'stale';
     case 'review_required':

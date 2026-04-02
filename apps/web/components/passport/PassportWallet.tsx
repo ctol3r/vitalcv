@@ -10,7 +10,7 @@ import Link from 'next/link';
  * Sections (spec-exact):
  *   Header       — VitalCV wordmark only
  *   PassportCard — Name, specialty, readiness status
- *   Readiness    — ✔ verified / ✖ needed / estimated start
+ *   Readiness    — ✔ checked / ✖ needed / estimated start
  *   Details      — accordion: Identity, Authority, Training, Standing
  *   Share        — [Share with employer] → biometric → POST /api/share
  *
@@ -94,7 +94,7 @@ function PassportFreshnessCard({
 }) {
   const summaryBadge =
     freshness.state === 'current'
-      ? { status: 'verified' as const, label: 'Current' }
+      ? { status: 'checked' as const, label: 'Current' }
       : freshness.state === 'stale'
         ? { status: 'stale' as const, label: 'Stale' }
         : { status: 'pending' as const, label: 'Partial' };
@@ -117,7 +117,7 @@ function PassportFreshnessCard({
                 <p className="mt-1 text-[11px] leading-relaxed text-white/42">{item.note}</p>
               </div>
               <TrustStatusBadge
-                status={item.state === 'current' ? 'verified' : item.state === 'stale' ? 'stale' : 'pending'}
+                status={item.state === 'current' ? 'checked' : item.state === 'stale' ? 'stale' : 'pending'}
                 label={item.state}
                 size="sm"
                 className="shrink-0"
@@ -268,7 +268,7 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
   return {
     id:      'training',
     trigger: 'Training confirmed by issuing institution',
-    status:  training.degreeVerified && training.hasResidency ? 'verified'
+    status:  training.degreeVerified && training.hasResidency ? 'checked'
            : training.hasDegree                               ? 'pending'
            : 'review_required',
     content: (
@@ -306,24 +306,24 @@ function buildStandingSection(passport: PassportData): AccordionItem {
     safetyNegative.length === 0;
 
   const exclusionLabel =
-    standing.exclusionStatus === 'CLEAR' ? 'Clear'
+    standing.exclusionStatus === 'CLEAR' ? 'Checked'
     : standing.exclusionStatus === 'POSSIBLE_MATCH' ? 'Review required'
     : standing.exclusionStatus === 'EXCLUDED' ? 'Blocked'
     : 'Unavailable';
   const licensureLabel =
-    standing.licensureStatus === 'verified' ? 'Verified'
+    standing.licensureStatus === 'verified' ? 'Source-backed'
     : standing.licensureStatus === 'expired' ? 'Blocked'
     : standing.licensureStatus === 'pending' ? 'Pending'
     : 'Unavailable';
   const deaLabel =
-    standing.deaStatus === 'registered' ? 'Verified'
+    standing.deaStatus === 'registered' ? 'Checked'
     : standing.deaStatus === 'none' ? 'Not decision-grade'
     : 'Unavailable';
 
   return {
     id:      'standing',
     trigger: 'Safety',
-    status:  allClear                               ? 'clear'
+    status:  allClear                               ? 'checked'
            : standing.exclusionStatus === 'UNCHECKED' ? 'pending'
            : safetyNegative.length > 0             ? 'review_required'
            : 'pending',
@@ -400,7 +400,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
     'unavailable';
 
   const sectionStatus: AccordionItem['status'] =
-    rowStatus === 'enrolled'  ? 'clear' :
+    rowStatus === 'enrolled'  ? 'checked' :
     rowStatus === 'review required' ? 'review_required' :
     'pending';
 

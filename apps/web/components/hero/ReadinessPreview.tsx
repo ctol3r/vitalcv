@@ -10,8 +10,8 @@
  *      → preserve the entered NPI and show only limited preview structure
  *
  * Non-negotiables:
- *   - "Verified" only appears when identityVerified=true from real claim
- *   - "Clear" on exclusion only when exclusionClear=true from real artifact
+ *   - Identity claims render as checked only when backed by the live run
+ *   - Exclusion claims render as checked only when backed by the live run
  *   - Gaps are surfaced directly from trustStateEngine output
  *   - Degraded fallback never substitutes a different clinician identity
  *   - Source names and checked timestamps shown where available
@@ -64,7 +64,7 @@ export interface ClinicianTrustState {
   gaps:              string[];
 }
 
-type ReadinessTone = 'clear' | 'pending' | 'blocked';
+type ReadinessTone = 'checked' | 'pending' | 'blocked';
 
 export type DegradedPreviewReason = 'backendUnavailable' | 'partialCoverage';
 export type DegradedPreviewSourceStatus = 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
@@ -76,7 +76,7 @@ export interface DegradedPreviewSources {
 }
 
 const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
-  clear: {
+  checked: {
     panel: 'border-sky-500/15 bg-sky-500/[0.05]',
   },
   pending: {
@@ -88,7 +88,7 @@ const READINESS_TONE_STYLES: Record<ReadinessTone, { panel: string }> = {
 };
 
 const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
-  clear: 'Checked',
+  checked: 'Checked',
   pending: 'Pending',
   blocked: 'Blocked',
 };
@@ -96,10 +96,10 @@ const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
 const CHIPS_CLASSNAME =
   'rounded-full border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/60';
 
-function readinessBadgeStatus(tone: ReadinessTone): 'clear' | 'pending' | 'blocked' {
+function readinessBadgeStatus(tone: ReadinessTone): 'checked' | 'pending' | 'blocked' {
   switch (tone) {
-    case 'clear':
-      return 'clear';
+    case 'checked':
+      return 'checked';
     case 'blocked':
       return 'blocked';
     case 'pending':
@@ -126,7 +126,7 @@ function resolveLiveReadinessTone(ts: ClinicianTrustState, gaps: string[]): Read
   }
 
   if (gaps.length === 0 && ts.identityVerified && ts.exclusionClear) {
-    return 'clear';
+    return 'checked';
   }
 
   return 'pending';
@@ -497,12 +497,11 @@ export function ReadinessPreview({
   fallbackSources = null,
 }: Props) {
   const checkedLabel = getTrustStatusLabel('checked');
-  const clearLabel = getTrustStatusLabel('clear');
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');
   const reviewRequiredLabel = getTrustStatusLabel('review_required');
   const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
+  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
 
   // ── Real-data path ───────────────────────────────────────
   if (realState && !isDemo) {
@@ -615,7 +614,7 @@ export function ReadinessPreview({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/24">Next step</p>
                 <p className="mt-1 text-sm font-medium text-white/72">Carry this snapshot into your passport.</p>
                 <p className="mt-1 text-xs leading-relaxed text-white/38">
-                  {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
+                  {checkedLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
               </div>
               <Button

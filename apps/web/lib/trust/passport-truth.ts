@@ -79,7 +79,7 @@ export function resolveAuthorityAccordionStatus(
     return 'unavailable';
   }
   if (status === 'verified') {
-    return 'verified';
+    return 'checked';
   }
 
   return 'pending';
@@ -92,7 +92,7 @@ export function resolveAuthorityVdsStatus(
 
   switch (status) {
     case 'verified':
-      return 'verified';
+      return 'checked';
     case 'review_required':
       return 'review required';
     case 'blocked':
@@ -134,7 +134,7 @@ export function resolveAuthorityStatusLead(
 ): string {
   const status = resolveAuthorityEvidenceStatus(credential);
 
-  if (status === 'verified') return 'Verified';
+  if (status === 'verified') return 'Source-backed';
   if (status === 'review_required') return 'Review required';
   if (status === 'blocked') return 'Blocked';
   if (status === 'access_required') return 'Access required';
@@ -270,17 +270,17 @@ export function resolveAuthoritySectionStatus(
   missingDomains: readonly string[],
 ): AccordionStatus {
   const statuses = credentials.map(resolveAuthorityAccordionStatus);
-  const hasVerified = statuses.includes('verified');
+  const hasChecked = statuses.includes('checked');
   const hasUnavailable = statuses.includes('unavailable');
   const hasAccessRequired = statuses.includes('access_required');
 
   if (statuses.includes('review_required')) return 'review_required';
-  if (hasVerified && !hasUnavailable && !hasAccessRequired && !statuses.includes('stale')) return 'verified';
-  if (!hasVerified && hasAccessRequired) return 'access_required';
-  if (!hasVerified && hasUnavailable) return 'unavailable';
+  if (hasChecked && !hasUnavailable && !hasAccessRequired && !statuses.includes('stale')) return 'checked';
+  if (!hasChecked && hasAccessRequired) return 'access_required';
+  if (!hasChecked && hasUnavailable) return 'unavailable';
   if (statuses.includes('stale')) return 'stale';
   if (missingDomains.includes('LICENSURE')) return 'pending';
-  if (hasVerified) return 'review_required';
+  if (hasChecked) return 'review_required';
   return 'pending';
 }
 

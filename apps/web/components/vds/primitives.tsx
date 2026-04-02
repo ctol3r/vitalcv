@@ -64,6 +64,7 @@ const BADGE_ACCENT_CLASSES: Record<BadgeTone, string> = {
 export type TrustStatusLabel = Parameters<typeof getVdsTrustStatusLabel>[0];
 
 const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
+  checked: 'success',
   verified: 'success',
   clear: 'success',
   enrolled: 'success',

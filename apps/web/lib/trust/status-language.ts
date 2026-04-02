@@ -5,21 +5,22 @@ import {
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
   type TrustEvidenceKind,
-  type TrustUiStatus,
+  type TrustUiStatus as CanonicalTrustUiStatus,
 } from '../../../../packages/trust-state';
 
 /**
  * Shared trust/status language for public VitalCV surfaces.
  *
  * Copy guardrails:
- * - Never show VERIFIED or CLEAR without real, decision-grade evidence.
+ * - Never show Verified or Clear without real, decision-grade evidence.
  * - Unsupported or not-yet-run sources render as pending, stale, unavailable,
  *   access required, or review required.
- * - Demo and preview payloads must render as demo.
+ * - Preview payloads must render as Preview.
  * - Honest partial truth beats fake certainty.
  */
 
-export type { TrustEvidenceKind, TrustUiStatus };
+export type { TrustEvidenceKind };
+export type TrustUiStatus = CanonicalTrustUiStatus | 'preview_only';
 
 export type SourceCoverageState = PassportSourceCoverageState;
 export type TrustStatusTone =
@@ -32,15 +33,15 @@ export type TrustStatusTone =
 
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
-    label: getTrustStatusLabel('verified'),
+    label: 'Source-backed',
     badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
   },
   clear: {
-    label: getTrustStatusLabel('clear'),
+    label: 'Checked',
     badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
   },
   checked: {
-    label: getTrustStatusLabel('checked'),
+    label: 'Checked',
     badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/65',
   },
   pending: {
@@ -64,26 +65,32 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
     badgeClassName: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200',
   },
   demo: {
-    label: getTrustStatusLabel('demo'),
+    label: 'Preview',
+    badgeClassName: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200',
+  },
+  preview_only: {
+    label: 'Preview',
     badgeClassName: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200',
   },
 };
 
 const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
-  verified: ['Verified'],
-  clear: ['Clear', 'No sanctions found'],
-  checked: ['Checked'],
+  verified: ['Source-backed'],
+  clear: ['Checked', 'No sanctions found'],
+  checked: ['Checked', 'Source-backed'],
   pending: ['Pending'],
   stale: ['Stale'],
   unavailable: ['Unavailable'],
   access_required: ['Access required'],
   review_required: ['Review required'],
-  demo: ['Demo', 'Preview only'],
+  demo: ['Preview', 'Preview only'],
+  preview_only: ['Preview', 'Preview only'],
 };
 
 const VDS_TRUST_STATUS_LABELS = {
-  verified: 'Verified',
-  clear: 'Clear',
+  checked: 'Checked',
+  verified: 'Source-backed',
+  clear: 'Checked',
   enrolled: 'Enrolled',
   pending: 'Pending',
   stale: 'Stale',
@@ -123,6 +130,7 @@ export function getStatusTone(status: TrustUiStatus): TrustStatusTone {
     case 'review_required':
       return 'critical';
     case 'demo':
+    case 'preview_only':
       return 'demo';
     case 'pending':
     case 'unavailable':
@@ -153,6 +161,7 @@ export function isInspectableStatus(status: TrustUiStatus): boolean {
     || status === 'stale'
     || status === 'review_required'
     || status === 'demo'
+    || status === 'preview_only'
   );
 }
 
@@ -179,7 +188,7 @@ export {
 };
 
 export function isDecisionGradePositiveStatus(status: TrustUiStatus): boolean {
-  return isDecisionGradePositiveTrustStatus(status);
+  return status !== 'preview_only' && isDecisionGradePositiveTrustStatus(status);
 }
 
 /** Maps a raw readiness level code to a human-readable label. */
@@ -196,8 +205,10 @@ export function readinessLevelLabel(level: string | null | undefined): string {
 /** Maps a raw API credential status string to a canonical display label. */
 export function canonicalCredStatus(raw: string): string {
   const map: Record<string, string> = {
-    VERIFIED: 'Verified',
-    verified: 'Verified',
+    VERIFIED: 'Source-backed',
+    verified: 'Source-backed',
+    CLEAR: 'Checked',
+    clear: 'Checked',
     ACTIVE: 'Active',
     active: 'Active',
     PENDING: 'Pending',

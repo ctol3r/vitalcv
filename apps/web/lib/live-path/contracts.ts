@@ -44,7 +44,7 @@ export function resolveLivePathAuthState(input: {
 export function resolveLivePathReadinessStatus(status: ReadinessStatus): VdsTrustStatus {
   switch (status) {
     case 'READY':
-      return 'clear';
+      return 'checked';
     case 'BLOCKED':
       return 'blocked';
     case 'PARTIAL':

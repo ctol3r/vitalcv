@@ -44,7 +44,7 @@ export function CredentialStatusCard({
               <span className={`relative inline-flex rounded-full h-2 w-2 ${level === 'L3' ? 'bg-emerald-500' : level === 'L2' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
             </span>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-              Last Verified: {updatedAt}
+              Last Checked: {updatedAt}
             </p>
           </div>
         </div>

@@ -9,7 +9,7 @@ interface VerificationBadgeProps {
 
 const LEVEL_CONFIG = {
   L3: {
-    label: 'Verified',
+    label: 'Source-backed',
     icon: ShieldCheck,
     color: 'text-emerald-600 dark:text-emerald-400',
     bg: 'bg-emerald-50 dark:bg-emerald-500/10',
@@ -30,7 +30,7 @@ const LEVEL_CONFIG = {
     border: 'border-amber-200 dark:border-amber-500/20',
   },
   L0: {
-    label: 'Missing',
+    label: 'Unchecked',
     icon: ShieldX,
     color: 'text-slate-500 dark:text-slate-400',
     bg: 'bg-slate-100 dark:bg-slate-800',

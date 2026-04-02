@@ -51,6 +51,7 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
   'unavailable',
   'access_required',
   'review_required',
+  'preview_only',
   'demo',
 ]);
 

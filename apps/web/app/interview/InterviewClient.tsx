@@ -411,7 +411,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
           <div className="rounded-3xl border border-white/8 bg-white/[0.02] px-5 py-2">
             <Accordion
               items={proofItems}
-              defaultOpen={proofItems.find((item) => item.status !== 'verified' && item.status !== 'clear')?.id ?? proofItems[0]?.id}
+              defaultOpen={proofItems.find((item) => item.status !== 'checked')?.id ?? proofItems[0]?.id}
               telemetryComponentId="interview_proof_packet"
             />
           </div>

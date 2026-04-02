@@ -4,7 +4,7 @@ import React from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
 import {
   HOMEPAGE_PUBLIC_TRUTH_SOURCES,
-  HOMEPAGE_SYNTHETIC_PREVIEW_COPY,
+  HOMEPAGE_PREVIEW_COPY,
   resolveHomepagePublicTruthSource,
 } from '@/lib/trust/homepage-public-truth';
 import Link from 'next/link';
@@ -73,7 +73,7 @@ export function InterviewModeTeaser() {
                     <div className="px-4 py-3 border-b border-white/6 flex items-center justify-between">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-white/30">Proof Card</p>
                       <span className="text-[9px] font-bold uppercase tracking-widest text-white/20 bg-white/5 rounded px-1.5 py-0.5">
-                        {HOMEPAGE_SYNTHETIC_PREVIEW_COPY.badge}
+                        {HOMEPAGE_PREVIEW_COPY.badge}
                       </span>
                     </div>
                     <div className="px-4 py-3 space-y-2.5">
@@ -85,11 +85,11 @@ export function InterviewModeTeaser() {
                       ))}
                     </div>
                     <div className="px-4 py-3 border-t border-white/6 flex items-center justify-between bg-white/2">
-                      <span className="text-[10px] text-white/30">{HOMEPAGE_SYNTHETIC_PREVIEW_COPY.footerLead}</span>
-                      <span className="text-[10px] text-white/20">{HOMEPAGE_SYNTHETIC_PREVIEW_COPY.footerNote}</span>
+                      <span className="text-[10px] text-white/30">{HOMEPAGE_PREVIEW_COPY.footerLead}</span>
+                      <span className="text-[10px] text-white/20">{HOMEPAGE_PREVIEW_COPY.footerNote}</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-white/20 text-center mt-2">{HOMEPAGE_SYNTHETIC_PREVIEW_COPY.panelNote}</p>
+                  <p className="text-[10px] text-white/20 text-center mt-2">{HOMEPAGE_PREVIEW_COPY.panelNote}</p>
                 </div>
               </div>
             </div>

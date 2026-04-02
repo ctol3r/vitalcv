@@ -60,7 +60,7 @@ interface SourceStage {
   status: 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
 }
 
-const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live or demo snapshot.';
+const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live or preview snapshot.';
 
 const INITIAL_STAGES: SourceStage[] = [
   { id: 'NPPES_API', label: 'Primary identity (NPPES)', status: 'waiting' },
@@ -135,7 +135,7 @@ function setStageStatuses(
 }
 
 function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
-  if (isDemo) return 'Preparing demo preview…';
+  if (isDemo) return 'Preparing preview…';
   if (stages.find((stage) => stage.id === 'READINESS')?.status === 'loading') {
     return 'Building your snapshot…';
   }
@@ -546,7 +546,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');
   const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
+  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
 
   return (
     <section className="relative bg-background">
@@ -644,7 +644,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               </p>
             </div>
             {isDemo && (
-              <TrustStatusBadge status="demo" label="Preview only" size="sm" />
+              <TrustStatusBadge status="preview_only" label="Preview" size="sm" />
             )}
           </div>
         )}

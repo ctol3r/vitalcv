@@ -120,8 +120,8 @@ const PUBLIC_WEDGE_BADGE_META: Readonly<
     label: getTrustStatusLabel('review_required'),
   }),
   preview_only: Object.freeze({
-    status: 'demo',
-    label: getStatusDisplayLabel('demo', 'Preview only'),
+    status: 'preview_only',
+    label: getStatusDisplayLabel('preview_only', 'Preview'),
   }),
 });
 
@@ -170,6 +170,9 @@ export function resolvePublicWedgeSurfaceStateFromAccordionStatus(
       return 'checked';
     case 'stale':
       return 'stale';
+    case 'preview_only':
+    case 'demo':
+      return 'preview_only';
     case 'access_required':
       return 'access_required';
     case 'unavailable':

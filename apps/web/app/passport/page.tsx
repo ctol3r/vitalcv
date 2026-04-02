@@ -179,7 +179,7 @@ function formatExclusionLabel(
   }
 
   if (exclusionClear === true) {
-    return 'Clear';
+    return 'Checked';
   }
 
   if (exclusionClear === false) {
@@ -333,7 +333,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   );
   const identityLabel =
     identity.authoritative
-      ? 'Verified'
+      ? 'Source-backed'
       : noProfileYet
         ? 'No profile yet'
         : state.identity.sourceResult === 'FAILED'

@@ -67,11 +67,11 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
   },
 ] as const satisfies readonly HomepagePublicTruthSource[];
 
-export const HOMEPAGE_SYNTHETIC_PREVIEW_COPY = {
-  badge: 'Synthetic preview',
-  footerLead: 'Synthetic layout',
-  footerNote: 'not live data',
-  panelNote: 'Preview only · source-backed shares depend on a real review flow',
+export const HOMEPAGE_PREVIEW_COPY = {
+  badge: 'Preview',
+  footerLead: 'Preview layout',
+  footerNote: 'not a live source run',
+  panelNote: 'Preview · source-backed shares depend on a real review flow',
 } as const;
 
 export type HomepagePublicTruthSourceView = HomepagePublicTruthSource & {

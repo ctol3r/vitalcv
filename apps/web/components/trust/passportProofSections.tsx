@@ -79,7 +79,7 @@ function credentialGroupStatus(
   const statuses = credentials.map(credentialAccordionStatus);
   if (statuses.includes('review_required')) return 'review_required';
   if (statuses.includes('stale')) return 'stale';
-  if (statuses.includes('verified')) return 'verified';
+  if (statuses.includes('checked')) return 'checked';
   if (statuses.includes('access_required')) return 'access_required';
   if (statuses.includes('unavailable')) return 'unavailable';
   return 'pending';
@@ -103,7 +103,7 @@ function truthAccordionStatus(
     case 'review_required':
       return 'review_required';
     case 'preview_only':
-      return 'demo';
+      return 'preview_only';
     case 'pending':
     default:
       return 'pending';
@@ -128,7 +128,7 @@ function truthFreshnessLabel(
 
 function credentialStatusNote(status: AccordionItem['status'], emptyFallback: string): string {
   switch (status) {
-    case 'verified':
+    case 'checked':
       return 'Decision-grade proof is attached for this domain.';
     case 'stale':
       return 'Attached proof exists, but at least one record is outside the freshness window.';
@@ -138,8 +138,6 @@ function credentialStatusNote(status: AccordionItem['status'], emptyFallback: st
       return 'A source exists for this domain, but institutional access is still required to complete it.';
     case 'unavailable':
       return 'The current source connection could not return a usable result.';
-    case 'checked':
-      return 'A source-backed result exists, but it is informational rather than fully decision-grade.';
     case 'pending':
     default:
       return emptyFallback;
@@ -412,7 +410,7 @@ function deaProofSection(passport: PassportData): AccordionItem {
 function exclusionAccordionStatus(status: PassportData['standing']['exclusionStatus']): AccordionItem['status'] {
   switch (status) {
     case 'CLEAR':
-      return 'clear';
+      return 'checked';
     case 'POSSIBLE_MATCH':
     case 'EXCLUDED':
       return 'review_required';
@@ -429,9 +427,9 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
   const checkedAt = truth.coverage.checkedAt ?? passport.standing.exclusionCheckedAt ?? passport.lastCheckedAt ?? null;
   const status = passport.standing.exclusionStatus === 'POSSIBLE_MATCH' || passport.standing.exclusionStatus === 'EXCLUDED'
     ? exclusionAccordionStatus(passport.standing.exclusionStatus)
-    : truthAccordionStatus(truth, 'clear');
+    : truthAccordionStatus(truth, 'checked');
   const trustNote =
-    passport.standing.exclusionStatus === 'CLEAR' && status === 'clear'
+    passport.standing.exclusionStatus === 'CLEAR' && status === 'checked'
       ? 'The attached OIG LEIE check returned no exclusion entry.'
       : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
         ? 'A potential exclusion match needs employer review before proceeding.'
@@ -443,7 +441,7 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
       ? passport.standing.negativeFindings.join(' · ')
       : status === 'stale'
         ? 'Refresh the exclusion check before relying on this layer.'
-        : status === 'demo'
+        : status === 'preview_only'
           ? 'This exclusion result is contextual only and not decision-grade.'
           : 'NPDB and SAM.gov remain separate institutional checks outside this review.';
 
@@ -509,7 +507,7 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
   const statusNote =
     status === 'checked'
       ? 'Enrollment is informative and current, but should still be read in the context of quarterly publication cadence.'
-      : status === 'demo'
+      : status === 'preview_only'
         ? 'This PECOS result is contextual only and should not be treated as a strong trust outcome.'
         : passport.standing.enrollmentNote ?? 'Do not treat eligibility as satisfied until a current PECOS result is attached.';
 
@@ -578,7 +576,7 @@ export function buildPassportProofSections(passport: PassportData): AccordionIte
 }
 
 export function summarizePassportProofSections(items: AccordionItem[]) {
-  const decisionGradeCount = items.filter((item) => item.status === 'verified' || item.status === 'clear').length;
+  const decisionGradeCount = 0;
   const informationalCount = items.filter((item) => item.status === 'checked').length;
   const warningCount = items.filter((item) => item.status === 'review_required' || item.status === 'stale').length;
   const incompleteCount = items.filter((item) => item.status === 'pending' || item.status === 'unavailable' || item.status === 'access_required').length;

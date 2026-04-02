@@ -144,7 +144,7 @@ function buildTruthStatusLabelRow(input: {
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Preview only', 'context only']),
+        note: joinNoteParts(['Preview', 'context only']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
     case 'stale':
@@ -199,7 +199,7 @@ function buildSafetyRow(passport: PassportData): {
       return buildTruthStatusLabelRow({
         truth: truth.safety,
         label: 'Exclusion check',
-        confirmedNote: joinNoteParts(['Clear', checkedNote, confidence]),
+        confirmedNote: joinNoteParts(['Checked', checkedNote, confidence]),
         confirmedExplanation: 'No exclusion entry was found in the current OIG LEIE check.',
         missingExplanation: 'No current OIG exclusion check is attached to this review.',
       });
@@ -331,19 +331,19 @@ function BinaryDecisionCard({
   // 3 canonical bullets
   const bullets: { label: string; source: string; ok: boolean; reason?: string }[] = [
     {
-      label: 'Identity verified',
+      label: 'Identity checked',
       source: 'NPPES',
       ok: identityStatus === 'checked',
       reason: identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined,
     },
     {
-      label: 'License verified',
+      label: 'License source-backed',
       source: 'State Board',
       ok: hasActiveLicense,
       reason: !hasActiveLicense ? 'No active license found in source data' : undefined,
     },
     {
-      label: 'Safety clear',
+      label: 'Safety checked',
       source: 'OIG/LEIE',
       ok: standing.exclusionStatus === 'CLEAR',
       reason: standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined,
@@ -763,13 +763,13 @@ export default function ReviewClient({
     ?? null;
   const previewOnlyMessage =
     !CLERK_PROVIDER_ENABLED
-      ? 'Preview only. Authentication is unavailable in this environment, so employer actions are intentionally disabled.'
+      ? 'Preview. Authentication is unavailable in this environment, so employer actions are intentionally disabled.'
       : !isLoaded
         ? 'Checking employer session before enabling actions.'
         : !isSignedIn
-          ? 'Preview only. Sign in with an employer workspace to persist decisions.'
+          ? 'Preview. Sign in with an employer workspace to persist decisions.'
           : !isEmployer
-            ? 'Preview only. Switch into an employer workspace to persist decisions.'
+            ? 'Preview. Switch into an employer workspace to persist decisions.'
             : null;
   const canPersistActions = previewOnlyMessage === null;
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn, isEmployer });
@@ -1437,7 +1437,7 @@ export default function ReviewClient({
             </div>
           ) : previewOnlyMessage ? (
             <div className="mt-4 border-t border-white/8 pt-4">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Preview only</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Preview</p>
               <p className="mt-1 text-xs leading-relaxed text-white/48">
                 {previewOnlyMessage}
               </p>

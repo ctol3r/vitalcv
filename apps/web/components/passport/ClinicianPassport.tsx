@@ -79,15 +79,15 @@ const BAND_CONFIG = {
     bg: 'from-emerald-900/30 to-emerald-950/20',
     ring: 'ring-vt-success/40',
     label: 'Authoritative Trust',
-    desc: 'Maximum credential authority — all sources verified',
+    desc: 'Maximum credential authority — all sources source-backed',
   },
   L2: {
     icon: Shield,
     color: 'text-vt-info',
     bg: 'from-blue-900/30 to-blue-950/20',
     ring: 'ring-vt-info/40',
-    label: 'Verified Trust',
-    desc: 'Primary credentials verified and monitored',
+    label: 'Source-backed Trust',
+    desc: 'Primary credentials source-backed and monitored',
   },
   L1: {
     icon: ShieldAlert,
@@ -103,7 +103,7 @@ const BAND_CONFIG = {
     bg: 'from-zinc-900/30 to-zinc-950/20',
     ring: 'ring-zinc-500/30',
     label: 'Unverified',
-    desc: 'Credentials not yet verified',
+    desc: 'Credentials not yet checked',
   },
 } as const;
 
@@ -330,7 +330,7 @@ function ShareDrawer({
         className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/80 p-4 space-y-3"
       >
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[11px] font-medium text-vt-neutral-400">Share verified data</p>
+          <p className="text-[11px] font-medium text-vt-neutral-400">Share source-backed data</p>
           <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -528,7 +528,7 @@ export default function ClinicianPassport({
             className="flex items-center gap-2 w-full justify-center rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/40 py-2 text-xs text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
           >
             <Share2 className="h-3.5 w-3.5" />
-            Share verified data
+            Share source-backed data
           </button>
 
           <AnimatePresence>

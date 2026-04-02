@@ -50,7 +50,7 @@ export default async function InterviewPage({
   const checkedLabel = getTrustStatusLabel('checked');
   const pendingLabel = getTrustStatusLabel('pending');
   const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
+  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
 
   if (!entityId && !npi) {
     return (
