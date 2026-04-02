@@ -1207,7 +1207,7 @@ export default function ReviewClient({
                     : 'No visible blockers are attached to this review right now.'}
                 </p>
               </div>
-              <p className="text-xs text-white/34">
+              <p className="text-xs text-muted-foreground/50">
                 Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
               </p>
             </div>
@@ -1544,7 +1544,7 @@ export default function ReviewClient({
                 title="Next action"
                 items={reviewTruth.buckets.nextActions}
                 icon="→"
-                accentClassName="text-white/46"
+                accentClassName="text-muted-foreground/60"
                 emptyLabel="No follow-up action is attached right now."
               />
             </div>
