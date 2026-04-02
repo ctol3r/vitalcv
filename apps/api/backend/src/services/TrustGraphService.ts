@@ -10,7 +10,12 @@
  *   TRUSTGRAPH_API_KEY  — API key for authentication
  */
 
-import { TrustGraphClient } from '@trustgraph/client';
+/**
+ * Stubbed client while we await the actual TrustGraph API shape.
+ */
+class TrustGraphClient {
+  constructor(public config: any) {}
+}
 
 // ---------------------------------------------------------------------------
 // Types
