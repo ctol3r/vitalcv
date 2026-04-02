@@ -1,90 +1,101 @@
-/* Active theme bridge for the VitalCV Design System. */
+/* Active theme bridge for the VitalCV Design System.
+   Brutalist ink-on-paper palette — high contrast, no glows. */
 
+/* ── Light mode (default) ─────────────────────────── */
 :root,
-html.dark,
-html[data-theme='dark'] {
-  --vt-bg: #000000;
-  --vt-surface: #0e0e11;
-  --vt-surface-subtle: #141418;
-  --vt-surface-dim: #0a0a0c;
-  --vt-border: #222226;
-  --vt-border-subtle: #18181b;
-  --vt-text-primary: #f4f4f5;
-  --vt-text-secondary: #a1a1aa;
-  --vt-text-muted: #52525b;
-  --vt-accent: #3b82f6; /* restrained blue */
-  --vt-focus-ring: #3b82f6;
-  
-  /* Restrained semantic colors */
-  --vt-severity-critical: #ef4444; 
-  --vt-severity-high: #f59e0b;
-  --vt-severity-medium: #3b82f6; /* Use blue instead of amber to reduce noisy color chaos */
-  --vt-severity-low: #71717a; /* Muted instead of green unless verified */
-  
-  --vt-status-new: #3b82f6;
-  --vt-status-acknowledged: #a1a1aa;
-  --vt-status-investigating: #8b5cf6;
-  --vt-status-resolved: #10b981; /* Green only for verified/healthy */
-  --vt-status-dismissed: #52525b;
-  
-  --vt-risk-low: #10b981;
-  --vt-risk-medium: #f59e0b;
-  --vt-risk-high: #ef4444;
-  
-  /* Node colors */
-  --vt-node-provider: #f4f4f5;
-  --vt-node-institution: #a1a1aa;
-  --vt-node-publication: #52525b;
-  --vt-node-trial: #52525b;
-  --vt-node-company: #8b5cf6;
-  --vt-node-alert: #ef4444;
-  
-  /* Edges */
-  --vt-edge-co-author: #222226;
-  --vt-edge-co-investigator: #222226;
-  --vt-edge-co-grant: #222226;
-  --vt-edge-practice-group: #222226;
-  --vt-edge-industry-payment: #f59e0b;
-  --vt-overlay: rgba(0, 0, 0, 0.75);
-}
-
 html.light,
 html[data-theme='light'] {
-  --vt-bg: #FFFFFF;
-  --vt-surface: #FAFAFA;
-  --vt-surface-subtle: #F4F4F5;
-  --vt-surface-dim: #E5E5E5;
-  --vt-border: #E4E4E7;
-  --vt-border-subtle: #F4F4F5;
-  --vt-text-primary: #0A0A0B;
-  --vt-text-secondary: #52525B;
-  --vt-text-muted: #A1A1AA;
-  --vt-accent: #3b82f6; /* restrained blue */
-  --vt-focus-ring: #3b82f6;
+  --vt-bg: #E4E3E0;
+  --vt-surface: #DDDCD8;
+  --vt-surface-subtle: #D5D4D0;
+  --vt-surface-dim: #C8C7C3;
+  --vt-border: #141414;
+  --vt-border-subtle: #14141433;
+  --vt-text-primary: #141414;
+  --vt-text-secondary: #141414CC;
+  --vt-text-muted: #14141466;
+  --vt-accent: #141414;
+  --vt-focus-ring: #141414;
+
+  /* Semantic colors — kept functional, muted for brutalist feel */
+  --vt-severity-critical: #B91C1C;
+  --vt-severity-high: #92400E;
+  --vt-severity-medium: #1E3A5F;
+  --vt-severity-low: #6B7280;
+
+  --vt-status-new: #1E3A5F;
+  --vt-status-acknowledged: #6B7280;
+  --vt-status-investigating: #5B21B6;
+  --vt-status-resolved: #065F46;
+  --vt-status-dismissed: #6B7280;
+
+  --vt-risk-low: #065F46;
+  --vt-risk-medium: #92400E;
+  --vt-risk-high: #B91C1C;
+
+  /* Node colors */
+  --vt-node-provider: #141414;
+  --vt-node-institution: #141414CC;
+  --vt-node-publication: #14141466;
+  --vt-node-trial: #14141466;
+  --vt-node-company: #5B21B6;
+  --vt-node-alert: #B91C1C;
+
+  /* Edges */
+  --vt-edge-co-author: #141414;
+  --vt-edge-co-investigator: #141414;
+  --vt-edge-co-grant: #141414;
+  --vt-edge-practice-group: #141414;
+  --vt-edge-industry-payment: #92400E;
+  --vt-overlay: rgba(228, 227, 224, 0.85);
+}
+
+/* ── Dark mode ────────────────────────────────────── */
+html.dark,
+html[data-theme='dark'] {
+  --vt-bg: #141414;
+  --vt-surface: #1A1A1A;
+  --vt-surface-subtle: #222222;
+  --vt-surface-dim: #0F0F0F;
+  --vt-border: #333333;
+  --vt-border-subtle: #33333366;
+  --vt-text-primary: #E4E3E0;
+  --vt-text-secondary: #E4E3E0CC;
+  --vt-text-muted: #E4E3E066;
+  --vt-accent: #E4E3E0;
+  --vt-focus-ring: #E4E3E0;
+
+  /* Semantic colors — same hues, lighter for dark bg */
   --vt-severity-critical: #ef4444;
   --vt-severity-high: #f59e0b;
   --vt-severity-medium: #3b82f6;
   --vt-severity-low: #71717a;
+
   --vt-status-new: #3b82f6;
   --vt-status-acknowledged: #a1a1aa;
   --vt-status-investigating: #8b5cf6;
   --vt-status-resolved: #10b981;
   --vt-status-dismissed: #52525b;
+
   --vt-risk-low: #10b981;
   --vt-risk-medium: #f59e0b;
   --vt-risk-high: #ef4444;
-  --vt-node-provider: #0A0A0B;
-  --vt-node-institution: #52525B;
-  --vt-node-publication: #A1A1AA;
-  --vt-node-trial: #A1A1AA;
+
+  /* Node colors */
+  --vt-node-provider: #E4E3E0;
+  --vt-node-institution: #E4E3E0CC;
+  --vt-node-publication: #E4E3E066;
+  --vt-node-trial: #E4E3E066;
   --vt-node-company: #8b5cf6;
   --vt-node-alert: #ef4444;
-  --vt-edge-co-author: #E4E4E7;
-  --vt-edge-co-investigator: #E4E4E7;
-  --vt-edge-co-grant: #E4E4E7;
-  --vt-edge-practice-group: #E4E4E7;
+
+  /* Edges */
+  --vt-edge-co-author: #333333;
+  --vt-edge-co-investigator: #333333;
+  --vt-edge-co-grant: #333333;
+  --vt-edge-practice-group: #333333;
   --vt-edge-industry-payment: #f59e0b;
-  --vt-overlay: rgba(255, 255, 255, 0.8);
+  --vt-overlay: rgba(20, 20, 20, 0.85);
 }
 
 /* Base Aliases */

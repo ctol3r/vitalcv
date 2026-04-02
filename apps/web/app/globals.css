@@ -108,13 +108,6 @@ body {
   --claim-l3-foreground: white;
   --surface-elevated: var(--vt-surface);
   --sage: var(--vt-status-resolved);
-  --glass-bg: color-mix(in oklab, var(--vt-surface) 88%, transparent);
-  --glass-bg-heavy: color-mix(in oklab, var(--vt-surface) 94%, transparent);
-  --glass-border: color-mix(in oklab, var(--vt-border) 70%, transparent);
-  --glass-blur: 20px;
-  --glass-shadow: var(--vt-shadow-card);
-  --shadow-glow: 0 0 30px color-mix(in oklab, var(--vt-accent) 24%, transparent);
-  --shadow-elevated: var(--vt-shadow-panel);
   --infra-blue: var(--vt-node-provider);
   --infra-blue-light: var(--vt-accent);
   --infra-blue-muted: color-mix(in oklab, var(--vt-node-provider) 18%, var(--vt-surface));
@@ -135,7 +128,7 @@ body {
   --chart-3: var(--vt-accent);
   --chart-4: var(--vt-risk-medium);
   --chart-5: var(--vt-node-institution);
-  --radius: 0.75rem;
+  --radius: 0.125rem; /* brutalist: near-sharp corners */
   --sidebar: var(--vt-surface);
   --sidebar-foreground: var(--vt-text-primary);
   --sidebar-primary: var(--vt-accent);

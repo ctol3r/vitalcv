@@ -243,7 +243,7 @@ function authorityProofSection(passport: PassportData): AccordionItem {
           {
             id: 'source',
             label: 'Source',
-            value: uniqueCredentialSources(licensureCredentials, 'CA State Board / FSMB'),
+            value: uniqueCredentialSources(licensureCredentials, 'Configured state board lane'),
             tone: 'strong',
           },
           { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
@@ -260,146 +260,18 @@ function authorityProofSection(passport: PassportData): AccordionItem {
                 ? 'Primary-source authority records are attached for this review.'
                 : licensureCredentials.length > 0
                   ? 'The attached licensure entries are honest status markers, but they are not yet decision-grade for employer reliance.'
-                  : 'Only the CA physician licensure lane can become decision-grade in this launch wedge.',
+                  : 'Only configured state board lanes can become decision-grade in this launch wedge.',
           },
           {
             id: 'status-note',
             label: 'Status note',
-            value: credentialStatusNote(status, 'Licensure remains incomplete until the CA launch lane returns a source-backed record.'),
+            value: credentialStatusNote(status, 'Licensure remains incomplete until a configured state board lane returns a source-backed record.'),
             tone: 'muted',
           },
           {
             id: 'records',
             label: 'Records',
             value: credentialRecordsValue(licensureCredentials),
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function boardProofSection(passport: PassportData): AccordionItem {
-  const boardCredentials = passport.authority.credentials.filter(
-    (credential) => credential.domain === 'BOARD_CERTIFICATION',
-  );
-  const checkedAt = latestCredentialDate(boardCredentials);
-  const hasDecisionGradeBoard = boardCredentials.some(isDecisionGradeAuthorityCredential);
-  const status = credentialGroupStatus(
-    boardCredentials,
-    passport.authority.summary.missing.includes('BOARD_CERTIFICATION') ? 'pending' : 'access_required',
-  );
-
-  return {
-    id: 'board',
-    trigger: 'Board Certification',
-    triggerRight: accordionMeta(
-      boardCredentials.length > 0
-        ? `${boardCredentials.length} record${boardCredentials.length === 1 ? '' : 's'}`
-        : 'no records',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: uniqueCredentialSources(boardCredentials, 'ABMS / specialty board'),
-            tone: 'strong',
-          },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value: renderCredentialGroupFreshness(boardCredentials),
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              hasDecisionGradeBoard
-                ? 'Board evidence is attached from the issuing authority path.'
-                : boardCredentials.length > 0
-                  ? 'Board evidence is attached, but it is not currently decision-grade for employer reliance.'
-                : 'Board coverage is not attached for this review yet.',
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: credentialStatusNote(status, 'Board certification remains incomplete until evidence is attached.'),
-            tone: 'muted',
-          },
-          {
-            id: 'records',
-            label: 'Records',
-            value: credentialRecordsValue(boardCredentials),
-          },
-        ]}
-      />
-    ),
-  };
-}
-
-function deaProofSection(passport: PassportData): AccordionItem {
-  const deaCredentials = passport.authority.credentials.filter(
-    (credential) => credential.domain === 'DEA_REGISTRATION',
-  );
-  const checkedAt = latestCredentialDate(deaCredentials);
-  const hasDecisionGradeDea = deaCredentials.some(isDecisionGradeAuthorityCredential);
-  const status = credentialGroupStatus(
-    deaCredentials,
-    passport.standing.deaStatus === 'unknown' ? 'access_required' : 'checked',
-  );
-
-  return {
-    id: 'dea',
-    trigger: 'DEA / Controlled Substance',
-    triggerRight: accordionMeta(
-      deaCredentials.length > 0
-        ? `${deaCredentials.length} record${deaCredentials.length === 1 ? '' : 's'}`
-        : passport.standing.deaStatus === 'unknown'
-          ? 'no records'
-          : 'status only',
-    ),
-    status,
-    content: (
-      <ProofDetailsList
-        rows={[
-          {
-            id: 'source',
-            label: 'Source',
-            value: uniqueCredentialSources(deaCredentials, 'DEA'),
-            tone: 'strong',
-          },
-          { id: 'checked', label: 'Last checked', value: formatProofDate(checkedAt) ?? 'Not checked' },
-          {
-            id: 'freshness',
-            label: 'Freshness',
-            value: renderCredentialGroupFreshness(deaCredentials),
-          },
-          {
-            id: 'trust-note',
-            label: 'Trust note',
-            value:
-              hasDecisionGradeDea
-                ? 'Controlled-substance authority evidence is attached for this review.'
-                : deaCredentials.length > 0
-                  ? 'Controlled-substance authority evidence is attached, but it is not currently decision-grade for employer reliance.'
-                : passport.standing.deaStatus === 'unknown'
-                  ? 'No decision-grade DEA proof is attached yet.'
-                  : `The review carries a DEA status field (${passport.standing.deaStatus}), but no portable record is attached.`,
-          },
-          {
-            id: 'status-note',
-            label: 'Status note',
-            value: credentialStatusNote(status, 'DEA coverage remains incomplete until source-backed evidence is attached.'),
-            tone: 'muted',
-          },
-          {
-            id: 'records',
-            label: 'Records',
-            value: credentialRecordsValue(deaCredentials),
           },
         ]}
       />
@@ -443,7 +315,7 @@ function sanctionsProofSection(passport: PassportData): AccordionItem {
         ? 'Refresh the exclusion check before relying on this layer.'
         : status === 'preview_only'
           ? 'This exclusion result is contextual only and not decision-grade.'
-          : 'NPDB and SAM.gov remain separate institutional checks outside this review.';
+          : 'Only the OIG / LEIE exclusion result is attached to this review.';
 
   return {
     id: 'sanctions',
@@ -562,8 +434,6 @@ export function buildPassportProofSections(passport: PassportData): AccordionIte
   const items: AccordionItem[] = [
     identityProofSection(passport),
     authorityProofSection(passport),
-    boardProofSection(passport),
-    deaProofSection(passport),
     sanctionsProofSection(passport),
   ];
 

@@ -160,16 +160,12 @@ export const PASSPORT_TRUST_POSTURE_DISCLAIMER =
 const PROOF_SECTION_LABELS: Record<string, string> = {
   identity: 'Identity verification',
   licensure: 'State licensure / authority',
-  board: 'Board certification',
-  dea: 'DEA / controlled substance',
   sanctions: 'Sanctions & exclusions',
   eligibility: 'Enrollment / eligibility',
 };
 
 const AUTHORITY_SECTION_DOMAINS = {
   licensure: 'LICENSURE',
-  board: 'BOARD_CERTIFICATION',
-  dea: 'DEA_REGISTRATION',
 } as const;
 
 function latestCredentialDate(

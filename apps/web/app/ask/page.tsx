@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 
 /**
- * /ask redirects to /intelligence — the copilot is embedded
- * in the intelligence console and investigation workbench.
+ * /ask previously exposed an internal intelligence entry point.
+ * Public traffic is routed back to the canonical wedge entry.
  */
 export default function AskPage() {
-  redirect('/intelligence');
+  redirect('/');
 }

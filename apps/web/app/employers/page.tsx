@@ -24,10 +24,6 @@ interface EmployerListPayload {
   total: number;
 }
 
-interface OpportunityListPayload {
-  total: number;
-}
-
 const BACKEND = getBackendBase();
 
 export const metadata: Metadata = {
@@ -66,31 +62,14 @@ async function fetchEmployers(): Promise<EmployerListPayload> {
   }
 }
 
-async function fetchOpportunitySummary(): Promise<OpportunityListPayload> {
-  try {
-    const response = await fetch(`${BACKEND}/api/opportunities?limit=1`, {
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      return { total: 0 };
-    }
-
-    return await response.json() as OpportunityListPayload;
-  } catch {
-    return { total: 0 };
-  }
-}
-
 export default async function EmployersPage() {
-  const [employerPayload, opportunityPayload] = await Promise.all([
-    fetchEmployers(),
-    fetchOpportunitySummary(),
-  ]);
+  const employerPayload = await fetchEmployers();
 
   const employers = employerPayload.employers;
   const employerCounts = resolveEmployerDirectoryCountSummary(employerPayload);
   const coveredStates = new Set(employers.flatMap((employer) => employer.states)).size;
-  const openRoles = employers.reduce((sum, employer) => sum + employer.openRoles, 0);
+  const listedOrganizations = employers.filter((employer) => employer.verified).length;
+  const organizationsWithSignals = employers.filter((employer) => employer.trustIndicators.length > 0).length;
 
   return (
     <div className="min-h-screen bg-ops-gradient text-foreground surface-operator">
@@ -141,14 +120,14 @@ export default async function EmployersPage() {
               <p className="mt-2 text-sm text-foreground">{employerCounts.helperText}</p>
             </div>
             <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Employer-reported openings</p>
-              <p className="mt-2 text-3xl font-semibold text-foreground">{openRoles}</p>
-              <p className="mt-2 text-sm text-foreground">Sum of opening counts attached to the employers shown on this page.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Directory-listed organizations</p>
+              <p className="mt-2 text-3xl font-semibold text-foreground">{listedOrganizations}</p>
+              <p className="mt-2 text-sm text-foreground">Organizations currently listed in the public employer directory.</p>
             </div>
             <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Public role listings</p>
-              <p className="mt-2 text-3xl font-semibold text-foreground">{opportunityPayload.total}</p>
-              <p className="mt-2 text-sm text-foreground">Listings currently returned by the public explore/apply feed.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Proof-backed profiles</p>
+              <p className="mt-2 text-3xl font-semibold text-foreground">{organizationsWithSignals}</p>
+              <p className="mt-2 text-sm text-foreground">Employer profiles on this page carrying current public trust indicators.</p>
             </div>
             <div className="rounded-3xl border border-border bg-white/[0.04] p-5">
               <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Coverage</p>
@@ -191,10 +170,10 @@ export default async function EmployersPage() {
               <h2 className="mt-2 text-2xl font-semibold text-foreground">Current launch cohort</h2>
             </div>
             <Link
-              href="/explore"
+              href="/review/request"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.04] px-4 py-2 text-sm font-medium text-foreground/70 transition hover:text-foreground"
             >
-              Browse current roles
+              Request review
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -239,9 +218,6 @@ export default async function EmployersPage() {
                       {hiringStatusLabel(employer.hiringStatus)}
                     </span>
                     <span className="rounded-full border border-border bg-white/[0.04] px-3 py-1.5">
-                      {employer.openRoles} open role{employer.openRoles === 1 ? '' : 's'}
-                    </span>
-                    <span className="rounded-full border border-border bg-white/[0.04] px-3 py-1.5">
                       {employer.states.join(', ')}
                     </span>
                   </div>
@@ -276,10 +252,10 @@ export default async function EmployersPage() {
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link
-                      href="/explore"
+                      href="/review/request"
                       className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.04] px-4 py-2 text-sm font-medium text-foreground/70 transition hover:text-foreground"
                     >
-                      Open current roles
+                      Request review
                     </Link>
                   </div>
                 </article>
@@ -291,16 +267,16 @@ export default async function EmployersPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Directory note</p>
-                <h3 className="mt-2 text-xl font-semibold text-foreground">Use this surface for current directory counts and public role coverage</h3>
+                <h3 className="mt-2 text-xl font-semibold text-foreground">Use this surface to identify pilot-fit employers and enter review</h3>
                 <p className="mt-3 text-sm leading-6 text-foreground/60">
-                  Employer cards and counts are pulled from the current directory feed. When a real
-                  passport share exists, continue into employer review from the review entry point instead
-                  of assuming private workspace access from this page.
+                  Employer cards and counts are pulled from the current directory feed. When you have a
+                  clinician NPI or passport share, continue into employer review from the review request
+                  flow instead of treating this page like a marketplace.
                 </p>
               </div>
               <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/[0.04] px-4 py-3 text-sm text-foreground/70">
                 <Users className="h-4 w-4" />
-                Public directory + review handoff
+                Buyer surface + review handoff
               </div>
             </div>
           </div>

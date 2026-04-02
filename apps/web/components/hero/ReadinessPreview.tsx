@@ -326,7 +326,7 @@ function buildDegradedAccordion(
             {
               id: 'trust-note',
               label: 'Trust note',
-              value: 'Live licensure proof depends on a real Nursys or state-board source run with institutional coverage.',
+              value: 'Live licensure proof depends on a connected state board lane with source-backed coverage.',
             },
             {
               id: 'status-note',
