@@ -134,7 +134,7 @@ export default async function ReviewPage({
             description={(
               <>
                 <span>{errorMessage ?? DEFAULT_REVIEW_ERROR}</span>
-                <span className="block pt-2 text-white/30">
+                <span className="block pt-2 text-muted-foreground/60">
                   No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
                 </span>
               </>
@@ -143,10 +143,10 @@ export default async function ReviewPage({
             centered
             actions={(
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button asChild variant="outline" className="h-11 rounded-full border-white/10 bg-white/4 text-white/70 hover:border-white/20 hover:bg-white/8 hover:text-white">
+                <Button asChild variant="outline" className="h-11 rounded-full border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground">
                   <Link href={retryHref}>Try again</Link>
                 </Button>
-                <Button asChild variant="ghost" className="h-11 rounded-full text-white/45 hover:bg-white/5 hover:text-white/70">
+                <Button asChild variant="ghost" className="h-11 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
                   <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Back to home</Link>
                 </Button>
               </div>

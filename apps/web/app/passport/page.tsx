@@ -144,7 +144,7 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
   const badge = resolveSourceBadge(state, displayValue);
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
       <div className="flex items-center gap-2.5">
         <span
           className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -157,7 +157,7 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
           }}
           aria-hidden
         />
-        <span className="text-white/55 text-sm">{label}</span>
+        <span className="text-muted-foreground text-sm">{label}</span>
       </div>
       <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
     </div>
@@ -346,12 +346,12 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
         {/* Wordmark */}
         <div className="text-center">
-          <span className="text-white/30 text-xs tracking-widest uppercase">VitalCV</span>
-          <h1 className="text-white text-2xl font-semibold tracking-tight mt-1">
+          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
+          <h1 className="text-foreground text-2xl font-semibold tracking-tight mt-1">
             Check your readiness
           </h1>
           {!isActive && (
-            <p className="text-white/35 text-sm mt-2">
+            <p className="text-muted-foreground/70 text-sm mt-2">
               Enter your NPI. No login required.
             </p>
           )}
@@ -370,7 +370,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               value={npi}
               onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
               placeholder="1234567890"
-              className="h-14 w-full rounded-xl border-white/12 bg-white/6 px-4 text-[16px] tracking-widest text-center text-white placeholder:text-white/20 shadow-none focus-visible:border-white/30 focus-visible:bg-white/10 focus-visible:ring-white/10"
+              className="h-14 w-full rounded-xl border-border bg-muted px-4 text-[16px] tracking-widest text-center text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:border-border focus-visible:bg-muted focus-visible:ring-foreground/10"
               aria-label="NPI number"
               autoComplete="off"
             />
@@ -394,27 +394,27 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
             {/* Phase label */}
             {isRunning && (
-              <p className="text-white/40 text-sm text-center">
+              <p className="text-muted-foreground text-sm text-center">
                 {PHASE_LABEL[state.phase]}
               </p>
             )}
 
             {/* Identity block — appears when NPPES resolves */}
             {identity.authoritative && identity.displayName && (
-              <Card className="gap-2 rounded-2xl border-white/10 bg-white/5 px-5 py-4 shadow-none">
-                <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Provider</p>
-                <h2 className="text-white text-xl font-semibold leading-tight">
+              <Card className="gap-2 rounded-2xl border-border bg-muted px-5 py-4 shadow-none">
+                <p className="text-muted-foreground/60 text-xs uppercase tracking-widest mb-1">Provider</p>
+                <h2 className="text-foreground text-xl font-semibold leading-tight">
                   {identity.displayName}
                 </h2>
                 {identity.specialty && (
-                  <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+                  <p className="text-muted-foreground text-sm mt-0.5">{identity.specialty}</p>
                 )}
-                <p className="text-white/25 text-xs mt-1">NPI {state.npi}</p>
+                <p className="text-muted-foreground/50 text-xs mt-1">NPI {state.npi}</p>
               </Card>
             )}
 
             {/* Source status rows */}
-            <Card className="animate-panel-enter gap-0 rounded-xl border-white/8 bg-white/3 px-4 py-2 shadow-none">
+            <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
               <SourceRow
                 label="Identity"
                 state={sources.nppes}
@@ -435,8 +435,8 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
             {/* Readiness score — appears when claims update */}
             {state.readiness.score !== undefined && (
               <div className="flex items-center justify-between px-1">
-                <span className="text-white/35 text-sm">Readiness</span>
-                <span className="text-white/65 text-sm tabular-nums">
+                <span className="text-muted-foreground/70 text-sm">Readiness</span>
+                <span className="text-foreground/80 text-sm tabular-nums">
                   {state.readiness.score}/100
                 </span>
               </div>
@@ -450,7 +450,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                     View full passport
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="h-14 w-full rounded-full border-white/10 bg-white/4 text-sm font-medium text-white/60 hover:border-white/20 hover:bg-white/7 hover:text-white">
+                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
                   <Link href={buildEmployerReviewHref(anchorEntityId)}>
                     View as employer
                   </Link>
@@ -501,7 +501,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               <Button
                 onClick={handleSecondaryAction}
                 variant="ghost"
-                className="min-h-[44px] px-4 text-xs text-white/25 hover:bg-transparent hover:text-white/45"
+                className="min-h-[44px] px-4 text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground"
               >
                 {genericError && /^\d{10}$/.test(retryNpi)
                   ? 'Try this NPI again'
@@ -515,9 +515,9 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
         {/* Footer */}
         {!isActive && (
-          <p className="text-center text-white/20 text-xs">
+          <p className="text-center text-muted-foreground/40 text-xs">
             Already have an account?{' '}
-            <Link href="/sign-in" className="text-white/40 underline underline-offset-2 hover:text-white/60 transition-colors">
+            <Link href="/sign-in" className="text-muted-foreground underline underline-offset-2 hover:text-foreground/70 transition-colors">
               Sign in
             </Link>
           </p>
