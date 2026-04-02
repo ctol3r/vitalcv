@@ -207,7 +207,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
             {
               id: 'source',
               label: 'Source',
-              value: licStatus === 'checked' ? 'State Board (Nursys / FSMB)' : 'State Board access required',
+              value: licStatus === 'checked' ? 'Configured state board lane' : 'Configured state board lane required',
               tone: 'strong',
             },
             { id: 'checked', label: 'Last checked', value: formatFullDate(licStatus === 'checked' ? checkedAt : undefined) },
@@ -236,58 +236,6 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
       ),
     },
     {
-      id: 'board',
-      trigger: 'Board Certification',
-      triggerRight: accordionMeta('access required'),
-      status: 'access_required',
-      content: (
-        <ProofDetailsList
-          rows={[
-            { id: 'source', label: 'Source', value: 'ABMS / specialty board access required', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
-            { id: 'freshness', label: 'Freshness', value: 'Not checked on this branch' },
-            {
-              id: 'trust-note',
-              label: 'Trust note',
-              value: 'Board certification coverage depends on institutional ABMS-style access that is not connected here.',
-            },
-            {
-              id: 'status-note',
-              label: 'Status note',
-              value: 'Unsupported board checks must stay clearly marked as access required.',
-              tone: 'muted',
-            },
-          ]}
-        />
-      ),
-    },
-    {
-      id: 'dea',
-      trigger: 'DEA / Controlled Substance',
-      triggerRight: accordionMeta('access required'),
-      status: 'access_required',
-      content: (
-        <ProofDetailsList
-          rows={[
-            { id: 'source', label: 'Source', value: 'DEA access required', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
-            { id: 'freshness', label: 'Freshness', value: 'Not checked on this branch' },
-            {
-              id: 'trust-note',
-              label: 'Trust note',
-              value: 'Controlled-substance authority is only decision-grade when a real DEA source is attached.',
-            },
-            {
-              id: 'status-note',
-              label: 'Status note',
-              value: 'Do not rely on DEA coverage in this preview until source access is configured.',
-              tone: 'muted',
-            },
-          ]}
-        />
-      ),
-    },
-    {
       id: 'sanctions',
       trigger: 'Sanctions & Exclusions',
       triggerRight: accordionMeta(checkedMeta),
@@ -309,7 +257,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
               id: 'status-note',
               label: 'Status note',
               value: ts.exclusionClear
-                ? 'NPDB and SAM.gov remain separate institutional checks outside this preview.'
+                ? 'The current OIG / LEIE result is attached to this readiness snapshot.'
                 : 'Without a checked result, sanctions still need more source coverage before stronger trust claims can be made.',
               tone: 'muted',
             },
@@ -372,7 +320,7 @@ function buildDegradedAccordion(
       content: (
         <ProofDetailsList
           rows={[
-            { id: 'source', label: 'Source', value: 'Nursys / state board access required', tone: 'strong' },
+            { id: 'source', label: 'Source', value: 'Configured state board lane required', tone: 'strong' },
             { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
             { id: 'freshness', label: 'Freshness', value: 'No checked source attached' },
             {
@@ -384,32 +332,6 @@ function buildDegradedAccordion(
               id: 'status-note',
               label: 'Status note',
               value: 'This preview keeps licensure explicitly gated until a connected source is available.',
-              tone: 'muted',
-            },
-          ]}
-        />
-      ),
-    },
-    {
-      id: 'fsmb',
-      trigger: 'FSMB Board History',
-      triggerRight: accessRequiredMeta,
-      status: 'access_required',
-      content: (
-        <ProofDetailsList
-          rows={[
-            { id: 'source', label: 'Source', value: 'FSMB access required', tone: 'strong' },
-            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
-            { id: 'freshness', label: 'Freshness', value: 'No checked source attached' },
-            {
-              id: 'trust-note',
-              label: 'Trust note',
-              value: 'Board-history coverage depends on institutional FSMB access that is not connected in this preview.',
-            },
-            {
-              id: 'status-note',
-              label: 'Status note',
-              value: 'Example gaps stay explicitly labeled as access required or unavailable until a real board-history source is attached.',
               tone: 'muted',
             },
           ]}

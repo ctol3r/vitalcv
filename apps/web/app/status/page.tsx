@@ -1,324 +1,262 @@
-'use client';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { getBackendBase } from '@/lib/api';
+import type { SourceOpsEntry, SourceOpsReport } from '@/lib/mission-ops/sourceOpsTypes';
 
-/**
- * StatusPage.tsx — Infrastructure Status Page
- *
- * Public-facing status page showing system health, verification
- * throughput, source connectivity, and active incidents.
- */
+export const dynamic = 'force-dynamic';
 
-import { Grid } from '@/components/layout/Grid';
-import { IncidentPanel } from '@/components/system/IncidentPanel';
-import NetworkTelemetryIntelligence from '@/components/telemetry/NetworkTelemetryIntelligence';
-import { useEffect, useState } from 'react';
-
-// ── Types ─────────────────────────────────────────────────────────────
-
-interface SystemStatus {
-  overall: 'OPERATIONAL' | 'DEGRADED' | 'OUTAGE';
-  uptime: string;
-  verificationHealth: {
-    status: string;
-    last24h: number;
-    last1h: number;
-  };
-  latency: {
-    average: number;
-    p95: number;
-  };
-  artifactIntegrity: {
-    total: number;
-    verified: number;
-    revoked: number;
-    expired: number;
-  };
-  sourceConnectivity: Array<{
-    source: string;
-    status: string;
-    lastSeen: string | null;
-    artifactCount: number;
-  }>;
-  incidents: Array<{
-    id: string;
-    type: 'credential_outage' | 'source_downtime' | 'revocation_spike';
-    severity: 'INFO' | 'WARNING' | 'CRITICAL';
-    title: string;
-    description: string;
-    detectedAt: string;
-    resolved: boolean;
-  }>;
-  generatedAt: string;
-}
-
-interface NetworkHealthStats {
-  overallStatus: 'HEALTHY' | 'DEGRADED' | 'CRITICAL' | 'UNKNOWN';
-  stats: {
-    totalIssuers: number;
-    healthyIssuers: number;
-    federatedNetworks: number;
-    activeNetworks: number;
-  };
-}
-
-// ── Status colors ─────────────────────────────────────────────────────
-
-const STATUS_COLOR: Record<string, { text: string; dot: string }> = {
-  OPERATIONAL: { text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500' },
-  DEGRADED: { text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
-  OUTAGE: { text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
-  LOADING: { text: 'text-muted-foreground', dot: 'bg-muted-foreground' },
+export const metadata: Metadata = {
+  title: 'Status — VitalCV',
+  description:
+    'Current launch-lane source status and coverage posture for VitalCV.',
 };
 
-// ── Component ─────────────────────────────────────────────────────────
+function coverageTone(state: SourceOpsEntry['coverageState']): string {
+  switch (state) {
+    case 'checked':
+      return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400';
+    case 'stale':
+    case 'reviewRequired':
+      return 'border-amber-500/20 bg-amber-500/10 text-amber-400';
+    case 'gated':
+    case 'accessRequired':
+      return 'border-sky-500/20 bg-sky-500/10 text-sky-400';
+    case 'unavailable':
+      return 'border-rose-500/20 bg-rose-500/10 text-rose-400';
+    default:
+      return 'border-border bg-card text-muted-foreground';
+  }
+}
 
-export default function StatusPage() {
-  const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [networkHealth, setNetworkHealth] = useState<NetworkHealthStats | null>(null);
-  const [loading, setLoading] = useState(true);
+function spineTone(status: SourceOpsReport['spineStatus']): string {
+  switch (status) {
+    case 'HEALTHY':
+      return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400';
+    case 'DEGRADED':
+    case 'STALE':
+      return 'border-amber-500/20 bg-amber-500/10 text-amber-400';
+    case 'CRITICAL':
+      return 'border-rose-500/20 bg-rose-500/10 text-rose-400';
+    default:
+      return 'border-border bg-card text-muted-foreground';
+  }
+}
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/system/status', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
-      fetch('/api/network/health', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null),
-    ])
-      .then(([s, nh]) => {
-        if (s) setStatus(s as SystemStatus);
-        if (nh) setNetworkHealth(nh as NetworkHealthStats);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+function formatRelativeAge(value: string | null): string {
+  if (!value) return 'No successful fetch recorded';
 
-  const overall: string = status?.overall ?? (loading ? 'LOADING' : 'DEGRADED');
-  const overallLabel =
-    overall === 'OPERATIONAL' ? 'All Systems Operational' :
-    overall === 'DEGRADED' ? 'Partial System Degradation' :
-    overall === 'OUTAGE' ? 'System Outage Detected' :
-    overall === 'LOADING' ? 'Loading System Status…' :
-    'Limited Visibility — Telemetry Unavailable';
-  const style = STATUS_COLOR[overall] ?? STATUS_COLOR.DEGRADED;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Timestamp unavailable';
+
+  const diffMs = Date.now() - parsed.getTime();
+  const diffHours = Math.floor(diffMs / 3_600_000);
+
+  if (diffHours < 1) {
+    const diffMinutes = Math.max(1, Math.floor(diffMs / 60_000));
+    return `${diffMinutes}m ago`;
+  }
+
+  if (diffHours < 48) {
+    return `${diffHours}h ago`;
+  }
+
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
+async function fetchSourceHealth(): Promise<SourceOpsReport | null> {
+  try {
+    const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json() as SourceOpsReport;
+  } catch {
+    return null;
+  }
+}
+
+function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
+  return sources
+    .filter((source) => (
+      source.isSpine
+      || source.coverageState === 'gated'
+      || source.coverageState === 'accessRequired'
+      || source.coverageState === 'stale'
+      || source.coverageState === 'unavailable'
+    ))
+    .sort((a, b) => {
+      if (a.isSpine !== b.isSpine) {
+        return a.isSpine ? -1 : 1;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+}
+
+export default async function StatusPage() {
+  const report = await fetchSourceHealth();
+  const sources = report ? selectPublicSources(report.sources) : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-5xl px-6 py-12 space-y-8">
-        {/* Overall Status Banner */}
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <span className={`inline-block h-3 w-3 rounded-full ${style.dot} animate-pulse`} />
-            <span className={`text-2xl font-semibold ${style.text}`}>
-              {overallLabel}
-            </span>
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
+      <div className="mx-auto max-w-6xl space-y-10">
+        <header className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-400">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Launch-lane status
           </div>
-          {status ? (
-            <p className="text-xs text-muted-foreground">
-              Uptime: {status.uptime} | Last updated: {new Date(status.generatedAt).toLocaleTimeString()}
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Current source status for the VitalCV wedge.
+            </h1>
+            <p className="text-base leading-7 text-muted-foreground">
+              This page stays narrow on purpose. It reports only the current launch-lane source posture:
+              checked, stale, gated, access required, unavailable, or pending. Unsupported sources are not upgraded into stronger claims.
             </p>
-          ) : !loading ? (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Telemetry unavailable — backend may be starting up or unreachable.{' '}
-              <a href="/api/intelligence/system-health" className="underline underline-offset-2">Check system health →</a>
-            </p>
-          ) : null}
-        </div>
-
-        {/* Metrics Grid */}
-        <NetworkTelemetryIntelligence windowDays={7} />
-
-        <Grid cols={1} lg={2} gap="lg">
-          {/* Verification Health */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-              Verification Throughput
-            </h3>
-            {status ? (
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Last 1 hour</span>
-                  <span className="text-foreground tabular-nums">{status.verificationHealth.last1h}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Last 24 hours</span>
-                  <span className="text-foreground tabular-nums">{status.verificationHealth.last24h}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Latency</span>
-                  <span className="text-foreground tabular-nums">{status.latency.average} ms</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">P95 Latency</span>
-                  <span className="text-foreground tabular-nums">{status.latency.p95} ms</span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-4 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            )}
           </div>
-
-          {/* Artifact Integrity */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-              Artifact Integrity
-            </h3>
-            {status ? (
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Total Artifacts</span>
-                  <span className="text-foreground tabular-nums">{status.artifactIntegrity.total}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Verified</span>
-                  <span className="text-green-700 dark:text-green-400 tabular-nums">{status.artifactIntegrity.verified}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Revoked</span>
-                  <span className="text-red-700 dark:text-red-400 tabular-nums">{status.artifactIntegrity.revoked}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Expired</span>
-                  <span className="text-amber-700 dark:text-amber-400 tabular-nums">{status.artifactIntegrity.expired}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-4 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            )}
-          </div>
-        </Grid>
-
-        {/* Extended Trust Metrics */}
-        <div>
-          <h2 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-            Extended Trust Metrics
-          </h2>
-          <Grid cols={2} lg={4} gap="md">
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Revocations</p>
-              {loading ? (
-                <div className="h-8 w-16 rounded bg-muted animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold text-red-700 dark:text-red-400 tabular-nums">
-                  {status?.artifactIntegrity?.revoked ?? '—'}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">cumulative revoked</p>
+          {report ? (
+            <div className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
+              Spine status: {report.spineStatus}
             </div>
+          ) : (
+            <div className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-400">
+              Live status unavailable
+            </div>
+          )}
+        </header>
 
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Source Health</p>
-              {loading ? (
-                <div className="h-8 w-16 rounded bg-muted animate-pulse" />
-              ) : networkHealth ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${
-                      networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
-                        ? 'bg-green-500' : 'bg-amber-500'
-                    }`} />
-                    <p className={`text-2xl font-bold tabular-nums ${
-                      networkHealth.stats.healthyIssuers === networkHealth.stats.totalIssuers
-                        ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'
-                    }`}>
-                      {networkHealth.stats.healthyIssuers}/{networkHealth.stats.totalIssuers}
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Connected today
+            </p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              NPPES identity and OIG / LEIE stay in the live spine. PECOS and institutional authority lanes remain explicit about freshness and access boundaries.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Never implied
+            </p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Unsupported sources do not appear here as verified. Gated or unavailable lanes remain visibly incomplete until a real source run succeeds.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Operator detail
+            </p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Detailed remediation and pilot operations stay in the internal operator surfaces. This page is the public or semi-public truth layer.
+            </p>
+          </div>
+        </section>
+
+        {!report ? (
+          <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Status service unavailable</h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  VitalCV could not load the current source report. Treat source posture as unknown until the status feed is reachable again.
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="grid gap-4 lg:grid-cols-2">
+            {sources.map((source) => (
+              <article key={source.sourceId} className="rounded-2xl border border-border bg-card p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold">{source.name}</h2>
+                      {source.isSpine ? (
+                        <span className="rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          Spine source
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {source.coverageReason}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">sources healthy</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <p className="text-2xl font-bold text-muted-foreground tabular-nums">—</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">unavailable</p>
-                </>
-              )}
-            </div>
+                  <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${coverageTone(source.coverageState)}`}>
+                    {source.coverageState}
+                  </span>
+                </div>
 
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Networks</p>
-              {loading ? (
-                <div className="h-8 w-16 rounded bg-muted animate-pulse" />
-              ) : networkHealth ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${
-                      networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
-                        ? 'bg-blue-500' : 'bg-amber-500'
-                    }`} />
-                    <p className={`text-2xl font-bold tabular-nums ${
-                      networkHealth.stats.activeNetworks === networkHealth.stats.federatedNetworks
-                        ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'
-                    }`}>
-                      {networkHealth.stats.activeNetworks}/{networkHealth.stats.federatedNetworks}
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Last success
+                    </p>
+                    <p className="mt-2 text-sm font-medium">{formatRelativeAge(source.lastSuccessAt)}</p>
+                    {source.lastSuccessAt ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{new Date(source.lastSuccessAt).toISOString()}</p>
+                    ) : null}
+                  </div>
+                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Feature flag
+                    </p>
+                    <p className="mt-2 text-sm font-medium">
+                      {source.featureFlag.key} = {source.featureFlag.enabled ? 'true' : 'false'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Operator status: {source.operatorStatus}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">networks active</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    <p className="text-2xl font-bold text-muted-foreground tabular-nums">—</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">unavailable</p>
-                </>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Audit Rate</p>
-              {loading ? (
-                <div className="h-8 w-16 rounded bg-muted animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {status?.verificationHealth?.last1h != null
-                    ? `${status.verificationHealth.last1h}/hr`
-                    : '—'}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">events this hour</p>
-            </div>
-          </Grid>
-        </div>
-
-        {/* Source Connectivity */}
-        {status && status.sourceConnectivity.length > 0 && (
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-              Source Connectivity
-            </h3>
-            <div className="space-y-2">
-              {status.sourceConnectivity.map((src) => {
-                const srcStyle = STATUS_COLOR[src.status] ?? STATUS_COLOR.OPERATIONAL;
-                return (
-                  <div key={src.source} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-block h-2 w-2 rounded-full ${srcStyle.dot}`} />
-                      <span className="text-foreground">{src.source}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground tabular-nums">{src.artifactCount} artifacts</span>
-                      <span className={`${srcStyle.text} uppercase text-[10px]`}>
-                        {src.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+              </article>
+            ))}
+          </section>
         )}
 
-        {/* Incidents */}
-        <IncidentPanel incidents={status?.incidents ?? []} />
-      </main>
-    </div>
+        {report && report.alerts.length > 0 ? (
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Current alerts
+            </p>
+            <div className="mt-4 space-y-2">
+              {report.alerts.map((alert) => (
+                <div key={alert} className="rounded-xl border border-border/80 bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  {alert}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <h2 className="text-lg font-semibold">Use the live wedge</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            When the source spine is healthy, start with NPI entry, then carry the same truth into passport, employer review, and pilot measurement.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            >
+              Open NPI entry
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/pilot"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground/75 transition hover:text-foreground"
+            >
+              Request pilot
+            </Link>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

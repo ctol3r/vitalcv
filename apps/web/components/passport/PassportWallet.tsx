@@ -206,9 +206,12 @@ function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, fresh
 
 function buildAuthoritySection(passport: PassportData): AccordionItem {
   const { authority } = passport;
+  const displayCredentials = authority.credentials.filter((credential) => (
+    credential.domain !== 'BOARD_CERTIFICATION'
+    && credential.domain !== 'DEA_REGISTRATION'
+  ));
 
-  const hasLicensure = authority.credentials.some(c => c.domain === 'LICENSURE');
-  const hasBoardCert = authority.credentials.some(c => c.domain === 'BOARD_CERTIFICATION');
+  const hasLicensure = displayCredentials.some(c => c.domain === 'LICENSURE');
 
   return {
     id:      'authority',
@@ -218,7 +221,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
       <div className="py-1 space-y-0">
 
         {/* Real credential rows — authority claim code drives display */}
-        {authority.credentials.map(c => (
+        {displayCredentials.map(c => (
           <AuthorityRow
             key={c.id}
             title={resolveAuthorityTitle(c)}
@@ -236,17 +239,9 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           <AuthorityRow
             title="License verification"
             status="access required"
-            sourceLabel="CA State Board / FSMB"
-            note="Access required. Only the CA physician licensure launch lane is production-enabled in this release."
+            sourceLabel="Configured state board lane"
+            note="Access required. Authority remains incomplete until a connected state board lane runs."
           />
-        )}
-
-        {/* Gap: no board certification attached — show not-decision-grade state */}
-        {!hasBoardCert && (
-          <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
-            <span className="text-xs text-muted-foreground/40">Board certification</span>
-            <TrustStatusBadge status="not decision-grade" size="sm" />
-          </div>
         )}
 
         {/* Missing blocking domains (exclude always-present ones) */}
@@ -315,10 +310,6 @@ function buildStandingSection(passport: PassportData): AccordionItem {
     : standing.licensureStatus === 'expired' ? 'Blocked'
     : standing.licensureStatus === 'pending' ? 'Pending'
     : 'Unavailable';
-  const deaLabel =
-    standing.deaStatus === 'registered' ? 'Checked'
-    : standing.deaStatus === 'none' ? 'Not decision-grade'
-    : 'Unavailable';
 
   return {
     id:      'standing',
@@ -333,7 +324,6 @@ function buildStandingSection(passport: PassportData): AccordionItem {
         <DetailRow label="Checked"           value={formatProofDate(standing.exclusionCheckedAt)} />
         <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
         <DetailRow label="License"           value={licensureLabel} />
-        <DetailRow label="DEA"               value={deaLabel} />
         {safetyNegative.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
             <span className="text-muted-foreground/50 select-none">⚠</span>

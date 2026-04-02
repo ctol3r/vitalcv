@@ -148,10 +148,10 @@ describe('request review panel', () => {
     const view = await renderNode(<RequestReviewPanel />);
 
     await setInputValue(view.container, '#employer-npi', '1234567890');
-    await clickByText(view.container, 'Create review context');
+    await clickByText(view.container, 'Create pilot review');
     await flush();
 
-    expect(textContent(view.container)).toContain('Creating review context…');
+    expect(textContent(view.container)).toContain('Creating pilot review context…');
     expect(textContent(view.container)).toContain('Resolving NPI and registering context.');
     expect(textContent(view.container)).not.toContain('Review context created');
 
@@ -173,7 +173,7 @@ describe('request review panel', () => {
     const view = await renderNode(<RequestReviewPanel />);
 
     await setInputValue(view.container, '#employer-npi', '1234567890');
-    await clickByText(view.container, 'Create review context');
+    await clickByText(view.container, 'Create pilot review');
     await flush();
 
     expect(textContent(view.container)).toContain('Review context created');
@@ -195,11 +195,11 @@ describe('request review panel', () => {
     const view = await renderNode(<RequestReviewPanel />);
 
     await setInputValue(view.container, '#employer-npi', '1234567890');
-    await clickByText(view.container, 'Create review context');
+    await clickByText(view.container, 'Create pilot review');
     await flush();
 
     expect(textContent(view.container)).toContain('Request failed. Check your connection and try again.');
-    expect(textContent(view.container)).toContain('Create review context');
+    expect(textContent(view.container)).toContain('Create pilot review');
     expect(textContent(view.container)).not.toContain('Review context created');
 
     await view.unmount();
@@ -217,7 +217,7 @@ describe('request review panel', () => {
     const view = await renderNode(<RequestReviewPanel />);
 
     await setInputValue(view.container, '#employer-npi', '1234567890');
-    await clickByText(view.container, 'Create review context');
+    await clickByText(view.container, 'Create pilot review');
     await flush();
 
     expect(textContent(view.container)).toContain('Employer workspace required');
@@ -239,7 +239,7 @@ describe('request review panel', () => {
     const view = await renderNode(<RequestReviewPanel />);
 
     await setInputValue(view.container, '#employer-npi', '1234567890');
-    await clickByText(view.container, 'Create review context');
+    await clickByText(view.container, 'Create pilot review');
     await flush();
 
     expect(textContent(view.container)).toContain('Employer workspace required');

@@ -3,7 +3,7 @@
 import React from 'react';
 import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
 import { TrustStrip } from '@/components/home/PublicTruthSections';
-import { HowItWorksSection } from '@/components/marketing/HomeSections';
+import { BuyerPilotSection, HowItWorksSection } from '@/components/marketing/HomeSections';
 
 export default function HomePage() {
   return (
@@ -11,6 +11,7 @@ export default function HomePage() {
       <HeroWithAuthPrompt />
       <TrustStrip />
       <HowItWorksSection />
+      <BuyerPilotSection />
     </div>
   );
 }

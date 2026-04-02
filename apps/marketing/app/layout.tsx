@@ -12,26 +12,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Portable Credential Verification for Healthcare',
+  title: 'VitalCV Redirect',
   description:
-    'Verify once. Keep forever. Portable credential verification infrastructure for clinicians and verifiers, built on W3C Verifiable Credentials, OpenID4VCI, and HAIP 1.0.',
-  keywords: [
-    'healthcare credentialing',
-    'verifiable credentials',
-    'provider verification',
-    'VitalCV',
-    'NPI verification',
-    'digital credentials',
-    'W3C VC',
-    'OpenID4VCI',
-    'HAIP 1.0',
-    'primary source verification',
-  ],
+    'This deployment redirects to the main VitalCV web application.',
   authors: [{ name: 'VitalCV' }],
   openGraph: {
-    title: 'VitalCV — Verify once. Keep forever.',
+    title: 'VitalCV Redirect',
     description:
-      'Portable credential verification infrastructure for clinicians and verifiers.',
+      'This deployment redirects to the main VitalCV web application.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     locale: 'en_US',
@@ -39,17 +27,17 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV — Verify once. Keep forever.',
+    title: 'VitalCV Redirect',
     description:
-      'Portable credential verification infrastructure for clinicians and verifiers.',
+      'This deployment redirects to the main VitalCV web application.',
   },
   metadataBase: new URL('https://vitalcv.com'),
   alternates: {
     canonical: 'https://vitalcv.com',
   },
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
   },
 };
 

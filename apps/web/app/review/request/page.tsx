@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { RequestReviewPanel } from '@/components/employer/RequestReviewPanel';
 
 export const metadata: Metadata = {
-  title: 'Request Passport Review — VitalCV',
-  description: 'Request a source-backed passport review for a clinician.',
+  title: 'Request Pilot Review — VitalCV',
+  description: 'Request a source-backed pilot review for a clinician.',
 };
 
 export default function RequestReviewPage() {

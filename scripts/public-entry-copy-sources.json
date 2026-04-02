@@ -20,6 +20,16 @@
         "apps/web/app/docs/page.tsx",
         "apps/api/backend/src/services/search/searchIndex.ts"
       ]
+    },
+    {
+      "id": "buyer-pilot",
+      "label": "Buyer pilot",
+      "entryFile": "apps/web/app/pilot/page.tsx",
+      "copySources": [
+        "apps/web/app/employers/page.tsx",
+        "apps/web/app/review/page.tsx",
+        "apps/web/components/employer/RequestReviewPanel.tsx"
+      ]
     }
   ]
 }

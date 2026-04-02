@@ -1,295 +1,213 @@
-/**
- * Developer Portal — Wave 30: The API Wedge
- *
- * Wide-canvas, Stripe-tier developer dashboard using the Antigravity Aesthetic:
- * tactile grain (from layout.tsx), dark glass surfaces, emerald glow accents.
- *
- * Server component — all three panels are client components with their own
- * 'use client' boundaries, so this page itself has zero hydration risk.
- */
-
-import React from 'react';
-import { ApiKeyManager } from '@/components/developers/ApiKeyManager';
-import { ApiSandbox } from '@/components/developers/ApiSandbox';
-import { ConformanceReport } from '@/components/developers/ConformanceReport';
-import { DropInSection } from '@/components/developers/DropInSection';
-import { HealthStartDocs } from '@/components/developers/HealthStartDocs';
-import { SdkDocs } from '@/components/developers/SdkDocs';
-import { WebhookLog } from '@/components/developers/WebhookLog';
-import { GatewayConnections } from '@/components/network/GatewayConnections';
-import { getPublicApiBase, getPublicApiHostLabel } from '@/lib/api';
-import {
-    ArrowRight,
-    BookOpen,
-    Code2,
-    GitBranch,
-    Globe,
-    Lock,
-    Webhook,
-    Zap,
-} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import {
+  ArrowRight,
+  Code2,
+  Globe,
+  Lock,
+  Package2,
+  ShieldCheck,
+} from 'lucide-react';
+import { getPublicApiBase, getPublicApiHostLabel } from '@/lib/api';
 
 export const metadata: Metadata = {
-  title: 'Developer Portal | VitalCV',
+  title: 'Developers — VitalCV',
   description:
-    'Current VitalCV API routes, SDKs, and webhook registration surfaces backed by this branch.',
+    'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
 };
 
-// ── Quick-stat cards ──────────────────────────────────────────────────────
+const ROUTE_FAMILIES = [
+  {
+    title: 'Identity ingest',
+    detail: 'Start the wedge by ingesting an NPI into the current source-backed pipeline.',
+    routes: ['POST /api/identity/:npi/ingest'],
+  },
+  {
+    title: 'Passport retrieval',
+    detail: 'Fetch the same passport truth used by clinician and employer surfaces.',
+    routes: ['GET /api/passport/npi/:npi', 'GET /api/passport/entity/:id'],
+  },
+  {
+    title: 'Employer review',
+    detail: 'Inspect packets and persist employer actions with audit confirmation.',
+    routes: [
+      'GET /api/employer-review/:entityId/packet',
+      'POST /api/employer-review/:entityId/accept',
+      'POST /api/employer-review/:entityId/request-refresh',
+      'POST /api/employer-review/:entityId/route-to-review',
+    ],
+  },
+  {
+    title: 'Workspace context',
+    detail: 'Resolve persona and active organization context for employer and clinician flows.',
+    routes: ['GET /api/me/workspaces', 'POST /api/workspaces/switch'],
+  },
+  {
+    title: 'Pilot ops',
+    detail: 'Operator-only KPI exports and scoped start outcome capture for pilots.',
+    routes: [
+      'GET /api/internal/pilot/kpis',
+      'GET /api/internal/pilot/kpis/export',
+      'POST /api/internal/pilot/start-outcome',
+    ],
+  },
+  {
+    title: 'Wallet sync',
+    detail: 'Current mobile wallet sync surface used by the Expo client.',
+    routes: [
+      'GET /api/credentials/wallet',
+      'GET /api/credentials/wallet/:subject/summary',
+    ],
+  },
+] as const;
 
-function buildDeveloperPortalStats() {
-  return [
-    { icon: Globe, label: 'API Host', value: getPublicApiHostLabel() },
-    { icon: GitBranch, label: 'Route Prefix', value: '/api' },
-    { icon: Lock, label: 'Auth', value: 'API keys' },
-    { icon: Zap, label: 'Mode', value: 'Preview' },
-  ] as const;
-}
+const SDK_PACKAGES = [
+  '@vitalcv/wallet-sdk',
+  '@vitalcv/verifier-sdk',
+  '@vitalcv/issuer-sdk',
+] as const;
 
-// ── Resource links ────────────────────────────────────────────────────────
+const INTEGRATION_RULES = [
+  'The public contract stays centered on NPI -> readiness -> passport -> review -> start outcome.',
+  'Employer actions must write an audit event before success is shown.',
+  'Unsupported sources must remain explicitly gated, unavailable, pending, or review-required.',
+  'Standards packages exist in the repo, but not every issuer/verifier flow is self-serve from this surface yet.',
+] as const;
 
-const RESOURCES = [
-  { icon: BookOpen, label: 'API Reference', href: '/docs/api', desc: 'Current route guide plus preview API-host links' },
-  { icon: Code2, label: 'SDKs', href: '/docs/sdk', desc: 'Preview SDK packages for verifier, issuer, and wallet flows on this branch' },
-  { icon: Webhook, label: 'Webhook Guide', href: '/docs/webhooks', desc: 'Webhook registration and event-signature docs for the current preview surface' },
-  { icon: Lock, label: 'Wallet Export', href: '/docs/api', desc: 'Preview CHAPI and SMART Health Card export routes when wallet export is enabled' },
-  { icon: Globe, label: 'Compliance API', href: '/docs/api', desc: 'Current compliance and emergency-readiness routes exposed in this environment' },
-  { icon: GitBranch, label: 'Examples', href: 'https://github.com/ctol3r/vitalcv/tree/main/examples', desc: 'Illustrative integrations for ATS handoff and webhook verification' },
-];
-
-// ── Page ──────────────────────────────────────────────────────────────────
-
-export default function DeveloperPortalPage() {
-  const stats = buildDeveloperPortalStats();
+export default function DevelopersPage() {
   const publicApiBase = getPublicApiBase();
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-foreground">
-      {/* ── Hero header ──────────────────────────────────── */}
-      <header className="relative overflow-hidden border-b border-vt-neutral-800 px-6 py-20 text-center">
-        {/* Ambient glow */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 70% 50% at 50% 0%, oklch(0.68 0.12 180 / 0.12), transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-        />
-
-        <div className="relative z-10 mx-auto max-w-3xl">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-vt-success/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-vt-success ring-1 ring-vt-success/30">
+    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
+      <div className="mx-auto max-w-6xl space-y-10">
+        <header className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-400">
             <Code2 className="h-3.5 w-3.5" />
-            Developer Portal Preview
-          </span>
+            Current wedge API
+          </div>
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Build against the VitalCV launch wedge.
+            </h1>
+            <p className="text-base leading-7 text-muted-foreground">
+              This page intentionally stays narrow. It documents the current integration truth:
+              source-backed identity ingest, passport retrieval, employer review actions,
+              workspace context, pilot reporting, and wallet sync.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Globe className="h-3.5 w-3.5" />
+                API host
+              </div>
+              <p className="mt-3 text-lg font-semibold">{getPublicApiHostLabel()}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{publicApiBase}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <Lock className="h-3.5 w-3.5" />
+                Audit rule
+              </div>
+              <p className="mt-3 text-lg font-semibold">Mutations are auditable</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Review actions must persist an audit event before returning success.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Mode
+              </div>
+              <p className="mt-3 text-lg font-semibold">Wedge-first</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Older platform and intelligence surfaces are not part of the public integration contract.
+              </p>
+            </div>
+          </div>
+        </header>
 
-          <h1 className="heading-xl mt-4 text-foreground">
-            Build against the
-            <br />
-            <span className="text-vt-success">current VitalCV API preview.</span>
-          </h1>
+        <section className="grid gap-4 lg:grid-cols-2">
+          {ROUTE_FAMILIES.map((family) => (
+            <article key={family.title} className="rounded-2xl border border-border bg-card p-6">
+              <h2 className="text-lg font-semibold">{family.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{family.detail}</p>
+              <div className="mt-4 space-y-2">
+                {family.routes.map((route) => (
+                  <div
+                    key={route}
+                    className="rounded-xl border border-border/80 bg-background px-3 py-2 font-mono text-xs text-foreground/80"
+                  >
+                    {route}
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </section>
 
-          <p className="body-lg mt-5 text-vt-neutral-200 max-w-xl mx-auto">
-            Use the configured API host, workspace SDKs, and backend routes that exist in this branch today. Sample snippets stay explicit when they are illustrative rather than proof of a production-ready end-to-end workflow.
+        <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+          <article className="rounded-2xl border border-border bg-card p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Example
+            </p>
+            <pre className="mt-4 overflow-x-auto rounded-xl border border-border/80 bg-background p-4 text-xs text-foreground/85"><code>{`curl -X POST '${publicApiBase}/api/identity/1003000126/ingest' \\
+  -H 'content-type: application/json'
+
+curl '${publicApiBase}/api/passport/npi/1003000126'
+
+curl -X POST '${publicApiBase}/api/employer-review/<entityId>/accept' \\
+  -H 'content-type: application/json' \\
+  -H 'x-clerk-user-id: <workspace-user>' \\
+  -d '{"organizationContextId":"<orgId>","acceptanceReason":"head-start"}'`}</code></pre>
+          </article>
+
+          <article className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <Package2 className="h-3.5 w-3.5" />
+              Repo packages
+            </div>
+            <div className="mt-4 space-y-2">
+              {SDK_PACKAGES.map((pkg) => (
+                <div
+                  key={pkg}
+                  className="rounded-xl border border-border/80 bg-background px-3 py-2 font-mono text-xs text-foreground/85"
+                >
+                  {pkg}
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <section className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+            Integration boundaries
           </p>
-
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {INTEGRATION_RULES.map((rule) => (
+              <div key={rule} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm leading-6 text-muted-foreground">
+                {rule}
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="#sandbox"
-              className="inline-flex items-center gap-2 rounded-xl bg-vt-success px-6 py-3 text-sm font-bold text-black shadow-lg shadow-vt-success/20 transition hover:bg-vt-success"
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
             >
-              Try the Sandbox
+              Open live NPI entry
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl vt-glass px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-vt-surface-ops-raised"
+              href="/review/request"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground/75 transition hover:text-foreground"
             >
-              <BookOpen className="h-4 w-4" />
-              Read the Docs
+              Open employer review request
             </Link>
           </div>
-        </div>
-      </header>
-
-      {/* ── Stats row ────────────────────────────────────── */}
-      <div className="border-b border-vt-neutral-800 bg-vt-surface-ops-raised/40">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-white/8 md:grid-cols-4 md:divide-y-0">
-          {stats.map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex items-center gap-3 px-8 py-5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-vt-success/10 text-vt-success">
-                <Icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs text-vt-neutral-800">{label}</p>
-                <p className="text-sm font-semibold text-foreground">{value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        </section>
       </div>
-
-      {/* ── Main content ─────────────────────────────────── */}
-      <main className="mx-auto max-w-7xl space-y-10 px-6 py-14">
-
-        {/* Section label */}
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-            Developer Tools
-          </p>
-          <div className="vt-divider-ops" />
-        </div>
-
-        {/* Row 1: API Key + Webhook side-by-side */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <ApiKeyManager />
-          <WebhookLog />
-        </div>
-
-        {/* Row 2: Full-width cURL Sandbox */}
-        <div id="sandbox" className="scroll-mt-20">
-          <ApiSandbox />
-        </div>
-
-        {/* Row 3: Drop-in Widget SDK — Wave 34: Plaid Wedge */}
-        <DropInSection />
-
-        {/* Row 4: Network Gateway — Wave 91 */}
-        <div>
-          <div className="flex items-center gap-3 mb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Connected Organizations (Preview)
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <p className="text-xs text-vt-neutral-800 mb-4">Live connection status for organizations connected to this preview environment.</p>
-          <GatewayConnections />
-        </div>
-
-        {/* ── Wave 107: Verifier SDK ──────────────────────── */}
-        <div id="verifier-sdk" className="scroll-mt-20">
-          <div className="flex items-center gap-3 mb-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Verifier SDK
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-6">
-            <p className="text-sm text-vt-neutral-200">
-              These examples use the current verifier SDK package and live route contracts exposed by this branch. They are sample integrations, not evidence that every downstream workflow is enabled in this environment.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-vt-success mb-2">getPublicProfile()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`import { VitalCVVerifier } from '@vitalcv/verifier-sdk';
-
-const verifier = new VitalCVVerifier({
-  baseUrl: '${publicApiBase}',
-  apiKey: process.env.VITALCV_API_KEY,
-});
-
-const profile = await verifier.getPublicProfile('1234567890');
-// profile: { npi, trustBand, credentials }`}</code></pre>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-vt-success mb-2">verifyPresentation()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await verifier.verifyPresentation({ vpJwt });
-// result: { valid, credentials, verifiedAt, errors }`}</code></pre>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-vt-success mb-2">checkRevocation()</p>
-                <pre className="rounded-xl bg-vt-surface-ops-base border border-white/6 p-4 text-xs text-vt-neutral-200 overflow-x-auto"><code>{`const result = await verifier.checkRevocation('vc:vitalcv:12345');
-// result: { revoked, reason, revokedAt }`}</code></pre>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-vt-neutral-800">
-              <span className="inline-block w-2 h-2 rounded-full bg-vt-success" />
-              Current preview routes:
-              <code className="text-vt-success ml-1">GET /api/public/profile/npi/:npi</code>
-              <code className="text-vt-success ml-1">POST /api/credentials/verify/presentation</code>
-              <code className="text-vt-success ml-1">GET /api/revocation/:credentialId</code>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Wave 108: Trust Governance ───────────────────── */}
-        <div id="governance" className="scroll-mt-20">
-          <div className="flex items-center gap-3 mb-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Governance API
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <div className="rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-6 space-y-4">
-            <p className="text-sm text-vt-neutral-200 mt-2">Backend governance rules are configured per-environment. Use <code className="text-vt-warning">GET /api/governance/rules</code> to inspect the current rule set.</p>
-          </div>
-        </div>
-
-        {/* ── Resource links ──────────────────────────────── */}
-        <div>
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-            Resources
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {RESOURCES.map(({ icon: Icon, label, href, desc }) => (
-              <Link
-                key={label}
-                href={href}
-                className="group flex items-start gap-4 rounded-2xl border border-vt-neutral-800 bg-vt-surface-ops-raised/40 p-5 transition hover:border-vt-success/30 hover:bg-vt-surface-ops-raised/60"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-vt-success/10 text-vt-success transition group-hover:bg-vt-success/20">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{label}</p>
-                  <p className="mt-0.5 text-xs text-vt-neutral-800">{desc}</p>
-                </div>
-                <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-vt-neutral-700 transition group-hover:text-vt-success" />
-              </Link>
-            ))}
-          </div>
-        </div>
-        {/* ── Wave 114: Conformance & Audit ──────────────── */}
-        <div id="conformance" className="scroll-mt-20">
-          <div className="flex items-center gap-3 mb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Standards Conformance
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <ConformanceReport />
-        </div>
-
-        {/* ── Wave 118: HealthStart Control Inheritance ──── */}
-        <div id="healthstart" className="scroll-mt-20">
-          <div className="flex items-center gap-3 mb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              HealthStart Control Inheritance
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <HealthStartDocs />
-        </div>
-
-        {/* ── Phase 7: SDK Documentation ─────────────────── */}
-        <div id="sdks" className="scroll-mt-20">
-          <div className="flex items-center gap-3 mb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-vt-neutral-800">
-              Developer SDKs
-            </p>
-            <div className="vt-divider-ops" />
-          </div>
-          <SdkDocs />
-        </div>
-
-      </main>
-    </div>
+    </main>
   );
 }

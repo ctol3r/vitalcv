@@ -37,6 +37,9 @@ export const PROHIBITED_EMPLOYER_PUBLIC_STRINGS = [
   'operator dashboard',
   'graph truth',
   'launch alerts',
+  'marketplace',
+  'platform network',
+  'trust protocol',
 ] as const;
 
 export const PUBLIC_WEDGE_ROUTE_TARGETS = {

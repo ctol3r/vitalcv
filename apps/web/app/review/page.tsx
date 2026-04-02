@@ -13,17 +13,17 @@ export default function ReviewLandingPage() {
               Employer review
             </p>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Review a clinician&apos;s readiness
+              Review readiness for an active hiring decision
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Review a source-backed readiness snapshot before making a hiring decision.
-              Open a passport link from a clinician, or create a new review from an NPI.
+              Review a source-backed readiness snapshot before making a credentialing or recruiting decision.
+              Start with pilot review request from NPI, or open an existing passport review link.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
             <Button asChild className="h-11 w-full rounded-xl">
-              <Link href="/review/request">Request a passport review</Link>
+              <Link href="/review/request">Request pilot review</Link>
             </Button>
             <Button asChild variant="outline" className="h-11 w-full rounded-xl">
               <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Start with NPI lookup</Link>

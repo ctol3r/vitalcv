@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
+import { buildWebAppUrl } from '../../lib/webAppUrl';
 
 /**
  * NPI lookup input — the primary conversion wedge.
@@ -68,8 +69,7 @@ export function NpiInput() {
 
         if (data.exists) {
           // Route to the real live wedge on vitalcv.com
-          const webBase = process.env.NEXT_PUBLIC_WEB_APP_URL ?? 'https://vitalcv.com';
-          window.location.href = `${webBase}/passport?npi=${value}`;
+          window.location.href = buildWebAppUrl('/passport', `?npi=${encodeURIComponent(value)}`);
         } else {
           setError('NPI not found');
         }

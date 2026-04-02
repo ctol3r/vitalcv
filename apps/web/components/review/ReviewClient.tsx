@@ -1262,8 +1262,7 @@ export default function ReviewClient({
                 <h3 className="text-muted-foreground/30 text-[10px] uppercase tracking-widest font-semibold">Authority</h3>
                 {(() => {
                   const licCreds = authority.credentials.filter((credential) => credential.domain === 'LICENSURE');
-                  const certCreds = authority.credentials.filter((credential) => credential.domain === 'BOARD_CERTIFICATION');
-                  const hasAny = licCreds.length > 0 || certCreds.length > 0;
+                  const hasAny = licCreds.length > 0;
 
                   return (
                     <div className="space-y-2">
@@ -1282,28 +1281,13 @@ export default function ReviewClient({
                         );
                       })}
 
-                      {certCreds.map((credential) => {
-                        const row = buildAuthorityRow(credential);
-                        return (
-                          <TrustLabel
-                            key={credential.id}
-                            status={row.status}
-                            label={row.label}
-                            source={resolveAuthorityMethodLabel(credential)}
-                            timestamp={credential.observedAt || credential.verifiedAt ? `checked ${formatProofDate(credential.observedAt ?? credential.verifiedAt)}` : undefined}
-                            note={row.note}
-                            explanation={row.explanation}
-                          />
-                        );
-                      })}
-
                       {!hasAny && (
                         <TrustLabel
                           status="access_required"
                           label="Authority"
-                          source="CA State Board / FSMB"
+                          source="Configured state board lane"
                           note="Access required · requires verification"
-                          explanation="No source-backed authority record is attached yet. Only the CA physician licensure launch lane can become decision-grade in this release."
+                          explanation="No source-backed authority record is attached yet. Authority remains incomplete until a connected state board lane succeeds."
                         />
                       )}
                     </div>

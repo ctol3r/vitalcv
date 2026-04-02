@@ -343,6 +343,7 @@ describe('post-release truth cleanup', () => {
   it('tracks canonical homepage and developer-shell copy sources', () => {
     const homepage = getPublicEntryCopySurface('homepage');
     const developerShell = getPublicEntryCopySurface('developer-shell');
+    const buyerPilot = getPublicEntryCopySurface('buyer-pilot');
 
     expect(homepage.entryFile).toBe('apps/web/app/page.tsx');
     expect(homepage.copySources).toEqual(
@@ -363,10 +364,21 @@ describe('post-release truth cleanup', () => {
       ]),
     );
 
+
+    expect(buyerPilot.entryFile).toBe('apps/web/app/pilot/page.tsx');
+    expect(buyerPilot.copySources).toEqual(
+      expect.arrayContaining([
+        'apps/web/app/employers/page.tsx',
+        'apps/web/app/review/page.tsx',
+        'apps/web/components/employer/RequestReviewPanel.tsx',
+      ]),
+    );
+
     const homepageEntrySource = readRepoFile(homepage.entryFile);
     expect(homepageEntrySource).toContain('<HeroWithAuthPrompt />');
     expect(homepageEntrySource).toContain('<TrustStrip />');
     expect(homepageEntrySource).toContain('<HowItWorksSection />');
+    expect(homepageEntrySource).toContain('<BuyerPilotSection />');
 
     for (const file of getCanonicalPublicEntryCopyFiles()) {
       expect(fs.existsSync(path.resolve(REPO_ROOT, file))).toBe(true);
@@ -381,13 +393,14 @@ describe('post-release truth cleanup', () => {
   });
 
   it('keeps public nav and homepage language aligned with checked/preview wording', async () => {
-    const [{ default: Navbar }, { HowItWorksSection }] = await Promise.all([
+    const [{ default: Navbar }, { BuyerPilotSection, HowItWorksSection }] = await Promise.all([
       import('../components/layout/Navbar'),
       import('../components/marketing/HomeSections'),
     ]);
 
     const navbarMarkup = renderToStaticMarkup(<Navbar />);
     const homeMarkup = renderToStaticMarkup(<HowItWorksSection />);
+    const buyerMarkup = renderToStaticMarkup(<BuyerPilotSection />);
 
     expect(navbarMarkup).toContain('Check Readiness');
     expect(navbarMarkup).toContain('Explore Roles');
@@ -400,7 +413,12 @@ describe('post-release truth cleanup', () => {
     expect(homeMarkup).toContain('Portable across employers');
     expect(homeMarkup).toContain(APPROVED_PUBLIC_WORDING.sourceBacked);
     expect(homeMarkup).toContain(APPROVED_PUBLIC_WORDING.checked);
+    expect(homeMarkup).toContain('Source-backed readiness snapshot');
+    expect(buyerMarkup).toContain('One buyer path: request pilot, then run review.');
+    expect(findHrefByText(buyerMarkup, 'Request pilot')).toBe('/pilot');
+    expect(findHrefByText(buyerMarkup, 'Employer overview')).toBe('/employers');
     expectMarkupExcludes(homeMarkup, PROHIBITED_PUBLIC_STRINGS);
+    expectMarkupExcludes(buyerMarkup, PROHIBITED_PUBLIC_STRINGS);
   });
 
   it('renders the homepage route plus adjacent interview teaser with the live public-shell copy', async () => {
@@ -425,6 +443,7 @@ describe('post-release truth cleanup', () => {
     expect(homepageMarkup).toContain('How It Works');
     expect(homepageMarkup).toContain('Source-backed readiness snapshot');
     expect(homepageMarkup).toContain('Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.');
+    expect(homepageMarkup).toContain('One buyer path: request pilot, then run review.');
 
     expect(navbarMarkup).toContain('Check Readiness');
     expect(navbarMarkup).toContain('Explore Roles');
@@ -510,7 +529,7 @@ describe('post-release truth cleanup', () => {
 
     // Updated: /review page now uses direct employer framing (seam-close wave)
     expect(reviewMarkup).toContain('Employer review');
-    expect(reviewMarkup).toContain('Request a passport review');
+    expect(reviewMarkup).toContain('Request pilot review');
     expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/');
   }, 20000);
 
@@ -657,6 +676,19 @@ describe('post-release truth cleanup', () => {
     expectMarkupExcludes(markup, PROHIBITED_PUBLIC_STRINGS);
   });
 
+
+  it('keeps pilot entry copy narrow with one clear buyer action', async () => {
+    const { default: PilotPage } = await import('../app/pilot/page');
+
+    const pilotMarkup = renderToStaticMarkup(<PilotPage />);
+
+    expect(pilotMarkup).toContain('Start a focused pilot: NPI to readiness, passport, and review.');
+    expect(pilotMarkup).toContain('One next step');
+    expect(findHrefByText(pilotMarkup, 'Request review')).toBe('/review/request');
+    expect(findHrefByText(pilotMarkup, 'Open review entry')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.employerEntry);
+    expectMarkupExcludes(pilotMarkup, [...PROHIBITED_PUBLIC_STRINGS, 'marketplace', 'Trust Protocol']);
+  });
+
   it('keeps employers hero, card, and status copy aligned with the public review wedge', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({
@@ -682,11 +714,10 @@ describe('post-release truth cleanup', () => {
       params: Promise.resolve({ slug: 'sample-health' }),
     }));
 
-    expect(employersMarkup).toContain('See current employers, roles, and review entry points.');
-    expect(employersMarkup).toContain('Employer entry');
-    expect(findHrefByText(employersMarkup, 'Check clinician readiness')).toBe('/onboarding?returnTo=%2Fexplore');
-    expect(findHrefByText(employersMarkup, 'Open employer review')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.employerEntry);
-    expect(findHrefByText(employersMarkup, 'Browse current roles')).toBe('/explore');
+    expect(employersMarkup).toContain('Reduce credentialing decision time with source-backed clinician review.');
+    expect(employersMarkup).toContain('Start an employer pilot intake');
+    expect(findHrefByText(employersMarkup, 'Request pilot')).toBe('/pilot');
+    expect(findHrefByText(employersMarkup, 'Open review entry')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.employerEntry);
     expect(employersMarkup).toContain('Directory listed');
     expectMarkupExcludes(employersMarkup, PROHIBITED_EMPLOYER_PUBLIC_STRINGS);
 

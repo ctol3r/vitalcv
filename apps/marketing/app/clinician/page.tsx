@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { buildWebAppUrl } from '../../lib/webAppUrl';
 
 /**
  * Clinician page — redirects to the real live wedge on vitalcv.com.
@@ -12,11 +13,9 @@ export default async function ClinicianPage({
   const params = await searchParams;
   const npi = typeof params.npi === 'string' ? params.npi : null;
 
-  const webBase = process.env.NEXT_PUBLIC_WEB_APP_URL ?? 'https://vitalcv.com';
-
   if (npi) {
-    redirect(`${webBase}/passport?npi=${npi}`);
+    redirect(buildWebAppUrl('/passport', `?npi=${encodeURIComponent(npi)}`));
   } else {
-    redirect(`${webBase}/passport`);
+    redirect(buildWebAppUrl('/passport'));
   }
 }

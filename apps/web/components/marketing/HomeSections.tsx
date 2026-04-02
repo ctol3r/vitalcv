@@ -862,3 +862,29 @@ export function PlatformVisionSection() {
     </section>
   );
 }
+
+export function BuyerPilotSection() {
+  return (
+    <section className="px-6 py-20 border-t border-border/60">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-400">For employers</p>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground">
+          One buyer path: request pilot, then run review.
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+          If you run credentialing or recruiting operations, start with the employer pilot entry.
+          VitalCV stays focused on one workflow: NPI to readiness, passport, and review decision.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/pilot" className="glue-btn glue-btn-primary">
+            Request pilot <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/employers" className="glue-btn glue-btn-secondary">
+            Employer overview
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+

@@ -83,22 +83,6 @@ function buildCheckedTags(passport: PassportData): string[] {
   if (resolvePublicWedgeSurfaceStateFromTruth(truth.authority) === 'checked') {
     tags.push('Licensure checked');
   }
-  if (passport.authority.credentials.some((credential) => (
-    credential.domain === 'BOARD_CERTIFICATION'
-    && resolvePublicWedgeSurfaceStateFromAccordionStatus(
-      resolveAuthorityAccordionStatus(credential),
-    ) === 'checked'
-  ))) {
-    tags.push('Board certification checked');
-  }
-  if (passport.authority.credentials.some((credential) => (
-    credential.domain === 'DEA_REGISTRATION'
-    && resolvePublicWedgeSurfaceStateFromAccordionStatus(
-      resolveAuthorityAccordionStatus(credential),
-    ) === 'checked'
-  ))) {
-    tags.push('DEA checked');
-  }
   if (resolvePublicWedgeSurfaceStateFromTruth(truth.safety) === 'checked') {
     tags.push('Sanctions checked');
   }

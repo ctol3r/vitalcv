@@ -181,8 +181,8 @@ describe('RequestReviewPanel', () => {
     );
     const markup = renderToStaticMarkup(<RequestReviewPanel />);
 
-    expect(markup).toContain('Request a passport review');
-    expect(markup).toContain('Create review context');
+    expect(markup).toContain('Request pilot review');
+    expect(markup).toContain('Create pilot review');
     expect(markup).toContain('Clinician NPI');
   });
 
@@ -232,7 +232,7 @@ describe('/review landing page', () => {
     const ReviewLandingPage = (await import('../app/review/page')).default;
     const markup = renderToStaticMarkup(<ReviewLandingPage />);
 
-    expect(markup).toContain('Request a passport review');
+    expect(markup).toContain('Request pilot review');
     expect(markup).toContain('/review/request');
     // Updated: "Are you an employer?" removed — page now opens directly with employer framing
     expect(markup).toContain('Employer review');
@@ -244,6 +244,6 @@ describe('/review landing page', () => {
 
     expect(markup).toContain('Start with NPI lookup');
     // Updated: page tone improved — direct employer framing, no warning-heavy copy
-    expect(markup).toContain("Review a clinician");
+    expect(markup).toContain("Review a source-backed readiness snapshot");
   });
 });

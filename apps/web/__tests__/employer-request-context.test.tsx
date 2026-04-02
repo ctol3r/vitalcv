@@ -95,8 +95,8 @@ describe('employer request context flow', () => {
     const { RequestReviewPanel } = await import('../components/employer/RequestReviewPanel');
     const markup = renderToStaticMarkup(<RequestReviewPanel />);
 
-    expect(markup).toContain('Request a passport review');
-    expect(markup).toContain('Create review context');
+    expect(markup).toContain('Request pilot review');
+    expect(markup).toContain('Create pilot review');
     expect(markup).toContain('Clinician NPI');
   });
 
@@ -131,7 +131,7 @@ describe('employer request context flow', () => {
     const ReviewLandingPage = (await import('../app/review/page')).default;
     const markup = renderToStaticMarkup(<ReviewLandingPage />);
 
-    expect(markup).toContain('Request a passport review');
+    expect(markup).toContain('Request pilot review');
     expect(markup).toContain('/review/request');
     // Updated: page now uses direct employer framing ("Employer review") instead of "Are you an employer?"
     expect(markup).toContain('Employer review');
