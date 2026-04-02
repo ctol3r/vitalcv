@@ -11,7 +11,6 @@
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   BILLING_FEATURE_LABELS,
   PRICING_DOCTRINE_LIMITATIONS,
@@ -21,11 +20,7 @@ import {
   type BillingTier,
 } from '@vitalcv/shared/pricing';
 
-const TIER_ACCENTS: Record<BillingTier, { color: string; popular?: boolean }> = {
-  STARTER: { color: 'from-slate-500 to-slate-600' },
-  GROWTH: { color: 'from-emerald-500 to-teal-600', popular: true },
-  ENTERPRISE: { color: 'from-violet-500 to-purple-600' },
-};
+const POPULAR_TIER: BillingTier = 'GROWTH';
 
 const PLANS = listBillingPlans();
 
@@ -65,9 +60,9 @@ export default function BillingPage() {
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
+          
+          
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-2">
@@ -79,13 +74,13 @@ export default function BillingPage() {
             <h1 className="text-2xl font-semibold text-foreground">Pricing & Access</h1>
           </div>
           <p className="text-muted-foreground ml-11">Organization plans. Clinicians and issuers are always free.</p>
-        </motion.div>
+        </div>
 
         {/* Free for clinicians callout */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+        <div
+          
+          
+          
           className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3"
         >
           {[
@@ -101,13 +96,13 @@ export default function BillingPage() {
               <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
             </div>
           ))}
-        </motion.div>
+        </div>
 
         {/* Pilot access notice */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+        <div
+          
+          
+          
           className="mb-10 p-4 rounded-xl bg-amber-50 border border-amber-200"
         >
           <div className="flex items-start justify-between gap-4">
@@ -125,13 +120,13 @@ export default function BillingPage() {
               Request access →
             </a>
           </div>
-        </motion.div>
+        </div>
 
         {/* Pricing Tiers */}
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">Organization plans</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {PLANS.map((plan, i) => {
-            const accent = TIER_ACCENTS[plan.tier];
+            const isPopular = plan.tier === POPULAR_TIER;
             const price = plan.priceMonthly === null ? plan.priceLabel : `$${plan.priceMonthly}`;
             const period = plan.priceMonthly === null ? '' : '/month';
             const requestLimit = plan.apiRequestsPerHour === null
@@ -143,21 +138,21 @@ export default function BillingPage() {
             ];
 
             return (
-              <motion.div
+              <div
                 key={plan.tier}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.08 }}
-                className={`relative rounded-2xl border bg-card p-6 shadow-sm ${
-                  accent.popular ? 'border-emerald-300 shadow-emerald-100 shadow-md' : 'border-border'
+                
+                
+                
+                className={`relative rounded-lg border border-border bg-card p-6 ${
+                  isPopular ? 'border-emerald-300 shadow-none' : 'border-border'
                 }`}
               >
-                {accent.popular && (
+                {isPopular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Most Popular
                   </span>
                 )}
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accent.color} mb-4`} />
+                <div className={`w-10 h-10 rounded-lg bg-muted mb-4`} />
                 <h3 className="text-lg font-semibold text-foreground mb-1">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-3xl font-bold text-foreground">{price}</span>
@@ -192,7 +187,7 @@ export default function BillingPage() {
                   <a
                     href={accessMailto(plan.tier)}
                     className={`block w-full py-2 rounded-lg text-sm font-medium text-center transition-colors ${
-                      accent.popular
+                      isPopular
                         ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                         : 'border border-border hover:border-foreground/40 text-foreground'
                     }`}
@@ -203,19 +198,19 @@ export default function BillingPage() {
                 <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
                   Self-serve checkout activates after pilot gate closes
                 </p>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
         {/* Doctrine + Calculator */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
+        <div
+          
+          
+          
           className="mb-16 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
         >
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border border-border bg-card p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pricing Doctrine</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">What we bill, and what we do not</h2>
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
@@ -228,7 +223,7 @@ export default function BillingPage() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border border-border bg-card p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Sample Usage Calculator</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">Billable activity, not implied revenue</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -264,14 +259,14 @@ export default function BillingPage() {
               This calculator shows example data to illustrate the no-double-pay model. It is not connected to a real account.
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* API Keys — gated until checkout */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
+        <div
+          
+          
+          
+          className="bg-card rounded-2xl border border-border overflow-hidden"
         >
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
@@ -342,7 +337,7 @@ export default function BillingPage() {
               </a>.
             </p>
           </div>
-        </motion.div>
+        </div>
 
       </div>
     </div>
