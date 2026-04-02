@@ -172,7 +172,8 @@
       "Bash(bash ../../../scripts/backend-test-db.sh --testPathPattern=\"detailAgents|hiringAutomation|tenantGuard\" --forceExit)",
       "Bash(npx vitest:*)",
       "Bash(cat /Users/christoler/vitalcv/apps/web/app/sign-in/[[...sign-in]]/page.tsx)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(npx --yes turbo run typecheck --filter=@vitalcv/web)"
     ],
     "deny": [],
     "ask": []

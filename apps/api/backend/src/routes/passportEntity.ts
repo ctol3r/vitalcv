@@ -10,6 +10,7 @@
  *       POST /api/share requires x-clerk-user-id (biometric confirmed client-side).
  */
 
+import { randomUUID } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { buildPassport, buildPassportByNpi } from '../services/entity/passportService';
 import { createOrgContext, transitionOrgContextStatus } from '../domain/entity/orgContextService';
@@ -22,6 +23,7 @@ import {
   buildEmployerReviewPayload,
   employerReviewPayloadToJson,
 } from '../services/entity/employerReviewPayload';
+import { sha256ForPayload } from '../utils/deterministic';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -223,6 +225,33 @@ export function registerPassportEntityRoutes(app: Express): void {
           receiptRefs: reviewPayload.receiptReferences,
           sourceCoverage: employerReviewPayloadToJson(reviewPayload.sourceCoverage),
           expiresAt: new Date(bundle.expiresAt),
+        },
+      });
+
+      // AUDIT: write durable AuditEvent before the 201 response.
+      // PASSPORT_SHARED is one of the 5 canonical non-repudiation events.
+      await prisma.auditEvent.create({
+        data: {
+          id:          randomUUID(),
+          type:        'PASSPORT_SHARED',
+          hash:        sha256ForPayload({
+            shareEventId:          shareEvent.id,
+            entityId,
+            organizationContextId,
+            bundleId:              bundle.bundleId,
+            sharedByUserId:        userId,
+          }),
+          referenceId: shareEvent.id,
+          clinicianId: entity.npi,
+          anchored:    false,
+          metadata: {
+            shareEventId:          shareEvent.id,
+            entityId,
+            organizationContextId,
+            bundleId:              bundle.bundleId,
+            sharedByUserId:        userId,
+            credentialCount:       reviewPayload.credentialsIncluded.length,
+          },
         },
       });
 

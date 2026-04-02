@@ -726,6 +726,13 @@ export default function ReviewClient({
 }: Props) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
+  const [confirmStartState, setConfirmStartState] = useState<
+    | { phase: 'idle' }
+    | { phase: 'loading' }
+    | { phase: 'done'; attestationId: string; startedAt: string }
+    | { phase: 'error'; message: string }
+  >({ phase: 'idle' });
+  const [confirmStartFields, setConfirmStartFields] = useState({ startedAt: '', role: '', facility: '' });
   const [acceptanceHistoryState, setAcceptanceHistoryState] = useState<EmployerAcceptanceHistoryResponse>(
     () => acceptanceHistory ?? buildEmptyAcceptanceHistory(),
   );
@@ -968,6 +975,33 @@ export default function ReviewClient({
     });
   }
 
+  async function handleConfirmStart(e: React.FormEvent) {
+    e.preventDefault();
+    const acceptanceId = persistedActionState?.persistence?.acceptanceId ?? null;
+    if (!confirmStartFields.startedAt || !confirmStartFields.role || !confirmStartFields.facility) return;
+    setConfirmStartState({ phase: 'loading' });
+    try {
+      const res = await fetch(`${API}/api/employer-review/${passport.entityId}/confirm-start`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startedAt:    confirmStartFields.startedAt,
+          role:         confirmStartFields.role,
+          facility:     confirmStartFields.facility,
+          ...(acceptanceId ? { acceptanceId } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? `Confirm start failed (${res.status})`);
+      }
+      const data = await res.json() as { attestationId: string; startedAt: string };
+      setConfirmStartState({ phase: 'done', attestationId: data.attestationId, startedAt: data.startedAt });
+    } catch (err) {
+      setConfirmStartState({ phase: 'error', message: err instanceof Error ? err.message : 'Failed to record start date.' });
+    }
+  }
+
   async function handleDownloadPacket() {
     if (!canPersistActions || actionInFlightRef.current) return;
     if (mountedRef.current) {
@@ -1126,6 +1160,75 @@ export default function ReviewClient({
                 <p className="text-foreground text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
                 <p className="text-muted-foreground/40 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
               </div>
+
+              {/* Record Start Date — only available after an accept action */}
+              {actionState.state.action === 'accept' && confirmStartState.phase !== 'done' && (
+                <div className="mt-4 rounded-lg border border-white/8 bg-card px-3 py-3 space-y-3">
+                  <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Record start date</p>
+                  {confirmStartState.phase === 'error' && (
+                    <p className="text-destructive text-xs">{confirmStartState.message}</p>
+                  )}
+                  <form onSubmit={(e) => { void handleConfirmStart(e); }} className="space-y-2">
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-date">Start date</label>
+                      <input
+                        id="confirm-start-date"
+                        type="date"
+                        required
+                        value={confirmStartFields.startedAt}
+                        onChange={(e) => setConfirmStartFields((f) => ({ ...f, startedAt: e.target.value }))}
+                        className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-role">Role</label>
+                        <input
+                          id="confirm-start-role"
+                          type="text"
+                          required
+                          placeholder="e.g. Attending Cardiologist"
+                          value={confirmStartFields.role}
+                          onChange={(e) => setConfirmStartFields((f) => ({ ...f, role: e.target.value }))}
+                          className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-facility">Facility</label>
+                        <input
+                          id="confirm-start-facility"
+                          type="text"
+                          required
+                          placeholder="e.g. Main Campus"
+                          value={confirmStartFields.facility}
+                          onChange={(e) => setConfirmStartFields((f) => ({ ...f, facility: e.target.value }))}
+                          className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={confirmStartState.phase === 'loading' || !confirmStartFields.startedAt || !confirmStartFields.role || !confirmStartFields.facility}
+                      className="w-full text-xs min-h-[36px]"
+                    >
+                      {confirmStartState.phase === 'loading' ? 'Recording…' : 'Record Start'}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {/* Start attested confirmation */}
+              {actionState.state.action === 'accept' && confirmStartState.phase === 'done' && (
+                <div className="mt-4 rounded-lg border border-[var(--vt-success)]/25 bg-[var(--vt-success)]/5 px-3 py-2 space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[var(--vt-success)] text-xs">✔</span>
+                    <p className="text-[var(--vt-success)] text-xs font-medium">Start attested</p>
+                  </div>
+                  <p className="text-muted-foreground/60 text-[10px] font-mono break-all">{confirmStartState.attestationId}</p>
+                  <p className="text-muted-foreground/50 text-[10px]">{new Date(confirmStartState.startedAt).toLocaleDateString()}</p>
+                </div>
+              )}
             </TrustStateCard>
           </SectionReveal>
         )}

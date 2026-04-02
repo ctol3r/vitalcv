@@ -163,15 +163,49 @@ export function registerHiringRoutes(app: Express): void {
         });
       }
 
-      const acceptance = await prisma.employerAcceptance.create({
-        data: {
-          id:           randomUUID(),
-          employerId:   employerId.trim(),
-          clinicianNpi,
-          artifactId:   artifactId ?? null,
-          status:       'ACCEPTED',
-          acceptedAt:   new Date(),
-        },
+      // Pre-generate IDs and hash before the transaction so they can be used
+      // in both the EmployerAcceptance row and the AuditEvent commitment.
+      const acceptanceId = randomUUID();
+      const acceptedAt   = new Date();
+      const acceptanceHash = sha256ForPayload({
+        acceptanceId,
+        employerId:   employerId.trim(),
+        clinicianNpi,
+        artifactId:   artifactId ?? null,
+        acceptedAt:   acceptedAt.toISOString(),
+      });
+
+      // ATOMIC: EmployerAcceptance + AuditEvent written together or neither.
+      const acceptance = await prisma.$transaction(async (tx) => {
+        const created = await tx.employerAcceptance.create({
+          data: {
+            id:           acceptanceId,
+            employerId:   employerId.trim(),
+            clinicianNpi,
+            artifactId:   artifactId ?? null,
+            status:       'ACCEPTED',
+            acceptedAt,
+          },
+        });
+
+        await tx.auditEvent.create({
+          data: {
+            id:          randomUUID(),
+            type:        'EMPLOYER_ACCEPTANCE_CREATED',
+            hash:        acceptanceHash,
+            referenceId: acceptanceId,
+            clinicianId: clinicianNpi,
+            anchored:    false,
+            metadata: {
+              acceptanceId,
+              employerId:  employerId.trim(),
+              artifactId:  artifactId ?? null,
+              acceptedAt:  acceptedAt.toISOString(),
+            },
+          },
+        });
+
+        return created;
       });
 
       const pilotReadiness = await buildPilotReadinessEvaluation(

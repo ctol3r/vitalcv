@@ -26,7 +26,8 @@ const CLAIM_FLOW = [
   {
     level: 'L3',
     label: 'Final trust artifact ready',
-    status: 'Certified',
+    // "Certified" removed: VitalCV produces source-verified artifacts, not regulatory certifications.
+    status: 'Verified',
     tone: 'var(--claim-l3)',
   },
 ] as const;

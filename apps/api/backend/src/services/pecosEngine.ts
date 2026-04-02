@@ -1,3 +1,11 @@
+/**
+ * @deprecated pecosEngine.ts uses an NPI-prefix heuristic to simulate PECOS enrollment.
+ * This is NOT a real data source. Use the PecosCheck table populated by
+ * identityIngestionPipeline.ts (which calls the real CMS data.gov API) instead.
+ *
+ * No new callers should import this module. Existing callers in crossCheckEngine.ts
+ * and crossCheckBundleEngine.ts have been migrated to read from PecosCheck directly.
+ */
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
 

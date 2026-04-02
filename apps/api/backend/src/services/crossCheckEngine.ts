@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
 import { validateMerkleIntegrity } from './merkleIntegrity';
-import { runPecosCheck } from './pecosEngine';
+
 import { isTrustedIssuer } from './issuerRegistry';
 import { computeCredentialState } from './credentialStatusEngine';
 import { getTransparencyEntries } from './transparencyLog';
@@ -108,20 +108,18 @@ export async function runIndependentCrossCheck(
     failures.push('lifecycle_state_mismatch');
   }
 
-  let pecosCheckFailed = false;
-  try {
-    const pecosCheck = await runPecosCheck(artifactForState.npi);
-    if (!pecosCheck.enrolled) {
-      failures.push('pecos_enrollment_check_failed');
-    }
-  } catch {
-    pecosCheckFailed = true;
+  // PECOS: read from the most recent real PecosCheck record rather than
+  // calling the deprecated simulation function in pecosEngine.ts.
+  const recentPecos = await client.pecosCheck.findFirst({
+    where: { npi: artifactForState.npi },
+    orderBy: { checkedAt: 'desc' },
+    select: { enrolled: true },
+  });
+  if (recentPecos === null) {
+    // No PECOS data on record — source unavailable, not a hard enrollment failure.
+    failures.push('pecos_enrollment_unavailable');
+  } else if (!recentPecos.enrolled) {
     failures.push('pecos_enrollment_check_failed');
-  }
-
-  if (pecosCheckFailed) {
-    // Keep deterministic failure ordering when pecos pipeline throws or returns false.
-    // No additional action required.
   }
 
   const issuerDid = getConfiguredIssuerDid();

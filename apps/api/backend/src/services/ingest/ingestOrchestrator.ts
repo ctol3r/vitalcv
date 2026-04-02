@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { sha256ForPayload } from '../../utils/deterministic';
 import { buildPassport } from '../entity/passportService';
 import { resolveEntityFromNpi } from '../entity/entityResolutionService';
 import { ingestClinicianIdentity, type IngestionResult } from '../identity/identityIngestionPipeline';
@@ -408,6 +410,28 @@ export async function startIngestRun(npi: string): Promise<PersistedIngestRun> {
   }
 
   const created = await createIngestRun(npi);
+
+  // AUDIT: NPI_INGESTED is one of the 5 canonical non-repudiation events.
+  // Write to Postgres before triggering the pipeline so the ingest is always
+  // traceable even if runPipeline fails before writing its own events.
+  void prisma.auditEvent.create({
+    data: {
+      id:          randomUUID(),
+      type:        'NPI_INGESTED',
+      hash:        sha256ForPayload({ runId: created.id, npi: npi.slice(0, 4) + '······' }),
+      referenceId: created.id,
+      clinicianId: npi,
+      anchored:    false,
+      metadata:    { runId: created.id, npiPrefix: npi.slice(0, 4) + '······' },
+    },
+  }).catch((error: unknown) => {
+    log('error', 'audit_npi_ingested_persist_failed', {
+      runId: created.id,
+      error: error instanceof Error ? error.message : String(error),
+      severity: 'CRITICAL',
+    });
+  });
+
   setImmediate(() => {
     void runPipeline(created.id, npi);
   });

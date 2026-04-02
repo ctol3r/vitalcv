@@ -1,5 +1,5 @@
 import prisma from '../graphql/prisma_client';
-import { runPecosCheck } from './pecosEngine';
+
 import { runIndependentCrossCheck } from './crossCheckEngine';
 import { getTransparencyEntries } from './transparencyLog';
 import { hashDeterministicPayload } from '../utils/deterministic';
@@ -62,7 +62,13 @@ export async function generateCrossCheckBundle(artifactId: string): Promise<Cros
   }
 
   const crossCheckResult = await runIndependentCrossCheck(normalizedArtifactId);
-  const pecos = await runPecosCheck(artifact.npi);
+  // PECOS: read from the most recent real PecosCheck record rather than
+  // calling the deprecated simulation function in pecosEngine.ts.
+  const recentPecos = await prisma.pecosCheck.findFirst({
+    where: { npi: artifact.npi },
+    orderBy: { checkedAt: 'desc' },
+    select: { enrolled: true },
+  });
   const nursysEventCount = await prisma.nursysEvent.count({
     where: { npi: artifact.npi },
   });
@@ -79,7 +85,7 @@ export async function generateCrossCheckBundle(artifactId: string): Promise<Cros
     fingerprint: artifact.checksum,
     merkleRoot: artifact.merkleRoot ?? '',
     lifecycleState: artifact.lifecycleState,
-    pecosEnrollmentStatus: pecos.enrolled,
+    pecosEnrollmentStatus: recentPecos?.enrolled ?? false,
     nursysEventCount,
     transparencyEntries,
     crossCheckPass: crossCheckResult.passed,

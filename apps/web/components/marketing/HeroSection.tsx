@@ -9,7 +9,9 @@ import { ArrowRight, CheckCircle2, Loader2, Shield, Sparkles } from 'lucide-reac
 import Link from 'next/link';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
-const COMPLIANCE_ITEMS = ['NCQA', 'CMS', 'HIPAA', 'SOC 2', 'ES256'] as const;
+// SOC 2 removed: VitalCV is SOC 2-aligned but not yet certified.
+// Only display standards and frameworks we actually implement or align to.
+const COMPLIANCE_ITEMS = ['NCQA', 'CMS', 'HIPAA', 'OID4VCI', 'ES256'] as const;
 
 const MOCK_CREDENTIALS = [
   { label: 'State License', level: 'L3', color: 'var(--claim-l3)' },
