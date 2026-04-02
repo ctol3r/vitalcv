@@ -355,11 +355,11 @@ function BinaryDecisionCard({
       {/* Name + decision readiness */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-white text-xl font-semibold leading-tight">{identity.displayName}</h1>
-          {identity.specialty && <p className="text-white/45 text-sm mt-0.5">{identity.specialty}</p>}
+          <h1 className="text-foreground text-xl font-semibold leading-tight">{identity.displayName}</h1>
+          {identity.specialty && <p className="text-foreground text-sm mt-0.5">{identity.specialty}</p>}
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Decision readiness</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Decision readiness</p>
           <p className={`text-lg font-bold mt-0.5 ${DECISION_TEXT[decisionReadiness]}`}>{decisionReadiness}</p>
         </div>
       </div>
@@ -372,10 +372,10 @@ function BinaryDecisionCard({
               {bullet.ok ? '✓' : '✗'}
             </span>
             <div>
-              <p className={`text-sm font-medium ${bullet.ok ? 'text-white/80' : 'text-white/60'}`}>
+              <p className={`text-sm font-medium ${bullet.ok ? 'text-foreground/80' : 'text-foreground'}`}>
                 {bullet.label}
               </p>
-              <p className="text-[11px] text-white/30 mt-0.5">
+              <p className="text-[11px] text-muted-foreground/60 mt-0.5">
                 {bullet.ok ? bullet.source : (bullet.reason ?? bullet.source)}
               </p>
             </div>
@@ -385,14 +385,14 @@ function BinaryDecisionCard({
 
       {/* Blockers summary if any */}
       {blocked.length > 0 && (
-        <p className="mt-3 text-xs text-white/40">
+        <p className="mt-3 text-xs text-muted-foreground">
           {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
         </p>
       )}
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
+      <div className="mt-4 rounded-2xl border border-border bg-black/15 px-4 py-3">
         <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Portable acceptance</p>
-        <p className="mt-1 text-sm font-medium text-white">{acceptanceHistorySummary.headline}</p>
+        <p className="mt-1 text-sm font-medium text-foreground">{acceptanceHistorySummary.headline}</p>
         <p className="mt-1 text-[11px] leading-relaxed text-white/36">
           {acceptanceHistorySummary.trustCopy
             ?? 'Any future VitalCV acceptance will appear here with its organization-specific scope.'}
@@ -414,7 +414,7 @@ function BinaryDecisionCard({
             onClick={onRequestRefresh}
             disabled={!canPersistActions}
             variant="outline"
-            className="h-11 rounded-xl border-white/12 bg-white/[0.03] text-xs text-white/50 hover:border-white/20 hover:bg-white/6 hover:text-white/75"
+            className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground/70"
           >
             Request missing info
           </Button>
@@ -422,7 +422,7 @@ function BinaryDecisionCard({
             onClick={onRouteToReview}
             disabled={!canPersistActions}
             variant="outline"
-            className="h-11 rounded-xl border-white/12 bg-white/[0.03] text-xs text-white/50 hover:border-white/20 hover:bg-white/6 hover:text-white/75"
+            className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground/70"
           >
             Route to review
           </Button>
@@ -521,8 +521,8 @@ function ReviewTruthBucket({
           </div>
         ))
       ) : (
-        <div className="flex items-center gap-2 text-xs text-white/40">
-          <span className="w-3 shrink-0 text-center text-white/20" aria-hidden>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="w-3 shrink-0 text-center text-muted-foreground/40" aria-hidden>
             {icon}
           </span>
           <span>{emptyLabel}</span>
@@ -670,10 +670,10 @@ function AcceptanceHistoryPanel({
   return (
     <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
       <div className="flex flex-col gap-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
           Acceptance history
         </p>
-        <p className="text-sm font-medium text-white">
+        <p className="text-sm font-medium text-foreground">
           {acceptanceHistory.summary.headline}
         </p>
         <p className="text-xs leading-relaxed text-white/42">
@@ -690,7 +690,7 @@ function AcceptanceHistoryPanel({
               className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="text-sm font-medium text-white">{entry.orgLabel}</p>
+                <p className="text-sm font-medium text-foreground">{entry.orgLabel}</p>
                 <p className="mt-1 text-[11px] text-white/32">
                   {entry.isAnonymized ? 'Anonymized for pilot portability' : 'Recorded organization'}
                 </p>
@@ -698,18 +698,18 @@ function AcceptanceHistoryPanel({
               <div className="grid gap-2 text-left sm:text-right">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Date</p>
-                  <p className="mt-1 text-xs text-white/60">{formatProofDate(entry.acceptedAt) ?? 'Not recorded'}</p>
+                  <p className="mt-1 text-xs text-foreground">{formatProofDate(entry.acceptedAt) ?? 'Not recorded'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Scope</p>
-                  <p className="mt-1 text-xs text-white/60">{formatAcceptanceScopeLabel(entry.acceptanceScope)}</p>
+                  <p className="mt-1 text-xs text-foreground">{formatAcceptanceScopeLabel(entry.acceptanceScope)}</p>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-4 text-xs leading-relaxed text-white/42">
+        <div className="rounded-2xl border border-dashed border-border bg-black/10 px-4 py-4 text-xs leading-relaxed text-white/42">
           No acceptance history is attached yet. VitalCV records each employer decision with its own scope, not as universal approval.
         </div>
       )}
@@ -998,8 +998,8 @@ export default function ReviewClient({
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
-          <span className="text-white/25 text-xs tracking-widest uppercase">VitalCV</span>
-          <span className="text-white/25 text-xs">Employer review</span>
+          <span className="text-muted-foreground/50 text-xs tracking-widest uppercase">VitalCV</span>
+          <span className="text-muted-foreground/50 text-xs">Employer review</span>
         </div>
 
         {/* ── Review context attribution ────────────────────────────────────── */}
@@ -1007,29 +1007,29 @@ export default function ReviewClient({
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
               <div className="flex justify-between text-xs">
-                <span className="text-white/35">Shared by</span>
-                <span className="text-white/55">{sharedBy}</span>
+                <span className="text-muted-foreground">Shared by</span>
+                <span className="text-foreground">{sharedBy}</span>
               </div>
             )}
             <div className={`flex justify-between text-xs ${sharedBy ? 'mt-1' : ''}`}>
-              <span className="text-white/35">Purpose</span>
-              <span className="text-white/55">Employment review</span>
+              <span className="text-muted-foreground">Purpose</span>
+              <span className="text-foreground">Employment review</span>
             </div>
             {contextId && (
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-white/35">Review context</span>
-                <span className="text-white/45 font-mono">{contextId.slice(0, 8)}…</span>
+                <span className="text-muted-foreground">Review context</span>
+                <span className="text-foreground font-mono">{contextId.slice(0, 8)}…</span>
               </div>
             )}
             {bundleId && (
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-white/35">Bundle review</span>
-                <span className="text-white/45 font-mono">{bundleId.slice(0, 8)}…</span>
+                <span className="text-muted-foreground">Bundle review</span>
+                <span className="text-foreground font-mono">{bundleId.slice(0, 8)}…</span>
               </div>
             )}
             <div className="flex justify-between text-xs mt-1">
-              <span className="text-white/35">Audit trail</span>
-              <span className="text-white/45">Actions tied to this context</span>
+              <span className="text-muted-foreground">Audit trail</span>
+              <span className="text-foreground">Actions tied to this context</span>
             </div>
           </Card>
         )}
@@ -1037,14 +1037,14 @@ export default function ReviewClient({
         {!sharedBy && !contextId && !bundleId && (
           <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
             <div className="flex justify-between text-xs">
-              <span className="text-white/35">Review context</span>
+              <span className="text-muted-foreground">Review context</span>
               <span className="text-amber-300/70">None — direct view</span>
             </div>
             <p className="text-[10px] text-white/28 leading-relaxed mt-0.5">
               Actions here are not tied to a confirmed employer context.{' '}
               <Link
                 href="/review/request"
-                className="text-white/45 underline underline-offset-2 hover:text-white/65 transition-colors"
+                className="text-foreground underline underline-offset-2 hover:text-foreground/60 transition-colors"
               >
                 Request a review context
               </Link>{' '}
@@ -1096,7 +1096,7 @@ export default function ReviewClient({
               tone="success"
               className="rounded-xl"
               actions={(
-                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground">
                   Back
                 </Button>
               )}
@@ -1112,19 +1112,19 @@ export default function ReviewClient({
               tone="success"
               className="rounded-xl"
               actions={(
-                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground">
                   Back
                 </Button>
               )}
             >
               <div className="flex items-center gap-2">
                 <span className="text-[var(--vt-success)] text-sm">✔</span>
-                <p className="text-white/75 text-sm font-medium">Audit trail recorded</p>
+                <p className="text-foreground/70 text-sm font-medium">Audit trail recorded</p>
               </div>
-              <div className="rounded-lg border border-white/8 bg-white/3 px-3 py-2 mt-1 space-y-1.5">
-                <p className="text-white/20 text-[10px] uppercase tracking-widest">Audit record</p>
-                <p className="text-white/45 text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-                <p className="text-white/20 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+              <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1 space-y-1.5">
+                <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Audit record</p>
+                <p className="text-foreground text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
+                <p className="text-muted-foreground/40 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
               </div>
             </TrustStateCard>
           </SectionReveal>
@@ -1137,7 +1137,7 @@ export default function ReviewClient({
               description={actionState.message}
               tone="critical"
               actions={(
-                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-white/25 hover:bg-transparent hover:text-white/40">
+                <Button onClick={() => setActionState({ phase: 'idle' })} variant="ghost" className="min-h-[44px] w-full text-xs text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground">
                   Try again
                 </Button>
               )}
@@ -1149,7 +1149,7 @@ export default function ReviewClient({
 
         {/* ── Detail disclosure — collapsed by default ───────────────────── */}
         <details className="group">
-          <summary className="flex cursor-pointer items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/25 hover:text-white/45 transition-colors list-none py-1">
+          <summary className="flex cursor-pointer items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 hover:text-foreground transition-colors list-none py-1">
             <span className="group-open:hidden">▸</span>
             <span className="hidden group-open:inline">▾</span>
             Full credential detail
@@ -1158,14 +1158,14 @@ export default function ReviewClient({
 
         {/* ── Decision card — Exact Layout ──────────────────────────────── */}
         <SectionReveal delay={0}>
-          <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-white/3 px-5 py-5 shadow-none">
+          <Card className="mb-6 gap-6 rounded-2xl border-white/8 bg-card px-5 py-5 shadow-none">
           {/* Identity */}
           <div>
-            <h1 className="text-white text-xl font-semibold leading-tight">
+            <h1 className="text-foreground text-xl font-semibold leading-tight">
               {identity.displayName}
             </h1>
             {identity.specialty && (
-              <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+              <p className="text-foreground/70 text-sm mt-0.5">{identity.specialty}</p>
             )}
             <div className="mt-3">
               <TrustStatusBadge status={readinessStatus} size="sm" />
@@ -1175,23 +1175,23 @@ export default function ReviewClient({
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
-              <p className="mt-1 text-lg font-semibold text-white">{readiness.score}/100</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{readiness.score}/100</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
-              <p className="mt-1 text-lg font-semibold text-white">{readiness.level}</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{readiness.level}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Freshness</p>
-              <p className="mt-1 text-sm font-medium text-white">{freshnessState}</p>
-              <p className="mt-1 text-[11px] text-white/30">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{freshnessState}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground/60">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof completeness</p>
-              <p className="mt-1 text-sm font-medium text-white">
+              <p className="mt-1 text-sm font-medium text-foreground">
                 {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
               </p>
-              <p className="mt-1 text-[11px] text-white/30">
+              <p className="mt-1 text-[11px] text-muted-foreground/60">
                 {proofSummary.warningCount > 0 ? `${proofSummary.warningCount} review warning${proofSummary.warningCount === 1 ? '' : 's'}` : 'No review warnings'}
               </p>
             </div>
@@ -1217,7 +1217,7 @@ export default function ReviewClient({
           <div className="pt-2 mt-4 space-y-6">
             {/* Q1: Who is this? */}
             <div className="space-y-2">
-              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
+              <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Identity</h2>
               <TrustLabel
                 status={identityStatus}
                 label={identityStatus === 'checked' ? 'Identity checked' : 'Identity'}
@@ -1238,9 +1238,9 @@ export default function ReviewClient({
               />
             </div>
 
-            <div className="border-t border-white/10 pt-4 space-y-4">
+            <div className="border-t border-border pt-4 space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold">Trust stack</h2>
+                <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold">Trust stack</h2>
                 <span className="text-white/18 text-[11px] uppercase tracking-[0.18em]">Safety · Authority · Eligibility</span>
               </div>
 
@@ -1326,8 +1326,8 @@ export default function ReviewClient({
             </div>
 
             {/* Q5: What blocks start? + Q6: What do I do? */}
-            <div className="border-t border-white/10 pt-4 space-y-1 text-sm">
-              <h2 className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
+            <div className="border-t border-border pt-4 space-y-1 text-sm">
+              <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
               <p className="text-white/90 font-medium pb-1">{readiness.score}% ready</p>
 
               {/* Q5: Blockers */}
@@ -1335,27 +1335,27 @@ export default function ReviewClient({
                 <div className="space-y-1 pb-1">
                   {blocked.slice(0, 4).map((b, i) => (
                     <div key={i} className="flex items-start gap-2">
-                      <span className="text-white/20 text-xs w-3 shrink-0 mt-0.5" aria-hidden>·</span>
-                      <span className="text-white/50 text-xs">{b.charAt(0).toUpperCase() + b.slice(1)}</span>
+                      <span className="text-muted-foreground/40 text-xs w-3 shrink-0 mt-0.5" aria-hidden>·</span>
+                      <span className="text-foreground/70 text-xs">{b.charAt(0).toUpperCase() + b.slice(1)}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <p className="text-white/50 pt-1">
+              <p className="text-foreground/70 pt-1">
                 Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
               </p>
 
               {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
               {reviewTruth.buckets.nextActions.length > 0 && (
                 <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
-                  <p className="text-white/25 text-[10px] uppercase tracking-widest">Next actions</p>
+                  <p className="text-muted-foreground/50 text-[10px] uppercase tracking-widest">Next actions</p>
                   {reviewTruth.buckets.nextActions.slice(0, 4).map((action) => (
                     <div key={action.id} className="flex items-start gap-2">
-                      <span className="text-white/15 text-xs w-3 shrink-0 mt-0.5">·</span>
+                      <span className="text-muted-foreground/30 text-xs w-3 shrink-0 mt-0.5">·</span>
                       <div>
-                        <p className="text-white/55 text-xs font-medium">{action.label}</p>
-                        <p className="text-white/30 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
+                        <p className="text-foreground text-xs font-medium">{action.label}</p>
+                        <p className="text-muted-foreground/60 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
                       </div>
                     </div>
                   ))}
@@ -1388,7 +1388,7 @@ export default function ReviewClient({
                     ? (previewOnlyMessage ?? 'Sign in with an employer workspace to export')
                     : undefined
                 }
-                className="h-9 rounded-xl border-white/10 px-4 py-2 text-[11px] font-medium text-white/45 hover:border-white/20 hover:text-white/70"
+                className="h-9 rounded-xl border-border px-4 py-2 text-[11px] font-medium text-foreground hover:border-border hover:text-foreground/70"
               >
                 {actionState.phase === 'downloading' ? 'Exporting…' : 'Export passport proof'}
               </Button>
@@ -1454,36 +1454,36 @@ export default function ReviewClient({
         {/* ── Decision basis — what you're acting on (no assumptions) ──────── */}
         {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
           <SectionReveal delay={0.05}>
-            <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+            <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
               Passport truth in this review
             </p>
 
             <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest">
+                  <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">
                     Trust posture
                   </p>
-                  <p className="mt-0.5 text-sm font-medium text-white/60">
+                  <p className="mt-0.5 text-sm font-medium text-foreground">
                     {reviewTruth.posture.bandLabel}
-                    <span className="ml-1 text-xs font-mono text-white/25">
+                    <span className="ml-1 text-xs font-mono text-muted-foreground/50">
                       {reviewTruth.posture.level}
                     </span>
                   </p>
-                  <p className="mt-1 text-[11px] text-white/30">
+                  <p className="mt-1 text-[11px] text-muted-foreground/60">
                     {reviewTruth.posture.reliableLabel}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest">Score</p>
-                  <p className="text-lg font-semibold tabular-nums text-white/70">
+                  <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Score</p>
+                  <p className="text-lg font-semibold tabular-nums text-foreground/70">
                     {reviewTruth.posture.score}
-                    <span className="text-xs text-white/25">/100</span>
+                    <span className="text-xs text-muted-foreground/50">/100</span>
                   </p>
                 </div>
               </div>
-              <p className="mt-3 text-[10px] leading-relaxed text-white/20">
+              <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/40">
                 {reviewTruth.posture.disclaimer}
               </p>
             </div>

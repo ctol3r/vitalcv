@@ -19,8 +19,8 @@ void React;
 const BAND_CONFIG: Record<string, { labelClass: string; scoreClass: string }> = {
   L3: { labelClass: 'text-white/90', scoreClass: 'text-white' },
   L2: { labelClass: 'text-white/78', scoreClass: 'text-white/88' },
-  L1: { labelClass: 'text-white/60', scoreClass: 'text-white/70' },
-  L0: { labelClass: 'text-white/42', scoreClass: 'text-white/55' },
+  L1: { labelClass: 'text-foreground', scoreClass: 'text-foreground/70' },
+  L0: { labelClass: 'text-white/42', scoreClass: 'text-foreground' },
 };
 
 const POSTURE_STATE_BADGE: Record<PassportTrustPostureState, { status: TrustBadgeStatus; label?: string }> = {
@@ -55,8 +55,8 @@ function ListSection({
             variant="outline"
             className={
               tone === 'warning'
-                ? 'rounded-full border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/58'
-                : 'rounded-full border-white/10 bg-white/6 px-2.5 py-1 text-[11px] font-medium text-white/64'
+                ? 'rounded-full border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-white/58'
+                : 'rounded-full border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-white/64'
             }
           >
             {item}
@@ -100,7 +100,7 @@ export function PassportTrustPosture({
       <CardHeader className="border-b border-white/6 px-5 py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">Trust posture</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">Trust posture</p>
             <CardTitle className={`text-base font-semibold ${band.labelClass}`}>{posture.bandLabel}</CardTitle>
             <CardDescription className="text-xs leading-relaxed text-white/42">
               Trust posture reflects source-backed readiness only. It does not represent a hiring, privileging, or employment decision.

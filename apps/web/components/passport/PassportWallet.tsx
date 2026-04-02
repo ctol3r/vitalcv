@@ -61,9 +61,9 @@ const STATUS_CONFIG: Record<ReadinessStatus, {
   cardBorder:   string;
   cardBg:       string;
 }> = {
-  READY:   { cardBorder: 'border-white/15', cardBg: 'bg-white/6' },
-  PARTIAL: { cardBorder: 'border-white/10', cardBg: 'bg-white/4' },
-  BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-white/3' },
+  READY:   { cardBorder: 'border-border', cardBg: 'bg-muted' },
+  PARTIAL: { cardBorder: 'border-border', cardBg: 'bg-card' },
+  BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-card' },
 };
 
 const SOURCE_COVERAGE_ORDER: Record<string, number> = {
@@ -100,11 +100,11 @@ function PassportFreshnessCard({
         : { status: 'pending' as const, label: 'Partial' };
 
   return (
-    <Card className="gap-3 rounded-2xl border-white/8 bg-white/3 px-5 py-4 shadow-none">
+    <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-white/30 text-[10px] uppercase tracking-widest">Freshness</p>
-          <p className="mt-1 text-sm text-white/65">{freshness.label}</p>
+          <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Freshness</p>
+          <p className="mt-1 text-sm text-foreground/60">{freshness.label}</p>
         </div>
         <TrustStatusBadge status={summaryBadge.status} label={summaryBadge.label} size="sm" />
       </div>
@@ -113,7 +113,7 @@ function PassportFreshnessCard({
           <div key={item.id} className="rounded-xl border border-white/6 bg-black/10 px-3 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-white/70">{item.label}</p>
+                <p className="text-xs text-foreground/70">{item.label}</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-white/42">{item.note}</p>
               </div>
               <TrustStatusBadge
@@ -140,8 +140,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
-      <span className="text-white/35">{label}</span>
-      <span className="text-white/65">{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-foreground/60">{value}</span>
     </div>
   );
 }
@@ -186,20 +186,20 @@ function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, fresh
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs">
-        <span className="text-white/65">{title}</span>
+        <span className="text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5">
-        <span className="text-white/25">Source: {sourceLabel}</span>
-        {freshness && <span className="text-white/15">{freshness}</span>}
+        <span className="text-muted-foreground/50">Source: {sourceLabel}</span>
+        {freshness && <span className="text-muted-foreground/30">{freshness}</span>}
       </div>
       {(checkedAt || confidence) && (
-        <div className="text-white/20 text-xs mt-0.5 flex gap-2 flex-wrap">
+        <div className="text-muted-foreground/40 text-xs mt-0.5 flex gap-2 flex-wrap">
           {checkedAt && <span>Checked {checkedAt}</span>}
           {confidence && <span>· {confidence}</span>}
         </div>
       )}
-      {note && <div className="text-white/15 text-xs mt-0.5 leading-relaxed">{note}</div>}
+      {note && <div className="text-muted-foreground/30 text-xs mt-0.5 leading-relaxed">{note}</div>}
     </div>
   );
 }
@@ -244,7 +244,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {/* Gap: no board certification attached — show not-decision-grade state */}
         {!hasBoardCert && (
           <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
-            <span className="text-xs text-white/20">Board certification</span>
+            <span className="text-xs text-muted-foreground/40">Board certification</span>
             <TrustStatusBadge status="not decision-grade" size="sm" />
           </div>
         )}
@@ -254,7 +254,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
           .filter(d => !['IDENTITY', 'EXCLUSION_CHECK'].includes(d))
           .map(d => (
             <div key={d} className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
-              <span className="text-xs text-white/20">{d.replace(/_/g, ' ').toLowerCase()}</span>
+              <span className="text-xs text-muted-foreground/40">{d.replace(/_/g, ' ').toLowerCase()}</span>
               <TrustStatusBadge status="blocked" size="sm" />
             </div>
           ))}
@@ -274,16 +274,16 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
     content: (
       <div className="py-1 space-y-1">
         {training.records.length === 0 && (
-          <p className="text-white/25 text-xs py-1">No training records on file.</p>
+          <p className="text-muted-foreground/50 text-xs py-1">No training records on file.</p>
         )}
         {training.records.map(r => (
           <div key={r.id} className="py-1.5 border-b border-white/5 last:border-0">
             <div className="flex justify-between text-xs">
-              <span className="text-white/65">{r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className="text-white/35">{r.endYear ?? '—'}</span>
+              <span className="text-foreground/60">{r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}</span>
+              <span className="text-muted-foreground">{r.endYear ?? '—'}</span>
             </div>
             {(r.institutionName || r.specialty) && (
-              <div className="text-white/30 text-xs mt-0.5">
+              <div className="text-muted-foreground/60 text-xs mt-0.5">
                 {[r.institutionName, r.specialty].filter(Boolean).join(' · ')}
               </div>
             )}
@@ -336,12 +336,12 @@ function buildStandingSection(passport: PassportData): AccordionItem {
         <DetailRow label="DEA"               value={deaLabel} />
         {safetyNegative.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
-            <span className="text-white/25 select-none">⚠</span>
-            <span className="text-white/50">{f}</span>
+            <span className="text-muted-foreground/50 select-none">⚠</span>
+            <span className="text-foreground/70">{f}</span>
           </div>
         ))}
         {safetyNegative.length === 0 && (
-          <div className="text-white/30 text-xs pt-1">No negative findings.</div>
+          <div className="text-muted-foreground/60 text-xs pt-1">No negative findings.</div>
         )}
       </div>
     ),
@@ -367,21 +367,21 @@ function EligibilityRow({
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
       <div className="flex justify-between text-xs gap-2">
-        <span className="flex items-center gap-1.5 text-white/65">{title}</span>
+        <span className="flex items-center gap-1.5 text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
       </div>
       <div className="flex justify-between text-xs mt-0.5 pl-4">
-        <span className="text-white/25">Source: {sourceLabel}</span>
-        {freshness && <span className="text-white/15">{freshness}</span>}
+        <span className="text-muted-foreground/50">Source: {sourceLabel}</span>
+        {freshness && <span className="text-muted-foreground/30">{freshness}</span>}
       </div>
       {(checkedAt || dataVersion || confidence) && (
-        <div className="text-white/20 text-xs mt-0.5 pl-4 flex gap-2 flex-wrap">
+        <div className="text-muted-foreground/40 text-xs mt-0.5 pl-4 flex gap-2 flex-wrap">
           {dataVersion && <span>{dataVersion}</span>}
           {checkedAt && <span>· Checked {checkedAt}</span>}
           {confidence && <span>· {confidence}</span>}
         </div>
       )}
-      {note && <div className="text-white/15 text-xs mt-0.5 pl-4 leading-relaxed">{note}</div>}
+      {note && <div className="text-muted-foreground/30 text-xs mt-0.5 pl-4 leading-relaxed">{note}</div>}
     </div>
   );
 }
@@ -437,13 +437,13 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           note={standing.enrollmentNote ?? undefined}
         />
         {rowStatus === 'review required' && (
-          <div className="py-1.5 text-white/20 text-xs pl-4 leading-relaxed">
+          <div className="py-1.5 text-muted-foreground/40 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
           </div>
         )}
         {rowStatus === 'unavailable' && (
-          <div className="py-1.5 text-white/20 text-xs pl-4">
+          <div className="py-1.5 text-muted-foreground/40 text-xs pl-4">
             PECOS lookup has not been performed. Eligibility is unknown.
           </div>
         )}
@@ -531,17 +531,17 @@ export default function PassportWallet({ passport }: Props) {
 
         {/* ── Header — minimal ──────────────────────────────────────────────── */}
         <div className="text-center">
-          <span className="text-white/30 text-xs tracking-widest uppercase">VitalCV</span>
+          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
         </div>
 
         {/* ── Passport card — primary object ────────────────────────────────── */}
         <Card className={`gap-0 rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5 shadow-none`}>
           {/* Identity */}
-          <h1 className="text-white text-2xl font-semibold tracking-tight leading-tight">
+          <h1 className="text-foreground text-2xl font-semibold tracking-tight leading-tight">
             {identity.displayName}
           </h1>
           {identity.specialty && (
-            <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
+            <p className="text-foreground/70 text-sm mt-0.5">{identity.specialty}</p>
           )}
 
           {/* Readiness status — employer-visible trust level */}
@@ -561,7 +561,7 @@ export default function PassportWallet({ passport }: Props) {
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (
           <SectionReveal delay={0.05}>
-            <p className="text-white/20 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
+            <p className="text-muted-foreground/40 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
               NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
             </p>
           </SectionReveal>
@@ -594,13 +594,13 @@ export default function PassportWallet({ passport }: Props) {
         {readiness.nextActions.length > 0 && (
           <SectionReveal delay={0.25}>
             <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-              <p className="text-white/50 text-sm font-medium">What should happen next</p>
+              <p className="text-foreground/70 text-sm font-medium">What should happen next</p>
               {readiness.nextActions.slice(0, 4).map((action) => (
                 <div key={action.id} className="flex items-start gap-3">
-                  <span className="text-white/25 mt-1 select-none text-xs">—</span>
+                  <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
                   <div>
-                    <p className="text-white/70 text-sm">{action.title}</p>
-                    <p className="text-white/40 text-xs mt-0.5">{action.detail}</p>
+                    <p className="text-foreground/70 text-sm">{action.title}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{action.detail}</p>
                   </div>
                 </div>
               ))}
@@ -618,8 +618,8 @@ export default function PassportWallet({ passport }: Props) {
               <>
                 {isAuthReady && !canShare ? (
                   /* Unauthenticated — show sign-in prompt, never a click-then-fail button */
-                  <div className="rounded-xl border border-white/10 bg-white/4 px-4 py-4 space-y-3 text-center">
-                    <p className="text-white/60 text-sm leading-relaxed">
+                  <div className="rounded-xl border border-border bg-card px-4 py-4 space-y-3 text-center">
+                    <p className="text-foreground text-sm leading-relaxed">
                       Sign in to generate a shareable passport link.
                     </p>
                     <Link
@@ -643,7 +643,7 @@ export default function PassportWallet({ passport }: Props) {
                     {shareError && (
                       <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                     )}
-                    <p className="text-center text-white/20 text-xs leading-relaxed">
+                    <p className="text-center text-muted-foreground/40 text-xs leading-relaxed">
                       Generates a shareable link. Send it to an employer to open the review surface.
                     </p>
                   </>
@@ -664,7 +664,7 @@ export default function PassportWallet({ passport }: Props) {
         <div className="text-center pt-2">
           <Link
             href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}
-            className="text-white/20 hover:text-white/40 text-xs transition-colors"
+            className="text-muted-foreground/40 hover:text-muted-foreground text-xs transition-colors"
           >
             View another NPI
           </Link>

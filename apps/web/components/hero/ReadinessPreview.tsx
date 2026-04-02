@@ -94,7 +94,7 @@ const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
 };
 
 const CHIPS_CLASSNAME =
-  'rounded-full border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/60';
+  'rounded-full border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground';
 
 function readinessBadgeStatus(tone: ReadinessTone): 'checked' | 'pending' | 'blocked' {
   switch (tone) {
@@ -147,7 +147,7 @@ function accordionMeta(label: string) {
   return (
     <Badge
       variant="outline"
-      className="rounded-full border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
+      className="rounded-full border-white/8 bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
     >
       {label}
     </Badge>
@@ -532,11 +532,11 @@ export function ReadinessPreview({
           <CardHeader className="border-b border-white/6 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {ts.identityVerified ? 'Identity checked' : 'Identity record found'}
                 </p>
-                <p className="text-lg font-bold leading-tight text-white">{displayName}</p>
-                <p className="text-sm text-white/40">{displaySpec}</p>
+                <p className="text-lg font-bold leading-tight text-foreground">{displayName}</p>
+                <p className="text-sm text-muted-foreground">{displaySpec}</p>
               </div>
               <div className="space-y-2 text-right">
                 <TrustStatusBadge
@@ -544,7 +544,7 @@ export function ReadinessPreview({
                   label={READINESS_TONE_LABELS[readinessTone]}
                   size="sm"
                 />
-                <p className="text-[10px] font-mono text-white/20">Checked {checkedTime}</p>
+                <p className="text-[10px] font-mono text-muted-foreground/40">Checked {checkedTime}</p>
               </div>
             </div>
           </CardHeader>
@@ -553,9 +553,9 @@ export function ReadinessPreview({
             <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[readinessTone].panel)}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{ts.readiness_status}</p>
-                  <p className="mt-1 text-[11px] text-white/45">{ts.readiness_score}/100 · {ts.readiness_level}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Readiness</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{ts.readiness_status}</p>
+                  <p className="mt-1 text-[11px] text-foreground">{ts.readiness_score}/100 · {ts.readiness_level}</p>
                 </div>
                 <p className="text-[11px] leading-relaxed text-white/42 sm:max-w-[220px] sm:text-right">
                   Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
@@ -564,25 +564,25 @@ export function ReadinessPreview({
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">
                 {gaps.length === 0 ? 'Current blockers' : 'What still needs attention'}
               </p>
               <div className="space-y-2">
                 {gaps.length === 0 ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                    <span className="text-xs text-white/45">No blockers surfaced in this run.</span>
+                    <span className="text-foreground text-sm leading-none shrink-0">✔</span>
+                    <span className="text-xs text-foreground">No blockers surfaced in this run.</span>
                   </div>
                 ) : gaps.slice(0, 3).map(gap => (
                   <div key={gap} className="flex items-start gap-2">
-                    <span className="mt-px shrink-0 text-sm leading-none text-white/25">✖</span>
-                    <span className="text-xs leading-tight text-white/55">{gap}</span>
+                    <span className="mt-px shrink-0 text-sm leading-none text-muted-foreground/50">✖</span>
+                    <span className="text-xs leading-tight text-foreground">{gap}</span>
                   </div>
                 ))}
               </div>
               {confirmedItems.length > 0 ? (
                 <div className="space-y-3 border-t border-white/6 pt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Checked in this run</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Checked in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {confirmedItems.map(item => (
                       <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
@@ -625,7 +625,7 @@ export function ReadinessPreview({
               >
                 Continue to passport
               </Button>
-              <p className="mt-2 text-center text-[10px] text-white/20">
+              <p className="mt-2 text-center text-[10px] text-muted-foreground/40">
                 Source-backed preview · {ts.methodology_version}
               </p>
             </div>
@@ -669,8 +669,8 @@ export function ReadinessPreview({
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-100/80">Degraded state</p>
-              <p className="text-lg font-bold leading-tight text-white">Preview unavailable — using your NPI only</p>
-              <p className="text-sm text-white/45">NPI {npi}</p>
+              <p className="text-lg font-bold leading-tight text-foreground">Preview unavailable — using your NPI only</p>
+              <p className="text-sm text-foreground">NPI {npi}</p>
               <p className="text-[9px] text-amber-200/50 leading-relaxed mt-1">
                 VitalCV kept your entered NPI, but this card does not claim a resolved clinician identity until a live retry succeeds.
               </p>
@@ -685,34 +685,34 @@ export function ReadinessPreview({
           <div className="rounded-xl border border-amber-500/15 bg-amber-500/[0.05] px-4 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Readiness</p>
-                <p className="mt-2 text-sm font-semibold text-white">Full readiness snapshot unavailable</p>
-                <p className="mt-1 text-[11px] text-white/45">Only completed checks stay visible in this degraded preview.</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Readiness</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Full readiness snapshot unavailable</p>
+                <p className="mt-1 text-[11px] text-foreground">Only completed checks stay visible in this degraded preview.</p>
               </div>
               <TrustStatusBadge status="unavailable" size="sm" />
             </div>
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">
               What this degraded preview means
             </p>
             <div className="space-y-2">
               {attentionItems.length === 0 ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-white/55 text-sm leading-none shrink-0">✔</span>
-                  <span className="text-xs text-white/45">No additional degraded warnings.</span>
+                  <span className="text-foreground text-sm leading-none shrink-0">✔</span>
+                  <span className="text-xs text-foreground">No additional degraded warnings.</span>
                 </div>
               ) : attentionItems.slice(0, 3).map(item => (
                 <div key={item} className="flex items-center gap-2">
-                  <span className="text-white/25 text-sm leading-none shrink-0">✖</span>
-                  <span className="text-xs text-white/55">{item}</span>
+                  <span className="text-muted-foreground/50 text-sm leading-none shrink-0">✖</span>
+                  <span className="text-xs text-foreground">{item}</span>
                 </div>
               ))}
             </div>
             {checkedItems.length > 0 ? (
               <div className="space-y-3 border-t border-white/6 pt-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Completed in this lookup</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Completed in this lookup</p>
                 <div className="flex flex-wrap gap-2">
                   {checkedItems.map(item => (
                     <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
@@ -755,7 +755,7 @@ export function ReadinessPreview({
             >
               Continue to passport
             </Button>
-            <p className="mt-2 text-center text-[10px] text-white/20">
+            <p className="mt-2 text-center text-[10px] text-muted-foreground/40">
               NPI-only carryover until a live source run finishes
             </p>
           </div>

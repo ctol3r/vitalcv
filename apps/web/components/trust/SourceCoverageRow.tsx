@@ -53,7 +53,7 @@ export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
           <p className="text-sm font-medium text-white/72">{check.sourceId}</p>
           <Badge
             variant="outline"
-            className="rounded-full border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
+            className="rounded-full border-border bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
           >
             {decisionGrade ? 'Decision grade' : 'Not decision grade'}
           </Badge>

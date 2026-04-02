@@ -150,15 +150,15 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
     return (
       <div className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-4 text-center">
-          <p className="text-white/40 text-sm">
+          <p className="text-muted-foreground text-sm">
             Could not load passport data for this provider.
           </p>
-          <p className="text-white/25 text-xs">
+          <p className="text-muted-foreground/50 text-xs">
             The data may still be ingesting. Try again in a moment.
           </p>
           <Link
             href="/passport"
-            className="block w-full rounded-xl border border-white/10 text-white/50 hover:text-white/70 text-sm py-3.5 text-center transition-colors"
+            className="block w-full rounded-xl border border-border text-foreground/70 hover:text-foreground/70 text-sm py-3.5 text-center transition-colors"
           >
             Back to passport lookup
           </Link>
@@ -277,10 +277,10 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-20">
       <div className="w-full max-w-3xl space-y-6">
         <div className="space-y-2 text-center sm:text-left">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/25">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground/50">
             Passport view
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Portable readiness for the next employer conversation.
           </h1>
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-white/42 sm:mx-0">
@@ -292,8 +292,8 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <div>
-                <p className="text-2xl font-semibold tracking-tight text-white">{displayName}</p>
-                <p className="mt-1 text-sm text-white/45">{specialty}</p>
+                <p className="text-2xl font-semibold tracking-tight text-foreground">{displayName}</p>
+                <p className="mt-1 text-sm text-foreground">{specialty}</p>
               </div>
               <VStatusPill status={readinessStatus} size="sm" />
             </div>
@@ -301,19 +301,19 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
             <div className="grid grid-cols-2 gap-3 text-left sm:min-w-[18rem]">
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Readiness</p>
-                <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.score}/100</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">{passport.readiness.score}/100</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Trust band</p>
-                <p className="mt-1 text-lg font-semibold text-white">{passport.readiness.level}</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">{passport.readiness.level}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Last checked</p>
-                <p className="mt-1 text-sm font-medium text-white">{formatShortDate(passport.lastCheckedAt)}</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{formatShortDate(passport.lastCheckedAt)}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/24">Proof coverage</p>
-                <p className="mt-1 text-sm font-medium text-white">
+                <p className="mt-1 text-sm font-medium text-foreground">
                   {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
                 </p>
               </div>
@@ -332,12 +332,12 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                   {checkedTags.length > 0 ? checkedTags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62"
+                      className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-white/62"
                     >
                       {tag}
                     </span>
                   )) : (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/38">
+                    <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-white/38">
                       No decision-grade checks attached yet
                     </span>
                   )}
@@ -350,12 +350,12 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                   {missingTags.length > 0 ? missingTags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/48"
+                      className="rounded-full border border-border bg-white/[0.03] px-3 py-1 text-xs text-white/48"
                     >
                       {tag}
                     </span>
                   )) : (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/62">
+                    <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-white/62">
                       No visible blockers on this passport
                     </span>
                   )}
@@ -374,14 +374,14 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
                   href={buildPassportEntityHref(passport.entityId)}
-                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 text-sm font-medium text-white/62 transition hover:border-border hover:text-foreground"
                 >
                   Open full passport
                 </Link>
                 {proofHref && (
                   <Link
                     href={proofHref}
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 text-sm font-medium text-white/62 transition hover:border-border hover:text-foreground"
                   >
                     Download proof PDF
                   </Link>
@@ -394,7 +394,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/25">Proof depth</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/50">Proof depth</p>
               <p className="mt-1 text-sm text-white/42">
                 Expand a section to inspect source, freshness, and attached evidence posture.
               </p>
@@ -402,7 +402,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
             {proofHref && (
               <Link
                 href={proofHref}
-                className="hidden rounded-xl border border-white/10 px-4 py-2 text-xs font-medium text-white/48 transition hover:border-white/20 hover:text-white/70 sm:inline-flex"
+                className="hidden rounded-xl border border-border px-4 py-2 text-xs font-medium text-white/48 transition hover:border-border hover:text-foreground/70 sm:inline-flex"
               >
                 Export passport proof
               </Link>
@@ -420,7 +420,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
         <section className="rounded-3xl border border-white/8 bg-white/[0.03] p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/25">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/50">
                 Share with employer
               </p>
               <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/42">
@@ -428,14 +428,14 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               </p>
             </div>
             {hasShareContext && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
+              <span className="rounded-full border border-border bg-muted px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/42">
                 Review context attached
               </span>
             )}
           </div>
 
           {shareState.phase === 'success' ? (
-            <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 p-4">
+            <div className="mt-5 rounded-2xl border border-border bg-black/15 p-4">
               <p className="text-sm font-medium text-white/78">Share recorded</p>
               <p className="mt-1 text-xs leading-relaxed text-white/42">
                 VitalCV returned a real share event for this employer review context.
@@ -455,13 +455,13 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
                   href={reviewHref}
-                  className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+                  className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-4 text-sm font-semibold text-foreground transition hover:opacity-90"
                 >
                   Open employer review
                 </Link>
                 <Link
                   href={buildPassportEntityHref(passport.entityId)}
-                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 text-sm font-medium text-white/56 transition hover:border-border hover:text-foreground"
                 >
                   Return to passport
                 </Link>
@@ -470,8 +470,8 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
           ) : (
             <div className="mt-5 space-y-3">
               {!hasShareContext && (
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <p className="text-sm font-medium text-white/70">Preview only</p>
+                <div className="rounded-2xl border border-border bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-foreground/70">Preview only</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
                     A real employer review context is required before this passport can be shared. Continue from your passport flow or from an employer request that carries a valid context.
                   </p>
@@ -479,8 +479,8 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               )}
 
               {hasShareContext && !CLERK_PROVIDER_ENABLED && (
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <p className="text-sm font-medium text-white/70">Authentication unavailable</p>
+                <div className="rounded-2xl border border-border bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-foreground/70">Authentication unavailable</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
                     This preview environment is not mounting Clerk, so the share action is intentionally blocked here.
                   </p>
@@ -488,8 +488,8 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
               )}
 
               {hasShareContext && CLERK_PROVIDER_ENABLED && isLoaded && !isSignedIn && (
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <p className="text-sm font-medium text-white/70">Sign in required</p>
+                <div className="rounded-2xl border border-border bg-black/15 px-4 py-4">
+                  <p className="text-sm font-medium text-foreground/70">Sign in required</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/38">
                     Sharing writes a real employer review event, so VitalCV requires an authenticated session before it will proceed.
                   </p>
@@ -509,14 +509,14 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     type="button"
                     onClick={handleShare}
                     disabled={shareState.phase === 'loading'}
-                    className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--vt-success)] px-5 text-sm font-semibold text-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {shareState.phase === 'loading' ? 'Sharing with employer…' : 'Share with employer'}
                   </button>
                 ) : CLERK_PROVIDER_ENABLED && hasShareContext ? (
                   <Link
                     href={CLERK_SIGN_IN_URL}
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-5 text-sm font-medium text-white/62 transition hover:border-border hover:text-foreground"
                   >
                     Sign in to share
                   </Link>
@@ -525,7 +525,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                 {canOpenEmployerReview && (
                   <Link
                     href={reviewHref}
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/62 transition hover:border-white/20 hover:text-white"
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-5 text-sm font-medium text-white/62 transition hover:border-border hover:text-foreground"
                   >
                     View employer review
                   </Link>
@@ -533,7 +533,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
 
                 <Link
                   href={buildPassportEntityHref(passport.entityId)}
-                  className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 px-5 text-sm font-medium text-white/56 transition hover:border-white/20 hover:text-white"
+                  className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-5 text-sm font-medium text-white/56 transition hover:border-border hover:text-foreground"
                 >
                   Return to passport
                 </Link>

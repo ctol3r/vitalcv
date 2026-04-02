@@ -236,17 +236,17 @@ export function CommandPalette() {
               exit={{ opacity: 0, scale: 0.98, y: -10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={cn(
-                "relative flex flex-col w-full max-w-3xl overflow-hidden rounded-2xl bg-[#0a0a0f] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-300",
+                "relative flex flex-col w-full max-w-3xl overflow-hidden rounded-2xl bg-[#0a0a0f] border border-border shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-300",
                 isResultsMode ? "h-[80vh] max-h-[800px]" : "h-auto"
               )}
             >
               {/* Sticky Search Header */}
-              <div className="flex-none p-4 pb-2 border-b border-white/10 shrink-0 bg-[#0a0a0f] z-10 sticky top-0">
-                <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-vt-info/40 focus-within:border-vt-info transition-all">
-                  <Search className="w-5 h-5 text-white/50 shrink-0" />
+              <div className="flex-none p-4 pb-2 border-b border-border shrink-0 bg-[#0a0a0f] z-10 sticky top-0">
+                <div className="flex items-center gap-3 bg-muted border border-border rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-vt-info/40 focus-within:border-vt-info transition-all">
+                  <Search className="w-5 h-5 text-foreground/70 shrink-0" />
                   <input
                     ref={inputRef}
-                    className="flex-1 bg-transparent border-none outline-none text-lg text-white placeholder:text-white/30"
+                    className="flex-1 bg-transparent border-none outline-none text-lg text-foreground placeholder:text-muted-foreground/60"
                     placeholder="Search clinicians, employers, opportunities, or Ask AI..."
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
@@ -254,7 +254,7 @@ export function CommandPalette() {
                   />
                   {loading && <div className="w-4 h-4 rounded-full border-2 border-vt-info border-t-transparent animate-spin shrink-0" />}
                   <div className="flex gap-1 shrink-0 ml-2">
-                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] font-mono text-white/40 bg-white/5 rounded border border-white/10">ESC</kbd>
+                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">ESC</kbd>
                   </div>
                 </div>
 
@@ -262,7 +262,7 @@ export function CommandPalette() {
                   <div className="flex gap-2 mt-4 px-1 overflow-x-auto no-scrollbar">
                     <button
                       onClick={() => { setActiveFilter(null); setSelectedIndex(0); }}
-                      className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors", activeFilter === null ? "bg-white text-black font-medium" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white")}
+                      className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors", activeFilter === null ? "bg-white text-black font-medium" : "bg-muted text-foreground hover:bg-muted hover:text-foreground")}
                     >
                       All Results
                     </button>
@@ -270,7 +270,7 @@ export function CommandPalette() {
                       <button
                         key={g}
                         onClick={() => { setActiveFilter(g); setSelectedIndex(0); }}
-                        className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap flex items-center gap-1.5 transition-colors", activeFilter === g ? "bg-white text-black font-medium" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white")}
+                        className={cn("px-3 py-1 text-xs rounded-full whitespace-nowrap flex items-center gap-1.5 transition-colors", activeFilter === g ? "bg-white text-black font-medium" : "bg-muted text-foreground hover:bg-muted hover:text-foreground")}
                       >
                         {g} <span className="text-[10px] opacity-60">({groupedResults[g].length})</span>
                       </button>
@@ -284,8 +284,8 @@ export function CommandPalette() {
                 {!isResultsMode ? (
                   <div className="px-2 py-4">
                     <div className="flex items-center justify-between px-2 mb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40">Suggested Actions</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-white/30 bg-white/5 px-2 py-1 rounded-sm border border-white/5">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Suggested Actions</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 bg-muted px-2 py-1 rounded-sm border border-white/5">
                         <Globe className="w-3 h-3" /> ACL-Safe Search Active
                       </div>
                     </div>
@@ -303,18 +303,18 @@ export function CommandPalette() {
                             className={cn(
                               "flex flex-col items-start p-4 rounded-xl text-left transition-all border",
                               selected
-                                ? "bg-white/10 border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                                : "bg-transparent border-transparent hover:bg-white/5"
+                                ? "bg-muted border-border shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                                : "bg-transparent border-transparent hover:bg-muted"
                             )}
                           >
                             <div className="flex items-center gap-3 mb-2 w-full">
-                              <div className={cn("p-2 rounded-lg", selected ? "bg-vt-info/20 text-vt-info" : "bg-white/5 text-white/60")}>
+                              <div className={cn("p-2 rounded-lg", selected ? "bg-vt-info/20 text-vt-info" : "bg-muted text-foreground")}>
                                 <Icon className="w-5 h-5" />
                               </div>
-                              <div className="font-medium text-white flex-1">{action.label}</div>
-                              {selected && <ArrowRight className="w-4 h-4 text-white/40" />}
+                              <div className="font-medium text-foreground flex-1">{action.label}</div>
+                              {selected && <ArrowRight className="w-4 h-4 text-muted-foreground" />}
                             </div>
-                            <div className="text-xs text-white/50 line-clamp-2">{action.desc}</div>
+                            <div className="text-xs text-foreground/70 line-clamp-2">{action.desc}</div>
                           </button>
                         );
                       })}
@@ -325,7 +325,7 @@ export function CommandPalette() {
                         <Sparkles className="w-6 h-6 text-indigo-400 shrink-0 mt-1" />
                         <div>
                           <h4 className="text-sm font-medium text-indigo-300 mb-1">Try Natural Language</h4>
-                          <p className="text-xs text-white/60">
+                          <p className="text-xs text-foreground">
                             "What are the onboarding requirements for Kaiser ICU?" or "Show me all telemetry events from the last 24 hours."
                           </p>
                         </div>
@@ -336,13 +336,13 @@ export function CommandPalette() {
                   <div className="space-y-6 pt-2">
                     {groups.length === 0 && !loading && (
                       <div className="py-12 text-center flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                          <Search className="w-5 h-5 text-white/30" />
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                          <Search className="w-5 h-5 text-muted-foreground/60" />
                         </div>
-                        <p className="text-sm text-white/60 mb-4">No specific entities found.</p>
+                        <p className="text-sm text-foreground mb-4">No specific entities found.</p>
                         <button
                           onClick={() => { setOpen(false); router.push(`/ask?q=${encodeURIComponent(search)}`); }}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 text-foreground text-sm font-medium hover:bg-indigo-600 transition-colors"
                         >
                           <Sparkles className="w-4 h-4" />
                           Ask the swarm instead
@@ -352,9 +352,9 @@ export function CommandPalette() {
 
                     {groups.map(group => (
                       <div key={group} className="px-2">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-2 px-2 flex justify-between items-center">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2 flex justify-between items-center">
                           {group}
-                          <span className="text-white/20 text-[10px]">Source earmark active</span>
+                          <span className="text-muted-foreground/40 text-[10px]">Source earmark active</span>
                         </h3>
                         <div className="space-y-1">
                           {groupedResults[group].map((item: any) => {
@@ -369,7 +369,7 @@ export function CommandPalette() {
                                 onMouseEnter={() => setSelectedIndex(globalIndex)}
                                 className={cn(
                                   "w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all group",
-                                  selected ? "bg-white/10" : "hover:bg-white/5"
+                                  selected ? "bg-muted" : "hover:bg-muted"
                                 )}
                               >
                                 <div className={cn("p-1.5 rounded-md shrink-0 mt-0.5", item._meta.color)}>
@@ -377,16 +377,16 @@ export function CommandPalette() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-white" : "text-white/80")}>
+                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-white" : "text-foreground/80")}>
                                       {item.title}
                                     </span>
                                   </div>
-                                  <p className="text-xs text-white/50 line-clamp-1 group-hover:text-white/70 transition-colors">
+                                  <p className="text-xs text-foreground/70 line-clamp-1 group-hover:text-foreground/70 transition-colors">
                                     {item.snippet}
                                   </p>
                                 </div>
                                 {selected && (
-                                  <div className="shrink-0 flex items-center justify-center h-full text-white/40 mt-1">
+                                  <div className="shrink-0 flex items-center justify-center h-full text-muted-foreground mt-1">
                                     <ChevronRight className="w-4 h-4" />
                                   </div>
                                 )}
@@ -401,10 +401,10 @@ export function CommandPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex-none p-2 border-t border-white/10 bg-black/40 text-[10px] text-white/30 flex items-center justify-between px-4">
+              <div className="flex-none p-2 border-t border-border bg-black/40 text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><kbd className="bg-white/10 px-1 rounded">↑↓</kbd> to navigate</span>
-                  <span className="flex items-center gap-1"><kbd className="bg-white/10 px-1 rounded">↵</kbd> to select</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↑↓</kbd> to navigate</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↵</kbd> to select</span>
                 </div>
                 <div>Global Control Plane Access</div>
               </div>

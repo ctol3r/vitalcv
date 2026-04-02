@@ -46,7 +46,7 @@ export default function InterviewBlockedState({
         <p className="text-white/32 text-sm leading-relaxed">{description}</p>
         <Link
           href={primaryHref ?? PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
-          className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold py-4 transition-all text-center"
+          className="block w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-foreground text-sm font-semibold py-4 transition-all text-center"
         >
           {primaryLabel ?? 'Start with NPI lookup'}
         </Link>

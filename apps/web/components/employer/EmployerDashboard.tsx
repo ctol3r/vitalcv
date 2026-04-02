@@ -83,7 +83,7 @@ const APPLICATION_STATUS_TONE: Record<AppStatus, string> = {
   REVIEWED: 'text-sky-200 border-sky-500/25 bg-sky-500/10',
   ACCEPTED: 'text-emerald-200 border-emerald-500/25 bg-emerald-500/10',
   DECLINED: 'text-rose-200 border-rose-500/25 bg-rose-500/10',
-  WITHDRAWN: 'text-white/50 border-white/10 bg-white/5',
+  WITHDRAWN: 'text-foreground/70 border-border bg-muted',
 };
 
 function relativeTime(iso: string | null): string {
@@ -131,13 +131,13 @@ function SectionShell({
     <section className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
-          {helper ? <p className="mt-1 text-sm text-white/45">{helper}</p> : null}
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          {helper ? <p className="mt-1 text-sm text-foreground">{helper}</p> : null}
         </div>
         {actionHref && actionLabel ? (
           <Link
             href={actionHref}
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/65 transition hover:border-white/20 hover:text-white"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition hover:border-border hover:text-foreground"
           >
             {actionLabel}
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -167,9 +167,9 @@ function MetricCard({
       <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${tone}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <p className="mt-4 text-sm font-medium text-white/55">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm text-white/35">{detail}</p>
+      <p className="mt-4 text-sm font-medium text-foreground">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-foreground">{value}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -187,7 +187,7 @@ function ResourceState({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-white/45">
+      <div className="flex items-center justify-center py-12 text-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading live marketplace data…
       </div>
@@ -203,7 +203,7 @@ function ResourceState({
   }
 
   if (!children) {
-    return <p className="text-sm text-white/35">{empty}</p>;
+    return <p className="text-sm text-muted-foreground">{empty}</p>;
   }
 
   return children;
@@ -222,11 +222,11 @@ function ApplicationRow({
     : buildEmployerApplicationProofMoments(application);
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/5 p-5 transition-all hover:bg-white/10 hover:border-white/20 group cursor-pointer block">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-4">
+    <div className="rounded-2xl border border-white/8 bg-muted p-5 transition-all hover:bg-muted hover:border-border group cursor-pointer block">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+            <p className="text-base font-bold text-foreground group-hover:text-amber-400 transition-colors">
               {providerLabel(application)}
             </p>
             {readiness?.readinessLevel === 'L3' && (
@@ -236,7 +236,7 @@ function ApplicationRow({
               </div>
             )}
           </div>
-          <p className="mt-1 text-sm text-white/50 font-medium">
+          <p className="mt-1 text-sm text-foreground/70 font-medium">
             {application.opportunity?.title ?? 'Unknown role'}
             {' · '}
             {application.opportunity?.state ?? 'Unknown state'}
@@ -250,44 +250,44 @@ function ApplicationRow({
       <div className="mt-5 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Live Readiness</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1.5">Live Readiness</p>
             {readiness ? (
               <p className="font-mono text-emerald-400 font-semibold text-sm">
-                {readiness.readinessLevel} <span className="text-white/20 px-1 truncate">|</span> {readiness.readinessScore}/100
+                {readiness.readinessLevel} <span className="text-muted-foreground/40 px-1 truncate">|</span> {readiness.readinessScore}/100
               </p>
             ) : (
-              <p className="text-white/30 font-medium text-sm">Unavailable</p>
+              <p className="text-muted-foreground/60 font-medium text-sm">Unavailable</p>
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Key Credentials</p>
-            <p className="text-white/80 font-medium text-sm truncate">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1.5">Key Credentials</p>
+            <p className="text-foreground/80 font-medium text-sm truncate">
               {readiness?.keyCredentials?.slice(0, 2).join(', ') || 'Processing...'}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Trust Signals</p>
-            <p className="text-white/80 font-medium text-sm truncate">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1.5">Trust Signals</p>
+            <p className="text-foreground/80 font-medium text-sm truncate">
               {readiness?.trustSignals?.slice(0, 2).join(', ') || 'Pending'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4 mt-2 md:mt-0">
-          <div className="text-xs font-medium text-white/40 text-right">
+          <div className="text-xs font-medium text-muted-foreground text-right">
             Applied {relativeTime(application.createdAt)}
           </div>
-          <Link href={`/verifier/inbox`} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500">
+          <Link href={`/verifier/inbox`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
             Review & Verify
           </Link>
         </div>
       </div>
 
       {proofMoments.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Prepared by VitalCV</p>
+        <div className="mt-4 rounded-2xl border border-border bg-black/20 px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prepared by VitalCV</p>
           <div className="mt-3 space-y-2">
             {proofMoments.map((moment) => (
-              <p key={moment} className="text-sm leading-6 text-white/70">
+              <p key={moment} className="text-sm leading-6 text-foreground/70">
                 {moment}
               </p>
             ))}
@@ -303,19 +303,19 @@ function ProviderRow({ provider }: { provider: IntelligenceProvider }) {
     <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">{provider.name}</p>
-          <p className="mt-1 text-sm text-white/45">{provider.specialties.slice(0, 2).join(' · ') || `NPI ${provider.npi}`}</p>
+          <p className="text-sm font-semibold text-foreground">{provider.name}</p>
+          <p className="mt-1 text-sm text-foreground">{provider.specialties.slice(0, 2).join(' · ') || `NPI ${provider.npi}`}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-white">{provider.trustScore}</p>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-white/30">Trust</p>
+          <p className="text-lg font-semibold text-foreground">{provider.trustScore}</p>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/60">Trust</p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/55">
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-foreground">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1">
           {provider.credentialHealth.toLowerCase()}
         </span>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1">
           {provider.activeCredentials} active credentials
         </span>
       </div>
@@ -328,14 +328,14 @@ function FindingRow({ finding }: { finding: IntelligenceFinding }) {
     <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">{finding.title}</p>
-          <p className="mt-1 text-sm text-white/45">{finding.providerLabel ?? finding.providerNpi ?? 'Unknown provider'}</p>
+          <p className="text-sm font-semibold text-foreground">{finding.title}</p>
+          <p className="mt-1 text-sm text-foreground">{finding.providerLabel ?? finding.providerNpi ?? 'Unknown provider'}</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
           {finding.severity}
         </span>
       </div>
-      <p className="mt-3 text-sm text-white/55">{finding.summary}</p>
+      <p className="mt-3 text-sm text-foreground">{finding.summary}</p>
     </div>
   );
 }
@@ -345,14 +345,14 @@ function StorylineRow({ storyline }: { storyline: IntelligenceStoryline }) {
     <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">{storyline.title}</p>
-          <p className="mt-1 text-sm text-white/45">{storyline.providerNpi ?? 'Cross-provider storyline'}</p>
+          <p className="text-sm font-semibold text-foreground">{storyline.title}</p>
+          <p className="mt-1 text-sm text-foreground">{storyline.providerNpi ?? 'Cross-provider storyline'}</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
           {storyline.status}
         </span>
       </div>
-      <p className="mt-3 text-sm text-white/55">{storyline.summary}</p>
+      <p className="mt-3 text-sm text-foreground">{storyline.summary}</p>
     </div>
   );
 }
@@ -362,14 +362,14 @@ function ActionRow({ action }: { action: IntelligenceAction }) {
     <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">{action.title}</p>
-          <p className="mt-1 text-sm text-white/45">{action.targetLabel ?? action.providerNpi ?? 'Organization queue'}</p>
+          <p className="text-sm font-semibold text-foreground">{action.title}</p>
+          <p className="mt-1 text-sm text-foreground">{action.targetLabel ?? action.providerNpi ?? 'Organization queue'}</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">
           {action.priority}
         </span>
       </div>
-      <p className="mt-3 text-sm text-white/55">{action.explanation}</p>
+      <p className="mt-3 text-sm text-foreground">{action.explanation}</p>
     </div>
   );
 }
@@ -504,13 +504,13 @@ export function EmployerDashboard() {
 
   if (roleLoaded && isSignedIn && !isEmployer) {
     return (
-      <main className="min-h-screen bg-[#08101d] px-6 py-12 text-white">
+      <main className="min-h-screen bg-[#08101d] px-6 py-12 text-foreground">
         <div className="mx-auto max-w-4xl">
           <div className="rounded-[28px] border border-amber-500/20 bg-amber-500/10 p-8">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-200" />
               <div>
-                <h1 className="text-2xl font-semibold text-white">Employer workspace required</h1>
+                <h1 className="text-2xl font-semibold text-foreground">Employer workspace required</h1>
                 <p className="mt-2 text-sm leading-6 text-amber-50/85">
                   This dashboard is for employer and verifier actions. Switch into your employer workspace to review providers, findings, and incoming applications.
                 </p>
@@ -518,7 +518,7 @@ export function EmployerDashboard() {
                   <Link href="/workspace/switch" className="glue-btn glue-btn-primary">
                     Open workspace switcher
                   </Link>
-                  <Link href="/holder/home" className="glue-btn border border-white/10 bg-white/5 text-white hover:bg-white/10">
+                  <Link href="/holder/home" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
                     Return to clinician dashboard
                   </Link>
                 </div>
@@ -531,14 +531,14 @@ export function EmployerDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#08101d] px-6 py-12 text-white">
+    <main className="min-h-screen bg-[#08101d] px-6 py-12 text-foreground">
       <div className="mx-auto max-w-7xl">
         <header className="rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.16),_transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.28)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/80">Employer Dashboard</p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">Apply, verify, hire, and pay in one loop.</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">Apply, verify, hire, and pay in one loop.</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-foreground">
                 Incoming applications include readiness, verified credentials, and trust signals as of [date/quarter] so your team can confidently move clinicians to start.
               </p>
             </div>
@@ -546,7 +546,7 @@ export function EmployerDashboard() {
               <Link href="/verifier/inbox" className="glue-btn glue-btn-primary">
                 Open applications queue
               </Link>
-              <Link href="/verifier/opportunities" className="glue-btn border border-white/10 bg-white/5 text-white hover:bg-white/10">
+              <Link href="/verifier/opportunities" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
                 Post opportunity
               </Link>
             </div>
@@ -588,12 +588,12 @@ export function EmployerDashboard() {
           <section className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Employer value signals</h2>
-                <p className="mt-1 text-sm text-white/45">
+                <h2 className="text-lg font-semibold text-foreground">Employer value signals</h2>
+                <p className="mt-1 text-sm text-foreground">
                   Queue facts tied to readiness visibility, issues caught before review, and prepared context.
                 </p>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/65">
+              <span className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold text-foreground/60">
                 {valueSignalsLoading ? 'Loading…' : 'Real signals only'}
               </span>
             </div>
@@ -605,43 +605,43 @@ export function EmployerDashboard() {
             ) : null}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Readiness visible</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.readinessVisibleCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Readiness visible</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.readinessVisibleCount}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Prepared context</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.preparedReviewCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Prepared context</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.preparedReviewCount}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Issues caught early</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.issuesIdentifiedBeforeReviewCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Issues caught early</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.issuesIdentifiedBeforeReviewCount}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Review actions</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.reviewActionCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Review actions</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.reviewActionCount}</p>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Applications moving</p>
-                <p className="mt-2 text-lg font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.applicationsMovingCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Applications moving</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.applicationsMovingCount}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Live findings</p>
-                <p className="mt-2 text-lg font-semibold text-white">{findings.loading ? '…' : findingRows.length}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live findings</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{findings.loading ? '…' : findingRows.length}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">Action queue</p>
-                <p className="mt-2 text-lg font-semibold text-white">{valueSignalsLoading ? '…' : proofSummary.actionQueueCount}</p>
+              <div className="rounded-2xl border border-border bg-black/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Action queue</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{valueSignalsLoading ? '…' : proofSummary.actionQueueCount}</p>
               </div>
             </div>
 
             <div className="mt-4 flex justify-end">
               <Link
                 href="/api/employer/value-signals"
-                className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/65 transition hover:border-white/20 hover:text-white"
+                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground/60 transition hover:border-border hover:text-foreground"
               >
                 Export JSON
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -652,12 +652,12 @@ export function EmployerDashboard() {
           <section className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">What Changed Because Of VitalCV</h2>
-                <p className="mt-1 text-sm text-white/45">
+                <h2 className="text-lg font-semibold text-foreground">What Changed Because Of VitalCV</h2>
+                <p className="mt-1 text-sm text-foreground">
                   Candidate, review, and queue movement summarized from live employer state.
                 </p>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/65">
+              <span className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold text-foreground/60">
                 {proofSummary.applicationsMovingCount} moving
               </span>
             </div>
@@ -667,18 +667,18 @@ export function EmployerDashboard() {
                 <Link
                   key={change.id}
                   href={change.href}
-                  className="block rounded-2xl border border-white/10 bg-black/20 px-4 py-3 transition hover:border-white/20"
+                  className="block rounded-2xl border border-border bg-black/20 px-4 py-3 transition hover:border-border"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">{change.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-white/65">{change.summary}</p>
+                      <p className="text-sm font-semibold text-foreground">{change.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-foreground/60">{change.summary}</p>
                     </div>
-                    <p className="text-xs text-white/40">{relativeTime(change.occurredAt)}</p>
+                    <p className="text-xs text-muted-foreground">{relativeTime(change.occurredAt)}</p>
                   </div>
                 </Link>
               )) : (
-                <p className="text-sm text-white/45">
+                <p className="text-sm text-foreground">
                   Recent employer-side value signals will appear here as clinicians and reviewers move the queue.
                 </p>
               )}
@@ -805,7 +805,7 @@ export function EmployerDashboard() {
               <Clock3 className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-[0.18em]">Marketplace timing</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-white/55">
+            <p className="mt-4 text-sm leading-6 text-foreground">
               Accepted clinicians can move straight into the separate hire/start flow from the inbox, using the billing-backed employer start endpoints already in the system.
             </p>
           </div>
@@ -815,7 +815,7 @@ export function EmployerDashboard() {
               <Layers3 className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-[0.18em]">Intelligence sync</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-white/55">
+            <p className="mt-4 text-sm leading-6 text-foreground">
               Reduce hiring cycles by making confident decisions on Registered with CMS NPPES signals instantly. Reviewing or verifying a clinician from the inbox automatically updates storylines and findings.
             </p>
           </div>
@@ -825,14 +825,14 @@ export function EmployerDashboard() {
               <Building2 className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-[0.18em]">Employer readiness</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-white/55">
+            <p className="mt-4 text-sm leading-6 text-foreground">
               Each incoming application now carries provider identity, readiness, credentials, and trust signals so employers see value immediately instead of landing on demo-only views.
             </p>
           </div>
         </section>
 
         {(providers.recovering || findings.recovering || storylines.recovering || actions.recovering || valueSignalsLoading) ? (
-          <div className="mt-6 flex items-center gap-2 text-sm text-white/40">
+          <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Refreshing live employer intelligence…
           </div>

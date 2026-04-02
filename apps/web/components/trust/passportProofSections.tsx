@@ -33,7 +33,7 @@ function accordionMeta(label: string) {
   return (
     <Badge
       variant="outline"
-      className="rounded-full border-white/8 bg-white/4 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35"
+      className="rounded-full border-white/8 bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
     >
       {label}
     </Badge>
@@ -155,10 +155,10 @@ function credentialRecordsValue(credentials: PassportData['authority']['credenti
           className="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-2"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-white/70">{credentialEvidenceLabel(credential)}</span>
+            <span className="text-foreground/70">{credentialEvidenceLabel(credential)}</span>
             <TrustStatusBadge status={credentialAccordionStatus(credential)} size="sm" />
           </div>
-          <p className="mt-1 text-white/45">
+          <p className="mt-1 text-foreground">
             {joinNoteParts([
               resolveAuthorityMethodLabel(credential),
               formatAsOfDate(credential.observedAt ?? credential.verifiedAt),

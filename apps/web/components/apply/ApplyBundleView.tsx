@@ -55,16 +55,16 @@ interface Props {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MONITORING_META = {
-  active: { label: 'Continuously monitored', color: 'text-white/70', dot: 'bg-white/70' },
-  partial: { label: 'Partially monitored', color: 'text-white/55', dot: 'bg-white/55' },
-  inactive: { label: 'Monitoring inactive', color: 'text-white/25', dot: 'bg-white/25' },
+  active: { label: 'Continuously monitored', color: 'text-foreground/70', dot: 'bg-white/70' },
+  partial: { label: 'Partially monitored', color: 'text-foreground', dot: 'bg-muted5' },
+  inactive: { label: 'Monitoring inactive', color: 'text-muted-foreground/50', dot: 'bg-white/25' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  Verified: 'text-white/70',
-  Active: 'text-white/60',
-  Pending: 'text-white/55',
-  Unavailable: 'text-white/35',
+  Verified: 'text-foreground/70',
+  Active: 'text-foreground',
+  Pending: 'text-foreground',
+  Unavailable: 'text-muted-foreground',
 };
 
 function formatDate(iso: string | null): string {
@@ -147,15 +147,15 @@ export function ApplyBundleView({ bundle }: Props) {
   const reviewHref = buildReviewHref(bundle);
 
   return (
-    <div className="min-h-screen bg-ops-gradient text-white">
+    <div className="min-h-screen bg-ops-gradient text-foreground">
       {/* Header band */}
       <div className="border-b border-white/6 bg-[var(--vt-surface-dim)] backdrop-blur px-6 py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <div className="flex items-center gap-2">
             <VitalCVLogo />
-            <span className="text-sm font-semibold text-white">VitalCV</span>
+            <span className="text-sm font-semibold text-foreground">VitalCV</span>
           </div>
-          <span className="text-xs text-white/25">Employer review share</span>
+          <span className="text-xs text-muted-foreground/50">Employer review share</span>
         </div>
       </div>
 
@@ -175,20 +175,20 @@ export function ApplyBundleView({ bundle }: Props) {
         <section className="rounded-2xl border border-white/6 bg-[var(--vt-surface-dim)] px-5 py-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
                 What you are looking at
               </p>
-              <p className="mt-1 text-sm text-white/60">
+              <p className="mt-1 text-sm text-foreground">
                 A public credential capsule with the clinician&apos;s current readiness, supporting credentials, issuer provenance, and integrity details.
               </p>
-              <p className="mt-2 text-xs text-white/40">NPI {bundle.npi}</p>
+              <p className="mt-2 text-xs text-muted-foreground">NPI {bundle.npi}</p>
             </div>
             <div className="flex items-center gap-2 text-xs font-medium">
               <span className={`h-1.5 w-1.5 rounded-full ${monitorMeta.dot}`} />
               <span className={monitorMeta.color}>{monitorMeta.label}</span>
             </div>
           </div>
-          <p className="mt-3 text-xs text-white/40">
+          <p className="mt-3 text-xs text-muted-foreground">
             Sign in to continue to the employer decision surface and take action on this candidate.
           </p>
         </section>
@@ -196,37 +196,37 @@ export function ApplyBundleView({ bundle }: Props) {
         {/* Credential list */}
         <section className="overflow-hidden rounded-2xl border border-white/6 bg-[var(--vt-surface)]">
           <div className="border-b border-white/6 px-5 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
               Credential Snapshot ({bundle.credentials.length})
             </p>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="mt-1 text-sm text-foreground">
               Each row shows the credential type, issuing source, current availability, and the most recent verification timestamp included in this share.
             </p>
           </div>
           <div className="divide-y divide-white/6">
             {bundle.credentials.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-white/20">No credentials included in this bundle.</p>
+              <p className="px-5 py-4 text-sm text-muted-foreground/40">No credentials included in this bundle.</p>
             ) : (
               bundle.credentials.map((cred, i) => (
                 <div key={`${cred.type}-${i}`} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="h-8 w-8 rounded-lg bg-white/6 flex items-center justify-center shrink-0">
+                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                     <CredentialIcon type={cred.type} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-foreground">
                       <CredentialTypeLabel type={cred.type} />
                     </p>
-                    <p className="text-xs text-white/25">{cred.issuer}</p>
+                    <p className="text-xs text-muted-foreground/50">{cred.issuer}</p>
                     {cred.expiresAt && (
-                      <p className="text-[10px] text-white/20">Expires {formatDate(cred.expiresAt)}</p>
+                      <p className="text-[10px] text-muted-foreground/40">Expires {formatDate(cred.expiresAt)}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <span className={`text-xs font-semibold ${STATUS_COLORS[canonicalCredStatus(cred.status)] ?? 'text-white/40'}`}>
+                    <span className={`text-xs font-semibold ${STATUS_COLORS[canonicalCredStatus(cred.status)] ?? 'text-muted-foreground'}`}>
                       {canonicalCredStatus(cred.status)}
                     </span>
                     {cred.verifiedAt && (
-                      <p className="mt-0.5 text-[10px] text-white/20">
+                      <p className="mt-0.5 text-[10px] text-muted-foreground/40">
                         Verified {formatDate(cred.verifiedAt)}
                       </p>
                     )}
@@ -241,22 +241,22 @@ export function ApplyBundleView({ bundle }: Props) {
         {bundle.issuerProvenance.length > 0 && (
           <section className="overflow-hidden rounded-2xl border border-white/6 bg-[var(--vt-surface)]">
             <div className="border-b border-white/6 px-5 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
                 Issuer Provenance
               </p>
             </div>
             <div className="divide-y divide-white/6">
               {bundle.issuerProvenance.map((issuer) => (
                 <div key={issuer.issuerId} className="flex items-center justify-between px-5 py-3">
-                  <p className="text-sm text-white">{issuer.name}</p>
+                  <p className="text-sm text-foreground">{issuer.name}</p>
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-white/60"
+                        className="h-full rounded-full bg-card"
                         style={{ width: `${issuer.trustScore}%` }}
                       />
                     </div>
-                    <span className="w-8 text-right text-xs text-white/25">{issuer.trustScore}</span>
+                    <span className="w-8 text-right text-xs text-muted-foreground/50">{issuer.trustScore}</span>
                   </div>
                 </div>
               ))}
@@ -269,17 +269,17 @@ export function ApplyBundleView({ bundle }: Props) {
           <div className="flex items-start gap-3">
             <ShieldCheckIcon />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white/70">Bundle verified by VitalCV</p>
-              <p className="mt-1 text-xs text-white/40">
+              <p className="text-sm font-semibold text-foreground/70">Bundle verified by VitalCV</p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 This credential bundle was cryptographically signed and has not been tampered with.
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <code className="truncate text-[10px] font-mono text-white/25">
+                <code className="truncate text-[10px] font-mono text-muted-foreground/50">
                   {truncateHash(bundle.signature)}
                 </code>
-                <span className="text-[10px] text-white/20">SHA-256</span>
+                <span className="text-[10px] text-muted-foreground/40">SHA-256</span>
               </div>
-              <div className="mt-1 flex gap-4 text-[10px] text-white/20">
+              <div className="mt-1 flex gap-4 text-[10px] text-muted-foreground/40">
                 <span>Generated {formatDate(bundle.generatedAt)}</span>
                 <span>Expires {formatDate(bundle.expiresAt)}</span>
               </div>
@@ -289,12 +289,12 @@ export function ApplyBundleView({ bundle }: Props) {
 
         {/* Profile link */}
         <div className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--vt-surface-dim)] px-4 py-3">
-          <span className="text-xs text-white/25">Full trust profile</span>
+          <span className="text-xs text-muted-foreground/50">Full trust profile</span>
           <a
             href={bundle.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-medium text-white/70 transition-colors hover:text-white"
+            className="text-xs font-medium text-foreground/70 transition-colors hover:text-foreground"
           >
             View on VitalCV →
           </a>
@@ -305,7 +305,7 @@ export function ApplyBundleView({ bundle }: Props) {
         <div className="mx-auto max-w-2xl">
           <Link
             href={reviewHref}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-white/8 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/12"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-muted px-4 py-3 text-center text-sm font-semibold text-foreground transition-colors hover:bg-white/12"
           >
             View full report — sign in to accept
           </Link>
@@ -319,7 +319,7 @@ export function ApplyBundleView({ bundle }: Props) {
 
 function VitalCVLogo() {
   return (
-    <svg className="h-6 w-6 text-white/70" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <svg className="h-6 w-6 text-foreground/70" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path d="M10 2L3 7v11h14V7L10 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
       <path d="M7 12l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -328,7 +328,7 @@ function VitalCVLogo() {
 
 function ShieldCheckIcon() {
   return (
-    <svg className="h-5 w-5 shrink-0 text-white/70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <svg className="h-5 w-5 shrink-0 text-foreground/70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
       <path
         fillRule="evenodd"
         d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.5.5 0 01.479.425c.069.52.104 1.05.104 1.589 0 5.162-3.26 9.563-7.833 11.237a.5.5 0 01-.334 0C5.26 16.563 2 12.162 2 7a11.88 11.88 0 01.145-1.796.5.5 0 01.479-.425 11.947 11.947 0 007.037-2.542zM13.28 7.72a.75.75 0 010 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-1.5-1.5a.75.75 0 111.06-1.06l.97.97 2.97-2.97a.75.75 0 011.06 0z"

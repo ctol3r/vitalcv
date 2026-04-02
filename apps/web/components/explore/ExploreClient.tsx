@@ -475,32 +475,32 @@ export default function ExploreClient() {
         <button
           onClick={() => setShowFilters(f => !f)}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-            showFilters ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400' : 'bg-white/5 border border-white/10 text-white/60 hover:text-white'
+            showFilters ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400' : 'bg-muted border border-border text-foreground hover:text-foreground'
           }`}
         >
           <Filter className="w-4 h-4" /> Filters
-          {hasFilters && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-xs font-bold">!</span>}
+          {hasFilters && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-foreground text-xs font-bold">!</span>}
         </button>
 
         {showFilters && (
           <>
             <select value={specialty} onChange={e => setSpecialty(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">All Specialties</option>
               {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <select value={state} onChange={e => setState(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">All States</option>
               {STATES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <select value={hiringType} onChange={e => setHiringType(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">All Types</option>
               {HIRING_TYPES.map(t => <option key={t} value={t}>{HIRING_TYPE_LABELS[t]}</option>)}
             </select>
             <select value={payModel} onChange={e => setPayModel(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Pay Model</option>
               {PAY_MODELS.map((model) => <option key={model} value={model}>{formatPayModel(model as ApiOpportunity['payModel'])}</option>)}
             </select>
@@ -509,43 +509,43 @@ export default function ExploreClient() {
               onChange={e => setPayMin(e.target.value)}
               inputMode="numeric"
               placeholder="Pay min"
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/35 focus:outline-none focus:border-blue-500/50"
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
             />
             <input
               value={payMax}
               onChange={e => setPayMax(e.target.value)}
               inputMode="numeric"
               placeholder="Pay max"
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/35 focus:outline-none focus:border-blue-500/50"
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
             />
             <select value={visaSponsorship} onChange={e => setVisaSponsorship(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Visa Policy</option>
               {VISA_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             <select value={benefits} onChange={e => setBenefits(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Benefits Visibility</option>
               {BENEFIT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             <select value={employerType} onChange={e => setEmployerType(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Employer Type</option>
               {EMPLOYER_TYPES.map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
             <select value={startUrgency} onChange={e => setStartUrgency(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Start Window</option>
               {START_URGENCY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
-            <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
               <input type="checkbox" checked={remoteOnly} onChange={e => setRemoteOnly(e.target.checked)} className="rounded" />
               Remote only
             </label>
             {comparisonFiltersAvailable ? (
               <>
                 <select value={readinessStatus} onChange={e => setReadinessStatus(e.target.value)}
-                  className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 focus:outline-none focus:border-blue-500/50">
+                  className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
                   <option value="">Any Readiness Fit</option>
                   {READINESS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
@@ -553,7 +553,7 @@ export default function ExploreClient() {
                   value={missingRequirement}
                   onChange={e => setMissingRequirement(e.target.value)}
                   placeholder="Missing requirement"
-                  className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/35 focus:outline-none focus:border-blue-500/50"
+                  className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
                 />
               </>
             ) : null}
@@ -567,12 +567,12 @@ export default function ExploreClient() {
         )}
 
         {hasFilters && (
-          <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-white/40 hover:text-white transition-colors ml-auto">
+          <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
             <X className="w-3 h-3" /> Clear all
           </button>
         )}
 
-        <span className={`${hasFilters ? '' : 'ml-auto'} text-sm text-white/40`}>
+        <span className={`${hasFilters ? '' : 'ml-auto'} text-sm text-muted-foreground`}>
           {loading ? '…' : `${total} role${total !== 1 ? 's' : ''}`}
         </span>
       </div>
@@ -605,13 +605,13 @@ export default function ExploreClient() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-vt-neutral-800/50 mb-6 ring-1 ring-white/10 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)]">
             <Zap className="h-7 w-7 text-vt-neutral-400" />
           </div>
-          <h3 className="text-white text-xl font-medium tracking-tight mb-2">No active matches found</h3>
+          <h3 className="text-foreground text-xl font-medium tracking-tight mb-2">No active matches found</h3>
           <p className="text-vt-neutral-300 text-sm max-w-md mb-8">
             The network is updated continuously. There are currently no roles matching this precise filter combination. Broaden your search to see more options.
           </p>
           <button 
             onClick={clearFilters}
-            className="rounded-full vt-glass border border-vt-neutral-700 px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-vt-neutral-200 hover:text-white hover:border-vt-neutral-600 transition-all active:scale-[0.98]"
+            className="rounded-full vt-glass border border-vt-neutral-700 px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-vt-neutral-200 hover:text-foreground hover:border-vt-neutral-600 transition-all active:scale-[0.98]"
           >
             Clear Filter Stack
           </button>
@@ -635,7 +635,7 @@ export default function ExploreClient() {
       {/* Matching CTA */}
       <div className="mt-16 rounded-2xl border border-vt-success/20 bg-vt-success/5 p-8 text-center">
         <ShieldCheck className="mx-auto mb-3 h-6 w-6 text-vt-success" />
-        <h3 className="heading-md text-white">Preview your fit in the live flow</h3>
+        <h3 className="heading-md text-foreground">Preview your fit in the live flow</h3>
         <p className="body-sm mx-auto mt-2 max-w-md text-vt-neutral-200">
           Start with your public NPI profile and VitalCV will show which live roles align with your current readiness state before you submit.
         </p>
@@ -680,7 +680,7 @@ function statusClasses(status: string): string {
     case 'rose':
       return 'border-rose-500/20 bg-rose-500/10 text-rose-300';
     case 'zinc':
-      return 'border-white/10 bg-white/5 text-white/55';
+      return 'border-border bg-muted text-foreground';
     case 'amber':
     default:
       return 'border-amber-500/20 bg-amber-500/10 text-amber-200';
@@ -721,9 +721,9 @@ function OpportunityCard({
           onClick={trackOpportunityView}
           className="min-w-0 flex-1"
         >
-          <h3 className="font-medium text-white leading-tight text-lg group-hover:text-emerald-400 transition-colors hover:text-emerald-300">{opp.title}</h3>
+          <h3 className="font-medium text-foreground leading-tight text-lg group-hover:text-emerald-400 transition-colors hover:text-emerald-300">{opp.title}</h3>
           <div className="flex items-center gap-2 mt-2">
-            <div className="flex items-center justify-center w-5 h-5 rounded bg-white/5 border border-white/10">
+            <div className="flex items-center justify-center w-5 h-5 rounded bg-muted border border-border">
               <Building2 className="w-3 h-3 text-vt-neutral-300" />
             </div>
             <span className="text-sm font-medium text-vt-neutral-200">{opp.organizationName}</span>
@@ -792,13 +792,13 @@ function OpportunityCard({
             Remote
           </span>
         )}
-        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+        <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-foreground/70">
           {formatVisaStatus(opp.visaSponsorshipStatus)}
         </span>
-        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/50">
+        <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-foreground/70">
           {formatBenefitsStatus(opp.benefitsAvailability)}
         </span>
-        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/40">
+        <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-muted-foreground">
           {opp.specialty}
         </span>
       </div>
@@ -810,18 +810,18 @@ function OpportunityCard({
           <>
             <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 relative overflow-hidden mt-2">
               <div className="grid grid-cols-[80px_1fr] gap-y-2 text-sm relative z-10">
-                <span className="text-white/40">Role</span>
-                <span className="text-white font-medium">{opp.specialty}</span>
+                <span className="text-muted-foreground">Role</span>
+                <span className="text-foreground font-medium">{opp.specialty}</span>
                 
-                <span className="text-white/40">Readiness</span>
+                <span className="text-muted-foreground">Readiness</span>
                 <span className={readinessScore >= 80 ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{readinessScore}% match</span>
                 
-                <span className="text-white/40">Blockers</span>
-                <span className={opp.comparison.missing.length > 0 ? "text-rose-400" : "text-white/70"}>
+                <span className="text-muted-foreground">Blockers</span>
+                <span className={opp.comparison.missing.length > 0 ? "text-rose-400" : "text-foreground/70"}>
                   {opp.comparison.missing.length > 0 ? opp.comparison.missing[0]?.label : 'None'}
                 </span>
                 
-                <span className="text-white/40">Time</span>
+                <span className="text-muted-foreground">Time</span>
                 <span className="text-white">{opp.comparison.estimatedGap}</span>
               </div>
             </div>
@@ -834,14 +834,14 @@ function OpportunityCard({
           </>
         );
       })() : (
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 mt-2 flex items-center justify-between">
+        <div className="rounded-2xl border border-border bg-black/20 px-4 py-4 mt-2 flex items-center justify-between">
            <div>
-             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 flex items-center gap-1.5">
+             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
                <ShieldCheck className="w-3 h-3" /> Readiness Engine
              </p>
-             <p className="text-xs text-white/70 mt-1">Preview your start-readiness timeline</p>
+             <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
-           <Link href="/passport" className="text-xs font-semibold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors shrink-0 ml-4">
+           <Link href="/passport" className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4">
               Calculate Fit
            </Link>
         </div>
@@ -856,7 +856,7 @@ function OpportunityCard({
           }}
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
             application
-              ? 'border border-white/10 bg-white/5 text-white hover:bg-white/10'
+              ? 'border border-border bg-muted text-foreground hover:bg-muted'
               : 'bg-gradient-to-b from-vt-success to-emerald-600 text-black shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:brightness-110'
           }`}
         >
@@ -865,7 +865,7 @@ function OpportunityCard({
         {opp.organizationSlug && (
           <Link
             href={`/employers/${opp.organizationSlug}`}
-            className="flex items-center justify-center rounded-xl border border-vt-neutral-800 px-4 py-2.5 text-sm font-medium text-vt-neutral-200 transition-all hover:border-vt-neutral-700 hover:bg-vt-neutral-800/50 hover:text-white vt-glass"
+            className="flex items-center justify-center rounded-xl border border-vt-neutral-800 px-4 py-2.5 text-sm font-medium text-vt-neutral-200 transition-all hover:border-vt-neutral-700 hover:bg-vt-neutral-800/50 hover:text-foreground vt-glass"
           >
             View proof
           </Link>
