@@ -1,6 +1,6 @@
 [build]
 installCommand = "pnpm install --no-frozen-lockfile"
-buildCommand = "npx prisma generate --schema apps/api/backend/prisma/schema.prisma"
+buildCommand = "npx prisma generate --schema apps/api/backend/prisma/schema.prisma && cd apps/api/backend && npx tsc -p tsconfig.json"
 
 
 [deploy]
