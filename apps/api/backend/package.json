@@ -58,7 +58,8 @@
     "supercluster": "^7.1.3",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
-    "web-did-resolver": "^2.0.30"
+    "web-did-resolver": "^2.0.30",
+    "@vitalcv/ingest": "workspace:*"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",
