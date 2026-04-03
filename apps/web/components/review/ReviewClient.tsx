@@ -27,6 +27,7 @@ import { SectionReveal } from '@/components/motion/ScrollMotion';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   buildPassportProofSections,
@@ -423,7 +424,7 @@ function BinaryDecisionCard({
           variant="success"
           className="h-12 w-full rounded-xl text-sm font-semibold"
         >
-          Accept as head start{blocked.length > 0 ? ` (${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted)` : ''}
+          Proceed (head start){blocked.length > 0 ? ` (${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted)` : ''}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button
@@ -432,7 +433,7 @@ function BinaryDecisionCard({
             variant="outline"
             className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground/70"
           >
-            Request missing info
+            Request updated data
           </Button>
           <Button
             onClick={onRouteToReview}
@@ -453,13 +454,20 @@ function BinaryDecisionCard({
 
 // ── Main review component ──────────────────────────────────────────────────────
 
-interface Props {
+interface ReviewClientLoadedProps {
   passport:   PassportData;
   contextId?: string;
   bundleId?:  string;
   sharedBy?:  string;
   acceptanceHistory?: EmployerAcceptanceHistoryResponse;
 }
+
+interface ReviewClientLoadingProps {
+  loading: true;
+  entityId?: string;
+}
+
+type Props = ReviewClientLoadedProps | ReviewClientLoadingProps;
 
 // ── M2: Freshness helpers ──────────────────────────────────────────────────
 
@@ -733,13 +741,67 @@ function AcceptanceHistoryPanel({
   );
 }
 
-export default function ReviewClient({
+function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
+  return (
+    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
+      <div className="w-full max-w-3xl space-y-6">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground/50 text-xs tracking-widest uppercase">VitalCV</span>
+          <span className="text-muted-foreground/50 text-xs">Employer review</span>
+        </div>
+
+        <Card className="rounded-2xl border border-border bg-card px-5 py-5 shadow-none">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-44 rounded-full" />
+              <Skeleton className="h-4 w-28 rounded-full" />
+            </div>
+            <div className="space-y-2 text-right">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Decision readiness</p>
+              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {['Identity', 'Safety', 'License', 'Enrollment'].map((item) => (
+              <div key={item} className="flex items-start gap-3">
+                <span className="mt-0.5 text-sm shrink-0 text-muted-foreground/40">·</span>
+                <div className="w-full space-y-1.5">
+                  <p className="text-sm font-medium text-foreground/80">{item}</p>
+                  <Skeleton className="h-3 w-56 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <Button disabled variant="success" className="h-12 rounded-xl text-sm font-semibold sm:col-span-3">
+              Proceed (head start)
+            </Button>
+            <Button disabled variant="outline" className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70">
+              Request updated data
+            </Button>
+            <Button disabled variant="outline" className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70">
+              Route to review
+            </Button>
+          </div>
+
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            Loading source-backed decision data{entityId ? ` for ${entityId.slice(0, 8)}…` : ''}. Only real proof will fill this surface.
+          </p>
+        </Card>
+      </div>
+    </main>
+  );
+}
+
+function ReviewClientLoaded({
   passport,
   contextId,
   bundleId,
   sharedBy,
   acceptanceHistory,
-}: Props) {
+}: ReviewClientLoadedProps) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
   const [confirmStartState, setConfirmStartState] = useState<
@@ -1052,6 +1114,26 @@ export default function ReviewClient({
           <span className="text-muted-foreground/50 text-xs">Employer review</span>
         </div>
 
+        {/* ══════════════════════════════════════════════════════════════════
+            BINARY DECISION CARD — Above the fold. Employer decides here.
+            <10 seconds. Everything else is collapsed below.
+        ══════════════════════════════════════════════════════════════════ */}
+        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
+          <BinaryDecisionCard
+            passport={passport}
+            blocked={blocked}
+            safetyRow={safetyRow}
+            identityStatus={identityStatus}
+            authorityCredentials={authority.credentials}
+            acceptanceHistorySummary={acceptanceHistoryState.summary}
+            canPersistActions={canPersistActions}
+            previewOnlyMessage={previewOnlyMessage}
+            onAccept={handleAccept}
+            onRequestRefresh={handleRequestRefresh}
+            onRouteToReview={handleRouteToReview}
+          />
+        )}
+
         {/* ── Review context attribution ────────────────────────────────────── */}
         {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
@@ -1083,44 +1165,23 @@ export default function ReviewClient({
             </div>
           </Card>
         )}
-        {/* No context — direct view, actions not context-attributed */}
         {!sharedBy && !contextId && !bundleId && (
           <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Review context</span>
               <span className="text-amber-300/70">None — direct view</span>
             </div>
-            <p className="text-[10px] text-muted-foreground/40 leading-relaxed mt-0.5">
+            <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/40">
               Actions here are not tied to a confirmed employer context.{' '}
               <Link
                 href="/review/request"
-                className="text-foreground underline underline-offset-2 hover:text-foreground/60 transition-colors"
+                className="text-foreground underline underline-offset-2 transition-colors hover:text-foreground/60"
               >
                 Request a review context
               </Link>{' '}
               for auditable decisions.
             </p>
           </Card>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-            BINARY DECISION CARD — Above the fold. Employer decides here.
-            <10 seconds. Everything else is collapsed below.
-        ══════════════════════════════════════════════════════════════════ */}
-        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
-          <BinaryDecisionCard
-            passport={passport}
-            blocked={blocked}
-            safetyRow={safetyRow}
-            identityStatus={identityStatus}
-            authorityCredentials={authority.credentials}
-            acceptanceHistorySummary={acceptanceHistoryState.summary}
-            canPersistActions={canPersistActions}
-            previewOnlyMessage={previewOnlyMessage}
-            onAccept={handleAccept}
-            onRequestRefresh={handleRequestRefresh}
-            onRouteToReview={handleRouteToReview}
-          />
         )}
 
         {/* ── Action feedback states ─────────────────────────────────────── */}
@@ -1676,4 +1737,16 @@ export default function ReviewClient({
       </div>
     </main>
   );
+}
+
+export default function ReviewClient(props: Props) {
+  if ('loading' in props && props.loading) {
+    return <ReviewClientLoadingShell entityId={props.entityId} />;
+  }
+
+  if (!('passport' in props)) {
+    return <ReviewClientLoadingShell />;
+  }
+
+  return <ReviewClientLoaded {...props} />;
 }

@@ -16,6 +16,10 @@
 
 import { useState, useCallback, useRef } from 'react';
 import {
+  buildPublicIngestStreamUrl,
+  startPublicIngest,
+} from '@/lib/api';
+import {
   INGEST_EVENT_TYPES,
   applyIngestDisconnect,
   applyIngestEvent,
@@ -31,6 +35,7 @@ export { hydrateFromHomepagePreview };
 export type {
   IngestEvent,
   IngestEventType,
+  IngestStreamState,
   SourceStatus,
   StreamIdentity,
   StreamPhase,
@@ -48,6 +53,52 @@ export function useIngestStream(initialState?: IngestStreamState | null) {
   );
   const esRef = useRef<EventSource | null>(null);
 
+  const openStream = useCallback((runId: string) => {
+    const es = new EventSource(buildPublicIngestStreamUrl(runId));
+    esRef.current = es;
+
+    const handler = (e: MessageEvent<string>) => {
+      const event = parseIngestEventData(e.data);
+      if (!event) {
+        return;
+      }
+
+      setState(prev => applyIngestEvent(prev, event));
+      if (event.type === 'done' || event.type === 'error') {
+        es.close();
+        esRef.current = null;
+      }
+    };
+
+    for (const eventType of INGEST_EVENT_TYPES) {
+      es.addEventListener(eventType, handler as EventListener);
+    }
+
+    es.onmessage = handler;
+
+    es.onerror = () => {
+      setState(prev => applyIngestDisconnect(prev));
+      es.close();
+      esRef.current = null;
+    };
+  }, []);
+
+  const resumeIngest = useCallback((runId: string, seedState?: IngestStreamState | null) => {
+    // Close any existing stream
+    esRef.current?.close();
+    esRef.current = null;
+
+    if (seedState) {
+      setState({
+        ...seedState,
+        runId,
+        disconnected: false,
+      });
+    }
+
+    openStream(runId);
+  }, [openStream]);
+
   const startIngest = useCallback(async (npi: string) => {
     // Close any existing stream
     esRef.current?.close();
@@ -62,47 +113,14 @@ export function useIngestStream(initialState?: IngestStreamState | null) {
 
     try {
       // 1. Start ingest run
-      const res = await fetch(`/api/ingest/${npi}`, { method: 'POST' });
-      const body = await res.json().catch(() => ({}));
       const runId = parseIngestStartResponse({
-        ok: res.ok,
-        status: res.status,
-        body,
+        ...(await startPublicIngest(npi)),
       });
 
       setState(prev => ({ ...prev, runId }));
 
       // 2. Open SSE stream (via Next.js streaming proxy)
-      const es = new EventSource(`/api/ingest/stream/${runId}`);
-      esRef.current = es;
-
-      // The backend sends named SSE events (event: source_start, source_complete, etc.)
-      // EventSource.onmessage only fires for unnamed events.
-      // We must listen for each named event type individually.
-      const handler = (e: MessageEvent<string>) => {
-        const event = parseIngestEventData(e.data);
-        if (!event) {
-          return;
-        }
-
-        setState(prev => applyIngestEvent(prev, event));
-        if (event.type === 'done' || event.type === 'error') {
-          es.close();
-          esRef.current = null;
-        }
-      };
-      for (const eventType of INGEST_EVENT_TYPES) {
-        es.addEventListener(eventType, handler as EventListener);
-      }
-      // Also listen for unnamed events (fallback)
-      es.onmessage = handler;
-
-      es.onerror = () => {
-        setState(prev => applyIngestDisconnect(prev));
-        es.close();
-        esRef.current = null;
-      };
-
+      openStream(runId);
     } catch (err) {
       setState(prev => ({
         ...prev,
@@ -115,7 +133,7 @@ export function useIngestStream(initialState?: IngestStreamState | null) {
         error: err instanceof Error ? err.message : 'Failed to start ingest.',
       }));
     }
-  }, []);
+  }, [openStream]);
 
   const reset = useCallback(() => {
     esRef.current?.close();
@@ -123,5 +141,5 @@ export function useIngestStream(initialState?: IngestStreamState | null) {
     setState(createInitialIngestStreamState());
   }, []);
 
-  return { state, startIngest, reset };
+  return { state, startIngest, resumeIngest, reset };
 }

@@ -9,7 +9,8 @@ const BACKEND =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review']);
+const AUTHENTICATED_MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review', 'confirm-start']);
+const PUBLIC_MUTATION_ACTIONS = new Set(['view']);
 const PUBLIC_READ_ACTIONS = new Set(['acceptance-history']);
 const AUTHENTICATED_READ_ACTIONS = new Set(['packet', 'status']);
 
@@ -29,12 +30,13 @@ export async function POST(
 ) {
   const { entityId, action } = await context.params;
 
-  if (!MUTATION_ACTIONS.has(action)) {
+  if (!AUTHENTICATED_MUTATION_ACTIONS.has(action) && !PUBLIC_MUTATION_ACTIONS.has(action)) {
     return NextResponse.json({ error: 'Unsupported employer-review action.' }, { status: 404 });
   }
 
+  const requiresAuth = AUTHENTICATED_MUTATION_ACTIONS.has(action);
   const { userId } = await auth();
-  if (!userId) {
+  if (requiresAuth && !userId) {
     return unauthorizedResponse();
   }
 
@@ -43,7 +45,7 @@ export async function POST(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-clerk-user-id': userId,
+      ...(userId ? { 'x-clerk-user-id': userId } : {}),
     },
     body,
   });

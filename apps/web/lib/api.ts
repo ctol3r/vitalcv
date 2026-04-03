@@ -79,4 +79,129 @@ export function apiRoute(path: ApiPath): string {
   return base ? `${base}${resolvedPath}` : resolvedPath;
 }
 
+async function readJsonBody<T>(response: Response): Promise<T | null> {
+  try {
+    return await response.json() as T;
+  } catch {
+    return null;
+  }
+}
+
+export function buildPublicIngestStreamUrl(runId: string): string {
+  return `/api/ingest/stream/${encodeURIComponent(runId)}`;
+}
+
+export async function startPublicIngest(npi: string): Promise<{
+  ok: boolean;
+  status: number;
+  body: Record<string, unknown> | null;
+}> {
+  const response = await fetch(`/api/ingest/${encodeURIComponent(npi)}`, {
+    method: 'POST',
+  });
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await readJsonBody<Record<string, unknown>>(response),
+  };
+}
+
+export async function fetchPassportEntity(
+  entityId: string,
+): Promise<{
+  ok: boolean;
+  status: number;
+  body: import('@/lib/trust/passport-contract').PassportData | null;
+}> {
+  const response = await fetch(`/api/passport/entity/${encodeURIComponent(entityId)}`, {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await readJsonBody<import('@/lib/trust/passport-contract').PassportData>(response),
+  };
+}
+
+export async function fetchReviewAcceptanceHistory(
+  entityId: string,
+): Promise<{
+  ok: boolean;
+  status: number;
+  body: import('@/lib/employer-review-actions').EmployerAcceptanceHistoryResponse | null;
+}> {
+  const response = await fetch(
+    `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
+    {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    },
+  );
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await readJsonBody<import('@/lib/employer-review-actions').EmployerAcceptanceHistoryResponse>(response),
+  };
+}
+
+export async function fetchEmployerReviewStatus(
+  entityId: string,
+  scope?: {
+    contextId?: string;
+    bundleId?: string;
+  },
+): Promise<{
+  ok: boolean;
+  status: number;
+  body: import('@/lib/employer-review-actions').EmployerReviewStatusResponse | null;
+}> {
+  const params = new URLSearchParams();
+  if (scope?.contextId) {
+    params.set('organizationContextId', scope.contextId);
+  }
+  if (scope?.bundleId) {
+    params.set('bundleId', scope.bundleId);
+  }
+
+  const query = params.toString();
+  const response = await fetch(
+    `/api/employer-review/${encodeURIComponent(entityId)}/status${query ? `?${query}` : ''}`,
+    {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    },
+  );
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await readJsonBody<import('@/lib/employer-review-actions').EmployerReviewStatusResponse>(response),
+  };
+}
+
+export async function fireEmployerReviewOpened(
+  entityId: string,
+  payload: {
+    organizationContextId?: string | null;
+    bundleId?: string | null;
+    readinessScore?: number | null;
+    blockers?: string[];
+  },
+): Promise<Response> {
+  return fetch(`/api/employer-review/${encodeURIComponent(entityId)}/view`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      organizationContextId: payload.organizationContextId ?? null,
+      bundleId: payload.bundleId ?? null,
+      readinessScore: payload.readinessScore ?? null,
+      blockers: payload.blockers ?? [],
+    }),
+  });
+}
+
 export type { ApiPath };

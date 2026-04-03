@@ -27,7 +27,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
-import { useIngestStream, hydrateFromHomepagePreview, type StreamPhase } from '@/hooks/useIngestStream';
+import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
@@ -36,6 +36,7 @@ import {
 } from '@/lib/trust/public-wedge-parity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
+import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -93,11 +94,11 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   label: string;
 } {
   if (state === 'checking') {
-    return { status: 'pending', label: 'Checking' };
+    return { status: 'pending', label: 'Pending' };
   }
 
   if (state === 'pending') {
-    return { status: 'pending', label: 'Queued' };
+    return { status: 'pending', label: 'Pending' };
   }
 
   if (state === 'error') {
@@ -114,6 +115,9 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
     case 'Opted out':
     case 'Excluded':
       surfaceState = 'review_required';
+      break;
+    case 'Access required':
+      surfaceState = 'access_required';
       break;
     case 'No profile yet':
       surfaceState = 'unavailable';
@@ -225,6 +229,33 @@ function formatEnrollmentLabel(
   return enrollmentStatus ?? 'Checked';
 }
 
+function resolveLicenseState(streamState: IngestStreamState): SourceState {
+  if (streamState.phase === 'error' && !streamState.isUsable) {
+    return 'error';
+  }
+
+  if (streamState.completedAt || streamState.readyAt || streamState.isUsable) {
+    return 'done';
+  }
+
+  return streamState.runId ? 'checking' : 'pending';
+}
+
+function formatLicenseLabel(
+  streamState: IngestStreamState,
+  state: SourceState,
+): string | undefined {
+  if (state === 'error') {
+    return undefined;
+  }
+
+  if (state === 'done') {
+    return 'Access required';
+  }
+
+  return state === 'checking' ? 'Pending' : undefined;
+}
+
 // ── SessionStorage handoff ─────────────────────────────────────────────────────
 
 const PREVIEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -234,9 +265,19 @@ function readHomepagePreview(npi: string) {
     const raw = sessionStorage.getItem(`vitalcv:preview:${npi}`);
     if (!raw) return null;
     sessionStorage.removeItem(`vitalcv:preview:${npi}`);
-    const parsed = JSON.parse(raw) as { timestamp?: number; realState?: unknown; stages?: unknown; isDemo?: unknown };
+    const parsed = JSON.parse(raw) as {
+      kind?: string;
+      timestamp?: number;
+      state?: IngestStreamState;
+      realState?: unknown;
+      stages?: unknown;
+      isDemo?: unknown;
+    };
     if (typeof parsed.timestamp === 'number' && Date.now() - parsed.timestamp > PREVIEW_TTL_MS) {
       return null;
+    }
+    if (parsed.kind === 'ingestStream' && parsed.state) {
+      return parsed.state;
     }
     return hydrateFromHomepagePreview({ npi, ...parsed } as Parameters<typeof hydrateFromHomepagePreview>[0]);
   } catch {
@@ -253,16 +294,37 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   const hydratedRef = useRef<ReturnType<typeof readHomepagePreview>>(
     initialNpi && /^\d{10}$/.test(initialNpi) ? readHomepagePreview(initialNpi) : null,
   );
-  const { state, startIngest, reset } = useIngestStream(hydratedRef.current);
+  const { state, startIngest, resumeIngest, reset } = useIngestStream(hydratedRef.current);
 
   useEffect(() => {
-    if (initialNpi && /^\d{10}$/.test(initialNpi) && !autoTriggered.current) {
+    if (autoTriggered.current) {
+      return;
+    }
+
+    if (hydratedRef.current) {
+      autoTriggered.current = true;
+      setInputError(null);
+      setNpi(hydratedRef.current.npi ?? initialNpi ?? '');
+
+      if (
+        hydratedRef.current.runId
+        && !hydratedRef.current.completedAt
+        && hydratedRef.current.phase !== 'done'
+        && hydratedRef.current.phase !== 'error'
+      ) {
+        resumeIngest(hydratedRef.current.runId, hydratedRef.current);
+      }
+
+      return;
+    }
+
+    if (initialNpi && /^\d{10}$/.test(initialNpi)) {
       autoTriggered.current = true;
       setInputError(null);
       setNpi(initialNpi);
       void startIngest(initialNpi);
     }
-  }, [initialNpi, startIngest]);
+  }, [initialNpi, resumeIngest, startIngest]);
 
   useEffect(() => {
     void trackPilotEvent({
@@ -413,22 +475,27 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               </Card>
             )}
 
-            {/* Source status rows */}
-            <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
-              <SourceRow
-                label="Identity"
+          {/* Source status rows */}
+          <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
+            <SourceRow
+                label="NPPES"
                 state={sources.nppes}
                 value={identityLabel}
               />
               <SourceRow
-                label="Sanctions (OIG)"
+                label="OIG / LEIE"
                 state={sources.oig}
                 value={exclusionLabel}
               />
               <SourceRow
-                label="Enrollment (CMS)"
+                label="CMS PECOS"
                 state={sources.pecos}
                 value={enrollmentLabel}
+              />
+              <SourceRow
+                label="Configured state board lane"
+                state={resolveLicenseState(state)}
+                value={formatLicenseLabel(state, resolveLicenseState(state))}
               />
             </Card>
 
@@ -438,15 +505,23 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
                   <TrustStatusBadge
-                    status={
-                      state.readiness.score >= 70 ? 'checked'
-                      : state.readiness.score >= 40 ? 'pending'
-                      : 'unavailable'
-                    }
+                    status={resolveLivePathReadinessStatus(
+                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                        ? state.readiness.status
+                        : state.readiness.score >= 70
+                          ? 'READY'
+                          : state.readiness.score >= 40
+                            ? 'PARTIAL'
+                            : 'BLOCKED',
+                    )}
                     label={
-                      state.readiness.score >= 70 ? 'Ready'
-                      : state.readiness.score >= 40 ? 'Partial'
-                      : 'Blocked'
+                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                        ? state.readiness.status
+                        : state.readiness.score >= 70
+                          ? 'READY'
+                          : state.readiness.score >= 40
+                            ? 'PARTIAL'
+                            : 'BLOCKED'
                     }
                     size="sm"
                   />

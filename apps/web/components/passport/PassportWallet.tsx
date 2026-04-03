@@ -32,6 +32,7 @@ import { Accordion } from '@/components/ui/accordion';
 import type { AccordionItem } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import type { PassportData, ReadinessStatus } from '@/lib/trust/passport-contract';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
@@ -444,11 +445,85 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
 // ── Main wallet component ──────────────────────────────────────────────────────
 
-interface Props {
+interface PassportWalletLoadedProps {
   passport: PassportData;
 }
 
-export default function PassportWallet({ passport }: Props) {
+interface PassportWalletLoadingProps {
+  loading: true;
+}
+
+type Props = PassportWalletLoadedProps | PassportWalletLoadingProps;
+
+function PassportWalletLoadingShell() {
+  return (
+    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-12 sm:pt-16 pb-24">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center">
+          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
+        </div>
+
+        <Card className="gap-0 rounded-2xl border border-border bg-muted px-5 py-5 shadow-none">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50">Passport</p>
+          <Skeleton className="mt-3 h-7 w-40 rounded-full" />
+          <Skeleton className="mt-2 h-4 w-28 rounded-full" />
+          <div className="mt-4">
+            <TrustStatusBadge status="pending" label="Pending" size="sm" />
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            Resolving source-backed passport sections. Nothing is promoted to checked until real source data arrives.
+          </p>
+        </Card>
+
+        <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Summary</p>
+              <p className="mt-1 text-sm text-foreground/70">READY / PARTIAL / BLOCKED</p>
+            </div>
+            <TrustStatusBadge status="pending" label="Pending" size="sm" />
+          </div>
+          <div className="space-y-3 border-t border-white/6 pt-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">NPPES</span>
+              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">OIG / LEIE</span>
+              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">CMS PECOS</span>
+              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Configured state board lane</span>
+              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-36 rounded-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
+            <Skeleton className="h-3 w-[88%] rounded-full" />
+          </div>
+          <div className="space-y-3 border-t border-white/6 pt-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center justify-between gap-3">
+                <Skeleton className="h-3 w-28 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </main>
+  );
+}
+
+function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -687,4 +762,16 @@ export default function PassportWallet({ passport }: Props) {
       </div>
     </main>
   );
+}
+
+export default function PassportWallet(props: Props) {
+  if ('loading' in props && props.loading) {
+    return <PassportWalletLoadingShell />;
+  }
+
+  if (!('passport' in props)) {
+    return <PassportWalletLoadingShell />;
+  }
+
+  return <PassportWalletLoaded passport={props.passport} />;
 }

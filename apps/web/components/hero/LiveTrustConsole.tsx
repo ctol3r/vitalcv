@@ -1,35 +1,18 @@
 'use client';
 
-/**
- * LiveTrustConsole — Hero
- *
- * State machine:  idle → loading → preview → (Continue) → /passport?npi=
- *
- * loading:
- *   1. POST /api/identity/[npi]/ingest  — real NPPES + OIG/LEIE query
- *   2. GET  /api/trust-state/[npi]      — real readiness state from ingested claims
- *   Both are real backend calls. If the backend is unreachable, the component
- *   preserves the entered NPI and renders a clearly degraded preview state.
- *
- * preview:
- *   ReadinessPreview receives either:
- *     realState: ClinicianTrustState  (from trust-state endpoint)
- *     null                            (backend unavailable — degraded fallback)
- *
- * Color rule: green is used ONLY on the CTA button.
- */
-
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoleContext } from '@/components/auth/RoleContext';
+import { ReadinessPreview } from '@/components/hero/ReadinessPreview';
+import { TimeToStartCard } from '@/components/hero/TimeToStartCard';
+import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   getTrustStatusDescriptor,
   TrustStatusBadge,
 } from '@/components/ui/trust-status-badge';
-import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { useIngestStream, type IngestStreamState } from '@/hooks/useIngestStream';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
   LIVE_PATH_NPI_RE,
@@ -43,119 +26,50 @@ import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
 } from '@/lib/trust/status-language';
-import {
-  ReadinessPreview,
-  type ClinicianTrustState,
-  type DegradedPreviewReason,
-} from './ReadinessPreview';
-import { TimeToStartCard } from './TimeToStartCard';
+import { Input } from '@/components/ui/input';
 
 type Phase = 'idle' | 'loading' | 'preview';
 
-// ── Source stage display ──────────────────────────────────────
+type ConsoleStageStatus =
+  | 'pending'
+  | 'loading'
+  | 'checked'
+  | 'access_required'
+  | 'unavailable'
+  | 'review_required';
 
-interface SourceStage {
-  id: string;
+interface ConsoleStage {
+  id: 'nppes' | 'oig' | 'pecos' | 'license';
   label: string;
-  status: 'waiting' | 'loading' | 'ok' | 'skipped' | 'failed';
+  status: ConsoleStageStatus;
+  detail: string;
 }
 
-const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live or preview snapshot.';
-
-const INITIAL_STAGES: SourceStage[] = [
-  { id: 'NPPES_API', label: 'Primary identity (NPPES)', status: 'waiting' },
-  { id: 'OIG_LEIE', label: 'Sanctions (OIG / LEIE)', status: 'waiting' },
-  { id: 'PECOS', label: 'Enrollment (PECOS)', status: 'waiting' },
-  { id: 'LICENSE', label: 'License verification', status: 'waiting' },
-  { id: 'READINESS', label: 'Readiness snapshot', status: 'waiting' },
-];
-
-// Map ingest result status → display status
-function mapStatus(s: string | undefined): SourceStage['status'] {
-  if (s === 'SUCCESS') return 'ok';
-  if (s === 'SKIPPED') return 'skipped';
-  if (s === 'FAILED')  return 'failed';
-  return 'waiting';
-}
-
-const STAGE_SYMBOL: Record<SourceStage['status'], string> = {
-  waiting: '·',
-  loading: '◌',
-  ok:      '✓',
-  skipped: '–',
-  failed:  '✗',
-};
-
-const STAGE_COLOR: Record<SourceStage['status'], string> = {
-  waiting: 'text-muted-foreground/40',
-  loading: 'text-sky-200',
-  ok:      'text-sky-200',
-  skipped: 'text-amber-200',
-  failed:  'text-rose-200',
-};
-
-function stageBadge(stage: SourceStage): {
-  status: 'pending' | 'checked' | 'review_required' | 'unavailable' | 'access_required';
-  label: string;
-} {
-  switch (stage.status) {
-    case 'loading':
-      return { status: 'pending', label: 'Checking' };
-    case 'ok':
-      return { status: 'checked', label: 'Checked' };
-    case 'failed':
-      return { status: 'unavailable', label: 'Unavailable' };
-    case 'skipped':
-      // PECOS and License are not checked on the homepage — show as access_required
-      if (stage.id === 'PECOS' || stage.id === 'LICENSE') {
-        return { status: 'access_required', label: 'Access required' };
-      }
-      return { status: 'unavailable', label: 'Unavailable' };
-    case 'waiting':
-    default:
-      return { status: 'pending', label: 'Queued' };
-  }
-}
-
-function setStageStatus(
-  stages: SourceStage[],
-  stageId: string,
-  status: SourceStage['status'],
-): SourceStage[] {
-  return stages.map((stage) => (
-    stage.id === stageId
-      ? { ...stage, status }
-      : stage
-  ));
-}
-
-function setStageStatuses(
-  stages: SourceStage[],
-  updates: Partial<Record<SourceStage['id'], SourceStage['status']>>,
-): SourceStage[] {
-  return stages.map((stage) => (
-    updates[stage.id]
-      ? { ...stage, status: updates[stage.id] as SourceStage['status'] }
-      : stage
-  ));
-}
-
-function resolveLoadingCopy(stages: SourceStage[], isDemo: boolean): string {
-  if (isDemo) return 'Preparing preview…';
-  if (stages.find((stage) => stage.id === 'READINESS')?.status === 'loading') {
-    return 'Building your snapshot…';
-  }
-  if (stages.some((stage) => stage.id !== 'READINESS' && stage.status === 'loading')) {
-    return 'Checking primary sources…';
-  }
-  return 'Resolving readiness…';
-}
+const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live readiness snapshot.';
 
 const FLOW_STEPS = [
   'Enter NPI',
   'Review readiness',
   'Open passport',
 ] as const;
+
+const STAGE_SYMBOL: Record<ConsoleStageStatus, string> = {
+  pending: '·',
+  loading: '◌',
+  checked: '✓',
+  access_required: '!',
+  unavailable: '✗',
+  review_required: '?',
+};
+
+const STAGE_COLOR: Record<ConsoleStageStatus, string> = {
+  pending: 'text-muted-foreground/40',
+  loading: 'text-sky-200',
+  checked: 'text-sky-200',
+  access_required: 'text-amber-200',
+  unavailable: 'text-rose-200',
+  review_required: 'text-amber-200',
+};
 
 function resolveFlowStepState(
   phase: Phase,
@@ -186,61 +100,234 @@ function flowStepClassName(state: 'complete' | 'active' | 'upcoming'): string {
   }
 }
 
-// ── Ingest response shape (subset) ───────────────────────────
+function resolveLoadingCopy(streamState: IngestStreamState, isFallback: boolean): string {
+  if (isFallback) {
+    return LIVE_PATH_PREVIEW_NOTICE.partialCoverage;
+  }
 
-interface IngestSourceResult {
-  source:       string;
-  status:       'SUCCESS' | 'SKIPPED' | 'FAILED';
-  claimsEmitted: number;
-  latencyMs:    number;
-  error?:       string;
+  if (streamState.phase === 'starting') {
+    return 'Connecting to primary sources…';
+  }
+
+  if (streamState.phase === 'nppes' || streamState.phase === 'sanctions') {
+    return 'Checking primary sources…';
+  }
+
+  if (streamState.phase === 'enrollment') {
+    return 'Checking CMS PECOS…';
+  }
+
+  if (typeof streamState.readiness.score === 'number') {
+    return 'Building your readiness snapshot…';
+  }
+
+  return 'Resolving readiness…';
 }
 
-interface IngestResponse {
-  npi:      string;
-  results:  IngestSourceResult[];
-  fallback?: boolean;       // set by our proxy when backend is down
-  error?:   string;
+function resolveLicenseStage(streamState: IngestStreamState): ConsoleStage {
+  if (streamState.phase === 'error' && !streamState.isUsable) {
+    return {
+      id: 'license',
+      label: 'Configured state board lane',
+      status: 'unavailable',
+      detail: 'Live retry required before authority can be checked.',
+    };
+  }
+
+  if (streamState.completedAt || streamState.readyAt || streamState.isUsable) {
+    return {
+      id: 'license',
+      label: 'Configured state board lane',
+      status: 'access_required',
+      detail: 'Institutional source access is still required for source-backed licensure.',
+    };
+  }
+
+  return {
+    id: 'license',
+    label: 'Configured state board lane',
+    status: streamState.runId ? 'loading' : 'pending',
+    detail: 'Waiting to determine whether source-backed authority is available.',
+  };
 }
 
-// ── LiveTrustConsole ─────────────────────────────────────────
+function buildConsoleStages(streamState: IngestStreamState): ConsoleStage[] {
+  const nppes: ConsoleStage = {
+    id: 'nppes',
+    label: 'NPPES',
+    status:
+      streamState.sources.nppes === 'error'
+        ? 'unavailable'
+        : streamState.identity.authoritative
+          ? 'checked'
+          : streamState.sources.nppes === 'done'
+            ? 'review_required'
+            : streamState.sources.nppes === 'checking'
+              ? 'loading'
+              : 'pending',
+    detail: streamState.identity.authoritative
+      ? 'Source-backed provider identity is attached to this run.'
+      : streamState.sources.nppes === 'done'
+        ? 'The provider record needs review before stronger trust claims can rely on it.'
+        : 'Waiting for the public NPI registry.',
+  };
+
+  const oig: ConsoleStage = {
+    id: 'oig',
+    label: 'OIG / LEIE',
+    status:
+      streamState.sources.oig === 'error'
+        ? 'unavailable'
+        : streamState.standing.exclusionStatus === 'EXCLUDED' || streamState.standing.exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'review_required'
+          : streamState.standing.exclusionChecked && streamState.standing.exclusionClear
+            ? 'checked'
+            : streamState.sources.oig === 'checking'
+              ? 'loading'
+              : streamState.sources.oig === 'done'
+                ? 'pending'
+                : 'pending',
+    detail:
+      streamState.standing.exclusionChecked
+        ? streamState.standing.exclusionClear
+          ? 'No exclusion finding is attached in this live run.'
+          : `Current result requires review: ${streamState.standing.exclusionStatus ?? 'unknown'}.`
+        : 'Waiting for the OIG / LEIE result.',
+  };
+
+  const pecos: ConsoleStage = {
+    id: 'pecos',
+    label: 'CMS PECOS',
+    status:
+      streamState.sources.pecos === 'error'
+        ? 'unavailable'
+        : streamState.standing.enrollmentStatus === 'NOT_FOUND' || streamState.standing.enrollmentStatus === 'OPTED_OUT'
+          ? 'review_required'
+          : streamState.standing.enrollmentChecked && streamState.standing.enrollmentStatus === 'ENROLLED'
+            ? 'checked'
+            : streamState.sources.pecos === 'checking'
+              ? 'loading'
+              : streamState.sources.pecos === 'done'
+                ? 'pending'
+                : 'pending',
+    detail:
+      streamState.standing.enrollmentChecked
+        ? streamState.standing.enrollmentStatus === 'ENROLLED'
+          ? 'CMS PECOS returned an enrolled provider record.'
+          : `CMS PECOS returned ${streamState.standing.enrollmentStatus ?? 'an unresolved status'}.`
+        : 'Waiting for the CMS PECOS result.',
+  };
+
+  return [
+    nppes,
+    oig,
+    pecos,
+    resolveLicenseStage(streamState),
+  ];
+}
+
+function mapStageToFallbackStatus(status: ConsoleStageStatus) {
+  switch (status) {
+    case 'checked':
+      return 'ok' as const;
+    case 'loading':
+      return 'loading' as const;
+    case 'access_required':
+      return 'skipped' as const;
+    case 'review_required':
+    case 'unavailable':
+      return 'failed' as const;
+    case 'pending':
+    default:
+      return 'waiting' as const;
+  }
+}
+
+function resolveStageBadge(stageStatus: ConsoleStageStatus): {
+  status: 'pending' | 'checked' | 'access_required' | 'unavailable' | 'review_required';
+  label: string;
+} {
+  switch (stageStatus) {
+    case 'checked':
+      return { status: 'checked', label: 'Checked' };
+    case 'access_required':
+      return { status: 'access_required', label: 'Access required' };
+    case 'unavailable':
+      return { status: 'unavailable', label: 'Unavailable' };
+    case 'review_required':
+      return { status: 'review_required', label: 'Review required' };
+    case 'loading':
+    case 'pending':
+    default:
+      return { status: 'pending', label: 'Pending' };
+  }
+}
+
+function writeLiveSnapshot(npi: string, state: IngestStreamState) {
+  try {
+    sessionStorage.setItem(
+      `vitalcv:preview:${npi}`,
+      JSON.stringify({
+        kind: 'ingestStream',
+        timestamp: Date.now(),
+        state,
+      }),
+    );
+  } catch {
+    // sessionStorage is best-effort only.
+  }
+}
 
 interface LiveTrustConsoleProps {
-  /** Called when the readiness preview becomes visible — receives resolved NPI + display name */
   onPreviewReady?: (npi: string, displayName: string) => void;
-  /** Pre-fill the NPI input (used by /demo route) */
   initialNpi?: string;
 }
 
 export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsoleProps = {}) {
-  const [npi,       setNpi]       = useState(initialNpi ?? '');
-  const [phase,     setPhase]     = useState<Phase>('idle');
-  const [stages,    setStages]    = useState<SourceStage[]>(INITIAL_STAGES);
+  const [npi, setNpi] = useState(initialNpi ?? '');
+  const [phase, setPhase] = useState<Phase>('idle');
   const [previewIn, setPreviewIn] = useState(false);
-  const [realState, setRealState] = useState<ClinicianTrustState | null>(null);
-  const [isDemo,    setIsDemo]    = useState(false);
-  const [fallbackReason, setFallbackReason] = useState<DegradedPreviewReason | null>(null);
-  const [previewNotice, setPreviewNotice] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
-  const [showLoadingPanel, setShowLoadingPanel] = useState(false);
-  const [loadingPanelFading, setLoadingPanelFading] = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<'backendUnavailable' | 'partialCoverage' | null>(null);
+  const { state, startIngest } = useIngestStream();
   const { isLoaded, isSignedIn } = useRoleContext();
-  const router   = useRouter();
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const timers   = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pageLoadTrackedRef = useRef(false);
-  const mountedRef = useRef(true);
-  const activeSubmitIdRef = useRef(0);
-  const previewTrackedSubmitIdRef = useRef<number | null>(null);
+  const previewTrackedRef = useRef(false);
+  const previewErrorTrackedRef = useRef(false);
+  const previewReadyTrackedRef = useRef(false);
   const submitStartedAtRef = useRef<number | null>(null);
 
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn });
+  const hasLiveSignal = Boolean(
+    state.runId
+    || state.identity.displayName
+    || state.identity.authoritative
+    || state.standing.exclusionChecked
+    || state.standing.enrollmentChecked
+    || typeof state.readiness.score === 'number',
+  );
+  const isFallback = phase !== 'idle' && !state.isUsable && (state.phase === 'error' || state.disconnected);
   const sourceMode = resolveLivePathSourceMode({
-    isDemo,
-    hasLiveState: Boolean(realState),
+    isDemo: isFallback,
+    hasLiveState: hasLiveSignal,
   });
+  const stages = useMemo(() => buildConsoleStages(state), [state]);
+  const loadingCopy = resolveLoadingCopy(state, isFallback);
+  const checkedLabel = getTrustStatusLabel('checked');
+  const pendingLabel = getTrustStatusLabel('pending');
+  const accessRequiredLabel = getTrustStatusLabel('access_required');
+  const unavailableLabel = getTrustStatusLabel('unavailable');
+  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
+  const sourcesCheckedCount = stages.filter((stage) => stage.status === 'checked').length;
+  const claimsCount = state.readiness.claimCount ?? state.readiness.credentialCount ?? null;
+  const readinessSummary = typeof state.readiness.score === 'number'
+    ? `${state.readiness.score}/100 · ${state.readiness.level ?? 'L0'}`
+    : '—';
+  const continueDisabled = !state.isUsable && !Boolean(state.completedAt) && state.phase !== 'error';
+  const trimmedNpi = npi.trim();
 
-  // Sync NPI input when initialNpi resolves (e.g., after Suspense hydration)
   useEffect(() => {
     if (initialNpi && phase === 'idle' && npi !== initialNpi) {
       setNpi(initialNpi);
@@ -263,9 +350,26 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   }, [authState, isLoaded]);
 
   useEffect(() => {
-    if (!previewIn) return;
-    const submitId = activeSubmitIdRef.current;
-    if (previewTrackedSubmitIdRef.current === submitId) return;
+    if (phase === 'idle') return;
+    if (!LIVE_PATH_NPI_RE.test(trimmedNpi)) return;
+    if (state.startedAt) {
+      writeLiveSnapshot(trimmedNpi, state);
+    }
+  }, [phase, state, trimmedNpi]);
+
+  useEffect(() => {
+    if (phase === 'loading' && hasLiveSignal && !previewIn) {
+      setPreviewIn(true);
+    }
+
+    if (phase === 'loading' && (state.isUsable || Boolean(state.completedAt) || state.phase === 'error')) {
+      setPhase('preview');
+      setPreviewIn(true);
+    }
+  }, [hasLiveSignal, phase, previewIn, state.completedAt, state.isUsable, state.phase]);
+
+  useEffect(() => {
+    if (!previewIn || previewTrackedRef.current) return;
 
     trackUxEvent({
       event_name: UX_EVENTS.READINESS_REVEALED,
@@ -275,32 +379,18 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         : performance.now() - submitStartedAtRef.current,
       metadata: {
         auth_state: authState,
-        interaction_result: sourceMode === 'live' ? 'success' : 'fallback',
-        npi_length: npi.trim().length,
+        interaction_result: isFallback ? 'fallback' : 'success',
+        npi_length: trimmedNpi.length,
         source_mode: sourceMode,
       },
     });
 
-    previewTrackedSubmitIdRef.current = submitId;
-  }, [authState, npi, previewIn, sourceMode]);
+    previewTrackedRef.current = true;
+  }, [authState, isFallback, previewIn, sourceMode, trimmedNpi.length]);
 
-  function clearTimers() {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-  }
+  useEffect(() => {
+    if (!isFallback || !previewIn || previewErrorTrackedRef.current) return;
 
-  function isActiveSubmit(submitId: number): boolean {
-    return mountedRef.current && activeSubmitIdRef.current === submitId;
-  }
-
-  function queueTimer(callback: () => void, delayMs: number) {
-    timers.current.push(setTimeout(() => {
-      if (!mountedRef.current) return;
-      callback();
-    }, delayMs));
-  }
-
-  function trackPreviewError(errorType: 'invalid_npi' | 'backend_unavailable' | 'partial_coverage') {
     trackUxEvent({
       event_name: 'preview_error',
       component_id: 'homepage_npi_flow',
@@ -309,45 +399,51 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         : performance.now() - submitStartedAtRef.current,
       metadata: {
         auth_state: authState,
-        error_type: errorType,
-        interaction_result: errorType === 'invalid_npi' ? 'cancel' : 'error',
-        npi_length: npi.trim().length,
-        source_mode: errorType === 'invalid_npi' ? 'live' : 'demo',
+        error_type: fallbackReason === 'backendUnavailable' ? 'backend_unavailable' : 'partial_coverage',
+        interaction_result: 'error',
+        npi_length: trimmedNpi.length,
+        source_mode: 'demo',
       },
     });
-  }
 
-  function resetPreviewState() {
-    setStages(INITIAL_STAGES.map((stage) => ({ ...stage, status: 'waiting' })));
-    setPreviewIn(false);
-    setRealState(null);
-    setIsDemo(false);
-    setFallbackReason(null);
-    setPreviewNotice(null);
-    setFormMessage(null);
-  }
+    previewErrorTrackedRef.current = true;
+  }, [authState, fallbackReason, isFallback, previewIn, trimmedNpi.length]);
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      activeSubmitIdRef.current += 1;
-      clearTimers();
-    };
-  }, []);
+    if (!previewIn || previewReadyTrackedRef.current) return;
+
+    const previewName = state.identity.displayName ?? `NPI ${trimmedNpi}`;
+    onPreviewReady?.(trimmedNpi, previewName);
+    previewReadyTrackedRef.current = true;
+  }, [onPreviewReady, previewIn, state.identity.displayName, trimmedNpi]);
+
+  useEffect(() => {
+    if (!isFallback) {
+      setFallbackReason(null);
+      return;
+    }
+
+    const message = state.error?.toLowerCase() ?? '';
+    setFallbackReason(
+      message.includes('failed to start') || message.includes('runid')
+        ? 'backendUnavailable'
+        : 'partialCoverage',
+    );
+  }, [isFallback, state.error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (phase !== 'idle') return;
+    if (phase === 'loading') return;
 
-    const trimmed = npi.trim();
-    const isValidNpi = LIVE_PATH_NPI_RE.test(trimmed);
+    const nextNpi = npi.trim();
+    const isValidNpi = LIVE_PATH_NPI_RE.test(nextNpi);
 
     trackUxEvent({
       event_name: UX_EVENTS.NPI_SUBMIT_ATTEMPT,
       component_id: 'homepage_npi_flow',
       metadata: {
         auth_state: authState,
-        npi_length: trimmed.length,
+        npi_length: nextNpi.length,
         source_mode: 'live',
         validation_state: isValidNpi ? 'valid' : 'invalid',
       },
@@ -362,223 +458,67 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         metadata: {
           auth_state: authState,
           interaction_result: 'cancel',
-          npi_length: trimmed.length,
+          npi_length: nextNpi.length,
           source_mode: 'live',
         },
       });
       return;
     }
 
-    const submitId = activeSubmitIdRef.current + 1;
-    let previewName = `NPI ${trimmed}`;
-    let previewErrorType: 'backend_unavailable' | 'partial_coverage' | null = null;
-
-    function recordPreviewError(errorType: 'backend_unavailable' | 'partial_coverage') {
-      if (previewErrorType === null) {
-        previewErrorType = errorType;
-      }
-    }
-
-    activeSubmitIdRef.current = submitId;
-    previewTrackedSubmitIdRef.current = null;
-    submitStartedAtRef.current = performance.now();
     setFormMessage(null);
-
+    setNpi(nextNpi);
     setPhase('loading');
-    resetPreviewState();
+    setPreviewIn(false);
+    setFallbackReason(null);
+    previewTrackedRef.current = false;
+    previewErrorTrackedRef.current = false;
+    previewReadyTrackedRef.current = false;
+    submitStartedAtRef.current = performance.now();
+
     trackUxEvent({
       event_name: UX_EVENTS.SOURCE_CHECK_STARTED,
       component_id: 'homepage_npi_flow',
       metadata: {
         auth_state: authState,
-        npi_length: trimmed.length,
+        npi_length: nextNpi.length,
         source_mode: 'live',
       },
     });
-    setShowLoadingPanel(true);
-    setLoadingPanelFading(false);
-    clearTimers();
-    setNpi(trimmed);
 
-    queueTimer(() => {
-      if (!isActiveSubmit(submitId)) return;
-      setStages(prev => setStageStatus(prev, 'NPPES_API', 'loading'));
-      inputRef.current?.focus({ preventScroll: true });
-    }, 0);
-    queueTimer(() => {
-      if (!isActiveSubmit(submitId)) return;
-      setStages(prev => setStageStatus(prev, 'OIG_LEIE', 'loading'));
-    }, 140);
-
-    // ── Step 1: Ingest (real sources) ────────────────────────
-    let ingestOk = false;
-    try {
-      const ingestRes = await fetch(`/api/identity/${encodeURIComponent(trimmed)}/ingest`, {
-        method: 'POST',
-      });
-
-      const ingestData = await ingestRes.json() as IngestResponse;
-      if (!isActiveSubmit(submitId)) return;
-
-      if (ingestData.fallback) {
-        setStages(prev => setStageStatuses(prev, {
-          NPPES_API: 'skipped',
-          OIG_LEIE: 'skipped',
-          PECOS: 'skipped',
-          LICENSE: 'skipped',
-          READINESS: 'skipped',
-        }));
-        setIsDemo(true);
-        setFallbackReason('backendUnavailable');
-        setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
-        recordPreviewError('backend_unavailable');
-      } else {
-        const resultMap: Record<string, string> = {};
-        (ingestData.results ?? []).forEach(r => { resultMap[r.source] = r.status; });
-
-        setStages(prev => setStageStatuses(prev, {
-          NPPES_API: mapStatus(resultMap.NPPES_API),
-          OIG_LEIE: mapStatus(resultMap.OIG_LEIE),
-        }));
-
-        ingestOk = (ingestData.results ?? []).some(r => r.status === 'SUCCESS');
-      }
-    } catch {
-      if (!isActiveSubmit(submitId)) return;
-      setStages(prev => setStageStatuses(prev, {
-        NPPES_API: 'skipped',
-        OIG_LEIE: 'skipped',
-        PECOS: 'skipped',
-        LICENSE: 'skipped',
-        READINESS: 'skipped',
-      }));
-      setIsDemo(true);
-      setFallbackReason('backendUnavailable');
-      setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.backendUnavailable);
-      recordPreviewError('backend_unavailable');
-    }
-
-    // ── Step 2: Fetch real trust state ───────────────────────
-    if (ingestOk && LIVE_PATH_NPI_RE.test(trimmed)) {
-      setStages(prev => setStageStatus(prev, 'READINESS', 'loading'));
-      try {
-        const tsRes  = await fetch(`/api/trust-state/${encodeURIComponent(trimmed)}`);
-        const tsData = await tsRes.json() as ClinicianTrustState;
-        if (!isActiveSubmit(submitId)) return;
-
-        if (tsRes.ok && tsData.npi) {
-          const identityFact = tsData.facts?.find(f => f.factType?.toLowerCase().includes('identity'));
-          previewName = identityFact?.details ?? previewName;
-          setRealState(tsData);
-          setIsDemo(false);
-          setPreviewNotice(null);
-
-          // Resolve PECOS + License from trust-state facts
-          const hasPecosFact = tsData.facts?.some(f =>
-            /pecos|enrollment/i.test(f.factType ?? '') && f.status === 'VERIFIED',
-          );
-          const licensureOk = tsData.licensureStatus === 'verified';
-
-          setStages(prev => setStageStatuses(prev, {
-            PECOS: hasPecosFact ? 'ok' : 'skipped',
-            LICENSE: licensureOk ? 'ok' : 'skipped',
-            READINESS: 'ok',
-          }));
-        } else {
-          setIsDemo(true);
-          setFallbackReason('partialCoverage');
-          setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
-          setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
-          recordPreviewError('partial_coverage');
-        }
-      } catch {
-        if (!isActiveSubmit(submitId)) return;
-        setIsDemo(true);
-        setFallbackReason('partialCoverage');
-        setPreviewNotice(LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
-        setStages(prev => setStageStatus(prev, 'READINESS', 'failed'));
-        recordPreviewError('partial_coverage');
-      }
-    } else if (!ingestOk) {
-      setIsDemo(true);
-      setFallbackReason((prev) => prev ?? 'partialCoverage');
-      setPreviewNotice((prev) => prev ?? LIVE_PATH_PREVIEW_NOTICE.partialCoverage);
-      setStages(prev => setStageStatus(prev, 'READINESS', 'skipped'));
-      recordPreviewError('partial_coverage');
-    }
-
-    if (!isActiveSubmit(submitId)) return;
-
-    if (previewErrorType) {
-      trackPreviewError(previewErrorType);
-    }
-
-    // ── Step 3: Transition to preview ────────────────────────
-    setPhase('preview');
-    setLoadingPanelFading(true);
-    queueTimer(() => {
-      if (!isActiveSubmit(submitId)) return;
-      setPreviewIn(true);
-    }, 120);
-    queueTimer(() => {
-      if (!isActiveSubmit(submitId)) return;
-      setShowLoadingPanel(false);
-      onPreviewReady?.(trimmed, previewName);
-    }, 180);
+    await startIngest(nextNpi);
   }
 
   function handleContinue() {
-    const trimmed = npi.trim();
     const dest = buildPassportLookupHref(
-      LIVE_PATH_NPI_RE.test(trimmed) ? trimmed : null,
+      LIVE_PATH_NPI_RE.test(trimmedNpi) ? trimmedNpi : null,
     );
+
+    if (LIVE_PATH_NPI_RE.test(trimmedNpi)) {
+      writeLiveSnapshot(trimmedNpi, state);
+    }
 
     trackUxEvent({
       event_name: UX_EVENTS.SHARE_CTA_CLICKED,
       component_id: 'homepage_npi_flow',
       metadata: {
         auth_state: authState,
-        npi_length: trimmed.length,
+        npi_length: trimmedNpi.length,
         source_mode: sourceMode,
       },
     });
 
-    // Write preview state to sessionStorage so /passport can skip re-asking for NPI
-    try {
-      sessionStorage.setItem(
-        `vitalcv:preview:${trimmed}`,
-        JSON.stringify({
-          realState,
-          stages,
-          isDemo,
-          timestamp: Date.now(),
-        }),
-      );
-    } catch {
-      // sessionStorage unavailable — passport falls back to full ingest
-    }
-
     router.push(dest);
   }
 
-  const isPreviewPhase = phase === 'preview';
-  const loadingCopy = resolveLoadingCopy(stages, isDemo);
-  const checkedLabel = getTrustStatusLabel('checked');
-  const pendingLabel = getTrustStatusLabel('pending');
-  const accessRequiredLabel = getTrustStatusLabel('access_required');
-  const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
-
   return (
     <section className="relative bg-background">
-      {/* Radial */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{ background: 'radial-gradient(ellipse 55% 40% at 50% 45%, rgba(16,185,129,0.05) 0%, transparent 70%)' }}
       />
 
-      <div className={`relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 ${isPreviewPhase ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
+      <div className={`relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
         <div className="mb-5 grid gap-2 sm:grid-cols-3">
           {FLOW_STEPS.map((step, index) => {
             const stepState = resolveFlowStepState(phase, index);
@@ -597,29 +537,22 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
           })}
         </div>
 
-        {/* ── System status bar — visible during loading + preview ────── */}
         {phase !== 'idle' && (
           <div
             className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground animate-fade-in-up"
             aria-live="polite"
           >
             <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
               System active
             </span>
-            <span>
-              Sources: {stages.filter(s => s.status === 'ok').length}/{stages.length} checked
-            </span>
-            <span>
-              Claims: {realState?.credentialCount ?? '–'}
-            </span>
-            <span className="hidden sm:inline">
-              Readiness: {realState ? `${realState.readiness_score}/100 · ${realState.readiness_level}` : '–'}
-            </span>
+            <span>Sources: {sourcesCheckedCount}/{stages.length} checked</span>
+            <span>Claims: {claimsCount ?? '—'}</span>
+            <span className="hidden sm:inline">Readiness: {readinessSummary}</span>
           </div>
         )}
 
-        {!isPreviewPhase ? (
+        {phase !== 'preview' ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -632,7 +565,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               See your readiness snapshot in <span className="text-emerald-600 dark:text-emerald-400">about 10 seconds.</span>
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
+              VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Input
@@ -652,7 +585,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 }}
                 placeholder="Enter your 10-digit NPI"
                 aria-label="NPI number"
-                className={`h-14 flex-1 min-w-0 rounded-xl border-input bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-muted focus-visible:ring-ring ${
+                className={`h-14 min-w-0 flex-1 rounded-xl border-input bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-muted focus-visible:ring-ring ${
                   phase === 'loading' ? 'cursor-default bg-muted/50 opacity-80' : ''
                 } ${
                   formMessage ? 'border-amber-400/30' : ''
@@ -662,9 +595,9 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 type="submit"
                 variant="success"
                 disabled={phase === 'loading'}
-                className="h-14 w-full shrink-0 whitespace-nowrap rounded-xl px-5 text-sm font-semibold sm:w-auto"
+                className="h-14 w-full shrink-0 rounded-xl px-5 text-sm font-semibold whitespace-nowrap sm:w-auto"
               >
-                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Start with NPI lookup'}</span>
+                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check readiness'}</span>
               </Button>
             </form>
 
@@ -683,102 +616,96 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 Readiness snapshot
               </p>
               <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Step 2 is visible. Step 3 carries this snapshot into your passport flow.
+                Step 2 is visible. Step 3 carries this live state into the passport flow.
               </p>
             </div>
-            {isDemo && (
+            {isFallback && (
               <TrustStatusBadge status="preview_only" label="Preview" size="sm" />
             )}
           </div>
         )}
 
-        {(showLoadingPanel || phase === 'preview') && (
-          <div className={`relative ${showLoadingPanel ? 'min-h-[320px] sm:min-h-[340px]' : ''}`}>
-            {showLoadingPanel && (
-              <TrustStateCard
-                aria-live="polite"
-                title={loadingCopy}
-                description={previewNotice ?? 'Connected sources only flip complete when they actually return.'}
-                className={`absolute left-0 right-0 top-0 z-10 mt-5 animate-panel-enter transition-[opacity,transform] duration-150 ease-out ${
-                  loadingPanelFading ? 'pointer-events-none opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
-                }`}
-              >
-                <div className="space-y-2">
-                  {stages.map((stage, index) => {
-                    const badge = stageBadge(stage);
-                    const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
+        {phase !== 'idle' && (
+          <div className="relative space-y-4 pt-5">
+            <TrustStateCard
+              aria-live="polite"
+              title={phase === 'preview' ? 'Live system state' : loadingCopy}
+              description={isFallback
+                ? LIVE_PATH_PREVIEW_NOTICE[fallbackReason ?? 'partialCoverage']
+                : 'Connected source lanes only flip complete when they actually return.'}
+              className="animate-panel-enter"
+            >
+              <div className="space-y-2">
+                {stages.map((stage, index) => {
+                  const badge = resolveStageBadge(stage.status);
+                  const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 
-                    return (
-                      <div
-                        key={stage.id}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2.5"
-                        style={{ animation: `vcv-stage-in 150ms ease-out ${index * 140}ms both` }}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          {stage.status === 'loading' ? (
-                            <span className="h-3.5 w-3.5 rounded-full border border-sky-300/50 border-t-transparent animate-spin" />
-                          ) : (
-                            <span className={`w-3 text-center font-mono text-sm leading-none ${STAGE_COLOR[stage.status]}`}>
-                              {STAGE_SYMBOL[stage.status]}
-                            </span>
-                          )}
-                          <div>
-                            <span className={`text-xs transition-colors duration-150 ${
-                              stage.status === 'loading' ? 'text-foreground' : stage.status === 'waiting' ? 'text-muted-foreground/40' : 'text-muted-foreground'
-                            }`}>
-                              {stage.label}
-                            </span>
-                            {statusDescriptor ? (
-                              <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/40">
-                                {statusDescriptor}
-                              </p>
-                            ) : null}
-                          </div>
+                  return (
+                    <div
+                      key={stage.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2.5"
+                      style={{ animation: `vcv-stage-in 150ms ease-out ${index * 80}ms both` }}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {stage.status === 'loading' ? (
+                          <span className="size-3.5 rounded-full border border-sky-300/50 border-t-transparent animate-spin" />
+                        ) : (
+                          <span className={`w-3 text-center font-mono text-sm leading-none ${STAGE_COLOR[stage.status]}`}>
+                            {STAGE_SYMBOL[stage.status]}
+                          </span>
+                        )}
+                        <div>
+                          <span className={`text-xs transition-colors duration-150 ${
+                            stage.status === 'loading'
+                              ? 'text-foreground'
+                              : stage.status === 'pending'
+                                ? 'text-muted-foreground/50'
+                                : 'text-muted-foreground'
+                          }`}>
+                            {stage.label}
+                          </span>
+                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/40">
+                            {statusDescriptor ? `${statusDescriptor} · ${stage.detail}` : stage.detail}
+                          </p>
                         </div>
-                        <TrustStatusBadge
-                          status={badge.status}
-                          label={badge.label}
-                          size="sm"
-                        />
                       </div>
-                    );
-                  })}
-                </div>
-              </TrustStateCard>
-            )}
-
-            {phase === 'preview' && (
-              <div className={`relative z-0 ${previewIn ? 'animate-fade-in-up' : ''}`}>
-                {previewNotice && isDemo && (
-                  <p className="pt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-destructive">
-                    {previewNotice}
-                  </p>
-                )}
-                <ReadinessPreview
-                  npi={npi.trim()}
-                  realState={realState}
-                  isDemo={isDemo}
-                  visible={previewIn}
-                  onContinue={handleContinue}
-                  fallbackReason={fallbackReason}
-                  fallbackSources={{
-                    nppes: stages.find((stage) => stage.id === 'NPPES_API')?.status ?? 'skipped',
-                    oig: stages.find((stage) => stage.id === 'OIG_LEIE')?.status ?? 'skipped',
-                    readiness: stages.find((stage) => stage.id === 'READINESS')?.status ?? 'failed',
-                  }}
-                />
+                      <TrustStatusBadge
+                        status={badge.status}
+                        label={badge.label}
+                        size="sm"
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </TrustStateCard>
+
+            <div className={previewIn ? 'animate-fade-in-up' : ''}>
+              <ReadinessPreview
+                npi={trimmedNpi}
+                realState={null}
+                isDemo={isFallback}
+                visible={previewIn}
+                onContinue={handleContinue}
+                fallbackReason={fallbackReason}
+                fallbackSources={{
+                  nppes: mapStageToFallbackStatus(stages[0]?.status ?? 'pending'),
+                  oig: mapStageToFallbackStatus(stages[1]?.status ?? 'pending'),
+                  readiness: isFallback ? 'failed' : previewIn ? 'ok' : 'loading',
+                }}
+                streamState={isFallback ? null : state}
+                continueDisabled={continueDisabled}
+                continueLabel={continueDisabled ? 'Checking readiness' : 'Continue to passport'}
+              />
+            </div>
           </div>
         )}
 
-        {/* Footer hint — idle only */}
         {phase === 'idle' && (
           <p className="mt-3 text-[11px] text-muted-foreground/40">
             No signup required to preview. Other checks appear only when that source has actually run.
           </p>
         )}
-
       </div>
     </section>
   );

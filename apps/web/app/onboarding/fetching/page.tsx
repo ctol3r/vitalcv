@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation';
 
-// /onboarding/fetching is a legacy route — guard against direct navigation
-// without NPI in session storage by returning to the NPI entry step.
-export default function FetchingPage() {
-  redirect('/onboarding');
+export default async function FetchingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const params = await searchParams;
+  const returnTo = typeof params.returnTo === 'string' ? params.returnTo : null;
+
+  redirect(returnTo ? `/onboarding?returnTo=${encodeURIComponent(returnTo)}` : '/onboarding');
 }

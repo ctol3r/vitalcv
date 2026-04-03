@@ -29,12 +29,13 @@ import {
 } from '@/components/ui/card';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
 import {
-  getStatusDisplayLabel,
   getTrustStatusLabel,
 } from '@/lib/trust/status-language';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import type { IngestStreamState } from '@/hooks/useIngestStream';
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -407,6 +408,194 @@ interface Props {
   onContinue: () => void;
   fallbackReason?: DegradedPreviewReason | null;
   fallbackSources?: DegradedPreviewSources | null;
+  streamState?: IngestStreamState | null;
+  continueDisabled?: boolean;
+  continueLabel?: string;
+}
+
+function resolveLiveLicenseStatus(streamState: IngestStreamState) {
+  if (streamState.phase === 'error' && !streamState.isUsable) {
+    return {
+      badgeStatus: 'unavailable' as const,
+      badgeLabel: 'Unavailable',
+      accordionStatus: 'unavailable' as const,
+      metaLabel: 'unavailable',
+      freshness: 'Live retry required',
+      note: 'A connected state board lane is still required before authority becomes decision-grade.',
+    };
+  }
+
+  if (streamState.completedAt || streamState.readyAt || streamState.isUsable) {
+    return {
+      badgeStatus: 'access_required' as const,
+      badgeLabel: 'Access required',
+      accordionStatus: 'access_required' as const,
+      metaLabel: 'access required',
+      freshness: 'Institutional source required',
+      note: 'This live run did not expose source-backed authority proof. Keep licensure incomplete until a connected state board lane runs.',
+    };
+  }
+
+  return {
+    badgeStatus: 'pending' as const,
+    badgeLabel: 'Pending',
+    accordionStatus: 'pending' as const,
+    metaLabel: 'pending',
+    freshness: 'Waiting for source coverage',
+    note: 'VitalCV is still resolving whether a connected state board lane is available for this clinician.',
+  };
+}
+
+function buildLiveAccordion(streamState: IngestStreamState): AccordionItem[] {
+  const checkedAt = streamState.readiness.checkedAt ?? streamState.readyAt ?? streamState.completedAt ?? streamState.startedAt;
+  const identityStatus: AccordionItem['status'] =
+    streamState.sources.nppes === 'error'
+      ? 'unavailable'
+      : streamState.identity.authoritative
+        ? 'checked'
+        : streamState.sources.nppes === 'done'
+          ? 'review_required'
+          : 'pending';
+  const sanctionsStatus: AccordionItem['status'] =
+    streamState.sources.oig === 'error'
+      ? 'unavailable'
+      : streamState.standing.exclusionStatus === 'EXCLUDED' || streamState.standing.exclusionStatus === 'POSSIBLE_MATCH'
+        ? 'review_required'
+        : streamState.standing.exclusionChecked && streamState.standing.exclusionClear
+          ? 'checked'
+          : streamState.sources.oig === 'done'
+            ? 'pending'
+            : 'pending';
+  const enrollmentStatus: AccordionItem['status'] =
+    streamState.sources.pecos === 'error'
+      ? 'unavailable'
+      : streamState.standing.enrollmentStatus === 'NOT_FOUND' || streamState.standing.enrollmentStatus === 'OPTED_OUT'
+        ? 'review_required'
+        : streamState.standing.enrollmentChecked && streamState.standing.enrollmentStatus === 'ENROLLED'
+          ? 'checked'
+          : streamState.sources.pecos === 'done'
+            ? 'pending'
+            : 'pending';
+  const license = resolveLiveLicenseStatus(streamState);
+
+  return [
+    {
+      id: 'identity',
+      trigger: 'Identity Verification',
+      triggerRight: accordionMeta(
+        identityStatus === 'checked'
+          ? `checked ${formatCompactProofDate(checkedAt)}`
+          : streamState.sources.nppes === 'error'
+            ? 'unavailable'
+            : 'pending',
+      ),
+      status: identityStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'NPPES', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
+            {
+              id: 'freshness',
+              label: 'Freshness',
+              value: checkedAt ? 'Current live run' : 'Waiting for source response',
+            },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: streamState.identity.authoritative
+                ? 'NPPES has returned a source-backed provider identity for this run.'
+                : 'Identity remains provisional until the live NPPES response resolves cleanly.',
+            },
+          ]}
+        />
+      ),
+    },
+    {
+      id: 'licensure',
+      trigger: 'State Licensure / Authority',
+      triggerRight: accordionMeta(license.metaLabel),
+      status: license.accordionStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'Configured state board lane', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(undefined) },
+            { id: 'freshness', label: 'Freshness', value: license.freshness },
+            { id: 'trust-note', label: 'Trust note', value: license.note },
+          ]}
+        />
+      ),
+    },
+    {
+      id: 'sanctions',
+      trigger: 'Sanctions & Exclusions',
+      triggerRight: accordionMeta(
+        sanctionsStatus === 'checked'
+          ? `checked ${formatCompactProofDate(checkedAt)}`
+          : streamState.sources.oig === 'error'
+            ? 'unavailable'
+            : 'pending',
+      ),
+      status: sanctionsStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'OIG / LEIE', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
+            {
+              id: 'freshness',
+              label: 'Freshness',
+              value: checkedAt ? 'Current live run' : 'Waiting for source response',
+            },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: streamState.standing.exclusionChecked
+                ? streamState.standing.exclusionClear
+                  ? 'The current OIG / LEIE check is clear in this live run.'
+                  : `The current OIG / LEIE result needs attention: ${streamState.standing.exclusionStatus ?? 'review required'}.`
+                : 'The current OIG / LEIE result is still loading.',
+            },
+          ]}
+        />
+      ),
+    },
+    {
+      id: 'pecos',
+      trigger: 'Medicare Enrollment',
+      triggerRight: accordionMeta(
+        enrollmentStatus === 'checked'
+          ? `checked ${formatCompactProofDate(checkedAt)}`
+          : streamState.sources.pecos === 'error'
+            ? 'unavailable'
+            : 'pending',
+      ),
+      status: enrollmentStatus,
+      content: (
+        <ProofDetailsList
+          rows={[
+            { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
+            { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
+            {
+              id: 'freshness',
+              label: 'Freshness',
+              value: checkedAt ? 'Current live run' : 'Waiting for source response',
+            },
+            {
+              id: 'trust-note',
+              label: 'Trust note',
+              value: streamState.standing.enrollmentChecked
+                ? streamState.standing.enrollmentStatus === 'ENROLLED'
+                  ? 'CMS PECOS has returned an enrolled record in this live run.'
+                  : `CMS PECOS returned ${streamState.standing.enrollmentStatus ?? 'an unresolved status'} in this live run.`
+                : 'CMS PECOS is still loading for this clinician.',
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 }
 
 export function ReadinessPreview({
@@ -417,14 +606,15 @@ export function ReadinessPreview({
   onContinue,
   fallbackReason = null,
   fallbackSources = null,
+  streamState = null,
+  continueDisabled = false,
+  continueLabel = 'Continue to passport',
 }: Props) {
   const checkedLabel = getTrustStatusLabel('checked');
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');
   const reviewRequiredLabel = getTrustStatusLabel('review_required');
   const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
-
   // ── Real-data path ───────────────────────────────────────
   if (realState && !isDemo) {
     const ts            = realState;
@@ -543,12 +733,176 @@ export function ReadinessPreview({
                 type="button"
                 variant="success"
                 onClick={onContinue}
+                disabled={continueDisabled}
                 className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
               >
-                Continue to passport
+                {continueLabel}
               </Button>
               <p className="mt-2 text-center text-[10px] text-muted-foreground/40">
                 Source-backed preview · {ts.methodology_version}
+              </p>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (streamState && !isDemo) {
+    const displayName = streamState.identity.displayName ?? `NPI ${npi}`;
+    const displaySpec = streamState.identity.specialty ?? 'Resolving provider profile';
+    const liveScoreKnown = typeof streamState.readiness.score === 'number';
+    const liveTone: ReadinessTone =
+      streamState.phase === 'error' && !streamState.isUsable
+        ? 'blocked'
+        : liveScoreKnown && (streamState.readiness.blockerCount ?? 0) === 0 && streamState.identity.authoritative
+          ? 'checked'
+          : 'pending';
+    const liveAccordion = buildLiveAccordion(streamState);
+    const checkedItems = [
+      streamState.identity.authoritative ? 'Identity checked' : null,
+      streamState.standing.exclusionChecked && streamState.standing.exclusionClear ? 'OIG / LEIE checked' : null,
+      streamState.standing.enrollmentChecked && streamState.standing.enrollmentStatus === 'ENROLLED' ? 'CMS PECOS checked' : null,
+    ].filter((item): item is string => item !== null);
+    const blockerCount = streamState.readiness.blockerCount;
+    const attentionItems =
+      blockerCount && blockerCount > 0
+        ? [`${blockerCount} blocker${blockerCount === 1 ? '' : 's'} still unresolved in this live run.`]
+        : liveScoreKnown
+          ? ['No blockers surfaced yet in this live run.']
+          : ['Waiting for blocker and readiness detail from the live source run.'];
+
+    return (
+      <div
+        className="mt-4 transition-[opacity,transform] duration-[180ms] ease-out"
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
+        aria-live="polite"
+      >
+        <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
+          <CardHeader className="border-b border-white/6 px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  Live readiness
+                </p>
+                <p className="text-lg font-bold leading-tight text-foreground">{displayName}</p>
+                <p className="text-sm text-muted-foreground">{displaySpec}</p>
+              </div>
+              <div className="space-y-2 text-right">
+                <TrustStatusBadge
+                  status={readinessBadgeStatus(liveTone)}
+                  label={READINESS_TONE_LABELS[liveTone]}
+                  size="sm"
+                />
+                <p className="text-[10px] font-mono text-muted-foreground/40">
+                  {streamState.readiness.checkedAt
+                    ? `Checked ${new Date(streamState.readiness.checkedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                    : 'Live run in progress'}
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5 px-5 py-4">
+            <div className={cn('rounded-xl border px-4 py-4', READINESS_TONE_STYLES[liveTone].panel)}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Readiness</p>
+                  {liveScoreKnown ? (
+                    <>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        {streamState.readiness.status ?? 'Source-backed snapshot in progress'}
+                      </p>
+                      <p className="mt-1 text-[11px] text-foreground">
+                        {streamState.readiness.score}/100 · {streamState.readiness.level ?? 'L0'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      <Skeleton className="h-4 w-44 rounded-full" />
+                      <Skeleton className="h-3 w-28 rounded-full" />
+                    </div>
+                  )}
+                </div>
+                <div className="sm:max-w-[220px] sm:text-right">
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Source-backed lanes update as the live ingest stream completes. Missing or gated lanes stay visibly incomplete.
+                  </p>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/50">
+                    Claims: {streamState.readiness.claimCount ?? streamState.readiness.credentialCount ?? '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">
+                What still needs attention
+              </p>
+              <div className="space-y-2">
+                {attentionItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="mt-px shrink-0 text-sm leading-none text-muted-foreground/50">
+                      {item.startsWith('No blockers') ? '✔' : '✖'}
+                    </span>
+                    <span className="text-xs leading-tight text-foreground">{item}</span>
+                  </div>
+                ))}
+              </div>
+              {checkedItems.length > 0 ? (
+                <div className="space-y-3 border-t border-white/6 pt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Checked in this run</p>
+                  <div className="flex flex-wrap gap-2">
+                    {checkedItems.map(item => (
+                      <Badge key={item} variant="outline" className={CHIPS_CLASSNAME}>
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <EvidenceDisclosureCard
+              eyebrow="Proof"
+              title="Source checks"
+              description="Expand each section to see what is checked, pending, access required, or unavailable in the live run."
+              className="rounded-xl border-white/6 bg-muted"
+              contentClassName="px-5 py-1"
+            >
+              <Accordion
+                items={liveAccordion}
+                telemetryComponentId="homepage_readiness_proof"
+              />
+            </EvidenceDisclosureCard>
+          </CardContent>
+
+          <CardFooter className="border-t border-white/6 px-5 py-4">
+            <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
+                <p className="mt-1 text-sm font-medium text-foreground/70">
+                  {continueDisabled
+                    ? 'Stay on this page while VitalCV completes the live source run.'
+                    : streamState.isUsable
+                      ? 'Passport is ready to open.'
+                      : 'Continue to passport with the current live state.'}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground/70">
+                  {checkedLabel} lanes stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} remain explicit until better source coverage exists.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="success"
+                onClick={onContinue}
+                disabled={continueDisabled}
+                className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
+              >
+                {continueLabel}
+              </Button>
+              <p className="mt-2 text-center text-[10px] text-muted-foreground/40">
+                Live stream · only source-backed claims are promoted automatically
               </p>
             </div>
           </CardFooter>
@@ -673,9 +1027,10 @@ export function ReadinessPreview({
               type="button"
               variant="success"
               onClick={onContinue}
+              disabled={continueDisabled}
               className="mt-4 h-14 w-full rounded-xl px-5 text-sm font-semibold"
             >
-              Continue to passport
+              {continueLabel}
             </Button>
             <p className="mt-2 text-center text-[10px] text-muted-foreground/40">
               NPI-only carryover until a live source run finishes
