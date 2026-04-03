@@ -342,15 +342,37 @@ function inferState(
   return 'Unknown';
 }
 
+// Detect seed/stub fullName values that should not be surfaced to users.
+const STUB_NAME_PATTERN = /^(Dr\.|Provider)\s+(Sarah Chen|Marcus Webb|\d+)$/i;
+
 function inferClinicianName(
   npi: string,
   provider: ProviderRecord | null,
   artifacts: readonly VerificationArtifactRecord[],
 ): string {
-  if (provider?.fullName && provider.fullName.trim().length > 0) {
-    return provider.fullName.trim();
+  const storedName = provider?.fullName?.trim() ?? '';
+  const isValidStoredName = storedName.length > 0 && !STUB_NAME_PATTERN.test(storedName);
+
+  if (isValidStoredName) {
+    return storedName;
   }
 
+  // Prefer NPPES_API artifact first_name/last_name as ground truth
+  for (const artifact of artifacts) {
+    if (artifact.source === 'NPPES_API') {
+      const payload = pickPayload(artifact.rawPayload);
+      const basic = (payload?.basic ?? payload) as Record<string, unknown> | null;
+      const firstName = typeof basic?.first_name === 'string' ? basic.first_name.trim() : '';
+      const lastName = typeof basic?.last_name === 'string' ? basic.last_name.trim() : '';
+      const credential = typeof basic?.credential === 'string' ? basic.credential.trim() : '';
+      if (firstName || lastName) {
+        const fullName = [firstName, lastName].filter(Boolean).join(' ');
+        return credential ? `${fullName}, ${credential}` : fullName;
+      }
+    }
+  }
+
+  // Fall back to other artifact name fields
   for (const artifact of artifacts) {
     const payload = pickPayload(artifact.rawPayload);
     const providerName =
