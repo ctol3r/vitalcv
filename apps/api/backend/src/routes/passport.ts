@@ -402,7 +402,20 @@ function inferClinicianName(
   npi: string,
   provider: ProviderRecord | null,
   artifacts: readonly VerificationArtifactRecord[],
+  nppesClaimValue?: Record<string, unknown> | null,
 ): string {
+  // Priority 1: NPPES identity from ClaimRecord (new ingest pipeline)
+  if (nppesClaimValue) {
+    const firstName = typeof nppesClaimValue.firstName === 'string' ? nppesClaimValue.firstName.trim() : '';
+    const lastName = typeof nppesClaimValue.lastName === 'string' ? nppesClaimValue.lastName.trim() : '';
+    const credential = typeof nppesClaimValue.credential === 'string' ? nppesClaimValue.credential.trim() : '';
+    if (firstName || lastName) {
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      return credential ? `${fullName}, ${credential}` : fullName;
+    }
+  }
+
+  // Priority 2: NPPES artifacts from VerificationArtifact (legacy pipeline)
   for (const artifact of artifacts) {
     if (artifact.source === 'NPPES_API' || artifact.source === 'NPPES' || artifact.source === 'NPI_REGISTRY') {
       const nppesName = inferNppesIdentityName(artifact);
@@ -551,7 +564,7 @@ async function loadPassportData(npi: string): Promise<{
   passport: PassportDocument;
   trust: TrustDocument;
 } | null> {
-  const [provider, artifacts, trustState, capsules, oigArtifact] = await Promise.all([
+  const [provider, artifacts, trustState, capsules, oigArtifact, nppesIdentityClaim] = await Promise.all([
     prisma.provider.findFirst({
       where: { npi },
       select: {
@@ -596,6 +609,12 @@ async function loadPassportData(npi: string): Promise<{
       where: { npi, source: { in: ['OIG_LEIE', 'OIG', 'LEIE'] } },
       orderBy: { verifiedAt: 'desc' },
       select: { status: true, verifiedAt: true, rawPayload: true },
+    }),
+    // NPPES identity from ClaimRecord (new ingest pipeline)
+    prisma.claimRecord.findFirst({
+      where: { subjectNpi: npi, claimType: 'PERSONAL_IDENTITY', sourceId: 'NPPES_API' },
+      orderBy: { observedAt: 'desc' },
+      select: { value: true },
     }),
   ]);
 
@@ -686,7 +705,7 @@ async function loadPassportData(npi: string): Promise<{
     npi,
     accessMode: 'public', // overridden by buildPassportForMode
     public: {
-      name: inferClinicianName(npi, provider, artifacts),
+      name: inferClinicianName(npi, provider, artifacts, nppesIdentityClaim?.value as Record<string, unknown> | null),
       specialty: inferSpecialty(provider, artifacts),
       providerType: provider?.providerType?.trim() || 'Unknown',
       state: inferState(provider, artifacts),
