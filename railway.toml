@@ -1,6 +1,6 @@
 [build]
 installCommand = "pnpm install --no-frozen-lockfile"
-buildCommand = "npx prisma generate --schema apps/api/backend/prisma/schema.prisma && cd apps/api/backend && npx tsc -p tsconfig.json"
+buildCommand = "pnpm --filter @vitalcv/ingest run build && pnpm --filter @vitalcv/psv run build && pnpm --filter @vitalcv/poe-engine run build && pnpm --filter @vitalcv/command-registry run build && pnpm --filter @vitalcv/crs run build && pnpm --filter @vitalcv/psv-adapters run build && pnpm --filter @vitalcv/haip-config run build && pnpm --filter @vitalcv/api run build"
 
 
 [deploy]

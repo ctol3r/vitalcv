@@ -8,7 +8,7 @@ coverage/
 .nyc_output/
 
 # Production
-$# dist/
+dist/
 build/
 .next/
 out/
@@ -83,6 +83,6 @@ apps/web/.next.stale/
 
 # Build + cache
 node_modules/
-$# dist/
+dist/
 .cache/
 
