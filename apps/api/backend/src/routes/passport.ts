@@ -610,9 +610,9 @@ async function loadPassportData(npi: string): Promise<{
       orderBy: { verifiedAt: 'desc' },
       select: { status: true, verifiedAt: true, rawPayload: true },
     }),
-    // NPPES identity from ClaimRecord (new ingest pipeline)
+    // NPPES identity from ClaimRecord (new ingest pipeline) — priority source for clinician name
     prisma.claimRecord.findFirst({
-      where: { subjectNpi: npi, claimType: 'PERSONAL_IDENTITY', sourceId: 'NPPES_API' },
+      where: { subjectNpi: npi, claimType: 'PERSONAL_IDENTITY', sourceId: 'NPPES_API', status: 'ACTIVE' },
       orderBy: { observedAt: 'desc' },
       select: { value: true },
     }),
