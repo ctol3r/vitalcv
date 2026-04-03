@@ -1,3 +1,4 @@
+// TODO: Remove or replace with subtle grid (brutalist refactor)
 'use client';
 
 import { useEffect, useRef } from 'react';

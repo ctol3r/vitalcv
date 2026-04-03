@@ -48,13 +48,13 @@ function VerificationTerminal() {
   }, [cycle]);
 
   return (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-black/60 backdrop-blur-xl p-5 font-mono text-[13px] leading-relaxed shadow-2xl shadow-black/40">
+    <div className="relative rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 font-mono text-[13px] leading-relaxed">
       {/* Terminal chrome */}
       <div className="mb-4 flex items-center gap-2">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
-        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
-        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-        <span className="ml-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <span className="h-2.5 w-2.5 rounded-sm bg-[var(--vt-text-muted)]" />
+        <span className="h-2.5 w-2.5 rounded-sm bg-[var(--vt-text-muted)]" />
+        <span className="h-2.5 w-2.5 rounded-sm bg-[var(--vt-text-muted)]" />
+        <span className="ml-3 text-[10px] font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
           vitalcv trust-engine
         </span>
       </div>
@@ -72,12 +72,12 @@ function VerificationTerminal() {
                 transition={{ duration: 0.25 }}
                 className={
                   line.text.includes('PARTIAL')
-                    ? 'text-amber-300 font-bold'
+                    ? 'text-[var(--vt-severity-high)] font-bold'
                     : 'gated' in line && line.gated
-                      ? 'text-amber-400/70'
+                      ? 'text-[var(--vt-severity-high)]/70'
                       : isSuccess
-                        ? 'text-emerald-500/90'
-                        : 'text-foreground/70'
+                        ? 'text-[var(--vt-status-resolved)]/90'
+                        : 'text-[var(--vt-text-secondary)]'
                 }
               >
                 {line.text}
@@ -88,7 +88,7 @@ function VerificationTerminal() {
 
         {/* Blinking cursor */}
         {visibleLines < TERMINAL_LINES.length && (
-          <span className="inline-block h-4 w-1.5 animate-pulse bg-emerald-400/80" />
+          <span className="inline-block h-4 w-1.5 animate-pulse bg-[var(--vt-text-primary)]" />
         )}
       </div>
     </div>
@@ -100,11 +100,6 @@ function VerificationTerminal() {
 export function Hero() {
   return (
     <section className="relative overflow-hidden px-6 pt-28 pb-20 sm:pt-36 sm:pb-28">
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -top-48 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-emerald-500/[0.07] blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/[0.05] blur-[100px]" />
-      </div>
 
       <div className="relative mx-auto max-w-7xl">
         <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -116,21 +111,21 @@ export function Hero() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
           >
             {/* Eyebrow */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-1.5">
-              <Shield className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-emerald-400">
+            <div className="inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-1.5">
+              <Shield className="h-3.5 w-3.5 text-[var(--vt-text-primary)]" />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-40">
                 Source-Backed Credentialing
               </span>
             </div>
 
-            <h1 className="text-[clamp(2.4rem,5vw,4.8rem)] font-bold leading-[1.05] tracking-tight text-foreground">
+            <h1 className="text-[clamp(2.4rem,5vw,4.8rem)] font-bold leading-[1.05] tracking-tight text-[var(--vt-text-primary)]">
               Start clinicians{' '}
-              <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
+              <span className="text-[var(--vt-text-primary)]">
                 faster.
               </span>
             </h1>
 
-            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
+            <p className="max-w-xl text-lg leading-relaxed text-[var(--vt-text-secondary)]">
               VitalCV automates primary source verification and generates
               audit-ready credential packets — so you can start clinicians
               in days, not months.
@@ -140,14 +135,14 @@ export function Hero() {
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
                 href="/demo"
-                className="group inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-foreground dark:text-black transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+                className="group inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-text-primary)] px-7 py-3 text-sm font-semibold text-[var(--vt-bg)] transition hover:bg-[var(--vt-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--vt-border)] focus:ring-offset-2 focus:ring-offset-[var(--vt-bg)]"
               >
                 Request a Demo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/developers"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-7 py-3 text-sm font-semibold text-foreground/80 transition hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center gap-2 rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] px-7 py-3 text-sm font-semibold text-[var(--vt-text-primary)] transition hover:bg-[var(--vt-surface-subtle)] hover:text-[var(--vt-text-primary)]"
               >
                 <Terminal className="h-4 w-4" />
                 API Docs
@@ -159,7 +154,7 @@ export function Hero() {
               {['HIPAA-aligned', 'W3C VC'].map((badge) => (
                 <span
                   key={badge}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+                  className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]"
                 >
                   <Shield className="h-3 w-3" />
                   {badge}

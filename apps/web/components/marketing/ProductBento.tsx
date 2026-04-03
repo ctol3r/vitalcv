@@ -1,3 +1,4 @@
+// TODO: brutalist refactor
 'use client';
 
 import { useRef } from 'react';

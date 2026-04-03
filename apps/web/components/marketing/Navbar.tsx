@@ -48,11 +48,7 @@ export default function Navbar() {
 
   return (
     <motion.nav
-      className={`fixed top-0 w-full z-50 border-b transition-all duration-500 ${
-        isScrolled
-          ? 'border-[var(--warm-charcoal)]/15 bg-[var(--cloud-dancer)]/85 backdrop-blur-md shadow-[0_12px_30px_rgba(18,20,20,0.08)]'
-          : 'border-transparent bg-[var(--cloud-dancer)]/0'
-      }`}
+      className={`fixed top-0 w-full z-50 border-b border-[var(--vt-border)] bg-[var(--vt-bg)] transition-all duration-300`}
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -60,18 +56,18 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link
           href="/"
-          className="font-fraunces text-lg font-semibold text-[var(--warm-charcoal)] tracking-tight"
+          className="text-lg font-semibold text-[var(--vt-text-primary)] tracking-tight"
         >
           VitalCV
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-5 text-sm text-[var(--warm-charcoal)]/70">
+        <div className="hidden md:flex items-center gap-5 text-sm text-[var(--vt-text-secondary)]">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="hover:text-[var(--warm-charcoal)] transition-colors font-medium"
+              className="hover:text-[var(--vt-text-primary)] transition-colors font-medium"
             >
               {link.label}
             </Link>
@@ -91,7 +87,7 @@ export default function Navbar() {
         {/* Mobile hamburger */}
         <button
           type="button"
-          className="md:hidden p-2 -mr-2 text-[var(--warm-charcoal)]"
+          className="md:hidden p-2 -mr-2 text-[var(--vt-text-primary)]"
           onClick={() => setMobileOpen((prev) => !prev)}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
@@ -104,7 +100,7 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
-            className="md:hidden border-t border-[var(--warm-charcoal)]/10 bg-[var(--cloud-dancer)]/95 backdrop-blur-md"
+            className="md:hidden border-t border-[var(--vt-border)] bg-[var(--vt-surface)]"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -116,7 +112,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={closeMobile}
-                  className="block text-sm text-[var(--warm-charcoal)]/70 hover:text-[var(--warm-charcoal)] transition-colors"
+                  className="block text-sm text-[var(--vt-text-secondary)] hover:text-[var(--vt-text-primary)] transition-colors"
                 >
                   {link.label}
                 </Link>

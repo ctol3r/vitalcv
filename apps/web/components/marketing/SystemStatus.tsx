@@ -62,10 +62,10 @@ export function SystemStatus() {
         viewport={{ amount: 0.3, once: true }}
       >
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.33em] text-[var(--trust-green)]">
+          <p className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
             System Status
           </p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-tight font-fraunces text-[var(--warm-charcoal)]">
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight text-[var(--vt-text-primary)]">
             Platform health, live
           </h2>
         </div>
@@ -73,21 +73,21 @@ export function SystemStatus() {
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {/* Status */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
+            className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
               <Activity className="h-3.5 w-3.5" />
               Status
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--trust-green)] opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--trust-green)]" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-sm bg-[var(--vt-status-resolved)] opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-sm bg-[var(--vt-status-resolved)]" />
               </span>
-              <span className="text-lg font-semibold text-[var(--trust-green)]">
+              <span className="text-lg font-semibold text-[var(--vt-status-resolved)]">
                 {loaded ? metrics.status : '--'}
               </span>
             </div>
@@ -95,34 +95,34 @@ export function SystemStatus() {
 
           {/* Uptime */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
+            className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
               <ShieldCheck className="h-3.5 w-3.5" />
               Uptime
             </div>
-            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--vt-text-primary)]">
               {loaded ? metrics.uptime : '--'}
             </div>
           </motion.div>
 
           {/* Bundles Generated */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
+            className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.12 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
               <FileStack className="h-3.5 w-3.5" />
               Bundles Generated
             </div>
-            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--vt-text-primary)]">
               {loaded ? (
                 <CountUp
                   start={prevBundles}
@@ -139,17 +139,17 @@ export function SystemStatus() {
 
           {/* Verifications Performed */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6"
+            className="rounded-sm border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
             viewport={{ once: true }}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--warm-charcoal)]/50">
+            <div className="flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Verifications
             </div>
-            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--warm-charcoal)]">
+            <div className="mt-3 text-3xl font-semibold tabular-nums text-[var(--vt-text-primary)]">
               {loaded ? (
                 <CountUp
                   start={prevVerifications}

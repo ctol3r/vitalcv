@@ -1,3 +1,4 @@
+// TODO: brutalist refactor
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
