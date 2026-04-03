@@ -328,7 +328,15 @@ function BinaryDecisionCard({
     BLOCKED: 'text-rose-400',
   };
 
-  // 3 canonical bullets
+  // Enrollment status
+  const enrollmentStatus =
+    standing.pecosEnrollmentStatus ?? (
+      standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
+      standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
+    );
+  const enrollmentOk = enrollmentStatus === 'ENROLLED';
+
+  // 4 canonical bullets — key facts for <10s employer decision
   const bullets: { label: string; source: string; ok: boolean; reason?: string }[] = [
     {
       label: 'Identity checked',
@@ -337,16 +345,24 @@ function BinaryDecisionCard({
       reason: identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined,
     },
     {
+      label: 'Safety checked',
+      source: 'OIG/LEIE',
+      ok: standing.exclusionStatus === 'CLEAR',
+      reason: standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined,
+    },
+    {
       label: 'License source-backed',
       source: 'State Board',
       ok: hasActiveLicense,
       reason: !hasActiveLicense ? 'No active license found in source data' : undefined,
     },
     {
-      label: 'Safety checked',
-      source: 'OIG/LEIE',
-      ok: standing.exclusionStatus === 'CLEAR',
-      reason: standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined,
+      label: 'Enrollment checked',
+      source: 'CMS PECOS',
+      ok: enrollmentOk,
+      reason: !enrollmentOk
+        ? enrollmentStatus === 'NOT_FOUND' ? 'Not found in CMS enrollment data' : 'Enrollment not yet checked'
+        : undefined,
     },
   ];
 

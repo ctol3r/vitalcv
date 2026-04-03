@@ -273,7 +273,7 @@ function buildDegradedAccordion(
   reason: DegradedPreviewReason,
 ): AccordionItem[] {
   const accessRequiredMeta = accordionMeta('access required');
-  const unavailableMeta = accordionMeta('temporarily unavailable');
+  const unavailableMeta = accordionMeta('unavailable');
   const nppesChecked = sources.nppes === 'ok';
   const oigChecked = sources.oig === 'ok';
   const degradedReasonCopy =

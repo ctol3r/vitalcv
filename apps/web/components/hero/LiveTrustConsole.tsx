@@ -65,6 +65,8 @@ const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live or previ
 const INITIAL_STAGES: SourceStage[] = [
   { id: 'NPPES_API', label: 'Primary identity (NPPES)', status: 'waiting' },
   { id: 'OIG_LEIE', label: 'Sanctions (OIG / LEIE)', status: 'waiting' },
+  { id: 'PECOS', label: 'Enrollment (PECOS)', status: 'waiting' },
+  { id: 'LICENSE', label: 'License verification', status: 'waiting' },
   { id: 'READINESS', label: 'Readiness snapshot', status: 'waiting' },
 ];
 
@@ -93,7 +95,7 @@ const STAGE_COLOR: Record<SourceStage['status'], string> = {
 };
 
 function stageBadge(stage: SourceStage): {
-  status: 'pending' | 'checked' | 'review_required' | 'unavailable';
+  status: 'pending' | 'checked' | 'review_required' | 'unavailable' | 'access_required';
   label: string;
 } {
   switch (stage.status) {
@@ -102,8 +104,12 @@ function stageBadge(stage: SourceStage): {
     case 'ok':
       return { status: 'checked', label: 'Checked' };
     case 'failed':
-      return { status: 'unavailable', label: 'Unavailable — retrying' };
+      return { status: 'unavailable', label: 'Unavailable' };
     case 'skipped':
+      // PECOS and License are not checked on the homepage — show as access_required
+      if (stage.id === 'PECOS' || stage.id === 'LICENSE') {
+        return { status: 'access_required', label: 'Access required' };
+      }
       return { status: 'unavailable', label: 'Unavailable' };
     case 'waiting':
     default:
@@ -418,6 +424,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         setStages(prev => setStageStatuses(prev, {
           NPPES_API: 'skipped',
           OIG_LEIE: 'skipped',
+          PECOS: 'skipped',
+          LICENSE: 'skipped',
           READINESS: 'skipped',
         }));
         setIsDemo(true);
@@ -440,6 +448,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       setStages(prev => setStageStatuses(prev, {
         NPPES_API: 'skipped',
         OIG_LEIE: 'skipped',
+        PECOS: 'skipped',
+        LICENSE: 'skipped',
         READINESS: 'skipped',
       }));
       setIsDemo(true);
@@ -462,7 +472,18 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
           setRealState(tsData);
           setIsDemo(false);
           setPreviewNotice(null);
-          setStages(prev => setStageStatus(prev, 'READINESS', 'ok'));
+
+          // Resolve PECOS + License from trust-state facts
+          const hasPecosFact = tsData.facts?.some(f =>
+            /pecos|enrollment/i.test(f.factType ?? '') && f.status === 'VERIFIED',
+          );
+          const licensureOk = tsData.licensureStatus === 'verified';
+
+          setStages(prev => setStageStatuses(prev, {
+            PECOS: hasPecosFact ? 'ok' : 'skipped',
+            LICENSE: licensureOk ? 'ok' : 'skipped',
+            READINESS: 'ok',
+          }));
         } else {
           setIsDemo(true);
           setFallbackReason('partialCoverage');
@@ -576,6 +597,28 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
           })}
         </div>
 
+        {/* ── System status bar — visible during loading + preview ────── */}
+        {phase !== 'idle' && (
+          <div
+            className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground animate-fade-in-up"
+            aria-live="polite"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              System active
+            </span>
+            <span>
+              Sources: {stages.filter(s => s.status === 'ok').length}/{stages.length} checked
+            </span>
+            <span>
+              Claims: {realState?.credentialCount ?? '–'}
+            </span>
+            <span className="hidden sm:inline">
+              Readiness: {realState ? `${realState.readiness_score}/100 · ${realState.readiness_level}` : '–'}
+            </span>
+          </div>
+        )}
+
         {!isPreviewPhase ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -650,7 +693,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         )}
 
         {(showLoadingPanel || phase === 'preview') && (
-          <div className={`relative ${showLoadingPanel ? 'min-h-[188px] sm:min-h-[206px]' : ''}`}>
+          <div className={`relative ${showLoadingPanel ? 'min-h-[320px] sm:min-h-[340px]' : ''}`}>
             {showLoadingPanel && (
               <TrustStateCard
                 aria-live="polite"

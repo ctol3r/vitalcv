@@ -432,14 +432,41 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               />
             </Card>
 
-            {/* Readiness score — appears when claims update */}
+            {/* Readiness summary — appears when claims update */}
             {state.readiness.score !== undefined && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-muted-foreground/70 text-sm">Readiness</span>
-                <span className="text-foreground/80 text-sm tabular-nums">
-                  {state.readiness.score}/100
-                </span>
-              </div>
+              <Card className="gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
+                  <TrustStatusBadge
+                    status={
+                      state.readiness.score >= 70 ? 'checked'
+                      : state.readiness.score >= 40 ? 'pending'
+                      : 'unavailable'
+                    }
+                    label={
+                      state.readiness.score >= 70 ? 'Ready'
+                      : state.readiness.score >= 40 ? 'Partial'
+                      : 'Blocked'
+                    }
+                    size="sm"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-foreground/80 text-sm tabular-nums">
+                    {state.readiness.score}/100
+                  </span>
+                  {state.readiness.level && (
+                    <span className="text-muted-foreground/50 text-xs">
+                      {state.readiness.level}
+                    </span>
+                  )}
+                </div>
+                {state.readiness.status && (
+                  <p className="text-muted-foreground/50 text-xs mt-1">
+                    {state.readiness.status}
+                  </p>
+                )}
+              </Card>
             )}
 
             {/* Usable state — passport anchor is available */}
