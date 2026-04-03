@@ -109,4 +109,43 @@ The Trust Score is the first primitive. What it enables:
 
 ---
 
-*Last updated: 2026-03-15 | Wave M: Market Intelligence Assimilation*
+---
+
+## Technical Differentiators vs. Medallion / Symplr / CAQH / Verisys
+
+**We are an evidence-first trust layer, not a workflow automation tool.**
+
+Workflow tools (Medallion, Symplr, CredentialStream) automate the process of collecting documents and routing them through committees. They do not compute trust. They do not detect divergences. They do not track freshness. They are process tools. We are the infrastructure that makes those process tools smarter.
+
+### The 6 Things Nobody Else Has
+
+1. **Composite Trust Score (0–100)**
+   Every clinician gets a single number with a dimensional breakdown (identity, licensure, sanctions, enrollment, board cert, education, employment, references). Transparent methodology. Audit-trailable. No competitor computes this.
+
+2. **Verification Freshness Decay Model**
+   Every claim class has a decay curve. License status: 7-day window. Identity: 30-day. Sanctions: daily. Board cert: 90-day. PECOS: quarterly. A verification from 6 months ago is not the same as one from today. Our trust score reflects that in real time. Nobody else models this.
+
+3. **Cross-Source Divergence Detection**
+   Seven rules that surface contradictions across NPPES, OIG, state boards, PECOS, and other sources. Name mismatches, DOB conflicts, license discrepancies, specialty mismatches. Three severity tiers (HIGH/MEDIUM/LOW) with score penalties. Single-source lookup tools cannot detect these by definition.
+
+4. **Claim-Level Receipts + Provenance**
+   Every fact traces to: source artifact → timestamp → checksum → parser version → confidence. Not "we verified it." Verified by what source, when, how, with what parser, at what confidence level. The receipt is the proof.
+
+5. **Source Coverage Transparency**
+   Every provider profile shows what's checked, gated, stale, or missing — and the confidence impact of each gap. Sub-50% coverage = L0 Unknown. 90%+ = L3 Practice-Ready. We tell you what we don't know, not just what we do.
+
+6. **Academic / Research Identity Integration**
+   OpenAlex, PubMed, ClinicalTrials.gov, ORCID. No credentialing competitor integrates academic identity. AMCs and research institutions are underserved. This is a moat for research-active organizations.
+
+### What This Means in Practice
+
+| Scenario | Workflow Tool | VitalCV |
+|---|---|---|
+| "Is this clinician safe to hire?" | "Documents collected, committee approved" | "Trust score 83/100, L3, 6/7 sources fresh, no divergences, sanctions clear as of today" |
+| "When was their license last checked?" | "Verified 3 months ago" | "License verified 4 days ago, within 7-day freshness window, 92% confidence" |
+| "Do their records conflict?" | Not detectable | "MEDIUM divergence: NPPES lists specialty as Internal Medicine, state board lists Hospitalist. Score penalty: -15" |
+| "What don't we know?" | Not surfaced | "State board: GATED (no API agreement). Impact: trust score capped at L1" |
+
+---
+
+*Last updated: 2026-04-03 | Pilot Zero Strategy Assimilation*
