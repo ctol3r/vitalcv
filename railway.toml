@@ -4,8 +4,8 @@ buildCommand = "pnpm --filter @vitalcv/ingest run build && pnpm --filter @vitalc
 
 
 [deploy]
-preDeployCommand = ["cd apps/api/backend && npx prisma migrate deploy"]
-startCommand = "node -r ./apps/api/backend/register-workspace-paths.js apps/api/backend/dist/apps/api/backend/src/server.js"
+preDeployCommand = ["sh", "-c", "cd apps/api/backend && npx prisma migrate deploy"]
+startCommand = "node apps/api/backend/dist/apps/api/backend/src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
