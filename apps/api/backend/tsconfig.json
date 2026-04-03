@@ -32,11 +32,14 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src", "jobs", "adapters", "types", "routes"],
+  "include": ["src", "jobs", "adapters", "types", "routes", "../../../packages/ingest/**/*.ts", "../../../packages/psv/**/*.ts", "../../../packages/psv-adapters/**/*.ts", "../../../packages/command-registry/**/*.ts", "../../../packages/crs/**/*.ts", "../../../packages/haip-config/**/*.ts", "../../../packages/shared/**/*.ts", "../../../packages/domain/**/*.ts", "../../../packages/domain-common/**/*.ts", "../../../packages/trust-state/**/*.ts", "../../../packages/audit/**/*.ts"],
   "exclude": [
     "node_modules",
     "src/blockchain/**",
     "src/graphql/**",
-    "routes/*.disabled.ts"
+    "routes/*.disabled.ts",
+    "../../../packages/**/__tests__/**",
+    "../../../packages/**/*.test.ts",
+    "../../../packages/**/*.spec.ts"
   ]
 }
