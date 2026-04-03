@@ -4,11 +4,14 @@ node_modules
 .next
 .next.*
 .git
-dist
-.vercel
-.turbo
+# Ignore compiled output for web/backend (rebuilt by Railway buildCommand)
+apps/web/dist
 apps/web/.next
 apps/web/.next.*
+apps/api/backend/dist
+# Keep packages/*/dist — Railway tsc does NOT recompile these, they are runtime deps
+.vercel
+.turbo
 apps/mobile
 apps/marketing
 apps/api/ai-matcher-service
