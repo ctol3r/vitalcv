@@ -1,6 +1,6 @@
 [build]
 installCommand = "pnpm install --no-frozen-lockfile"
-buildCommand = "echo 'Using pre-built dist from upload'"
+buildCommand = "cd apps/api/backend && bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && npx tsc -p tsconfig.json"
 
 
 [deploy]
