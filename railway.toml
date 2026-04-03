@@ -1,6 +1,6 @@
 [build]
 installCommand = "pnpm install --no-frozen-lockfile"
-buildCommand = "pnpm --filter @vitalcv/api run build"
+buildCommand = "echo 'Using pre-built dist from upload'"
 
 
 [deploy]
