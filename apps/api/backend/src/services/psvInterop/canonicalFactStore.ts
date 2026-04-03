@@ -16,7 +16,7 @@ import {
   type PersistBatchInput,
   type PersistedBatchRecord,
 } from '@vitalcv/psv-adapters';
-import { PSVReceipt, type SourceAuthority } from '../../../../../../packages/psv';
+import { PSVReceipt, type SourceAuthority } from '@vitalcv/psv';
 
 type VerificationArtifactRecord = Readonly<{
   id: string;

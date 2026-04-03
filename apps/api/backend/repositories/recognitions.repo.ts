@@ -3,7 +3,7 @@ import {
   type RecognitionEventInput,
   type RecognitionRevocation,
   RecognitionEvent,
-} from '../../../../packages/domain/events/RecognitionEvent';
+} from '@vitalcv/domain';
 import prisma from '../src/graphql/prisma_client';
 
 function stableStringify(value: unknown): string {

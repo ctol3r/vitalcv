@@ -1,4 +1,4 @@
-import { DomainError } from '../../domain-common/src/errors/DomainError';
+import { DomainError } from '@vitalcv/domain-common';
 
 export type EmployerAcceptanceInput = {
   acceptanceId?: string;

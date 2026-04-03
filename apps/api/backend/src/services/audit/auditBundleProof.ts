@@ -1,7 +1,7 @@
 import {
   validateCredentialArtifact,
   validateVerificationArtifact,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
 import { capsuleEngine } from '../decision/capsuleEngine';
 import {

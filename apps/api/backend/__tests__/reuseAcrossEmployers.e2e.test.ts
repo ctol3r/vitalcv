@@ -1,14 +1,14 @@
 import type { TrustStateApiDependencies } from '../../trust-state';
-import type { PsvReceiptSnapshot } from '../../../../packages/domain-core';
+import type { PsvReceiptSnapshot } from '@vitalcv/domain-core';
 import {
   EmployerAcceptance,
   RecognitionEvent,
   type SignatureProof,
-} from '../../../../packages/domain-events';
-import { CrsEngine } from '../../../../packages/crs';
-import { AuditLedger, buildAuditScrapbook } from '../../../../packages/audit';
-import { PsvStore } from '../../../../packages/psv';
-import { TrustStateResolver } from '../../../../packages/trust-state';
+} from '@vitalcv/domain-events';
+import { CrsEngine } from '@vitalcv/crs';
+import { AuditLedger, buildAuditScrapbook } from '@vitalcv/audit';
+import { PsvStore } from '@vitalcv/psv';
+import { TrustStateResolver } from '@vitalcv/trust-state';
 
 function toDomainSnapshots(psvStore: PsvStore, receiptIds: readonly string[]): PsvReceiptSnapshot[] {
   return psvStore.listByIds(receiptIds).map((receipt) => ({

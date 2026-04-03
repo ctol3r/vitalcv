@@ -5,7 +5,7 @@ import {
   type AppendReceiptInput,
   type CreatePSVReceiptInput,
   type TrustStateReceiptRecord,
-} from '../../../../../../packages/psv';
+} from '@vitalcv/psv';
 
 export type PsvReceiptRow = Readonly<{
   receiptId: string;

@@ -7,7 +7,7 @@ import {
   resolveCanonicalSourceCoverageState,
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 export type SourceCoverageState = CanonicalSourceCoverageState;
 

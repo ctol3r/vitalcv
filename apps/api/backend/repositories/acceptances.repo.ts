@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import {
   EmployerAcceptance,
   type EmployerAcceptanceInput,
-} from '../../../../packages/domain/events/EmployerAcceptance';
+} from '@vitalcv/domain';
 import prisma from '../src/graphql/prisma_client';
 
 function stableStringify(value: unknown): string {

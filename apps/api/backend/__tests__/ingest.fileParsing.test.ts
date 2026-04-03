@@ -1,4 +1,4 @@
-import { parseCandidateCredential, ResumeIngestError } from '../../../../packages/ingest';
+import { parseCandidateCredential, ResumeIngestError } from '@vitalcv/ingest';
 
 function asBase64(value: string): string {
   return Buffer.from(value, 'utf8').toString('base64');

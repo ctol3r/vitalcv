@@ -2,7 +2,7 @@ import {
   CanonicalPrimitiveError,
   assertStartReadyCrs,
   parseRfc3339Utc,
-} from '../domain-core';
+} from '@vitalcv/domain-core';
 import { EmployerAcceptance } from './EmployerAcceptance';
 import {
   assertHashAnchor,

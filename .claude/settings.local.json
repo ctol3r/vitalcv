@@ -173,7 +173,10 @@
       "Bash(npx vitest:*)",
       "Bash(cat /Users/christoler/vitalcv/apps/web/app/sign-in/[[...sign-in]]/page.tsx)",
       "Bash(git diff:*)",
-      "Bash(npx --yes turbo run typecheck --filter=@vitalcv/web)"
+      "Bash(npx --yes turbo run typecheck --filter=@vitalcv/web)",
+      "Bash(/usr/local/bin/node --version)",
+      "Bash(/usr/local/bin/node apps/web/node_modules/typescript/bin/tsc --version)",
+      "Bash(/usr/local/bin/node /Users/christoler/vitalcv/apps/web/node_modules/typescript/bin/tsc --noEmit --project /Users/christoler/vitalcv/apps/web/tsconfig.json)"
     ],
     "deny": [],
     "ask": []

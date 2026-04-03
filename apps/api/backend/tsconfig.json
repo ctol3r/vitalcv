@@ -12,15 +12,21 @@
 
     "paths": {
       "@vitalcv/command-registry": ["packages/command-registry/src/index"],
+      "@vitalcv/domain": ["packages/domain/index.ts"],
       "@vitalcv/domain/*": ["packages/domain/*"],
+      "@vitalcv/domain-core": ["packages/domain-core/index.ts"],
+      "@vitalcv/domain-events": ["packages/domain-events/index.ts"],
       "@vitalcv/domain-common": ["packages/domain-common/src"],
+      "@vitalcv/ingest": ["packages/ingest/index.ts"],
       "@vitalcv/psv": ["packages/psv"],
       "@vitalcv/psv/*": ["packages/psv/*"],
       "@vitalcv/psv-adapters": ["packages/psv-adapters"],
       "@vitalcv/psv-adapters/*": ["packages/psv-adapters/*"],
       "@vitalcv/crs": ["packages/crs"],
       "@vitalcv/crs/*": ["packages/crs/*"],
+      "@vitalcv/trust-state": ["packages/trust-state/index.ts"],
       "@vitalcv/trust-state/*": ["packages/trust-state/*"],
+      "@vitalcv/audit": ["packages/audit/index.ts"],
       "@vitalcv/audit/*": ["packages/audit/*"],
       "@vitalcv/haip-config": ["packages/haip-config"],
       "@vitalcv/shared/*": ["packages/shared/*"]
@@ -32,14 +38,11 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src", "jobs", "adapters", "types", "routes", "../../../packages/ingest/**/*.ts", "../../../packages/psv/**/*.ts", "../../../packages/psv-adapters/**/*.ts", "../../../packages/command-registry/**/*.ts", "../../../packages/crs/**/*.ts", "../../../packages/haip-config/**/*.ts", "../../../packages/shared/**/*.ts", "../../../packages/domain/**/*.ts", "../../../packages/domain-common/**/*.ts", "../../../packages/trust-state/**/*.ts", "../../../packages/audit/**/*.ts"],
+  "include": ["src", "jobs", "adapters", "types", "routes"],
   "exclude": [
     "node_modules",
     "src/blockchain/**",
     "src/graphql/**",
-    "routes/*.disabled.ts",
-    "../../../packages/**/__tests__/**",
-    "../../../packages/**/*.test.ts",
-    "../../../packages/**/*.spec.ts"
+    "routes/*.disabled.ts"
   ]
 }

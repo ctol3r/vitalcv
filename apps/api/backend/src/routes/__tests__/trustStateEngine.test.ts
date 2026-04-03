@@ -24,7 +24,7 @@ jest.mock('../../services/trust/trustStateEngine', () => {
   };
 });
 
-import { trustStateLatencyHistogram } from '../../../../../../packages/trust-state';
+import { trustStateLatencyHistogram } from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
 import { registerTrustStateEngineRoutes } from '../trustStateEngine';
 import {

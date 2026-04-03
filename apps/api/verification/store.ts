@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { PsvStore, type AppendReceiptInput } from '../../../packages/psv';
+import { PsvStore, type AppendReceiptInput } from '@vitalcv/psv';
 import prisma from '../../backend/src/graphql/prisma_client';
 
 type ManualVerificationSource = 'SERT' | 'GSA' | 'PUBLIC_REGULATOR' | 'PARTNER' | 'OTHER';

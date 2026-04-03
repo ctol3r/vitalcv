@@ -1,11 +1,9 @@
-import {
-  hashStablePayload,
-} from '../../../packages/ingest';
+import { hashStablePayload } from '@vitalcv/ingest';
 import type {
-  CredentialCandidate as CandidateCredential,
+  CandidateCredential,
   ClinicianIdentity,
   IngestConflictRecord,
-} from '../../../packages/shared/credentials';
+} from '@vitalcv/ingest';
 
 export type IntakeSummary = Readonly<{
   clinician_id: string;

@@ -2,11 +2,13 @@
   "name": "@vitalcv/domain-common",
   "version": "1.0.0",
   "private": true,
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "test": "vitest run --coverage --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^1.6.0",

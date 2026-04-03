@@ -2,7 +2,7 @@ import type { Prisma, VcvCredentialDomain } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { buildPassport, type ReadinessNextAction, type TrustPassport } from './passportService';
 import { resolveCredentialEvidence } from './evidenceIntegrity';
-import type { CanonicalSourceCoverageReport } from '../../../../../../packages/trust-state';
+import type { CanonicalSourceCoverageReport } from '@vitalcv/trust-state';
 
 export interface EmployerReviewCredentialRef {
   credentialId: string;

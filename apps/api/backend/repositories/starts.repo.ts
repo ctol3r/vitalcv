@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import {
   StartAttestation,
   type StartAttestationInput,
-} from '../../../../packages/domain/events/StartAttestation';
+} from '@vitalcv/domain';
 import prisma from '../src/graphql/prisma_client';
 
 function stableStringify(value: unknown): string {

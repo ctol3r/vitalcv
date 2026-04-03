@@ -5,7 +5,7 @@ import {
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageSummary,
   type CanonicalTruthStatus,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import type { TrustPassport } from './passportService';
 
 type PassportCredential = TrustPassport['authority']['credentials'][number];

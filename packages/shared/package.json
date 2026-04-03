@@ -2,36 +2,39 @@
   "name": "@vitalcv/shared",
   "version": "1.0.0",
   "private": true,
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./index.ts",
-    "./credentials": "./credentials/index.ts",
-    "./crs": "./crs/index.ts",
-    "./legacy": "./legacy/index.ts",
-    "./onchain": "./onchain/index.ts",
-    "./pricing": "./pricing/index.ts",
-    "./receipts": "./receipts/index.ts",
-    "./recognition": "./recognition/index.ts",
-    "./roles": "./roles/index.ts"
+    ".": "./dist/index.js",
+    "./credentials": "./dist/credentials/index.js",
+    "./crs": "./dist/crs/index.js",
+    "./legacy": "./dist/legacy/index.js",
+    "./onchain": "./dist/onchain/index.js",
+    "./pricing": "./dist/pricing/index.js",
+    "./receipts": "./dist/receipts/index.js",
+    "./recognition": "./dist/recognition/index.js",
+    "./roles": "./dist/roles/index.js"
   },
   "typesVersions": {
     "*": {
-      "credentials": ["./credentials/index.ts"],
-      "crs": ["./crs/index.ts"],
-      "legacy": ["./legacy/index.ts"],
-      "onchain": ["./onchain/index.ts"],
-      "pricing": ["./pricing/index.ts"],
-      "receipts": ["./receipts/index.ts"],
-      "recognition": ["./recognition/index.ts"],
-      "roles": ["./roles/index.ts"]
+      "credentials": ["./dist/credentials/index.d.ts"],
+      "crs": ["./dist/crs/index.d.ts"],
+      "legacy": ["./dist/legacy/index.d.ts"],
+      "onchain": ["./dist/onchain/index.d.ts"],
+      "pricing": ["./dist/pricing/index.d.ts"],
+      "receipts": ["./dist/receipts/index.d.ts"],
+      "recognition": ["./dist/recognition/index.d.ts"],
+      "roles": ["./dist/roles/index.d.ts"]
     }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@vitalcv/crs": "workspace:*",
+    "@vitalcv/domain": "workspace:*",
+    "@vitalcv/domain-common": "workspace:*",
     "@vitalcv/domain-core": "workspace:*",
     "@vitalcv/domain-events": "workspace:*",
     "@vitalcv/ingest": "workspace:*",

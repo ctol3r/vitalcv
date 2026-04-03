@@ -34,7 +34,7 @@ jest.mock('../../../obs/logger', () => ({
 
 import prisma from '../../../graphql/prisma_client';
 import { log } from '../../../obs/logger';
-import type { CredentialFactBatch } from '../../../../../../../packages/psv-adapters';
+import type { CredentialFactBatch } from '@vitalcv/psv-adapters';
 import { BackendCanonicalCredentialFactStore } from '../canonicalFactStore';
 
 const prismaMock = prisma as unknown as {

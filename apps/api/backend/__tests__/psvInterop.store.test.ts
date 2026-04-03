@@ -33,9 +33,9 @@ import {
   NursysENotifyAdapter,
   createJsonHttpTransport,
   InMemoryMonitoringSubscriptionState,
-} from '../../../../packages/psv-adapters';
-import npiLookupFixture from '../../../../packages/psv-adapters/fixtures/npiRegistry.lookupByNpi.json';
-import nursysDisciplineFixture from '../../../../packages/psv-adapters/fixtures/nursys.webhook.discipline.json';
+} from '@vitalcv/psv-adapters';
+import npiLookupFixture from '@vitalcv/psv-adapters/fixtures/npiRegistry.lookupByNpi.json';
+import nursysDisciplineFixture from '@vitalcv/psv-adapters/fixtures/nursys.webhook.discipline.json';
 import { BackendCanonicalCredentialFactStore } from '../src/services/psvInterop/canonicalFactStore';
 
 function jsonResponse(body: unknown, status = 200) {

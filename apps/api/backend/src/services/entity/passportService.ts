@@ -49,7 +49,7 @@ import {
   type CanonicalSourceCoverageReport,
   type CanonicalSourceCoverageState,
   type CanonicalTruthSet,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
   buildPecosEnrollmentNote,
@@ -291,6 +291,113 @@ function asRecord(value: unknown): JsonRecord {
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function pickArtifactPayload(rawPayload: unknown): JsonRecord {
+  const payload = asRecord(rawPayload);
+  const nestedPayload = asRecord(payload.payload_json);
+  return Object.keys(nestedPayload).length > 0 ? nestedPayload : payload;
+}
+
+function joinIdentityName(firstName?: string, lastName?: string): string | undefined {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return fullName.length > 0 ? fullName : undefined;
+}
+
+function isGenericIdentityPlaceholder(name: string | undefined): boolean {
+  if (!name) {
+    return true;
+  }
+
+  return (
+    /^unknown (provider|organization)$/i.test(name)
+    || /^provider not found in nppes$/i.test(name)
+    || /^clinician \d{10}$/i.test(name)
+    || /^organization \d{10}$/i.test(name)
+    || /^npi \d{10}$/i.test(name)
+  );
+}
+
+function resolveDisplayNameFromNppesArtifact(input: {
+  rawPayload: unknown;
+  entityType: string;
+}): string | undefined {
+  const payload = pickArtifactPayload(input.rawPayload);
+  const basic = asRecord(payload.basic);
+  const identity = Object.keys(basic).length > 0 ? basic : payload;
+  const enumerationType =
+    stringValue(payload.enumeration_type)
+    ?? stringValue(identity.enumeration_type);
+  const isOrganization =
+    input.entityType === 'ORGANIZATION'
+    || enumerationType === 'NPI-2';
+
+  const organizationName =
+    stringValue(identity.organization_name)
+    ?? stringValue(identity.organizationName);
+  const firstName =
+    stringValue(identity.first_name)
+    ?? stringValue(identity.firstName)
+    ?? stringValue(identity.authorized_official_first_name);
+  const lastName =
+    stringValue(identity.last_name)
+    ?? stringValue(identity.lastName)
+    ?? stringValue(identity.authorized_official_last_name);
+
+  if (isOrganization && organizationName) {
+    return organizationName;
+  }
+
+  const personalName = joinIdentityName(firstName, lastName);
+  if (personalName) {
+    return personalName;
+  }
+
+  return organizationName;
+}
+
+async function resolvePassportIdentityDisplayName(input: {
+  npi?: string;
+  entityType: string;
+  fallbackDisplayName: string;
+}): Promise<string> {
+  if (input.npi) {
+    const nppesArtifact = await prisma.verificationArtifact.findFirst({
+      where: {
+        npi: input.npi,
+        source: {
+          in: ['NPPES_API', 'NPPES', 'NPI_REGISTRY'],
+        },
+      },
+      select: {
+        rawPayload: true,
+      },
+      orderBy: [
+        { verifiedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    const nppesDisplayName = resolveDisplayNameFromNppesArtifact({
+      rawPayload: nppesArtifact?.rawPayload,
+      entityType: input.entityType,
+    });
+    if (nppesDisplayName) {
+      return nppesDisplayName;
+    }
+  }
+
+  if (!isGenericIdentityPlaceholder(input.fallbackDisplayName)) {
+    return input.fallbackDisplayName.trim();
+  }
+
+  if (input.npi) {
+    return input.entityType === 'ORGANIZATION'
+      ? `Organization ${input.npi}`
+      : `Clinician ${input.npi}`;
+  }
+
+  return input.entityType === 'ORGANIZATION' ? 'Unknown Organization' : 'Unknown Provider';
 }
 
 function latestIso(left?: string, right?: string): string | undefined {
@@ -1275,6 +1382,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const { entity } = record;
   const npi = entity.npi ?? undefined;
+  const displayName = await resolvePassportIdentityDisplayName({
+    npi,
+    entityType: entity.entityType,
+    fallbackDisplayName: entity.displayName,
+  });
   const receiptClient = getVerificationReceiptRecordClient();
   const credentials = await prisma.vcvCredential.findMany({
     where: {
@@ -1631,7 +1743,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const lastCheckedAt = entity.verifiedAt?.toISOString() ?? new Date().toISOString();
   const identity: PassportIdentity = {
     entityId,
-    displayName: entity.displayName,
+    displayName,
     npi,
     specialty: meta.specialty as string | undefined,
     entityType: entity.entityType,

@@ -6,7 +6,7 @@ import { CredentialLifecycleState } from '../src/utils/lifecycleState';
 import {
   validateCredentialArtifact,
   validateVerificationArtifact,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import {
   isCanonicalCredentialArtifact,
   isCanonicalVerificationArtifact,

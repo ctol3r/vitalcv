@@ -9,7 +9,7 @@ import type {
   CanonicalSourceCoverageSummary,
   CanonicalTruthDimensionId,
   CanonicalTruthStatus,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import type { EmployerReviewAttribution } from './employerReviewAttribution';
 import {
   matchesEmployerReviewAttribution,

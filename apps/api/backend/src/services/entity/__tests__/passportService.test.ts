@@ -9,6 +9,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
     },
     verificationArtifact: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -41,7 +42,7 @@ jest.mock('../../../obs/logger', () => ({
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import prisma from '../../../graphql/prisma_client';
 import { getEntityById } from '../entityResolutionService';
 import { getCachedTrustState } from '../../trust/trustStateEngine';
@@ -51,7 +52,7 @@ import { buildPassport } from '../passportService';
 const prismaMock = prisma as unknown as {
   vcvCredential: { findMany: jest.Mock };
   vcvEducationRecord: { findMany: jest.Mock };
-  verificationArtifact: { findMany: jest.Mock };
+  verificationArtifact: { findMany: jest.Mock; findFirst: jest.Mock };
 };
 
 function buildCredential(overrides: Record<string, unknown> = {}) {
@@ -142,6 +143,7 @@ describe('passportService', () => {
     ]);
     prismaMock.vcvEducationRecord.findMany.mockResolvedValue([]);
     prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
     (resolveCredentialEvidence as jest.Mock).mockReturnValue({
       publicSafe: true,
       validArtifactIds: [],
@@ -269,6 +271,100 @@ describe('passportService', () => {
       }),
     ]));
     expect('enrichment' in (passport ?? {})).toBe(false);
+  });
+
+  it('prefers NPPES personal identity fields over a stale entity display name', async () => {
+    (getEntityById as jest.Mock).mockResolvedValue({
+      entity: {
+        id: 'entity-1',
+        displayName: 'Dr. Sarah Chen',
+        npi: '1234567890',
+        entityType: 'PERSON',
+        sourceIds: ['NPPES_API'],
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          specialty: 'Family Medicine',
+          status: 'ACTIVE',
+        },
+      },
+      roles: [],
+      relationships: [],
+      credentials: [],
+      routingEntry: '/get-ready',
+      subjectLabel: 'Provider',
+    });
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      rawPayload: {
+        enumeration_type: 'NPI-1',
+        basic: {
+          first_name: 'Ardalan',
+          last_name: 'Enkeshafi',
+        },
+      },
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport?.identity.displayName).toBe('Ardalan Enkeshafi');
+  });
+
+  it('uses NPPES organization_name for organization passports', async () => {
+    (getEntityById as jest.Mock).mockResolvedValue({
+      entity: {
+        id: 'entity-1',
+        displayName: 'Unknown Organization',
+        npi: '1234567890',
+        entityType: 'ORGANIZATION',
+        sourceIds: ['NPPES_API'],
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          status: 'ACTIVE',
+        },
+      },
+      roles: [],
+      relationships: [],
+      credentials: [],
+      routingEntry: '/employers',
+      subjectLabel: 'Organization',
+    });
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      rawPayload: {
+        enumeration_type: 'NPI-2',
+        basic: {
+          organization_name: 'Vital Health Group',
+        },
+      },
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport?.identity.displayName).toBe('Vital Health Group');
+  });
+
+  it('uses a generic placeholder only when no identity source is available', async () => {
+    (getEntityById as jest.Mock).mockResolvedValue({
+      entity: {
+        id: 'entity-1',
+        displayName: 'Unknown Provider',
+        npi: '1234567890',
+        entityType: 'PERSON',
+        sourceIds: [],
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          status: 'ACTIVE',
+        },
+      },
+      roles: [],
+      relationships: [],
+      credentials: [],
+      routingEntry: '/get-ready',
+      subjectLabel: 'Provider',
+    });
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport?.identity.displayName).toBe('Clinician 1234567890');
   });
 
   it('builds explicit fallback source coverage with freshness windows when trust state is missing', async () => {

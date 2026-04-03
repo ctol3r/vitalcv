@@ -115,9 +115,45 @@ importers:
       '@trustgraph/client':
         specifier: ^1.6.0
         version: 1.6.0
+      '@vitalcv/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
+      '@vitalcv/command-registry':
+        specifier: workspace:*
+        version: link:../../packages/command-registry
+      '@vitalcv/crs':
+        specifier: workspace:*
+        version: link:../../packages/crs
+      '@vitalcv/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@vitalcv/domain-core':
+        specifier: workspace:*
+        version: link:../../packages/domain-core
+      '@vitalcv/domain-events':
+        specifier: workspace:*
+        version: link:../../packages/domain-events
       '@vitalcv/haip-config':
         specifier: workspace:*
         version: link:../../packages/haip-config
+      '@vitalcv/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
+      '@vitalcv/poe-engine':
+        specifier: workspace:*
+        version: link:../../packages/poe-engine
+      '@vitalcv/psv':
+        specifier: workspace:*
+        version: link:../../packages/psv
+      '@vitalcv/psv-adapters':
+        specifier: workspace:*
+        version: link:../../packages/psv-adapters
+      '@vitalcv/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@vitalcv/trust-state':
+        specifier: workspace:*
+        version: link:../../packages/trust-state
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -212,18 +248,42 @@ importers:
       '@types/supercluster':
         specifier: ^7.1.3
         version: 7.1.3
+      '@vitalcv/audit':
+        specifier: workspace:*
+        version: link:../../../packages/audit
       '@vitalcv/command-registry':
         specifier: workspace:*
         version: link:../../../packages/command-registry
       '@vitalcv/crs':
         specifier: workspace:*
         version: link:../../../packages/crs
+      '@vitalcv/domain':
+        specifier: workspace:*
+        version: link:../../../packages/domain
+      '@vitalcv/domain-core':
+        specifier: workspace:*
+        version: link:../../../packages/domain-core
+      '@vitalcv/domain-events':
+        specifier: workspace:*
+        version: link:../../../packages/domain-events
+      '@vitalcv/ingest':
+        specifier: workspace:*
+        version: link:../../../packages/ingest
       '@vitalcv/poe-engine':
         specifier: workspace:*
         version: link:../../../packages/poe-engine
+      '@vitalcv/psv':
+        specifier: workspace:*
+        version: link:../../../packages/psv
       '@vitalcv/psv-adapters':
         specifier: workspace:*
         version: link:../../../packages/psv-adapters
+      '@vitalcv/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
+      '@vitalcv/trust-state':
+        specifier: workspace:*
+        version: link:../../../packages/trust-state
       apollo-server:
         specifier: ^3.13.0
         version: 3.13.0(graphql@16.12.0)
@@ -948,6 +1008,12 @@ importers:
       '@vitalcv/crs':
         specifier: workspace:*
         version: link:../crs
+      '@vitalcv/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@vitalcv/domain-common':
+        specifier: workspace:*
+        version: link:../domain-common
       '@vitalcv/domain-core':
         specifier: workspace:*
         version: link:../domain-core

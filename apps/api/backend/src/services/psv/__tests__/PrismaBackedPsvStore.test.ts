@@ -9,7 +9,7 @@ jest.mock('../../../graphql/prisma_client', () => ({
 }));
 
 import prisma from '../../../graphql/prisma_client';
-import { PSVReceipt } from '../../../../../../../packages/psv';
+import { PSVReceipt } from '@vitalcv/psv';
 import { PrismaBackedPsvStore } from '../PrismaBackedPsvStore';
 
 const prismaMock = prisma as unknown as {

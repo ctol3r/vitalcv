@@ -16,10 +16,10 @@ export {
   type StartAttestationInput as CanonicalStartAttestationInput,
   type SignatureProof,
   buildHashAnchor,
-} from '../domain-events';
+} from '@vitalcv/domain-events';
 
 export {
   type PsvReceiptSnapshot as CanonicalPsvReceiptSnapshot,
   CanonicalPrimitiveError,
   type CanonicalPrimitiveErrorCode,
-} from '../domain-core';
+} from '@vitalcv/domain-core';

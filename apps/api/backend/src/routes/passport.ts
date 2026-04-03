@@ -156,6 +156,62 @@ function pickPayload(rawPayload: unknown): Record<string, unknown> | null {
   return rawPayload;
 }
 
+function firstNonEmpty(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return '';
+}
+
+function joinIdentityName(firstName: string, lastName: string): string {
+  return [firstName, lastName].filter(Boolean).join(' ').trim();
+}
+
+function isGenericPassportName(name: string): boolean {
+  return (
+    name.length === 0
+    || /^unknown (provider|organization)$/i.test(name)
+    || /^provider not found in nppes$/i.test(name)
+    || /^clinician \d{10}$/i.test(name)
+    || /^organization \d{10}$/i.test(name)
+    || /^npi \d{10}$/i.test(name)
+  );
+}
+
+function inferNppesIdentityName(artifact: VerificationArtifactRecord): string {
+  const payload = pickPayload(artifact.rawPayload);
+  const basic = isRecord(payload?.basic) ? payload.basic : payload;
+  if (!isRecord(basic)) {
+    return '';
+  }
+
+  const enumerationType = firstNonEmpty(payload?.enumeration_type, basic.enumeration_type);
+  const organizationName = firstNonEmpty(basic.organization_name, basic.organizationName);
+  if (enumerationType === 'NPI-2' && organizationName) {
+    return organizationName;
+  }
+
+  const firstName = firstNonEmpty(
+    basic.first_name,
+    basic.firstName,
+    basic.authorized_official_first_name,
+  );
+  const lastName = firstNonEmpty(
+    basic.last_name,
+    basic.lastName,
+    basic.authorized_official_last_name,
+  );
+  const personalName = joinIdentityName(firstName, lastName);
+  if (personalName) {
+    return personalName;
+  }
+
+  return organizationName;
+}
+
 function normalizeStatus(value: string): PassportCredentialStatus {
   const normalized = value.trim().toUpperCase();
   if (normalized === 'ACTIVE' || normalized === 'VERIFIED' || normalized === 'CLEAR') {
@@ -342,32 +398,16 @@ function inferState(
   return 'Unknown';
 }
 
-// Detect seed/stub fullName values that should not be surfaced to users.
-const STUB_NAME_PATTERN = /^(Dr\.|Provider)\s+(Sarah Chen|Marcus Webb|\d+)$/i;
-
 function inferClinicianName(
   npi: string,
   provider: ProviderRecord | null,
   artifacts: readonly VerificationArtifactRecord[],
 ): string {
-  const storedName = provider?.fullName?.trim() ?? '';
-  const isValidStoredName = storedName.length > 0 && !STUB_NAME_PATTERN.test(storedName);
-
-  if (isValidStoredName) {
-    return storedName;
-  }
-
-  // Prefer NPPES_API artifact first_name/last_name as ground truth
   for (const artifact of artifacts) {
-    if (artifact.source === 'NPPES_API') {
-      const payload = pickPayload(artifact.rawPayload);
-      const basic = (payload?.basic ?? payload) as Record<string, unknown> | null;
-      const firstName = typeof basic?.first_name === 'string' ? basic.first_name.trim() : '';
-      const lastName = typeof basic?.last_name === 'string' ? basic.last_name.trim() : '';
-      const credential = typeof basic?.credential === 'string' ? basic.credential.trim() : '';
-      if (firstName || lastName) {
-        const fullName = [firstName, lastName].filter(Boolean).join(' ');
-        return credential ? `${fullName}, ${credential}` : fullName;
+    if (artifact.source === 'NPPES_API' || artifact.source === 'NPPES' || artifact.source === 'NPI_REGISTRY') {
+      const nppesName = inferNppesIdentityName(artifact);
+      if (nppesName) {
+        return nppesName;
       }
     }
   }
@@ -375,13 +415,15 @@ function inferClinicianName(
   // Fall back to other artifact name fields
   for (const artifact of artifacts) {
     const payload = pickPayload(artifact.rawPayload);
-    const providerName =
-      typeof payload?.provider_name === 'string' ? payload.provider_name.trim()
-        : typeof payload?.licensee === 'string' ? payload.licensee.trim()
-          : '';
-    if (providerName) {
+    const providerName = firstNonEmpty(payload?.provider_name, payload?.licensee);
+    if (providerName && !isGenericPassportName(providerName)) {
       return providerName;
     }
+  }
+
+  const storedName = provider?.fullName?.trim() ?? '';
+  if (!isGenericPassportName(storedName)) {
+    return storedName;
   }
 
   return `Clinician ${npi}`;

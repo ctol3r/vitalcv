@@ -33,6 +33,12 @@ function safeDate(v: any) {
   return isNaN(d.getTime()) ? new Date() : d;
 }
 
+function safeNullableDate(v: any) {
+  if (v === undefined || v === null || v === '') return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function safeNumber(v: any) {
   if (v === undefined || v === null) return null;
   const n = Number(v);
@@ -108,38 +114,69 @@ export type RecordIdentityResolutionDecisionInput = Readonly<{
   payload?: Record<string, unknown>;
 }>;
 
-type ClaimRecordRow = Readonly<{
-  id: string;
-  claimId: string;
-  verificationArtifactId: string | null;
-  claimType: string;
-  value: Prisma.JsonValue;
-  trustTier: string;
-  confidenceLabel: string;
-  confidenceScore: number;
-}>;
-
 /**
- * 🔥 Wrap verification receipt payload BEFORE insert
+ * Normalize verification receipt payloads into Prisma-safe scalar values.
+ * This keeps undefined, invalid JSON, and invalid timestamp values out of the query.
  */
-export function normalizeVerificationRecordInput(data: any) {
+export function normalizeVerificationRecordInput(data: {
+  receiptId: unknown;
+  claimRecordId: string | null;
+  claimId: unknown;
+  sourceRunId: string | null;
+  sourceRecordId: string | null;
+  verificationArtifactId: string;
+  personProfileId: string | null;
+  subjectNpi: unknown;
+  entityId: unknown;
+  field: unknown;
+  value: unknown;
+  trustTier: unknown;
+  confidence: unknown;
+  sourceArtifactId: unknown;
+  sourceSystem: unknown;
+  parserVersion: unknown;
+  matchingStrategy: unknown;
+  observedAt: unknown;
+  explanation: unknown;
+  expiresAt: unknown;
+  sourceUrl: unknown;
+  retrievedAt: unknown;
+  rawArtifactRef: unknown;
+  checksum: unknown;
+  claimType: unknown;
+  matchConfidence: unknown;
+  freshnessWindowHours: unknown;
+  integrityHash: unknown;
+}) {
   return {
-    entityId: data.entityId,
-    sourceRunId: data.sourceRunId,
-    sourceRecordId: data.sourceRecordId,
-
-    source: safeString(data.source),
-    source_url: safeString(data.source_url),
-    raw_artifact_ref: safeString(data.raw_artifact_ref),
+    receiptId: safeString(data.receiptId) ?? randomUUID(),
+    claimRecordId: data.claimRecordId ?? null,
+    claimId: safeString(data.claimId) ?? '',
+    sourceRunId: data.sourceRunId ?? null,
+    sourceRecordId: data.sourceRecordId ?? null,
+    verificationArtifactId: data.verificationArtifactId,
+    personProfileId: data.personProfileId ?? null,
+    subjectNpi: safeString(data.subjectNpi) ?? '',
+    entityId: safeString(data.entityId) ?? '',
+    field: safeString(data.field) ?? '',
+    value: safeJSON(data.value),
+    trustTier: safeString(data.trustTier) ?? '',
+    confidence: safeNumber(data.confidence) ?? 0,
+    sourceArtifactId: safeString(data.sourceArtifactId),
+    sourceSystem: safeString(data.sourceSystem) ?? '',
+    parserVersion: safeString(data.parserVersion) ?? '',
+    matchingStrategy: safeString(data.matchingStrategy),
+    observedAt: safeDate(data.observedAt),
+    explanation: safeString(data.explanation) ?? '',
+    expiresAt: safeNullableDate(data.expiresAt),
+    sourceUrl: safeString(data.sourceUrl),
+    retrievedAt: safeNullableDate(data.retrievedAt),
+    rawArtifactRef: safeString(data.rawArtifactRef),
     checksum: safeString(data.checksum),
-    claim_type: safeString(data.claim_type),
-
-    retrieved_at: safeDate(data.retrieved_at),
-
-    match_confidence: safeNumber(data.match_confidence),
-    freshness_window_hours: safeInt(data.freshness_window_hours),
-
-    metadata: safeJSON(data.metadata),
+    claimType: safeString(data.claimType),
+    matchConfidence: safeString(data.matchConfidence),
+    freshnessWindowHours: safeInt(data.freshnessWindowHours),
+    integrityHash: safeString(data.integrityHash),
   };
 }
 
@@ -493,37 +530,39 @@ export async function persistVerificationReceiptRecords(input: {
     }
 
     try {
+      const data = normalizeVerificationRecordInput({
+        receiptId: finalizedReceipt.receipt_id,
+        claimRecordId,
+        claimId: finalizedReceipt.claim_id,
+        sourceRunId: input.sourceRunId ?? null,
+        sourceRecordId: input.sourceRecordId ?? null,
+        verificationArtifactId: input.verificationArtifactId,
+        personProfileId: input.personProfileId ?? null,
+        subjectNpi: input.subjectNpi,
+        entityId: finalizedReceipt.entity_id,
+        field: finalizedReceipt.field,
+        value: finalizedReceipt.value,
+        trustTier: finalizedReceipt.tier,
+        confidence: finalizedReceipt.confidence,
+        sourceArtifactId: finalizedReceipt.source_artifact_id ?? null,
+        sourceSystem: finalizedReceipt.source_system,
+        parserVersion: finalizedReceipt.parser_version,
+        matchingStrategy: input.matchingStrategy ?? null,
+        observedAt: finalizedReceipt.observed_at,
+        explanation: finalizedReceipt.explanation,
+        expiresAt: finalizedReceipt.expires_at,
+        sourceUrl: finalizedReceipt.source_url ?? null,
+        retrievedAt: finalizedReceipt.retrieved_at ?? null,
+        rawArtifactRef: finalizedReceipt.raw_artifact_ref ?? null,
+        checksum: finalizedReceipt.checksum ?? null,
+        claimType: finalizedReceipt.claim_type ?? null,
+        matchConfidence: finalizedReceipt.match_confidence ?? null,
+        freshnessWindowHours: finalizedReceipt.freshness_window_hours ?? null,
+        integrityHash: finalizedReceipt.integrity_hash ?? null,
+      });
+
       await receiptClient.create({
-        data: {
-          receiptId: finalizedReceipt.receipt_id,
-          claimRecordId,
-          claimId: finalizedReceipt.claim_id,
-          sourceRunId: input.sourceRunId ?? null,
-          sourceRecordId: input.sourceRecordId ?? null,
-          verificationArtifactId: input.verificationArtifactId,
-          personProfileId: input.personProfileId ?? null,
-          subjectNpi: input.subjectNpi,
-          entityId: finalizedReceipt.entity_id,
-          field: finalizedReceipt.field,
-          value: toJsonValue(finalizedReceipt.value),
-          trustTier: finalizedReceipt.tier,
-          confidence: finalizedReceipt.confidence,
-          sourceArtifactId: finalizedReceipt.source_artifact_id ?? null,
-          sourceSystem: finalizedReceipt.source_system,
-          parserVersion: finalizedReceipt.parser_version,
-          matchingStrategy: input.matchingStrategy ?? null,
-          observedAt: new Date(finalizedReceipt.observed_at),
-          explanation: finalizedReceipt.explanation,
-          expiresAt: toNullableDate(finalizedReceipt.expires_at),
-          sourceUrl: finalizedReceipt.source_url ?? null,
-          retrievedAt: toNullableDate(finalizedReceipt.retrieved_at),
-          rawArtifactRef: finalizedReceipt.raw_artifact_ref ?? null,
-          checksum: finalizedReceipt.checksum ?? null,
-          claimType: finalizedReceipt.claim_type ?? null,
-          matchConfidence: finalizedReceipt.match_confidence ?? null,
-          freshnessWindowHours: finalizedReceipt.freshness_window_hours ?? null,
-          integrityHash: finalizedReceipt.integrity_hash ?? null,
-        },
+        data,
       });
     } catch (error) {
       if (!isUniqueConstraintError(error)) {

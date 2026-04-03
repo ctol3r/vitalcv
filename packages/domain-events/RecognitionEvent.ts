@@ -4,7 +4,7 @@ import {
   parseRfc3339Utc,
   type PsvReceiptSnapshot,
   validateReceiptSet,
-} from '../domain-core';
+} from '@vitalcv/domain-core';
 import {
   assertHashAnchor,
   assertValidProof,

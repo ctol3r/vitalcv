@@ -1,9 +1,9 @@
 import { resolveTrustState, type TrustStateApiDependencies } from '../../trust-state';
 import { CanonicalPathService } from '../../domain';
-import type { PsvReceiptSnapshot } from '../../../../packages/domain-core';
-import { CrsEngine } from '../../../../packages/crs';
-import { AuditLedger, buildAuditScrapbook } from '../../../../packages/audit';
-import { PsvStore } from '../../../../packages/psv';
+import type { PsvReceiptSnapshot } from '@vitalcv/domain-core';
+import { CrsEngine } from '@vitalcv/crs';
+import { AuditLedger, buildAuditScrapbook } from '@vitalcv/audit';
+import { PsvStore } from '@vitalcv/psv';
 
 function asDomainReceiptSnapshots(psvStore: PsvStore, receiptIds: readonly string[]): PsvReceiptSnapshot[] {
   return psvStore.listByIds(receiptIds).map((value) => ({

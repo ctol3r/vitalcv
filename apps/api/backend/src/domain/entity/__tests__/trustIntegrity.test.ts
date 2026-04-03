@@ -21,7 +21,7 @@ import {
 import {
   validateCredentialArtifact,
   validateVerificationArtifact,
-} from '../../../../../../../packages/trust-state/artifactValidation';
+} from '@vitalcv/trust-state';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -246,7 +246,7 @@ describe('sourceCoverage state contract', () => {
   it('only "checked" is decision-grade — all other canonical states are non-decision-grade', () => {
     // Import and verify the contract from trust-state package
     const { DECISION_GRADE_SOURCE_COVERAGE_STATES, CANONICAL_SOURCE_COVERAGE_STATES } =
-      require('../../../../../../../packages/trust-state/sourceCoverage');
+      require('@vitalcv/trust-state');
 
     expect(DECISION_GRADE_SOURCE_COVERAGE_STATES).toEqual(['checked']);
     expect(CANONICAL_SOURCE_COVERAGE_STATES).toContain('stale');

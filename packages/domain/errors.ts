@@ -1,1 +1,1 @@
-export { DomainError } from '../domain-common/src/errors/DomainError';
+export { DomainError } from '@vitalcv/domain-common';

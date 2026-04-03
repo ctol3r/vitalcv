@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client';
 import type {
-  CredentialCandidate as CandidateCredential,
+  CandidateCredential,
   ClinicianIdentity,
   IngestConflictRecord,
-} from '../../../../packages/shared/credentials';
+} from '@vitalcv/ingest';
 import prisma from '../src/graphql/prisma_client';
 
 export type IntakeSummary = Readonly<{

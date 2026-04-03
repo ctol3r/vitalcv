@@ -2,13 +2,15 @@ import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import type { Express, Request, Response } from 'express';
 import { body, param } from 'express-validator';
-import { DomainError } from '../../../../packages/domain/errors';
-import { EmployerAcceptance } from '../../../../packages/domain/events/EmployerAcceptance';
-import { RecognitionEvent } from '../../../../packages/domain/events/RecognitionEvent';
-import { StartAttestation } from '../../../../packages/domain/events/StartAttestation';
-import { assertCanAccept } from '../../../../packages/domain/guards/assertCanAccept';
-import { assertCanStart } from '../../../../packages/domain/guards/assertCanStart';
-import { subjectStatus } from '../../../../packages/domain/projections/subjectStatus';
+import {
+  DomainError,
+  EmployerAcceptance,
+  RecognitionEvent,
+  StartAttestation,
+  assertCanAccept,
+  assertCanStart,
+  subjectStatus,
+} from '@vitalcv/domain';
 import {
   getAcceptanceById,
   insertAcceptance,

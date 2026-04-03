@@ -1,4 +1,4 @@
-import { TrustStateResolver, type TrustState } from '../../../packages/trust-state';
+import { TrustStateResolver, type TrustState } from '@vitalcv/trust-state';
 import type { TrustStateApiDependencies } from './contracts';
 
 export async function resolveTrustState(

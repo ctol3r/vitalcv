@@ -3,15 +3,9 @@
  *
  * Runtime module-resolution hook for workspace packages.
  *
- * Problem: pnpm workspace links point to source packages whose `main` is
- * `./index.ts` — Node.js cannot execute TypeScript directly. The backend's
- * `tsc` build compiles workspace sources into the `dist/` tree (because
- * `rootDir` is the repo root), so compiled JS often exists there. For
- * packages that have co-located `.js` files (compiled separately), we fall
- * back to loading those directly from the source package.
- *
- * Also handles relative imports like `require("../../../packages/ingest")`
- * which tsc generates from source files outside the backend src/ dir.
+ * Problem: workspace packages resolve through node_modules, but some runtime
+ * environments need a fallback to compiled workspace outputs when pnpm links
+ * point at package source directories.
  *
  * Usage (in start command):
  *   node -r ./apps/api/backend/register-workspace-paths.js \
@@ -65,10 +59,6 @@ function findFirst(candidates) {
   return null;
 }
 
-// Match relative paths that end up in packages/ dir
-// e.g. "../../../packages/ingest" or "../../packages/crs/CrsEngine"
-const RELATIVE_PACKAGES_RE = /(?:^|[/\\])packages[/\\]([^/\\]+)(?:[/\\](.+))?$/;
-
 Module._resolveFilename = function resolveWorkspacePaths(request, parent, isMain, options) {
   // Handle @vitalcv/* imports
   if (typeof request === 'string' && request.startsWith(WORKSPACE_PREFIX)) {
@@ -80,22 +70,6 @@ Module._resolveFilename = function resolveWorkspacePaths(request, parent, isMain
 
     const found = findFirst(getCandidates(packageName, entry));
     if (found) return found;
-  }
-
-  // Handle relative paths that resolve into packages/ directory
-  if (typeof request === 'string' && request.startsWith('.') && parent && parent.filename) {
-    const parentDir = path.dirname(parent.filename);
-    const resolved = path.resolve(parentDir, request);
-    const match = RELATIVE_PACKAGES_RE.exec(resolved);
-
-    if (match) {
-      const packageName = match[1];
-      const subpath = match[2] || '';
-      const entry = subpath || 'index';
-
-      const found = findFirst(getCandidates(packageName, entry));
-      if (found) return found;
-    }
   }
 
   return originalResolveFilename.call(this, request, parent, isMain, options);

@@ -1,7 +1,7 @@
 import {
   CanonicalPrimitiveError,
   type PsvReceiptSnapshot,
-} from '../../../packages/domain-core';
+} from '@vitalcv/domain-core';
 import {
   EmployerAcceptance,
   type EmployerAcceptanceInput,
@@ -9,7 +9,7 @@ import {
   type RecognitionEventInput,
   StartAttestation,
   type StartAttestationInput,
-} from '../../../packages/domain-events';
+} from '@vitalcv/domain-events';
 
 export class CanonicalPathService {
   private readonly recognitions = new Map<string, RecognitionEvent>();

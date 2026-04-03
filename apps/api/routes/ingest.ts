@@ -11,7 +11,7 @@ import {
   parseCandidateCredential,
   ResumeIngestError,
   summarizeCandidateCredentials,
-} from '../../../packages/ingest';
+} from '@vitalcv/ingest';
 import {
   appendCandidateCredentials,
   emitIngestAuditEvent,

@@ -3,7 +3,7 @@ import {
   assertNonEmptyString,
   assertStrictlyAfter,
   parseRfc3339Utc,
-} from '../domain-core';
+} from '@vitalcv/domain-core';
 import { RecognitionEvent } from './RecognitionEvent';
 import {
   assertHashAnchor,

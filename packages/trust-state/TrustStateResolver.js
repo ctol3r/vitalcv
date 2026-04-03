@@ -2,7 +2,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrustStateResolver = void 0;
-const validateReceipt_1 = require("../psv/validateReceipt");
+const psv_1 = require("@vitalcv/psv");
 const RFC3339_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const CRS_START_THRESHOLD = 80;
 const BLOCKING_REASON_ORDER = [
@@ -124,7 +124,7 @@ class TrustStateResolver {
         }
         else {
             for (const receipt of receipts) {
-                const status = (0, validateReceipt_1.resolveReceiptStatus)(receipt, asOf);
+                const status = (0, psv_1.resolveReceiptStatus)(receipt, asOf);
                 if (status === 'REVOKED') {
                     blockingReasons.add('REVOKED_PSV');
                     decayedReceipts.push({ receipt_id: receipt.receipt_id, status });

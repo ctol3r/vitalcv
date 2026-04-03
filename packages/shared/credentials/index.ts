@@ -5,7 +5,7 @@ import type {
   IngestConflictType,
   LicenseCandidate,
   VerificationStatus,
-} from '../../ingest/models';
+} from '@vitalcv/ingest';
 
 export type CredentialCandidate = CandidateCredential;
 

@@ -1,7 +1,7 @@
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import { buildEmployerEvidencePacket } from '../employerPacket';
 import { buildEmployerReviewSourceCoverage } from '../employerReviewPayload';
 import type { TrustPassport } from '../passportService';

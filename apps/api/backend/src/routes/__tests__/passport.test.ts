@@ -375,6 +375,45 @@ describe('passport routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('DEA-SECRET-123');
   });
 
+  it('prefers live NPPES identity fields over a stored provider stub name', async () => {
+    seedPassportData({
+      provider: {
+        fullName: 'Dr. Sarah Chen',
+        taxonomyCode: 'Internal Medicine',
+        providerType: 'INDIVIDUAL',
+        stateOfPractice: 'CA',
+      },
+      artifacts: [
+        {
+          id: 'artifact-npi',
+          source: 'NPPES_API',
+          status: 'ACTIVE',
+          verifiedAt: new Date('2026-03-01T00:00:00.000Z'),
+          expiresAt: null,
+          createdAt: new Date('2026-03-01T00:00:00.000Z'),
+          rawPayload: {
+            enumeration_type: 'NPI-1',
+            basic: {
+              first_name: 'Ardalan',
+              last_name: 'Enkeshafi',
+            },
+          },
+        },
+      ],
+    });
+
+    const response = await invokeGetRoute(createApp(), '/api/passport/:npi', {
+      params: { npi: '1234567890' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual(expect.objectContaining({
+      public: expect.objectContaining({
+        name: 'Ardalan Enkeshafi',
+      }),
+    }));
+  });
+
   it('returns 404 when cached trust state is unavailable', async () => {
     seedPassportData({ trustState: null });
 
@@ -412,6 +451,20 @@ describe('passport routes', () => {
         providerType: 'INDIVIDUAL',
         stateOfPractice: 'CA',
       },
+      artifacts: [
+        {
+          id: 'artifact-npi',
+          source: 'NPPES',
+          status: 'ACTIVE',
+          verifiedAt: new Date('2026-03-01T00:00:00.000Z'),
+          expiresAt: null,
+          createdAt: new Date('2026-03-01T00:00:00.000Z'),
+          rawPayload: {
+            provider_name: 'Dr. <Ada> & Co',
+            practice_state: 'CA',
+          },
+        },
+      ],
     });
 
     const response = await invokeGetRoute(createApp(), '/api/passport/:npi/embed.svg', {

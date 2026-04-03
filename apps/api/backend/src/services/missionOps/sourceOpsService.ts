@@ -8,7 +8,7 @@ import {
   type SourceHealthEntry as SourceOpsEntry,
   type SourceHealthOperatorStatus,
   type SourceHealthReport as SourceOpsReport,
-} from '../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import { getIntegrationHealth } from '../externalIntegrations/integrationHealthTracker';
 import {
   isImplementedIngestSource,

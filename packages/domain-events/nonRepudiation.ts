@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { CanonicalPrimitiveError } from '../domain-core';
+import { CanonicalPrimitiveError } from '@vitalcv/domain-core';
 
 export type SignatureProof = Readonly<{
   type: string;

@@ -1,4 +1,4 @@
-import { buildHashAnchor } from '../../domain-events/nonRepudiation';
+import { buildHashAnchor } from '@vitalcv/domain-events';
 
 export type SubstratePalletId =
   | 'credential'

@@ -3,7 +3,7 @@ import {
   type SourceAuthority,
   resolveReceiptStatus,
   type ReceiptStatus,
-} from '../../psv';
+} from '@vitalcv/psv';
 
 export type ReceiptSource = SourceAuthority;
 

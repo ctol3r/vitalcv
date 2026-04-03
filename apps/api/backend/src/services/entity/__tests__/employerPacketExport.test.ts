@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import {
   buildEmployerEvidencePacketBundleContents,
   createEmployerEvidencePacketZipStream,

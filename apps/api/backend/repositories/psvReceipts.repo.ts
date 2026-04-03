@@ -1,5 +1,10 @@
-import { PSVReceipt, type PSVReceiptSnapshot, type SourceAuthority } from '../../../../packages/psv/PSVReceipt';
-import type { AppendReceiptInput, TrustStateReceiptRecord } from '../../../../packages/psv/psvStore';
+import {
+  PSVReceipt,
+  type AppendReceiptInput,
+  type PSVReceiptSnapshot,
+  type SourceAuthority,
+  type TrustStateReceiptRecord,
+} from '@vitalcv/psv';
 import prisma from '../src/graphql/prisma_client';
 
 function toReceiptInstance(receipt: PSVReceipt | { receipt_id?: string; source_authority: SourceAuthority; access_or_license_id: string; transaction_id: string; fetched_at: string; raw_response: string; ttl_seconds: number; revoked?: boolean }): PSVReceipt {

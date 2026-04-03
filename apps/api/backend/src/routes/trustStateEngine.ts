@@ -8,14 +8,14 @@
  */
 
 import type { Express, Request, Response } from 'express';
-import { CrsEngine } from '../../../../../packages/crs';
+import { CrsEngine } from '@vitalcv/crs';
 import {
   TrustStateResolver,
   type AcceptanceScopeRecord,
   type TrustStateResolverDependencies,
   type TrustStateScope,
   trustStateLatencyHistogram,
-} from '../../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import prisma from '../graphql/prisma_client';
 import {
   refreshTrustState,
