@@ -14,6 +14,42 @@ import type {
 } from './evidenceModel';
 import type { EvidenceTier } from './sourceCatalog';
 
+/**
+ * 🔥 CRITICAL FIX: Safe serializers for Prisma/Postgres
+ * Prevents 08P01 / 22P03 binary errors
+ */
+function safeJSON(v: any) {
+  if (v === undefined || v === null) return {};
+  try {
+    return JSON.parse(JSON.stringify(v));
+  } catch {
+    return {};
+  }
+}
+
+function safeDate(v: any) {
+  if (!v) return new Date();
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function safeNumber(v: any) {
+  if (v === undefined || v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function safeInt(v: any) {
+  if (v === undefined || v === null) return null;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function safeString(v: any) {
+  if (v === undefined || v === null) return null;
+  return String(v);
+}
+
 export type IdentityIngestionStatus =
   | 'QUEUED'
   | 'FETCHING'
@@ -71,6 +107,41 @@ export type RecordIdentityResolutionDecisionInput = Readonly<{
   conflictReason?: string;
   payload?: Record<string, unknown>;
 }>;
+
+type ClaimRecordRow = Readonly<{
+  id: string;
+  claimId: string;
+  verificationArtifactId: string | null;
+  claimType: string;
+  value: Prisma.JsonValue;
+  trustTier: string;
+  confidenceLabel: string;
+  confidenceScore: number;
+}>;
+
+/**
+ * 🔥 Wrap verification receipt payload BEFORE insert
+ */
+export function normalizeVerificationRecordInput(data: any) {
+  return {
+    entityId: data.entityId,
+    sourceRunId: data.sourceRunId,
+    sourceRecordId: data.sourceRecordId,
+
+    source: safeString(data.source),
+    source_url: safeString(data.source_url),
+    raw_artifact_ref: safeString(data.raw_artifact_ref),
+    checksum: safeString(data.checksum),
+    claim_type: safeString(data.claim_type),
+
+    retrieved_at: safeDate(data.retrieved_at),
+
+    match_confidence: safeNumber(data.match_confidence),
+    freshness_window_hours: safeInt(data.freshness_window_hours),
+
+    metadata: safeJSON(data.metadata),
+  };
+}
 
 type ClaimRecordRow = Readonly<{
   id: string;
