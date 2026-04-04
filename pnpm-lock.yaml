@@ -737,9 +737,18 @@ importers:
       '@trustgraph/react-state':
         specifier: ^1.6.1
         version: 1.6.1(@tanstack/react-query@5.96.1(react@19.2.3))(@trustgraph/client@1.6.0)(react@19.2.3)(zustand@5.0.12(@types/react@19.2.7)(immer@10.0.2)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
+      '@vitalcv/issuer-sdk':
+        specifier: workspace:*
+        version: link:../../packages/issuer-sdk
       '@vitalcv/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@vitalcv/verifier-sdk':
+        specifier: workspace:*
+        version: link:../../packages/verifier-sdk
+      '@vitalcv/wallet-sdk':
+        specifier: workspace:*
+        version: link:../../packages/wallet-sdk
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
