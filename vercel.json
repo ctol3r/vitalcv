@@ -1,18 +1,18 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "pnpm --filter @vitalcv/web build",
-  "outputDirectory": "apps/web/.next",
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/deploy-info",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" }
-      ]
-    }
-  ]
+    "framework": "nextjs",
+    "buildCommand": "pnpm turbo run build --filter=@vitalcv/web",
+    "outputDirectory": "apps/web/.next",
+    "git": {
+          "deploymentEnabled": {
+                  "main": true
+          }
+    },
+    "headers": [
+          {
+                  "source": "/api/deploy-info",
+                  "headers": [
+                            { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" }
+                  ]
+          }
+    ]
 }
