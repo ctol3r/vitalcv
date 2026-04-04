@@ -21,6 +21,7 @@ import { log } from '../obs/logger';
 import { generateShareLink } from '../services/passport/shareLink';
 import {
   getCachedTrustState,
+  computeClinicianTrustState,
   type ClinicianTrustState,
   type TrustBand as ReadinessLevel,
 } from '../services/trust/trustStateEngine';
@@ -618,11 +619,15 @@ async function loadPassportData(npi: string): Promise<{
     }),
   ]);
 
-  if (!trustState) {
+  // Fall back to live computation if cached trust state expired (1h TTL)
+  const resolvedTrustState = trustState ?? await computeClinicianTrustState(npi).catch(() => null);
+
+  if (!resolvedTrustState) {
     return null;
   }
 
-  if (!provider && artifacts.length === 0) {
+  // Allow passport generation even if only ClaimRecord data exists (no legacy VerificationArtifact)
+  if (!provider && artifacts.length === 0 && !nppesIdentityClaim) {
     return null;
   }
 
@@ -650,7 +655,7 @@ async function loadPassportData(npi: string): Promise<{
 
   const credentials = Array.from(deduped.values());
   const activeCredentials = credentials.filter((credential) => credential.status === 'ACTIVE').length;
-  const trustBand = mapReadinessLevel(trustState.readiness_level);
+  const trustBand = mapReadinessLevel(resolvedTrustState.readiness_level);
   const { shareUrl, embedUrl } = buildPublicUrls(npi);
 
   // ── Sanctions status ────────────────────────────────────────────────────────
@@ -710,7 +715,7 @@ async function loadPassportData(npi: string): Promise<{
       providerType: provider?.providerType?.trim() || 'Unknown',
       state: inferState(provider, artifacts),
       trustBand,
-      readinessScore: trustState.readiness_score,
+      readinessScore: resolvedTrustState.readiness_score,
       totalCredentials: credentials.length,
       activeCredentials,
       shareUrl,
@@ -721,8 +726,8 @@ async function loadPassportData(npi: string): Promise<{
     privileges,
     decisions,
     meta: {
-      methodology: trustState.methodology_version,
-      computedAt: trustState.computed_at,
+      methodology: resolvedTrustState.methodology_version,
+      computedAt: resolvedTrustState.computed_at,
       passportVersion: '2.0',
     },
   };
@@ -730,9 +735,9 @@ async function loadPassportData(npi: string): Promise<{
   const trust: TrustDocument = {
     npi,
     trustBand,
-    readinessScore: trustState.readiness_score,
-    readinessStatus: trustState.readiness_status,
-    computedAt: trustState.computed_at,
+    readinessScore: resolvedTrustState.readiness_score,
+    readinessStatus: resolvedTrustState.readiness_status,
+    computedAt: resolvedTrustState.computed_at,
     shareUrl,
   };
 
