@@ -31,14 +31,19 @@ export function registerIngestStreamRoutes(app: Express): void {
       return;
     }
 
-    const run = await startIngestRun(npi);
+    try {
+      const run = await startIngestRun(npi);
 
-    log('info', 'ingest_run_started', { runId: run.id, npi, status: run.status });
-    res.status(202).json({
-      runId: run.id,
-      npi,
-      status: run.status.toLowerCase(),
-    });
+      log('info', 'ingest_run_started', { runId: run.id, npi, status: run.status });
+      res.status(202).json({
+        runId: run.id,
+        npi,
+        status: run.status.toLowerCase(),
+      });
+    } catch (error) {
+      log('error', 'ingest_run_failed_to_start', { npi, error: error instanceof Error ? error.message : String(error) });
+      res.status(500).json({ error: 'Failed to start ingest run.' });
+    }
   });
 
   app.get('/api/ingest/:runId/stream', async (req: Request, res: Response) => {
