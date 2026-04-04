@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-const B = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+import { BACKEND_URL as B } from '@/lib/backend-url';
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ runId: string }> }) {
   const { runId } = await context.params;

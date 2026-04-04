@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
-const B = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+import { BACKEND_URL as B } from '@/lib/backend-url';
 
 const NPI_RE = /^\d{10}$/;
 
