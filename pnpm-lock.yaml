@@ -743,6 +743,9 @@ importers:
       '@vitalcv/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@vitalcv/trust-state':
+        specifier: workspace:*
+        version: link:../../packages/trust-state
       '@vitalcv/verifier-sdk':
         specifier: workspace:*
         version: link:../../packages/verifier-sdk

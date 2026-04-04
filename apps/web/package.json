@@ -59,7 +59,8 @@
     "zustand": "^5.0.12",
     "@trustgraph/client": "^1.6.0",
     "@trustgraph/react-state": "^1.6.1",
-    "@trustgraph/react-provider": "^1.4.0"
+    "@trustgraph/react-provider": "^1.4.0",
+    "@vitalcv/trust-state": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
