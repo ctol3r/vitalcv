@@ -368,16 +368,17 @@ function BinaryDecisionCard({
   ];
 
   return (
-    <Card className={`rounded-2xl border px-5 py-5 shadow-none ${DECISION_COLORS[decisionReadiness]}`}>
+    <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionReadiness]}>
       {/* Name + decision readiness */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-foreground text-xl font-semibold leading-tight">{identity.displayName}</h1>
-          {identity.specialty && <p className="text-foreground text-sm mt-0.5">{identity.specialty}</p>}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician Under Review</p>
+          <h1 className="text-foreground text-3xl font-bold uppercase tracking-tight leading-none">{identity.displayName}</h1>
+          {identity.specialty && <p className="text-muted-foreground text-sm mt-2 font-mono">{identity.specialty}</p>}
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Decision readiness</p>
-          <p className={`text-lg font-bold mt-0.5 ${DECISION_TEXT[decisionReadiness]}`}>{decisionReadiness}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Decision Readiness</p>
+          <p className={"text-2xl font-bold font-mono " + DECISION_TEXT[decisionReadiness]}>{decisionReadiness}</p>
         </div>
       </div>
 
@@ -417,38 +418,38 @@ function BinaryDecisionCard({
       </div>
 
       {/* Action row */}
-      <div className="mt-5 space-y-2">
+      <div className="mt-6 space-y-2">
         <Button
           onClick={onAccept}
           disabled={!canPersistActions}
           variant="success"
-          className="h-12 w-full rounded-xl text-sm font-semibold"
+          className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
         >
-          Proceed (head start){blocked.length > 0 ? ` (${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted)` : ''}
+          Accept as Head Start{blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={onRequestRefresh}
             disabled={!canPersistActions}
             variant="outline"
-            className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground/70"
+            className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
           >
-            Request updated data
+            Request Refresh
           </Button>
           <Button
             onClick={onRouteToReview}
             disabled={!canPersistActions}
             variant="outline"
-            className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground/70"
+            className="h-11 rounded-none border-red-500/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-red-500/70 hover:bg-red-500 hover:text-white hover:border-red-500"
           >
-            Route to review
+            Route to Review
           </Button>
         </div>
         {previewOnlyMessage && (
-          <p className="text-center text-[10px] text-muted-foreground/40 pt-1">{previewOnlyMessage}</p>
+          <p className="text-center text-[10px] text-muted-foreground/40 pt-1 font-mono">{previewOnlyMessage}</p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -745,9 +746,12 @@ function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
       <div className="w-full max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground/50 text-xs tracking-widest uppercase">VitalCV</span>
-          <span className="text-muted-foreground/50 text-xs">Employer review</span>
+        <div className="flex items-center justify-between border-b border-[var(--vt-border)] pb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold">V</div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">VitalCV</span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 border border-foreground/20 px-3 py-1">Employer Review</span>
         </div>
 
         <Card className="rounded-2xl border border-border bg-card px-5 py-5 shadow-none">

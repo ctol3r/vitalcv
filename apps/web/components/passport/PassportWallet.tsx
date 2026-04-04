@@ -601,46 +601,63 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   }
 
   return (
-    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-12 sm:pt-16 pb-24">
-      <div className="w-full max-w-sm space-y-6">
+    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-8 sm:pt-12 pb-24">
+      <div className="w-full max-w-2xl space-y-6">
 
-        {/* ── Header — minimal ──────────────────────────────────────────────── */}
-        <div className="text-center">
-          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
+        {/* ── Header — brutalist minimal ─────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-b border-[var(--vt-border)] pb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold tracking-tight">V</div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">VitalCV · Clinician Passport</span>
+          </div>
+          <Link href="/passport" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-foreground transition-colors">
+            View another NPI
+          </Link>
         </div>
 
         {/* ── Employer refresh request notification ─────────────────────────── */}
         {pendingRefreshCount > 0 && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3">
-            <p className="text-amber-400 text-xs font-semibold">
+          <div className="border border-amber-500/40 bg-amber-500/8 px-4 py-3">
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-widest">
               {pendingRefreshCount === 1
                 ? 'An employer has requested updated credentials.'
                 : `${pendingRefreshCount} employers have requested updated credentials.`}
             </p>
-            <p className="text-amber-300/60 text-[10px] mt-1">
+            <p className="text-amber-300/60 text-[10px] mt-1 font-mono">
               Run a new NPI check to refresh your credential data.
             </p>
           </div>
         )}
 
-        {/* ── Passport card — primary object ────────────────────────────────── */}
-        <Card className={`gap-0 rounded-2xl border ${cfg.cardBorder} ${cfg.cardBg} px-5 py-5 shadow-none`}>
-          {/* Identity */}
-          <h1 className="text-foreground text-2xl font-semibold tracking-tight leading-tight">
-            {identity.displayName}
-          </h1>
-          {identity.specialty && (
-            <p className="text-foreground/70 text-sm mt-0.5">{identity.specialty}</p>
-          )}
-
-          {/* Readiness status — employer-visible trust level */}
-          <div className="mt-3">
-            <TrustStatusBadge
-              status={resolveLivePathReadinessStatus(readiness.status)}
-              size="sm"
-            />
+        {/* ── Passport card — brutalist header block ────────────────────────── */}
+        <div className="border border-[var(--vt-border)] bg-card px-6 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician</p>
+              <h1 className="text-foreground text-4xl font-bold tracking-tight leading-none uppercase">
+                {identity.displayName}
+              </h1>
+              {identity.specialty && (
+                <p className="text-muted-foreground text-sm mt-2 font-mono">{identity.specialty}</p>
+              )}
+              {passport.npi && (
+                <p className="text-muted-foreground/40 text-xs mt-1 font-mono">NPI {passport.npi}</p>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Readiness</p>
+              <div className="text-5xl font-bold tracking-tighter font-mono text-foreground">
+                {readiness.score ?? '–'}<span className="text-2xl text-muted-foreground/40">/100</span>
+              </div>
+              <div className="mt-2">
+                <TrustStatusBadge
+                  status={resolveLivePathReadinessStatus(readiness.status)}
+                  size="sm"
+                />
+              </div>
+            </div>
           </div>
-        </Card>
+        </div>
 
         {/* ── Trust Posture ─────────────────────────────────────────────────── */}
         <SectionReveal delay={0}>
@@ -650,7 +667,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (
           <SectionReveal delay={0.05}>
-            <p className="text-muted-foreground/40 text-xs text-center leading-relaxed border border-white/6 rounded-xl px-4 py-2.5">
+            <p className="text-muted-foreground/40 text-[10px] font-mono text-left leading-relaxed border border-[var(--vt-border-subtle)] px-4 py-2.5 uppercase tracking-widest">
               NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
             </p>
           </SectionReveal>
@@ -724,10 +741,10 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                       onClick={handleShare}
                       disabled={sharing || !isAuthReady}
                       variant="success"
-                      className="h-14 w-full rounded-xl text-sm font-medium"
+                      className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
                       aria-label="Generate shareable passport link"
                     >
-                      {sharing ? 'Generating link…' : 'Copy share link for employer'}
+                      {sharing ? 'Generating link…' : 'Share with employer'}
                     </Button>
                     {shareError && (
                       <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>

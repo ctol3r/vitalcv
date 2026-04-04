@@ -6,24 +6,31 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
-import { Nunito_Sans } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
 
-const nunitoSans = Nunito_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800', '900'],
   display: 'swap',
-  variable: '--font-nunito-sans',
+  variable: '--font-inter-var',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-jetbrains-var',
 });
 
 const fontVariables = {
   '--font-fraunces': "'Fraunces', Georgia, serif",
-  '--font-inter': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
-  '--font-plus-jakarta': "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
+  '--font-inter': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
+  '--font-plus-jakarta': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
   '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
   ...vdsCssVariables,
 } as React.CSSProperties;
@@ -78,7 +85,7 @@ export default async function RootLayout({
       lang="en"
       style={fontVariables}
       suppressHydrationWarning
-      className={nunitoSans.variable}
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>

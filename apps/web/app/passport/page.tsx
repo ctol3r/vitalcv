@@ -403,51 +403,67 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
           : undefined;
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 sm:pt-24 pb-24">
-      <div className="w-full max-w-sm space-y-8">
+    <main className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 sm:pt-28 pb-24">
+      <div className="w-full max-w-lg space-y-10">
 
         {/* Wordmark */}
-        <div className="text-center">
-          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
-          <h1 className="text-foreground text-2xl font-semibold tracking-tight mt-1">
-            Check your readiness
-          </h1>
+        <div>
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold">V</div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">VitalCV</span>
+          </div>
           {!isActive && (
-            <p className="text-muted-foreground/70 text-sm mt-2">
-              Enter your NPI. No login required.
-            </p>
+            <>
+              <h1 className="text-foreground text-4xl sm:text-5xl font-bold tracking-tighter uppercase leading-none">
+                Check your <span className="italic font-serif font-medium">readiness</span>
+              </h1>
+              <p className="text-muted-foreground/60 text-sm mt-4 font-mono">
+                Primary sources check public records. Enter your NPI to start.
+              </p>
+            </>
           )}
         </div>
 
         {/* NPI entry — hidden while running */}
         {!isActive && (
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-1 relative">
             <label htmlFor="passport-npi" className="sr-only">Your NPI number</label>
-            <Input
-              id="passport-npi"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]{10}"
-              maxLength={10}
-              value={npi}
-              onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
-              placeholder="1234567890"
-              className="h-14 w-full rounded-xl border-border bg-muted px-4 text-[16px] tracking-widest text-center text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:border-border focus-visible:bg-muted focus-visible:ring-foreground/10"
-              aria-label="NPI number"
-              autoComplete="off"
-            />
+            <div className="relative">
+              <Input
+                id="passport-npi"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                value={npi}
+                onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
+                placeholder="ENTER 10-DIGIT NPI"
+                className="h-16 w-full rounded-none border-0 border-b-2 border-border bg-transparent px-2 text-2xl font-mono tracking-widest text-foreground placeholder:text-muted-foreground/20 shadow-none focus-visible:ring-0 focus-visible:border-foreground uppercase pr-12"
+                aria-label="NPI number"
+                autoComplete="off"
+              />
+              <Button
+                type="submit"
+                disabled={npi.length !== 10}
+                className="absolute right-0 bottom-2 h-10 w-10 rounded-none bg-transparent text-foreground p-0 shadow-none hover:bg-transparent disabled:opacity-20"
+                aria-label="Check readiness"
+              >
+                →
+              </Button>
+            </div>
             {inputError && (
-              <p className="text-red-400/70 text-xs text-center">{inputError}</p>
+              <p className="text-red-500/70 text-xs font-mono mt-1">{inputError}</p>
             )}
-            <Button
-              type="submit"
-              variant="success"
-              disabled={npi.length !== 10}
-              className="h-14 w-full rounded-full text-sm font-medium"
-            >
-              Check my readiness
-            </Button>
           </form>
+        )}
+
+        {/* Source strip */}
+        {!isActive && (
+          <div className="flex gap-6 opacity-30">
+            {['NPPES', 'OIG/LEIE', 'PECOS', 'FSMB'].map(s => (
+              <span key={s} className="text-[10px] font-bold uppercase tracking-widest">{s}</span>
+            ))}
+          </div>
         )}
 
         {/* Live ingest panel */}
