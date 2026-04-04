@@ -42,6 +42,9 @@ jobs:
       - name: Lint
         run: pnpm --filter @vitalcv/web lint
 
+      - name: Build shared packages
+        run: pnpm --filter @vitalcv/shared run build
+
       - name: Build
         run: pnpm --filter @vitalcv/web build
         env:
