@@ -1,5 +1,5 @@
 import type { PassportSourceCoverageReport } from '@/lib/trust/source-coverage';
-import type { CanonicalTruthSet } from '../../../../packages/trust-state';
+import type { CanonicalTruthSet } from '@vitalcv/trust-state';
 
 export type ReadinessStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
 export type PassportTrustPostureState =

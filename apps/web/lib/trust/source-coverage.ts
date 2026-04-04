@@ -11,7 +11,7 @@ import {
   type CanonicalSourceCoverageSummary as PassportSourceCoverageSummary,
   type CanonicalSourceProof as PassportSourceCoverageProof,
   type SourceCoveragePosture,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 export type {
   PassportSourceCoverageCheck,

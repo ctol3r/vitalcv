@@ -24,7 +24,7 @@ import type {
 import {
   CANONICAL_SOURCE_COVERAGE_STATES,
   LAUNCH_SPINE_SOURCE_IDS,
-} from '../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 const SAMPLE_NPI = '1003000126';
 const SAMPLE_ENTITY_ID = 'entity_abc123';

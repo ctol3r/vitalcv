@@ -84,7 +84,7 @@ import {
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
 } from '@/lib/trust/passport-truth';
-import type { CanonicalTruthSet } from '../../../../packages/trust-state';
+import type { CanonicalTruthSet } from '@vitalcv/trust-state';
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],

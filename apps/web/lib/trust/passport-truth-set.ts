@@ -5,7 +5,7 @@ import {
   findPriorityCanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
   type CanonicalTruthSet,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import {
   findPassportSourceCoverageChecks,
 } from '@/lib/trust/source-coverage';

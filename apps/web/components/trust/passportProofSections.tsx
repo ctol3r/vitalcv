@@ -25,7 +25,7 @@ import {
   resolveAuthorityNote,
 } from '@/lib/trust/passport-truth';
 import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
-import type { CanonicalTruth } from '../../../../packages/trust-state';
+import type { CanonicalTruth } from '@vitalcv/trust-state';
 
 void React;
 

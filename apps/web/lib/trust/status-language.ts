@@ -6,7 +6,7 @@ import {
   resolveTrustUiStatus,
   type TrustEvidenceKind,
   type TrustUiStatus as CanonicalTrustUiStatus,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 /**
  * Shared trust/status language for public VitalCV surfaces.

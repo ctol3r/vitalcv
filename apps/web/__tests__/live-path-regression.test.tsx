@@ -8,7 +8,7 @@ import type { PassportData } from '@/lib/trust/passport-contract';
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import type { RoleContextValue } from '@/components/auth/RoleContext';
 import { LiveTrustConsole } from '@/components/hero/LiveTrustConsole';
 import InterviewClient from '@/app/interview/InterviewClient';

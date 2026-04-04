@@ -4,7 +4,7 @@ import { buildPassportReviewTruthModel } from '../lib/trust/passport-review-trut
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 function buildPassport(
   overrides: Partial<PassportData> = {},

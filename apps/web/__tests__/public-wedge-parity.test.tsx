@@ -19,7 +19,7 @@ import {
   LAUNCH_SPINE_SOURCE_IDS,
   createCanonicalSourceCoverage,
   type CanonicalTruth,
-} from '../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 function buildTruth(
   truth: Partial<CanonicalTruth>,

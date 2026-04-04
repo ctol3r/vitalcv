@@ -8,7 +8,7 @@ import {
 import type {
   CanonicalSourceCoverageState,
   CanonicalTruth,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 export const PUBLIC_WEDGE_ROUTE_TARGETS = Object.freeze({
   homepageLookup: '/',

@@ -1,7 +1,7 @@
 import type { PassportData } from '@/lib/trust/passport-contract';
 import {
   type CanonicalTruth,
-} from '../../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 import {
   buildPassportProofSections,
   summarizePassportProofSections,

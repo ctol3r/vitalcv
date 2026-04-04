@@ -12,7 +12,7 @@ import {
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
-} from '../../../packages/trust-state';
+} from '@vitalcv/trust-state';
 
 function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
   const checks = [
