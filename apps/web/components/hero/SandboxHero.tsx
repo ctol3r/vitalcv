@@ -4,17 +4,24 @@
  * SandboxHero — direct port of vitalcv-ai-sandbox App.tsx hero layout.
  *
  * Brutalist, ink-on-paper, minimal.
+ * Header with V logo + nav + theme toggle + Enter NPI CTA.
  * NPI input with bottom-border, ALLCAPS mono placeholder, arrow CTA.
  * 4 source icons (NPPES, OIG/LEIE, PECOS, FSMB).
  * ReadinessPreview card (inline, matches sandbox).
  * Explore + Developers sections.
  */
 
-import React, { useState, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Shield, AlertCircle, FileText, Activity, Database, ShieldAlert } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import Link from 'next/link';
+import { ArrowRight, Shield, AlertCircle, FileText, Activity, Database, ShieldAlert, Sun, Moon } from 'lucide-react';
 
 export function SandboxHero() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
   const router = useRouter();
   const [npi, setNpi] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +48,36 @@ export function SandboxHero() {
   const displayNpi = isPlaceholder ? '1003000126' : npi;
 
   return (
-    <section className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 md:px-12 py-16 md:py-24">
+    <>
+    {/* Header */}
+    <header className="border-b border-[var(--vt-border)] p-6 flex justify-between items-center bg-[var(--vt-bg)] sticky top-0 z-10">
+      <Link href="/" className="flex items-center gap-2 text-[var(--vt-text-primary)]">
+        <div className="w-8 h-8 bg-[var(--vt-text-primary)] flex items-center justify-center font-bold text-[var(--vt-bg)]">V</div>
+        <h1 className="text-xl font-bold tracking-tighter uppercase">VitalCV</h1>
+      </Link>
+      <nav className="hidden md:flex gap-8 text-xs font-medium uppercase tracking-widest opacity-60 text-[var(--vt-text-primary)]">
+        <Link href="/passport" className="hover:opacity-100 transition-opacity">Start with NPI</Link>
+        <Link href="/review" className="hover:opacity-100 transition-opacity">Review Request</Link>
+        <Link href="/explore" className="hover:opacity-100 transition-opacity">Explore</Link>
+      </nav>
+      <div className="flex items-center gap-4 text-[var(--vt-text-primary)]">
+        <button
+          onClick={toggleTheme}
+          className="p-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+        <Link
+          href="/passport"
+          className="text-xs font-bold uppercase tracking-widest bg-[var(--vt-text-primary)] text-[var(--vt-bg)] px-6 py-2 hover:opacity-90 transition-opacity"
+        >
+          Enter NPI
+        </Link>
+      </div>
+    </header>
+
+    <section className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 md:px-12 py-16 md:py-24 max-w-5xl w-full mx-auto">
       {/* Heading */}
       <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 max-w-2xl uppercase text-[var(--vt-text-primary)]">
         Check your{' '}
@@ -189,5 +225,6 @@ export function SandboxHero() {
         </div>
       </div>
     </section>
+    </>
   );
 }
