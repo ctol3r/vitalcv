@@ -226,7 +226,7 @@ export default async function StatusPage() {
               Current alerts
             </p>
             <div className="mt-4 space-y-2">
-              {report.alerts.map((alert) => (
+              {report.alerts.map((alert: string) => (
                 <div key={alert} className="rounded-xl border border-border/80 bg-background px-4 py-3 text-sm leading-6 text-muted-foreground">
                   {alert}
                 </div>
