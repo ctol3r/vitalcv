@@ -46,9 +46,14 @@ export function getApiBase(): string {
   return normalizeApiBase(raw);
 }
 
-/** Backend base URL with localhost:4000 fallback — safe for server-side proxy routes. */
+/** Backend base URL with Railway fallback on Vercel — safe for server-side proxy routes. */
 export function getBackendBase(): string {
-  return getApiBase() || 'http://localhost:4000';
+  const base = getApiBase();
+  if (base) return base;
+  // Match the shared resolver: fall back to Railway on Vercel, localhost otherwise
+  return process.env.VERCEL
+    ? 'https://delightful-essence-production.up.railway.app'
+    : 'http://localhost:4000';
 }
 
 /** Public-facing API base URL for docs and preview surfaces. */
@@ -114,7 +119,14 @@ export async function fetchPassportEntity(
   status: number;
   body: import('@/lib/trust/passport-contract').PassportData | null;
 }> {
-  const response = await fetch(`/api/passport/entity/${encodeURIComponent(entityId)}`, {
+  // NPI (10 digits) → /api/passport/npi/{npi} which returns full PassportData.
+  // UUID → /api/passport/entity/{id} for entity-based lookups.
+  const isNpi = /^\d{10}$/.test(entityId);
+  const url = isNpi
+    ? `/api/passport/npi/${encodeURIComponent(entityId)}`
+    : `/api/passport/entity/${encodeURIComponent(entityId)}`;
+
+  const response = await fetch(url, {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
   });

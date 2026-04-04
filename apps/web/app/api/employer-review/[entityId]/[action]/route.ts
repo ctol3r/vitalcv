@@ -3,11 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-const BACKEND =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'http://localhost:4000';
+import { BACKEND_URL as BACKEND } from '@/lib/backend-url';
 
 const AUTHENTICATED_MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review', 'confirm-start']);
 const PUBLIC_MUTATION_ACTIONS = new Set(['view']);

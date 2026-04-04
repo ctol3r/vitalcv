@@ -1,12 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { BACKEND_URL } from '@/lib/backend-url';
 
 export const runtime = 'nodejs';
-
-const BACKEND =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'http://localhost:4000';
 
 export async function GET(
   _req: NextRequest,
@@ -14,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { npi } = await params;
-    const upstream = await fetch(`${BACKEND}/api/passport/${encodeURIComponent(npi)}`, {
+    const upstream = await fetch(`${BACKEND_URL}/api/passport/${encodeURIComponent(npi)}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

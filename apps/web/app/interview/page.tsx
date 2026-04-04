@@ -19,11 +19,7 @@ import {
 import InterviewClient from './InterviewClient';
 import InterviewBlockedState from './InterviewBlockedState';
 
-const B =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'http://localhost:4000';
+import { BACKEND_URL as B } from '@/lib/backend-url';
 
 async function fetchPassport(entityId: string): Promise<PassportData | null> {
   try {

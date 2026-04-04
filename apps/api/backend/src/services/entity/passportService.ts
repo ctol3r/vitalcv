@@ -845,7 +845,7 @@ function selectCoverageCheck(
     });
 }
 
-function buildPassportTruth(input: {
+export function buildPassportTruth(input: {
   identity: PassportIdentity;
   authority: PassportAuthority;
   standing: PassportStanding;
@@ -957,7 +957,7 @@ function freshnessStateForLayer(input: {
   return 'partial';
 }
 
-function buildPassportTrustPosture(input: {
+export function buildPassportTrustPosture(input: {
   identity: PassportIdentity;
   authority: PassportAuthority;
   training: PassportTraining;

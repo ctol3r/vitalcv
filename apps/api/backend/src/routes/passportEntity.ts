@@ -12,7 +12,8 @@
 
 import { randomUUID } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
-import { buildPassport, buildPassportByNpi } from '../services/entity/passportService';
+import { buildPassport } from '../services/entity/passportService';
+import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
 import { createOrgContext, transitionOrgContextStatus } from '../domain/entity/orgContextService';
 import { isValidNpi } from '../domain/entity/npiRouter';
 import { HttpError } from '../utils/httpError';
@@ -78,7 +79,7 @@ export function registerPassportEntityRoutes(app: Express): void {
     asyncHandler(async (req: Request, res: Response) => {
       const { npi } = req.params as { npi: string };
       if (!isValidNpi(npi)) throw new HttpError(400, 'Invalid NPI format.');
-      const passport = await buildPassportByNpi(npi);
+      const passport = await buildPassportDataByNpi(npi);
       if (!passport) throw new HttpError(404, 'Passport could not be built for this NPI.');
       res.json(passport);
     }),

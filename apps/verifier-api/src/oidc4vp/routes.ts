@@ -1,24 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { decodeProtectedHeader, importJWK, jwtVerify } from 'jose';
-import path from 'path';
 import { haipConfig } from '@vitalcv/haip-config';
+import {
+  assertCanonicalPathValid,
+  CanonicalPathViolation,
+} from '@vitalcv/domain-common';
 import { policyEnforcer } from '../policyEnforcer';
 import { consumeNonce, issueNonce } from '../security/nonceTable';
-
-type EmploymentGuards = {
-  assertCanonicalPathValid: (path: unknown) => void;
-  CanonicalPathViolation: new (...args: unknown[]) => Error;
-};
-
-const employmentGuardsPath = path.resolve(
-  __dirname,
-  '../../../../packages/domain-common/employmentGuards',
-);
-
-function loadEmploymentGuards(): EmploymentGuards {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require(employmentGuardsPath) as EmploymentGuards;
-}
 
 const router: Router = Router();
 
@@ -83,7 +71,6 @@ router.post('/presentation', policyEnforcer, async (req: Request, res: Response)
     });
   }
 
-  const { assertCanonicalPathValid, CanonicalPathViolation } = loadEmploymentGuards();
   try {
     assertCanonicalPathValid(canonicalPath);
   } catch (error) {

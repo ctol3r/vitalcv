@@ -2,6 +2,12 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: [
+    '@vitalcv/shared',
+    '@vitalcv/crs',
+    '@vitalcv/psv',
+    '@vitalcv/ingest',
+  ],
   experimental: {
     externalDir: true,
   },

@@ -29,8 +29,8 @@ import {
 const NPI_RE = /^\d{10}$/;
 const PUBLIC_TYPES = new Set(['NPI_IDENTITY', 'NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION', 'ENROLLMENT', 'SANCTIONS_CHECK', 'IDENTITY', 'PUBLICATION', 'AFFILIATION']);
 
-type PublicTrustBand = 'GREEN' | 'YELLOW' | 'RED';
-type PassportCredentialStatus =
+export type PublicTrustBand = 'GREEN' | 'YELLOW' | 'RED';
+export type PassportCredentialStatus =
   | 'ACTIVE'
   | 'PENDING'
   | 'EXPIRED'
@@ -38,7 +38,7 @@ type PassportCredentialStatus =
   | 'SUSPENDED'
   | 'UNKNOWN';
 
-type CredentialType =
+export type CredentialType =
   | 'NPI_IDENTITY'
   | 'NPI_ENROLLMENT'
   | 'STATE_LICENSE'
@@ -69,7 +69,7 @@ type VerificationArtifactRecord = {
   rawPayload: unknown;
 };
 
-type PassportCredential = {
+export type PassportCredential = {
   id: string;
   type: CredentialType;
   name: string;
@@ -109,7 +109,7 @@ type PassportDecision = {
 
 type PassportAccessMode = 'public' | 'wallet' | 'selective';
 
-type PassportDocument = {
+export type PassportDocument = {
   npi: string;
   accessMode: PassportAccessMode;
   public: {
@@ -136,7 +136,7 @@ type PassportDocument = {
   };
 };
 
-type TrustDocument = {
+export type TrustDocument = {
   npi: string;
   trustBand: PublicTrustBand;
   readinessScore: number;
@@ -713,10 +713,13 @@ function claimCredentialKey(type: CredentialType, sourceId: string, value: Recor
 
 // ── Data loading ─────────────────────────────────────────────────────────────
 
-async function loadPassportData(npi: string): Promise<{
+export type LoadedPassportData = {
   passport: PassportDocument;
   trust: TrustDocument;
-} | null> {
+  trustState: ClinicianTrustState;
+};
+
+export async function loadPassportData(npi: string): Promise<LoadedPassportData | null> {
   const [provider, artifacts, trustState, capsules, oigArtifact, nppesIdentityClaim, claimRecords] = await Promise.all([
     prisma.provider.findFirst({
       where: { npi },
@@ -909,7 +912,11 @@ async function loadPassportData(npi: string): Promise<{
     shareUrl,
   };
 
-  return { passport, trust };
+  return {
+    passport,
+    trust,
+    trustState: resolvedTrustState,
+  };
 }
 
 // ── Mode-based redaction ──────────────────────────────────────────────────────
