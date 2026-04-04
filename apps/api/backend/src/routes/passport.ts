@@ -27,7 +27,7 @@ import {
 } from '../services/trust/trustStateEngine';
 
 const NPI_RE = /^\d{10}$/;
-const PUBLIC_TYPES = new Set(['NPI_IDENTITY', 'NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION']);
+const PUBLIC_TYPES = new Set(['NPI_IDENTITY', 'NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION', 'ENROLLMENT', 'SANCTIONS_CHECK', 'IDENTITY', 'PUBLICATION', 'AFFILIATION']);
 
 type PublicTrustBand = 'GREEN' | 'YELLOW' | 'RED';
 type PassportCredentialStatus =
@@ -45,7 +45,12 @@ type CredentialType =
   | 'BOARD_CERTIFICATION'
   | 'DEA_REGISTRATION'
   | 'OIG_EXCLUSION'
-  | 'PRIMARY_SOURCE_VERIFICATION';
+  | 'PRIMARY_SOURCE_VERIFICATION'
+  | 'ENROLLMENT'
+  | 'SANCTIONS_CHECK'
+  | 'IDENTITY'
+  | 'PUBLICATION'
+  | 'AFFILIATION';
 
 type ProviderRecord = {
   fullName: string | null;
@@ -559,13 +564,155 @@ function applySelectiveDisclosure(
   };
 }
 
+// ── ClaimRecord → PassportCredential mapping ────────────────────────────────
+
+type ClaimRecordRow = {
+  id: string;
+  claimType: string;
+  sourceId: string;
+  value: unknown;
+  status: string;
+  observedAt: Date;
+  validUntil: Date | null;
+  confidenceLabel: string;
+  trustTier: string;
+};
+
+function claimValueObj(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function mapClaimToCredential(claim: ClaimRecordRow): PassportCredential | null {
+  const v = claimValueObj(claim.value);
+  const status: PassportCredentialStatus = claim.status === 'ACTIVE' ? 'ACTIVE' : 'UNKNOWN';
+  const verifiedAt = claim.observedAt.toISOString();
+  const expiresAt = claim.validUntil?.toISOString() ?? null;
+
+  switch (claim.claimType) {
+    case 'ENROLLMENT_STATUS': {
+      return {
+        id: claim.id,
+        type: 'ENROLLMENT',
+        name: 'Medicare Enrollment',
+        issuer: 'PECOS',
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'EXCLUSION_STATUS': {
+      return {
+        id: claim.id,
+        type: 'SANCTIONS_CHECK',
+        name: 'OIG Sanctions Check',
+        issuer: 'OIG/LEIE',
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'LICENSE':
+    case 'NURSING_LICENSE': {
+      const state = typeof v.state === 'string' ? v.state.trim() : '';
+      const licenseType = typeof v.licenseType === 'string' ? v.licenseType.trim() : '';
+      const name = state
+        ? `${state} ${licenseType || 'State License'}`.trim()
+        : licenseType || 'State License';
+      const issuer = typeof v.issuer === 'string' ? v.issuer.trim() : (state ? `${state} Board` : claim.sourceId);
+      return {
+        id: claim.id,
+        type: 'STATE_LICENSE',
+        name,
+        issuer,
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'PERSONAL_IDENTITY':
+    case 'NPI_IDENTITY': {
+      return {
+        id: claim.id,
+        type: 'IDENTITY',
+        name: 'NPI Identity Verification',
+        issuer: 'NPPES',
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'SPECIALTY': {
+      const specialtyName = typeof v.specialtyName === 'string' ? v.specialtyName.trim()
+        : typeof v.specialty === 'string' ? v.specialty.trim()
+        : typeof v.taxonomyDescription === 'string' ? v.taxonomyDescription.trim()
+        : 'Board Certification';
+      const boardIssuer = typeof v.boardName === 'string' ? v.boardName.trim() : 'Specialty Board';
+      return {
+        id: claim.id,
+        type: 'BOARD_CERTIFICATION',
+        name: specialtyName,
+        issuer: boardIssuer,
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'PUBLICATION': {
+      const title = typeof v.title === 'string' ? v.title.trim()
+        : typeof v.publicationTitle === 'string' ? v.publicationTitle.trim()
+        : 'Publication';
+      const journal = typeof v.journal === 'string' ? v.journal.trim()
+        : typeof v.source === 'string' ? v.source.trim()
+        : claim.sourceId;
+      return {
+        id: claim.id,
+        type: 'PUBLICATION',
+        name: title,
+        issuer: journal,
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    case 'INSTITUTION_AFFILIATION': {
+      const orgName = typeof v.organizationName === 'string' ? v.organizationName.trim()
+        : typeof v.institutionName === 'string' ? v.institutionName.trim()
+        : 'Institution Affiliation';
+      const orgIssuer = typeof v.issuer === 'string' ? v.issuer.trim() : claim.sourceId;
+      return {
+        id: claim.id,
+        type: 'AFFILIATION',
+        name: orgName,
+        issuer: orgIssuer,
+        status,
+        verifiedAt,
+        expiresAt,
+        isPublic: true,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+function claimCredentialKey(type: CredentialType, sourceId: string, value: Record<string, unknown>): string {
+  const state = typeof value.state === 'string' ? value.state.trim().toUpperCase() : '';
+  return [type, sourceId.trim().toUpperCase(), state].filter(Boolean).join(':');
+}
+
 // ── Data loading ─────────────────────────────────────────────────────────────
 
 async function loadPassportData(npi: string): Promise<{
   passport: PassportDocument;
   trust: TrustDocument;
 } | null> {
-  const [provider, artifacts, trustState, capsules, oigArtifact, nppesIdentityClaim] = await Promise.all([
+  const [provider, artifacts, trustState, capsules, oigArtifact, nppesIdentityClaim, claimRecords] = await Promise.all([
     prisma.provider.findFirst({
       where: { npi },
       select: {
@@ -617,6 +764,12 @@ async function loadPassportData(npi: string): Promise<{
       orderBy: { observedAt: 'desc' },
       select: { value: true },
     }),
+    // All active claims for credential hydration
+    prisma.claimRecord.findMany({
+      where: { subjectNpi: npi, status: 'ACTIVE' },
+      orderBy: { observedAt: 'desc' },
+      select: { id: true, claimType: true, sourceId: true, value: true, status: true, observedAt: true, validUntil: true, confidenceLabel: true, trustTier: true },
+    }),
   ]);
 
   // Fall back to live computation if cached trust state expired (1h TTL)
@@ -651,6 +804,16 @@ async function loadPassportData(npi: string): Promise<{
       expiresAt: artifact.expiresAt?.toISOString() ?? null,
       isPublic,
     });
+  }
+
+  // Hydrate from ClaimRecord — ClaimRecord takes priority (newer data)
+  for (const claim of claimRecords) {
+    const mapped = mapClaimToCredential(claim as ClaimRecordRow);
+    if (!mapped) continue;
+    const v = claimValueObj(claim.value);
+    const key = claimCredentialKey(mapped.type, claim.sourceId, v);
+    // ClaimRecord overrides VerificationArtifact for same key
+    deduped.set(key, mapped);
   }
 
   const credentials = Array.from(deduped.values());
@@ -717,7 +880,7 @@ async function loadPassportData(npi: string): Promise<{
       trustBand,
       readinessScore: resolvedTrustState.readiness_score,
       totalCredentials: credentials.length,
-      activeCredentials,
+      activeCredentials: activeCredentials,
       shareUrl,
       embedUrl,
     },
