@@ -1,11 +1,28 @@
 /**
- * Resolve the backend API base URL.
- * Handles empty-string env vars (Vercel sets NEXT_PUBLIC_API_BASE="" in some configs).
- * Falls back to Railway production URL when running on Vercel with no explicit config.
+ * Backend API base URL.
+ * 
+ * Production: Railway (delightful-essence)
+ * Local dev: localhost:4000
  */
-export const BACKEND_URL =
-  [process.env.BACKEND_URL, process.env.NEXT_PUBLIC_API_BASE, process.env.NEXT_PUBLIC_BACKEND_URL]
-    .find(v => typeof v === 'string' && v.length > 0)
-  ?? (process.env.VERCEL
-    ? 'https://delightful-essence-production.up.railway.app'
-    : 'http://localhost:4000');
+const RAILWAY_PRODUCTION = 'https://delightful-essence-production.up.railway.app';
+
+export const BACKEND_URL: string = (() => {
+  // Explicit override always wins
+  const explicit = process.env.BACKEND_URL;
+  if (explicit && explicit.length > 0) return explicit;
+
+  // Non-empty API base
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+  if (apiBase && apiBase.length > 0) return apiBase;
+
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (backendUrl && backendUrl.length > 0) return backendUrl;
+
+  // Production or any deployed environment → Railway
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    return RAILWAY_PRODUCTION;
+  }
+
+  // Local dev
+  return 'http://localhost:4000';
+})();
