@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install -g pnpm@10.6.1 && cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @vitalcv/shared run build && pnpm --filter @vitalcv/issuer-sdk run build && pnpm --filter @vitalcv/verifier-sdk run build && pnpm --filter @vitalcv/wallet-sdk run build && pnpm --filter @vitalcv/web build",
+  "buildCommand": "cd ../.. && npx turbo build --filter=@vitalcv/web...",
   "outputDirectory": ".next",
   "headers": [
     {

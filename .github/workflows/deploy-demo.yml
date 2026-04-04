@@ -42,11 +42,8 @@ jobs:
       - name: Lint
         run: pnpm --filter @vitalcv/web lint
 
-      - name: Build shared packages
-        run: pnpm --filter @vitalcv/shared run build && pnpm --filter @vitalcv/issuer-sdk run build && pnpm --filter @vitalcv/verifier-sdk run build && pnpm --filter @vitalcv/wallet-sdk run build
-
-      - name: Build
-        run: pnpm --filter @vitalcv/web build
+      - name: Build (turbo handles dependency order)
+        run: pnpm turbo build --filter=@vitalcv/web...
         env:
           NEXT_PUBLIC_API_BASE: ${{ secrets.NEXT_PUBLIC_API_BASE }}
           NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
