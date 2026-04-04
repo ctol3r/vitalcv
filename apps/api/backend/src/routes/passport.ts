@@ -584,7 +584,12 @@ function claimValueObj(value: unknown): Record<string, unknown> {
 
 function mapClaimToCredential(claim: ClaimRecordRow): PassportCredential | null {
   const v = claimValueObj(claim.value);
-  const status: PassportCredentialStatus = claim.status === 'ACTIVE' ? 'ACTIVE' : 'UNKNOWN';
+  const statusMap: Record<string, PassportCredentialStatus> = {
+    'ACTIVE': 'ACTIVE', 'A': 'ACTIVE', 'ENROLLED': 'ACTIVE', 'CLEAR': 'ACTIVE',
+    'BLOCKED': 'REVOKED', 'EXCLUDED': 'REVOKED', 'REVOKED': 'REVOKED',
+    'UNVERIFIED': 'UNKNOWN', 'UNKNOWN': 'UNKNOWN', 'D': 'EXPIRED',
+  };
+  const status: PassportCredentialStatus = statusMap[claim.status] ?? 'UNKNOWN';
   const verifiedAt = claim.observedAt.toISOString();
   const expiresAt = claim.validUntil?.toISOString() ?? null;
 
@@ -760,13 +765,13 @@ async function loadPassportData(npi: string): Promise<{
     }),
     // NPPES identity from ClaimRecord (new ingest pipeline) — priority source for clinician name
     prisma.claimRecord.findFirst({
-      where: { subjectNpi: npi, claimType: 'PERSONAL_IDENTITY', sourceId: 'NPPES_API', status: 'ACTIVE' },
+      where: { subjectNpi: npi, claimType: 'PERSONAL_IDENTITY', sourceId: 'NPPES_API' },
       orderBy: { observedAt: 'desc' },
       select: { value: true },
     }),
     // All active claims for credential hydration
     prisma.claimRecord.findMany({
-      where: { subjectNpi: npi, status: 'ACTIVE' },
+      where: { subjectNpi: npi, status: { notIn: ['REVOKED', 'DELETED', 'SUPERSEDED'] } },
       orderBy: { observedAt: 'desc' },
       select: { id: true, claimType: true, sourceId: true, value: true, status: true, observedAt: true, validUntil: true, confidenceLabel: true, trustTier: true },
     }),
