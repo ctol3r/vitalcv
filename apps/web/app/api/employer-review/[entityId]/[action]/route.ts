@@ -76,17 +76,28 @@ export async function GET(
     return unauthorizedResponse();
   }
 
-  const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
-    headers: {
-      Accept: req.headers.get('accept') ?? 'application/json',
-      ...(userId ? { 'x-clerk-user-id': userId } : {}),
-    },
-  });
+  let response: Response | null = null;
+  try {
+    response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
+      headers: {
+        Accept: req.headers.get('accept') ?? 'application/json',
+        ...(userId ? { 'x-clerk-user-id': userId } : {}),
+      },
+    });
+  } catch {
+    if (action === 'acceptance-history') {
+      return NextResponse.json({ history: [], total: 0 }, { status: 200 });
+    }
+    return NextResponse.json({ error: 'Backend unreachable' }, { status: 502 });
+  }
 
   const contentType = response.headers.get('content-type') ?? 'application/json';
   if (contentType.includes('application/json')) {
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
+      if (action === 'acceptance-history') {
+        return NextResponse.json({ history: [], total: 0 }, { status: 200 });
+      }
       const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend fetch failed';
       return NextResponse.json({ error: errorMsg }, { status: response.status });
     }
