@@ -260,12 +260,18 @@ importers:
       '@vitalcv/domain':
         specifier: workspace:*
         version: link:../../../packages/domain
+      '@vitalcv/domain-common':
+        specifier: workspace:*
+        version: link:../../../packages/domain-common
       '@vitalcv/domain-core':
         specifier: workspace:*
         version: link:../../../packages/domain-core
       '@vitalcv/domain-events':
         specifier: workspace:*
         version: link:../../../packages/domain-events
+      '@vitalcv/haip-config':
+        specifier: workspace:*
+        version: link:../../../packages/haip-config
       '@vitalcv/ingest':
         specifier: workspace:*
         version: link:../../../packages/ingest
