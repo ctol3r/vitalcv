@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "installCommand": "npm install -g pnpm@10.6.1 && cd ../.. && pnpm install --frozen-lockfile",
+  "installCommand": "npm install -g pnpm@10.6.1 && cd ../.. && pnpm install --no-frozen-lockfile",
   "buildCommand": "cd ../.. && npx turbo build --filter=@vitalcv/web...",
   "outputDirectory": ".next",
   "headers": [
