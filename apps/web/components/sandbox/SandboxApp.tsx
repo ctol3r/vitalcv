@@ -535,7 +535,7 @@ export default function App() {
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest opacity-40">
             <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
             <a href="/developers" className="hover:opacity-100 transition-opacity">Developers</a>
-            <a href="/docs" className="hover:opacity-100 transition-opacity">Compliance</a>
+            <a href="/compliance" className="hover:opacity-100 transition-opacity">Compliance</a>
           </div>
         </div>
       </footer>
