@@ -376,10 +376,10 @@ export default function App() {
               className="flex flex-col items-center justify-center min-h-[60vh] text-center"
             >
               <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 max-w-2xl uppercase">
-                Check your <span className="italic font-serif font-medium text-ink/80">readiness</span> snapshot.
+                Check clinician <span className="italic font-serif font-medium text-ink/80">readiness</span> in seconds.
               </h2>
               <p className="text-lg opacity-60 mb-12 max-w-xl">
-                Primary sources check public records. Enter your NPI to start.
+                Source-backed truth for you and the employers you choose. Enter your NPI to start.
               </p>
               
               <form onSubmit={handleSearch} className="w-full max-w-md relative">
@@ -438,39 +438,36 @@ export default function App() {
 
               {/* Explore Section */}
               <div className="mt-32 w-full text-left border-t border-line pt-12">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-8">Explore</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-8">One Record, Three Uses</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="border border-line p-6 hover:bg-white/5 transition-colors">
-                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2">Roles aligned with your readiness snapshot</h4>
+                  <div className="border border-line p-6 hover:bg-white/5 transition-colors group">
+                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 border border-line inline-block px-2 py-1">For Clinicians</div>
+                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2 group-hover:underline underline-offset-4">Own your credentials</h4>
                     <p className="text-[10px] opacity-60 font-mono leading-relaxed">
-                      Discover healthcare facilities that match your current primary source verification status.
+                      Generate your portable passport from federal sources. Share it once, and get hired in days instead of months.
                     </p>
                   </div>
-                  <div className="border border-line p-6 hover:bg-white/5 transition-colors">
-                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2">Facility Network</h4>
+                  <div 
+                    onClick={() => {
+                      setViewMode("employer");
+                      setShowReviewRequest(true);
+                      setCurrentOrgId("NEW-PILOT-ORG-" + Math.floor(Math.random() * 1000));
+                      setWorkspaceActive(false);
+                    }}
+                    className="border border-line p-6 hover:bg-white/5 transition-colors group block cursor-pointer"
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 border border-line inline-block px-2 py-1">For Employers</div>
+                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2 group-hover:underline underline-offset-4">Make faster decisions</h4>
                     <p className="text-[10px] opacity-60 font-mono leading-relaxed">
-                      Browse 4,200+ hospitals and clinics currently accepting VitalCV readiness snapshots.
+                      Stop chasing missing documents. Review a source-backed decision posture and accept candidates immediately.
                     </p>
                   </div>
-                  <div className="border border-line p-6 hover:bg-white/5 transition-colors">
-                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2">Mobility Insights</h4>
+                  <div className="border border-line p-6 hover:bg-white/5 transition-colors group">
+                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 border border-line inline-block px-2 py-1">For Ops & Partners</div>
+                    <h4 className="text-sm font-bold uppercase tracking-widest mb-2 group-hover:underline underline-offset-4">Integrate the Truth Layer</h4>
                     <p className="text-[10px] opacity-60 font-mono leading-relaxed">
-                      Analyze regional demand for your specialty based on public record trends.
+                      Embed readiness scores directly into your ATS or credentialing system via our developer API.
                     </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Developers Section */}
-              <div className="mt-32 w-full text-left border-t border-line pt-12">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] opacity-40 mb-8">Developers</h3>
-                <div className="border border-line p-8 bg-white/5">
-                  <h4 className="text-xl font-bold tracking-tight mb-4 uppercase">Build with the Readiness API</h4>
-                  <p className="text-sm opacity-60 mb-6 max-w-2xl">
-                    Integrate source-backed readiness checks into your own healthcare application. Our API provides strictly scoped access to public record snapshots.
-                  </p>
-                  <div className="bg-black/20 p-4 font-mono text-[10px] border border-line">
-                    <span className="text-amber-500">GET</span> /api/readiness/:npi
                   </div>
                 </div>
               </div>
