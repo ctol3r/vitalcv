@@ -3,7 +3,7 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import ReviewClient from '@/components/review/ReviewClient';
+import { EmployerCockpit } from '@/components/review/EmployerCockpit';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import {
@@ -102,7 +102,11 @@ export default function ReviewPageClient({
     : ''}`;
 
   if (loading) {
-    return <ReviewClient loading entityId={entityId} />;
+    return (
+      <div className="min-h-screen bg-[var(--vt-bg)] text-[var(--vt-text-primary)] flex items-center justify-center font-mono text-xs uppercase tracking-widest opacity-60">
+        Loading decision state...
+      </div>
+    );
   }
 
   if (!passport) {
@@ -139,12 +143,8 @@ export default function ReviewPageClient({
   }
 
   return (
-    <ReviewClient
+    <EmployerCockpit
       passport={passport}
-      contextId={contextId}
-      bundleId={bundleId}
-      sharedBy={from}
-      acceptanceHistory={acceptanceHistory}
     />
   );
 }
