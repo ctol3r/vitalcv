@@ -300,7 +300,7 @@ export default function App() {
           >
             Cover Letter
           </button>
-          <a href="#" className="hover:opacity-100 transition-opacity">Explore</a>
+          <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
         </nav>
         <div className="flex items-center gap-4">
           {(viewMode === "employer" || showDemoEmployer || showReviewRequest) && (
@@ -533,9 +533,9 @@ export default function App() {
             © 2026 VitalCV · Built for Healthcare Mobility
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest opacity-40">
-            <a href="#" className="hover:opacity-100 transition-opacity">Explore</a>
-            <a href="#" className="hover:opacity-100 transition-opacity">Developers</a>
-            <a href="#" className="hover:opacity-100 transition-opacity">Compliance</a>
+            <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
+            <a href="/developers" className="hover:opacity-100 transition-opacity">Developers</a>
+            <a href="/docs" className="hover:opacity-100 transition-opacity">Compliance</a>
           </div>
         </div>
       </footer>
