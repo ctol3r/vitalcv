@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   HOMEPAGE_PUBLIC_TRUTH_SOURCES,
   HOMEPAGE_SYNTHETIC_PREVIEW_COPY,
@@ -26,9 +27,7 @@ export function TrustStrip() {
                   <p className="text-xs font-semibold text-white/60 whitespace-nowrap">{source.name}</p>
                   <p className="text-[9px] text-white/25 whitespace-nowrap">{source.sublabel}</p>
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] whitespace-nowrap ${source.trustStatusBadgeClassName}`}>
-                  {source.trustStatusLabel}
-                </span>
+                <TrustStatusBadge status={source.trustStatus} label={source.trustStatusLabel} size="sm" />
               </div>
             ))}
           </div>

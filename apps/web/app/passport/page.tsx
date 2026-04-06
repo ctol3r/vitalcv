@@ -32,6 +32,7 @@ import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeSurfaceStateFromDisplayLabel,
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
@@ -93,11 +94,13 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   label: string;
 } {
   if (state === 'checking') {
-    return { status: 'pending', label: 'Checking' };
+    const meta = getPublicWedgeSurfaceBadgeMeta('pending');
+    return { status: meta.status, label: meta.label };
   }
 
   if (state === 'pending') {
-    return { status: 'pending', label: 'Queued' };
+    const meta = getPublicWedgeSurfaceBadgeMeta('pending');
+    return { status: meta.status, label: meta.label };
   }
 
   if (state === 'error') {
@@ -105,29 +108,7 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
     return { status: meta.status, label: meta.label };
   }
 
-  let surfaceState: PublicWedgeSurfaceState = 'checked';
-
-  switch (displayValue) {
-    case 'Flag found':
-    case 'Possible match':
-    case 'Not found':
-    case 'Opted out':
-    case 'Excluded':
-      surfaceState = 'review_required';
-      break;
-    case 'No profile yet':
-      surfaceState = 'unavailable';
-      break;
-    case 'Verified':
-    case 'Clear':
-    case 'Enrolled':
-    case 'Checked':
-    case 'Done':
-    default:
-      surfaceState = 'checked';
-      break;
-  }
-
+  const surfaceState: PublicWedgeSurfaceState = resolvePublicWedgeSurfaceStateFromDisplayLabel(displayValue);
   const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
   return {
     status: meta.status,

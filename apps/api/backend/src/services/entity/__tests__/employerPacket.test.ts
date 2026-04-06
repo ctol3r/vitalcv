@@ -317,6 +317,13 @@ describe('employer packet truth', () => {
     expect(packet.sourceCoverageSummary.checked).toEqual(['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC']);
     expect(packet.sourceCoverageSummary.gated).toEqual(['STATE_BOARD']);
     expect(packet.freshness).toEqual(passport.trustPosture.freshness);
+    expect(packet.decisionPosture).toEqual({
+      status: 'PARTIAL',
+      headline: 'Some decision-grade checks are still missing, gated, stale, or under review.',
+      blockers: [],
+      nextAction: 'Request refresh or route to review before relying on missing lanes.',
+      freshness: passport.trustPosture.freshness,
+    });
     expect(packet.sourceCoverage.checks).toEqual(expect.arrayContaining([
       expect.objectContaining({
         sourceId: 'NPPES_API',
@@ -372,6 +379,7 @@ describe('employer packet truth', () => {
           level: packet.readiness.level,
           blockers: packet.readiness.blockers,
         },
+        decisionPosture: packet.decisionPosture,
         sourceCoverageSummary: packet.sourceCoverageSummary,
       },
     }));

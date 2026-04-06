@@ -12,6 +12,8 @@ import {
   isPublicWedgeStrongOutcome,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
   resolvePublicWedgeSurfaceStateFromCoverage,
+  resolvePublicWedgeSurfaceStateFromDisplayLabel,
+  resolvePublicWedgeSurfaceStateFromPreviewStageStatus,
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
 import {
@@ -83,6 +85,11 @@ describe('public wedge parity helpers', () => {
     expect(resolvePublicWedgeSurfaceStateFromCoverage('notDecisionGrade')).toBe('preview_only');
     expect(resolvePublicWedgeSurfaceStateFromAccordionStatus('stale')).toBe('stale');
     expect(resolvePublicWedgeSurfaceStateFromAccordionStatus('access_required')).toBe('access_required');
+    expect(resolvePublicWedgeSurfaceStateFromPreviewStageStatus('loading')).toBe('pending');
+    expect(resolvePublicWedgeSurfaceStateFromPreviewStageStatus('ok')).toBe('checked');
+    expect(resolvePublicWedgeSurfaceStateFromDisplayLabel('Source-backed')).toBe('checked');
+    expect(resolvePublicWedgeSurfaceStateFromDisplayLabel('Excluded')).toBe('review_required');
+    expect(resolvePublicWedgeSurfaceStateFromDisplayLabel('Unknown text')).toBe('pending');
     expect(isPublicWedgeStrongOutcome('checked')).toBe(true);
     expect(isPublicWedgeStrongOutcome('review_required')).toBe(false);
     expect(isPublicWedgeStrongOutcome('preview_only')).toBe(false);

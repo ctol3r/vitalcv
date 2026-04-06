@@ -234,7 +234,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasLicensure && (
           <AuthorityRow
             title="License verification"
-            status="access required"
+            status="access_required"
             sourceLabel="CA State Board / FSMB"
             note="Access required. Only the CA physician licensure launch lane is production-enabled in this release."
           />
@@ -244,7 +244,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasBoardCert && (
           <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
             <span className="text-xs text-white/20">Board certification</span>
-            <TrustStatusBadge status="not decision-grade" size="sm" />
+            <TrustStatusBadge status="not_decision_grade" size="sm" />
           </div>
         )}
 

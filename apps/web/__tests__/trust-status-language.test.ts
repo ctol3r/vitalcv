@@ -13,9 +13,12 @@ import {
 
 describe('trust status language', () => {
   it('keeps shared label mapping aligned between accordion and VDS pills', () => {
+    expect(getTrustStatusLabel('verified')).toBe('Source-backed');
+    expect(getTrustStatusLabel('clear')).toBe('Checked');
     expect(getTrustStatusLabel('review_required')).toBe('Review required');
     expect(getTrustStatusLabel('access_required')).toBe('Access required');
 
+    expect(getVdsTrustStatusLabel('clear')).toBe('Checked');
     expect(getVdsTrustStatusLabel('review_required')).toBe('Review required');
     expect(getVdsTrustStatusLabel('access_required')).toBe('Access required');
     expect(getVdsTrustStatusLabel('not_decision_grade')).toBe('Not decision-grade');
@@ -60,6 +63,7 @@ describe('trust status language', () => {
   it('keeps domain-specific labels from overstating canonical truth', () => {
     expect(getStatusDisplayLabel('clear', 'No sanctions found')).toBe('No sanctions found');
     expect(getStatusDisplayLabel('demo', 'Preview only')).toBe('Preview only');
+    expect(getStatusDisplayLabel('checked', 'Source-backed')).toBe('Source-backed');
     expect(getStatusDisplayLabel('checked', 'Enrolled')).toBe('Checked');
     expect(getStatusDisplayLabel('pending', 'Verified')).toBe('Pending');
   });

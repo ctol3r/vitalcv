@@ -527,7 +527,6 @@ export function ReadinessPreview({
   fallbackSources = null,
 }: Props) {
   const checkedLabel = getTrustStatusLabel('checked');
-  const clearLabel = getTrustStatusLabel('clear');
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');
   const reviewRequiredLabel = getTrustStatusLabel('review_required');
@@ -693,7 +692,7 @@ export function ReadinessPreview({
                   </p>
                 )}
                 <p className="mt-2 text-xs leading-relaxed text-white/38">
-                  {checkedLabel} or {clearLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
+                  {checkedLabel} sections stay attached. {pendingLabel}, {accessRequiredLabel}, {reviewRequiredLabel}, and {unavailableLabel} sections remain visible.
                 </p>
               </div>
               <Button

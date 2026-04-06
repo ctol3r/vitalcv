@@ -1,77 +1,65 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Code2, Shield, Webhook, Zap, Globe } from 'lucide-react';
+import { ArrowRight, BookOpen, Code2, Database, ShieldCheck, Activity } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Documentation | VitalCV',
-  description: 'Everything you need to build on the current VitalCV API and documentation surface.',
+  description: 'Integrate the VitalCV readiness and employer decision wedge.',
 };
 
 const SECTIONS = [
   {
     icon: BookOpen,
     title: 'API Reference',
-    desc: 'Endpoint documentation for the current credential verification, issuance, and revocation routes.',
-    href: '/docs/api',
+    desc: 'Endpoints for NPI ingest, passport retrieval, and employer review state.',
+    href: '/developers',
     badge: 'REST · JSON',
   },
   {
-    icon: Code2,
-    title: 'SDKs',
-    desc: 'TypeScript client libraries for verification, issuance, and wallet flows.',
-    href: '/docs/sdk',
-    badge: 'TypeScript',
+    icon: Database,
+    title: 'Source Coverage',
+    desc: 'The canonical source map for identity, licensure, and exclusion status.',
+    href: '/developers',
+    badge: 'Evidence',
   },
   {
-    icon: Webhook,
-    title: 'Webhooks',
-    desc: 'Automated event delivery for credential lifecycle changes, trust state alerts, and revocation events.',
-    href: '/docs/webhooks',
-    badge: 'Events',
-  },
-  {
-    icon: Shield,
-    title: 'Design System',
-    desc: 'Canonical tokens, themes, components, layouts, and graph rules for VitalCV product surfaces.',
-    href: '/docs/design-system',
-    badge: 'VDS',
+    icon: ShieldCheck,
+    title: 'Trust Contract',
+    desc: 'How VitalCV models readiness, blocks, and freshness to support safe hiring decisions.',
+    href: '/developers',
+    badge: 'Wedge Logic',
   },
 ] as const;
 
 const QUICK_LINKS = [
-  { label: 'Verify a credential',    href: '/docs/api#verify' },
-  { label: 'Issue a credential',     href: '/docs/api#issue' },
-  { label: 'Install the Node SDK',   href: '/docs/sdk#node' },
-  { label: 'Subscribe to webhooks',  href: '/docs/webhooks#subscribe' },
-  { label: 'Revoke a credential',    href: '/docs/api#revoke' },
-  { label: 'Selective disclosure',   href: '/docs/api#selective-disclosure' },
+  { label: 'Enter NPI (Sandbox)', href: '/' },
+  { label: 'Employer Review UX', href: '/review' },
+  { label: 'Readiness API', href: '/developers' },
 ] as const;
 
 const PRINCIPLES = [
-  { icon: Shield, text: 'Selective disclosure — share only the credential fields you choose' },
-  { icon: Zap,    text: 'Source-backed verification from connected primary registries' },
-  { icon: Globe,  text: 'Federation-ready — designed to interoperate with external networks when connected' },
+  { icon: ShieldCheck, text: 'Decision before data — surfacing what is actionable immediately' },
+  { icon: Activity, text: 'Source-backed reality — exposing the exact provenance and freshness' },
+  { icon: Database, text: 'Honest coverage — no mock claims, no simulated trust' },
 ] as const;
 
 export default function DocsPage() {
   return (
-    <article className="max-w-2xl space-y-14">
-      {/* Header */}
+    <article className="max-w-2xl space-y-14 bg-background px-6 py-12">
       <header className="space-y-4">
         <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-3)]">
           Documentation
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--vt-text-1)]">
-          Build on VitalCV
+          Integrate the decision wedge
         </h1>
         <p className="text-[var(--vt-text-2)] leading-relaxed">
-          VitalCV provides cryptographic healthcare credentialing workflows through the current API,
-          SDK, and webhook surfaces in this workspace. Verify clinician licenses, board certifications,
-          and NPI attestations against the routes documented here.
+          VitalCV exposes clinician readiness as a strict, source-backed trust contract.
+          Use the current wedge routes to parse identity, standing, and authority without
+          overstating what has not been checked yet.
         </p>
       </header>
 
-      {/* Principles */}
       <section className="space-y-2">
         {PRINCIPLES.map(({ icon: Icon, text }) => (
           <div key={text} className="flex items-center gap-3 text-sm text-[var(--vt-text-2)]">
@@ -81,10 +69,8 @@ export default function DocsPage() {
         ))}
       </section>
 
-      {/* Divider */}
       <hr className="border-[var(--vt-border)]" />
 
-      {/* Section cards */}
       <section className="space-y-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
           Reference
@@ -92,7 +78,7 @@ export default function DocsPage() {
         <div className="grid gap-3 sm:grid-cols-3">
           {SECTIONS.map(({ icon: Icon, title, desc, href, badge }) => (
             <Link
-              key={href}
+              key={href + title}
               href={href}
               className="group flex flex-col gap-4 rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 transition hover:border-[var(--vt-accent)]/30 hover:bg-[var(--vt-surface-2)]"
             >
@@ -104,16 +90,11 @@ export default function DocsPage() {
                 <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">{title}</h3>
                 <p className="text-xs leading-5 text-[var(--vt-text-2)]">{desc}</p>
               </div>
-              <div className="mt-auto flex items-center gap-1 text-xs text-[var(--vt-text-3)] group-hover:text-[var(--vt-accent)] transition-colors">
-                <span>Read docs</span>
-                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Quick links */}
       <section className="space-y-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-3)]">
           Quick Links
@@ -121,7 +102,7 @@ export default function DocsPage() {
         <div className="grid gap-1 sm:grid-cols-2">
           {QUICK_LINKS.map(({ label, href }) => (
             <Link
-              key={href}
+              key={href + label}
               href={href}
               className="group flex items-center justify-between rounded-lg border border-[var(--vt-border)] px-4 py-2.5 text-sm text-[var(--vt-text-2)] transition hover:border-[var(--vt-border-2)] hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
             >
@@ -129,23 +110,6 @@ export default function DocsPage() {
               <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100" />
             </Link>
           ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-[var(--vt-text-1)]">Ready to integrate?</h3>
-            <p className="text-sm text-[var(--vt-text-2)]">Get an API key and start verifying credentials in minutes.</p>
-          </div>
-          <Link
-            href="/developers"
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--vt-accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            Get API Key
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </section>
     </article>

@@ -62,7 +62,16 @@ export interface EmployerEvidencePacketManifestStatusV1 {
     EmployerEvidencePacketV1['readiness'],
     'status' | 'score' | 'readiness_score' | 'level' | 'blockers'
   >;
+  decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverageSummary: CanonicalSourceCoverageSummary;
+}
+
+export interface EmployerEvidencePacketDecisionPostureV1 {
+  status: TrustPassport['readiness']['status'];
+  headline: string;
+  blockers: string[];
+  nextAction: string;
+  freshness: TrustPassport['trustPosture']['freshness'];
 }
 
 export interface EmployerEvidencePacketManifestV1 {
@@ -153,6 +162,7 @@ export interface EmployerEvidencePacketV1 {
     blockers: string[];
     nextActions: TrustPassport['readiness']['nextActions'];
   };
+  decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverage: TrustPassport['sourceCoverage'];
 
   // ── Wave 3: Packet Trust Transfer fields ────────────────────────────────
@@ -511,6 +521,35 @@ function hasReceiptPresence(passport: TrustPassport): boolean {
   return false;
 }
 
+function buildDecisionPosture(
+  passport: TrustPassport,
+): EmployerEvidencePacketDecisionPostureV1 {
+  const nextAction = passport.readiness.nextActions[0]?.detail
+    ?? (
+      passport.readiness.status === 'READY'
+        ? 'Accept as head start or export this packet for employer review.'
+        : passport.readiness.status === 'PARTIAL'
+          ? 'Request refresh or route to review before relying on missing lanes.'
+          : 'Route to review or request refresh before start.'
+    );
+
+  const headline = (
+    passport.readiness.status === 'READY'
+      ? 'Current source-backed checks support employer review now.'
+      : passport.readiness.status === 'PARTIAL'
+        ? 'Some decision-grade checks are still missing, gated, stale, or under review.'
+        : 'Blocking gaps remain attached to this packet.'
+  );
+
+  return {
+    status: passport.readiness.status,
+    headline,
+    blockers: [...passport.readiness.blockers],
+    nextAction,
+    freshness: passport.trustPosture.freshness,
+  };
+}
+
 export function buildEmployerEvidencePacket(input: {
   passport: TrustPassport;
   employerId: string;
@@ -523,6 +562,7 @@ export function buildEmployerEvidencePacket(input: {
   const artifactReferences = buildArtifactReferences(manifestSources);
   const receiptReferences = buildReceiptReferences(manifestSources);
   const freshness = input.passport.trustPosture.freshness;
+  const decisionPosture = buildDecisionPosture(input.passport);
 
   const manifest: EmployerEvidencePacketManifestV1 = {
     schema: 'vitalcv.employer.packet-manifest.v1',
@@ -547,6 +587,7 @@ export function buildEmployerEvidencePacket(input: {
         level: input.passport.readiness.level,
         blockers: input.passport.readiness.blockers,
       },
+      decisionPosture,
       sourceCoverageSummary,
     },
     sources: manifestSources,
@@ -625,6 +666,7 @@ export function buildEmployerEvidencePacket(input: {
       blockers: input.passport.readiness.blockers,
       nextActions: input.passport.readiness.nextActions,
     },
+    decisionPosture,
     sourceCoverage: input.passport.sourceCoverage,
 
     // Wave 3: Packet Trust Transfer fields

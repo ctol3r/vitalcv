@@ -34,6 +34,7 @@ export interface EmployerEvidencePacketStatusV1 {
   truth: EmployerEvidencePacketV1['truth'];
   freshness: EmployerEvidencePacketV1['freshness'];
   readiness: EmployerEvidencePacketV1['readiness'];
+  decisionPosture: EmployerEvidencePacketV1['decisionPosture'];
   sourceCoverageSummary: EmployerEvidencePacketV1['sourceCoverageSummary'];
 }
 
@@ -64,6 +65,7 @@ function buildStatusDocument(
     truth: packet.truth,
     freshness: packet.freshness,
     readiness: packet.readiness,
+    decisionPosture: packet.decisionPosture,
     sourceCoverageSummary: packet.sourceCoverageSummary,
   };
 }
@@ -97,6 +99,8 @@ function buildReadme(packet: EmployerEvidencePacketV1): string {
     `Artifact References: ${packet.artifactReferences.length}`,
     `Freshness State: ${packet.freshness.state}`,
     `Freshness Label: ${packet.freshness.label}`,
+    `Decision posture: ${packet.decisionPosture.status}`,
+    `Safe next action: ${packet.decisionPosture.nextAction}`,
     '',
     'Bundle Files',
     ...EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES.map((file) => `- ${file}`),

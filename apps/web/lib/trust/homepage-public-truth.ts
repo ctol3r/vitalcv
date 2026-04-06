@@ -1,11 +1,12 @@
 import type { PassportSourceCoverageState } from '@/lib/trust/source-coverage';
 import {
-  getTrustStatusBadgeClassName,
-  getTrustStatusLabel,
-  resolveTrustUiStatus,
   type TrustEvidenceKind,
-  type TrustUiStatus,
 } from '@/lib/trust/status-language';
+import {
+  getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeSurfaceStateFromCoverage,
+  type PublicWedgeSurfaceState,
+} from '@/lib/trust/public-wedge-parity';
 
 export type HomepagePublicTruthSourceId =
   | 'identity'
@@ -75,24 +76,21 @@ export const HOMEPAGE_SYNTHETIC_PREVIEW_COPY = {
 } as const;
 
 export type HomepagePublicTruthSourceView = HomepagePublicTruthSource & {
-  trustStatus: TrustUiStatus;
+  surfaceState: PublicWedgeSurfaceState;
+  trustStatus: ReturnType<typeof getPublicWedgeSurfaceBadgeMeta>['status'];
   trustStatusLabel: string;
-  trustStatusBadgeClassName: string;
 };
 
 export function resolveHomepagePublicTruthSource(
   source: HomepagePublicTruthSource,
 ): HomepagePublicTruthSourceView {
-  const trustStatus = resolveTrustUiStatus({
-    state: source.sourceState,
-    kind: source.evidenceKind,
-    satisfied: source.satisfied,
-  });
+  const surfaceState = resolvePublicWedgeSurfaceStateFromCoverage(source.sourceState);
+  const badgeMeta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
 
   return {
     ...source,
-    trustStatus,
-    trustStatusLabel: getTrustStatusLabel(trustStatus),
-    trustStatusBadgeClassName: getTrustStatusBadgeClassName(trustStatus),
+    surfaceState,
+    trustStatus: badgeMeta.status,
+    trustStatusLabel: badgeMeta.label,
   };
 }

@@ -418,7 +418,8 @@ describe('post-release truth cleanup', () => {
     const navbarMarkup = renderToStaticMarkup(<Navbar />);
     const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
 
-    expect(homepageMarkup).toContain('NPI first. Honest coverage.');
+    expect(homepageMarkup).toContain('Check your credentialing readiness');
+    expect(homepageMarkup).toContain("Enter your NPI. We pull from NPPES, OIG, and available public sources");
     expect(homepageMarkup).toContain('Start with NPI lookup');
     expect(homepageMarkup).toContain('Current source coverage');
     expect(homepageMarkup).toContain('Homepage preview starts with NPPES and OIG.');
@@ -522,41 +523,27 @@ describe('post-release truth cleanup', () => {
     const developerMarkup = renderToStaticMarkup(<DeveloperPortalPage />);
 
     expect(developerMetadata.description).toBe(
-      'Current VitalCV API routes, SDKs, and webhook registration surfaces backed by this branch.',
+      'Current VitalCV wedge routes for NPI ingest, passport retrieval, employer review, and audit-backed employer actions.',
     );
-    expect(developerMarkup).toContain('Developer Portal Preview');
-    expect(developerMarkup).toContain('Build against the');
-    expect(developerMarkup).toContain('current VitalCV API preview.');
-    expect(developerMarkup).toContain('Use the configured API host, workspace SDKs, and backend routes that exist in this branch today.');
-    expect(findHrefByText(developerMarkup, 'Try the Sandbox')).toBe('#sandbox');
-    expect(findHrefByText(developerMarkup, 'Read the Docs')).toBe('/docs');
-    expect(findHrefByText(developerMarkup, 'API Reference')).toBe('/docs/api');
-    expect(findHrefByText(developerMarkup, 'SDKs')).toBe('/docs/sdk');
-    expect(findHrefByText(developerMarkup, 'Webhook Guide')).toBe('/docs/webhooks');
-    expect(findHrefByText(developerMarkup, 'Wallet Export')).toBe('/docs/api');
-    expect(findHrefByText(developerMarkup, 'Compliance API')).toBe('/docs/api');
-    expect(findHrefByText(developerMarkup, 'Examples')).toBe('https://github.com/ctol3r/vitalcv/tree/main/examples');
-    expect(developerMarkup).toContain(APPROVED_PUBLIC_WORDING.current);
-    expect(developerMarkup).toContain(APPROVED_PUBLIC_WORDING.preview);
-
-    // Governance cards must be absent after public-shell narrowing
+    expect(developerMarkup).toContain('Build against the live wedge');
+    expect(developerMarkup).toContain('Open live NPI entry');
+    expect(developerMarkup).toContain('Open employer review request');
+    expect(findHrefByText(developerMarkup, 'Open live NPI entry')).toBe('/');
+    expect(findHrefByText(developerMarkup, 'Open employer review request')).toBe('/review/request');
+    expect(findHrefByText(developerMarkup, 'Read wedge docs')).toBe('/docs');
+    expect(developerMarkup).toContain('POST /api/ingest/npi/:npi');
+    expect(developerMarkup).toContain('GET /api/passport/entity/:entityId');
+    expect(developerMarkup).toContain('POST /api/employer-review/:entityId/accept');
+    expect(developerMarkup).toContain('@vitalcv/verifier-sdk');
+    expect(developerMarkup).toContain('@vitalcv/issuer-sdk');
     expectMarkupExcludes(developerMarkup, [
-      'TRUST_THRESHOLD',
-      'REVOCATION_ESCALATION',
-      'PEER_ACCEPTANCE',
-      'Network Peer Acceptance',
-      'AUTHORITATIVE issuers require',
+      'Wallet Export',
+      'Connected Organizations (Preview)',
+      'Network Gateway',
+      'Webhook Guide',
+      'wallet sync',
+      'mobile app',
     ]);
-    // Section label should be "Governance API", not "Trust Governance"
-    expect(developerMarkup).toContain('Governance API');
-    expect(developerMarkup).not.toContain('Trust Governance');
-    // Wave/Phase numbers should be stripped from section labels
-    expect(developerMarkup).not.toContain('Wave 114');
-    expect(developerMarkup).not.toContain('Wave 118');
-    expect(developerMarkup).not.toContain('Phase 7');
-    // Network section demoted
-    expect(developerMarkup).toContain('Connected Organizations (Preview)');
-    expect(developerMarkup).not.toContain('Network Gateway');
 
     expectMarkupExcludes(developerMarkup, PROHIBITED_PUBLIC_STRINGS);
   });
@@ -569,16 +556,16 @@ describe('post-release truth cleanup', () => {
     const docsMarkup = renderToStaticMarkup(<DocsPage />);
 
     expect(docsMetadata.description).toBe(
-      'Everything you need to build on the current VitalCV API and documentation surface.',
+      'Integrate the VitalCV readiness and employer decision wedge.',
     );
-    expect(docsMarkup).toContain('Build on VitalCV');
-    expect(docsMarkup).toContain('Ready to integrate?');
-    expect(docsMarkup).toContain('Get an API key and start verifying credentials in minutes.');
-    expect(findHrefByText(docsMarkup, 'API Reference')).toBe('/docs/api');
-    expect(findHrefByText(docsMarkup, 'SDKs')).toBe('/docs/sdk');
-    expect(findHrefByText(docsMarkup, 'Webhooks')).toBe('/docs/webhooks');
-    expect(findHrefByText(docsMarkup, 'Design System')).toBe('/docs/design-system');
-    expect(findHrefByText(docsMarkup, 'Get API Key')).toBe('/developers');
+    expect(docsMarkup).toContain('Integrate the decision wedge');
+    expect(docsMarkup).toContain('Decision before data');
+    expect(findHrefByText(docsMarkup, 'API Reference')).toBe('/developers');
+    expect(findHrefByText(docsMarkup, 'Source Coverage')).toBe('/developers');
+    expect(findHrefByText(docsMarkup, 'Trust Contract')).toBe('/developers');
+    expect(findHrefByText(docsMarkup, 'Enter NPI (Sandbox)')).toBe('/');
+    expect(findHrefByText(docsMarkup, 'Employer Review UX')).toBe('/review');
+    expect(findHrefByText(docsMarkup, 'Readiness API')).toBe('/developers');
     expectMarkupExcludes(docsMarkup, PROHIBITED_PUBLIC_STRINGS);
   });
 
@@ -611,8 +598,8 @@ describe('post-release truth cleanup', () => {
     expect(findHrefByText(navbarMarkup, 'Check Readiness')).toBe('/passport');
     expect(findHrefByText(interviewTeaserMarkup, 'Preview Passport Proof')).toBe('/passport');
     expect(findHrefByText(blockedMarkup, 'Start with NPI lookup')).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.interviewBlocked);
-    expect(findHrefByText(developerMarkup, 'Read the Docs')).toBe('/docs');
-    expect(findHrefByText(docsMarkup, 'Get API Key')).toBe('/developers');
+    expect(findHrefByText(developerMarkup, 'Read wedge docs')).toBe('/docs');
+    expect(findHrefByText(docsMarkup, 'Readiness API')).toBe('/developers');
   });
 
   it('keeps adjacent share and profile surfaces off unsupported share promises', async () => {

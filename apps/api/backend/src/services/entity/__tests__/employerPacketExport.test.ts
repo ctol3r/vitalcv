@@ -208,6 +208,17 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
           level: 'L3',
           blockers: [],
         },
+        decisionPosture: {
+          status: 'READY',
+          headline: 'Current source-backed checks support employer review now.',
+          blockers: [],
+          nextAction: 'Accept as head start or export this packet for employer review.',
+          freshness: {
+            state: 'current',
+            label: 'Current attached checks',
+            items: [],
+          },
+        },
         sourceCoverageSummary: sourceCoverage.summary,
       },
       sources: [manifestSource],
@@ -262,6 +273,17 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
       blockers: [],
       nextActions: [],
     },
+    decisionPosture: {
+      status: 'READY',
+      headline: 'Current source-backed checks support employer review now.',
+      blockers: [],
+      nextAction: 'Accept as head start or export this packet for employer review.',
+      freshness: {
+        state: 'current',
+        label: 'Current attached checks',
+        items: [],
+      },
+    },
     sourceCoverage,
 
     // Wave 3
@@ -309,6 +331,7 @@ describe('employer packet export bundle', () => {
       truth: packet.truth,
       freshness: packet.freshness,
       readiness: packet.readiness,
+      decisionPosture: packet.decisionPosture,
       sourceCoverageSummary: packet.sourceCoverageSummary,
     });
     expect(bundle.readmeTxt).toContain('VitalCV Employer Evidence Packet');
@@ -316,6 +339,8 @@ describe('employer packet export bundle', () => {
     expect(bundle.readmeTxt).toContain('Artifact References: 1');
     expect(bundle.readmeTxt).toContain('source-coverage.json');
     expect(bundle.readmeTxt).toContain('status.json');
+    expect(bundle.readmeTxt).toContain('Decision posture: READY');
+    expect(bundle.readmeTxt).toContain('Safe next action: Accept as head start or export this packet for employer review.');
   });
 
   it('packages packet.json, manifest.json, source-coverage.json, status.json, and README.txt into a zip stream', async () => {

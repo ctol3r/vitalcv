@@ -41,7 +41,11 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
+import {
+  buildPassportLookupHref,
+  getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeSurfaceStateFromPreviewStageStatus,
+} from '@/lib/trust/public-wedge-parity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,
@@ -98,19 +102,13 @@ function stageBadge(stage: SourceStage): {
   status: 'pending' | 'checked' | 'review_required' | 'unavailable';
   label: string;
 } {
-  switch (stage.status) {
-    case 'loading':
-      return { status: 'pending', label: 'Checking' };
-    case 'ok':
-      return { status: 'checked', label: 'Checked' };
-    case 'failed':
-      return { status: 'unavailable', label: 'Unavailable — retrying' };
-    case 'skipped':
-      return { status: 'unavailable', label: 'Unavailable' };
-    case 'waiting':
-    default:
-      return { status: 'pending', label: 'Queued' };
-  }
+  const surfaceState = resolvePublicWedgeSurfaceStateFromPreviewStageStatus(stage.status);
+  const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
+
+  return {
+    status: meta.status === 'demo' ? 'pending' : meta.status,
+    label: meta.label,
+  };
 }
 
 function setStageStatus(
