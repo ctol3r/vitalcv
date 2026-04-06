@@ -77,4 +77,75 @@ describe('analytics proxies', () => {
       },
     });
   });
+
+  it('fails closed when passport analytics download is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('analytics timeout')));
+
+    const { POST } = await import('../app/api/passport/analytics/[npi]/download/route');
+    const response = await POST(new Request('http://localhost/api/passport/analytics/1234567890/download', {
+      method: 'POST',
+    }) as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Passport analytics unavailable',
+      detail: 'analytics timeout',
+    });
+  });
+
+  it('passes through passport analytics tracker responses without fabricating success', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ ok: true, event: 'bundle_download', npi: '1234567890' }),
+      {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/passport/analytics/[npi]/download/route');
+    const response = await POST(new Request('http://localhost/api/passport/analytics/1234567890/download', {
+      method: 'POST',
+    }) as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/passport/analytics/1234567890/download',
+      expect.objectContaining({
+        method: 'POST',
+        cache: 'no-store',
+      }),
+    );
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      event: 'bundle_download',
+      npi: '1234567890',
+    });
+  });
+
+  it('returns upstream passport analytics failures instead of ok:true fallbacks', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ error: 'analytics_denied' }),
+      {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )));
+
+    const { POST } = await import('../app/api/passport/analytics/[npi]/share/route');
+    const response = await POST(new Request('http://localhost/api/passport/analytics/1234567890/share', {
+      method: 'POST',
+    }) as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: 'analytics_denied',
+    });
+  });
 });

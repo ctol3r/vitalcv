@@ -6,6 +6,177 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: authMock,
 }));
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function buildActionResponse(action: 'accept' | 'refresh' | 'review') {
+  return {
+    ok: true,
+    state: {
+      action,
+      entityId: 'entity-1',
+      clinicianNpi: '1234567890',
+      auditEventId: `audit-${action}-1`,
+      timestamp: '2026-03-23T19:00:00.000Z',
+      persistence: {
+        mode: 'durable_record',
+        target: action === 'accept' ? 'employer_acceptance' : 'outbox_event',
+        acceptanceId: action === 'accept' ? 'acceptance-1' : null,
+        reviewItemId: null,
+        outboxEventId: `outbox-${action}-1`,
+        reviewItemCreated: false,
+      },
+      summary: {
+        title: `${action} recorded`,
+        description: `${action} persisted`,
+      },
+      details: {
+        staleSources: action === 'refresh' ? ['CMS PECOS'] : [],
+        missingDomains: [],
+        reason: null,
+        priority: null,
+      },
+      trustSnapshot: {
+        snapshotHash: 'snap_hash_1234567890abcdef',
+        capturedAt: '2026-03-23T19:00:00.000Z',
+        npi: '1234567890',
+        readinessStatus: 'PARTIAL',
+        readinessScore: 88,
+        readinessLevel: 'L2',
+        trustBand: 'L2',
+        trustBandLabel: 'Moderate trust',
+        trustScore: 88,
+        trustScoreConfidence: 0.91,
+        exclusionStatus: 'CLEAR',
+        exclusionCheckedAt: '2026-03-23T19:00:00.000Z',
+        pecosEnrollmentStatus: 'ENROLLED',
+        verifiedCredentialCount: 2,
+        staleCredentialCount: 0,
+        reviewRequiredCount: 0,
+        blockerCount: 0,
+        topBlockers: [],
+        missingDomains: [],
+        gatedDomains: [],
+        truthStatuses: {
+          identity: 'VERIFIED',
+          safety: 'CLEAR',
+          authority: 'ACCESS REQUIRED',
+          eligibility: 'ENROLLED',
+        },
+        sourceCoverageSummary: {
+          checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'],
+          stale: [],
+          pending: [],
+          gated: [],
+          unavailable: [],
+          accessRequired: ['STATE_BOARD'],
+          reviewRequired: [],
+          notDecisionGrade: [],
+          previewOnly: [],
+        },
+        lastCheckedAt: '2026-03-23T19:00:00.000Z',
+      },
+    },
+  };
+}
+
+function buildPacketPayload() {
+  return {
+    schema: 'vitalcv.employer.packet.v1',
+    exportedAt: '2026-03-23T19:00:00.000Z',
+    exportedBy: 'clerk-user-1',
+    entityId: 'entity-1',
+    clinicianNpi: '1234567890',
+    displayName: 'Ada Lovelace',
+    truth: {
+      identity: { status: 'VERIFIED' },
+      safety: { status: 'CLEAR' },
+      authority: { status: 'ACCESS REQUIRED' },
+      eligibility: { status: 'ENROLLED' },
+    },
+    manifest: {
+      schema: 'vitalcv.employer.packet-manifest.v1',
+      packetSchema: 'vitalcv.employer.packet.v1',
+      exportedAt: '2026-03-23T19:00:00.000Z',
+      exportedBy: 'clerk-user-1',
+      entityId: 'entity-1',
+      clinicianNpi: '1234567890',
+      bundleFiles: ['packet.json'],
+      receiptReferences: [{ sourceId: 'STATE_BOARD', receiptId: 'receipt-1' }],
+      artifactReferences: [{ sourceId: 'STATE_BOARD', artifactId: 'artifact-1' }],
+      sourceCoverage: {
+        checks: [
+          {
+            sourceId: 'STATE_BOARD',
+            state: 'accessRequired',
+            reason: 'Institutional state board access is required.',
+          },
+        ],
+      },
+      freshness: {},
+      status: {},
+      sources: [
+        {
+          sourceId: 'STATE_BOARD',
+          truthStatus: 'ACCESS REQUIRED',
+          state: 'accessRequired',
+          reason: 'Institutional state board access is required.',
+          checkedAt: null,
+          observedAt: null,
+          expiresAt: null,
+          freshness: {
+            status: 'unknown',
+            checkedAt: null,
+            observedAt: null,
+            expiresAt: null,
+            freshnessWindowHours: null,
+          },
+          provenance: {
+            artifactId: null,
+            artifactIds: ['artifact-1'],
+            receiptIds: ['receipt-1'],
+            sourceUrl: null,
+            rawArtifactRef: null,
+            checksum: null,
+            parserVersion: null,
+          },
+          parserVersion: null,
+          checksum: null,
+          sourceUrl: null,
+          rawArtifactRef: null,
+          freshnessWindowHours: null,
+          confidenceLabel: null,
+          reviewRequired: false,
+          artifactId: null,
+          artifactIds: ['artifact-1'],
+          receiptIds: ['receipt-1'],
+        },
+      ],
+    },
+    receiptReferences: [{ sourceId: 'STATE_BOARD', receiptId: 'receipt-1' }],
+    artifactReferences: [{ sourceId: 'STATE_BOARD', artifactId: 'artifact-1' }],
+    freshness: {},
+    identity: {},
+    safety: {},
+    authority: {},
+    eligibility: {},
+    readiness: {},
+    sourceCoverage: {
+      checks: [
+        {
+          sourceId: 'STATE_BOARD',
+          state: 'accessRequired',
+          reason: 'Institutional state board access is required.',
+        },
+      ],
+    },
+  };
+}
+
 describe('/api/employer-review/[entityId]/[action] proxy', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -34,39 +205,7 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
 
   it('forwards authenticated action writes with the backend contract intact', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1' });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({
-        ok: true,
-        state: {
-          action: 'refresh',
-          entityId: 'entity-1',
-          clinicianNpi: '1234567890',
-          auditEventId: 'audit-1',
-          timestamp: '2026-03-23T19:00:00.000Z',
-          persistence: {
-            mode: 'audit_only',
-            target: 'audit_event',
-            acceptanceId: null,
-            reviewItemId: null,
-            reviewItemCreated: false,
-          },
-          summary: {
-            title: 'Refresh request recorded',
-            description: 'The refresh request was persisted in the audit trail. No clinician notification is persisted here yet.',
-          },
-          details: {
-            staleSources: ['CMS PECOS'],
-            missingDomains: ['LICENSURE'],
-            reason: null,
-            priority: null,
-          },
-        },
-      }),
-      {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    ));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildActionResponse('refresh'), 201));
     vi.stubGlobal('fetch', fetchMock);
 
     const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
@@ -95,69 +234,56 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
       ok: true,
       state: expect.objectContaining({
         action: 'refresh',
-        auditEventId: 'audit-1',
+        auditEventId: 'audit-refresh-1',
       }),
+    });
+  });
+
+  it('rejects malformed request-refresh bodies before proxying', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/request-refresh', {
+      method: 'POST',
+      body: JSON.stringify({ staleSources: 'CMS PECOS' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'request-refresh' }),
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_request',
+      error_description: 'Malformed request-refresh request body.',
+    });
+  });
+
+  it('returns 503 when the backend write path is unreachable', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/accept', {
+      method: 'POST',
+      body: JSON.stringify({ acceptanceScope: 'pilot' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'accept' }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'backend_unavailable',
+      error_description: 'network down',
     });
   });
 
   it('forwards authenticated persisted-status reads', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1' });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({
-        ok: true,
-        state: {
-          action: 'accept',
-          entityId: 'entity-1',
-          clinicianNpi: '1234567890',
-          auditEventId: 'audit-accept-1',
-          timestamp: '2026-03-23T20:00:00.000Z',
-          persistence: {
-            mode: 'durable_record',
-            target: 'employer_acceptance',
-            acceptanceId: 'accept-1',
-            reviewItemId: null,
-            reviewItemCreated: false,
-          },
-          summary: {
-            title: 'Head start accepted',
-            description: 'The employer acceptance was persisted and linked to an audit event.',
-          },
-          details: {
-            staleSources: [],
-            missingDomains: [],
-            reason: null,
-            priority: null,
-          },
-          trustSnapshot: {
-            snapshotHash: 'snap_hash_1234567890abcdef',
-            capturedAt: '2026-03-23T20:00:00.000Z',
-            npi: '1234567890',
-            readinessStatus: 'PARTIAL',
-            readinessScore: 88,
-            readinessLevel: 'L2',
-            trustBand: 'L2',
-            trustBandLabel: 'Moderate trust',
-            trustScore: 88,
-            trustScoreConfidence: 0.91,
-            exclusionStatus: 'CLEAR',
-            exclusionCheckedAt: '2026-03-23T19:30:00.000Z',
-            pecosEnrollmentStatus: 'ENROLLED',
-            verifiedCredentialCount: 2,
-            staleCredentialCount: 0,
-            reviewRequiredCount: 0,
-            blockerCount: 0,
-            topBlockers: [],
-            missingDomains: [],
-            gatedDomains: [],
-            lastCheckedAt: '2026-03-23T19:30:00.000Z',
-          },
-        },
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    ));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildActionResponse('accept')));
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
@@ -174,6 +300,7 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
           Accept: 'application/json',
           'x-clerk-user-id': 'clerk-user-1',
         },
+        cache: 'no-store',
       }),
     );
     expect(response.status).toBe(200);
@@ -184,6 +311,9 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
         auditEventId: 'audit-accept-1',
         trustSnapshot: expect.objectContaining({
           snapshotHash: 'snap_hash_1234567890abcdef',
+          truthStatuses: expect.objectContaining({
+            identity: 'VERIFIED',
+          }),
         }),
       }),
     });
@@ -246,5 +376,84 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
       }),
       history: expect.any(Array),
     });
+  });
+
+  it('fails closed when acceptance-history is unavailable upstream', async () => {
+    authMock.mockResolvedValue({ userId: null });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      error: 'history_unavailable',
+      error_description: 'Audit stream offline.',
+    }, 503)));
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/acceptance-history') as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'acceptance-history' }),
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'history_unavailable',
+      error_description: 'Audit stream offline.',
+    });
+  });
+
+  it('forwards scoped status queries to the backend', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildActionResponse('accept')));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    await GET(new Request('http://localhost/api/employer-review/entity-1/status?organizationContextId=ctx-1&bundleId=bundle-1', {
+      headers: { Accept: 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'status' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/employer-review/entity-1/status?organizationContextId=ctx-1&bundleId=bundle-1',
+      expect.any(Object),
+    );
+  });
+
+  it('rejects packet JSON when manifest proof fields are incomplete', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const invalidPacket = buildPacketPayload();
+    delete (invalidPacket.manifest.sources[0] as Record<string, unknown>).provenance;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(invalidPacket)));
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/packet', {
+      headers: { Accept: 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'packet' }),
+    });
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_upstream_payload',
+      error_description: 'Invalid employer evidence packet.',
+    });
+  });
+
+  it('passes through valid packet JSON after manifest validation', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPacketPayload())));
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/packet', {
+      headers: { Accept: 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'packet' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({
+      manifest: expect.objectContaining({
+        sources: expect.any(Array),
+      }),
+      sourceCoverageSummary: expect.objectContaining({
+        accessRequired: ['STATE_BOARD'],
+      }),
+    }));
   });
 });

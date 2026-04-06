@@ -81,6 +81,9 @@ export default function PresentScreen() {
     );
   };
 
+  const selectAllClaims = (): void => setSelectedClaims([...availableClaims]);
+  const deselectAllClaims = (): void => setSelectedClaims([]);
+
   const createPresentation = async (): Promise<void> => {
     try {
       if (selectedIds.length === 0) {
@@ -100,9 +103,11 @@ export default function PresentScreen() {
       setPresentation(nextPresentation);
       setError(null);
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error ? caughtError.message : 'Unable to create presentation',
-      );
+      const message =
+        caughtError instanceof Error ? caughtError.message : 'Unable to create presentation';
+      const isNetworkError =
+        caughtError instanceof TypeError && caughtError.message === 'Network request failed';
+      setError(isNetworkError ? 'Network unavailable. Check your connection and try again.' : message);
     }
   };
 
@@ -138,20 +143,30 @@ export default function PresentScreen() {
           {availableClaims.length === 0 ? (
             <Text style={styles.helperText}>Select credentials to reveal available claims.</Text>
           ) : (
-            <View style={styles.claimGrid}>
-              {availableClaims.map((claim) => (
-                <Pressable
-                  key={claim}
-                  onPress={() => toggleClaim(claim)}
-                  style={[
-                    styles.claimChip,
-                    selectedClaims.includes(claim) && styles.claimChipActive,
-                  ]}
-                >
-                  <Text style={styles.claimChipLabel}>{claim}</Text>
+            <>
+              <View style={styles.bulkActions}>
+                <Pressable style={styles.bulkButton} onPress={selectAllClaims}>
+                  <Text style={styles.bulkButtonText}>Select All</Text>
                 </Pressable>
-              ))}
-            </View>
+                <Pressable style={styles.bulkButton} onPress={deselectAllClaims}>
+                  <Text style={styles.bulkButtonText}>Deselect All</Text>
+                </Pressable>
+              </View>
+              <View style={styles.claimGrid}>
+                {availableClaims.map((claim) => (
+                  <Pressable
+                    key={claim}
+                    onPress={() => toggleClaim(claim)}
+                    style={[
+                      styles.claimChip,
+                      selectedClaims.includes(claim) && styles.claimChipActive,
+                    ]}
+                  >
+                    <Text style={styles.claimChipLabel}>{claim}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
           )}
         </View>
 
@@ -240,6 +255,22 @@ const styles = StyleSheet.create({
   selectorBody: {
     color: walletTheme.textMuted,
     fontSize: 13,
+  },
+  bulkActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  bulkButton: {
+    borderColor: walletTheme.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  bulkButtonText: {
+    color: walletTheme.accent,
+    fontSize: 13,
+    fontWeight: '600',
   },
   claimGrid: {
     flexDirection: 'row',

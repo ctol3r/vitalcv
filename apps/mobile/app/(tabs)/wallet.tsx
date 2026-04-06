@@ -49,32 +49,6 @@ function statusColor(status: StoredCredential['status']): string {
   }
 }
 
-function formatExpiry(expiresAt?: string): string {
-  if (!expiresAt) {
-    return 'No expiry';
-  }
-
-  const expiry = new Date(expiresAt);
-  if (Number.isNaN(expiry.getTime())) {
-    return 'Expiry unavailable';
-  }
-
-  return expiry.toLocaleDateString();
-}
-
-function statusColor(status: StoredCredential['status']): string {
-  switch (status) {
-    case 'REVOKED':
-      return walletTheme.danger;
-    case 'EXPIRED':
-      return walletTheme.warning;
-    case 'SUSPENDED':
-      return '#f97316';
-    default:
-      return walletTheme.success;
-  }
-}
-
 export default function WalletScreen() {
   const router = useRouter();
   const [credentials, setCredentials] = useState<StoredCredential[]>([]);

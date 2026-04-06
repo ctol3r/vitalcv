@@ -5,6 +5,21 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ np
   const { npi } = await params;
   try {
     const up = await fetch(`${BACKEND}/api/passport/analytics/${encodeURIComponent(npi)}/download`, { method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(5000) });
-    return NextResponse.json(await up.json() as unknown, { status: up.ok ? 200 : up.status });
-  } catch { return NextResponse.json({ ok: true }); }
+    const payload = await up.json().catch(() => null);
+    if (!up.ok) {
+      const error = typeof (payload as { error?: unknown } | null)?.error === 'string'
+        ? (payload as { error: string }).error
+        : 'Passport analytics unavailable';
+      return NextResponse.json({ error }, { status: up.status });
+    }
+    return NextResponse.json(payload ?? {}, { status: up.status });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: 'Passport analytics unavailable',
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 503 },
+    );
+  }
 }

@@ -493,11 +493,13 @@ function BinaryDecisionCard({
         </div>
         <Button
           onClick={onAccept}
-          disabled={!canPersistActions}
+          disabled={!canPersistActions || decisionPosture.status === 'BLOCKED'}
           variant="success"
           className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
         >
-          Accept as head start{blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}
+          {decisionPosture.status === 'BLOCKED'
+            ? 'Acceptance blocked — resolve blockers first'
+            : `Accept as head start${blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}`}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button

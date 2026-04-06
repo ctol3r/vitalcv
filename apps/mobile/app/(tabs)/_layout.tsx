@@ -55,6 +55,12 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="credential-detail"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

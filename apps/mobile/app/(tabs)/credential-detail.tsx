@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,8 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   localCredentialStore,
   type StoredCredential,
-} from '../../../src/services/LocalCredentialStore';
-import { walletTheme } from '../../../src/theme';
+} from '../../src/services/LocalCredentialStore';
+import { walletTheme } from '../../src/theme';
 
 export default function CredentialDetailScreen() {
   const router = useRouter();

@@ -7,7 +7,7 @@ export interface ClinicianPacket {
   clinicianName: string;
   npi: string;
   specialty: string;
-  status: "Pending" | "Ready" | "Needs Review";
+  status: "READY" | "PARTIAL" | "BLOCKED";
   submissionDate: string;
   timeToStart: string;
   synthesis: {
@@ -17,7 +17,7 @@ export interface ClinicianPacket {
   };
   sources: {
     name: string;
-    status: "CHECKED" | "PENDING" | "ACCESS REQUIRED";
+    status: "CHECKED" | "PENDING" | "ACCESS REQUIRED" | "UNAVAILABLE" | "REVIEW REQUIRED" | "STALE";
     details: string;
   }[];
   internalNotes?: string;
@@ -36,7 +36,7 @@ export interface EmployerReviewProps {
   };
   sources?: {
     name: string;
-    status: "CHECKED" | "PENDING" | "ACCESS REQUIRED";
+    status: "CHECKED" | "PENDING" | "ACCESS REQUIRED" | "UNAVAILABLE" | "REVIEW REQUIRED" | "STALE";
     details: string;
   }[];
 }
@@ -57,7 +57,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-  
+
   // State for filters
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
@@ -94,7 +94,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       clinicianName: props.clinicianName || "Dr. John Smith, MD",
       npi: props.npi || "1234567890",
       specialty: "Internal Medicine",
-      status: "Pending" as const,
+      status: "PARTIAL" as const,
       submissionDate: new Date().toISOString(),
       timeToStart: props.timeToStart || "14 Days",
       synthesis: props.synthesis || {
@@ -115,7 +115,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       clinicianName: "Dr. Sarah Chen, DO",
       npi: "1003000126",
       specialty: "Emergency Medicine",
-      status: "Ready" as const,
+      status: "READY" as const,
       submissionDate: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
       timeToStart: "0 Days",
       synthesis: {
@@ -136,7 +136,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       clinicianName: "Dr. Emily Davis, MD",
       npi: "9876543210",
       specialty: "Cardiology",
-      status: "Needs Review" as const,
+      status: "BLOCKED" as const,
       submissionDate: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
       timeToStart: "TBD",
       synthesis: {
@@ -161,7 +161,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
 
   // Automated Background Checks Simulation
   useEffect(() => {
-    const pendingPackets = packets.filter(p => 
+    const pendingPackets = packets.filter(p =>
       p.sources.some(s => s.status === "PENDING" && ["Sanctions", "Federal Exclusions", "NPDB"].includes(s.name))
     );
 
@@ -187,11 +187,11 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
 
         // If all sources are now checked, we could potentially update the packet status
         const allChecked = updatedSources.every(s => s.status === "CHECKED");
-
+        
         return {
           ...packet,
           sources: updatedSources,
-          status: allChecked ? "Ready" : packet.status
+          status: allChecked ? "READY" : packet.status
         };
       }));
     }, 3000); // Simulate network delay for background checks
@@ -215,16 +215,16 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
     }
     if (statusFilter !== "All" && packet.status !== statusFilter) return false;
     if (specialtyFilters.length > 0 && !specialtyFilters.includes(packet.specialty)) return false;
-    
+
     if (dateRange !== "All") {
       const packetDate = new Date(packet.submissionDate).getTime();
       const now = Date.now();
       const daysDiff = (now - packetDate) / (1000 * 3600 * 24);
-      
+
       if (dateRange === "Last 7 Days" && daysDiff > 7) return false;
       if (dateRange === "Last 30 Days" && daysDiff > 30) return false;
     }
-    
+
     return true;
   });
 
@@ -267,7 +267,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       clinicianName: `Dr. New Applicant, MD`,
       npi: newNpi,
       specialty: "Family Medicine",
-      status: "Pending",
+      status: "PARTIAL",
       submissionDate: new Date().toISOString(),
       timeToStart: "14 Days",
       synthesis: {
@@ -337,7 +337,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
             <Activity className="w-4 h-4" />
             <span className="text-[10px] font-bold uppercase tracking-widest">MSP Auditor Synthesis</span>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="space-y-3">
               <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-40">01. Verified Credentials</h4>
@@ -376,7 +376,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
               </div>
               <div className={cn(
                 "font-mono text-xs font-bold mb-2",
-                source.status === "CHECKED" ? "text-green-500" : 
+                source.status === "CHECKED" ? "text-green-500" :
                 source.status === "PENDING" ? "text-amber-500" : "text-red-500"
               )}>
                 {source.status}
@@ -417,7 +417,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
           <h2 className="text-4xl font-bold tracking-tighter uppercase">Clinician Packets</h2>
           <p className="text-sm opacity-60 font-mono mt-2">Review and manage incoming readiness snapshots.</p>
         </div>
-        <button 
+        <button
           onClick={simulateNewSubmission}
           className="bg-ink text-bg px-6 py-3 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 hover:opacity-90 transition-all"
         >
@@ -447,7 +447,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
             <span className="text-[10px] font-bold uppercase tracking-widest">Filters</span>
           </div>
           {hasActiveFilters && (
-            <button 
+            <button
               onClick={clearFilters}
               className="md:hidden text-[10px] font-bold uppercase tracking-widest text-ink/60 hover:text-ink transition-colors"
               aria-label="Clear all filters"
@@ -456,12 +456,12 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
             </button>
           )}
         </div>
-        
+
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
           {/* Status Filter */}
           <div className="flex flex-col gap-1">
             <label htmlFor="status-filter" className="text-[9px] font-bold uppercase tracking-widest opacity-40">Status</label>
-            <select 
+            <select
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -469,9 +469,9 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
               aria-label="Filter by status"
             >
               <option value="All">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Ready">Ready</option>
-              <option value="Needs Review">Needs Review</option>
+              <option value="PARTIAL">Pending</option>
+              <option value="READY">Ready</option>
+              <option value="BLOCKED">Needs Review</option>
             </select>
           </div>
 
@@ -484,8 +484,8 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
               aria-label="Filter by specialties"
             >
               <span className="truncate pr-4">
-                {specialtyFilters.length === 0 
-                  ? "All Specialties" 
+                {specialtyFilters.length === 0
+                  ? "All Specialties"
                   : `${specialtyFilters.length} Selected`}
               </span>
               <ChevronDown className="w-3 h-3 opacity-40 flex-shrink-0" />
@@ -493,7 +493,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
 
             {isSpecialtyDropdownOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg)] border border-line shadow-xl z-50 max-h-60 overflow-y-auto">
-                <div 
+                <div
                   className="px-3 py-2 text-xs font-mono cursor-pointer hover:bg-ink/5 flex items-center gap-2"
                   onClick={() => setSpecialtyFilters([])}
                 >
@@ -503,7 +503,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
                   All Specialties
                 </div>
                 {specialties.map(spec => (
-                  <div 
+                  <div
                     key={spec}
                     className="px-3 py-2 text-xs font-mono cursor-pointer hover:bg-ink/5 flex items-center gap-2"
                     onClick={() => {
@@ -528,7 +528,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
           <div className="flex flex-col gap-1">
             <label htmlFor="date-range-filter" className="text-[9px] font-bold uppercase tracking-widest opacity-40">Date Range</label>
             <div className="relative">
-              <select 
+              <select
                 id="date-range-filter"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as any)}
@@ -545,7 +545,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
         </div>
 
         {hasActiveFilters && (
-          <button 
+          <button
             onClick={clearFilters}
             className="hidden md:block text-[10px] font-bold uppercase tracking-widest text-ink/60 hover:text-ink transition-colors whitespace-nowrap ml-4"
             aria-label="Clear all filters"
@@ -558,8 +558,8 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
       {/* Bulk Actions & Select All */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-ink/5 p-4 border border-line gap-4">
         <div className="flex items-center gap-3">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             checked={filteredPackets.length > 0 && selectedNpis.length === filteredPackets.length}
             onChange={toggleSelectAll}
             className="w-4 h-4 accent-ink cursor-pointer"
@@ -569,21 +569,21 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
             {selectedNpis.length > 0 ? `${selectedNpis.length} Selected` : "Select All"}
           </span>
         </div>
-        
+
         {selectedNpis.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-wrap items-center gap-3"
           >
-            <button 
-              onClick={() => handleBulkAction("Ready")}
+            <button
+              onClick={() => handleBulkAction("READY")}
               className="px-4 py-2 bg-green-600/10 text-green-600 dark:text-green-400 hover:bg-green-600/20 border border-green-500/30 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center gap-2"
             >
               <CheckCircle2 className="w-3 h-3" /> Mark as Ready
             </button>
             <button 
-              onClick={() => handleBulkAction("Needs Review")}
+              onClick={() => handleBulkAction("BLOCKED")}
               className="px-4 py-2 bg-red-600/10 text-red-600 dark:text-red-400 hover:bg-red-600/20 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center gap-2"
             >
               <ShieldAlert className="w-3 h-3" /> Route for Manual Review
@@ -600,7 +600,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
           </div>
         ) : (
           paginatedPackets.map((packet) => (
-            <motion.div 
+            <motion.div
               key={packet.npi}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -610,8 +610,8 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="flex items-start gap-4">
                   <div className="pt-1.5">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedNpis.includes(packet.npi)}
                       onChange={(e) => {
                         e.stopPropagation();
@@ -627,13 +627,13 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
                       <h3 className="text-xl font-bold tracking-tight">{packet.clinicianName}</h3>
                     <span className={cn(
                       "flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                      packet.status === "Ready" ? "border-green-500 text-green-600 dark:text-green-400 bg-green-500/10" :
-                      packet.status === "Pending" ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/10" :
+                      packet.status === "READY" ? "border-green-500 text-green-600 dark:text-green-400 bg-green-500/10" :
+                      packet.status === "PARTIAL" ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/10" :
                       "border-red-500 text-red-600 dark:text-red-400 bg-red-500/10"
                     )}>
-                      {packet.status === "Ready" && <CheckCircle2 className="w-3 h-3" />}
-                      {packet.status === "Pending" && <Clock className="w-3 h-3" />}
-                      {packet.status === "Needs Review" && <AlertCircle className="w-3 h-3" />}
+                      {packet.status === "READY" && <CheckCircle2 className="w-3 h-3" />}
+                      {packet.status === "PARTIAL" && <Clock className="w-3 h-3" />}
+                      {packet.status === "BLOCKED" && <AlertCircle className="w-3 h-3" />}
                       {packet.status}
                     </span>
                   </div>
@@ -646,14 +646,14 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
                   </div>
                 </div>
                 </div>
-                
+
                 <div className="flex items-center gap-6">
                   <div className="text-right hidden sm:block">
                     <div className="text-[9px] font-bold uppercase tracking-widest opacity-40 mb-1">Est. Start</div>
                     <div className="text-lg font-bold font-mono">{packet.timeToStart}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleExport(packet, packet.npi); }}
                       className="p-3 border border-line hover:bg-ink/5 transition-colors text-ink"
                       aria-label="Export Packet Data"
@@ -661,7 +661,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
                     >
                       <Download className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       className="p-3 bg-ink text-bg hover:opacity-90 transition-opacity"
                       aria-label={expandedNpi === packet.npi ? "Collapse details" : "Expand details"}
                     >
@@ -678,7 +678,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
 
               {/* Expanded Details View */}
               {expandedNpi === packet.npi && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}

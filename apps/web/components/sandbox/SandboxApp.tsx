@@ -123,52 +123,54 @@ export default function App() {
       clinicianName: "Dr. John Smith, MD",
       npi: "1234567890",
       specialty: "Internal Medicine",
-      status: "Pending" as const,
+      status: "PARTIAL" as const,
       submissionDate: new Date().toISOString(),
       timeToStart: "14 Days",
       synthesis: {
-        verifiedCredentials: "NPPES Identity confirmed. CA State License (MD12345678) active through 2027. OIG/LEIE clear as of 2026-03-30.",
-        identifiedGaps: "PECOS Enrollment status is PENDING. Requires final verification of Medicare billing eligibility.",
-        timeline: "Estimated onboarding completion in 14 days, pending PECOS status update.",
+        verifiedCredentials: "NPPES Identity checked. CA State License (MD12345678) checked. OIG/LEIE checked.",
+        identifiedGaps: "PECOS Enrollment status is PENDING. DEA and Board Certification are UNAVAILABLE.",
+        timeline: "Safe to interview conditionally. Not safe to start.",
       },
       sources: [
         { name: "Identity", status: "CHECKED" as const, details: "NPPES Registry match confirmed." },
-        { name: "Sanctions", status: "CHECKED" as const, details: "OIG/LEIE Exclusion List: No matches found." },
-        { name: "Licensure", status: "CHECKED" as const, details: "CA Medical Board: Active/Good Standing." },
+        { name: "Sanctions", status: "CHECKED" as const, details: "OIG/LEIE Exclusion List checked." },
+        { name: "Licensure", status: "CHECKED" as const, details: "CA Medical Board checked." },
         { name: "Enrollment", status: "PENDING" as const, details: "PECOS: Application submitted, awaiting approval." },
+        { name: "DEA Registration", status: "UNAVAILABLE" as const, details: "Not decision-grade." }
       ],
     },
     {
       clinicianName: "Dr. Sarah Chen, DO",
       npi: "1003000126",
       specialty: "Emergency Medicine",
-      status: "Ready" as const,
+      status: "PARTIAL" as const,
       submissionDate: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-      timeToStart: "0 Days",
+      timeToStart: "TBD",
       synthesis: {
-        verifiedCredentials: "All primary sources verified and active.",
-        identifiedGaps: "None.",
-        timeline: "Cleared to start immediately.",
+        verifiedCredentials: "NPPES and OIG/LEIE checked.",
+        identifiedGaps: "Licensure and DEA access required.",
+        timeline: "Safe to interview conditionally.",
       },
       sources: [
         { name: "Identity", status: "CHECKED" as const, details: "NPPES Registry match confirmed." },
-        { name: "Sanctions", status: "CHECKED" as const, details: "OIG/LEIE clear." },
+        { name: "Sanctions", status: "CHECKED" as const, details: "OIG/LEIE checked." },
+        { name: "Licensure", status: "ACCESS REQUIRED" as const, details: "Institution access required for state board verification." }
       ],
     },
     {
       clinicianName: "Dr. Emily Davis, MD",
       npi: "9876543210",
       specialty: "Cardiology",
-      status: "Needs Review" as const,
+      status: "BLOCKED" as const,
       submissionDate: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
       timeToStart: "TBD",
       synthesis: {
-        verifiedCredentials: "NPPES Identity confirmed.",
-        identifiedGaps: "State license expired. Requires manual intervention.",
-        timeline: "Blocked until license renewal is verified.",
+        verifiedCredentials: "NPPES Identity checked.",
+        identifiedGaps: "State license expired. Review required.",
+        timeline: "Blocked.",
       },
       sources: [
-        { name: "Licensure", status: "ACCESS REQUIRED" as const, details: "License expired on 2025-12-31." },
+        { name: "Licensure", status: "REVIEW REQUIRED" as const, details: "License expired on 2025-12-31." },
       ],
     }
   ];

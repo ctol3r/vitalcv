@@ -1,4 +1,5 @@
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -18,6 +19,7 @@ import { walletTheme } from '../src/theme';
 type OnboardingStep = 'welcome' | 'npi' | 'biometrics' | 'success';
 
 export default function OnboardingScreen() {
+  const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('welcome');
   const [npi, setNpi] = useState('');
   const [npiError, setNpiError] = useState<string | null>(null);
@@ -66,24 +68,18 @@ export default function OnboardingScreen() {
         cancelLabel: 'Skip',
       });
 
-      if (result.success) {
-        setAuthResult('success');
-        setStep('success');
-      } else {
-        setAuthResult('skipped');
-        setStep('success');
-      }
+      setAuthResult(result.success ? 'success' : 'skipped');
     } catch {
       setAuthResult('skipped');
-      setStep('success');
     } finally {
       setIsAuthenticating(false);
+      await completeOnboarding();
     }
   };
 
-  const skipBiometrics = (): void => {
+  const skipBiometrics = async (): Promise<void> => {
     setAuthResult('skipped');
-    setStep('success');
+    await completeOnboarding();
   };
 
   const completeOnboarding = async (): Promise<void> => {
@@ -96,7 +92,11 @@ export default function OnboardingScreen() {
     }
   };
 
-  const renderWelcome = (): JSX.Element => (
+  const finishOnboarding = (): void => {
+    router.replace('/(tabs)/wallet');
+  };
+
+  const renderWelcome = () => (
     <View style={styles.stepContent}>
       <View style={styles.iconContainer}>
         <Text style={styles.iconEmoji}>🏥</Text>
@@ -123,7 +123,7 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  const renderNpi = (): JSX.Element => (
+  const renderNpi = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Enter Your NPI</Text>
       <Text style={styles.stepDescription}>
@@ -159,7 +159,7 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  const renderBiometrics = (): JSX.Element => (
+  const renderBiometrics = () => (
     <View style={styles.stepContent}>
       <View style={styles.iconContainer}>
         <Text style={styles.iconEmoji}>🔐</Text>
@@ -206,7 +206,7 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  const renderSuccess = (): JSX.Element => (
+  const renderSuccess = () => (
     <View style={styles.stepContent}>
       <View style={styles.iconContainer}>
         <Text style={styles.iconEmoji}>✅</Text>
@@ -260,10 +260,11 @@ export default function OnboardingScreen() {
         if (biometricOptIn) {
           void handleBiometricSetup();
         } else {
-          skipBiometrics();
+          void skipBiometrics();
         }
         break;
       case 'success':
+        finishOnboarding();
         break;
     }
   };

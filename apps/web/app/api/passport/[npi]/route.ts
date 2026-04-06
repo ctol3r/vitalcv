@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL } from '@/lib/backend-url';
+import { assertPassportData } from '@/lib/trust/passport-contract';
 
 export const runtime = 'nodejs';
 
@@ -13,18 +14,29 @@ export async function GET(
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
-    const body = await upstream.text();
+    const payload = await upstream.json().catch(() => null);
 
-    return new NextResponse(body, {
-      status: upstream.status,
-      headers: {
-        'Content-Type': upstream.headers.get('content-type') ?? 'application/json; charset=utf-8',
-      },
-    });
+    if (!upstream.ok) {
+      const error = typeof (payload as { error?: unknown } | null)?.error === 'string'
+        ? (payload as { error: string }).error
+        : 'Passport unavailable';
+      const detail = typeof (payload as { detail?: unknown } | null)?.detail === 'string'
+        ? (payload as { detail: string }).detail
+        : `Passport upstream returned ${upstream.status}.`;
+      return NextResponse.json({ error, detail }, { status: upstream.status });
+    }
+
+    const passport = assertPassportData(payload);
+    return NextResponse.json(passport, { status: upstream.status });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Passport unavailable', detail: String(error) },
-      { status: 503 },
+      {
+        error: error instanceof Error && error.message.startsWith('Invalid passport payload')
+          ? 'invalid_upstream_payload'
+          : 'Passport unavailable',
+        detail: String(error),
+      },
+      { status: error instanceof Error && error.message.startsWith('Invalid passport payload') ? 502 : 503 },
     );
   }
 }

@@ -23,6 +23,13 @@ export type { TrustEvidenceKind };
 export type TrustUiStatus = CanonicalTrustUiStatus | 'preview_only';
 
 export type SourceCoverageState = PassportSourceCoverageState;
+/**
+ * Trust status tone — drives visual rendering of trust badges.
+ *
+ * 'demo' is legacy naming for preview/non-decision-grade data.
+ * It renders as "Preview" (blue badge) and is treated as blocking
+ * by `isBlockingStatus`. It NEVER implies verified/checked trust.
+ */
 export type TrustStatusTone =
   | 'positive'
   | 'informational'
@@ -150,6 +157,8 @@ export function isBlockingStatus(status: TrustUiStatus): boolean {
     || status === 'unavailable'
     || status === 'access_required'
     || status === 'review_required'
+    || status === 'demo'
+    || status === 'preview_only'
   );
 }
 
