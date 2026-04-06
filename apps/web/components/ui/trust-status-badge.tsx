@@ -20,16 +20,6 @@ const VDS_STATUS_META: Record<SupplementalVdsTrustStatus, { className: string; l
       'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
     label: getVdsTrustStatusLabel('enrolled'),
   },
-  'review_required': {
-    className:
-      'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
-    label: getVdsTrustStatusLabel('review_required'),
-  },
-  'access_required': {
-    className:
-      'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
-    label: getVdsTrustStatusLabel('access_required'),
-  },
   'not_decision_grade': {
     className:
       'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',

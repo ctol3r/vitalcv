@@ -104,9 +104,16 @@ function stageBadge(stage: SourceStage): {
 } {
   const surfaceState = resolvePublicWedgeSurfaceStateFromPreviewStageStatus(stage.status);
   const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
+  const badgeStatus = (
+    surfaceState === 'checked'
+      ? 'checked'
+      : surfaceState === 'unavailable'
+        ? 'unavailable'
+        : 'pending'
+  );
 
   return {
-    status: meta.status === 'demo' ? 'pending' : meta.status,
+    status: badgeStatus,
     label: meta.label,
   };
 }

@@ -645,7 +645,7 @@ describe('live path regression hardening', () => {
     expect(
       Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
     ).toEqual(['Start with NPI lookup']);
-    expect(textContent(view.container)).toContain('NPI first. Honest coverage.');
+    expect(textContent(view.container)).toContain('Check your credentialing readiness');
     expect(textContent(view.container)).not.toContain('Continue to passport');
     expect(textContent(view.container)).not.toContain('Get Verified');
 
@@ -1057,7 +1057,7 @@ describe('live path regression hardening', () => {
       />,
     );
 
-    await clickByText(view.container, 'Accept as head start');
+    await clickByText(view.container, 'Proceed with Credentialing Head Start');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1143,7 +1143,7 @@ describe('live path regression hardening', () => {
     const passport = buildPassport();
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_review" />);
 
-    await clickByText(view.container, 'Route to review');
+    await clickByText(view.container, 'Send to Credentialing Team');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
