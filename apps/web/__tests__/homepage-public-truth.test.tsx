@@ -25,10 +25,9 @@ describe('homepage public truth', () => {
   it('keeps synthetic labels visible when the proof card uses synthetic data', () => {
     const markup = renderToStaticMarkup(<InterviewModeTeaser />);
 
-    expect(markup).toContain('Synthetic preview');
-    expect(markup).toContain('Synthetic layout');
-    expect(markup).toContain('not live data');
-    expect(markup).toContain('Preview only');
+    expect(markup).toContain('Preview');
+    expect(markup).toContain('Preview layout');
+    expect(markup).toContain('not a live source run');
     expect(markup).toContain('Preview Passport Proof');
     expect(markup).toContain('Registry record only');
     expect(markup).toContain('Institutional access');

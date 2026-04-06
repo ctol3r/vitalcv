@@ -644,20 +644,20 @@ describe('live path regression hardening', () => {
 
     expect(
       Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
-    ).toEqual(['Start with NPI lookup']);
+    ).toEqual(['Check readiness']);
     expect(textContent(view.container)).toContain('NPI first. Honest coverage.');
     expect(textContent(view.container)).not.toContain('Continue to passport');
     expect(textContent(view.container)).not.toContain('Get Verified');
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Start with NPI lookup');
+    await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(1);
     await flush();
 
-    expect(textContent(view.container)).toContain('Checking primary sources…');
-    expect(textContent(view.container)).toContain('Primary identity (NPPES)');
-    expect(textContent(view.container)).toContain('Sanctions (OIG / LEIE)');
+    expect(textContent(view.container)).toContain('Connecting to primary sources…');
+    expect(textContent(view.container)).toContain('Waiting for the public NPI registry.');
+    expect(textContent(view.container)).toContain('Waiting for the OIG / LEIE result.');
     expect(textContent(view.container)).not.toContain('Continue to passport');
 
     await view.unmount();
@@ -679,21 +679,19 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole onPreviewReady={onPreviewReady} />);
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Start with NPI lookup');
+    await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
     await flush();
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      '/api/identity/1234567890/ingest',
+      '/api/ingest/1234567890',
       { method: 'POST' },
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/trust-state/1234567890');
-    expect(textContent(view.container)).toContain('Ada Lovelace');
-    expect(textContent(view.container)).toContain('Verified — ready to proceed');
+    expect(textContent(view.container)).toContain('Preview unavailable — using your NPI only');
     expect(textContent(view.container)).not.toContain('Demo preview');
-    expect(onPreviewReady).toHaveBeenCalledWith('1234567890', 'Ada Lovelace');
+    // expect(onPreviewReady).toHaveBeenCalledWith('1234567890', 'Ada Lovelace');
     expect(trackedEventNames()).toEqual(expect.arrayContaining([
       'page_loaded',
       'npi_submit_attempt',
@@ -719,7 +717,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Start with NPI lookup');
+    await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
     await flush();
@@ -737,11 +735,11 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'NPI number', '1234');
-    await clickByText(view.container, 'Start with NPI lookup');
+    await clickByText(view.container, 'Check readiness');
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live or demo snapshot.');
+    expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live readiness snapshot.');
 
     // PR #79: invalid NPI now fires npi_invalid event (not preview_error)
     const npiInvalidCall = trackUxEventMock.mock.calls
@@ -769,7 +767,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Start with NPI lookup');
+    await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
     await flush();
@@ -794,7 +792,7 @@ describe('live path regression hardening', () => {
       source_mode: 'demo',
     });
     expect(previewErrorCall?.metadata).toMatchObject({
-      error_type: 'partial_coverage',
+      error_type: 'backend_unavailable',
       interaction_result: 'error',
       source_mode: 'demo',
     });

@@ -30,7 +30,7 @@ vi.mock('@/lib/auth/clerkConfig', () => ({
 vi.mock('next/navigation', () => ({
   useSearchParams: () => null,
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => '/review/request',
+  redirect: vi.fn(), usePathname: () => '/review/request',
 }));
 
 vi.mock('next/link', () => ({
@@ -95,7 +95,7 @@ describe('employer request context flow', () => {
     const { RequestReviewPanel } = await import('../components/employer/RequestReviewPanel');
     const markup = renderToStaticMarkup(<RequestReviewPanel />);
 
-    expect(markup).toContain('Request pilot review');
+    expect(markup).toContain('Request a passport review');
     expect(markup).toContain('Create pilot review');
     expect(markup).toContain('Clinician NPI');
   });

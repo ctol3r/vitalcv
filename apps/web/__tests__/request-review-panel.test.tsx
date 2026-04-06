@@ -151,7 +151,7 @@ describe('request review panel', () => {
     await clickByText(view.container, 'Create pilot review');
     await flush();
 
-    expect(textContent(view.container)).toContain('Creating pilot review context…');
+    expect(textContent(view.container)).toContain('Creating review context…');
     expect(textContent(view.container)).toContain('Resolving NPI and registering context.');
     expect(textContent(view.container)).not.toContain('Review context created');
 

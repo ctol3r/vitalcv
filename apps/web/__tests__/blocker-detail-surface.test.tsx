@@ -9,7 +9,7 @@ vi.mock('next/navigation', async () => {
   const actual = await vi.importActual<typeof import('next/navigation')>('next/navigation');
   return {
     ...actual,
-    usePathname: () => '/holder/blockers/missing_credential%3Aapp_1%3Aopp_1%3Astate-license-evidence-missing',
+    redirect: vi.fn(), usePathname: () => '/holder/blockers/missing_credential%3Aapp_1%3Aopp_1%3Astate-license-evidence-missing',
   };
 });
 

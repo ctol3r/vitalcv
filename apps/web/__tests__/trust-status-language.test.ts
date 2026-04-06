@@ -47,19 +47,19 @@ describe('trust status language', () => {
     expect(getStatusTone('checked')).toBe('informational');
     expect(getStatusTone('access_required')).toBe('warning');
     expect(getStatusTone('review_required')).toBe('critical');
-    expect(getStatusTone('demo')).toBe('demo');
+    expect(getStatusTone('preview_only')).toBe('preview_only');
 
     expect(isPositiveStatus('checked')).toBe(true);
     expect(isPositiveStatus('pending')).toBe(false);
     expect(isBlockingStatus('review_required')).toBe(true);
     expect(isBlockingStatus('clear')).toBe(false);
-    expect(isInspectableStatus('demo')).toBe(true);
+    expect(isInspectableStatus('preview_only')).toBe(true);
     expect(isInspectableStatus('access_required')).toBe(false);
   });
 
   it('keeps domain-specific labels from overstating canonical truth', () => {
     expect(getStatusDisplayLabel('clear', 'No sanctions found')).toBe('No sanctions found');
-    expect(getStatusDisplayLabel('demo', 'Preview only')).toBe('Preview only');
+    expect(getStatusDisplayLabel('preview_only', 'Preview only')).toBe('Preview only');
     expect(getStatusDisplayLabel('checked', 'Enrolled')).toBe('Checked');
     expect(getStatusDisplayLabel('pending', 'Verified')).toBe('Pending');
   });
