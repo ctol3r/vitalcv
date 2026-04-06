@@ -7,7 +7,7 @@ import { BuyerPilotSection, HowItWorksSection } from '@/components/marketing/Hom
 
 export default function HomePage() {
   return (
-    <div className="bg-background">
+    <div className="min-h-screen bg-background">
       <HeroWithAuthPrompt />
       <TrustStrip />
       <HowItWorksSection />
