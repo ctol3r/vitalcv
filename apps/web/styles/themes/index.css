@@ -14,7 +14,18 @@ html[data-theme='dark'] {
   --vt-text-muted: #52525b;
   --vt-accent: #3b82f6; /* restrained blue */
   --vt-focus-ring: #3b82f6;
-  
+
+  /* ── Semantic shorthand tokens (wave/ui-assimilation) ── */
+  --color-bg: var(--vt-bg);
+  --color-ink: var(--vt-text-primary);
+  --color-line: var(--vt-border);
+  --color-bg-muted: var(--vt-surface-subtle);
+  --color-ink-muted: var(--vt-text-secondary);
+  --color-accent: var(--vt-accent);
+  --color-danger: var(--vt-severity-critical);
+  --color-success: var(--vt-status-resolved);
+  --color-warning: var(--vt-risk-medium);
+
   /* Restrained semantic colors */
   --vt-severity-critical: #ef4444; 
   --vt-severity-high: #f59e0b;
@@ -61,6 +72,18 @@ html[data-theme='light'] {
   --vt-text-muted: #A1A1AA;
   --vt-accent: #3b82f6; /* restrained blue */
   --vt-focus-ring: #3b82f6;
+
+  /* ── Semantic shorthand tokens (wave/ui-assimilation) ── */
+  --color-bg: var(--vt-bg);
+  --color-ink: var(--vt-text-primary);
+  --color-line: var(--vt-border);
+  --color-bg-muted: var(--vt-surface-subtle);
+  --color-ink-muted: var(--vt-text-secondary);
+  --color-accent: var(--vt-accent);
+  --color-danger: var(--vt-severity-critical);
+  --color-success: var(--vt-status-resolved);
+  --color-warning: var(--vt-risk-medium);
+
   --vt-severity-critical: #ef4444;
   --vt-severity-high: #f59e0b;
   --vt-severity-medium: #3b82f6;

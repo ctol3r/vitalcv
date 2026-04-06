@@ -36,6 +36,7 @@ import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
@@ -460,6 +461,7 @@ export default function PassportWallet({ passport }: Props) {
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const { identity, readiness, trustPosture } = passport;
   const cfg = STATUS_CONFIG[readiness.status];
@@ -533,6 +535,10 @@ export default function PassportWallet({ passport }: Props) {
           {identity.specialty && (
             <p className="text-white/50 text-sm mt-0.5">{identity.specialty}</p>
           )}
+          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/30">
+            {passport.npi && <span>NPI {passport.npi}</span>}
+            <span>{identity.entityType === 'PERSON' ? 'Individual provider' : 'Organization'}</span>
+          </div>
 
           {/* Readiness status — employer-visible trust level */}
           <div className="mt-3">
@@ -598,6 +604,38 @@ export default function PassportWallet({ passport }: Props) {
           </SectionReveal>
         )}
 
+        {/* ── Explicit missing items ─────────────────────────────────────── */}
+        {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
+          <SectionReveal delay={0.28}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+              <p className="text-white/50 text-sm font-medium">Data not yet available</p>
+              <p className="text-white/25 text-xs leading-relaxed">
+                These items are not covered in this snapshot. They require additional source access or have not been checked.
+              </p>
+              <div className="space-y-2 mt-1">
+                {trustPosture.missingItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Missing — not yet checked</p>
+                    </div>
+                  </div>
+                ))}
+                {trustPosture.gatedItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Gated — requires institutional access</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </SectionReveal>
+        )}
+
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
 
@@ -607,19 +645,15 @@ export default function PassportWallet({ passport }: Props) {
             {!shared ? (
               <>
                 <Button
-                  onClick={handleShare}
-                  disabled={sharing}
+                  onClick={() => setShareModalOpen(true)}
                   variant="success"
                   className="h-14 w-full rounded-xl text-sm font-medium"
-                  aria-label="Generate shareable passport link"
+                  aria-label="Share credential packet"
                 >
-                  {sharing ? 'Generating link…' : 'Copy share link for employer'}
+                  Share credential packet
                 </Button>
-                {shareError && (
-                  <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
-                )}
                 <p className="text-center text-white/20 text-xs leading-relaxed">
-                  Generates a shareable link to this passport. Send it to an employer to open the review surface.
+                  Opens a share dialog with auth check, 24-hour expiry, and a shareable link for employer review.
                 </p>
               </>
             ) : (
@@ -632,6 +666,13 @@ export default function PassportWallet({ passport }: Props) {
             )}
           </div>
         </SectionReveal>
+
+        <SharePacketModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          npi={passport.npi ?? ''}
+          displayName={identity.displayName}
+        />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">

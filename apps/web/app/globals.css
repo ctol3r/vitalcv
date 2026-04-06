@@ -172,6 +172,16 @@ body {
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* ── Semantic shorthand Tailwind tokens ─────────────── */
+  --color-bg: var(--color-bg);
+  --color-ink: var(--color-ink);
+  --color-line: var(--color-line);
+  --color-bg-muted: var(--color-bg-muted);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+
   /* ── Trust / claim tokens for Tailwind ─────────────────── */
   --color-trust-green: var(--trust-green);
   --color-trust-green-foreground: var(--trust-green-foreground);

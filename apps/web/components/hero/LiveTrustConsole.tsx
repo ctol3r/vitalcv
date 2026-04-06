@@ -1,7 +1,10 @@
 'use client';
 
 /**
- * LiveTrustConsole — Hero
+ * LiveTrustConsole — Loading / ingestion visualization for the readiness flow.
+ *
+ * Scoped as a STATUS INDICATOR only — not a standalone console product.
+ * Displays source-check progress during NPI lookup, then yields to ReadinessPreview.
  *
  * State machine:  idle → loading → preview → (Continue) → /passport?npi=
  *
@@ -524,7 +527,7 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
   const previewOnlyLabel = getStatusDisplayLabel('demo', 'Preview only');
 
   return (
-    <section className="relative bg-background">
+    <section className="relative bg-background" data-role="readiness-loading-indicator" aria-label="NPI lookup and source check status">
       {/* Radial */}
       <div
         aria-hidden
