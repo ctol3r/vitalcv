@@ -293,7 +293,7 @@ describe('passport review truth', () => {
         ...buildPassport().truth,
         safety: {
           ...buildPassport().truth.safety,
-          status: 'REVIEW REQUIRED',
+          status: 'REVIEW_REQUIRED',
           satisfied: false,
           decisionGrade: false,
           coverage: reviewRequiredSafetyCoverage,
@@ -391,7 +391,7 @@ describe('passport review truth', () => {
         },
         eligibility: {
           ...buildPassport().truth.eligibility,
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: contextualEligibilityCoverage,

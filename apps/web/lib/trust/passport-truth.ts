@@ -94,11 +94,11 @@ export function resolveAuthorityVdsStatus(
     case 'verified':
       return 'verified';
     case 'review_required':
-      return 'review required';
+      return 'review_required';
     case 'blocked':
       return 'blocked';
     case 'access_required':
-      return 'access required';
+      return 'access_required';
     case 'unavailable':
       return 'unavailable';
     case 'pending':

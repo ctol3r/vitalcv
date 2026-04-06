@@ -5,9 +5,9 @@ export const APPROVED_PUBLIC_WORDING = {
   sourceBacked: 'source-backed',
   current: 'current',
   preview: 'preview',
-  accessRequired: 'access required',
+  accessRequired: 'access_required',
   pending: 'pending',
-  reviewRequired: 'review required',
+  reviewRequired: 'review_required',
 } as const;
 
 export const PROHIBITED_PUBLIC_STRINGS = [

@@ -269,7 +269,7 @@ export function ApplyBundleView({ bundle }: Props) {
           <div className="flex items-start gap-3">
             <ShieldCheckIcon />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white/70">Bundle verified by VitalCV</p>
+              <p className="text-sm font-semibold text-white/70">Bundle signed by VitalCV</p>
               <p className="mt-1 text-xs text-white/40">
                 This credential bundle was cryptographically signed and has not been tampered with.
               </p>

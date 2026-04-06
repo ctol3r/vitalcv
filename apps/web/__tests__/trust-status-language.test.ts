@@ -16,9 +16,9 @@ describe('trust status language', () => {
     expect(getTrustStatusLabel('review_required')).toBe('Review required');
     expect(getTrustStatusLabel('access_required')).toBe('Access required');
 
-    expect(getVdsTrustStatusLabel('review required')).toBe('Review required');
-    expect(getVdsTrustStatusLabel('access required')).toBe('Access required');
-    expect(getVdsTrustStatusLabel('not decision-grade')).toBe('Not decision-grade');
+    expect(getVdsTrustStatusLabel('review_required')).toBe('Review required');
+    expect(getVdsTrustStatusLabel('access_required')).toBe('Access required');
+    expect(getVdsTrustStatusLabel('not_decision_grade')).toBe('Not decision-grade');
   });
 
   it('maps canonical source coverage states into honest trust UI states', () => {

@@ -176,8 +176,8 @@ export default async function PilotOpsPage({
     );
   }
 
-  const exportUrl = buildPilotExportHref('/api/pilot-kpi-export', days, filter);
-  const jsonExportUrl = buildPilotExportHref('/api/pilot-kpi-json', days, filter);
+  const exportUrl = buildPilotExportHref('/api/pilot-ops/export', days, filter) + '&format=csv';
+  const jsonExportUrl = buildPilotExportHref('/api/pilot-ops/export', days, filter) + '&format=json';
   const notStartedCount = Math.max(0, kpi.reviewsOpened.distinctEntities - kpi.startOutcomes.distinctEntities);
   const appliedScope = [
     { label: 'Org', value: kpi.appliedFilter.orgContextId },

@@ -394,13 +394,13 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const rowStatus: EligibilityRowProps['status'] =
     s === 'ENROLLED'  ? 'enrolled' :
-    s === 'NOT_FOUND' ? 'review required' :
+    s === 'NOT_FOUND' ? 'review_required' :
     s === 'UNKNOWN'   ? 'unavailable' :
     'unavailable';
 
   const sectionStatus: AccordionItem['status'] =
     rowStatus === 'enrolled'  ? 'clear' :
-    rowStatus === 'review required' ? 'review_required' :
+    rowStatus === 'review_required' ? 'review_required' :
     'pending';
 
   // Build observed-as quarter label
@@ -435,7 +435,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
-        {rowStatus === 'review required' && (
+        {rowStatus === 'review_required' && (
           <div className="py-1.5 text-white/20 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.

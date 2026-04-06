@@ -256,18 +256,22 @@ describe('pilot KPI routes', () => {
       ok: true,
       queued: true,
       entityId,
-      startedAt,
+      status: 'STARTED',
+      actualStartDate: startedAt,
     });
     expect(captureStartOutcomeMock).toHaveBeenCalledWith(expect.objectContaining({
       entityId,
       organizationContextId: 'ctx-2',
+      outcomeStatus: 'STARTED',
       startedAt: new Date(startedAt),
+      actualStartDate: new Date(startedAt),
       readinessScoreAtStart: 91,
       blockersAtStart: ['DEA_REGISTRATION'],
       sourceCoverageAtStart: {},
+      reason: null,
+      blockerNotes: 'Manual pilot operator capture',
       metadata: expect.objectContaining({
         recordedBy: 'operator-manual',
-        note: 'Manual pilot operator capture',
         monitoredAt: expect.any(String),
       }),
       scope: {
@@ -304,8 +308,9 @@ describe('pilot KPI routes', () => {
       ok: true,
       queued: true,
       entityId,
-      status: 'DID_NOT_START',
-      nonStartReason: 'candidate_withdrew',
+      status: 'NOT_STARTED',
+      reason: 'candidate_withdrew',
+      blockerNotes: 'Candidate paused after review',
       recordedAt,
     });
     expect(recordPilotProofEventMock).toHaveBeenCalledWith({
@@ -314,10 +319,11 @@ describe('pilot KPI routes', () => {
       organizationContextId: 'ctx-3',
       occurredAt: recordedAt,
       metadata: {
-        outcomeStatus: 'DID_NOT_START',
+        outcomeStatus: 'NOT_STARTED',
         nonStartReason: 'candidate_withdrew',
         nonStartCategory: 'candidate',
-        note: 'Candidate paused after review',
+        reason: 'candidate_withdrew',
+        blockerNotes: 'Candidate paused after review',
         pilotId: 'pilot-3',
         workflowLane: 'travel-rn',
         geographyTag: 'NV',

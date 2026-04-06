@@ -561,13 +561,14 @@ export function LiveTrustConsole({ onPreviewReady }: LiveTrustConsoleProps = {})
             transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
           >
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
-              NPI first. Honest coverage.
+              Credentialing readiness check
             </p>
             <h1 className="mb-3 text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-white">
-              See your readiness snapshot in <span className="text-emerald-400">about 10 seconds.</span>
+              Check your credentialing readiness{' '}
+              <span className="text-emerald-400">in about 10 seconds.</span>
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-white/50 sm:text-base">
-              VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG, and available PECOS coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
+              Enter your NPI. We pull from NPPES, OIG, and available public sources — then show exactly what&apos;s {checkedLabel}, what&apos;s {pendingLabel}, and what still needs {accessRequiredLabel}.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Input

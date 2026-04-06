@@ -263,6 +263,16 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
       nextActions: [],
     },
     sourceCoverage,
+
+    // Wave 3
+    receiptPresence: true,
+    trustExplanations: {
+      identity: 'Identity has been verified against a primary source.',
+      safety: 'Safety (OIG/sanctions) check returned clear — no adverse findings.',
+      authority: 'Authority (licensure/certification) has been verified against a primary source.',
+      eligibility: 'Eligibility (Medicare enrollment) enrollment confirmed in source system.',
+    },
+    structuredBlockers: [],
   };
 }
 

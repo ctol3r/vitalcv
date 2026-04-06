@@ -20,20 +20,20 @@ const VDS_STATUS_META: Record<SupplementalVdsTrustStatus, { className: string; l
       'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
     label: getVdsTrustStatusLabel('enrolled'),
   },
-  'review required': {
+  'review_required': {
     className:
       'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
-    label: getVdsTrustStatusLabel('review required'),
+    label: getVdsTrustStatusLabel('review_required'),
   },
-  'access required': {
+  'access_required': {
     className:
       'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
-    label: getVdsTrustStatusLabel('access required'),
+    label: getVdsTrustStatusLabel('access_required'),
   },
-  'not decision-grade': {
+  'not_decision_grade': {
     className:
       'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
-    label: getVdsTrustStatusLabel('not decision-grade'),
+    label: getVdsTrustStatusLabel('not_decision_grade'),
   },
   blocked: {
     className:
@@ -56,7 +56,7 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
 
 const TRUST_STATUS_DESCRIPTORS: Record<string, string> = {
   checked: 'Confirmed in this run from the source',
-  'access required': 'This source requires institutional access',
+  'access_required': 'This source requires institutional access',
   pending: 'Not yet checked in this session',
   'preview only': 'Example data - not from a live source run',
   demo: 'Example data - not from a live source run',

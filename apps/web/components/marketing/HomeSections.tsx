@@ -516,8 +516,8 @@ export function MoneballSection() {
             </p>
             <p className="text-white/65 mt-3 max-w-2xl mx-auto">
               Every week a credentialed physician can&apos;t start is a week of care
-              that doesn&apos;t happen. VitalCV compresses that gap from months to hours —
-              and in doing so, unlocks the capacity the healthcare system already has.
+              that doesn&apos;t happen. VitalCV works to compress that gap —
+              and in doing so, helps unlock capacity the healthcare system already has.
             </p>
           </div>
         </FadeIn>

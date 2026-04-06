@@ -150,7 +150,7 @@ function buildPassport(): TrustPassport {
       },
       authority: {
         kind: 'verification',
-        status: 'ACCESS REQUIRED',
+        status: 'ACCESS_REQUIRED',
         satisfied: true,
         decisionGrade: false,
         coverage: checks[2],
@@ -272,7 +272,7 @@ describe('employer packet truth', () => {
     expect(reviewCoverage.summary).toEqual(packet.sourceCoverage.summary);
     expect(packet.identity.truthStatus).toBe('VERIFIED');
     expect(packet.safety.truthStatus).toBe('CLEAR');
-    expect(packet.authority.truthStatus).toBe('ACCESS REQUIRED');
+    expect(packet.authority.truthStatus).toBe('ACCESS_REQUIRED');
     expect(packet.eligibility.truthStatus).toBe('ENROLLED');
     expect(packet.receiptReferences).toEqual([
       { sourceId: 'NPPES_API', receiptId: 'receipt-nppes' },
@@ -393,7 +393,7 @@ describe('employer packet truth', () => {
       }),
       expect.objectContaining({
         sourceId: 'STATE_BOARD',
-        truthStatus: 'ACCESS REQUIRED',
+        truthStatus: 'ACCESS_REQUIRED',
         state: 'gated',
         credentialExpiresAt: '2027-03-23T12:00:00.000Z',
         reviewRequired: false,

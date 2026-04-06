@@ -87,10 +87,10 @@ const VDS_TRUST_STATUS_LABELS = {
   enrolled: 'Enrolled',
   pending: 'Pending',
   stale: 'Stale',
-  'review required': 'Review required',
+  review_required: 'Review required',
   unavailable: 'Unavailable',
-  'access required': 'Access required',
-  'not decision-grade': 'Not decision-grade',
+  access_required: 'Access required',
+  not_decision_grade: 'Not decision-grade',
   blocked: 'Blocked',
 } as const;
 

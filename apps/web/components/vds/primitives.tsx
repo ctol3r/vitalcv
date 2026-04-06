@@ -69,10 +69,10 @@ const TRUST_STATUS_TONES: Record<TrustStatusLabel, BadgeTone> = {
   enrolled: 'success',
   pending: 'info',
   stale: 'warning',
-  'review required': 'warning',
+  'review_required': 'warning',
   unavailable: 'neutral',
-  'access required': 'neutral',
-  'not decision-grade': 'neutral',
+  'access_required': 'neutral',
+  'not_decision_grade': 'neutral',
   blocked: 'critical',
 };
 
