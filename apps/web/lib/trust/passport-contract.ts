@@ -53,6 +53,27 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
+export type DecisionPostureStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+
+export interface DecisionPostureSource {
+  sourceId: string;
+  dimension: PassportTrustPostureDimensionId;
+  state: string;
+  checkedAt: string | null;
+  expiresAt: string | null;
+  reason: string;
+}
+
+export interface DecisionPosture {
+  status: DecisionPostureStatus;
+  headline: string;
+  proven: DecisionPostureSource[];
+  missing: DecisionPostureSource[];
+  blockers: string[];
+  freshness: PassportTrustPostureFreshness;
+  nextAction: string;
+}
+
 export interface PassportData {
   entityId:    string;
   npi?:        string;
@@ -157,6 +178,7 @@ export interface PassportData {
   sourceCoverage: PassportSourceCoverageReport;
   truth?: CanonicalTruthSet;
   trustPosture: PassportTrustPosture;
+  decisionPosture?: DecisionPosture;
   lastCheckedAt: string;
 }
 

@@ -154,6 +154,7 @@ export interface EmployerEvidencePacketV1 {
     nextActions: TrustPassport['readiness']['nextActions'];
   };
   sourceCoverage: TrustPassport['sourceCoverage'];
+  decisionPosture: TrustPassport['decisionPosture'];
 }
 
 function dedupeSorted(values: readonly string[]): string[] {
@@ -524,5 +525,6 @@ export function buildEmployerEvidencePacket(input: {
       nextActions: input.passport.readiness.nextActions,
     },
     sourceCoverage: input.passport.sourceCoverage,
+    decisionPosture: input.passport.decisionPosture,
   };
 }

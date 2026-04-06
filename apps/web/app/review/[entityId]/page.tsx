@@ -12,12 +12,10 @@ export default async function ReviewPage({
 }) {
   const { entityId }                    = await params;
   const { contextId, bundleId, from }   = await searchParams;
-  return (
-    <ReviewPageClient
-      entityId={entityId}
-      contextId={contextId}
-      bundleId={bundleId}
-      from={from}
-    />
-  );
+  return ReviewPageClient({
+    entityId,
+    contextId,
+    bundleId,
+    from,
+  });
 }

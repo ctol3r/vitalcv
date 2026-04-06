@@ -142,6 +142,23 @@ export function registerEmployerActionRoutes(app: Express): void {
         });
       }
 
+      // ── Source coverage gate ────────────────────────────────────────
+      // Validate that the passport is not BLOCKED at the moment of acceptance.
+      // An employer must not accept a clinician whose spine sources are
+      // not in a decision-grade state.
+      const passport = await buildPassport(entityId);
+      if (!passport) {
+        throw new HttpError(422, 'Cannot accept: passport data is not available for this entity.');
+      }
+      if (passport.decisionPosture.status === 'BLOCKED') {
+        return void res.status(422).json({
+          error: 'acceptance_blocked',
+          error_description: 'Cannot accept: one or more critical source checks are blocking readiness.',
+          blockers: passport.decisionPosture.blockers,
+          missingSources: passport.decisionPosture.missing.map((s) => s.sourceId),
+        });
+      }
+
       const { role, facility, notes } = (req.body ?? {}) as {
         role?:     string;
         facility?: string;

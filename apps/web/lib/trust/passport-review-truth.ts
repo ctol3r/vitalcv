@@ -79,6 +79,9 @@ export interface PassportReviewTruthModel {
   };
 }
 
+type PassportReviewTruthBucket =
+  Exclude<keyof PassportReviewTruthModel['buckets'], 'nextActions'>;
+
 const TRUST_POSTURE_BAND_LABELS: Record<string, string> = {
   L3: 'High trust',
   L2: 'Moderate trust',
@@ -167,6 +170,11 @@ const PROOF_SECTION_LABELS: Record<string, string> = {
 const AUTHORITY_SECTION_DOMAINS = {
   licensure: 'LICENSURE',
 } as const;
+
+const CONTEXTUAL_AUTHORITY_DOMAINS = new Set([
+  'BOARD_CERTIFICATION',
+  'DEA_REGISTRATION',
+]);
 
 function latestCredentialDate(
   credentials: PassportData['authority']['credentials'],
@@ -287,23 +295,42 @@ function postureReliableLabel(reliableCount: number): string {
 
 function authorityCredentialDetail(
   credential: PassportData['authority']['credentials'][number],
-  bucket: Exclude<keyof PassportReviewTruthModel['buckets'], 'contextualOnly' | 'nextActions'>,
+  bucket: PassportReviewTruthBucket,
 ): string | undefined {
   return joinNoteParts([
     resolveAuthorityMethodLabel(credential),
     formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
     bucket === 'stale' ? 'Stale' : credential.dataFreshnessLabel ?? null,
-    bucket === 'sourceBackedNow' ? null : resolveAuthorityStatusLead(credential),
+    bucket === 'sourceBackedNow'
+      ? null
+      : bucket === 'contextualOnly'
+        ? 'Context only'
+        : resolveAuthorityStatusLead(credential),
   ]);
+}
+
+function resolveAuthorityReviewBucket(
+  credential: PassportData['authority']['credentials'][number],
+): PassportReviewTruthBucket {
+  const bucket = resolveAuthorityDecisionBasisBucket(credential);
+
+  if (
+    bucket === 'sourceBackedNow'
+    && CONTEXTUAL_AUTHORITY_DOMAINS.has(credential.domain)
+  ) {
+    return 'contextualOnly';
+  }
+
+  return bucket;
 }
 
 function truthItemFromAuthorityCredential(
   credential: PassportData['authority']['credentials'][number],
 ): {
-  bucket: Exclude<keyof PassportReviewTruthModel['buckets'], 'contextualOnly' | 'nextActions'>;
+  bucket: PassportReviewTruthBucket;
   item: PassportTruthListItem;
 } {
-  const bucket = resolveAuthorityDecisionBasisBucket(credential);
+  const bucket = resolveAuthorityReviewBucket(credential);
 
   return {
     bucket,
@@ -401,6 +428,59 @@ function bucketForProofStatus(
   }
 }
 
+function hasAuthorityCredentialForDomain(
+  passport: PassportData,
+  domain: string,
+): boolean {
+  return passport.authority.credentials.some((credential) => credential.domain === domain);
+}
+
+function matchesAuthorityNeed(value: string): boolean {
+  return /dea|controlled substance/i.test(value);
+}
+
+function buildMissingAuthorityItem(
+  passport: PassportData,
+  domain: string,
+): PassportTruthListItem | null {
+  if (domain !== 'DEA_REGISTRATION' || hasAuthorityCredentialForDomain(passport, domain)) {
+    return null;
+  }
+
+  const shouldSurface = passport.authority.summary.missing.includes(domain)
+    || passport.readiness.blockers.some(matchesAuthorityNeed)
+    || passport.readiness.gaps.some(matchesAuthorityNeed)
+    || passport.readiness.nextActions.some((action) => (
+      matchesAuthorityNeed(action.title) || matchesAuthorityNeed(action.detail)
+    ));
+
+  if (!shouldSurface) {
+    return null;
+  }
+
+  const detail = passport.readiness.nextActions.find((action) => (
+    matchesAuthorityNeed(action.title) || matchesAuthorityNeed(action.detail)
+  ))?.detail ?? passport.readiness.gaps.find(matchesAuthorityNeed)
+    ?? 'No attached DEA registration proof is available for this review.';
+
+  return {
+    id: 'authority:DEA_REGISTRATION:missing',
+    label: 'DEA / Controlled Substance',
+    detail,
+  };
+}
+
+function pushBucketItem(
+  bucket: PassportTruthListItem[],
+  item: PassportTruthListItem,
+): void {
+  if (bucket.some((existing) => existing.id === item.id)) {
+    return;
+  }
+
+  bucket.push(item);
+}
+
 export function buildPassportReviewTruthModel(
   passport: PassportData,
 ): PassportReviewTruthModel {
@@ -445,18 +525,26 @@ export function buildPassportReviewTruthModel(
       continue;
     }
 
-    buckets[bucket].push(truthItemFromProofSection(passport, item));
+    pushBucketItem(buckets[bucket], truthItemFromProofSection(passport, item));
   }
 
   for (const credential of passport.authority.credentials) {
-    if (!Object.values(AUTHORITY_SECTION_DOMAINS).includes(
-      credential.domain as (typeof AUTHORITY_SECTION_DOMAINS)[keyof typeof AUTHORITY_SECTION_DOMAINS],
-    )) {
+    if (
+      !Object.values(AUTHORITY_SECTION_DOMAINS).includes(
+        credential.domain as (typeof AUTHORITY_SECTION_DOMAINS)[keyof typeof AUTHORITY_SECTION_DOMAINS],
+      )
+      && !CONTEXTUAL_AUTHORITY_DOMAINS.has(credential.domain)
+    ) {
       continue;
     }
 
     const { bucket, item } = truthItemFromAuthorityCredential(credential);
-    buckets[bucket].push(item);
+    pushBucketItem(buckets[bucket], item);
+  }
+
+  const missingDea = buildMissingAuthorityItem(passport, 'DEA_REGISTRATION');
+  if (missingDea) {
+    pushBucketItem(buckets.missingOrAccessRequired, missingDea);
   }
 
   return {

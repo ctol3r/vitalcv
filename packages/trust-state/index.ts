@@ -52,6 +52,7 @@ export {
   type CanonicalTruthKind,
   type CanonicalTruthSet,
   type CanonicalTruthStatus,
+  type LaunchSpineSourceId,
   type NonDecisionGradeSourceCoverageState,
   type SourceCoveragePosture,
   type TrustEvidenceKind,

@@ -181,6 +181,15 @@ describe('employerReviewPayload', () => {
         staleItems: [],
         blockers: [],
       },
+      decisionPosture: {
+        status: 'READY' as const,
+        headline: 'All decision-grade sources checked. Safe to proceed.',
+        proven: [],
+        missing: [],
+        blockers: [],
+        freshness: { state: 'current' as const, label: 'Current attached checks', items: [] },
+        nextAction: 'Accept as head start and move to privileging.',
+      },
       lastCheckedAt: '2026-03-20T12:30:00.000Z',
     };
 

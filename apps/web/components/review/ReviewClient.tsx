@@ -34,6 +34,7 @@ import {
 } from '@/components/trust/passportProofSections';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -84,6 +85,7 @@ import {
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
 } from '@/lib/trust/passport-truth';
+import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 import type { CanonicalTruthSet } from '@vitalcv/trust-state';
 
 function latestCredentialObservationDate(
@@ -275,12 +277,44 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
 
 // ── BinaryDecisionCard ────────────────────────────────────────────────────────
 
-type DecisionReadiness = 'HIGH' | 'MEDIUM' | 'BLOCKED';
+type DecisionPostureStatus = PassportData['readiness']['status'];
 
-function resolveDecisionReadiness(blocked: string[], identityStatus: TrustStatus, safetyRowStatus: TrustStatus): DecisionReadiness {
-  if (blocked.length > 0 || identityStatus === 'blocked' || safetyRowStatus === 'blocked') return 'BLOCKED';
-  if (identityStatus !== 'checked' || safetyRowStatus !== 'checked') return 'MEDIUM';
-  return 'HIGH';
+function resolveDecisionCardPosture(passport: PassportData): {
+  status: DecisionPostureStatus;
+  headline: string;
+  nextAction: string;
+  freshnessLabel: string;
+} {
+  if (passport.decisionPosture) {
+    return {
+      status: passport.decisionPosture.status,
+      headline: passport.decisionPosture.headline,
+      nextAction: passport.decisionPosture.nextAction,
+      freshnessLabel: passport.decisionPosture.freshness.label,
+    };
+  }
+
+  const status = passport.readiness.status;
+
+  return {
+    status,
+    headline:
+      status === 'READY'
+        ? 'All attached decision-grade sources support employer review.'
+        : status === 'BLOCKED'
+          ? 'Blocking gaps remain attached to this review.'
+          : 'Some decision-grade sources are still missing, gated, or pending.',
+    nextAction:
+      passport.readiness.nextActions[0]?.detail
+      ?? (
+        status === 'READY'
+          ? 'Accept as head start.'
+          : status === 'BLOCKED'
+            ? 'Route to review or request refresh before start.'
+            : 'Request refresh for the missing decision-grade checks.'
+      ),
+    freshnessLabel: passport.trustPosture.freshness.label,
+  };
 }
 
 interface BinaryDecisionCardProps {
@@ -311,21 +345,21 @@ function BinaryDecisionCard({
   onRouteToReview,
 }: BinaryDecisionCardProps) {
   const { identity, standing } = passport;
-  const decisionReadiness = resolveDecisionReadiness(blocked, identityStatus, safetyRow.status);
+  const decisionPosture = resolveDecisionCardPosture(passport);
 
   // Active license check
   const hasActiveLicense = authorityCredentials.some(
     (c) => c.domain === 'LICENSURE' && c.status === 'ACTIVE',
   );
 
-  const DECISION_COLORS: Record<DecisionReadiness, string> = {
-    HIGH:    'border-emerald-500/30 bg-emerald-500/[0.06]',
-    MEDIUM:  'border-amber-500/30 bg-amber-500/[0.05]',
+  const DECISION_COLORS: Record<DecisionPostureStatus, string> = {
+    READY:   'border-emerald-500/30 bg-emerald-500/[0.06]',
+    PARTIAL: 'border-amber-500/30 bg-amber-500/[0.05]',
     BLOCKED: 'border-rose-500/25 bg-rose-500/[0.05]',
   };
-  const DECISION_TEXT: Record<DecisionReadiness, string> = {
-    HIGH:    'text-emerald-400',
-    MEDIUM:  'text-amber-400',
+  const DECISION_TEXT: Record<DecisionPostureStatus, string> = {
+    READY:   'text-emerald-400',
+    PARTIAL: 'text-amber-400',
     BLOCKED: 'text-rose-400',
   };
 
@@ -342,43 +376,62 @@ function BinaryDecisionCard({
     {
       label: 'Identity checked',
       source: 'NPPES',
-      ok: identityStatus === 'checked',
-      reason: identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined,
+      ok: passport.decisionPosture
+        ? passport.decisionPosture.proven.some((item) => item.dimension === 'identity')
+        : identityStatus === 'checked',
+      reason:
+        passport.decisionPosture?.missing.find((item) => item.dimension === 'identity')?.reason
+        ?? (identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined),
     },
     {
       label: 'Safety checked',
       source: 'OIG/LEIE',
-      ok: standing.exclusionStatus === 'CLEAR',
-      reason: standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined,
+      ok: passport.decisionPosture
+        ? passport.decisionPosture.proven.some((item) => item.dimension === 'safety')
+        : standing.exclusionStatus === 'CLEAR',
+      reason:
+        passport.decisionPosture?.missing.find((item) => item.dimension === 'safety')?.reason
+        ?? (standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined),
     },
     {
       label: 'License source-backed',
       source: 'State Board',
-      ok: hasActiveLicense,
-      reason: !hasActiveLicense ? 'No active license found in source data' : undefined,
+      ok: passport.decisionPosture
+        ? passport.decisionPosture.proven.some((item) => item.dimension === 'authority')
+        : hasActiveLicense,
+      reason:
+        passport.decisionPosture?.missing.find((item) => item.dimension === 'authority')?.reason
+        ?? (!hasActiveLicense ? 'No active license found in source data' : undefined),
     },
     {
       label: 'Enrollment checked',
       source: 'CMS PECOS',
-      ok: enrollmentOk,
-      reason: !enrollmentOk
-        ? enrollmentStatus === 'NOT_FOUND' ? 'Not found in CMS enrollment data' : 'Enrollment not yet checked'
-        : undefined,
+      ok: passport.decisionPosture
+        ? passport.decisionPosture.proven.some((item) => item.dimension === 'eligibility')
+        : enrollmentOk,
+      reason:
+        passport.decisionPosture?.missing.find((item) => item.dimension === 'eligibility')?.reason
+        ?? (!enrollmentOk
+          ? enrollmentStatus === 'NOT_FOUND' ? 'Not found in CMS enrollment data' : 'Enrollment not yet checked'
+          : undefined),
     },
   ];
 
   return (
-    <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionReadiness]}>
+    <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionPosture.status]}>
       {/* Name + decision readiness */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician Under Review</p>
           <h1 className="text-foreground text-3xl font-bold uppercase tracking-tight leading-none">{identity.displayName}</h1>
           {identity.specialty && <p className="text-muted-foreground text-sm mt-2 font-mono">{identity.specialty}</p>}
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground/70">
+            {decisionPosture.headline}
+          </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Decision Readiness</p>
-          <p className={"text-2xl font-bold font-mono " + DECISION_TEXT[decisionReadiness]}>{decisionReadiness}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Decision Posture</p>
+          <p className={"text-2xl font-bold font-mono " + DECISION_TEXT[decisionPosture.status]}>{decisionPosture.status}</p>
         </div>
       </div>
 
@@ -419,13 +472,32 @@ function BinaryDecisionCard({
 
       {/* Action row */}
       <div className="mt-6 space-y-2">
+        <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Next best action</p>
+              <p className="mt-1 text-sm leading-relaxed text-foreground">
+                {decisionPosture.nextAction}
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Freshness</p>
+              <p className="mt-1 text-xs text-foreground/70">{decisionPosture.freshnessLabel}</p>
+            </div>
+          </div>
+          {blocked.length > 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
+            </p>
+          )}
+        </div>
         <Button
           onClick={onAccept}
           disabled={!canPersistActions}
           variant="success"
           className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
         >
-          Accept as Head Start{blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}
+          Accept as head start{blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button
@@ -434,7 +506,7 @@ function BinaryDecisionCard({
             variant="outline"
             className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
           >
-            Request Refresh
+            Request refresh
           </Button>
           <Button
             onClick={onRouteToReview}
@@ -442,7 +514,7 @@ function BinaryDecisionCard({
             variant="outline"
             className="h-11 rounded-none border-red-500/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-red-500/70 hover:bg-red-500 hover:text-white hover:border-red-500"
           >
-            Route to Review
+            Route to review
           </Button>
         </div>
         {previewOnlyMessage && (
@@ -844,6 +916,7 @@ function ReviewClientLoaded({
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
+  const timeToStartEstimate = buildPassportPilotTimeToStartEstimate(passport);
   const lastSyncedAt =
     passport.lastCheckedAt
     ?? standing.exclusionCheckedAt
@@ -1509,6 +1582,10 @@ function ReviewClientLoaded({
                   ))}
                 </div>
               )}
+
+              <div className="pt-3">
+                <TimeToStartEstimateSummary estimate={timeToStartEstimate} />
+              </div>
 
               <p className="text-foreground/70 pt-1">
                 Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}

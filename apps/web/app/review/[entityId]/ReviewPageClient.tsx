@@ -1,16 +1,9 @@
-'use client';
-
 import React from 'react';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { EmployerCockpit } from '@/components/review/EmployerCockpit';
+import ReviewClient from '@/components/review/ReviewClient';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
-import {
-  fetchPassportEntity,
-  fetchReviewAcceptanceHistory,
-  fireEmployerReviewOpened,
-} from '@/lib/api';
+import { getBackendBase } from '@/lib/api';
 import type {
   EmployerAcceptanceHistoryResponse,
 } from '@/lib/employer-review-actions';
@@ -39,75 +32,100 @@ interface ReviewPageClientProps {
   from?: string;
 }
 
-export default function ReviewPageClient({
+type JsonFetchResult<T> = {
+  ok: boolean;
+  body: T | null;
+  errorDescription: string | null;
+};
+
+function readErrorDescription(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.error_description === 'string' && record.error_description.trim().length > 0) {
+    return record.error_description;
+  }
+  if (typeof record.error === 'string' && record.error.trim().length > 0) {
+    return record.error;
+  }
+
+  return null;
+}
+
+async function fetchBackendJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<JsonFetchResult<T>> {
+  try {
+    const response = await fetch(`${getBackendBase()}${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => null);
+
+    return {
+      ok: response.ok,
+      body: response.ok ? payload as T : null,
+      errorDescription: readErrorDescription(payload),
+    };
+  } catch {
+    return {
+      ok: false,
+      body: null,
+      errorDescription: null,
+    };
+  }
+}
+
+function buildRetryHref(input: {
+  entityId: string;
+  contextId?: string;
+  bundleId?: string;
+  from?: string;
+}): string {
+  const query = new URLSearchParams({
+    ...(input.contextId ? { contextId: input.contextId } : {}),
+    ...(input.bundleId ? { bundleId: input.bundleId } : {}),
+    ...(input.from ? { from: input.from } : {}),
+  }).toString();
+
+  return `/review/${input.entityId}${query ? `?${query}` : ''}`;
+}
+
+export default async function ReviewPageClient({
   entityId,
   contextId,
   bundleId,
   from,
 }: ReviewPageClientProps) {
-  const [passport, setPassport] = useState<PassportData | null>(null);
-  const [acceptanceHistory, setAcceptanceHistory] = useState<EmployerAcceptanceHistoryResponse>(
-    buildEmptyAcceptanceHistory(),
-  );
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [passportResult, historyResult] = await Promise.all([
+    fetchBackendJson<PassportData>(
+      /^\d{10}$/.test(entityId)
+        ? `/api/passport/npi/${encodeURIComponent(entityId)}`
+        : `/api/passport/entity/${encodeURIComponent(entityId)}`,
+    ),
+    fetchBackendJson<EmployerAcceptanceHistoryResponse>(
+      `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
+    ),
+  ]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      setLoading(true);
-
-      const [passportResult, historyResult] = await Promise.all([
-        fetchPassportEntity(entityId),
-        fetchReviewAcceptanceHistory(entityId),
-      ]);
-
-      if (cancelled) {
-        return;
-      }
-
-      setPassport(passportResult.ok ? passportResult.body : null);
-      setAcceptanceHistory(
-        historyResult.ok && historyResult.body
-          ? historyResult.body
-          : buildEmptyAcceptanceHistory(),
-      );
-      setErrorMessage(passportResult.ok ? null : DEFAULT_REVIEW_ERROR);
-      setLoading(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [entityId]);
-
-  useEffect(() => {
-    if (!passport) return;
-
-    void fireEmployerReviewOpened(entityId, {
-      organizationContextId: contextId ?? null,
-      bundleId: bundleId ?? null,
-      readinessScore: passport.readiness.score ?? null,
-      blockers: passport.readiness.blockers ?? [],
-    });
-  }, [bundleId, contextId, entityId, passport]);
-
-  const retryHref = `/review/${entityId}${contextId || bundleId || from
-    ? `?${new URLSearchParams({
-        ...(contextId ? { contextId } : {}),
-        ...(bundleId ? { bundleId } : {}),
-        ...(from ? { from } : {}),
-      }).toString()}`
-    : ''}`;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--vt-bg)] text-[var(--vt-text-primary)] flex items-center justify-center font-mono text-xs uppercase tracking-widest opacity-60">
-        Loading decision state...
-      </div>
-    );
-  }
+  const passport = passportResult.ok ? passportResult.body : null;
+  const acceptanceHistory =
+    historyResult.ok && historyResult.body
+      ? historyResult.body
+      : buildEmptyAcceptanceHistory();
+  const retryHref = buildRetryHref({
+    entityId,
+    contextId,
+    bundleId,
+    from,
+  });
 
   if (!passport) {
     return (
@@ -118,7 +136,7 @@ export default function ReviewPageClient({
             title="Employer review unavailable"
             description={(
               <>
-                <span>{errorMessage ?? DEFAULT_REVIEW_ERROR}</span>
+                <span>{passportResult.errorDescription ?? DEFAULT_REVIEW_ERROR}</span>
                 <span className="block pt-2 text-muted-foreground/60">
                   No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
                 </span>
@@ -142,9 +160,25 @@ export default function ReviewPageClient({
     );
   }
 
+  await fetch(`${getBackendBase()}/api/employer-review/${encodeURIComponent(entityId)}/view`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({
+      organizationContextId: contextId ?? null,
+      bundleId: bundleId ?? null,
+      readinessScore: passport.readiness.score ?? null,
+      blockers: passport.readiness.blockers ?? [],
+    }),
+  }).catch(() => null);
+
   return (
-    <EmployerCockpit
+    <ReviewClient
       passport={passport}
+      contextId={contextId}
+      bundleId={bundleId}
+      sharedBy={from}
+      acceptanceHistory={acceptanceHistory}
     />
   );
 }

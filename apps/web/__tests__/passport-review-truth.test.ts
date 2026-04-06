@@ -366,6 +366,34 @@ describe('passport review truth', () => {
     expect(truth.buckets.missingOrAccessRequired.map((item) => item.label)).toContain('License verification — access required (CA)');
   });
 
+  it('keeps unsupported current authority claims contextual instead of source-backed', () => {
+    const passport = buildPassport({
+      authority: {
+        credentials: [
+          buildPassport().authority.credentials[0],
+          {
+            ...buildPassport().authority.credentials[0],
+            id: 'cred-board-current',
+            domain: 'BOARD_CERTIFICATION',
+            type: 'BOARD_CERT',
+            issuerName: 'ABMS',
+            sourceId: 'ABMS',
+            stale: false,
+            observedAt: '2026-03-20T00:00:00.000Z',
+            verifiedAt: '2026-03-20T00:00:00.000Z',
+            authorityClaimCode: 'BOARD_CERTIFIED',
+          },
+        ],
+        summary: { active: 2, expired: 0, stale: 0, missing: [] },
+      },
+    });
+
+    const truth = buildPassportReviewTruthModel(passport);
+
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Board certified');
+    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Board certified');
+  });
+
   it('keeps stale and contextual top-level truth out of source-backed review buckets', () => {
     const staleSafetyCoverage = createCanonicalSourceCoverage({
       sourceId: 'OIG_LEIE',

@@ -49,6 +49,8 @@ import {
   type CanonicalSourceCoverageReport,
   type CanonicalSourceCoverageState,
   type CanonicalTruthSet,
+  LAUNCH_SPINE_SOURCE_IDS,
+  type LaunchSpineSourceId,
 } from '@vitalcv/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
@@ -243,6 +245,27 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
+export type DecisionPostureStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+
+export interface DecisionPostureSource {
+  sourceId: string;
+  dimension: PassportTrustPostureDimensionId;
+  state: CanonicalSourceCoverageState;
+  checkedAt: string | null;
+  expiresAt: string | null;
+  reason: string;
+}
+
+export interface DecisionPosture {
+  status: DecisionPostureStatus;
+  headline: string;
+  proven: DecisionPostureSource[];
+  missing: DecisionPostureSource[];
+  blockers: string[];
+  freshness: PassportTrustPostureFreshness;
+  nextAction: string;
+}
+
 export interface TrustPassport {
   entityId:       string;
   npi?:           string;
@@ -255,6 +278,7 @@ export interface TrustPassport {
   sourceCoverage: CanonicalSourceCoverageReport;
   truth:          CanonicalTruthSet;
   trustPosture:   PassportTrustPosture;
+  decisionPosture: DecisionPosture;
   lastCheckedAt:  string;
 }
 
@@ -1370,6 +1394,69 @@ export function buildPassportTrustPosture(input: {
   };
 }
 
+// ── Decision Posture ─────────────────────────────────────────────────────────
+
+const DIMENSION_SOURCE_MAP: Record<PassportTrustPostureDimensionId, readonly string[]> = {
+  identity: ['NPPES_API', 'NPPES'],
+  safety: ['OIG_LEIE', 'OIG'],
+  authority: ['STATE_BOARD', 'FSMB_MED_API', 'FSMB_PDC', 'NURSYS', 'NURSYS_AUTHORIZED_PATH'],
+  eligibility: ['PECOS_PUBLIC'],
+};
+
+const DECISION_POSTURE_HEADLINES: Record<DecisionPostureStatus, string> = {
+  READY: 'All decision-grade sources checked. Safe to proceed.',
+  PARTIAL: 'Some sources pending or incomplete. Proceed with caution.',
+  BLOCKED: 'Critical blockers present. Do not proceed.',
+};
+
+const DECISION_POSTURE_NEXT_ACTIONS: Record<DecisionPostureStatus, string> = {
+  READY: 'Accept as head start and move to privileging.',
+  PARTIAL: 'Route to credentialing team for gap resolution.',
+  BLOCKED: 'Do not hire until blockers are resolved.',
+};
+
+export function buildDecisionPosture(input: {
+  readiness: PassportReadiness;
+  sourceCoverage: CanonicalSourceCoverageReport;
+  truth: CanonicalTruthSet;
+  trustPosture: PassportTrustPosture;
+}): DecisionPosture {
+  const proven: DecisionPostureSource[] = [];
+  const missing: DecisionPostureSource[] = [];
+
+  for (const dimension of ['identity', 'safety', 'authority', 'eligibility'] as const) {
+    const sourceIds = DIMENSION_SOURCE_MAP[dimension];
+    const check = input.sourceCoverage.checks.find(
+      (c) => sourceIds.includes(c.sourceId),
+    );
+
+    const entry: DecisionPostureSource = {
+      sourceId: check?.sourceId ?? sourceIds[0],
+      dimension,
+      state: check?.state ?? 'pending',
+      checkedAt: check?.checkedAt ?? null,
+      expiresAt: check?.expiresAt ?? null,
+      reason: check?.reason ?? `${sourceIds[0]} not yet checked`,
+    };
+
+    if (check?.state === 'checked') {
+      proven.push(entry);
+    } else {
+      missing.push(entry);
+    }
+  }
+
+  return {
+    status: input.readiness.status,
+    headline: DECISION_POSTURE_HEADLINES[input.readiness.status],
+    proven,
+    missing,
+    blockers: input.readiness.blockers,
+    freshness: input.trustPosture.freshness,
+    nextAction: DECISION_POSTURE_NEXT_ACTIONS[input.readiness.status],
+  };
+}
+
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 /**
@@ -1853,7 +1940,20 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   if (normalizedBlockers.length > 0)   readinessStatus = 'BLOCKED';
   else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
   else if (missingBlocking.length > 0) readinessStatus = 'BLOCKED';
-  const readinessScore = trustState?.readiness_score ?? (readinessStatus === 'READY' ? 80 : readinessStatus === 'PARTIAL' ? 50 : 20);
+  // Derive readiness score from source coverage rather than hardcoding.
+  // Each checked launch-spine source contributes 25 points (4 sources × 25 = 100 max).
+  // Non-checked sources contribute 0. This ensures the score reflects real source state.
+  const readinessScore = trustState?.readiness_score ?? (() => {
+    const spineChecks = sourceCoverage.checks.filter(
+      (check) => LAUNCH_SPINE_SOURCE_IDS.includes(check.sourceId as LaunchSpineSourceId),
+    );
+    const checkedCount = spineChecks.filter((check) => check.state === 'checked').length;
+    const baseScore = checkedCount * 25;
+    // Blockers cap score at 20 max; gaps cap at 75 max.
+    if (normalizedBlockers.length > 0) return Math.min(baseScore, 20);
+    if (normalizedGaps.length > 0) return Math.min(baseScore, 75);
+    return baseScore;
+  })();
   // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
   // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.
   // syncBlockerEvents opens new blockers and auto-resolves blockers no longer present.
@@ -1871,7 +1971,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     status:             readinessStatus,
     score:              readinessScore,
     readiness_score:    readinessScore,
-    level:              trustState?.readiness_level ?? 'L1',
+    level:              trustState?.readiness_level
+                        ?? (readinessStatus === 'READY' ? 'L3' : readinessStatus === 'PARTIAL' ? 'L2' : 'L0'),
     blockers:           normalizedBlockers,
     gaps:               normalizedGaps,
     nextActions,
@@ -1926,8 +2027,16 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     lastCheckedAt,
   });
 
+  const decisionPosture = buildDecisionPosture({
+    readiness,
+    sourceCoverage,
+    truth,
+    trustPosture,
+  });
+
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
+    decisionPosture: decisionPosture.status,
     credentials: credList.length, education: eduRecords.length,
   });
 
@@ -1943,6 +2052,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     sourceCoverage,
     truth,
     trustPosture,
+    decisionPosture,
     lastCheckedAt,
   };
 }
