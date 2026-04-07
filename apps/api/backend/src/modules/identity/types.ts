@@ -56,6 +56,27 @@ export interface RawNppesIdentifier {
   state?: string;
 }
 
+/** Raw endpoint block from CMS NPPES API v2.1 */
+export interface RawNppesEndpoint {
+  endpoint?: string;
+  endpointType?: string;
+  endpointTypeDescription?: string;
+  endpointUrl?: string;
+  affiliation?: string;
+  contentType?: string;
+  contentDescription?: string;
+  useDescription?: string;
+}
+
+/** Raw alternate-name block from CMS NPPES API v2.1 */
+export interface RawNppesOtherName {
+  organization_name?: string;
+  first_name?: string;
+  last_name?: string;
+  type_code?: string;
+  type?: string;
+}
+
 /** Raw basic info block from CMS NPPES API v2.1 */
 export interface RawNppesBasic {
   first_name: string;
@@ -88,8 +109,8 @@ export interface RawNppesResult {
   taxonomies: RawNppesTaxonomy[];
   addresses: RawNppesAddress[];
   identifiers: RawNppesIdentifier[];
-  endpoints: unknown[];
-  other_names: unknown[];
+  endpoints: RawNppesEndpoint[];
+  other_names: RawNppesOtherName[];
 }
 
 /** Top-level CMS NPPES API response */
@@ -124,6 +145,18 @@ export interface NormalizedAddress {
   postal_code: string;
   country_code: string;
   telephone_number: string;
+}
+
+export interface NormalizedEndpoint {
+  endpoint: string;
+  endpointType: string;
+  endpointTypeDescription: string;
+  affiliation: string;
+}
+
+export interface NormalizedOtherName {
+  display_name: string;
+  type: string;
 }
 
 /**
@@ -165,11 +198,15 @@ export interface NormalizedProvider {
   // ── Location ──────────────────────────────────────────────────────────
   /** Practice location address — TEXT fields */
   practice_address: NormalizedAddress | null;
+  /** Mailing address — TEXT fields */
+  mailing_address: NormalizedAddress | null;
   /** All addresses */
   addresses: NormalizedAddress[];
 
   // ── Identifiers ───────────────────────────────────────────────────────
   identifiers: RawNppesIdentifier[];
+  endpoints: NormalizedEndpoint[];
+  other_names: NormalizedOtherName[];
 
   // ── Audit ─────────────────────────────────────────────────────────────
   enumeration_date: string;

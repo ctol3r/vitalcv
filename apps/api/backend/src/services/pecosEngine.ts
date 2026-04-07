@@ -1,10 +1,11 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
+import { getPecosProvider, recordPecosCheck } from './externalIntegrations';
 
 type PecosCheckPayload = {
   npi: string;
-  enrolled: boolean;
-  claimState: 'ENROLLED' | 'NOT_FOUND';
+  enrolled: boolean | null;
+  claimState: 'ENROLLED' | 'NOT_FOUND' | 'UNKNOWN';
   enrollmentType: string | null;
   observedAt: Date;
   dataVersion: string;
@@ -20,29 +21,28 @@ export async function runPecosCheck(npi: string): Promise<PecosCheckPayload> {
     throw new Error('npi is required for PECOS check.');
   }
 
-  const enrolled = normalizedNpi.startsWith('1');
-  const enrollmentType = enrolled ? 'simulated-prefix-1' : null;
-  const checkedAt = new Date();
-  const claimState = enrolled ? 'ENROLLED' as const : 'NOT_FOUND' as const;
-  const quarter = Math.floor(checkedAt.getUTCMonth() / 3) + 1;
-  const dataVersion = `${checkedAt.getUTCFullYear()}-Q${quarter}`;
+  const provider = getPecosProvider();
+  const result = await provider.fetchEnrollmentStatus(normalizedNpi);
+  recordPecosCheck();
+  const checkedAt = result.checkedAt;
+  const observedAt = result.observedAt;
+  const dataVersion = result.dataVersion
+    ?? `${checkedAt.getUTCFullYear()}-Q${Math.floor(checkedAt.getUTCMonth() / 3) + 1}`;
   const rawPayload = {
-    source: 'simulated-pecos-pipeline',
-    method: 'npi-prefix-check',
+    ...result.rawPayload,
     checkedAt: checkedAt.toISOString(),
-    observedAt: checkedAt.toISOString(),
-    claimState,
+    observedAt: observedAt.toISOString(),
+    claimState: result.claimState,
     dataVersion,
     dataFreshness: 'QUARTERLY',
     sourceLatency: 'QUARTERLY',
-    enrollmentType,
-  } as const;
+  } as Prisma.JsonObject;
 
   const persisted = await prisma.pecosCheck.create({
     data: {
       npi: normalizedNpi,
-      enrolled,
-      enrollmentType,
+      enrolled: result.enrolled,
+      enrollmentType: result.enrollmentType,
       rawPayload: rawPayload as Prisma.InputJsonValue,
       checkedAt,
     },
@@ -51,9 +51,9 @@ export async function runPecosCheck(npi: string): Promise<PecosCheckPayload> {
   return {
     npi: persisted.npi,
     enrolled: persisted.enrolled,
-    claimState,
+    claimState: result.claimState,
     enrollmentType: persisted.enrollmentType,
-    observedAt: persisted.checkedAt,
+    observedAt,
     dataVersion,
     dataFreshness: 'QUARTERLY',
     sourceLatency: 'QUARTERLY',

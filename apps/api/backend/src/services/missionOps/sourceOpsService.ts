@@ -113,6 +113,10 @@ function describeCoverageState(input: {
     return `${source.name} is disabled by feature flag ${source.envFlag}.`;
   }
 
+  if (source.id === 'PECOS_PUBLIC' && coverageState === 'previewOnly') {
+    return `${source.name} is running in preview-only mode and must not be treated as decision-grade enrollment truth.`;
+  }
+
   switch (coverageState) {
     case 'checked':
       return `${source.name} is inside its ${source.refreshSlaHours}h freshness window.`;
@@ -177,6 +181,9 @@ export function computeSourceOpsReport(): SourceOpsReport {
     const connectorEntry = findConnectorEntry(source, connectorHealth.connectors);
     const sourceHealth = readSourceHealth(source, connectorEntry, integrationHealth);
     const sourceEnabled = readSourceEnabled(source);
+    const previewOnly =
+      source.id === 'PECOS_PUBLIC'
+      && integrationHealth.pecosMode === 'mock';
     const fresh = sourceImplemented && isSourceHealthFresh({
       lastSuccessAt: sourceHealth.lastSuccessAt,
       freshnessWindowHours: source.refreshSlaHours,
@@ -190,6 +197,7 @@ export function computeSourceOpsReport(): SourceOpsReport {
       : !sourceEnabled
         ? 'pending'
         : resolveCanonicalSourceCoverageState({
+            previewOnly,
             checked: Boolean(sourceHealth.lastSuccessAt),
             fresh,
             unavailable: connectorEntry?.status === 'UNREACHABLE',

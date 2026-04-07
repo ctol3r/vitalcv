@@ -573,10 +573,12 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
 
   const checkedAt = new Date().toISOString();
   const staleBecauseSourceRefreshFailed = Boolean(refreshError);
+  const staleBecauseRefreshWindowExceeded =
+    Boolean(lastRefreshed) && Date.now() - lastRefreshed > REFRESH_INTERVAL;
   const cacheAge: LeieResult['cacheAge'] =
     !npiIndex || !nameIndex
       ? 'unavailable'
-      : staleBecauseSourceRefreshFailed
+      : staleBecauseSourceRefreshFailed || staleBecauseRefreshWindowExceeded
         ? 'stale'
         : 'fresh';
 
@@ -620,26 +622,6 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
       matchConfidence: 'HIGH',
       matchScore: 1,
       matchedFields: ['npi'],
-      dataVersion,
-      leieVersionDate,
-      sourceLatency: 'MONTHLY',
-    };
-  }
-
-  if (normalizedInput.npi) {
-    return {
-      npi: normalizedInput.npi,
-      excluded: false,
-      entry: null,
-      matchedEntries: [],
-      source: 'LEIE_CSV',
-      checkedAt,
-      cacheAge,
-      verdict: 'CLEAR',
-      matchType: 'NONE',
-      matchConfidence: 'HIGH',
-      matchScore: 0,
-      matchedFields: [],
       dataVersion,
       leieVersionDate,
       sourceLatency: 'MONTHLY',
