@@ -14,6 +14,9 @@ export const PUBLIC_WEDGE_ROUTE_TARGETS = Object.freeze({
   homepageLookup: '/',
   passportEntry: '/passport',
   reviewEntry: '/review',
+  reviewRequestEntry: '/review/request',
+  developersEntry: '/developers',
+  docsEntry: '/docs',
 });
 
 export function buildPassportLookupHref(

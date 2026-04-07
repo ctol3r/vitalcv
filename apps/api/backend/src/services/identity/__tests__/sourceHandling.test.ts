@@ -34,6 +34,23 @@ describe('Source handling, gated truth isolation, and replay integrity', () => {
     expect(licValue.licenseStatus).toBe('UNKNOWN');
   });
 
+  it('treats malformed state-board payloads as unresolved instead of silently skipping them', () => {
+    const { claims, receipts } = parseStateBoardResult(
+      '123',
+      'CA',
+      { unexpected: true },
+      'artifact-mock',
+      'checksum-mock',
+      new Date().toISOString(),
+    );
+
+    expect(claims).toHaveLength(1);
+    expect(claims[0]?.confidence).toBe('UNCERTAIN');
+    expect(claims[0]?.reviewRequired).toBe(true);
+    expect(claims[0]?.reviewReason).toContain('could not be parsed');
+    expect(receipts).toHaveLength(1);
+  });
+
   it('maintains live source success path for Nursys when credentials exist', () => {
     const raw = {
       events: [{

@@ -33,6 +33,9 @@ export interface ExclusionResult {
   source: 'OIG_LEIE';
   leieVersionDate: string | null;
   dataVersion: string | null;
+  cacheAge: 'fresh' | 'stale' | 'unavailable';
+  sourceLatency: 'MONTHLY';
+  dataFreshness: 'MONTHLY';
 }
 
 export interface ExclusionCheckParams {
@@ -59,6 +62,9 @@ function uncheckedResult(details: string): ExclusionResult {
     source: 'OIG_LEIE',
     leieVersionDate: null,
     dataVersion: null,
+    cacheAge: 'unavailable',
+    sourceLatency: 'MONTHLY',
+    dataFreshness: 'MONTHLY',
   };
 }
 
@@ -97,17 +103,23 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
     });
     const result = await Promise.race([lookup, timeout]);
 
-    if (result.cacheAge === 'unavailable') {
+    if (result.cacheAge !== 'fresh') {
       return {
         excluded: false,
         matchType: 'UNCHECKED',
         matchConfidence: 'UNCERTAIN',
         status: 'UNCHECKED',
-        details: 'LEIE monthly CSV could not be loaded in time. Manual verification required.',
+        details:
+          result.cacheAge === 'stale'
+            ? 'LEIE monthly CSV cache is stale. Do not treat this as current exclusion truth until it is refreshed or manually verified.'
+            : 'LEIE monthly CSV could not be loaded in time. Manual verification required.',
         checkedAt: result.checkedAt,
         source: 'OIG_LEIE',
         leieVersionDate: result.leieVersionDate,
         dataVersion: result.dataVersion,
+        cacheAge: result.cacheAge,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: 'MONTHLY',
       };
     }
 
@@ -119,12 +131,15 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         status: 'EXCLUDED',
         details:
           result.matchType === 'EXACT'
-            ? 'Exact NPI match found in the current monthly LEIE CSV.'
-            : 'LEIE exclusion record found in the current monthly CSV.',
+            ? 'Exact NPI match found in the current monthly LEIE CSV snapshot.'
+            : 'LEIE exclusion record found in the current monthly CSV snapshot.',
         checkedAt: result.checkedAt,
         source: 'OIG_LEIE',
         leieVersionDate: result.leieVersionDate,
         dataVersion: result.dataVersion,
+        cacheAge: result.cacheAge,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: 'MONTHLY',
       };
     }
 
@@ -140,6 +155,9 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         source: 'OIG_LEIE',
         leieVersionDate: result.leieVersionDate,
         dataVersion: result.dataVersion,
+        cacheAge: result.cacheAge,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: 'MONTHLY',
       };
     }
 
@@ -154,6 +172,9 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         source: 'OIG_LEIE',
         leieVersionDate: result.leieVersionDate,
         dataVersion: result.dataVersion,
+        cacheAge: result.cacheAge,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: 'MONTHLY',
       };
     }
 
@@ -162,11 +183,15 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       matchType: result.matchType,
       matchConfidence: result.matchConfidence,
       status: 'CLEAR',
-      details: 'No exclusion record found in the current monthly LEIE CSV.',
+      details:
+        'No exclusion record found in the current monthly LEIE CSV snapshot. This is monthly batch exclusion data, not a real-time clearance feed.',
       checkedAt: result.checkedAt,
       source: 'OIG_LEIE',
       leieVersionDate: result.leieVersionDate,
       dataVersion: result.dataVersion,
+      cacheAge: result.cacheAge,
+      sourceLatency: result.sourceLatency,
+      dataFreshness: 'MONTHLY',
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -183,6 +208,9 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         source: 'OIG_LEIE',
         leieVersionDate: null,
         dataVersion: null,
+        cacheAge: 'unavailable',
+        sourceLatency: 'MONTHLY',
+        dataFreshness: 'MONTHLY',
       };
     }
 
@@ -196,6 +224,9 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       source: 'OIG_LEIE',
       leieVersionDate: null,
       dataVersion: null,
+      cacheAge: 'unavailable',
+      sourceLatency: 'MONTHLY',
+      dataFreshness: 'MONTHLY',
     };
   }
 }
@@ -252,6 +283,9 @@ export async function checkExclusion(params: ExclusionCheckParams): Promise<Excl
         checkedAt: result.checkedAt,
         leieVersionDate: result.leieVersionDate,
         dataVersion: result.dataVersion,
+        cacheAge: result.cacheAge,
+        sourceLatency: result.sourceLatency,
+        dataFreshness: result.dataFreshness,
       },
     });
   } catch (err) {

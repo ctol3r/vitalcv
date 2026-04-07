@@ -11,6 +11,14 @@ const BACKEND =
 
 const MUTATION_ACTIONS = new Set(['accept', 'request-refresh', 'route-to-review', 'reject']);
 
+function buildBackendActionUrl(
+  req: NextRequest,
+  entityId: string,
+  action: string,
+): string {
+  return `${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}${req.nextUrl.search}`;
+}
+
 function unauthorizedResponse() {
   return NextResponse.json(
     {
@@ -37,7 +45,7 @@ export async function POST(
   }
 
   const body = await req.text();
-  const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
+  const response = await fetch(buildBackendActionUrl(req, entityId, action), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -50,7 +58,13 @@ export async function POST(
 
   if (!response.ok) {
     const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend action failed';
-    return NextResponse.json({ error: errorMsg }, { status: response.status });
+    const errorDescription = typeof payload?.error_description === 'string'
+      ? payload.error_description
+      : undefined;
+    return NextResponse.json(
+      errorDescription ? { error: errorMsg, error_description: errorDescription } : { error: errorMsg },
+      { status: response.status },
+    );
   }
 
   return NextResponse.json(payload ?? {}, { status: response.status });
@@ -71,7 +85,7 @@ export async function GET(
     return unauthorizedResponse();
   }
 
-  const response = await fetch(`${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}`, {
+  const response = await fetch(buildBackendActionUrl(req, entityId, action), {
     headers: {
       Accept: req.headers.get('accept') ?? 'application/json',
       'x-clerk-user-id': userId,
@@ -83,7 +97,13 @@ export async function GET(
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       const errorMsg = typeof payload?.error === 'string' ? payload.error : 'Backend fetch failed';
-      return NextResponse.json({ error: errorMsg }, { status: response.status });
+      const errorDescription = typeof payload?.error_description === 'string'
+        ? payload.error_description
+        : undefined;
+      return NextResponse.json(
+        errorDescription ? { error: errorMsg, error_description: errorDescription } : { error: errorMsg },
+        { status: response.status },
+      );
     }
     return NextResponse.json(payload ?? {}, { status: response.status });
   }

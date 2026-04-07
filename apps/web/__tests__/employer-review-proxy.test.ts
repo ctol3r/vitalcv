@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const authMock = vi.fn();
 
@@ -18,7 +19,7 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     authMock.mockResolvedValue({ userId: null });
     const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
 
-    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/accept', {
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/accept', {
       method: 'POST',
       body: JSON.stringify({}),
     }) as never, {
@@ -70,7 +71,7 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
-    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/request-refresh', {
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/request-refresh', {
       method: 'POST',
       body: JSON.stringify({ staleSources: ['CMS PECOS'] }),
       headers: { 'Content-Type': 'application/json' },
@@ -161,14 +162,14 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
-    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/status', {
+    const response = await GET(new NextRequest('http://localhost/api/employer-review/entity-1/status?organizationContextId=org-1&bundleId=bundle-1', {
       headers: { Accept: 'application/json' },
     }) as never, {
       params: Promise.resolve({ entityId: 'entity-1', action: 'status' }),
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://backend.test/api/employer-review/entity-1/status',
+      'http://backend.test/api/employer-review/entity-1/status?organizationContextId=org-1&bundleId=bundle-1',
       expect.objectContaining({
         headers: {
           Accept: 'application/json',
@@ -186,6 +187,42 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
           snapshotHash: 'snap_hash_1234567890abcdef',
         }),
       }),
+    });
+  });
+
+  it('preserves backend error descriptions for failed persisted writes', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        error: 'review_context_required',
+        error_description: 'A confirmed employer review context is required before this action can be persisted.',
+      }),
+      {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/accept?organizationContextId=org-1', {
+      method: 'POST',
+      body: JSON.stringify({ acceptanceReason: 'head-start' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'accept' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/employer-review/entity-1/accept?organizationContextId=org-1',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: 'review_context_required',
+      error_description: 'A confirmed employer review context is required before this action can be persisted.',
     });
   });
 });

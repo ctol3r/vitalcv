@@ -22,7 +22,7 @@ export default function ReviewLandingPage() {
 
         <div className="flex flex-col gap-3">
           <Button asChild className="h-11 w-full rounded-xl">
-            <Link href="/review/request">Request a passport review</Link>
+            <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry}>Request a passport review</Link>
           </Button>
           <Button asChild variant="outline" className="h-11 w-full rounded-xl">
             <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Start with NPI lookup</Link>

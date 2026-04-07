@@ -32,9 +32,12 @@ export type IdentityClaimFact = BaseFact &
     firstName?: string;
     lastName?: string;
     organizationName?: string;
+    otherNames?: readonly string[];
     enumerationType: string;
     taxonomies: readonly string[];
     practiceStates: readonly string[];
+    practiceLocations?: readonly string[];
+    endpoints?: readonly string[];
   }>;
 
 export type LicenseFact = BaseFact &

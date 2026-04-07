@@ -136,7 +136,7 @@ export function getStatusTone(status: TrustUiStatus): TrustStatusTone {
 }
 
 export function isPositiveStatus(status: TrustUiStatus): boolean {
-  return status === 'verified' || status === 'clear' || status === 'checked';
+  return status === 'verified' || status === 'clear';
 }
 
 export function isBlockingStatus(status: TrustUiStatus): boolean {

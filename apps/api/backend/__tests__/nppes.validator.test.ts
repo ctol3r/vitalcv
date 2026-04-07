@@ -12,6 +12,7 @@ import type { RawNppesResponse, RawNppesResult } from '../src/modules/identity/t
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
 const LONG_ADDRESS = 'A'.repeat(180);
+const LONG_ADDRESS_2 = 'Suite '.padEnd(190, 'B');
 const LONG_ORG_NAME = 'B'.repeat(280);
 const LONG_CREDENTIAL = 'C'.repeat(45);
 
@@ -86,6 +87,15 @@ describe('normalizeProvider', () => {
     expect(result.practice_address?.address_1.length).toBe(180);
   });
 
+  it('preserves long address_2 and telephone fields without truncation', () => {
+    const result = normalizeProvider(makeRawResponse({}, {
+      address_2: LONG_ADDRESS_2,
+      telephone_number: '41555501010101010101',
+    }));
+    expect(result.practice_address?.address_2).toBe(LONG_ADDRESS_2);
+    expect(result.practice_address?.telephone_number).toBe('41555501010101010101');
+  });
+
   it('NEVER truncates long NPPES v2 organization_name fields (up to 300 chars)', () => {
     const result = normalizeProvider(makeRawResponse({ organization_name: LONG_ORG_NAME }));
     expect(result.organization_name).toBe(LONG_ORG_NAME);
@@ -147,6 +157,11 @@ describe('smokeTestNppesResult', () => {
   it('warns when address_1 exceeds 200 chars', () => {
     const sample = smokeTestNppesResult(makeRawResult({}, { address_1: LONG_ADDRESS + LONG_ADDRESS }));
     expect(sample.warnings.some((w) => w.includes('address_1'))).toBe(true);
+  });
+
+  it('warns when address_2 exceeds 200 chars', () => {
+    const sample = smokeTestNppesResult(makeRawResult({}, { address_2: LONG_ADDRESS_2 + LONG_ADDRESS_2 }));
+    expect(sample.warnings.some((w) => w.includes('address_2'))).toBe(true);
   });
 
   it('warns when organization_name exceeds 300 chars', () => {

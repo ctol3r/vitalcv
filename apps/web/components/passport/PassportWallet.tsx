@@ -93,7 +93,7 @@ function PassportFreshnessCard({
 }) {
   const summaryBadge =
     freshness.state === 'current'
-      ? { status: 'verified' as const, label: 'Current' }
+      ? { status: 'checked' as const, label: 'Current' }
       : freshness.state === 'stale'
         ? { status: 'stale' as const, label: 'Stale' }
         : { status: 'pending' as const, label: 'Partial' };
@@ -116,7 +116,7 @@ function PassportFreshnessCard({
                 <p className="mt-1 text-[11px] leading-relaxed text-white/42">{item.note}</p>
               </div>
               <TrustStatusBadge
-                status={item.state === 'current' ? 'verified' : item.state === 'stale' ? 'stale' : 'pending'}
+                status={item.state === 'current' ? 'checked' : item.state === 'stale' ? 'stale' : 'pending'}
                 label={item.state}
                 size="sm"
                 className="shrink-0"

@@ -38,6 +38,11 @@ export async function fetchNpiFromCMS(npi: string): Promise<NppesFetchResult> {
   } catch {
     throw new HttpError(502, 'Invalid JSON from CMS NPPES Registry');
   }
+
+  if (!Array.isArray(rawPayload.results) || typeof rawPayload.result_count !== 'number') {
+    throw new HttpError(502, 'Invalid NPPES response shape from CMS registry');
+  }
+
   const payloadHash = sha256ForPayload(rawPayload);
 
   if (rawPayload.result_count === 0 || rawPayload.results.length === 0) {

@@ -502,7 +502,7 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
       : truthAccordionStatus(truth, 'checked');
   const trustNote =
     status === 'checked'
-      ? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.'
+      ? 'CMS PECOS (Simulated) returns an enrolled status for preview. This is not decision-grade — confirm via pecos.cms.hhs.gov.'
       : pecosStatus === 'NOT_FOUND'
         ? passport.standing.enrollmentNote ?? 'Enrollment still needs manual confirmation.'
         : truth.coverage.reason || passport.standing.enrollmentNote || 'Enrollment still needs manual confirmation.';

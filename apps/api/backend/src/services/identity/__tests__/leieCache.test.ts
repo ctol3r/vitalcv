@@ -12,6 +12,8 @@ describe('leieCache lookupProvider', () => {
 
   beforeEach(() => {
     resetLeieCacheForTests();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-24T12:00:00.000Z'));
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({
@@ -27,6 +29,7 @@ describe('leieCache lookupProvider', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     global.fetch = originalFetch;
     resetLeieCacheForTests();
   });
@@ -111,5 +114,48 @@ describe('leieCache lookupProvider', () => {
     expect(result.verdict).toBe('CLEAR');
     expect(result.matchType).toBe('NONE');
     expect(result.matchConfidence).toBe('HIGH');
+  });
+
+  it('does not allow a fuzzy possible-match to override a conflicting explicit NPI', async () => {
+    const result = await lookupProvider({
+      npi: '9999999999',
+      firstName: 'Jane',
+      middleName: 'A',
+      lastName: 'Doe',
+      state: 'CA',
+      specialty: 'Internal Medicine',
+    });
+
+    expect(result.verdict).toBe('CLEAR');
+    expect(result.matchType).toBe('NONE');
+    expect(result.matchConfidence).toBe('HIGH');
+  });
+
+  it('marks the cache stale when a refresh failure occurs after an initial successful load', async () => {
+    await lookupProvider({
+      npi: '1234567890',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    global.fetch = jest.fn().mockRejectedValue(new Error('network down')) as typeof fetch;
+    jest.advanceTimersByTime(24 * 60 * 60 * 1000 + 1);
+
+    await lookupProvider({
+      npi: '1234567890',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+    await Promise.resolve();
+
+    const result = await lookupProvider({
+      npi: '1234567890',
+      firstName: 'Jane',
+      lastName: 'Doe',
+    });
+
+    expect(result.cacheAge).toBe('stale');
+    expect(result.verdict).toBe('EXCLUDED');
+    expect(result.matchType).toBe('EXACT');
   });
 });

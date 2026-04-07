@@ -170,6 +170,8 @@ function buildPassportPdfHtml(passport: TrustPassport): string {
 }
 
 export async function renderPassportPdf(passport: TrustPassport): Promise<Buffer> {
+  // Dynamic import — playwright-chromium is an optional runtime dependency for PDF rendering.
+  // If not installed, this will throw at runtime (not at build time).
   const { chromium } = await import('playwright-chromium');
   const browser = await chromium.launch({
     headless: true,

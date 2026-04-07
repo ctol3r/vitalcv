@@ -454,7 +454,7 @@ function buildDegradedAccordion(
       content: (
         <ProofDetailsList
           rows={[
-            { id: 'source', label: 'Source', value: 'CMS PECOS', tone: 'strong' },
+            { id: 'source', label: 'Source', value: 'CMS PECOS (Simulated)', tone: 'muted' },
             { id: 'checked', label: 'Last checked', value: 'Passport retry required' },
             { id: 'freshness', label: 'Freshness', value: 'Preview structure only' },
             {

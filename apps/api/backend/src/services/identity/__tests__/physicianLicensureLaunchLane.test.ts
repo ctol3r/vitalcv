@@ -144,4 +144,59 @@ describe('resolvePhysicianLicensureLaunchLane', () => {
       }),
     ]);
   });
+
+  it('degrades to a manual path when the live CA board lookup throws', async () => {
+    const result = await resolvePhysicianLicensureLaunchLane({
+      npi: '1234567890',
+      observedAt: '2026-03-24T12:00:00.000Z',
+      candidateStates: [PHYSICIAN_LICENSURE_LAUNCH_STATE],
+      stateBoardLookup: async () => {
+        throw new Error('upstream timeout');
+      },
+    });
+
+    expect(result.route).toBe('manual');
+    expect(result.launchState).toBe('CA');
+    expect(result.claims).toEqual([
+      expect.objectContaining({
+        claimType: 'AUTHORITY_UNAVAILABLE',
+        sourceId: 'STATE_BOARD',
+        value: expect.objectContaining({
+          jurisdiction: 'CA',
+          participationStatus: 'manual_verification_required',
+        }),
+      }),
+    ]);
+  });
+
+  it('degrades to a manual path when the CA board result is stale', async () => {
+    const result = await resolvePhysicianLicensureLaunchLane({
+      npi: '1234567890',
+      observedAt: '2026-04-06T12:00:00.000Z',
+      candidateStates: [PHYSICIAN_LICENSURE_LAUNCH_STATE],
+      stateBoardLookup: async () => ({
+        npi: '1234567890',
+        state: 'CA',
+        licenseNumber: 'CA-7788',
+        licenseStatus: 'ACTIVE',
+        licensee: 'Dr Example',
+        expirationDate: '2027-04-01T00:00:00.000Z',
+        boardName: 'Medical Board of California',
+        lastVerifiedAt: '2025-01-01T00:00:00.000Z',
+        sourceUrl: 'https://mbc.ca.gov/breeze/',
+      }),
+    });
+
+    expect(result.route).toBe('manual');
+    expect(result.launchState).toBe('CA');
+    expect(result.claims).toEqual([
+      expect.objectContaining({
+        claimType: 'AUTHORITY_UNAVAILABLE',
+        sourceId: 'STATE_BOARD',
+        value: expect.objectContaining({
+          jurisdiction: 'CA',
+        }),
+      }),
+    ]);
+  });
 });

@@ -96,6 +96,7 @@ export function smokeTestNppesResult(result: RawNppesResult): NppesSmokeSample {
 
   const primaryAddr = result.addresses?.find((a) => a.address_purpose === 'LOCATION');
   const addr1 = checkField(primaryAddr?.address_1, 'address_1');
+  checkField(primaryAddr?.address_2, 'address_2');
   checkField(primaryAddr?.city, 'city');
 
   const primaryTax = result.taxonomies?.find((t) => t.primary);

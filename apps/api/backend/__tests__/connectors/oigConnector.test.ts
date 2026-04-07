@@ -7,6 +7,7 @@ import {
   loadLeieData,
   getLeieIndexStatus,
 } from '../../src/services/providers/connectors/oigConnector';
+import { resetLeieCacheForTests } from '../../src/services/identity/leieCache';
 import { resetConnectorHealth, getConnectorHealth } from '../../src/services/providers/connectors/connectorHealthTracker';
 
 beforeEach(() => {
@@ -14,6 +15,15 @@ beforeEach(() => {
 });
 
 describe('oigConnector', () => {
+  const originalOigMode = process.env.OIG_MODE;
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    process.env.OIG_MODE = originalOigMode;
+    global.fetch = originalFetch;
+    resetLeieCacheForTests();
+  });
+
   describe('LEIE index', () => {
     it('auto-loads sandbox data on first call', async () => {
       const result = await checkOIGExclusion('1003000126');
@@ -29,6 +39,29 @@ describe('oigConnector', () => {
       expect(status.loaded).toBe(true);
       expect(status.recordCount).toBe(10);
       expect(status.lastLoadedAt).toBeTruthy();
+    });
+
+    it('uses the canonical LEIE cache in live mode instead of silently falling back to sandbox fixtures', async () => {
+      process.env.OIG_MODE = 'live';
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers({
+          'last-modified': 'Mon, 16 Mar 2026 00:00:00 GMT',
+        }),
+        text: async () => [
+          'LASTNAME,FIRSTNAME,MIDNAME,BUSNAME,SPECIALTY,NPI,STATE,EXCLTYPE,EXCLDATE,REINDATE,WVRSTATE',
+          'DOE,JANE,A,,INTERNAL MEDICINE,1234567890,CA,EXCLUSION,2024-01-01,,',
+        ].join('\n'),
+      }) as typeof fetch;
+
+      await loadLeieData();
+      const status = getLeieIndexStatus();
+      const result = await checkOIGExclusion('1234567890');
+
+      expect(status.mode).toBe('live');
+      expect(status.recordCount).toBe(1);
+      expect(result.excluded).toBe(true);
+      expect(result.verdict).toBe('EXCLUDED');
     });
   });
 

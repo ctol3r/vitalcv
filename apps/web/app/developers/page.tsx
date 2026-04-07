@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, FileCheck2, Route, ShieldCheck } from 'lucide-react';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export const metadata: Metadata = {
   title: 'Developers | VitalCV',
@@ -73,21 +74,21 @@ export default function DevelopersPage() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-2.5 text-sm text-[var(--vt-text-1)] transition hover:border-[var(--vt-accent)]/30 hover:bg-[var(--vt-surface-2)]"
           >
             Open live NPI entry
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <Link
-            href="/review/request"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry}
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--vt-border)] px-4 py-2.5 text-sm text-[var(--vt-text-2)] transition hover:border-[var(--vt-border-2)] hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
           >
             Open employer review request
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <Link
-            href="/docs"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.docsEntry}
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--vt-border)] px-4 py-2.5 text-sm text-[var(--vt-text-2)] transition hover:border-[var(--vt-border-2)] hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
           >
             Read wedge docs

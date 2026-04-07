@@ -446,9 +446,37 @@ export function parseStateBoardResult(
     return { claims, receipts };
   }
 
+  const value: LicenseValue = {
+    _type: 'LICENSE',
+    state: stateUpper,
+    licenseNumber: null,
+    issueDate: null,
+    expiryDate: null,
+    licenseStatus: 'UNKNOWN',
+    disciplinaryActions: [],
+    source: `STATE_BOARD_${stateUpper}`,
+  };
+  const claim = makeClaim({
+    ...base,
+    claimType: 'LICENSE',
+    subjectNpi: npi,
+    value,
+    confidence: 'UNCERTAIN',
+    confidenceScore: 0.15,
+    reviewRequired: true,
+    reviewReason: `${stateUpper} state-board response could not be parsed into a decision-grade license result`,
+  });
 
-
-  return { claims: [], receipts: [] };
+  return {
+    claims: [claim],
+    receipts: [
+      buildReceipt(
+        claim,
+        'licenseStatus',
+        `${stateUpper} board response was malformed or unsupported. Treat licensure as unresolved until manually verified.`,
+      ),
+    ],
+  };
 }
 
 // ── Helper: Get practice states from existing claims ──────────────────────────

@@ -52,7 +52,7 @@ describe('trust status language', () => {
     expect(getStatusTone('review_required')).toBe('critical');
     expect(getStatusTone('demo')).toBe('demo');
 
-    expect(isPositiveStatus('checked')).toBe(true);
+    expect(isPositiveStatus('checked')).toBe(false);
     expect(isPositiveStatus('pending')).toBe(false);
     expect(isBlockingStatus('review_required')).toBe(true);
     expect(isBlockingStatus('clear')).toBe(false);

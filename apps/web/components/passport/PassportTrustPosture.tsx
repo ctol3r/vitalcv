@@ -24,7 +24,7 @@ const BAND_CONFIG: Record<string, { labelClass: string; scoreClass: string }> = 
 };
 
 const POSTURE_STATE_BADGE: Record<PassportTrustPostureState, { status: TrustBadgeStatus; label?: string }> = {
-  current: { status: 'verified', label: 'Current' },
+  current: { status: 'checked', label: 'Current' },
   stale: { status: 'stale', label: 'Stale' },
   gated: { status: 'access_required', label: 'Access required' },
   review_required: { status: 'review_required', label: 'Review required' },
@@ -85,7 +85,7 @@ export function PassportTrustPosture({
     : posture.reviewRequiredItems.length > 0 ? 'review_required'
     : posture.gatedItems.length > 0 ? 'access_required'
     : posture.staleItems.length > 0 ? 'stale'
-    : safeItems.length > 0 ? 'verified'
+    : safeItems.length > 0 ? 'checked'
     : 'pending';
   const summaryLabel =
     posture.blockers.length > 0 ? 'Blockers attached'

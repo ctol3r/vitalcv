@@ -24,7 +24,7 @@ function resolveCoverageBadge(check: PassportSourceCoverageCheck): {
 } {
   if (check.state === 'checked') {
     return {
-      status: 'verified',
+      status: 'checked',
       label: sourceCoverageBadgeLabel({
         state: check.state,
         decisionGrade: true,
