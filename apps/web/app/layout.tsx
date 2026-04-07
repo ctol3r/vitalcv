@@ -36,8 +36,28 @@ const fontVariables = {
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
-  title: 'VitalCV',
-  description: 'Reusable trust state for clinician credentialing.',
+  title: {
+    default: 'VitalCV — Check Clinician Readiness in Seconds',
+    template: '%s — VitalCV',
+  },
+  description:
+    'Source-backed credentialing truth for clinicians and healthcare employers. Check NPI readiness against NPPES, OIG/LEIE, PECOS, and FSMB in seconds.',
+  metadataBase: new URL('https://vitalcv.com'),
+  openGraph: {
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Source-backed credentialing truth for clinicians and healthcare employers.',
+    url: 'https://vitalcv.com',
+    siteName: 'VitalCV',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Source-backed credentialing truth for clinicians and healthcare employers.',
+  },
 };
 
 const clerkEnabled = CLERK_PROVIDER_ENABLED;

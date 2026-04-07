@@ -13,7 +13,7 @@
 import Link from 'next/link';
 import { VerifierCommandCenter } from '@/components/employer/VerifierCommandCenter';
 
-export const metadata = { title: 'Command Center (Demo Artifact) — VitalCV' };
+export const metadata = { title: 'Command Center (Demo Artifact)' };
 
 export default function CommandCenterDemoPage() {
   return (

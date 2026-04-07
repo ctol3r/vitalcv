@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
+
+export const metadata: Metadata = {
+  title: 'Employer Review',
+  description:
+    'Review a source-backed clinician readiness snapshot before making a credentialing or recruiting decision.',
+  openGraph: {
+    title: 'Employer Review',
+    description:
+      'Review a source-backed clinician readiness snapshot before making a credentialing or recruiting decision.',
+  },
+};
 
 export default function ReviewLandingPage() {
   return (

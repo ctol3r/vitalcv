@@ -8,7 +8,7 @@ import {
 } from '@/lib/intelligence/routes';
 
 export const metadata = {
-  title: 'Operator Workbench | VitalCV',
+  title: 'Operator Workbench',
   description: 'Live trust intelligence across findings, providers, graph, storylines, and investigations.',
 };
 

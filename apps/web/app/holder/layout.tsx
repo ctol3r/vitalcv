@@ -8,7 +8,7 @@ import { MobileBottomNav } from '@/components/clinician/MobileBottomNav';
 import { loadClinicianMobileData } from '@/lib/mobile/server';
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Clinician Workspace',
+  title: 'Clinician Workspace',
   description: 'Your verified medical credential wallet and opportunities.',
 };
 

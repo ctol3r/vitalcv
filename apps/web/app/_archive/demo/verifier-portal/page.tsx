@@ -12,7 +12,7 @@
 import Link from 'next/link';
 import { VerifierPortal } from '@/components/employer/VerifierPortal';
 
-export const metadata = { title: 'Verifier Portal (Demo Artifact) — VitalCV' };
+export const metadata = { title: 'Verifier Portal (Demo Artifact)' };
 
 export default function VerifierPortalDemoPage() {
   return (

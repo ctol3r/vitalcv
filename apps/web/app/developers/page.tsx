@@ -9,9 +9,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getPublicApiBase, getPublicApiHostLabel } from '@/lib/api';
+import { CodeBlock } from '@/components/developers/CodeBlock';
 
 export const metadata: Metadata = {
-  title: 'Developers — VitalCV',
+  title: 'Developers',
   description:
     'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
 };
@@ -151,7 +152,8 @@ export default function DevelopersPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Example
             </p>
-            <pre className="mt-4 overflow-x-auto rounded-xl border border-border/80 bg-background p-4 text-xs text-foreground/85"><code>{`curl -X POST '${publicApiBase}/api/identity/1003000126/ingest' \\
+            <CodeBlock
+              code={`curl -X POST '${publicApiBase}/api/identity/1003000126/ingest' \\
   -H 'content-type: application/json'
 
 curl '${publicApiBase}/api/passport/npi/1003000126'
@@ -159,7 +161,8 @@ curl '${publicApiBase}/api/passport/npi/1003000126'
 curl -X POST '${publicApiBase}/api/employer-review/<entityId>/accept' \\
   -H 'content-type: application/json' \\
   -H 'x-clerk-user-id: <workspace-user>' \\
-  -d '{"organizationContextId":"<orgId>","acceptanceReason":"head-start"}'`}</code></pre>
+  -d '{"organizationContextId":"<orgId>","acceptanceReason":"head-start"}'`}
+            />
           </article>
 
           <article className="rounded-2xl border border-border bg-card p-6">

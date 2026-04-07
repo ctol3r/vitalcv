@@ -45,7 +45,8 @@ interface ConsoleStage {
   detail: string;
 }
 
-const INVALID_NPI_MESSAGE = 'Enter a valid 10-digit NPI to build a live readiness snapshot.';
+const INVALID_NPI_DIGITS_MESSAGE = 'NPI must contain only digits.';
+const INVALID_NPI_LENGTH_MESSAGE = 'NPI must be exactly 10 digits.';
 
 const FLOW_STEPS = [
   'Enter NPI',
@@ -450,7 +451,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     });
 
     if (!isValidNpi) {
-      setFormMessage(INVALID_NPI_MESSAGE);
+      setFormMessage(/\D/.test(nextNpi) ? INVALID_NPI_DIGITS_MESSAGE : INVALID_NPI_LENGTH_MESSAGE);
       inputRef.current?.focus({ preventScroll: true });
       trackUxEvent({
         event_name: UX_EVENTS.NPI_INVALID,
@@ -568,23 +569,30 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
             </p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
               <Input
                 ref={inputRef}
+                id="npi-input"
+                name="npi"
                 type="text"
                 inputMode="numeric"
+                pattern="\d{10}"
                 maxLength={10}
+                autoComplete="off"
                 value={npi}
                 readOnly={phase === 'loading'}
                 aria-busy={phase === 'loading'}
                 aria-disabled={phase === 'loading'}
+                aria-label="Enter your 10-digit NPI number"
+                aria-invalid={!!formMessage}
+                aria-describedby={formMessage ? 'npi-error' : undefined}
                 onChange={(e) => {
                   if (formMessage) {
                     setFormMessage(null);
                   }
                   setNpi(e.target.value.replace(/\D/g, ''));
                 }}
-                placeholder="Enter your 10-digit NPI"
-                aria-label="NPI number"
+                placeholder="Enter 10-digit NPI"
                 className={`h-14 min-w-0 flex-1 rounded-xl border-input bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-muted focus-visible:ring-ring ${
                   phase === 'loading' ? 'cursor-default bg-muted/50 opacity-80' : ''
                 } ${
@@ -602,7 +610,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             </form>
 
             {formMessage && (
-              <p className="mt-3 text-xs leading-relaxed text-destructive">
+              <p id="npi-error" role="alert" className="mt-3 text-xs leading-relaxed text-destructive">
                 {formMessage}
               </p>
             )}

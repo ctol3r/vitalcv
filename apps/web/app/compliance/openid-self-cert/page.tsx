@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'OpenID4VC Self-Certification | VitalCV',
+  title: 'OpenID4VC Self-Certification',
   description: 'VitalCV OpenID for Verifiable Credentials self-certification status.',
   robots: { index: false },
 };

@@ -16,6 +16,9 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/investors',
   '/partners',
   '/updates',
+  '/pilot',
+  '/status',
+  '/compliance',
 ]);
 
 export function isPublicSafe(route: string): boolean {

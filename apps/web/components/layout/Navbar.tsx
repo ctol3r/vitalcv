@@ -100,8 +100,10 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
+          type="button"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
+          aria-controls="mobile-nav-menu"
           className="rounded-lg p-2 text-foreground/70 hover:bg-muted hover:text-foreground transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
@@ -111,7 +113,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
+        <nav id="mobile-nav-menu" className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>

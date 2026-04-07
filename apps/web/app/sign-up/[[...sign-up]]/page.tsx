@@ -5,7 +5,13 @@
  * NEXT_PUBLIC_CLERK_SIGN_UP_URL and configured in the Clerk dashboard.
  * No hardcoded dev-instance assumptions.
  */
+import type { Metadata } from 'next';
 import { SignUp } from '@clerk/nextjs';
+
+export const metadata: Metadata = {
+  title: 'Sign Up',
+  description: 'Create your VitalCV account. Source-backed credentialing truth for clinicians and healthcare employers.',
+};
 
 export default function SignUpPage() {
   return (

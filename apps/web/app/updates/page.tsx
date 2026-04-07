@@ -5,7 +5,7 @@ import { getDeployInfo } from '@/lib/deployInfo';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Updates — VitalCV',
+  title: 'Updates',
   description: 'Live deployment status and recent product changes.',
 };
 

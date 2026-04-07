@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { Shield, FileCheck, Lock, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { Shield, FileCheck, Lock, ArrowUpRight } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Compliance & Security | VitalCV',
+  title: 'Compliance & Security',
   description:
     'VitalCV compliance posture, security practices, and regulatory alignment for healthcare credentialing.',
 };
@@ -96,7 +97,7 @@ export default function CompliancePage() {
         </h2>
         <div className="grid gap-1 sm:grid-cols-2">
           {RESOURCES.map(({ title, description, href }) => (
-            <a
+            <Link
               key={href}
               href={href}
               className="group flex items-center justify-between rounded-lg border border-[var(--vt-border)] px-4 py-2.5 text-sm text-[var(--vt-text-2)] transition hover:border-[var(--vt-border-2)] hover:bg-[var(--vt-surface)] hover:text-[var(--vt-text-1)]"
@@ -105,8 +106,8 @@ export default function CompliancePage() {
                 <span className="block font-medium text-[var(--vt-text-1)]">{title}</span>
                 <span className="text-xs text-[var(--vt-text-3)]">{description}</span>
               </div>
-              <ExternalLink className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100 shrink-0 ml-3" />
-            </a>
+              <ArrowUpRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100 shrink-0 ml-3" />
+            </Link>
           ))}
         </div>
       </section>

@@ -7,7 +7,7 @@ import type { SourceOpsEntry, SourceOpsReport } from '@/lib/mission-ops/sourceOp
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Status — VitalCV',
+  title: 'Status',
   description:
     'Current launch-lane source status and coverage posture for VitalCV.',
 };

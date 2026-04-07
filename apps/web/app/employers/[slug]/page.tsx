@@ -41,12 +41,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!employer) {
     return {
-      title: 'Employer Not Found — VitalCV',
+      title: 'Employer Not Found',
     };
   }
 
   return {
-    title: `${employer.name} — VitalCV`,
+    title: employer.name,
     description: employer.tagline,
   };
 }

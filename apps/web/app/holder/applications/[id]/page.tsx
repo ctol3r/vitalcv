@@ -6,7 +6,7 @@ type Props = {
 };
 
 export const metadata: Metadata = {
-  title: 'Application Detail — VitalCV',
+  title: 'Application Detail',
   description: 'Live clinician application detail, readiness snapshot, and next steps.',
 };
 

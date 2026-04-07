@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Start a Pilot — VitalCV',
+  title: 'Start a Pilot',
   description: 'Start a focused employer pilot for NPI-to-review credential readiness decisions.',
 };
 

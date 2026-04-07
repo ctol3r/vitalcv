@@ -6,7 +6,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const FOOTER_LINKS = [
+  { href: '/explore', label: 'Explore' },
+  { href: '/developers', label: 'Developers' },
+  { href: '/compliance', label: 'Compliance' },
   { href: '/updates', label: 'Updates' },
+  { href: '/pilot', label: 'Pilot' },
+  { href: '/status', label: 'Status' },
 ] as const;
 
 export default function Footer() {
@@ -21,7 +26,9 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <p className="text-foreground/70 text-sm">&copy; VitalCV</p>
+            <p className="text-foreground/70 text-sm">
+              &copy; 2026 VitalCV &middot; Built for Healthcare Mobility
+            </p>
             <DeployBadge />
           </div>
           <div className="flex flex-wrap items-center gap-5">

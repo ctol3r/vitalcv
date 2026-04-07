@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, CheckCircle2, Clock, AlertCircle, ArrowRight, FileText, User, Activity, Eye, Share2, Sun, Moon, Database } from "lucide-react";
+import { Search, Shield, CheckCircle2, Clock, AlertCircle, ArrowRight, FileText, User, Activity, Eye, Share2, Database } from "lucide-react";
 import axios from "axios";
 import { cn } from "@/components/sandbox/lib/utils";
 import { analyzeReadiness } from "@/components/sandbox/services/geminiService";
@@ -11,7 +11,6 @@ import EmployerReviewDashboard from "@/components/sandbox/EmployerReviewDashboar
 import ReadinessPreview from "@/components/sandbox/ReadinessPreview";
 import LiveTrustConsole from "@/components/sandbox/LiveTrustConsole";
 import EmployerWorkspaceBootstrap from "@/components/sandbox/EmployerWorkspaceBootstrap";
-import EmployerNotifications from "@/components/sandbox/EmployerNotifications";
 import CoverLetterGenerator from "@/components/sandbox/CoverLetterGenerator";
 import { NPIDataResponse } from "@/components/sandbox/types/npi";
 
@@ -80,10 +79,6 @@ export default function App() {
       delete axios.defaults.headers.common["x-organization-id"];
     }
   }, [viewMode, showDemoEmployer, showReviewRequest, currentOrgId]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === "light" ? "dark" : "light"));
-  };
 
   const handleSearch = async (e: React.FormEvent | null, overrideNpi?: string) => {
     if (e) e.preventDefault();
@@ -261,74 +256,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b border-line p-6 flex justify-between items-center bg-[var(--color-bg)] sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-ink rounded-sm flex items-center justify-center text-bg font-bold">V</div>
-          <h1 className="text-xl font-bold tracking-tighter uppercase">VitalCV</h1>
-        </div>
-        <nav className="hidden md:flex gap-8 text-xs font-medium uppercase tracking-widest opacity-60">
-          <button 
-            onClick={() => {
-              setData(null);
-              setAnalysis(null);
-              setViewMode("clinician");
-              setShowDemoEmployer(false);
-              setShowReviewRequest(false);
-            }} 
-            className="hover:opacity-100 transition-opacity"
-          >
-            Start with NPI
-          </button>
-          <button 
-            onClick={() => {
-              setViewMode("employer");
-              setShowReviewRequest(true);
-              setCurrentOrgId("NEW-PILOT-ORG-" + Math.floor(Math.random() * 1000));
-              setWorkspaceActive(false);
-            }}
-            className="hover:opacity-100 transition-opacity"
-          >
-            Review Request
-          </button>
-          <button 
-            onClick={() => {
-              setViewMode("cover-letter");
-              setData(null);
-              setAnalysis(null);
-              setShowReviewRequest(false);
-            }}
-            className="hover:opacity-100 transition-opacity"
-          >
-            Cover Letter
-          </button>
-          <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
-        </nav>
-        <div className="flex items-center gap-4">
-          {(viewMode === "employer" || showDemoEmployer || showReviewRequest) && (
-            <EmployerNotifications orgId={currentOrgId} />
-          )}
-          <button 
-            onClick={toggleTheme}
-            className="p-2 hover:bg-ink/5 rounded-full transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-          </button>
-          <button 
-            onClick={() => {
-              setData(null);
-              setAnalysis(null);
-              setViewMode("clinician");
-              setShowDemoEmployer(false);
-              setShowReviewRequest(false);
-            }}
-            className="text-xs font-bold uppercase tracking-widest bg-ink text-bg px-6 py-2 hover:opacity-90 transition-colors"
-          >
-            Enter NPI
-          </button>
-        </div>
-      </header>
+      {/* Header is provided by the shared Navbar (layout/Navbar.tsx) via RootChrome */}
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12">
         <AnimatePresence mode="wait">
@@ -385,7 +313,9 @@ export default function App() {
               </p>
               
               <form onSubmit={handleSearch} className="w-full max-w-md relative">
+                <label htmlFor="sandbox-npi-input" className="sr-only">NPI number (10 digits)</label>
                 <input
+                  id="sandbox-npi-input"
                   type="text"
                   value={npi}
                   onChange={(e) => {
@@ -393,11 +323,13 @@ export default function App() {
                   }}
                   placeholder="ENTER 10-DIGIT NPI"
                   className="w-full bg-transparent border-b-2 border-line py-4 px-2 text-2xl font-mono focus:outline-none focus:border-ink transition-colors placeholder:opacity-20 uppercase"
+                  aria-describedby={error ? "sandbox-npi-error" : undefined}
                 />
                 <button
                   type="submit"
                   disabled={loading || npi.length !== 10}
                   className="absolute right-0 bottom-4 p-2 disabled:opacity-20 hover:scale-110 transition-transform"
+                  aria-label="Submit NPI"
                 >
                   {loading ? (
                     <div className="w-6 h-6 border-2 border-ink border-t-transparent rounded-full animate-spin" />
@@ -405,8 +337,8 @@ export default function App() {
                     <ArrowRight className="w-6 h-6" />
                   )}
                 </button>
-                
-                {error && <p className="text-xs text-red-500 mt-2 text-left absolute -bottom-6">{error}</p>}
+
+                {error && <p id="sandbox-npi-error" role="alert" className="text-xs text-red-500 mt-2 text-left absolute -bottom-6">{error}</p>}
               </form>
               
               <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 grayscale">
@@ -449,14 +381,25 @@ export default function App() {
                       Generate your portable passport from federal sources. Share it once, and get hired in days instead of months.
                     </p>
                   </div>
-                  <div 
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       setViewMode("employer");
                       setShowReviewRequest(true);
                       setCurrentOrgId("NEW-PILOT-ORG-" + Math.floor(Math.random() * 1000));
                       setWorkspaceActive(false);
                     }}
-                    className="border border-line p-6 hover:bg-white/5 transition-colors group block cursor-pointer"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setViewMode("employer");
+                        setShowReviewRequest(true);
+                        setCurrentOrgId("NEW-PILOT-ORG-" + Math.floor(Math.random() * 1000));
+                        setWorkspaceActive(false);
+                      }
+                    }}
+                    className="border border-line p-6 hover:bg-white/5 transition-colors group block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4 border border-line inline-block px-2 py-1">For Employers</div>
                     <h4 className="text-sm font-bold uppercase tracking-widest mb-2 group-hover:underline underline-offset-4">Make faster decisions</h4>
@@ -500,18 +443,20 @@ export default function App() {
                   {/* Actions */}
                   <div className="flex flex-col md:flex-row gap-4">
                     {viewMode === "clinician" ? (
-                      <button 
+                      <button
+                        type="button"
                         onClick={() => setShowDemoEmployer(true)}
                         className="flex-1 bg-ink text-bg py-4 font-bold uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2 group"
                       >
                         Preview Employer View <Eye className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
                     ) : (
-                      <button className="flex-1 bg-ink text-bg py-4 font-bold uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2 group">
+                      <button type="button" className="flex-1 bg-ink text-bg py-4 font-bold uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2 group">
                         Request Full Credentialing <FileText className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                       </button>
                     )}
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
                         setData(null);
                         setAnalysis(null);

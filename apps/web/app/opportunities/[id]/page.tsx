@@ -164,12 +164,12 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 
   if (!opportunity) {
     return {
-      title: 'Opportunity Not Found — VitalCV',
+      title: 'Opportunity Not Found',
     };
   }
 
   return {
-    title: `${opportunity.title} — VitalCV`,
+    title: opportunity.title,
     description: opportunity.description ?? `${opportunity.title} at ${opportunity.organizationName}`,
   };
 }

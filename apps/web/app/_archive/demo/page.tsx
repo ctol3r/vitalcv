@@ -8,7 +8,7 @@ import {
 } from '@/lib/launch/marketplace';
 
 export const metadata: Metadata = {
-  title: 'Demo — VitalCV',
+  title: 'Demo',
   description: 'Launch-safe demo entry points using the current employer, opportunity, onboarding, and intelligence surfaces.',
 };
 

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildLegacyRedirectHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Investigator Calibration | VitalCV',
+  title: 'Investigator Calibration',
   description: 'Investigator accuracy, false positive rates, evidence quality, and learning loop metrics.',
 };
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'SDKs | VitalCV Docs',
+  title: 'SDKs',
   description: 'Current VitalCV TypeScript SDK packages for verifier, issuer, and wallet flows.',
 };
 
