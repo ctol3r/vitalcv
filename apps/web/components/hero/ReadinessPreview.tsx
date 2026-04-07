@@ -17,6 +17,7 @@
  *   - Source names and checked timestamps shown where available
  */
 
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Accordion, type AccordionItem } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -610,6 +611,12 @@ export function ReadinessPreview({
   continueDisabled = false,
   continueLabel = 'Continue to passport',
 }: Props) {
+  useEffect(() => {
+    if (visible && typeof window !== 'undefined' && (window as any).posthog) {
+      (window as any).posthog.capture('Readiness_Viewed', { npi, isDemo });
+    }
+  }, [visible, npi, isDemo]);
+
   const checkedLabel = getTrustStatusLabel('checked');
   const pendingLabel = getTrustStatusLabel('pending');
   const accessRequiredLabel = getTrustStatusLabel('access_required');

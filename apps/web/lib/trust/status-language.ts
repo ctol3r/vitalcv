@@ -26,7 +26,7 @@ export type SourceCoverageState = PassportSourceCoverageState;
 /**
  * Trust status tone — drives visual rendering of trust badges.
  *
- * 'demo' is legacy naming for preview/non-decision-grade data.
+ * 'preview_only' is legacy naming for preview/non-decision-grade data.
  * It renders as "Preview" (blue badge) and is treated as blocking
  * by `isBlockingStatus`. It NEVER implies verified/checked trust.
  */
@@ -36,7 +36,7 @@ export type TrustStatusTone =
   | 'warning'
   | 'critical'
   | 'neutral'
-  | 'demo';
+  | 'preview_only';
 
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
@@ -136,9 +136,8 @@ export function getStatusTone(status: TrustUiStatus): TrustStatusTone {
       return 'warning';
     case 'review_required':
       return 'critical';
-    case 'demo':
     case 'preview_only':
-      return 'demo';
+      return 'preview_only';
     case 'pending':
     case 'unavailable':
     default:
@@ -157,7 +156,6 @@ export function isBlockingStatus(status: TrustUiStatus): boolean {
     || status === 'unavailable'
     || status === 'access_required'
     || status === 'review_required'
-    || status === 'demo'
     || status === 'preview_only'
   );
 }
@@ -169,7 +167,6 @@ export function isInspectableStatus(status: TrustUiStatus): boolean {
     || status === 'checked'
     || status === 'stale'
     || status === 'review_required'
-    || status === 'demo'
     || status === 'preview_only'
   );
 }

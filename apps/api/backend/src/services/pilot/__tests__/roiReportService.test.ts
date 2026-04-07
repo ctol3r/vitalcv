@@ -111,7 +111,7 @@ describe('roiReportService', () => {
     const report = generateRoiReport(buildSnapshot());
     const readyMetric = findMetric(report, 'ready_at_latest_review');
 
-    expect(report.topLine.percentReadyAtFirstReview).toBe(50);
+    expect(report.topLine.percentReadyAtLatestReviewInWindow).toBe(50);
     expect(readyMetric).toEqual(expect.objectContaining({
       label: '% of reviewed clinicians READY at latest review in window',
       industryBaseline: null,

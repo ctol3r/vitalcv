@@ -36,7 +36,7 @@ const fontVariables = {
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
-  title: 'VitalCV',
+  title: 'VitalCV — Check Clinician Readiness in Seconds | Healthcare Credentialing',
   description: 'Reusable trust state for clinician credentialing.',
 };
 

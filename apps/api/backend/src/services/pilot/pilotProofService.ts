@@ -191,12 +191,24 @@ export interface PilotProofSummary {
   livePilot: {
     windowDays: number;
     measuredDelta: PilotKpiSnapshot['velocity'];
+    conversion: {
+      shareToReviewRatePct: number | null;
+      reviewToDecisionRatePct: number | null;
+      reviewToProceedRatePct: number | null;
+      proceedToStartRatePct: number | null;
+    };
+    decisionOutcomes: PilotKpiSnapshot['decisions'];
+    blockerTiming: Array<Pick<
+      PilotKpiSnapshot['blockers'][number],
+      'code' | 'openCount' | 'resolvedCount' | 'avgResolutionDays' | 'medianResolutionDays'
+    >>;
     startOutcomes: Pick<
       PilotKpiSnapshot['startOutcomes'],
       'totalStarts' | 'totalOutcomeRecords' | 'didNotStartCount' | 'nonStartReasons'
     >;
     eventChain: PilotKpiSnapshot['eventChain'];
     proofChain: PilotKpiSnapshot['proofChain'];
+    gaps: string[];
     exports: {
       json: true;
       csv: true;
@@ -320,6 +332,14 @@ function average(values: readonly number[]): number | null {
 
   const total = values.reduce((sum, value) => sum + value, 0);
   return Math.round(total / values.length);
+}
+
+function percentage(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) {
+    return null;
+  }
+
+  return Math.round((numerator / denominator) * 100);
 }
 
 function minutesBetween(startedAt: Date, completedAt: Date): number | null {
@@ -1437,6 +1457,32 @@ export async function getPilotProofSummary(
     livePilot: {
       windowDays: livePilotSnapshot.windowDays,
       measuredDelta: livePilotSnapshot.velocity,
+      conversion: {
+        shareToReviewRatePct: percentage(
+          livePilotSnapshot.reviewsOpened.total,
+          livePilotSnapshot.packetShares.total,
+        ),
+        reviewToDecisionRatePct: percentage(
+          livePilotSnapshot.decisions.total,
+          livePilotSnapshot.reviewsOpened.total,
+        ),
+        reviewToProceedRatePct: percentage(
+          livePilotSnapshot.decisions.proceedCount,
+          livePilotSnapshot.reviewsOpened.total,
+        ),
+        proceedToStartRatePct: percentage(
+          livePilotSnapshot.startOutcomes.totalStarts,
+          livePilotSnapshot.decisions.proceedCount,
+        ),
+      },
+      decisionOutcomes: livePilotSnapshot.decisions,
+      blockerTiming: livePilotSnapshot.blockers.map((blocker) => ({
+        code: blocker.code,
+        openCount: blocker.openCount,
+        resolvedCount: blocker.resolvedCount,
+        avgResolutionDays: blocker.avgResolutionDays,
+        medianResolutionDays: blocker.medianResolutionDays,
+      })),
       startOutcomes: {
         totalStarts: livePilotSnapshot.startOutcomes.totalStarts,
         totalOutcomeRecords: livePilotSnapshot.startOutcomes.totalOutcomeRecords,
@@ -1445,6 +1491,7 @@ export async function getPilotProofSummary(
       },
       eventChain: livePilotSnapshot.eventChain,
       proofChain: livePilotSnapshot.proofChain,
+      gaps: livePilotSnapshot.gaps,
       exports: {
         json: true,
         csv: true,
@@ -1486,6 +1533,16 @@ export function pilotProofSummaryToExportRows(summary: PilotProofSummary): Pilot
     { section: 'live_pilot', label: 'sample_review_to_ready', value: String(summary.livePilot.measuredDelta.sampleSizes.reviewToReady) },
     { section: 'live_pilot', label: 'sample_review_to_start', value: String(summary.livePilot.measuredDelta.sampleSizes.reviewToStart) },
     { section: 'live_pilot', label: 'sample_share_to_decision', value: String(summary.livePilot.measuredDelta.sampleSizes.shareToDecision) },
+    { section: 'conversion', label: 'share_to_review_rate_pct', value: exportValue(summary.livePilot.conversion.shareToReviewRatePct) },
+    { section: 'conversion', label: 'review_to_decision_rate_pct', value: exportValue(summary.livePilot.conversion.reviewToDecisionRatePct) },
+    { section: 'conversion', label: 'review_to_proceed_rate_pct', value: exportValue(summary.livePilot.conversion.reviewToProceedRatePct) },
+    { section: 'conversion', label: 'proceed_to_start_rate_pct', value: exportValue(summary.livePilot.conversion.proceedToStartRatePct) },
+    { section: 'decisions', label: 'total', value: String(summary.livePilot.decisionOutcomes.total) },
+    { section: 'decisions', label: 'proceed_count', value: String(summary.livePilot.decisionOutcomes.proceedCount) },
+    { section: 'decisions', label: 'refresh_count', value: String(summary.livePilot.decisionOutcomes.refreshCount) },
+    { section: 'decisions', label: 'route_count', value: String(summary.livePilot.decisionOutcomes.routeCount) },
+    { section: 'decisions', label: 'reject_count', value: String(summary.livePilot.decisionOutcomes.rejectCount) },
+    { section: 'decisions', label: 'hold_count', value: String(summary.livePilot.decisionOutcomes.holdCount) },
     { section: 'start_outcomes', label: 'total_starts', value: String(summary.livePilot.startOutcomes.totalStarts) },
     { section: 'start_outcomes', label: 'total_outcome_records', value: String(summary.livePilot.startOutcomes.totalOutcomeRecords) },
     { section: 'start_outcomes', label: 'did_not_start_count', value: String(summary.livePilot.startOutcomes.didNotStartCount) },
@@ -1501,6 +1558,16 @@ export function pilotProofSummaryToExportRows(summary: PilotProofSummary): Pilot
       label: entry.reason,
       value: String(entry.count),
     });
+  });
+
+  summary.livePilot.blockerTiming.forEach((blocker) => {
+    const section = `blocker:${blocker.code.toLowerCase()}`;
+    rows.push(
+      { section, label: 'open_count', value: String(blocker.openCount) },
+      { section, label: 'resolved_count', value: String(blocker.resolvedCount) },
+      { section, label: 'avg_resolution_days', value: exportValue(blocker.avgResolutionDays) },
+      { section, label: 'median_resolution_days', value: exportValue(blocker.medianResolutionDays) },
+    );
   });
 
   summary.livePilot.proofChain.cases.forEach((proofCase, index) => {
@@ -1525,6 +1592,18 @@ export function pilotProofSummaryToExportRows(summary: PilotProofSummary): Pilot
       { section, label: 'detail', value: event.detail ?? 'none' },
     );
   });
+
+  if (summary.livePilot.gaps.length === 0) {
+    rows.push({ section: 'live_pilot_gaps', label: 'status', value: 'none' });
+  } else {
+    summary.livePilot.gaps.forEach((gap, index) => {
+      rows.push({
+        section: 'live_pilot_gaps',
+        label: `gap_${index + 1}`,
+        value: gap,
+      });
+    });
+  }
 
   return rows;
 }

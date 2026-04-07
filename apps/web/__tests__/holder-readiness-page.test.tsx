@@ -10,7 +10,7 @@ vi.mock('next/navigation', async () => {
   const actual = await vi.importActual<typeof import('next/navigation')>('next/navigation');
   return {
     ...actual,
-    usePathname: () => '/holder/readiness',
+    redirect: vi.fn(), usePathname: () => '/holder/readiness',
     useSearchParams: () => new URLSearchParams(),
   };
 });

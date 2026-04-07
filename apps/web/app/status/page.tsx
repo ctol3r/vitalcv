@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
 import { getBackendBase } from '@/lib/api';
 import type { SourceOpsEntry, SourceOpsReport } from '@/lib/mission-ops/sourceOpsTypes';
 
 export const dynamic = 'force-dynamic';
+
+// ── Last-known-good cache (persists within warm lambda instances) ─────
+let cachedReport: SourceOpsReport | null = null;
+let cachedAt: number | null = null;
 
 export const metadata: Metadata = {
   title: 'Status — VitalCV',
@@ -64,21 +68,45 @@ function formatRelativeAge(value: string | null): string {
   return `${Math.floor(diffHours / 24)}d ago`;
 }
 
-async function fetchSourceHealth(): Promise<SourceOpsReport | null> {
-  try {
-    const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(12_000),
-    });
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1_500;
+const FETCH_TIMEOUT_MS = 8_000;
 
-    if (!response.ok) {
-      return null;
+async function fetchOnce(): Promise<SourceOpsReport | null> {
+  const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) return null;
+  return await response.json() as SourceOpsReport;
+}
+
+async function fetchSourceHealth(): Promise<{ report: SourceOpsReport | null; fromCache: boolean }> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const report = await fetchOnce();
+      if (report) {
+        cachedReport = report;
+        cachedAt = Date.now();
+        return { report, fromCache: false };
+      }
+    } catch {
+      // Log server-side for observability
+      console.error(`[status] fetch attempt ${attempt}/${MAX_RETRIES} failed`);
     }
 
-    return await response.json() as SourceOpsReport;
-  } catch {
-    return null;
+    if (attempt < MAX_RETRIES) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
   }
+
+  // All retries exhausted — fall back to cached data if available
+  if (cachedReport) {
+    return { report: cachedReport, fromCache: true };
+  }
+
+  return { report: null, fromCache: false };
 }
 
 function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
@@ -100,8 +128,12 @@ function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
 }
 
 export default async function StatusPage() {
-  const report = await fetchSourceHealth();
+  const { report, fromCache } = await fetchSourceHealth();
   const sources = report ? selectPublicSources(report.sources) : [];
+
+  const cacheAgeLabel = fromCache && cachedAt
+    ? formatRelativeAge(new Date(cachedAt).toISOString())
+    : null;
 
   return (
     <main className="min-h-screen bg-background px-6 py-16 text-foreground">
@@ -120,13 +152,24 @@ export default async function StatusPage() {
               checked, stale, gated, access required, unavailable, or pending. Unsupported sources are not upgraded into stronger claims.
             </p>
           </div>
-          {report ? (
-            <div className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
+          {report && !fromCache ? (
+            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
               Spine status: {report.spineStatus}
+              {report.timestamp ? (
+                <span className="text-xs font-normal opacity-60">
+                  · {formatRelativeAge(report.timestamp)}
+                </span>
+              ) : null}
+            </div>
+          ) : report && fromCache ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-muted-foreground">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Showing cached data{cacheAgeLabel ? ` · ${cacheAgeLabel}` : ''}
             </div>
           ) : (
-            <div className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-400">
-              Live status unavailable
+            <div className="inline-flex items-center gap-2 rounded-full border border-rose-500/25 bg-rose-500/8 px-4 py-2 text-sm font-semibold text-rose-400">
+              <XCircle className="h-3.5 w-3.5" />
+              Status feed unreachable
             </div>
           )}
         </header>
@@ -158,14 +201,29 @@ export default async function StatusPage() {
           </div>
         </section>
 
+        {fromCache ? (
+          <section className="rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <RefreshCw className="h-4 w-4 shrink-0" />
+              <p>
+                The live status feed is temporarily unreachable. Showing the last successful snapshot
+                {cacheAgeLabel ? ` from ${cacheAgeLabel}` : ''}.
+                Data below may not reflect the current state.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         {!report ? (
-          <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+          <section className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+              <XCircle className="mt-0.5 h-5 w-5 text-rose-400" />
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold">Status service unavailable</h2>
+                <h2 className="text-lg font-semibold">Unable to load status data</h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  VitalCV could not load the current source report. Treat source posture as unknown until the status feed is reachable again.
+                  VitalCV could not reach the source health service after multiple attempts.
+                  Source posture should be treated as unknown until this page loads successfully.
+                  Try refreshing in a few minutes.
                 </p>
               </div>
             </div>

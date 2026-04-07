@@ -89,7 +89,7 @@ describe('passport truth helpers', () => {
       sourceScope: 'FSMB_MED_API',
     });
 
-    expect(resolveAuthoritySectionStatus([active], [])).toBe('verified');
+    expect(resolveAuthoritySectionStatus([active], [])).toBe('checked');
     expect(resolveAuthoritySectionStatus([gated], [])).toBe('access_required');
     expect(resolveAuthoritySectionStatus([active, gated], [])).toBe('review_required');
     expect(isDecisionGradeAuthorityCredential(active)).toBe(true);

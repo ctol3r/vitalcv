@@ -423,6 +423,21 @@ export interface PilotKpiExportRow {
   value: string;
 }
 
+type EffectiveNonStartOutcomeRow = {
+  id: string;
+  createdAt: Date;
+  metadata: Record<string, unknown>;
+  occurredAt: string;
+  entityId: string | null;
+  npi: string | null;
+  organizationContextId: string | null;
+  outcomeStatus: string | null;
+  nonStartReason: string | null;
+  pilotId: string | null;
+  workflowLane: string | null;
+  geographyTag: string | null;
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function daysBetween(a: Date, b: Date): number {
@@ -499,6 +514,14 @@ function readTimestampMs(value: unknown): number | null {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function percentage(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) {
+    return null;
+  }
+
+  return Math.round((numerator / denominator) * 100);
 }
 
 function readScopeFields(metadata: Record<string, unknown>): {
@@ -590,11 +613,22 @@ function proofChainCaseKey(event: {
   entityId: string | null;
   npi: string | null;
   organizationContextId: string | null;
+  pilotId: string | null;
+  workflowLane: string | null;
+  geographyTag: string | null;
 }): string {
-  return [
+  const base = [
     event.entityId ?? event.npi ?? 'unscoped',
     event.organizationContextId ?? 'global',
-  ].join('|');
+  ];
+  if (event.pilotId || event.workflowLane || event.geographyTag) {
+    base.push(
+      event.pilotId ?? '(all)',
+      event.workflowLane ?? '(all)',
+      event.geographyTag ?? '(all)',
+    );
+  }
+  return base.join('|');
 }
 
 function buildProofChainSummary(
@@ -694,6 +728,51 @@ function collapseCorrectedStartOutcomes(rows: StartOutcomeRow[]): StartOutcomeRo
 
   return [...effectiveRows.values()].sort(
     (left, right) => left.startedAt.getTime() - right.startedAt.getTime(),
+  );
+}
+
+function effectiveNonStartOutcomeKey(row: EffectiveNonStartOutcomeRow): string {
+  return [
+    row.entityId ?? row.npi ?? row.id,
+    row.organizationContextId ?? '(global)',
+    row.pilotId ?? '(all)',
+    row.workflowLane ?? '(all)',
+    row.geographyTag ?? '(all)',
+    row.outcomeStatus ?? '(unknown)',
+    row.occurredAt,
+  ].join('|');
+}
+
+function collapseNonStartOutcomeAuditRows(rows: AuditEventRow[]): EffectiveNonStartOutcomeRow[] {
+  const effectiveRows = new Map<string, EffectiveNonStartOutcomeRow>();
+
+  for (const row of rows) {
+    const metadata = readJson(row.metadata);
+    const scope = readScopeFields(metadata);
+    const normalized = {
+      id: row.id,
+      createdAt: row.createdAt,
+      metadata,
+      occurredAt: readString(metadata.occurredAt) ?? row.createdAt.toISOString(),
+      entityId: readString(metadata.entityId) ?? row.referenceId ?? null,
+      npi: readString(metadata.npi) ?? row.clinicianId ?? null,
+      organizationContextId: readString(metadata.organizationContextId),
+      outcomeStatus: readString(metadata.outcomeStatus),
+      nonStartReason: readString(metadata.nonStartReason) ?? 'unspecified',
+      pilotId: scope.pilotId,
+      workflowLane: scope.workflowLane,
+      geographyTag: scope.geographyTag,
+    } satisfies EffectiveNonStartOutcomeRow;
+    const key = effectiveNonStartOutcomeKey(normalized);
+    const existing = effectiveRows.get(key);
+
+    if (!existing || normalized.createdAt >= existing.createdAt) {
+      effectiveRows.set(key, normalized);
+    }
+  }
+
+  return [...effectiveRows.values()].sort(
+    (left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt),
   );
 }
 
@@ -819,6 +898,7 @@ export async function computePilotKpis(
     return readString(metadata.eventName) === 'start_outcome_recorded'
       && readString(metadata.outcomeStatus) === DID_NOT_START_OUTCOME_STATUS;
   });
+  const effectiveNonStartOutcomeRows = collapseNonStartOutcomeAuditRows(nonStartOutcomeAuditRows);
   const blockerResolvedMetricRows = relevantAuditRows.filter((row) => (
     row.type === PILOT_OPS_EVENT_AUDIT_TYPE
     && readString(readJson(row.metadata).eventType) === BLOCKER_RESOLVED_EVENT_TYPE
@@ -1000,15 +1080,7 @@ export async function computePilotKpis(
   const recordedStartCount = effectiveStartOutcomeRows.length;
   const distinctOutcomeSubjects = new Set([
     ...effectiveStartOutcomeRows.map((row) => row.entityId),
-    ...nonStartOutcomeAuditRows.map((row) => {
-      const metadata = readJson(row.metadata);
-      return (
-        readString(metadata.entityId)
-        ?? row.referenceId
-        ?? readString(metadata.npi)
-        ?? row.clinicianId
-      );
-    }),
+    ...effectiveNonStartOutcomeRows.map((row) => row.entityId ?? row.npi),
   ].filter((value): value is string => Boolean(value))).size;
   const distinctStartEntities = new Set(
     effectiveStartOutcomeRows.map((row) => row.entityId),
@@ -1018,15 +1090,15 @@ export async function computePilotKpis(
     .filter((value): value is number => value !== null);
   const nonStartReasonCounts = new Map<string, number>();
 
-  for (const row of nonStartOutcomeAuditRows) {
-    const reason = readString(readJson(row.metadata).nonStartReason) ?? 'unspecified';
+  for (const row of effectiveNonStartOutcomeRows) {
+    const reason = row.nonStartReason ?? 'unspecified';
     nonStartReasonCounts.set(reason, (nonStartReasonCounts.get(reason) ?? 0) + 1);
   }
 
   const startOutcomes: StartOutcomeStats = {
     totalStarts,
-    totalOutcomeRecords: recordedStartCount + nonStartOutcomeAuditRows.length,
-    didNotStartCount: nonStartOutcomeAuditRows.length,
+    totalOutcomeRecords: recordedStartCount + effectiveNonStartOutcomeRows.length,
+    didNotStartCount: effectiveNonStartOutcomeRows.length,
     nonStartReasons: [...nonStartReasonCounts.entries()]
       .map(([reason, count]) => ({ reason, count }))
       .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason)),
@@ -1099,9 +1171,9 @@ export async function computePilotKpis(
       npi: event.npi ?? null,
       organizationContextId: event.organizationContextId ?? null,
       organizationId: event.organizationId ?? null,
-      pilotId: null,
-      workflowLane: null,
-      geographyTag: null,
+      pilotId: hasMetadataScopedFilter(filter) ? filter.pilotId ?? null : null,
+      workflowLane: hasMetadataScopedFilter(filter) ? filter.workflowLane ?? null : null,
+      geographyTag: hasMetadataScopedFilter(filter) ? filter.geographyTag ?? null : null,
       sourceRecordType: 'BundleShareEvent',
       sourceRecordId: event.id,
       outcomeStatus: null,
@@ -1210,23 +1282,21 @@ export async function computePilotKpis(
         detail: readString(metadata.note) ?? 'started',
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
-    ...nonStartOutcomeAuditRows.map((row) => {
-      const metadata = readJson(row.metadata);
-      const scope = readScopeFields(metadata);
+    ...effectiveNonStartOutcomeRows.map((row) => {
       return {
         eventName: 'start_outcome_recorded',
-        occurredAt: readString(metadata.occurredAt) ?? row.createdAt.toISOString(),
-        entityId: readString(metadata.entityId) ?? row.referenceId ?? null,
-        npi: readString(metadata.npi) ?? row.clinicianId ?? null,
-        organizationContextId: readString(metadata.organizationContextId),
-        organizationId: row.organizationId ?? readString(metadata.organizationId),
-        pilotId: scope.pilotId,
-        workflowLane: scope.workflowLane,
-        geographyTag: scope.geographyTag,
+        occurredAt: row.occurredAt,
+        entityId: row.entityId,
+        npi: row.npi,
+        organizationContextId: row.organizationContextId,
+        organizationId: readString(row.metadata.organizationId),
+        pilotId: row.pilotId,
+        workflowLane: row.workflowLane,
+        geographyTag: row.geographyTag,
         sourceRecordType: 'AuditEvent',
         sourceRecordId: row.id,
-        outcomeStatus: readString(metadata.outcomeStatus),
-        detail: readString(metadata.nonStartReason),
+        outcomeStatus: row.outcomeStatus,
+        detail: row.nonStartReason,
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
   ].map((event) => ({
@@ -1406,6 +1476,26 @@ export function kpiSnapshotToExportRows(snap: PilotKpiSnapshot): PilotKpiExportR
     { section: 'proof_chain_summary', label: 'total_cases', value: String(snap.proofChain.totalCases) },
     { section: 'proof_chain_summary', label: 'replayable_cases', value: String(snap.proofChain.replayableCases) },
     { section: 'proof_chain_summary', label: 'partial_cases', value: String(snap.proofChain.partialCases) },
+    {
+      section: 'conversion',
+      label: 'share_to_review_rate_pct',
+      value: formatExportValue(percentage(snap.reviewsOpened.total, snap.packetShares.total), 'insufficient data'),
+    },
+    {
+      section: 'conversion',
+      label: 'review_to_decision_rate_pct',
+      value: formatExportValue(percentage(snap.decisions.total, snap.reviewsOpened.total), 'insufficient data'),
+    },
+    {
+      section: 'conversion',
+      label: 'review_to_proceed_rate_pct',
+      value: formatExportValue(percentage(snap.decisions.proceedCount, snap.reviewsOpened.total), 'insufficient data'),
+    },
+    {
+      section: 'conversion',
+      label: 'proceed_to_start_rate_pct',
+      value: formatExportValue(percentage(snap.startOutcomes.totalStarts, snap.decisions.proceedCount), 'insufficient data'),
+    },
   ];
 
   for (const [deliveryStatus, count] of Object.entries(snap.packetShares.byDeliveryStatus).sort(([left], [right]) => left.localeCompare(right))) {

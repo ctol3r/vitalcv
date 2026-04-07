@@ -1,5 +1,17 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import ExploreClient from '@/components/explore/ExploreClient';
+
+export const metadata: Metadata = {
+  title: 'Explore Roles — VitalCV',
+  description:
+    'Browse clinical opportunities and see where your readiness snapshot may apply.',
+};
 
 export default function ExplorePage() {
-  redirect('/onboarding');
+  return (
+    <Suspense>
+      <ExploreClient />
+    </Suspense>
+  );
 }

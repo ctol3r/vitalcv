@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePostHog } from 'posthog-js/react';
 import {
   Check,
   Clock,
@@ -53,6 +54,7 @@ export function SharePacketModal({
 }: SharePacketModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const posthog = usePostHog();
 
   const handleGenerateLink = async () => {
     setIsGenerating(true);
@@ -60,6 +62,7 @@ export function SharePacketModal({
       if (onGenerateLink) {
         const result = await onGenerateLink(npi);
         setShareUrl(result.shareUrl);
+        posthog?.capture('Passport_Generated', { npi, entityId });
       } else {
         const res = await fetch(
           `/api/employer-review/${entityId}/share-packet`,
@@ -72,6 +75,7 @@ export function SharePacketModal({
         if (!res.ok) throw new Error('Failed to generate share link');
         const data = await res.json();
         setShareUrl(data.shareUrl);
+        posthog?.capture('Passport_Generated', { npi, entityId });
       }
     } catch (error) {
       console.error('Failed to generate share link:', error);

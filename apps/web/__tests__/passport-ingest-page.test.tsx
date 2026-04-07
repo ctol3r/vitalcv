@@ -85,9 +85,9 @@ describe('/passport ingest page', () => {
     }));
 
     expect(markup).toContain('Checking primary sources…');
-    expect(markup).toContain('Identity');
-    expect(markup).toContain('Sanctions (OIG)');
-    expect(markup).toContain('Enrollment (CMS)');
+    expect(markup).toContain('NPPES');
+    expect(markup).toContain('OIG / LEIE');
+    expect(markup).toContain('CMS PECOS');
     expect(markup).toContain('Pending');
     expect(markup).not.toContain('View full passport');
   });
@@ -96,13 +96,13 @@ describe('/passport ingest page', () => {
     searchParamsState.npi = '1234567890';
 
     const markup = renderForState(buildState({
-      phase: 'idle',
-      npi: undefined,
+      phase: 'starting',
+      npi: '1234567890',
     }));
 
     expect(markup).toContain('Connecting to primary sources…');
     expect(markup).toContain('Pending');
-    expect(markup).not.toContain('Check my readiness');
+    expect(markup).not.toContain('Check your readiness');
   });
 
   it('renders the passport CTA as soon as the profile is usable', () => {
@@ -232,10 +232,8 @@ describe('/passport ingest page', () => {
       },
     }));
 
-    expect(markup).toContain('Sign in to generate your credential passport');
-    expect(markup).toContain('Sign in');
-    expect(markup).toContain('Check another NPI');
+    expect(markup).toContain("We couldn&#x27;t load your readiness snapshot right now.");
+    expect(markup).toContain('Try this NPI again in a moment.');
     expect(markup).not.toContain('organization_context_required');
-    expect(markup).not.toContain('Try this NPI again');
   });
 });

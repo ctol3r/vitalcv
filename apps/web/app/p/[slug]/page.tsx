@@ -20,6 +20,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import PassportShareActions from '@/components/passport/PassportShareActions';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
+import { EmployerTracker } from '@/components/telemetry/EmployerTracker';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -804,6 +805,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       {profile.mode === 'slug' && (
         <SlugEmployerHook slug={profile.slug} name={profile.name} />
       )}
+      
+      <EmployerTracker 
+        npi={profile.mode === 'npi' ? profile.npi : undefined} 
+        slug={profile.mode === 'slug' ? profile.slug : undefined} 
+      />
     </main>
   );
 }

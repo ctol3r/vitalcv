@@ -1,1 +1,5 @@
-export { dynamic, default } from '../passport/page';
+import { redirect } from 'next/navigation';
+
+export default function ReadinessPage() {
+  redirect('/passport');
+}

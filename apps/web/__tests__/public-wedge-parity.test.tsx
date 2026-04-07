@@ -98,7 +98,7 @@ describe('public wedge parity helpers', () => {
       ['access_required', 'Access required'],
       ['unavailable', 'Unavailable'],
       ['review_required', 'Review required'],
-      ['preview_only', 'Preview only'],
+      ['preview_only', 'Preview'],
     ]);
   });
 
@@ -145,7 +145,7 @@ describe('public wedge parity helpers', () => {
       />,
     );
 
-    expect(markup).toContain('Preview only');
+    expect(markup).toContain('Preview');
     expect(markup).not.toContain('Confirmed');
     expect(markup).not.toContain('Verified');
   });

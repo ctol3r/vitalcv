@@ -13,6 +13,10 @@ jest.mock('../../graphql/prisma_client', () => ({
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
+    claimRecord: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
   },
 }));
 
@@ -32,10 +36,11 @@ jest.mock('../../services/passport/shareLink', () => ({
 
 jest.mock('../../services/trust/trustStateEngine', () => ({
   getCachedTrustState: jest.fn(),
+  computeClinicianTrustState: jest.fn().mockResolvedValue(null),
 }));
 
 jest.mock('../../obs/logger', () => ({
-  log: jest.fn(),
+  log: jest.fn((level, msg, ctx) => console.log(level, msg, ctx)),
 }));
 
 import prisma from '../../graphql/prisma_client';
@@ -66,6 +71,10 @@ const prismaMock = prisma as unknown as {
   };
   decisionCapsule: {
     findMany: jest.Mock;
+  };
+  claimRecord: {
+    findMany: jest.Mock;
+    findFirst: jest.Mock;
   };
   verificationArtifact: {
     findMany: jest.Mock;
@@ -205,6 +214,7 @@ function seedPassportData(overrides?: {
   capsules?: Array<Record<string, unknown>>;
   oigArtifact?: Record<string, unknown> | null;
   trustState?: Record<string, unknown> | null;
+  claimRecords?: Array<Record<string, unknown>>;
 }) {
   prismaMock.provider.findFirst.mockResolvedValue(Object.prototype.hasOwnProperty.call(overrides ?? {}, 'provider')
     ? overrides?.provider ?? null
@@ -265,6 +275,8 @@ function seedPassportData(overrides?: {
     },
   ]);
   prismaMock.decisionCapsule.findMany.mockResolvedValue(overrides?.capsules ?? []);
+  prismaMock.claimRecord.findMany.mockResolvedValue(overrides?.claimRecords ?? []);
+  prismaMock.claimRecord.findFirst.mockResolvedValue(overrides?.claimRecords?.[0] ?? null);
   prismaMock.verificationArtifact.findFirst.mockResolvedValue(
     Object.prototype.hasOwnProperty.call(overrides ?? {}, 'oigArtifact')
       ? overrides?.oigArtifact ?? null
@@ -298,6 +310,8 @@ describe('passport routes', () => {
     prismaMock.decisionCapsule.findMany.mockReset();
     prismaMock.verificationArtifact.findMany.mockReset();
     prismaMock.verificationArtifact.findFirst.mockReset();
+    prismaMock.claimRecord.findMany.mockReset();
+    prismaMock.claimRecord.findFirst.mockReset();
     trustStateMock.mockReset();
   });
 

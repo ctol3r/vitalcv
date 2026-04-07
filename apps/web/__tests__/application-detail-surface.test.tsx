@@ -9,7 +9,7 @@ vi.mock('next/navigation', async () => {
   const actual = await vi.importActual<typeof import('next/navigation')>('next/navigation');
   return {
     ...actual,
-    usePathname: () => '/holder/applications/app_1',
+    redirect: vi.fn(), usePathname: () => '/holder/applications/app_1',
     useSearchParams: () => new URLSearchParams(),
   };
 });

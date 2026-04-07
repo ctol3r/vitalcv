@@ -1,8 +1,17 @@
 'use client';
 
 import React from 'react';
-import SandboxApp from '@/components/sandbox/SandboxApp';
+import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
+import { TrustStrip } from '@/components/home/PublicTruthSections';
+import { BuyerPilotSection, HowItWorksSection } from '@/components/marketing/HomeSections';
 
 export default function HomePage() {
-  return <SandboxApp />;
+  return (
+    <div className="bg-background">
+      <HeroWithAuthPrompt />
+      <TrustStrip />
+      <HowItWorksSection />
+      <BuyerPilotSection />
+    </div>
+  );
 }

@@ -10,20 +10,12 @@ export const CLERK_ENABLED = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 );
 
-const LOCAL_BACKEND_CONFIGURED = (
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? ''
-).includes('localhost');
-
-const CLERK_LIVE_KEY =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_live_') ?? false;
-
 /**
- * Matches the app-layout gating rule: when local development points at a local
- * backend while the frontend has a live Clerk publishable key, do not mount the
- * Clerk provider or any hook consumers that require it.
+ * Whether to mount ClerkProvider and enable all Clerk auth hooks.
+ * Enabled whenever a publishable key is configured — the previous guard
+ * that blocked live keys on localhost broke sign-in entirely.
  */
-export const CLERK_PROVIDER_ENABLED =
-  CLERK_ENABLED && !(LOCAL_BACKEND_CONFIGURED && CLERK_LIVE_KEY);
+export const CLERK_PROVIDER_ENABLED = CLERK_ENABLED;
 
 /**
  * True when running with production Clerk keys (pk_live_ / sk_live_ prefixes).

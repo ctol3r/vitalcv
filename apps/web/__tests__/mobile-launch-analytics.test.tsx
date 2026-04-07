@@ -58,7 +58,7 @@ vi.mock('@/components/auth/RoleContext', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => mockPathname,
+  redirect: vi.fn(), usePathname: () => mockPathname,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     push: routerPushMock,
