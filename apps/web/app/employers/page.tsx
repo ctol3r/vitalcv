@@ -53,6 +53,7 @@ export default async function EmployersPage() {
         ))}
       </div>
 
+      <h2 className="sr-only">Platform capabilities</h2>
       <div className="grid gap-12 md:grid-cols-3 mb-24">
         <div className="space-y-4">
           <Clock className="h-6 w-6 text-[var(--vt-text-3)]" />
@@ -93,7 +94,7 @@ export default async function EmployersPage() {
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/"
+            href="/passport"
             className="inline-flex justify-center items-center gap-2 rounded-lg border border-[var(--vt-border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
           >
             Start with NPI Lookup

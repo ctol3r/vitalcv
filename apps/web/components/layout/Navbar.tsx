@@ -54,7 +54,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="font-heading text-lg font-semibold tracking-tight shrink-0"
+          className="font-heading text-lg font-semibold tracking-tight shrink-0 text-white"
           onClick={closeMenu}
         >
           VitalCV
@@ -72,7 +72,7 @@ export default function Navbar() {
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
                     ? 'bg-white/12 text-white'
-                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {item.label}
@@ -86,7 +86,7 @@ export default function Navbar() {
           <ThemeToggle />
           <Link
             href="/sign-in"
-            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground/80 hover:border-border hover:text-foreground transition"
+            className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/50 hover:text-white transition"
           >
             Sign In
           </Link>
@@ -104,7 +104,7 @@ export default function Navbar() {
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
           aria-controls="mobile-nav-menu"
-          className="rounded-lg p-2 text-foreground/70 hover:bg-muted hover:text-foreground transition md:hidden"
+          className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -123,7 +123,7 @@ export default function Navbar() {
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isRouteActive(pathname, item.href)
                       ? 'bg-white/12 text-white'
-                      : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {item.label}
@@ -135,7 +135,7 @@ export default function Navbar() {
             <Link
               href="/sign-in"
               onClick={closeMenu}
-              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-foreground/80"
+              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-white/80"
             >
               Sign In
             </Link>

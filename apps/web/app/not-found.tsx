@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { NotFoundTracker } from '@/lib/analytics/not-found-tracker';
+
+export const metadata: Metadata = {
+  title: 'Page Not Found',
+};
 
 export default function NotFound() {
   return (

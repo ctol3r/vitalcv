@@ -24,7 +24,7 @@ const DEMO_PATHS: Record<
 
 function normalizeApiBase(base: string): string {
   if (!base) return '';
-  const trimmed = base.trim();
+  const trimmed = base.replace(/[\r\n]/g, '').trim();
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
 }
 

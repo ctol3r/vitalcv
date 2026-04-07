@@ -56,7 +56,7 @@ export default function PilotPage() {
               <div className="mb-3 inline-flex rounded-full bg-emerald-500/10 p-2 text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
-              <h2 className="text-lg font-semibold">{step.title}</h2>
+              <h3 className="text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
             </article>
           ))}

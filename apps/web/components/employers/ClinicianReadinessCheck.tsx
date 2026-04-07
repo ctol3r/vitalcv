@@ -89,6 +89,9 @@ export default function ClinicianReadinessCheck({
 
       <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
         <Input
+          id="npi-input-employer"
+          name="npi"
+          aria-label="Enter a clinician NPI to check readiness for this employer"
           type="text"
           inputMode="numeric"
           pattern="[0-9]{10}"

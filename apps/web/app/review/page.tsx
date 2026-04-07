@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export const metadata: Metadata = {
   title: 'Employer Review',
@@ -18,8 +17,8 @@ export const metadata: Metadata = {
 export default function ReviewLandingPage() {
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-6 text-center">
+      <div className="mx-auto max-w-sm px-4 pt-20 pb-16">
+        <div className="space-y-6 text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Employer review
@@ -34,11 +33,15 @@ export default function ReviewLandingPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button asChild className="h-11 w-full rounded-xl">
-              <Link href="/review/request">Request pilot review</Link>
-            </Button>
+            <Link
+              href="/review/request"
+              className="flex h-11 w-full items-center justify-center rounded-xl text-sm font-medium text-white transition hover:opacity-90"
+              style={{ backgroundColor: 'oklch(0.22 0.01 60)' }}
+            >
+              Request pilot review
+            </Link>
             <Button asChild variant="outline" className="h-11 w-full rounded-xl">
-              <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Start with NPI lookup</Link>
+              <Link href="/passport">Start with NPI lookup</Link>
             </Button>
           </div>
 

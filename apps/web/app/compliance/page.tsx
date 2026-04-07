@@ -41,7 +41,7 @@ const RESOURCES = [
   {
     title: 'API Security',
     description: 'Authentication, authorization, and rate limiting documentation',
-    href: '/docs/api',
+    href: '/developers',
   },
   {
     title: 'Developer Documentation',
@@ -52,7 +52,7 @@ const RESOURCES = [
 
 export default function CompliancePage() {
   return (
-    <article className="max-w-2xl space-y-14">
+    <article className="mx-auto max-w-2xl space-y-14 px-6 pt-12 pb-20">
       <header className="space-y-4">
         <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-3)]">
           Compliance & Security
@@ -118,6 +118,12 @@ export default function CompliancePage() {
           <p className="text-sm text-[var(--vt-text-2)]">
             Contact our team for a detailed security assessment, SOC 2 report, or custom compliance documentation.
           </p>
+          <a
+            href="mailto:security@vitalcv.com"
+            className="mt-4 inline-block text-sm font-medium underline underline-offset-2 text-[var(--vt-text-2)] hover:text-[var(--vt-text-1)]"
+          >
+            Contact the security team →
+          </a>
         </div>
       </section>
     </article>

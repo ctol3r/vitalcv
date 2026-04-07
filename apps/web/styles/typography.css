@@ -25,10 +25,10 @@
 /* ── Font references (loaded via next/font in layout.tsx, plus Google Sans) ───────────── */
 
 :root {
-  --font-display: 'Google Sans Flex', var(--font-plus-jakarta, var(--font-inter, 'Inter', system-ui, sans-serif));
-  --font-mono:    'Google Sans Code', var(--font-jetbrains, 'JetBrains Mono', monospace);
+  --font-display: var(--font-plus-jakarta, var(--font-inter, system-ui, sans-serif));
+  --font-mono:    var(--font-jetbrains, 'JetBrains Mono', monospace);
   --font-serif:   var(--font-fraunces, 'Fraunces', Georgia, serif);
-  --font-body:    'Google Sans Flex', var(--font-inter, system-ui, sans-serif);
+  --font-body:    var(--font-plus-jakarta, var(--font-inter, system-ui, sans-serif));
 }
 
 /* ── Type scale tokens ──────────────────────────────────────────────── */

@@ -409,10 +409,6 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
         {/* Wordmark */}
         <div>
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold">V</div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">VitalCV</span>
-          </div>
           {!isActive && (
             <>
               <h1 className="text-foreground text-4xl sm:text-5xl font-bold tracking-tighter uppercase leading-none">

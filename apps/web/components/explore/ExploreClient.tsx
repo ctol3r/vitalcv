@@ -470,6 +470,8 @@ export default function ExploreClient() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <h1 className="text-2xl font-bold tracking-tight mb-6">Explore Clinical Roles</h1>
+
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-8">
         <button
@@ -841,7 +843,7 @@ function OpportunityCard({
              </p>
              <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
-           <Link href="/passport" className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4">
+           <Link href={`/passport?role=${opp.id}&employer=${encodeURIComponent(opp.organizationSlug ?? '')}`} className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4">
               Calculate Fit
            </Link>
         </div>
@@ -850,6 +852,8 @@ function OpportunityCard({
       {/* CTAs */}
       <div className="mt-auto flex flex-col gap-3 border-t border-white/5 pt-4 sm:flex-row relative z-10">
         <button
+          type="button"
+          aria-label={application ? `View application — ${opp.title}` : `Apply with VitalCV — ${opp.title}`}
           onClick={() => {
             trackOpportunityView();
             onApply();

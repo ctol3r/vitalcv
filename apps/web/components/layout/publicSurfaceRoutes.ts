@@ -57,6 +57,7 @@ const PREFIX_MATCHERS = [
   '/employers',
   '/opportunities',
   '/docs',
+  '/compliance',
   '/p',
   '/review',
   '/verify',
