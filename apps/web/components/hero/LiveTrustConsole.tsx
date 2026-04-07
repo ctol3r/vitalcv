@@ -99,21 +99,14 @@ const STAGE_COLOR: Record<SourceStage['status'], string> = {
 };
 
 function stageBadge(stage: SourceStage): {
-  status: 'pending' | 'checked' | 'review_required' | 'unavailable';
+  status: any;
   label: string;
 } {
   const surfaceState = resolvePublicWedgeSurfaceStateFromPreviewStageStatus(stage.status);
   const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
-  const badgeStatus = (
-    surfaceState === 'checked'
-      ? 'checked'
-      : surfaceState === 'unavailable'
-        ? 'unavailable'
-        : 'pending'
-  );
-
+  
   return {
-    status: badgeStatus,
+    status: meta.status === 'demo' ? 'pending' : meta.status,
     label: meta.label,
   };
 }
