@@ -40,6 +40,15 @@ const architecture = [
 export const metadata: Metadata = {
   title: 'Progress — VitalCV',
   description: 'Public build log and architecture overview for VitalCV.',
+  openGraph: {
+    title: 'Progress — VitalCV',
+    description: 'Public build log and architecture overview for VitalCV.',
+    url: 'https://vitalcv.com/progress',
+  },
+  twitter: {
+    title: 'Progress — VitalCV',
+    description: 'Public build log and architecture overview for VitalCV.',
+  },
 };
 
 function MilestoneList({ heading, badge, items }: { heading: string; badge: string; items: Milestone[] }) {

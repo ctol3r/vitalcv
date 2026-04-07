@@ -15,6 +15,18 @@ export const metadata: Metadata = {
   title: 'Developers',
   description:
     'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
+  openGraph: {
+    title: 'Developers',
+    description:
+      'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
+    url: 'https://vitalcv.com/developers',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Developers',
+    description:
+      'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
+  },
 };
 
 const ROUTE_FAMILIES = [
@@ -196,7 +208,7 @@ curl -X POST '${publicApiBase}/api/employer-review/<entityId>/accept' \\
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/"
+              href="/passport"
               className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
             >
               Open live NPI entry

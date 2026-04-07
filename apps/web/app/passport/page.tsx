@@ -256,6 +256,21 @@ function formatLicenseLabel(
   return state === 'checking' ? 'Pending' : undefined;
 }
 
+function humanizeContextToken(value: string): string {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+type PassportRoleContext = Readonly<{
+  roleId: string | null;
+  roleTitle: string | null;
+  employerSlug: string | null;
+  employerName: string | null;
+}>;
+
 // ── SessionStorage handoff ─────────────────────────────────────────────────────
 
 const PREVIEW_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -287,7 +302,13 @@ function readHomepagePreview(npi: string) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
+function PassportPageContent({
+  initialNpi,
+  roleContext,
+}: {
+  initialNpi: string | null;
+  roleContext: PassportRoleContext;
+}) {
   const autoTriggered = useRef(false);
   const [npi,       setNpi]       = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
@@ -361,6 +382,13 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
   const retryNpi = state.npi ?? npi.trim();
   const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
+  const displayRole = roleContext.roleTitle ?? (roleContext.roleId ? humanizeContextToken(roleContext.roleId) : null);
+  const displayEmployer = roleContext.employerName ?? (roleContext.employerSlug ? humanizeContextToken(roleContext.employerSlug) : null);
+  const readinessContext = displayRole
+    ? `Checking readiness for ${displayRole}${displayEmployer ? ` at ${displayEmployer}` : ''}.`
+    : displayEmployer
+      ? `Checking readiness for ${displayEmployer}.`
+      : null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -409,6 +437,14 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
         {/* Wordmark */}
         <div>
+          {readinessContext ? (
+            <div className="mb-5 rounded-2xl border border-border bg-card px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Role context
+              </p>
+              <p className="mt-2 text-sm text-foreground/80">{readinessContext}</p>
+            </div>
+          ) : null}
           {!isActive && (
             <>
               <h1 className="text-foreground text-4xl sm:text-5xl font-bold tracking-tighter uppercase leading-none">
@@ -661,12 +697,29 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
 
 function PassportPageSearchParams() {
   const searchParams = useSearchParams();
-  return <PassportPageContent initialNpi={searchParams?.get('npi') ?? null} />;
+  return (
+    <PassportPageContent
+      initialNpi={searchParams?.get('npi') ?? null}
+      roleContext={{
+        roleId: searchParams?.get('role') ?? null,
+        roleTitle: searchParams?.get('roleTitle') ?? null,
+        employerSlug: searchParams?.get('employer') ?? null,
+        employerName: searchParams?.get('employerName') ?? null,
+      }}
+    />
+  );
 }
 
 export default function PassportPage() {
   return (
-    <Suspense fallback={<PassportPageContent initialNpi={null} />}>
+    <Suspense
+      fallback={
+        <PassportPageContent
+          initialNpi={null}
+          roleContext={{ roleId: null, roleTitle: null, employerSlug: null, employerName: null }}
+        />
+      }
+    >
       <PassportPageSearchParams />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Check, Clock3, Eye, Lock, Minus } from 'lucide-react';
 import {
   getStatusDisplayLabel,
   getTrustStatusBadgeClassName,
@@ -17,27 +18,27 @@ type SupplementalVdsTrustStatus = Exclude<VdsTrustStatus, TrustUiStatus>;
 const VDS_STATUS_META: Record<SupplementalVdsTrustStatus, { className: string; label: string }> = {
   enrolled: {
     className:
-      'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-badge-success-text)]',
+      'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
     label: getVdsTrustStatusLabel('enrolled'),
   },
   'review required': {
     className:
-      'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
+      'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
     label: getVdsTrustStatusLabel('review required'),
   },
   'access required': {
     className:
-      'border-[var(--vt-badge-warning-border)] bg-[var(--vt-badge-warning-bg)] text-[var(--vt-badge-warning-text)]',
+      'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
     label: getVdsTrustStatusLabel('access required'),
   },
   'not decision-grade': {
     className:
-      'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-badge-neutral-bg)] text-[var(--vt-badge-neutral-text)]',
+      'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
     label: getVdsTrustStatusLabel('not decision-grade'),
   },
   blocked: {
     className:
-      'border-[var(--vt-badge-critical-border)] bg-[var(--vt-badge-critical-bg)] text-[var(--vt-badge-critical-text)]',
+      'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
     label: getVdsTrustStatusLabel('blocked'),
   },
 };
@@ -68,6 +69,32 @@ interface TrustStatusBadgeProps {
   label?: string;
   size?: 'sm' | 'md';
   className?: string;
+}
+
+function resolveTrustBadgeIcon(status: TrustBadgeStatus) {
+  switch (status) {
+    case 'verified':
+    case 'clear':
+    case 'checked':
+    case 'enrolled':
+      return Check;
+    case 'pending':
+    case 'stale':
+      return Clock3;
+    case 'access_required':
+    case 'access required':
+    case 'not decision-grade':
+      return Lock;
+    case 'demo':
+    case 'preview_only':
+      return Eye;
+    case 'review_required':
+    case 'review required':
+    case 'blocked':
+    case 'unavailable':
+    default:
+      return Minus;
+  }
 }
 
 function normalizeDescriptorKey(value: string): string {
@@ -105,17 +132,19 @@ function TrustStatusBadge({
   className,
 }: TrustStatusBadgeProps) {
   const meta = resolveTrustBadgeMeta(status, label);
+  const Icon = resolveTrustBadgeIcon(status);
 
   return (
     <Badge
       variant="outline"
       className={cn(
-        'rounded-full border px-2.5 py-1 font-semibold uppercase tracking-[0.16em] shadow-none',
-        size === 'sm' ? 'text-[10px]' : 'text-[11px]',
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium tracking-normal shadow-[var(--vt-shadow-pill)]',
+        size === 'sm' ? 'text-[11px]' : 'text-xs',
         meta.className,
         className,
       )}
     >
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
       {meta.label}
     </Badge>
   );

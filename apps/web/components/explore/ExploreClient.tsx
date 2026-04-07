@@ -94,6 +94,19 @@ function formatOrganizationLabel(slug: string): string {
     .join(' ');
 }
 
+function formatRoleContextBanner(opp: ApiOpportunity): string {
+  return `Checking readiness for ${opp.title} at ${opp.organizationName}`;
+}
+
+function buildPassportRoleHref(opp: ApiOpportunity): string {
+  const params = new URLSearchParams();
+  params.set('role', opp.id);
+  params.set('roleTitle', opp.title);
+  params.set('employer', opp.organizationSlug ?? '');
+  params.set('employerName', opp.organizationName);
+  return `/passport?${params.toString()}`;
+}
+
 function formatPayModel(value: ApiOpportunity['payModel']): string {
   switch (value) {
     case 'salary':
@@ -475,6 +488,7 @@ export default function ExploreClient() {
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-8">
         <button
+          type="button"
           onClick={() => setShowFilters(f => !f)}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
             showFilters ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400' : 'bg-muted border border-border text-foreground hover:text-foreground'
@@ -569,7 +583,7 @@ export default function ExploreClient() {
         )}
 
         {hasFilters && (
-          <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
+          <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-auto">
             <X className="w-3 h-3" /> Clear all
           </button>
         )}
@@ -612,6 +626,7 @@ export default function ExploreClient() {
             The network is updated continuously. There are currently no roles matching this precise filter combination. Broaden your search to see more options.
           </p>
           <button 
+            type="button"
             onClick={clearFilters}
             className="rounded-full vt-glass border border-vt-neutral-700 px-6 py-2.5 text-xs font-semibold uppercase tracking-widest text-vt-neutral-200 hover:text-foreground hover:border-vt-neutral-600 transition-all active:scale-[0.98]"
           >
@@ -843,7 +858,11 @@ function OpportunityCard({
              </p>
              <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
-           <Link href={`/passport?role=${opp.id}&employer=${encodeURIComponent(opp.organizationSlug ?? '')}`} className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4">
+           <Link
+             href={buildPassportRoleHref(opp)}
+             aria-label={formatRoleContextBanner(opp)}
+             className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4"
+           >
               Calculate Fit
            </Link>
         </div>
@@ -853,7 +872,11 @@ function OpportunityCard({
       <div className="mt-auto flex flex-col gap-3 border-t border-white/5 pt-4 sm:flex-row relative z-10">
         <button
           type="button"
-          aria-label={application ? `View application — ${opp.title}` : `Apply with VitalCV — ${opp.title}`}
+          aria-label={
+            application
+              ? `View application for ${opp.title} at ${opp.organizationName}`
+              : `Apply with VitalCV for ${opp.title} at ${opp.organizationName}`
+          }
           onClick={() => {
             trackOpportunityView();
             onApply();

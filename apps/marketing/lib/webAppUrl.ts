@@ -16,7 +16,7 @@ export function getWebAppOrigin(): string {
     return 'http://localhost:3000';
   }
 
-  return 'https://web-blockchaincv.vercel.app';
+  return 'https://vitalcv.com';
 }
 
 export function buildWebAppUrl(

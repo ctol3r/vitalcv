@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-page-custom-font */
 import RootChrome from '@/components/layout/RootChrome';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/sonner';
@@ -49,10 +50,12 @@ const fontVariables = {
   '--font-plus-jakarta': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
   '--font-inter': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
   '--font-jetbrains': "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
-  // Semantic aliases — override the stale Nunito Sans / Google Sans Flex references
-  '--font-body':    "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
-  '--font-display': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
-  '--font-sans':    "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
+  // Public-web typography
+  '--vt-font-body': "'DM Sans', system-ui, sans-serif",
+  '--vt-font-display': "'Instrument Serif', Georgia, serif",
+  '--font-body': "'DM Sans', system-ui, sans-serif",
+  '--font-display': "'Instrument Serif', Georgia, serif",
+  '--font-sans': "'DM Sans', system-ui, sans-serif",
   '--font-heading': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
   '--font-serif':   "var(--font-fraunces-var), 'Fraunces', Georgia, serif",
   '--font-mono':    "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
@@ -64,22 +67,31 @@ export const metadata: Metadata = {
     template: '%s — VitalCV',
   },
   description:
-    'Source-backed credentialing truth for clinicians and healthcare employers. Check NPI readiness against NPPES, OIG/LEIE, PECOS, and FSMB in seconds.',
+    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed credentialing for healthcare employers and clinicians.',
   metadataBase: new URL('https://vitalcv.com'),
   openGraph: {
     title: 'VitalCV — Check Clinician Readiness in Seconds',
     description:
-      'Source-backed credentialing truth for clinicians and healthcare employers.',
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     type: 'website',
     locale: 'en_US',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'VitalCV — Check Clinician Readiness in Seconds',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'VitalCV — Check Clinician Readiness in Seconds',
     description:
-      'Source-backed credentialing truth for clinicians and healthcare employers.',
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+    images: ['/twitter-image'],
   },
 };
 
@@ -130,6 +142,14 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${fraunces.variable}`}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+        />
+      </head>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>

@@ -48,7 +48,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-foreground backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-white backdrop-blur-xl [&_a:not(.bg-white)]:text-white/80 hover:[&_a:not(.bg-white)]:text-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}

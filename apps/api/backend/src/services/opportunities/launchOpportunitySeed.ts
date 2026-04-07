@@ -149,7 +149,7 @@ const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
     verifiedSince: '2023-02-10T00:00:00.000Z',
   },
   {
-    slug: 'kaiser-permanente-norcal',
+    slug: 'kaiser-permanente-northern-california',
     name: 'Kaiser Permanente NorCal',
     facilityType: 'health_system',
     specialties: ['Internal Medicine'],
@@ -229,7 +229,7 @@ export const SEEDED_LAUNCH_OPPORTUNITIES: readonly SeedOpportunity[] = [
     status: 'ACTIVE',
   },
   {
-    organizationSlug: 'kaiser-permanente-norcal',
+    organizationSlug: 'kaiser-permanente-northern-california',
     title: 'Staff Internist - East Bay Access Clinics',
     specialty: 'Internal Medicine',
     hiringType: 'perm',

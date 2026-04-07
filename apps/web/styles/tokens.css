@@ -24,6 +24,73 @@
  */
 
 :root {
+  --vt-bg: #F4F6F5;
+  --vt-surface: #FFFFFF;
+  --vt-surface-subtle: #EDF2F0;
+  --vt-surface-dim: #E3E9E6;
+  --vt-border: #D6DEDA;
+  --vt-border-subtle: rgb(26 34 40 / 0.08);
+  --vt-text-primary: #1A2228;
+  --vt-text-secondary: #38424D;
+  --vt-text-muted: #5A6472;
+  --vt-accent: #0A7B7F;
+  --vt-accent-hover: #095F63;
+  --vt-focus-ring: rgb(10 123 127 / 0.24);
+  --vt-severity-critical: #8C2A2A;
+  --vt-severity-high: #A05C00;
+  --vt-severity-medium: #6B6F75;
+  --vt-severity-low: #6B6F75;
+  --vt-status-new: #0A7B7F;
+  --vt-status-acknowledged: #6B6F75;
+  --vt-status-investigating: #A05C00;
+  --vt-status-resolved: #2E7D45;
+  --vt-status-dismissed: #6B6F75;
+  --vt-risk-low: #2E7D45;
+  --vt-risk-medium: #A05C00;
+  --vt-risk-high: #8C2A2A;
+  --vt-node-provider: #0A7B7F;
+  --vt-node-institution: #5A6472;
+  --vt-node-publication: #8C97A3;
+  --vt-node-trial: #8C97A3;
+  --vt-node-company: #1A2228;
+  --vt-node-alert: #8C2A2A;
+  --vt-overlay: rgb(244 246 245 / 0.88);
+
+  --vt-font-body: 'DM Sans', system-ui, sans-serif;
+  --vt-font-display: 'Instrument Serif', Georgia, serif;
+
+  --vt-badge-checked-bg: #E8F5EE;
+  --vt-badge-checked-text: #2E7D45;
+  --vt-badge-pending-bg: #FEF3E2;
+  --vt-badge-pending-text: #A05C00;
+  --vt-badge-access-bg: #F0F1F3;
+  --vt-badge-access-text: #6B6F75;
+  --vt-badge-unavailable-bg: #F5EDED;
+  --vt-badge-unavailable-text: #8C2A2A;
+  --vt-badge-preview-bg: #E5F4F5;
+  --vt-badge-preview-text: #0A7B7F;
+
+  --vt-badge-success-bg: var(--vt-badge-checked-bg);
+  --vt-badge-success-text: var(--vt-badge-checked-text);
+  --vt-badge-success-border: var(--vt-badge-checked-bg);
+  --vt-badge-warning-bg: var(--vt-badge-pending-bg);
+  --vt-badge-warning-text: var(--vt-badge-pending-text);
+  --vt-badge-warning-border: var(--vt-badge-pending-bg);
+  --vt-badge-neutral-bg: var(--vt-badge-access-bg);
+  --vt-badge-neutral-text: var(--vt-badge-access-text);
+  --vt-badge-neutral-border: var(--vt-badge-access-bg);
+  --vt-badge-critical-bg: var(--vt-badge-unavailable-bg);
+  --vt-badge-critical-text: var(--vt-badge-unavailable-text);
+  --vt-badge-critical-border: var(--vt-badge-unavailable-bg);
+  --vt-badge-info-bg: var(--vt-badge-preview-bg);
+  --vt-badge-info-text: var(--vt-badge-preview-text);
+  --vt-badge-info-border: var(--vt-badge-preview-bg);
+
+  --vt-surface-hero: linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(249 251 250 / 0.92));
+  --vt-shadow-soft: 0 20px 48px rgb(26 34 40 / 0.06), 0 6px 18px rgb(26 34 40 / 0.04);
+  --vt-shadow-card: 0 14px 32px rgb(26 34 40 / 0.05), 0 2px 10px rgb(26 34 40 / 0.03);
+  --vt-shadow-pill: 0 1px 2px rgb(26 34 40 / 0.04);
+
   /* ── Neutral (zinc) ──────────────────────────── */
   --palette-neutral-50:  oklch(0.985 0 0);
   --palette-neutral-100: oklch(0.965 0 0);

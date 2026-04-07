@@ -64,12 +64,12 @@ const STAGE_SYMBOL: Record<ConsoleStageStatus, string> = {
 };
 
 const STAGE_COLOR: Record<ConsoleStageStatus, string> = {
-  pending: 'text-muted-foreground/40',
-  loading: 'text-sky-200',
-  checked: 'text-sky-200',
-  access_required: 'text-amber-200',
-  unavailable: 'text-rose-200',
-  review_required: 'text-amber-200',
+  pending: 'text-[var(--vt-text-muted)]',
+  loading: 'text-[var(--vt-accent)]',
+  checked: 'text-[var(--vt-status-resolved)]',
+  access_required: 'text-[var(--vt-risk-medium)]',
+  unavailable: 'text-[var(--vt-severity-critical)]',
+  review_required: 'text-[var(--vt-risk-medium)]',
 };
 
 function resolveFlowStepState(
@@ -92,12 +92,12 @@ function resolveFlowStepState(
 function flowStepClassName(state: 'complete' | 'active' | 'upcoming'): string {
   switch (state) {
     case 'complete':
-      return 'border-border bg-card text-muted-foreground';
+      return 'border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] text-[var(--vt-text-muted)] shadow-[var(--vt-shadow-pill)]';
     case 'active':
-      return 'border-border bg-accent text-foreground';
+      return 'border-[var(--vt-accent)]/12 bg-[var(--vt-badge-preview-bg)] text-[var(--vt-text-primary)] shadow-[var(--vt-shadow-pill)]';
     case 'upcoming':
     default:
-      return 'border-border bg-muted/50 text-muted-foreground/60';
+      return 'border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]';
   }
 }
 
@@ -512,14 +512,20 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   }
 
   return (
-    <section className="relative bg-background">
+    <section className="relative overflow-hidden bg-background">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 55% 40% at 50% 45%, rgba(16,185,129,0.05) 0%, transparent 70%)' }}
+        style={{
+          background: [
+            'radial-gradient(circle at top left, rgba(10,123,127,0.10), transparent 34%)',
+            'radial-gradient(circle at 80% 14%, rgba(10,123,127,0.08), transparent 28%)',
+            'linear-gradient(180deg, rgba(255,255,255,0.78), rgba(244,246,245,0.96))',
+          ].join(', '),
+        }}
       />
 
-      <div className={`relative z-10 mx-auto w-full max-w-xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
+      <div className={`relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
         <div className="mb-5 grid gap-2 sm:grid-cols-3">
           {FLOW_STEPS.map((step, index) => {
             const stepState = resolveFlowStepState(phase, index);
@@ -527,12 +533,12 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             return (
               <div
                 key={step}
-                className={`rounded-2xl border px-4 py-3 transition-colors ${flowStepClassName(stepState)}`}
+                className={`rounded-full border px-4 py-3 transition-colors ${flowStepClassName(stepState)}`}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/40">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
                   Step {index + 1}
                 </p>
-                <p className="mt-1 text-xs font-medium">{step}</p>
+                <p className="mt-1 text-xs font-medium text-[var(--vt-text-primary)]">{step}</p>
               </div>
             );
           })}
@@ -540,11 +546,11 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
         {phase !== 'idle' && (
           <div
-            className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground animate-fade-in-up"
+            className="animate-fade-in-up mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-3 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)] shadow-[var(--vt-shadow-pill)]"
             aria-live="polite"
           >
             <span className="flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+              <span className="size-1.5 rounded-full bg-[var(--vt-accent)]" aria-hidden />
               System active
             </span>
             <span>Sources: {sourcesCheckedCount}/{stages.length} checked</span>
@@ -559,71 +565,74 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/50">
-              NPI first. Honest coverage.
-            </p>
-            <h1 className="mb-3 text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.08] tracking-tight text-foreground">
-              See your readiness snapshot in <span className="text-emerald-600 dark:text-emerald-400">about 10 seconds.</span>
-            </h1>
-            <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
-            </p>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
-              <Input
-                ref={inputRef}
-                id="npi-input"
-                name="npi"
-                type="text"
-                inputMode="numeric"
-                pattern="\d{10}"
-                maxLength={10}
-                autoComplete="off"
-                value={npi}
-                readOnly={phase === 'loading'}
-                aria-busy={phase === 'loading'}
-                aria-disabled={phase === 'loading'}
-                aria-label="Enter your 10-digit NPI number"
-                aria-invalid={!!formMessage}
-                aria-describedby={formMessage ? 'npi-error' : undefined}
-                onChange={(e) => {
-                  if (formMessage) {
-                    setFormMessage(null);
-                  }
-                  setNpi(e.target.value.replace(/\D/g, ''));
-                }}
-                placeholder="Enter 10-digit NPI"
-                className={`h-14 min-w-0 flex-1 rounded-xl border-input bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground shadow-none transition-[opacity,border-color,background-color] duration-150 focus-visible:border-emerald-500/40 focus-visible:bg-muted focus-visible:ring-ring ${
-                  phase === 'loading' ? 'cursor-default bg-muted/50 opacity-80' : ''
-                } ${
-                  formMessage ? 'border-amber-400/30' : ''
-                }`}
-              />
-              <Button
-                type="submit"
-                variant="success"
-                disabled={phase === 'loading'}
-                className="h-14 w-full shrink-0 rounded-xl px-5 text-sm font-semibold whitespace-nowrap sm:w-auto"
-              >
-                <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check readiness'}</span>
-              </Button>
-            </form>
-
-            {formMessage && (
-              <p id="npi-error" role="alert" className="mt-3 text-xs leading-relaxed text-destructive">
-                {formMessage}
+            <div className="rounded-[32px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-hero)] px-6 py-8 shadow-[var(--vt-shadow-soft)] sm:px-10 sm:py-10">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-accent)]">
+                NPI first. Honest coverage.
               </p>
-            )}
+              <h1 className="mb-4 text-[clamp(2.8rem,6vw,5rem)] leading-[0.96] tracking-[-0.04em] text-[var(--vt-text-primary)] [font-family:var(--vt-font-display)]">
+                Credentialing readiness,
+                <span className="mt-2 block text-[var(--vt-accent)]">presented with proof.</span>
+              </h1>
+              <p className="mb-6 max-w-3xl text-sm leading-7 text-[var(--vt-text-muted)] sm:text-lg">
+                VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
+              </p>
+              <form id="npi-entry" onSubmit={handleSubmit} className="scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
+                <Input
+                  ref={inputRef}
+                  id="npi-input"
+                  name="npi"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d{10}"
+                  maxLength={10}
+                  autoComplete="off"
+                  value={npi}
+                  readOnly={phase === 'loading'}
+                  aria-busy={phase === 'loading'}
+                  aria-disabled={phase === 'loading'}
+                  aria-label="Enter your 10-digit NPI number"
+                  aria-invalid={!!formMessage}
+                  aria-describedby={formMessage ? 'npi-error' : undefined}
+                  onChange={(e) => {
+                    if (formMessage) {
+                      setFormMessage(null);
+                    }
+                    setNpi(e.target.value.replace(/\D/g, ''));
+                  }}
+                  placeholder="Enter 10-digit NPI"
+                  className={`h-14 min-w-0 flex-1 rounded-2xl border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 text-[16px] text-[var(--vt-text-primary)] placeholder:text-[var(--vt-text-muted)] shadow-none transition-[opacity,border-color,background-color,box-shadow] duration-150 focus-visible:border-[var(--vt-accent)]/40 focus-visible:bg-[var(--vt-surface)] focus-visible:ring-[var(--vt-focus-ring)] ${
+                    phase === 'loading' ? 'cursor-default bg-[var(--vt-surface-subtle)] opacity-80' : ''
+                  } ${
+                    formMessage ? 'border-[var(--vt-badge-pending-text)]/40' : ''
+                  }`}
+                />
+                <Button
+                  type="submit"
+                  variant="default"
+                  disabled={phase === 'loading'}
+                  className="h-14 w-full shrink-0 rounded-2xl bg-[var(--vt-accent)] px-5 text-sm font-semibold whitespace-nowrap text-white hover:bg-[var(--vt-accent-hover)] sm:w-auto"
+                >
+                  <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check readiness'}</span>
+                </Button>
+              </form>
 
-            <TimeToStartCard className="mt-5" />
+              {formMessage && (
+                <p id="npi-error" role="alert" className="mt-3 text-xs leading-relaxed text-[var(--vt-severity-critical)]">
+                  {formMessage}
+                </p>
+              )}
+
+              <TimeToStartCard className="mt-5" />
+            </div>
           </motion.div>
         ) : (
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/50">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
                 Readiness snapshot
               </p>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              <p className="mt-1 text-xs text-[var(--vt-text-muted)] sm:text-sm">
                 Step 2 is visible. Step 3 carries this live state into the passport flow.
               </p>
             </div>
@@ -641,7 +650,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               description={isFallback
                 ? LIVE_PATH_PREVIEW_NOTICE[fallbackReason ?? 'partialCoverage']
                 : 'Connected source lanes only flip complete when they actually return.'}
-              className="animate-panel-enter"
+              className="animate-panel-enter rounded-[28px] border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] shadow-[var(--vt-shadow-card)]"
             >
               <div className="space-y-2">
                 {stages.map((stage, index) => {
@@ -651,12 +660,12 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   return (
                     <div
                       key={stage.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-3"
                       style={{ animation: `vcv-stage-in 150ms ease-out ${index * 80}ms both` }}
                     >
                       <div className="flex items-start gap-2.5">
                         {stage.status === 'loading' ? (
-                          <span className="size-3.5 rounded-full border border-sky-300/50 border-t-transparent animate-spin" />
+                          <span className="size-3.5 rounded-full border border-[var(--vt-accent)]/35 border-t-transparent animate-spin" />
                         ) : (
                           <span className={`w-3 text-center font-mono text-sm leading-none ${STAGE_COLOR[stage.status]}`}>
                             {STAGE_SYMBOL[stage.status]}
@@ -665,14 +674,14 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                         <div>
                           <span className={`text-xs transition-colors duration-150 ${
                             stage.status === 'loading'
-                              ? 'text-foreground'
+                              ? 'text-[var(--vt-text-primary)]'
                               : stage.status === 'pending'
-                                ? 'text-muted-foreground/50'
-                                : 'text-muted-foreground'
+                                ? 'text-[var(--vt-text-muted)]'
+                                : 'text-[var(--vt-text-primary)]'
                           }`}>
                             {stage.label}
                           </span>
-                          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/40">
+                          <p className="mt-1 text-[10px] leading-relaxed text-[var(--vt-text-muted)]">
                             {statusDescriptor ? `${statusDescriptor} · ${stage.detail}` : stage.detail}
                           </p>
                         </div>
@@ -710,7 +719,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         )}
 
         {phase === 'idle' && (
-          <p className="mt-3 text-[11px] text-muted-foreground/40">
+          <p className="mt-3 text-[11px] text-[var(--vt-text-muted)]">
             No signup required to preview. Other checks appear only when that source has actually run.
           </p>
         )}

@@ -142,7 +142,7 @@ body {
 /* ─── Tailwind v4 theme bridge ──────────────────────────── */
 @theme inline {
   --font-heading: var(--font-fraunces);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-body);
   --font-mono: 'Geist Mono', ui-monospace, monospace;
 
   /* Sandbox palette aliases for 1:1 sandbox component imports */

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
-import { getBackendBase } from '@/lib/api';
 import type { SourceOpsEntry, SourceOpsReport } from '@/lib/mission-ops/sourceOpsTypes';
+import { getSourceOpsReportWithFallback } from '@/lib/status/sourceOps';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,18 @@ export const metadata: Metadata = {
   title: 'Status',
   description:
     'Current launch-lane source status and coverage posture for VitalCV.',
+  openGraph: {
+    title: 'Status',
+    description:
+      'Current launch-lane source status and coverage posture for VitalCV.',
+    url: 'https://vitalcv.com/status',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Status',
+    description:
+      'Current launch-lane source status and coverage posture for VitalCV.',
+  },
 };
 
 function coverageTone(state: SourceOpsEntry['coverageState']): string {
@@ -64,23 +76,6 @@ function formatRelativeAge(value: string | null): string {
   return `${Math.floor(diffHours / 24)}d ago`;
 }
 
-async function fetchSourceHealth(): Promise<SourceOpsReport | null> {
-  try {
-    const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(12_000),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json() as SourceOpsReport;
-  } catch {
-    return null;
-  }
-}
-
 function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
   return sources
     .filter((source) => (
@@ -100,8 +95,8 @@ function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
 }
 
 export default async function StatusPage() {
-  const report = await fetchSourceHealth();
-  const sources = report ? selectPublicSources(report.sources) : [];
+  const { report, isFallback, error } = await getSourceOpsReportWithFallback();
+  const sources = selectPublicSources(report.sources);
 
   return (
     <main className="min-h-screen bg-background px-6 py-16 text-foreground">
@@ -120,16 +115,29 @@ export default async function StatusPage() {
               checked, stale, gated, access required, unavailable, or pending. Unsupported sources are not upgraded into stronger claims.
             </p>
           </div>
-          {report ? (
-            <div className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
-              Spine status: {report.spineStatus}
-            </div>
-          ) : (
-            <div className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-400">
-              Live status unavailable
-            </div>
-          )}
+          <div className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
+            Spine status: {report.spineStatus}
+          </div>
         </header>
+
+        {isFallback ? (
+          <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Showing configured fallback posture</h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  VitalCV could not load the live source report after multiple retries. This page is showing the
+                  configured launch-lane posture instead of a blank failure state.
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Fallback generated at {new Date(report.timestamp).toISOString()}
+                  {error ? ` · Live fetch error: ${error}` : ''}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-5">
@@ -158,69 +166,59 @@ export default async function StatusPage() {
           </div>
         </section>
 
-        {!report ? (
-          <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">Status service unavailable</h2>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  VitalCV could not load the current source report. Treat source posture as unknown until the status feed is reachable again.
-                </p>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="grid gap-4 lg:grid-cols-2">
-            {sources.map((source) => (
-              <article key={source.sourceId} className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-semibold">{source.name}</h2>
-                      {source.isSpine ? (
-                        <span className="rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Spine source
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {source.coverageReason}
-                    </p>
-                  </div>
-                  <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${coverageTone(source.coverageState)}`}>
-                    {source.coverageState}
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Last success
-                    </p>
-                    <p className="mt-2 text-sm font-medium">{formatRelativeAge(source.lastSuccessAt)}</p>
-                    {source.lastSuccessAt ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{new Date(source.lastSuccessAt).toISOString()}</p>
+        <section className="grid gap-4 lg:grid-cols-2">
+          {sources.map((source) => (
+            <article key={source.sourceId} className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-semibold">{source.name}</h2>
+                    {source.isSpine ? (
+                      <span className="rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Spine source
+                      </span>
                     ) : null}
                   </div>
-                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Feature flag
-                    </p>
-                    <p className="mt-2 text-sm font-medium">
-                      {source.featureFlag.key} = {source.featureFlag.enabled ? 'true' : 'false'}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Operator status: {source.operatorStatus}
-                    </p>
-                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {source.coverageReason}
+                  </p>
                 </div>
-              </article>
-            ))}
-          </section>
-        )}
+                <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${coverageTone(source.coverageState)}`}>
+                  {source.coverageState}
+                </span>
+              </div>
 
-        {report && report.alerts.length > 0 ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Last success
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{formatRelativeAge(source.lastSuccessAt)}</p>
+                  {source.lastSuccessAt ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{new Date(source.lastSuccessAt).toISOString()}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {isFallback ? 'No live heartbeat available in fallback mode.' : 'No successful fetch recorded yet.'}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Feature flag
+                  </p>
+                  <p className="mt-2 text-sm font-medium">
+                    {source.featureFlag.key} = {source.featureFlag.enabled ? 'true' : 'false'}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Operator status: {source.operatorStatus}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {report.alerts.length > 0 ? (
           <section className="rounded-2xl border border-border bg-card p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Current alerts
@@ -242,7 +240,7 @@ export default async function StatusPage() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/"
+              href="/passport"
               className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
             >
               Open NPI entry

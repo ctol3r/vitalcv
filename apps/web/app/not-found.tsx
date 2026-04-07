@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { NotFoundTracker } from '@/lib/analytics/not-found-tracker';
 
 export const metadata: Metadata = {
-  title: 'Page Not Found',
+  title: { absolute: 'Page Not Found — VitalCV' },
 };
 
 export default function NotFound() {

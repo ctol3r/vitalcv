@@ -6,6 +6,16 @@ import { fetchLaunchEmployers } from '@/lib/launch/marketplace';
 export const metadata: Metadata = {
   title: 'For Employers',
   description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+  openGraph: {
+    title: 'For Employers',
+    description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+    url: 'https://vitalcv.com/employers',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'For Employers',
+    description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+  },
 };
 
 export default async function EmployersPage() {

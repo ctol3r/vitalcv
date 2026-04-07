@@ -60,6 +60,15 @@ const enforcements = [
 export const metadata: Metadata = {
   title: 'Security posture — VitalCV',
   description: "Concrete security guarantees and threat model for VitalCV's healthcare credentialing pipeline.",
+  openGraph: {
+    title: 'Security posture — VitalCV',
+    description: 'No shortcuts. No weak defaults. ES256 signing, OpenID4VCI, PKCE S256, and DPoP token binding.',
+    url: 'https://vitalcv.com/security',
+  },
+  twitter: {
+    title: 'Security posture — VitalCV',
+    description: 'ES256 signing, OpenID4VCI, PKCE S256, and DPoP token binding.',
+  },
 };
 
 function GuaranteeCard({ label, description }: { label: string; description: string }) {
@@ -82,7 +91,7 @@ export default function SecurityPage() {
           Security
         </p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-          No short cuts. No weak defaults.
+          No shortcuts. No weak defaults.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
           We publish concrete guarantees so operators, investors, and verifiers can

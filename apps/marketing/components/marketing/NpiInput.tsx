@@ -87,14 +87,17 @@ export function NpiInput() {
     <form onSubmit={handleSubmit} className="w-full max-w-md">
       <div className="relative">
         <input
+          id="npi-input"
+          name="npi"
           type="text"
           inputMode="numeric"
-          pattern="[0-9]*"
+          pattern="[0-9]{10}"
+          maxLength={10}
           placeholder="Enter 10-digit NPI"
           value={value}
           onChange={handleChange}
           disabled={loading}
-          aria-label="National Provider Identifier"
+          aria-label="National Provider Identifier — 10 digits"
           aria-describedby={error ? 'npi-error' : undefined}
           aria-invalid={error ? 'true' : undefined}
           className="w-full rounded-lg border border-border bg-transparent px-4 py-3 pr-24 text-base text-foreground placeholder:text-muted outline-none transition-theme focus:border-foreground focus:ring-1 focus:ring-foreground disabled:opacity-50"
@@ -102,6 +105,7 @@ export function NpiInput() {
         <button
           type="submit"
           disabled={loading}
+          aria-label="Look up NPI"
           className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-foreground transition-theme hover:opacity-80 disabled:opacity-50"
         >
           {loading ? 'Checking…' : 'Look up'}

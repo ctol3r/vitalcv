@@ -531,7 +531,7 @@ describe('post-release truth cleanup', () => {
     // Updated: /review page now uses direct employer framing (seam-close wave)
     expect(reviewMarkup).toContain('Employer review');
     expect(reviewMarkup).toContain('Request pilot review');
-    expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/');
+    expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/passport');
   }, 20000);
 
   it('keeps the developers hero and key resource blocks on current/preview wording', async () => {
