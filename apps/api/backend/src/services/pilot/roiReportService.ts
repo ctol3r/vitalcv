@@ -91,7 +91,7 @@ export interface RoiReport {
   topLine: {
     daysDecisionLatency: number | null;
     daysSavedVsBaseline: number | null;
-    percentReadyAtFirstReview: number | null;
+    percentReadyAtLatestReviewInWindow: number | null;
     blockersResolvedCount: number;
     startOutcomeCount: number;
   };
@@ -343,7 +343,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
   const topLine = {
     daysDecisionLatency: observedLatency,
     daysSavedVsBaseline: latencyDelta !== null && latencyDelta > 0 ? latencyDelta : null,
-    percentReadyAtFirstReview: pctReady,
+    percentReadyAtLatestReviewInWindow: pctReady,
     blockersResolvedCount: resolvedCount,
     startOutcomeCount: snap.startOutcomes.totalStarts,
   };
@@ -487,7 +487,7 @@ export function roiReportToHtml(report: RoiReport): string {
     </div>
     <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:14px">
       <p style="font-size:11px;color:#7c3aed;margin:0 0 4px;text-transform:uppercase">Ready at review</p>
-      <p style="font-size:28px;font-weight:800;color:#6d28d9;margin:0">${fmt(report.topLine.percentReadyAtFirstReview, '%')}</p>
+      <p style="font-size:28px;font-weight:800;color:#6d28d9;margin:0">${fmt(report.topLine.percentReadyAtLatestReviewInWindow, '%')}</p>
       <p style="font-size:11px;color:#c4b5fd;margin:2px 0 0">latest review in selected window</p>
     </div>
     <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px">

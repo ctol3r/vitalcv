@@ -162,6 +162,28 @@ export interface PilotProofSummary {
         shareToDecision: number;
       };
     };
+    conversion: {
+      shareToReviewRatePct: number | null;
+      reviewToDecisionRatePct: number | null;
+      reviewToProceedRatePct: number | null;
+      proceedToStartRatePct: number | null;
+    };
+    decisionOutcomes: {
+      total: number;
+      byType: Record<string, number>;
+      proceedCount: number;
+      refreshCount: number;
+      routeCount: number;
+      rejectCount: number;
+      holdCount: number;
+    };
+    blockerTiming: Array<{
+      code: string;
+      openCount: number;
+      resolvedCount: number;
+      avgResolutionDays: number | null;
+      medianResolutionDays: number | null;
+    }>;
     startOutcomes: {
       totalStarts: number;
       totalOutcomeRecords: number;
@@ -217,6 +239,7 @@ export interface PilotProofSummary {
         detail: string | null;
       }>;
     };
+    gaps: string[];
     exports: {
       json: true;
       csv: true;

@@ -261,74 +261,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b border-line p-6 flex justify-between items-center bg-[var(--color-bg)] sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-ink rounded-sm flex items-center justify-center text-bg font-bold">V</div>
-          <h1 className="text-xl font-bold tracking-tighter uppercase">VitalCV</h1>
-        </div>
-        <nav className="hidden md:flex gap-8 text-xs font-medium uppercase tracking-widest opacity-60">
-          <button 
-            onClick={() => {
-              setData(null);
-              setAnalysis(null);
-              setViewMode("clinician");
-              setShowDemoEmployer(false);
-              setShowReviewRequest(false);
-            }} 
-            className="hover:opacity-100 transition-opacity"
-          >
-            Start with NPI
-          </button>
-          <button 
-            onClick={() => {
-              setViewMode("employer");
-              setShowReviewRequest(true);
-              setCurrentOrgId("NEW-PILOT-ORG-" + Math.floor(Math.random() * 1000));
-              setWorkspaceActive(false);
-            }}
-            className="hover:opacity-100 transition-opacity"
-          >
-            Review Request
-          </button>
-          <button 
-            onClick={() => {
-              setViewMode("cover-letter");
-              setData(null);
-              setAnalysis(null);
-              setShowReviewRequest(false);
-            }}
-            className="hover:opacity-100 transition-opacity"
-          >
-            Cover Letter
-          </button>
-          <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
-        </nav>
-        <div className="flex items-center gap-4">
-          {(viewMode === "employer" || showDemoEmployer || showReviewRequest) && (
-            <EmployerNotifications orgId={currentOrgId} />
-          )}
-          <button 
-            onClick={toggleTheme}
-            className="p-2 hover:bg-ink/5 rounded-full transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-          </button>
-          <button 
-            onClick={() => {
-              setData(null);
-              setAnalysis(null);
-              setViewMode("clinician");
-              setShowDemoEmployer(false);
-              setShowReviewRequest(false);
-            }}
-            className="text-xs font-bold uppercase tracking-widest bg-ink text-bg px-6 py-2 hover:opacity-90 transition-colors"
-          >
-            Enter NPI
-          </button>
-        </div>
-      </header>
+      {/* Header is provided by the shared Navbar (layout/Navbar.tsx) via RootChrome */}
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12">
         <AnimatePresence mode="wait">
@@ -528,19 +461,6 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-line p-8 bg-[var(--color-bg)]/50">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-            © 2026 VitalCV · Built for Healthcare Mobility
-          </div>
-          <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest opacity-40">
-            <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
-            <a href="/developers" className="hover:opacity-100 transition-opacity">Developers</a>
-            <a href="/compliance" className="hover:opacity-100 transition-opacity">Compliance</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

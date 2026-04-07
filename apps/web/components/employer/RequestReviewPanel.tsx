@@ -179,20 +179,6 @@ export function RequestReviewPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
-          Employer review
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-          Request a passport review
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/70">
-          Enter the clinician&apos;s NPI to create a review context. You&apos;ll get a link to send
-          them — they open their passport, you open the review surface with full proof and actions.
-        </p>
-      </div>
-
       {/* NPI form — idle or error */}
       {(phase === 'idle' || phase === 'error') && (
         <form onSubmit={handleSubmit} className="space-y-3">

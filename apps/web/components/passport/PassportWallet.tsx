@@ -524,6 +524,12 @@ function PassportWalletLoadingShell() {
 }
 
 function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).posthog) {
+      (window as any).posthog.capture('Passport_Viewed', { npi: passport.npi });
+    }
+  }, [passport.npi]);
+
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -569,12 +575,19 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
     setSharing(true);
     setShareError(null);
     try {
-      // Generate a shareable apply bundle — no employer context required.
-      // The employer opens the bundle URL to view this passport in review mode.
-      const res = await fetch('/api/apply/bundle', {
+      // Generate a shareable apply bundle with a generic pilot context.
+      // This ensures a BundleShareEvent is written to the audit log for KPI tracking.
+      const res = await fetch('/api/apply/share', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npi: passport.npi }),
+        body: JSON.stringify({
+          npi: passport.npi,
+          organization_context: {
+            organization_id: 'pilot-manual-share',
+            name: 'Employer Review (Link Share)',
+            purpose_of_use: 'Pilot Ops manual share link generation',
+          }
+        }),
       });
 
       if (!res.ok) {

@@ -67,4 +67,27 @@ describe('pilot KPI proxy routes', () => {
       },
     });
   });
+
+  it('forwards ROI export requests with the same scoped filter contract', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('<html>roi</html>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/pilot-roi-export/route');
+    const response = await GET({
+      nextUrl: new URL('http://app.test/api/pilot-roi-export?days=30&org=org-1&pilotId=pilot-1&lane=icu&geo=CA'),
+    } as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/internal/pilot/roi-report/html?days=30&orgContextId=org-1&pilotId=pilot-1&workflowLane=icu&geographyTag=CA',
+      expect.objectContaining({
+        headers: { 'x-monitoring-secret': 'monitoring-secret' },
+        cache: 'no-store',
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain('roi');
+  });
 });

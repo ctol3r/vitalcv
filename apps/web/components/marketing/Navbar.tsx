@@ -36,7 +36,7 @@ export default function Navbar() {
         className="flex items-center gap-2"
       >
         <div className="w-8 h-8 bg-ink rounded-sm flex items-center justify-center text-bg font-bold">V</div>
-        <h1 className="text-xl font-bold tracking-tighter uppercase">VitalCV</h1>
+        <span className="text-xl font-bold tracking-tighter uppercase">VitalCV</span>
       </Link>
 
       {/* Desktop links */}

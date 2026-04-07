@@ -74,6 +74,14 @@ function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function readOptionalRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
@@ -207,6 +215,108 @@ async function deriveStartOutcomeTimings(
     daysFromFirstReview: daysFrom(firstReview?.eventTimestamp, startedAt),
     daysFromShare: daysFrom(firstShareAt, startedAt),
     daysFromReady: daysFrom(firstReady?.eventTimestamp, startedAt),
+  };
+}
+
+async function resolveStartOutcomeContext(input: {
+  organizationContextId: string | null | undefined;
+  metadata: Record<string, unknown>;
+  scope: PilotScope | null | undefined;
+}): Promise<{
+  organizationContextId: string | null;
+  metadata: Record<string, unknown>;
+  scope: PilotScope | null;
+}> {
+  const acceptanceId = readOptionalString(input.metadata.acceptanceId);
+  if (!acceptanceId) {
+    return {
+      organizationContextId: input.organizationContextId ?? null,
+      metadata: input.metadata,
+      scope: input.scope ?? null,
+    };
+  }
+
+  const acceptanceAudit = await prisma.auditEvent.findFirst({
+    where: {
+      type: 'EMPLOYER_REVIEW_ACCEPTED',
+      referenceId: acceptanceId,
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      metadata: true,
+    },
+  });
+
+  if (!acceptanceAudit) {
+    return {
+      organizationContextId: input.organizationContextId ?? null,
+      metadata: input.metadata,
+      scope: input.scope ?? null,
+    };
+  }
+
+  const acceptanceAuditMetadata = readOptionalRecord(acceptanceAudit.metadata) ?? {};
+  const employerReviewAction = readOptionalRecord(acceptanceAuditMetadata.employerReviewAction) ?? {};
+  const attribution = readOptionalRecord(employerReviewAction.attribution) ?? {};
+
+  const decisionEvent = await prisma.employerDecisionEvent.findFirst({
+    where: {
+      auditEventId: acceptanceAudit.id,
+    },
+    orderBy: { decidedAt: 'desc' },
+    select: {
+      organizationContextId: true,
+      metadata: true,
+    },
+  });
+
+  const decisionMetadata = readOptionalRecord(decisionEvent?.metadata) ?? {};
+  const resolvedScope: PilotScope = {
+    pilotId:
+      input.scope?.pilotId
+      ?? readOptionalString(decisionMetadata.pilotId)
+      ?? null,
+    workflowLane:
+      input.scope?.workflowLane
+      ?? readOptionalString(decisionMetadata.workflowLane)
+      ?? null,
+    geographyTag:
+      input.scope?.geographyTag
+      ?? readOptionalString(decisionMetadata.geographyTag)
+      ?? null,
+  };
+
+  return {
+    organizationContextId:
+      input.organizationContextId
+      ?? decisionEvent?.organizationContextId
+      ?? readOptionalString(decisionMetadata.organizationContextId)
+      ?? readOptionalString(attribution.organizationContextId)
+      ?? null,
+    metadata: {
+      organizationId:
+        readOptionalString(decisionMetadata.organizationId)
+        ?? readOptionalString(attribution.organizationId)
+        ?? null,
+      organizationName: readOptionalString(attribution.organizationName),
+      purposeOfUse:
+        readOptionalString(decisionMetadata.purposeOfUse)
+        ?? readOptionalString(attribution.purposeOfUse),
+      bundleId:
+        readOptionalString(decisionMetadata.bundleId)
+        ?? readOptionalString(attribution.bundleId),
+      bundleShareEventId:
+        readOptionalString(decisionMetadata.bundleShareEventId)
+        ?? readOptionalString(attribution.bundleShareEventId),
+      ...input.metadata,
+    },
+    scope:
+      resolvedScope.pilotId
+      || resolvedScope.workflowLane
+      || resolvedScope.geographyTag
+        ? resolvedScope
+        : null,
   };
 }
 
@@ -474,11 +584,16 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     const entityId = await resolveStartOutcomeEntityId(input.entityId);
     if (!entityId) return;
 
+    const resolvedContext = await resolveStartOutcomeContext({
+      organizationContextId: input.organizationContextId ?? null,
+      metadata: input.metadata ?? {},
+      scope: input.scope ?? null,
+    });
     const timings = await deriveStartOutcomeTimings(
       entityId,
       input.startedAt,
-      input.organizationContextId ?? null,
-      input.scope ?? null,
+      resolvedContext.organizationContextId,
+      resolvedContext.scope,
     );
     const capturedAt = new Date().toISOString();
 
@@ -486,7 +601,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
       data: {
         id:                    randomUUID(),
         entityId,
-        organizationContextId: input.organizationContextId ?? null,
+        organizationContextId: resolvedContext.organizationContextId,
         startedAt:             input.startedAt,
         daysFromFirstReview:   timings.daysFromFirstReview,
         daysFromShare:         timings.daysFromShare,
@@ -495,12 +610,12 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         blockersAtStart:       JSON.parse(JSON.stringify(input.blockersAtStart)),
         sourceCoverageAtStart: JSON.parse(JSON.stringify(input.sourceCoverageAtStart)),
         metadata:              JSON.parse(JSON.stringify(mergeScope({
-          ...(input.metadata ?? {}),
+          ...resolvedContext.metadata,
           eventName: 'start_outcome_recorded',
           outcomeStatus: 'STARTED',
-          organizationContextId: input.organizationContextId ?? null,
+          organizationContextId: resolvedContext.organizationContextId,
           capturedAt,
-        }, input.scope))),
+        }, resolvedContext.scope))),
       },
     });
     log('info', 'seal_start_outcome_captured', {

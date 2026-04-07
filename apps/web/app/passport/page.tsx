@@ -365,7 +365,8 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = npi.trim();
-    if (!/^\d{10}$/.test(trimmed)) { setInputError('Enter a valid 10-digit NPI.'); return; }
+    if (/\D/.test(trimmed)) { setInputError('NPI must contain only digits.'); return; }
+    if (trimmed.length !== 10) { setInputError('NPI must be exactly 10 digits.'); return; }
     setInputError(null);
     startIngest(trimmed);
   }
@@ -427,20 +428,23 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
         {/* NPI entry — hidden while running */}
         {!isActive && (
           <form onSubmit={handleSubmit} className="space-y-1 relative">
-            <label htmlFor="passport-npi" className="sr-only">Your NPI number</label>
+            <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
             <div className="relative">
               <Input
-                id="passport-npi"
+                id="npi-input"
+                name="npi"
                 type="text"
                 inputMode="numeric"
-                pattern="[0-9]{10}"
+                pattern="\d{10}"
                 maxLength={10}
+                autoComplete="off"
+                aria-label="Enter your 10-digit NPI number"
+                aria-invalid={!!inputError}
+                aria-describedby={inputError ? 'npi-error' : undefined}
                 value={npi}
                 onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
-                placeholder="ENTER 10-DIGIT NPI"
+                placeholder="Enter 10-digit NPI"
                 className="h-16 w-full rounded-none border-0 border-b-2 border-border bg-transparent px-2 text-2xl font-mono tracking-widest text-foreground placeholder:text-muted-foreground/20 shadow-none focus-visible:ring-0 focus-visible:border-foreground uppercase pr-12"
-                aria-label="NPI number"
-                autoComplete="off"
               />
               <Button
                 type="submit"
@@ -452,7 +456,7 @@ function PassportPageContent({ initialNpi }: { initialNpi: string | null }) {
               </Button>
             </div>
             {inputError && (
-              <p className="text-red-500/70 text-xs font-mono mt-1">{inputError}</p>
+              <p id="npi-error" role="alert" className="text-red-500/70 text-xs font-mono mt-1">{inputError}</p>
             )}
           </form>
         )}

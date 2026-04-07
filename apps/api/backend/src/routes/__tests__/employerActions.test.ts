@@ -347,6 +347,8 @@ describe('employer action routes', () => {
     buildEmployerEvidencePacketMock.mockReset();
     createEmployerEvidencePacketZipStreamMock.mockReset();
 
+    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+
     prismaMock.vcvEntity.findUnique.mockResolvedValue({
       id: 'entity-1',
       npi: '1234567890',
@@ -893,7 +895,7 @@ describe('employer action routes', () => {
 
   it('emits an audit event when exporting the packet as JSON', async () => {
     const packet = buildPacketFixture();
-    buildPassportMock.mockResolvedValue({ entityId: 'entity-1' } as never);
+    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
 
     const response = await request(buildApp())
@@ -914,7 +916,7 @@ describe('employer action routes', () => {
   it('streams the packet bundle as ZIP when requested', async () => {
     const packet = buildPacketFixture();
     const zipStream = new PassThrough();
-    buildPassportMock.mockResolvedValue({ entityId: 'entity-1' } as never);
+    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
     createEmployerEvidencePacketZipStreamMock.mockReturnValue(zipStream);
 

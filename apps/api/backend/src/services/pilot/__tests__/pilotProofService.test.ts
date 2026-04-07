@@ -47,7 +47,10 @@ jest.mock('../pilotKpiService', () => ({
 
 import prisma from '../../../graphql/prisma_client';
 import { computePilotKpis } from '../pilotKpiService';
-import { getPilotProofSummary } from '../pilotProofService';
+import {
+  getPilotProofSummary,
+  pilotProofSummaryToExportRows,
+} from '../pilotProofService';
 
 const prismaMock = prisma as unknown as {
   auditEvent: {
@@ -131,7 +134,14 @@ describe('getPilotProofSummary', () => {
           shareToDecision: 1,
         },
       },
-      blockers: [],
+      blockers: [{
+        code: 'LICENSE_EXPIRED',
+        openCount: 0,
+        resolvedCount: 1,
+        avgResolutionDays: 4,
+        medianResolutionDays: 4,
+        byResolutionMethod: { SOURCE_UPDATE: 1 },
+      }],
       startOutcomes: {
         totalStarts: 1,
         totalOutcomeRecords: 2,
@@ -169,7 +179,7 @@ describe('getPilotProofSummary', () => {
         replayableCases: 1,
         partialCases: 0,
         cases: [{
-          caseKey: 'entity-1|ctx-1',
+          caseKey: 'entity-1|ctx-1|pilot-1|perm-md|CA',
           entityId: 'entity-1',
           npi: null,
           organizationContextId: 'ctx-1',
@@ -188,7 +198,7 @@ describe('getPilotProofSummary', () => {
         events: [{
           eventName: 'start_outcome_recorded',
           occurredAt: '2026-03-10T00:00:00.000Z',
-          caseKey: 'entity-1|ctx-1',
+          caseKey: 'entity-1|ctx-1|pilot-1|perm-md|CA',
           entityId: 'entity-1',
           npi: null,
           organizationContextId: 'ctx-1',
@@ -298,5 +308,29 @@ describe('getPilotProofSummary', () => {
     expect(summary.baselineComparison.delta.findings).toBe(2);
     expect(summary.baselineComparison.delta.storylines).toBe(1);
     expect(summary.baselineComparison.delta.employerActionsGenerated).toBe(3);
+    expect(summary.livePilot.conversion).toEqual({
+      shareToReviewRatePct: 100,
+      reviewToDecisionRatePct: 100,
+      reviewToProceedRatePct: 100,
+      proceedToStartRatePct: 100,
+    });
+    expect(summary.livePilot.decisionOutcomes).toEqual(expect.objectContaining({
+      total: 1,
+      proceedCount: 1,
+    }));
+    expect(summary.livePilot.gaps).toEqual([]);
+  });
+
+  it('exports live pilot conversion, decision, blocker, and gap rows for proof packs', async () => {
+    const summary = await getPilotProofSummary();
+    const rows = pilotProofSummaryToExportRows(summary);
+
+    expect(rows).toEqual(expect.arrayContaining([
+      { section: 'conversion', label: 'share_to_review_rate_pct', value: '100' },
+      { section: 'conversion', label: 'review_to_proceed_rate_pct', value: '100' },
+      { section: 'decisions', label: 'proceed_count', value: '1' },
+      { section: 'blocker:license_expired', label: 'avg_resolution_days', value: '4' },
+      { section: 'live_pilot_gaps', label: 'status', value: 'none' },
+    ]));
   });
 });

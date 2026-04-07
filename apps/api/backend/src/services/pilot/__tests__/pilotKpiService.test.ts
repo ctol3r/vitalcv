@@ -186,7 +186,12 @@ describe('pilotKpiService', () => {
         daysFromReady: 5,
         readinessScoreAtStart: 72,
         blockersAtStart: ['LICENSE_EXPIRED'],
-        metadata: { recordedAt: '2026-03-10T01:00:00.000Z' },
+        metadata: {
+          recordedAt: '2026-03-10T01:00:00.000Z',
+          pilotId: 'pilot-1',
+          workflowLane: 'lane-1',
+          geographyTag: 'CA',
+        },
       },
       {
         id: 'start-corrected',
@@ -198,7 +203,12 @@ describe('pilotKpiService', () => {
         daysFromReady: 4,
         readinessScoreAtStart: 91,
         blockersAtStart: [],
-        metadata: { capturedAt: '2026-03-10T05:00:00.000Z' },
+        metadata: {
+          capturedAt: '2026-03-10T05:00:00.000Z',
+          pilotId: 'pilot-1',
+          workflowLane: 'lane-1',
+          geographyTag: 'CA',
+        },
       },
     ]);
 
@@ -246,7 +256,7 @@ describe('pilotKpiService', () => {
       partialCases: 0,
     }));
     expect(snapshot.proofChain.cases[0]).toEqual(expect.objectContaining({
-      caseKey: 'entity-1|org-1',
+      caseKey: 'entity-1|org-1|pilot-1|lane-1|CA',
       replayable: true,
       eventNames: [
         'packet_shared',
@@ -551,6 +561,7 @@ describe('pilotKpiService', () => {
       partialCases: 0,
     }));
     expect(snapshot.proofChain.cases[0]).toEqual(expect.objectContaining({
+      caseKey: 'entity-1|org-1|pilot-1|perm-md|CA',
       eventNames: [
         'packet_shared',
         'employer_review_opened',
@@ -562,6 +573,133 @@ describe('pilotKpiService', () => {
       nonStartReason: 'candidate_withdrew',
       replayable: true,
     }));
+  });
+
+  it('collapses duplicate did-not-start proof events so one failed start does not inflate KPI outputs', async () => {
+    prismaMock.bundleShareEvent.findMany.mockResolvedValue([
+      {
+        id: 'share-1',
+        bundleId: 'bundle-1',
+        subjectEntityId: 'entity-1',
+        organizationContextId: 'org-1',
+        organizationId: 'employer-1',
+        deliveryStatus: 'DELIVERED',
+        sharedAt: new Date('2026-03-01T00:00:00.000Z'),
+        npi: '1111111111',
+      },
+    ]);
+
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        advisoryVersion: 'pilot-review-open',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-02T00:00:00.000Z'),
+        readinessScoreAtEvent: 48,
+        blockersAtEvent: [],
+        metadata: {
+          eventName: 'employer_review_opened',
+          pilotId: 'pilot-1',
+          workflowLane: 'perm-md',
+          geographyTag: 'CA',
+        },
+      },
+    ]);
+
+    prismaMock.employerDecisionEvent.findMany.mockResolvedValue([
+      {
+        id: 'decision-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        decision: 'PROCEED',
+        decidedAt: new Date('2026-03-03T00:00:00.000Z'),
+        readinessScoreAtDecision: 52,
+        blockersAtDecision: [],
+        metadata: {
+          eventName: 'employer_decision_recorded',
+          pilotId: 'pilot-1',
+          workflowLane: 'perm-md',
+          geographyTag: 'CA',
+        },
+      },
+    ]);
+
+    prismaMock.auditEvent.findMany.mockResolvedValue([
+      {
+        id: 'audit-non-start-1',
+        type: 'PILOT_PROOF_EVENT',
+        referenceId: 'entity-1',
+        clinicianId: '1111111111',
+        organizationId: 'employer-1',
+        createdAt: new Date('2026-03-07T00:00:00.000Z'),
+        metadata: {
+          schema: 'vitalcv.pilot-proof.event.v1',
+          eventName: 'start_outcome_recorded',
+          entityId: 'entity-1',
+          npi: '1111111111',
+          organizationContextId: 'org-1',
+          occurredAt: '2026-03-07T00:00:00.000Z',
+          outcomeStatus: 'DID_NOT_START',
+          nonStartReason: 'candidate_withdrew',
+          pilotId: 'pilot-1',
+          workflowLane: 'perm-md',
+          geographyTag: 'CA',
+        },
+      },
+      {
+        id: 'audit-non-start-2',
+        type: 'PILOT_PROOF_EVENT',
+        referenceId: 'entity-1',
+        clinicianId: '1111111111',
+        organizationId: 'employer-1',
+        createdAt: new Date('2026-03-07T01:00:00.000Z'),
+        metadata: {
+          schema: 'vitalcv.pilot-proof.event.v1',
+          eventName: 'start_outcome_recorded',
+          entityId: 'entity-1',
+          npi: '1111111111',
+          organizationContextId: 'org-1',
+          occurredAt: '2026-03-07T00:00:00.000Z',
+          outcomeStatus: 'DID_NOT_START',
+          nonStartReason: 'candidate_withdrew',
+          pilotId: 'pilot-1',
+          workflowLane: 'perm-md',
+          geographyTag: 'CA',
+        },
+      },
+    ]);
+
+    prismaMock.bundleShareEvent.count.mockResolvedValue(1);
+    prismaMock.advisoryOutcomeEvent.count.mockResolvedValue(1);
+    prismaMock.employerDecisionEvent.count.mockResolvedValue(1);
+    prismaMock.startOutcomeEvent.count.mockResolvedValue(0);
+
+    const snapshot = await computePilotKpis({
+      windowDays: 30,
+      filter: {
+        pilotId: 'pilot-1',
+        workflowLane: 'perm-md',
+        orgContextId: 'org-1',
+        geographyTag: 'CA',
+      },
+    });
+
+    expect(snapshot.startOutcomes).toEqual(expect.objectContaining({
+      totalStarts: 0,
+      totalOutcomeRecords: 1,
+      didNotStartCount: 1,
+      nonStartReasons: [{ reason: 'candidate_withdrew', count: 1 }],
+      distinctEntities: 1,
+    }));
+    expect(snapshot.proofChain).toEqual(expect.objectContaining({
+      totalEvents: 4,
+      totalCases: 1,
+      replayableCases: 1,
+      partialCases: 0,
+    }));
+    expect(snapshot.eventChain.nonStartOutcomeEvents).toBe(2);
   });
 
   it('does not invent filtered start counts from unscoped canonical starts', async () => {
@@ -757,6 +895,8 @@ describe('pilotKpiService', () => {
 
     expect(rows).toEqual(expect.arrayContaining([
       { section: 'filters', label: 'geography_tag', value: '(all)' },
+      { section: 'conversion', label: 'share_to_review_rate_pct', value: '50' },
+      { section: 'conversion', label: 'review_to_proceed_rate_pct', value: '100' },
       { section: 'velocity', label: 'median_days_share_to_decision', value: '4' },
       { section: 'velocity_samples', label: 'sample_share_to_decision', value: '2' },
       { section: 'event_chain', label: 'start_outcome_events', value: '1' },
