@@ -450,6 +450,10 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       },
     });
 
+    if (isValidNpi && typeof window !== 'undefined' && (window as any).posthog) {
+      (window as any).posthog.capture('NPI_Submitted', { npi: nextNpi });
+    }
+
     if (!isValidNpi) {
       setFormMessage(/\D/.test(nextNpi) ? INVALID_NPI_DIGITS_MESSAGE : INVALID_NPI_LENGTH_MESSAGE);
       inputRef.current?.focus({ preventScroll: true });

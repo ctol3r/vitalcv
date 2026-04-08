@@ -36,7 +36,6 @@ export function isPublicSafe(route: string): boolean {
 // Ops-only paths: these get the AppShell (ops chrome), not Navbar+Footer.
 // Keep in sync with VCV_UI_DOCTRINE.md §1 Surface Classification.
 export const OPS_SURFACE_PREFIXES = [
-  '/',
   '/intelligence',
   '/graph',
   '/findings',

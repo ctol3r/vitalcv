@@ -10,6 +10,9 @@ jest.mock('../src/graphql/prisma_client', () => ({
     vcvCredential: {
       findMany: (...args: unknown[]) => mockCredentialFindMany(...args),
     },
+    auditEvent: {
+      create: jest.fn().mockResolvedValue({}),
+    },
   },
 }));
 

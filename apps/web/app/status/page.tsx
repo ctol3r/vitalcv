@@ -6,6 +6,10 @@ import { getSourceOpsReportWithFallback } from '@/lib/status/sourceOps';
 
 export const dynamic = 'force-dynamic';
 
+// ── Last-known-good cache (persists within warm lambda instances) ─────
+let cachedReport: SourceOpsReport | null = null;
+let cachedAt: number | null = null;
+
 export const metadata: Metadata = {
   title: 'Status',
   description:
@@ -97,6 +101,10 @@ function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
 export default async function StatusPage() {
   const { report, isFallback, error } = await getSourceOpsReportWithFallback();
   const sources = selectPublicSources(report.sources);
+
+  const cacheAgeLabel = fromCache && cachedAt
+    ? formatRelativeAge(new Date(cachedAt).toISOString())
+    : null;
 
   return (
     <main className="min-h-screen bg-background px-6 py-16 text-foreground">

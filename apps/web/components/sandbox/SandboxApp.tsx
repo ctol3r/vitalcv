@@ -473,19 +473,6 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-line p-8 bg-[var(--color-bg)]/50">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-            © 2026 VitalCV · Built for Healthcare Mobility
-          </div>
-          <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest opacity-40">
-            <a href="/explore" className="hover:opacity-100 transition-opacity">Explore</a>
-            <a href="/developers" className="hover:opacity-100 transition-opacity">Developers</a>
-            <a href="/compliance" className="hover:opacity-100 transition-opacity">Compliance</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

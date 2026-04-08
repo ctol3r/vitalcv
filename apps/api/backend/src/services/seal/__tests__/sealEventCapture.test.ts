@@ -10,11 +10,15 @@ jest.mock('../../../graphql/prisma_client', () => ({
     advisoryOutcomeEvent: {
       findFirst: jest.fn(),
     },
+    employerDecisionEvent: {
+      findFirst: jest.fn(),
+    },
     startOutcomeEvent: {
       create: jest.fn(),
     },
     auditEvent: {
       create: jest.fn(),
+      findFirst: jest.fn(),
     },
   },
 }));
@@ -41,11 +45,15 @@ const prismaMock = prisma as unknown as {
   advisoryOutcomeEvent: {
     findFirst: jest.Mock;
   };
+  employerDecisionEvent: {
+    findFirst: jest.Mock;
+  };
   startOutcomeEvent: {
     create: jest.Mock;
   };
   auditEvent: {
     create: jest.Mock;
+    findFirst: jest.Mock;
   };
 };
 
@@ -70,8 +78,10 @@ describe('captureStartOutcome', () => {
     prismaMock.vcvEntity.findFirst.mockReset().mockResolvedValue(null);
     prismaMock.bundleShareEvent.findFirst.mockReset().mockResolvedValue(null);
     prismaMock.advisoryOutcomeEvent.findFirst.mockReset().mockResolvedValue(null);
+    prismaMock.employerDecisionEvent.findFirst.mockReset().mockResolvedValue(null);
     prismaMock.startOutcomeEvent.create.mockReset().mockResolvedValue({});
     prismaMock.auditEvent.create.mockReset().mockResolvedValue({});
+    prismaMock.auditEvent.findFirst.mockReset().mockResolvedValue(null);
     const auditEntry: ReturnType<typeof appendAuditEvent> = {
       eventId: 'audit-event-1',
       time: '2026-03-23T00:00:00.000Z',
@@ -312,6 +322,102 @@ describe('captureStartOutcome', () => {
           occurredAt: '2026-03-23T12:00:00.000Z',
           previousBand: 'L1',
           newBand: 'L2',
+        }),
+      }),
+    }));
+  });
+
+  it('backfills organization context and pilot scope from the acceptance decision chain when the start path is otherwise unscoped', async () => {
+    prismaMock.auditEvent.findFirst.mockResolvedValue({
+      id: 'accept-audit-1',
+      metadata: {
+        employerReviewAction: {
+          attribution: {
+            organizationContextId: 'org-ctx-9',
+            organizationId: 'org-9',
+            organizationName: 'Acme Health',
+            purposeOfUse: 'credential_review',
+          },
+        },
+      },
+    });
+    prismaMock.employerDecisionEvent.findFirst.mockResolvedValue({
+      organizationContextId: 'org-ctx-9',
+      metadata: {
+        pilotId: 'pilot-9',
+        workflowLane: 'perm-md',
+        geographyTag: 'CA',
+        organizationId: 'org-9',
+        bundleId: 'bundle-9',
+      },
+    });
+    prismaMock.bundleShareEvent.findFirst.mockResolvedValue({
+      sharedAt: new Date('2026-03-01T00:00:00.000Z'),
+    });
+    prismaMock.advisoryOutcomeEvent.findFirst.mockImplementation(async ({
+      where,
+    }: {
+      where: { eventType?: string; readinessScoreAtEvent?: { gte: number } };
+    }) => {
+      if (where.eventType === 'EMPLOYER_REVIEW') {
+        return { eventTimestamp: new Date('2026-03-02T00:00:00.000Z') };
+      }
+      if (where.readinessScoreAtEvent?.gte === 60) {
+        return { eventTimestamp: new Date('2026-03-06T00:00:00.000Z') };
+      }
+      return null;
+    });
+
+    await captureStartOutcome({
+      entityId: '00000000-0000-0000-0000-000000000444',
+      startedAt: new Date('2026-03-10T00:00:00.000Z'),
+      readinessScoreAtStart: 90,
+      blockersAtStart: [],
+      sourceCoverageAtStart: EMPTY_COVERAGE,
+      metadata: {
+        acceptanceId: 'acceptance-9',
+        startAttestationId: 'attestation-9',
+      },
+    });
+
+    expect(prismaMock.auditEvent.findFirst).toHaveBeenCalledWith({
+      where: {
+        type: 'EMPLOYER_REVIEW_ACCEPTED',
+        referenceId: 'acceptance-9',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        metadata: true,
+      },
+    });
+    expect(prismaMock.employerDecisionEvent.findFirst).toHaveBeenCalledWith({
+      where: {
+        auditEventId: 'accept-audit-1',
+      },
+      orderBy: { decidedAt: 'desc' },
+      select: {
+        organizationContextId: true,
+        metadata: true,
+      },
+    });
+    expect(prismaMock.bundleShareEvent.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.startOutcomeEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        organizationContextId: 'org-ctx-9',
+        daysFromFirstReview: 8,
+        daysFromShare: null,
+        daysFromReady: 4,
+        metadata: expect.objectContaining({
+          acceptanceId: 'acceptance-9',
+          organizationId: 'org-9',
+          organizationName: 'Acme Health',
+          purposeOfUse: 'credential_review',
+          bundleId: 'bundle-9',
+          pilotId: 'pilot-9',
+          workflowLane: 'perm-md',
+          geographyTag: 'CA',
+          organizationContextId: 'org-ctx-9',
         }),
       }),
     }));

@@ -178,6 +178,7 @@ export default async function PilotOpsPage({
 
   const exportUrl = buildPilotExportHref('/api/pilot-kpi-export', days, filter);
   const jsonExportUrl = buildPilotExportHref('/api/pilot-kpi-json', days, filter);
+  const roiExportUrl = buildPilotExportHref('/api/pilot-roi-export', days, filter);
   const notStartedCount = Math.max(0, kpi.reviewsOpened.distinctEntities - kpi.startOutcomes.distinctEntities);
   const appliedScope = [
     { label: 'Org', value: kpi.appliedFilter.orgContextId },
@@ -193,10 +194,10 @@ export default async function PilotOpsPage({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-2">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/50">VitalCV — Internal</p>
-            <h1 className="mt-1 text-2xl font-semibold text-foreground">Pilot Operations KPIs</h1>
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/50">VitalCV — Pilot Operations</p>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">Interview-to-Start Velocity Dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Interview-to-Start Velocity · {days}-day window · Generated {new Date(kpi.generatedAt).toLocaleString()}
+              {days}-day window · Generated {new Date(kpi.generatedAt).toLocaleString()}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -217,15 +218,34 @@ export default async function PilotOpsPage({
               href={exportUrl}
               className="ml-2 rounded-lg border border-border bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground transition"
             >
-              ↓ CSV
+              ↓ Export CSV
             </a>
             <a
               href={jsonExportUrl}
               className="rounded-lg border border-border bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground transition"
             >
-              ↓ JSON
+              ↓ Export JSON Proof
+            </a>
+            <a
+              href={roiExportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20 transition shadow-[0_0_12px_rgba(99,102,241,0.1)]"
+            >
+              Executive ROI Report
             </a>
           </div>
+        </div>
+
+        {/* Methodology & Context */}
+        <div className="mb-8 rounded-xl border border-white/8 bg-white/[0.02] p-5 text-sm text-muted-foreground leading-relaxed">
+          <p className="font-semibold text-foreground mb-2">Pilot Methodology & Constraints</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Measurement:</strong> Primary KPI is Interview-to-Start velocity. Tracks the median days from an employer's first review to the clinician's recorded start date.</li>
+            <li><strong>Live vs Partial:</strong> NPPES and OIG/LEIE are live. State board and PECOS may use simulated prefix logic depending on current scope config. Blockers and starts must be recorded manually during the pilot.</li>
+            <li><strong>Honest Metrics:</strong> Missing data degrades honestly. Velocity is not computed until a complete event chain (Review → Decision → Start) is present.</li>
+            <li><strong>Next Steps:</strong> Review the <strong className="text-foreground/80">Executive ROI Report</strong> for buyer-facing industry comparisons. Ensure all pilot participants click through to the employer packet to generate full chain events.</li>
+          </ul>
         </div>
 
         <div className="mb-6 rounded-xl border border-white/8 bg-white/[0.03] p-4">

@@ -143,9 +143,12 @@ export function SandboxHero() {
         </div>
 
         <div className="mt-6 flex items-center justify-between text-[var(--vt-text-primary)]">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest group-hover:gap-4 transition-all">
+          <Link
+            href="/passport"
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest group-hover:gap-4 transition-all cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             Continue to Passport <ArrowRight className="w-3 h-3" />
-          </div>
+          </Link>
           <div className="flex items-center gap-2 text-[8px] font-mono opacity-30 uppercase tracking-tighter">
             <ShieldAlert className="w-3 h-3" />
             No PII Transmitted in Preview Mode
