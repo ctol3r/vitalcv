@@ -54,6 +54,23 @@ type FsmbClaimFetcher = (
   observedAt: string,
 ) => Promise<FsmbClaimSet>;
 
+function stateBoardDegradationReason(result: StateBoardResult, launchState: string): string | null {
+  switch (result.degradationReason) {
+    case 'ACCESS_REQUIRED':
+      return `${launchState} live state-board access is not configured for this lane. Manual verification or FSMB-backed verification is required.`;
+    case 'OUTAGE':
+      return `${launchState} state-board lookup failed or timed out. Treat this lane as unavailable until the source recovers or is manually verified.`;
+    case 'PARSER_FAILURE':
+      return `${launchState} state-board response could not be parsed safely. Manual verification is required until the parser is repaired.`;
+    case 'STALE':
+      return `${launchState} state-board verification returned stale data. Treat this lane as unresolved until a fresh board result is available.`;
+    case 'NOT_IMPLEMENTED':
+      return `${launchState} is outside the supported live state-board adapter set. Manual verification is required.`;
+    default:
+      return null;
+  }
+}
+
 function normalizeState(value: string | null | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0
     ? value.trim().toUpperCase()
@@ -362,6 +379,26 @@ export async function resolvePhysicianLicensureLaunchLane(input: {
   if (liveStateBoardLookup) {
     try {
       const stateBoardResult = await liveStateBoardLookup(input.npi, launchState);
+      const degradationReason = stateBoardDegradationReason(stateBoardResult, launchState);
+      if (degradationReason) {
+        return {
+          claims: [
+            buildUnavailableLicensureClaim({
+              npi: input.npi,
+              observedAt: input.observedAt,
+              sourceId: 'STATE_BOARD',
+              sourceUrl: stateBoardResult.sourceUrl || STATE_BOARD_CA_SOURCE_URL,
+              sourceScope: 'STATE_BOARD_MANUAL',
+              jurisdiction: launchState,
+              connectorState: 'unavailable',
+              participationStatus: 'manual_verification_required',
+              reason: degradationReason,
+            }),
+          ],
+          launchState,
+          route: 'manual',
+        };
+      }
       const stateBoardFresh = isFreshStateBoardVerification(
         stateBoardResult.lastVerifiedAt,
         new Date(input.observedAt),

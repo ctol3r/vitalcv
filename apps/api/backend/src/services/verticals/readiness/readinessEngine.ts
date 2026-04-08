@@ -35,6 +35,9 @@ function artifactLooksMock(artifact: PsvArtifact | undefined): boolean {
   const rawPayload = artifact.rawPayload.toLowerCase();
   return rawPayload.includes('"stub":true')
     || rawPayload.includes('"source":"mock')
+    || rawPayload.includes('"previewonly":true')
+    || rawPayload.includes('"decisiongrade":false')
+    || rawPayload.includes('"sourcemode":"sandbox"')
     || rawPayload.includes('"source":"simulated')
     || rawPayload.includes('npi-prefix');
 }

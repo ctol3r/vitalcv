@@ -24,6 +24,10 @@ import type {
   NormalizedAddress,
   NppesSmokeSample,
   RawNppesAddress,
+  type RawNppesEndpoint,
+  type RawNppesOtherName,
+  type NormalizedEndpoint,
+  type NormalizedOtherName,
 } from './types';
 
 // ── Field-length thresholds (NPPES v2 maximums) ────────────────────────────
@@ -54,6 +58,58 @@ function normalizeAddress(raw: RawNppesAddress): NormalizedAddress {
     postal_code: raw.postal_code ?? '',
     country_code: raw.country_code ?? 'US',
     telephone_number: raw.telephone_number ?? '',
+  };
+}
+
+function normalizeEndpoint(raw: RawNppesEndpoint): NormalizedEndpoint | null {
+  const endpoint =
+    typeof raw.endpoint === 'string' && raw.endpoint.trim().length > 0
+      ? raw.endpoint.trim()
+      : typeof raw.endpointUrl === 'string' && raw.endpointUrl.trim().length > 0
+        ? raw.endpointUrl.trim()
+        : '';
+  if (!endpoint) {
+    return null;
+  }
+
+  return {
+    endpoint,
+    endpointType:
+      typeof raw.endpointType === 'string' && raw.endpointType.trim().length > 0
+        ? raw.endpointType.trim()
+        : '',
+    endpointTypeDescription:
+      typeof raw.endpointTypeDescription === 'string'
+      && raw.endpointTypeDescription.trim().length > 0
+        ? raw.endpointTypeDescription.trim()
+        : '',
+    affiliation:
+      typeof raw.affiliation === 'string' && raw.affiliation.trim().length > 0
+        ? raw.affiliation.trim()
+        : '',
+  };
+}
+
+function normalizeOtherName(raw: RawNppesOtherName): NormalizedOtherName | null {
+  const displayName =
+    typeof raw.organization_name === 'string' && raw.organization_name.trim().length > 0
+      ? raw.organization_name.trim()
+      : [raw.first_name, raw.last_name]
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+          .map((value) => value.trim())
+          .join(' ');
+  if (!displayName) {
+    return null;
+  }
+
+  return {
+    display_name: displayName,
+    type:
+      typeof raw.type === 'string' && raw.type.trim().length > 0
+        ? raw.type.trim()
+        : typeof raw.type_code === 'string' && raw.type_code.trim().length > 0
+          ? raw.type_code.trim()
+          : '',
   };
 }
 
@@ -158,6 +214,14 @@ export function normalizeProvider(raw: RawNppesResponse): NormalizedProvider {
   const addresses: NormalizedAddress[] = rawAddresses.map(normalizeAddress);
   const practice_address =
     addresses.find((a) => a.purpose === 'LOCATION') ?? addresses[0] ?? null;
+  const mailing_address =
+    addresses.find((a) => a.purpose === 'MAILING') ?? null;
+  const endpoints: NormalizedEndpoint[] = ((result.endpoints ?? []) as RawNppesEndpoint[])
+    .map(normalizeEndpoint)
+    .filter((entry): entry is NormalizedEndpoint => entry !== null);
+  const other_names: NormalizedOtherName[] = ((result.other_names ?? []) as RawNppesOtherName[])
+    .map(normalizeOtherName)
+    .filter((entry): entry is NormalizedOtherName => entry !== null);
 
   // ── Display name ──────────────────────────────────────────────────────
   let display_name = '';
@@ -193,10 +257,13 @@ export function normalizeProvider(raw: RawNppesResponse): NormalizedProvider {
 
     // Location — TEXT fields, never truncated
     practice_address,
+    mailing_address,
     addresses,
 
     // Identifiers
     identifiers: result.identifiers ?? [],
+    endpoints,
+    other_names,
 
     // Audit
     enumeration_date: basic.enumeration_date ?? '',

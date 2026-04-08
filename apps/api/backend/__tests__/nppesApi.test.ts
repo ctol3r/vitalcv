@@ -78,6 +78,96 @@ function buildNpiBatch(rawResponseHash = 'npi-hash-1', state = 'CA') {
   };
 }
 
+function buildV2EdgeCaseBatch() {
+  const longOrgName = `Acme Integrated Care ${'X'.repeat(278)}`.slice(0, 300);
+  const longEndpoint = `https://example.org/fhir/${'a'.repeat(220)}`;
+  const longAddress1 = `123 ${'Long '.repeat(35)}Suite`;
+  const longAddress2 = `Floor ${'B'.repeat(180)}`;
+
+  return {
+    retrievalTime: '2026-04-06T12:00:00.000Z',
+    rawResponseHash: 'npi-hash-v2',
+    rawResponse: {
+      result_count: 1,
+      results: [
+        {
+          number: '1234567893',
+          enumeration_type: 'NPI-2',
+          basic: {
+            organization_name: longOrgName,
+            status: 'A',
+            credential: 'MD'.padEnd(40, 'X'),
+            enumeration_date: '2026-01-01',
+            last_updated: '2026-04-01',
+          },
+          taxonomies: [
+            {
+              code: '207Q00000X',
+              desc: 'Family Medicine',
+              primary: true,
+            },
+          ],
+          addresses: [
+            {
+              address_purpose: 'LOCATION',
+              address_1: longAddress1,
+              address_2: longAddress2,
+              city: 'San Francisco',
+              state: 'CA',
+              postal_code: '94105',
+              country_code: 'US',
+              telephone_number: '4155550101',
+            },
+            {
+              address_purpose: 'MAILING',
+              address_1: 'PO Box 123',
+              city: 'Oakland',
+              state: 'CA',
+              postal_code: '94612',
+              country_code: 'US',
+            },
+          ],
+          identifiers: [
+            {
+              code: '05',
+              desc: 'MEDICAID',
+              identifier: 'MEDICAID-1234567890',
+              issuer: 'CA',
+              state: 'CA',
+            },
+          ],
+          endpoints: [
+            {
+              endpointUrl: longEndpoint,
+              endpointTypeDescription: 'FHIR',
+            },
+          ],
+          other_names: [
+            {
+              organization_name: 'Acme Integrated Care West',
+            },
+          ],
+        },
+      ],
+    },
+    summary: {
+      sourceUrl: 'https://npiregistry.cms.hhs.gov/api/?version=2.1&number=1234567893',
+      factCount: 3,
+    },
+    facts: [
+      {
+        fact: {
+          factType: 'IdentityClaim',
+          fullName: 'Provider 1234567893',
+          enumerationType: 'NPI-2',
+          taxonomies: ['Family Medicine'],
+          practiceStates: ['CA'],
+        },
+      },
+    ],
+  };
+}
+
 describe('nppes api wrapper', () => {
   beforeEach(() => {
     mockLookupByNpi.mockReset();
@@ -159,5 +249,26 @@ describe('nppes api wrapper', () => {
     expect(result.providerId).toBe('provider-2');
     expect(result.stateOfPractice).toBe('TX');
     expect(prismaMock.provider.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves NPPES v2 extended fields and related records without truncation', async () => {
+    mockLookupByNpi.mockResolvedValue(buildV2EdgeCaseBatch());
+
+    const result = await fetchNppesProviderRecord('1234567893');
+
+    expect(result.providerType).toBe('ORGANIZATION');
+    expect(result.organizationName).toHaveLength(300);
+    expect(result.fullName).toBe(result.organizationName);
+    expect(result.practiceAddress?.address_1.length).toBeGreaterThan(150);
+    expect(result.practiceAddress?.address_2?.length).toBeGreaterThan(150);
+    expect(result.mailingAddress?.city).toBe('Oakland');
+    expect(result.endpoints[0]).toMatch(/^https:\/\/example\.org\/fhir\//);
+    expect(result.otherNames).toContain('Acme Integrated Care West');
+    expect(result.identifiers[0]).toEqual(expect.objectContaining({
+      code: '05',
+      identifier: 'MEDICAID-1234567890',
+      issuer: 'CA',
+      state: 'CA',
+    }));
   });
 });

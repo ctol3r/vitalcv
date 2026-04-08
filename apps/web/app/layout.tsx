@@ -166,3 +166,4 @@ export default async function RootLayout({
 
   return <ClerkProvider>{hydratedContent}</ClerkProvider>;
 }
+// polish wave

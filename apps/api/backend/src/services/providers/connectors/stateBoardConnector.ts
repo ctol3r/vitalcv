@@ -23,6 +23,10 @@ export interface StateBoardResult {
   boardName: string;
   lastVerifiedAt: string;
   sourceUrl: string;
+  sourceMode?: 'live' | 'sandbox';
+  decisionGrade?: boolean;
+  degradationReason?: 'OUTAGE' | 'ACCESS_REQUIRED' | 'STALE' | 'PARSER_FAILURE' | 'NOT_IMPLEMENTED' | null;
+  sourceDisclaimer?: string | null;
 }
 
 interface StateBoardAdapterConfig {
@@ -62,6 +66,12 @@ function sandboxLookup(npi: string, state: string, config: StateBoardAdapterConf
   const now = new Date();
   const futureDate = new Date(now.getFullYear() + 2, now.getMonth(), 1).toISOString().split('T')[0];
   const pastDate = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().split('T')[0];
+  const shared = {
+    sourceMode: 'sandbox' as const,
+    decisionGrade: false,
+    degradationReason: null,
+    sourceDisclaimer: 'Sandbox-only simulated state-board result. Manual or live board verification is still required.',
+  };
 
   if (lastDigit <= 6) {
     return {
@@ -69,6 +79,7 @@ function sandboxLookup(npi: string, state: string, config: StateBoardAdapterConf
       licensee: `Provider ${hash.slice(0, 6).toUpperCase()}`,
       expirationDate: futureDate, boardName: config.boardName,
       lastVerifiedAt: now.toISOString(), sourceUrl: config.sourceUrl,
+      ...shared,
     };
   }
   if (lastDigit === 7) {
@@ -77,6 +88,7 @@ function sandboxLookup(npi: string, state: string, config: StateBoardAdapterConf
       licensee: `Provider ${hash.slice(0, 6).toUpperCase()}`,
       expirationDate: pastDate, boardName: config.boardName,
       lastVerifiedAt: now.toISOString(), sourceUrl: config.sourceUrl,
+      ...shared,
     };
   }
   if (lastDigit === 8) {
@@ -85,6 +97,7 @@ function sandboxLookup(npi: string, state: string, config: StateBoardAdapterConf
       licensee: `Provider ${hash.slice(0, 6).toUpperCase()}`,
       expirationDate: null, boardName: config.boardName,
       lastVerifiedAt: now.toISOString(), sourceUrl: config.sourceUrl,
+      ...shared,
     };
   }
   // lastDigit === 9
@@ -93,6 +106,7 @@ function sandboxLookup(npi: string, state: string, config: StateBoardAdapterConf
     licensee: `Provider ${hash.slice(0, 6).toUpperCase()}`,
     expirationDate: null, boardName: config.boardName,
     lastVerifiedAt: now.toISOString(), sourceUrl: config.sourceUrl,
+    ...shared,
   };
 }
 
@@ -113,6 +127,10 @@ export async function lookupStateBoard(
       licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
       boardName: `${upperState} Medical Board (no adapter)`,
       lastVerifiedAt: new Date().toISOString(), sourceUrl: '',
+      sourceMode: mode === 'live' ? 'live' : 'sandbox',
+      decisionGrade: false,
+      degradationReason: 'NOT_IMPLEMENTED',
+      sourceDisclaimer: 'No supported state-board adapter is configured for this jurisdiction.',
     };
   }
 
@@ -122,7 +140,12 @@ export async function lookupStateBoard(
     schemaPolicy: STATE_BOARD_SCHEMA_POLICY,
     execute: async () => {
       if (mode === 'live' && config.liveLookup) {
-        return config.liveLookup(npi, licenseNumber);
+        return {
+          ...(await config.liveLookup(npi, licenseNumber)),
+          sourceMode: 'live',
+          decisionGrade: true,
+          degradationReason: null,
+        };
       }
 
       if (mode === 'live') {
@@ -132,6 +155,10 @@ export async function lookupStateBoard(
           licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
           boardName: config.boardName,
           lastVerifiedAt: new Date().toISOString(), sourceUrl: config.sourceUrl,
+          sourceMode: 'live',
+          decisionGrade: false,
+          degradationReason: 'ACCESS_REQUIRED',
+          sourceDisclaimer: 'Live state-board access is not configured for this launch lane.',
         };
       }
 
@@ -164,6 +191,12 @@ export async function lookupStateBoard(
       licenseStatus: 'NOT_AVAILABLE', licensee: null, expirationDate: null,
       boardName: config.boardName,
       lastVerifiedAt: new Date().toISOString(), sourceUrl: config.sourceUrl,
+      sourceMode: mode === 'live' ? 'live' : 'sandbox',
+      decisionGrade: false,
+      degradationReason: mode === 'live' ? 'OUTAGE' : 'NOT_IMPLEMENTED',
+      sourceDisclaimer: mode === 'live'
+        ? 'State-board verification failed or timed out. Manual verification required.'
+        : 'Sandbox-only simulated state-board result. Manual or live board verification is still required.',
     }),
   });
 }

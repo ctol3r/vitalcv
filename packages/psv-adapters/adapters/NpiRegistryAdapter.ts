@@ -83,6 +83,10 @@ function freezeBatchWithEvents(
   });
 }
 
+function stringField(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
 export class NpiRegistryAdapter implements IdentityLookupAdapter {
   public readonly descriptor: AdapterDescriptor;
   private readonly baseUrl: string;
@@ -311,7 +315,9 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
         .map((entry: unknown) => {
           if (!entry || typeof entry !== 'object') return null;
           const record = entry as Record<string, unknown>;
-          return typeof record.endpointUrl === 'string' ? record.endpointUrl.trim() : null;
+          return stringField(record.endpoint)
+            ?? stringField(record.endpointUrl)
+            ?? stringField(record.url);
         })
         .filter((entry: string | null): entry is string => Boolean(entry))
     );
@@ -346,6 +352,22 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
           .filter((entry: string | null): entry is string => Boolean(entry)),
       ),
     ]);
+    const practiceLocations: readonly string[] = Object.freeze(
+      [...addressEntries, ...practiceLocationEntries]
+        .map((entry: unknown) => {
+          if (!entry || typeof entry !== 'object') {
+            return null;
+          }
+          const record = entry as Record<string, unknown>;
+          const address1 = stringField(record.address_1);
+          const city = stringField(record.city);
+          const state = stringField(record.state)?.toUpperCase();
+          const postalCode = stringField(record.postal_code);
+          const location = [address1, city, state, postalCode].filter(Boolean).join(', ');
+          return location || null;
+        })
+        .filter((entry: string | null): entry is string => Boolean(entry)),
+    );
 
     const identityFact: IdentityClaimFact = Object.freeze({
       factId: buildDeterministicId('identity_claim', {
@@ -364,6 +386,7 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
       ...(organizationName ? { organizationName } : {}),
       ...(otherNames.length > 0 ? { otherNames } : {}),
       ...(endpoints.length > 0 ? { endpoints } : {}),
+      ...(practiceLocations.length > 0 ? { practiceLocations } : {}),
       enumerationType,
       taxonomies,
       practiceStates,
