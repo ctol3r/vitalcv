@@ -818,12 +818,15 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                     {shareError && (
                       <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                     )}
-                    <p className="text-center text-muted-foreground/40 text-xs leading-relaxed">
-                      Generates a shareable preview link. Send it to an employer so they can see your current passport and continue into the review surface.
+                    <p className="text-center text-muted-foreground/50 text-xs leading-relaxed">
+                      Generates a shareable preview link. Send it to an employer so they can instantly see your verified posture and advance you to the review stage.
                     </p>
-                    <p className="text-center text-muted-foreground/40 text-[11px] leading-relaxed">
-                      The copied link is a preview of your current state, not a decision-grade acceptance on its own.
-                    </p>
+                    <div className="mt-4 p-4 border border-[var(--vt-border)] bg-muted/20 text-center space-y-2">
+                      <p className="text-xs text-foreground/80 font-medium">Why return tomorrow?</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Your readiness score recalculates as state boards update and primary sources rotate. Check back to see new opportunities unlock as your standing improves.
+                      </p>
+                    </div>
                   </>
                 )}
               </>

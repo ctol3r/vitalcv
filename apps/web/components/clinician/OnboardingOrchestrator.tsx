@@ -508,12 +508,12 @@ export function OnboardingOrchestrator() {
       )}
 
       {/* Header */}
-      <header className="text-center space-y-2 pb-6">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Credential Intake
+      <header className="text-center space-y-3 pb-8">
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
+          Your Career Passport
         </h1>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Verify your identity, upload credentials, and complete primary source verification.
+        <p className="text-base text-muted-foreground max-w-lg mx-auto">
+          VitalCV builds a living, portable credentialing record. Claim your NPI to see your current readiness, find gaps, and upload evidence to clear them—so you never have to start from scratch again.
         </p>
       </header>
 

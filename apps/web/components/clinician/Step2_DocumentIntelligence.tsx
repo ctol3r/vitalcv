@@ -61,10 +61,15 @@ export function Step2_DocumentIntelligence({
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {/* Drop zone */}
-          <div className="space-y-2">
-            <Label htmlFor="file-upload" className="text-sm">
-              Upload PDF or DOCX
-            </Label>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="file-upload" className="text-sm font-semibold">
+                Evidence Upload
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">
+                We parse your CV and artifacts to identify what can be automatically verified against primary sources. VitalCV never shares your raw files without your explicit permission, and this evidence is used strictly to improve your readiness score.
+              </p>
+            </div>
             <label
               htmlFor="file-upload"
               className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border/60 bg-muted/30 px-6 py-8 cursor-pointer hover:border-primary/40 hover:bg-muted/50 transition-colors"
@@ -154,12 +159,15 @@ export function Step2_DocumentIntelligence({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Extracted Credentials
+                  Extracted Evidence
                 </Label>
                 <Badge variant="outline" className="text-[10px]">
                   {LABELS.UNVERIFIED}
                 </Badge>
               </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                These claims have been extracted but still need to be verified against primary sources. Any matched sources will improve your readiness posture.
+              </p>
 
               {uploadAuditRef && (
                 <p className="text-[10px] font-mono text-muted-foreground/60">
