@@ -217,7 +217,7 @@ export default function DesignSystemDocsPage() {
             { key: 'value', label: 'Value', render: (row) => row.value },
           ]}
           rows={[
-            { source: 'CAQH', field: 'expiration', value: '2026-10-03' },
+            { source: 'State Board', field: 'expiration', value: '2026-10-03' },
             { source: 'State Board', field: 'expiration', value: '2026-08-29' },
           ]}
         />

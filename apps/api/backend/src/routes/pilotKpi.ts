@@ -23,6 +23,7 @@ import {
   captureAdvisoryEvent,
   captureStartOutcome,
   recordPilotProofEvent,
+  type StartOutcomeStatus,
 } from '../services/seal/sealEventCapture';
 import { parseScopeFromQuery } from '../services/seal/pilotScope';
 import { resolveEmployerReviewAttribution } from '../services/entity/employerReviewAttribution';
@@ -187,40 +188,52 @@ export function registerPilotKpiRoutes(app: Express): void {
       entityId,
       status,
       startedAt,
+      actualStartDate,
       recordedAt,
       organizationContextId,
       readinessScoreAtStart,
       blockers,
       nonStartReason,
       nonStartCategory,
+      reason,
+      blockerNotes,
       note,
     } = req.body ?? {};
-    const normalizedStatus = readOptionalString(status)?.toUpperCase() ?? 'STARTED';
+
+    // Accept: STARTED, started, NOT_STARTED, not_started, DID_NOT_START
+    const rawStatus = readOptionalString(status)?.toUpperCase() ?? 'STARTED';
+    const normalizedStatus: 'STARTED' | 'NOT_STARTED' =
+      rawStatus === 'DID_NOT_START' || rawStatus === 'NOT_STARTED'
+        ? 'NOT_STARTED'
+        : 'STARTED';
 
     if (!entityId || !UUID_RE.test(entityId)) {
       void res.status(400).json({ error: 'entityId must be a valid UUID.' });
       return;
     }
 
-    if (normalizedStatus !== 'STARTED' && normalizedStatus !== 'DID_NOT_START') {
-      void res.status(400).json({ error: 'status must be STARTED or DID_NOT_START.' });
+    if (rawStatus !== 'STARTED' && rawStatus !== 'DID_NOT_START' && rawStatus !== 'NOT_STARTED') {
+      void res.status(400).json({ error: 'status must be STARTED, NOT_STARTED, or DID_NOT_START.' });
       return;
     }
 
-    if (normalizedStatus === 'STARTED' && (!startedAt || isNaN(Date.parse(startedAt as string)))) {
-      void res.status(400).json({ error: 'startedAt must be a valid ISO date string.' });
+    const effectiveStartDate = readOptionalString(actualStartDate) ?? readOptionalString(startedAt);
+    if (normalizedStatus === 'STARTED' && (!effectiveStartDate || isNaN(Date.parse(effectiveStartDate)))) {
+      void res.status(400).json({ error: 'startedAt or actualStartDate must be a valid ISO date string.' });
       return;
     }
 
-    if (normalizedStatus === 'DID_NOT_START' && recordedAt && isNaN(Date.parse(recordedAt as string))) {
+    if (normalizedStatus === 'NOT_STARTED' && recordedAt && isNaN(Date.parse(recordedAt as string))) {
       void res.status(400).json({ error: 'recordedAt must be a valid ISO date string.' });
       return;
     }
 
     const scope = readPilotFilter((req.body ?? {}) as Record<string, unknown>);
     const resolvedOrganizationContextId = readOptionalString(organizationContextId);
+    const effectiveReason = readOptionalString(reason) ?? readOptionalString(nonStartReason);
+    const effectiveBlockerNotes = readOptionalString(blockerNotes) ?? (typeof note === 'string' ? note : null);
 
-    if (normalizedStatus === 'DID_NOT_START') {
+    if (normalizedStatus === 'NOT_STARTED') {
       const effectiveRecordedAt =
         readOptionalString(recordedAt)
         ?? new Date().toISOString();
@@ -231,10 +244,11 @@ export function registerPilotKpiRoutes(app: Express): void {
         organizationContextId: resolvedOrganizationContextId,
         occurredAt: effectiveRecordedAt,
         metadata: {
-          outcomeStatus: 'DID_NOT_START',
-          nonStartReason: readOptionalString(nonStartReason),
+          outcomeStatus: 'NOT_STARTED',
+          nonStartReason: effectiveReason,
           nonStartCategory: readOptionalString(nonStartCategory),
-          note: typeof note === 'string' ? note : null,
+          reason: effectiveReason,
+          blockerNotes: effectiveBlockerNotes,
           pilotId: scope.pilotId ?? null,
           workflowLane: scope.workflowLane ?? null,
           geographyTag: scope.geographyTag ?? null,
@@ -243,15 +257,16 @@ export function registerPilotKpiRoutes(app: Express): void {
 
       log('info', 'pilot_non_start_outcome_recorded_manually', {
         entityId,
-        nonStartReason: readOptionalString(nonStartReason),
+        reason: effectiveReason,
         recordedAt: effectiveRecordedAt,
       });
       void res.status(202).json({
         ok: true,
         queued: true,
         entityId,
-        status: 'DID_NOT_START',
-        nonStartReason: readOptionalString(nonStartReason),
+        status: 'NOT_STARTED',
+        reason: effectiveReason,
+        blockerNotes: effectiveBlockerNotes,
         recordedAt: effectiveRecordedAt,
       });
       return;
@@ -260,20 +275,29 @@ export function registerPilotKpiRoutes(app: Express): void {
     void captureStartOutcome({
       entityId,
       organizationContextId: resolvedOrganizationContextId,
-      startedAt: new Date(startedAt as string),
+      outcomeStatus: 'STARTED' as StartOutcomeStatus,
+      startedAt: new Date(effectiveStartDate!),
+      actualStartDate: effectiveStartDate ? new Date(effectiveStartDate) : null,
       readinessScoreAtStart: typeof readinessScoreAtStart === 'number' ? readinessScoreAtStart : null,
       blockersAtStart: Array.isArray(blockers) ? blockers as string[] : [],
       sourceCoverageAtStart: {},
+      reason: effectiveReason,
+      blockerNotes: effectiveBlockerNotes,
       metadata: {
         recordedBy: 'operator-manual',
-        note: typeof note === 'string' ? note : null,
         monitoredAt: new Date().toISOString(),
       },
       scope,
     });
 
-    log('info', 'pilot_start_outcome_recorded_manually', { entityId, startedAt });
-    void res.status(202).json({ ok: true, queued: true, entityId, startedAt });
+    log('info', 'pilot_start_outcome_recorded_manually', { entityId, startedAt: effectiveStartDate });
+    void res.status(202).json({
+      ok: true,
+      queued: true,
+      entityId,
+      status: 'STARTED',
+      actualStartDate: effectiveStartDate,
+    });
   }));
 
   log('info', 'pilot_kpi_routes_registered', {

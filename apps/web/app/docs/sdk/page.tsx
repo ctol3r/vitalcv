@@ -94,7 +94,7 @@ export default function SdkDocsPage() {
         <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 mb-3">SDKs</p>
         <h1 className="text-3xl font-bold tracking-tight mb-4">Client Libraries</h1>
         <p className="text-zinc-400 leading-relaxed">
-          Three focused TypeScript SDKs ship in this workspace: verifier, issuer, and wallet. The examples below reflect the current package APIs, and environment-specific flows still depend on the backend routes and credentials available in your deployment.
+          Three TypeScript SDKs are available in this workspace: verifier, issuer, and wallet. The examples below reflect the current package APIs and are illustrative — environment-specific flows depend on the backend routes and credentials available in your deployment.
         </p>
       </div>
 

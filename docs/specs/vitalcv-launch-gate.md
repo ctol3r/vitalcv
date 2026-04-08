@@ -2,6 +2,8 @@
 
 **MISSION:** Nothing goes live until the product, packet, dashboard, docs, and billing motion all tell the same truthful story.
 
+**Last updated:** 2026-03-30 (Wave 5)
+
 ## Gate Operating Rule
 
 - The launch gate is green only when every gate below is green on the same release candidate.
@@ -9,51 +11,129 @@
 - If a gate turns red, the answer is either a smaller truthful scope or a product fix. Better storytelling is not a remedy.
 - The wedge remains the only launch motion until this gate is revised explicitly.
 
-## Green-Light Gates
+---
 
-| Gate | What Must Be True | Owner Role | Required Evidence |
-| --- | --- | --- | --- |
-| Public truth locked | Homepage, employer copy, billing, pilot brief, demo script, and launch materials describe only live routes, explicit source coverage states, and the current buyer motion. | Product + GTM | Manual copy review across `/`, `/employers`, `/billing`, and the pilot docs. No route, source, or pricing claim can outrun the product. |
-| Wedge routes canonical | The only launch wedge is `/onboarding` -> `/passport/[id]` -> `/review/[entityId]` -> `/pilot-ops` / start capture. Shared surfaces may only point back to the same packet truth. | Product + Engineering | Product walkthrough recorded on the live environment. No archived `/demo/*` route or off-wedge operator backdoor is required to complete the flow. |
-| Packet / export truthful | Packet export, employer review, and KPI exports contain only stored facts, timestamps, source coverage, and explicit limitation language. | Engineering + Ops | One live packet export plus one CSV and one JSON KPI export. Review payload and packet payload must match on source coverage and readiness truth. |
-| Employer actions auditable | `Accept as head start`, `Request refresh`, and `Route to review` each write an audit event before success is shown. The review UI must surface the audit record. | Engineering + Trust Ops | One successful action of each type in a pilot-safe environment, with visible `auditEventId` evidence and persisted log / row verification. |
-| Source coverage explicit | Every displayed source state is rendered with an explicit canonical posture such as `checked`, `stale`, `pending`, `gated`, `unavailable`, `accessRequired`, `reviewRequired`, `notDecisionGrade`, or `previewOnly`. | Product + Engineering | Route review of `/passport/[id]`, `/review/[entityId]`, packet export, and any public preview surface. No silent upgrade from gated or pending to verified. |
-| First value < 30s | From approved NPI submission to the first visible readiness snapshot on `/passport/[id]`, the operator sees useful truth in under 30 seconds in the pilot environment. | Product + Ops | Three stopwatch-backed or telemetry-backed runs on approved pilot NPIs. Fail if any run requires off-screen explanation to count as value. |
-| Packet-to-decision < 5 min target | From opening `/review/[entityId]` to recording one persisted employer action, a trained operator can inspect the packet and act in under 5 minutes. | Ops + GTM | Timed demo runs using the canonical review surface. The action must end with a visible audit confirmation, not just a click. |
-| KPI truth locked | Every pilot doc and dashboard uses the same core KPI: **Interview-to-Start Velocity** = median days from first employer review to recorded start outcome. | Ops + Data | Compare the pilot brief, runbook, KPI dashboard, exports, and any buyer-facing reporting. Any wording drift blocks launch. |
-| Scope discipline locked | Scoped pilot views preserve `orgContextId`, `pilotId`, `workflowLane`, and `geographyTag` when present, and filtered reporting never invents scoped outcomes from unscoped starts. | Ops + Data | Scoped KPI snapshot plus one scoped start outcome or explicit proof that no scoped start claim is being made yet. |
-| Pricing truth locked | Clinicians are free, issuers are free, organizations pay for workflow execution only, same-band repeat access is not re-billed, and checkout language matches the actual access motion. | GTM + Finance | Review `/billing`, pricing doctrine, pilot brief, and any quote or pilot email templates for exact wording alignment. |
+## 1. Truthful Public Shell
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| T1 | Homepage, `/employers`, `/billing`, and all public surfaces describe only live routes and honest source states | Manual copy review — no route, source, or pricing claim outpaces the product |
+| T2 | No banned strings in production HTML or JS bundles (see `public-copy-guard.ts` blocklist) | Build-time assertion or bundle grep |
+| T3 | Governance/wave/phase labels stripped from public-facing pages | Route inspection of `/developers` and other public pages |
+| T4 | Copy guard test suite passing: `postrelease-truth-cleanup.test.tsx` | CI green |
+
+## 2. Canonical Wedge Routes
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| W1 | The only launch wedge is `/onboarding` -> `/passport/[id]` -> `/review/[entityId]` -> `/pilot-ops` / start capture | Product walkthrough recorded on the live environment |
+| W2 | No archived `/demo/*` route or off-wedge operator backdoor is required to complete the flow | Walkthrough does not touch `_archive` routes |
+| W3 | NPI input at `/onboarding` resolves identity and begins launch-spine checks | Live NPI test (approved pilot NPI or `1003000126`) |
+| W4 | `/passport/[id]` shows identity + sanctions + enrollment + source coverage with per-source status | Screenshot evidence |
+| W5 | `/review/[entityId]` loads employer review with readiness snapshot + action buttons | Screenshot evidence |
+| W6 | Shared surfaces (`/p/[slug]`, `/interview`) point back to the same packet truth, not separate data | Route inspection |
+
+## 3. Packet and Export Trustability
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| P1 | `GET /api/employer-review/:entityId/packet` returns stored facts, timestamps, and `sourceCoverage` | Live packet export — compare payload to review screen |
+| P2 | Packet and review UI agree on readiness score, source states, and blocker list | Side-by-side comparison |
+| P3 | Packet contains explicit limitation language for gated/pending/access-required sources | Payload inspection |
+| P4 | KPI CSV and JSON exports match the live pilot scope | Export comparison: `GET /api/internal/pilot/kpis` vs `GET /api/internal/pilot/kpis/export` |
+
+## 4. Employer Decision Persistence
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| E1 | `Accept as head start` writes `EmployerDecisionEvent` + `AuditEvent` before returning 2xx | One successful action with visible `auditEventId` |
+| E2 | `Request refresh` writes `EmployerDecisionEvent` + `AuditEvent` before returning 2xx | One successful action with DB row verification |
+| E3 | `Route to review` writes `EmployerDecisionEvent` + `AuditEvent` before returning 2xx | One successful action with DB row verification |
+| E4 | Review UI surfaces audit confirmation after each action | Screenshot showing audit trail recorded |
+| E5 | Employer action cannot succeed without a persisted audit record | Code review of `employerActions.ts` transaction boundary |
+
+## 5. Blocker Metrics and Resolution
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| B1 | Blockers are synced via `syncBlockerEvents()` and persisted to `blocker_resolution_events` | DB query showing blocker rows |
+| B2 | KPI dashboard shows open/resolved blocker counts | `/pilot-ops` screenshot |
+| B3 | Blocker resolution methods tracked: `SOURCE_UPDATE`, `MANUAL_UPLOAD`, `WAIVED`, `EXPIRED` | KPI export showing blocker breakdown |
+| B4 | Average and median resolution days computed per blocker code | KPI export field `blockers[].avgResolutionDays` |
+
+## 6. Start-Outcome Capture
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| S1 | `POST /api/internal/pilot/start-outcome` accepts `entityId`, `startedAt`, `note` | One successful 202 response |
+| S2 | System automatically derives `daysFromFirstReview`, `daysFromShare`, `daysFromReady` | Start outcome row with computed velocity fields |
+| S3 | Start outcome inherits active scope (`orgContextId`, `pilotId`, `workflowLane`, `geographyTag`) | Field inspection of captured start event |
+| S4 | Filtered reporting never invents scoped starts from unscoped `start_attestations` | Scoped KPI snapshot comparison |
+
+## 7. Source-Health Visibility
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| H1 | `/internal/pilot-ops` shows source health panel with freshness + alerts | Screenshot |
+| H2 | `/api/mission-ops/sources` returns current source status for NPPES, OIG/LEIE, PECOS | API response |
+| H3 | Pilot diagnostics panel shows failing steps when a source is down | Simulated degradation or historical evidence |
+| H4 | `spineStatus` returns `HEALTHY`, `DEGRADED`, or `CRITICAL` | API response showing status field |
+| H5 | Silent source failures surface as `UNAVAILABLE` / `ERROR`, not as `CLEAR` / `VERIFIED` | Code review of error handling in source adapters |
+
+## 8. Build and Typecheck
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| C1 | `pnpm turbo build` passes on the release candidate SHA | CI log or local build output |
+| C2 | `pnpm turbo typecheck` passes with zero errors | CI log or local typecheck output |
+| C3 | No `ignoreBuildErrors` or `ignoreDuringBuilds` in `next.config.mjs` | File inspection |
+| C4 | Test suite passes: all assertion files green | CI test results |
+
+## 9. KPI Truth Locked
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| K1 | Primary KPI defined identically everywhere: **Interview-to-Start Velocity** = median days from first employer review to recorded start outcome | Cross-document wording comparison |
+| K2 | Pilot brief, runbook, KPI dashboard, exports, and buyer-facing materials all use the same definition | Manual review |
+| K3 | Secondary metrics (packets shared, reviews opened, decisions made) are labeled as secondary, not primary | Dashboard and export review |
+
+## 10. Pricing Truth Locked
+
+| # | Check | Evidence Required |
+| --- | --- | --- |
+| R1 | `/billing` page matches pricing doctrine: clinicians free, orgs pay for workflow execution | Route inspection |
+| R2 | Same-band repeat access is not re-billed — rule visible in pricing materials | Copy review |
+| R3 | Government fees described as pass-through at cost, no markup | Copy review |
+| R4 | No claim of live self-serve checkout when access is still manual/mailto-gated | `/billing` page inspection |
+
+---
 
 ## Required Evidence Pack Before Green
 
 Do not mark the gate green without all of the following in hand:
 
-- a screen-recorded wedge walkthrough on the live pilot environment
-- a live packet export from `/api/employer-review/:entityId/packet`
-- a CSV and JSON KPI export from the live pilot ops flow
-- at least one visible audit confirmation from employer review
-- at least one start outcome row or an explicit note that outcome measurement has not started yet
-- a wording review across pilot brief, launch gate, KPI dashboard, demo script, pricing doctrine, and pilot runbook
-
-## Launch-Day Operating Cadence
-
-1. Run the canonical walkthrough on the approved pilot NPI.
-2. Export the packet and KPI snapshot from the same scoped cohort.
-3. Confirm the persisted employer action and `auditEventId`.
-4. Reconcile public copy, billing copy, and pilot materials against the live walkthrough.
-5. Stop the launch immediately if any gate item drifts red.
+- [ ] Screen-recorded wedge walkthrough on the live pilot environment
+- [ ] Live packet export from `/api/employer-review/:entityId/packet`
+- [ ] CSV and JSON KPI export from the live pilot ops flow
+- [ ] At least one visible audit confirmation per employer action type
+- [ ] At least one start outcome row (or explicit note that outcome measurement has not started yet)
+- [ ] Source health panel showing current spine status
+- [ ] Build + typecheck passing on the release candidate SHA
+- [ ] Wording review across pilot brief, launch gate, KPI dashboard, demo script, pricing doctrine, and pilot runbook
 
 ## Automatic Fail Conditions
 
 Launch is blocked immediately if any of the following are true:
 
-- public or pilot-facing copy implies decision-grade source coverage when the actual posture is gated, pending, preview-only, or otherwise not decision-grade
-- the wedge requires archived demo routes or unsupported operator backdoors
-- packet export and review payload disagree on readiness or source coverage
-- an employer action succeeds without a persisted audit record
-- filtered pilot reporting is built from unscoped starts
-- the first value or packet-to-decision story only works with narration and not with the actual product
-- pricing language implies live card checkout when access is still routed through manual approval
+- Public or pilot-facing copy implies decision-grade coverage for a source that is gated, pending, access-required, preview-only, or not integrated
+- The wedge requires archived demo routes or unsupported operator backdoors
+- Packet export and review payload disagree on readiness or source coverage
+- An employer action succeeds without a persisted audit record
+- Filtered pilot reporting is built from unscoped starts
+- The first-value or packet-to-decision story only works with narration and not with the actual product
+- Pricing language implies live card checkout when access is still routed through manual approval
+- A source failure silently renders as clean/verified instead of surfacing as an error
+- Build or typecheck is failing on the release candidate
 
 ## Exit Rule
 

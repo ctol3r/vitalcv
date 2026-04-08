@@ -71,7 +71,7 @@ describe('passport truth helpers', () => {
     });
 
     expect(resolveAuthorityStatusLead(credential)).toBe('Access required');
-    expect(resolveAuthorityVdsStatus(credential)).toBe('access required');
+    expect(resolveAuthorityVdsStatus(credential)).toBe('access_required');
     expect(resolveAuthorityTrustStatus(credential)).toBe('access_required');
     expect(resolveAuthorityAccordionStatus(credential)).toBe('access_required');
     expect(resolveAuthorityNote(credential)).toContain('Access required.');

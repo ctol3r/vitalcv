@@ -1018,8 +1018,8 @@ export function buildPassportTrustPosture(input: {
 
   const identityCurrent = input.truth.identity.status === 'VERIFIED';
   const identityStale = input.truth.identity.coverage.state === 'stale';
-  const identityGated = input.truth.identity.status === 'ACCESS REQUIRED';
-  const identityReviewRequired = input.truth.identity.status === 'REVIEW REQUIRED';
+  const identityGated = input.truth.identity.status === 'ACCESS_REQUIRED';
+  const identityReviewRequired = input.truth.identity.status === 'REVIEW_REQUIRED';
   const identityState = resolvePostureState({
     current: identityCurrent,
     stale: identityStale,
@@ -1055,11 +1055,11 @@ export function buildPassportTrustPosture(input: {
   const safetyBlocked = input.standing.exclusionStatus === 'EXCLUDED';
   const safetyReviewRequired =
     input.standing.exclusionStatus === 'POSSIBLE_MATCH'
-    || input.truth.safety.status === 'REVIEW REQUIRED';
+    || input.truth.safety.status === 'REVIEW_REQUIRED';
   const safetyStale =
     input.standing.exclusionStatus === 'CLEAR'
     && input.truth.safety.coverage.state === 'stale';
-  const safetyGated = input.truth.safety.status === 'ACCESS REQUIRED';
+  const safetyGated = input.truth.safety.status === 'ACCESS_REQUIRED';
   const safetyCurrent =
     input.standing.exclusionStatus === 'CLEAR'
     && input.truth.safety.status === 'CLEAR'
@@ -1121,11 +1121,11 @@ export function buildPassportTrustPosture(input: {
       credential.reviewRequired
       || credential.authorityClaimCode === 'BOARD_ORDER_PRESENT'
     ))
-    || input.truth.authority.status === 'REVIEW REQUIRED'
+    || input.truth.authority.status === 'REVIEW_REQUIRED'
     || input.standing.negativeFindings.some((finding) => /board order requires manual review/i.test(finding))
   );
   const authorityGated = !authorityBlocked && !authorityReviewRequired
-    && input.truth.authority.status === 'ACCESS REQUIRED';
+    && input.truth.authority.status === 'ACCESS_REQUIRED';
   const authorityStale = !authorityBlocked && !authorityReviewRequired && !authorityGated && (
     licensureCredentials.some((credential) => credential.stale)
     || input.truth.authority.coverage.state === 'stale'
@@ -1186,9 +1186,9 @@ export function buildPassportTrustPosture(input: {
     pushUniqueValue(missingItems, authorityDetail);
   }
 
-  const eligibilityReviewRequired = input.truth.eligibility.status === 'REVIEW REQUIRED'
+  const eligibilityReviewRequired = input.truth.eligibility.status === 'REVIEW_REQUIRED'
     || input.readiness.blockers.some((blocker) => /enrollment.*review/i.test(blocker));
-  const eligibilityGated = input.truth.eligibility.status === 'ACCESS REQUIRED';
+  const eligibilityGated = input.truth.eligibility.status === 'ACCESS_REQUIRED';
   const eligibilityStale =
     input.standing.pecosEnrollmentStatus === 'ENROLLED'
     && (
@@ -1927,7 +1927,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     ...(trustState?.gap_summary ?? []),
     ...eligibilityGaps,
     ...Object.values(truth)
-      .filter((entry) => entry.status === 'NOT DECISION-GRADE')
+      .filter((entry) => entry.status === 'NOT_DECISION_GRADE')
       .map((entry) => entry.coverage.reason),
     ...credList
       .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))

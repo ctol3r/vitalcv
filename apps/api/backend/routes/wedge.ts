@@ -760,7 +760,8 @@ export function registerWedgeRoutes(app: Express) {
            return res.status(400).json({ error: 'clinician_id query parameter is required' });
         }
 
-        // Demo mode: return mock trust-state without hitting DB/Neo4j.
+        // QUARANTINE: Demo mode bypass — returns mock trust-state without hitting DB/Neo4j.
+        // Must not be re-enabled without trust review. See env.ts safety invariant.
         if (process.env.YC_DEMO_MODE === 'true' || process.env.YC_DEMO_MODE === '1') {
           return res.json({
             recognized: true,

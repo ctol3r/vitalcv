@@ -902,7 +902,7 @@ describe('live path regression hardening', () => {
         ...buildPassport().truth,
         eligibility: {
           kind: 'enrollment',
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: createCanonicalSourceCoverage({
@@ -954,7 +954,7 @@ describe('live path regression hardening', () => {
         },
         eligibility: {
           kind: 'enrollment',
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: contextualEligibilityCoverage,
@@ -1177,7 +1177,7 @@ describe('live path regression hardening', () => {
       />,
     );
 
-    await clickByText(view.container, 'Accept as head start');
+    await clickByText(view.container, 'Proceed with Credentialing Head Start');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1306,7 +1306,7 @@ describe('live path regression hardening', () => {
     const passport = buildPassport();
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_review" />);
 
-    await clickByText(view.container, 'Route to review');
+    await clickByText(view.container, 'Send to Credentialing Team');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(

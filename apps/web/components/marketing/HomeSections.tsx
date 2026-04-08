@@ -11,7 +11,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  DollarSign,
   FileX,
   Globe,
   Rocket,

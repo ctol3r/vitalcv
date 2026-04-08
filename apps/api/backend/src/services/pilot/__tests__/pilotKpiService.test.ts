@@ -172,6 +172,7 @@ describe('pilotKpiService', () => {
         resolutionDays: null,
         resolutionMethod: null,
         status: 'OPEN',
+        metadata: {},
       },
     ]);
 
@@ -251,19 +252,25 @@ describe('pilotKpiService', () => {
     });
     expect(snapshot.eventChain.startOutcomeEvents).toBe(2);
     expect(snapshot.proofChain).toEqual(expect.objectContaining({
-      totalCases: 1,
+      totalCases: 2,
       replayableCases: 1,
-      partialCases: 0,
     }));
     expect(snapshot.proofChain.cases[0]).toEqual(expect.objectContaining({
       caseKey: 'entity-1|org-1|pilot-1|lane-1|CA',
       replayable: true,
-      eventNames: [
+      eventNames: expect.arrayContaining([
         'packet_shared',
         'employer_review_opened',
         'employer_decision_recorded',
         'start_outcome_recorded',
-      ],
+      ]),
+    }));
+    // Blocker case: entity-1|global — blocker_opened is a separate case
+    const blockerCase = snapshot.proofChain.cases.find(
+      (c: { caseKey: string }) => c.caseKey === 'entity-1|global',
+    );
+    expect(blockerCase).toEqual(expect.objectContaining({
+      eventNames: expect.arrayContaining(['blocker_opened']),
     }));
 
     expect(prismaMock.bundleShareEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({

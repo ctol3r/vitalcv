@@ -49,7 +49,36 @@ VitalCV gives that buyer one launch-safe operating loop:
 - It leaves behind an audit record tied to the trust snapshot that existed at the moment of decision.
 - It can be scoped by organization, pilot, workflow lane, and geography without inventing filtered outcomes from unscoped data.
 
-## Proof Story
+## Proof Story — RN Credentialing for Per-Diem Shift
+
+**Buyer:** Healthcare staffing agency credentialing lead.
+**Clinician:** Registered Nurse available for per-diem shifts.
+**Workflow:** RN credentialing for per-diem shift assignment.
+**Primary KPI:** Time-to-Trusted-Start (TTS) — days from first employer review to confirmed shift start.
+
+### The Before
+
+The credentialing lead receives a per-diem RN candidate. To clear them for a shift, the team manually:
+1. Looks up the NPI on the NPPES website to confirm identity and taxonomy.
+2. Checks the OIG/LEIE exclusion list to confirm no sanctions.
+3. Checks PECOS enrollment status for Medicare eligibility.
+4. Calls or emails to verify state licensure status.
+5. Assembles findings into an email or spreadsheet for the staffing coordinator.
+6. The coordinator makes a start decision based on incomplete, possibly stale information.
+
+This takes 3-10 business days. Every new facility repeats the process from scratch because no facility trusts another's verification.
+
+### The After (Pilot Flow)
+
+1. **NPI in** — Operator enters the RN's NPI at `/onboarding`. VitalCV resolves identity against NPPES, checks OIG/LEIE for sanctions, and queries PECOS for enrollment. State board shows `ACCESS_REQUIRED` (honest).
+2. **Readiness appears** — `/passport/[id]` shows: identity VERIFIED (NPPES), sanctions CLEAR (OIG/LEIE), enrollment ENROLLED or NOT_FOUND (PECOS), licensure ACCESS_REQUIRED (state board). All in under 30 seconds.
+3. **Packet inspected** — Employer opens `/review/[entityId]`, sees the same source-backed snapshot with freshness timestamps, and exports the evidence packet.
+4. **Employer acts** — Credentialing lead clicks `Accept as head start` (or `Request refresh` / `Route to review` if gaps exist). Action is audit-logged with the trust snapshot at time of decision.
+5. **Start captured** — When the RN actually starts a shift, operator records the start date via `POST /api/internal/pilot/start-outcome`. System derives TTS automatically.
+
+**Result:** The staffing agency moves from 3-10 day manual lookups to a 30-second readiness snapshot and a 5-minute employer decision, with an auditable record of exactly what was checked and what wasn't.
+
+### General Proof Story
 
 Before VitalCV, the credentialing team restarts the review from scratch every time a clinician enters the queue. They chase source truth manually, reconstruct what is missing from memory, and defend downstream decisions without a clean receipt chain.
 

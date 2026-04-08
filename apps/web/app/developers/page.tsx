@@ -90,6 +90,7 @@ const INTEGRATION_RULES = [
 export default function DevelopersPage() {
   const publicApiBase = getPublicApiBase();
 
+export default function DevelopersPage() {
   return (
     <main className="min-h-screen bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-6xl space-y-10">

@@ -255,7 +255,7 @@ describe('passportService', () => {
     expect(passport?.trustPosture.staleItems).toContain('PECOS enrollment verification stale');
     expect(passport?.truth.identity.status).toBe('VERIFIED');
     expect(passport?.truth.safety.status).toBe('CLEAR');
-    expect(passport?.truth.authority.status).toBe('ACCESS REQUIRED');
+    expect(passport?.truth.authority.status).toBe('ACCESS_REQUIRED');
     expect(passport?.truth.eligibility.status).toBe('PENDING');
     expect(passport?.sourceCoverage.checks).toEqual(expect.arrayContaining([
       expect.objectContaining({

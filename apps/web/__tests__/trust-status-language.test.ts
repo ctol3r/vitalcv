@@ -13,12 +13,15 @@ import {
 
 describe('trust status language', () => {
   it('keeps shared label mapping aligned between accordion and VDS pills', () => {
+    expect(getTrustStatusLabel('verified')).toBe('Source-backed');
+    expect(getTrustStatusLabel('clear')).toBe('Checked');
     expect(getTrustStatusLabel('review_required')).toBe('Review required');
     expect(getTrustStatusLabel('access_required')).toBe('Access required');
 
-    expect(getVdsTrustStatusLabel('review required')).toBe('Review required');
-    expect(getVdsTrustStatusLabel('access required')).toBe('Access required');
-    expect(getVdsTrustStatusLabel('not decision-grade')).toBe('Not decision-grade');
+    expect(getVdsTrustStatusLabel('clear')).toBe('Checked');
+    expect(getVdsTrustStatusLabel('review_required')).toBe('Review required');
+    expect(getVdsTrustStatusLabel('access_required')).toBe('Access required');
+    expect(getVdsTrustStatusLabel('not_decision_grade')).toBe('Not decision-grade');
   });
 
   it('maps canonical source coverage states into honest trust UI states', () => {

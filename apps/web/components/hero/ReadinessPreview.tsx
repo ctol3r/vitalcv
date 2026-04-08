@@ -95,6 +95,32 @@ const READINESS_TONE_LABELS: Record<ReadinessTone, string> = {
   blocked: 'Blocked',
 };
 
+const READINESS_LEVEL_EXPLANATION: Record<string, string> = {
+  'L0': 'Foundation — minimum evidence is missing. Not ready for credentialing decisions.',
+  'L1': 'Provisional — some sources checked but gaps remain. Manual review required before proceeding.',
+  'L2': 'Source-backed — key sources verified. Ready to proceed with noted caveats.',
+  'L3': 'Trust-native — decision-grade evidence across all required sources.',
+};
+
+function resolveBlockerSeverity(blocker: string): 'critical' | 'high' | 'medium' {
+  const lower = blocker.toLowerCase();
+  if (lower.includes('excluded') || lower.includes('revoked') || lower.includes('blocked')) return 'critical';
+  if (lower.includes('expired') || lower.includes('missing') || lower.includes('identity')) return 'high';
+  return 'medium';
+}
+
+const SEVERITY_STYLES: Record<string, string> = {
+  critical: 'text-rose-300/80',
+  high: 'text-amber-300/70',
+  medium: 'text-white/50',
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: 'CRITICAL',
+  high: 'HIGH',
+  medium: 'MEDIUM',
+};
+
 const CHIPS_CLASSNAME =
   'rounded-full border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground';
 
@@ -201,7 +227,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
     {
       id: 'licensure',
       trigger: 'State Licensure / Authority',
-      triggerRight: accordionMeta(licStatus === 'checked' ? checkedMeta : 'access required'),
+      triggerRight: accordionMeta(licStatus === 'checked' ? checkedMeta : 'access_required'),
       status: licStatus,
       content: (
         <ProofDetailsList
@@ -680,6 +706,27 @@ export function ReadinessPreview({
                   Source-backed checks strengthen this snapshot. Missing or gated lanes stay visibly incomplete.
                 </p>
               </div>
+            </div>
+
+            {/* Per-source status summary */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Source coverage</p>
+              {[
+                { id: 'npi', label: 'NPI Registry (NPPES)', ok: ts.identityVerified },
+                { id: 'oig', label: 'OIG / LEIE Exclusions', ok: ts.exclusionClear },
+                { id: 'lic', label: 'State Licensure', ok: ts.licensureStatus === 'verified' },
+                { id: 'pecos', label: 'CMS PECOS Enrollment', ok: false },
+                { id: 'board', label: 'Board Certification (ABMS)', ok: false },
+              ].map(src => (
+                <div key={src.id} className="flex items-center justify-between rounded-lg border border-white/6 bg-black/10 px-3 py-2">
+                  <span className="text-xs text-white/55">{src.label}</span>
+                  <TrustStatusBadge
+                    status={src.ok ? 'checked' : (src.id === 'pecos' || src.id === 'board') ? 'access_required' : 'pending'}
+                    label={src.ok ? 'Checked' : (src.id === 'pecos' || src.id === 'board') ? 'Access required' : 'Pending'}
+                    size="sm"
+                  />
+                </div>
+              ))}
             </div>
 
             <div className="space-y-3">

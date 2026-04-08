@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertNonGatedIfPositive,
+  CANONICAL_TRUTH_STATUSES,
   createCanonicalTruth,
   createCanonicalSourceCoverage,
   findPriorityCanonicalSourceCoverage,
+  isGatedTruthStatus,
+  isReadinessPositive,
   mapSourceCoverageStateToTrustStatus,
   normalizeCanonicalSourceCoverageState,
+  resolveCanonicalTruthStatus,
   sourceCoveragePosture,
   summarizeCanonicalSourceCoverage,
+  type CanonicalSourceCoverageState,
+  type CanonicalTruthKind,
 } from '../sourceCoverage';
 
 describe('Canonical Source Coverage Contracts', () => {
@@ -173,11 +180,219 @@ describe('Canonical Source Coverage Contracts', () => {
       kind: 'verification',
       satisfied: true,
       coverage: reviewCoverage,
-    })).toMatchObject({ status: 'REVIEW REQUIRED', decisionGrade: false });
+    })).toMatchObject({ status: 'REVIEW_REQUIRED', decisionGrade: false });
     expect(createCanonicalTruth({
       kind: 'enrollment',
       satisfied: true,
       coverage: previewCoverage,
-    })).toMatchObject({ status: 'NOT DECISION-GRADE', decisionGrade: false });
+    })).toMatchObject({ status: 'NOT_DECISION_GRADE', decisionGrade: false });
+  });
+});
+
+describe('Wave 2 — Canonical Trust Parity', () => {
+  describe('8-status contract exhaustiveness', () => {
+    it('defines exactly 8 canonical truth statuses with underscored identifiers', () => {
+      expect(CANONICAL_TRUTH_STATUSES).toHaveLength(8);
+      expect(CANONICAL_TRUTH_STATUSES).toEqual([
+        'VERIFIED',
+        'CLEAR',
+        'ENROLLED',
+        'PENDING',
+        'REVIEW_REQUIRED',
+        'UNAVAILABLE',
+        'ACCESS_REQUIRED',
+        'NOT_DECISION_GRADE',
+      ]);
+      for (const status of CANONICAL_TRUTH_STATUSES) {
+        expect(status).not.toContain(' ');
+        expect(status).not.toContain('-');
+      }
+    });
+  });
+
+  describe('gated source guard — ACCESS_REQUIRED / NOT_DECISION_GRADE never appear as positive', () => {
+    const gatedCoverageStates: CanonicalSourceCoverageState[] = [
+      'gated',
+      'accessRequired',
+      'notDecisionGrade',
+      'previewOnly',
+    ];
+    const positiveStatuses = ['VERIFIED', 'CLEAR', 'ENROLLED'] as const;
+
+    for (const coverageState of gatedCoverageStates) {
+      for (const positiveStatus of positiveStatuses) {
+        it(`throws if ${positiveStatus} is assigned to coverage state '${coverageState}'`, () => {
+          expect(() =>
+            assertNonGatedIfPositive(positiveStatus, coverageState),
+          ).toThrow(/Trust parity violation/);
+        });
+      }
+    }
+
+    it('allows VERIFIED for checked coverage', () => {
+      expect(() => assertNonGatedIfPositive('VERIFIED', 'checked')).not.toThrow();
+    });
+
+    it('allows PENDING for any coverage state', () => {
+      for (const state of gatedCoverageStates) {
+        expect(() => assertNonGatedIfPositive('PENDING', state)).not.toThrow();
+      }
+    });
+  });
+
+  describe('readiness guard — gated sources never contribute positively', () => {
+    it('ACCESS_REQUIRED truth does not contribute to readiness', () => {
+      const truth = createCanonicalTruth({
+        kind: 'verification',
+        satisfied: false,
+        coverage: createCanonicalSourceCoverage({
+          sourceId: 'STATE_BOARD',
+          state: 'accessRequired',
+          reason: 'institutional access required',
+        }),
+      });
+      expect(truth.status).toBe('ACCESS_REQUIRED');
+      expect(isReadinessPositive(truth)).toBe(false);
+    });
+
+    it('NOT_DECISION_GRADE truth does not contribute to readiness', () => {
+      const truth = createCanonicalTruth({
+        kind: 'enrollment',
+        satisfied: true,
+        coverage: createCanonicalSourceCoverage({
+          sourceId: 'PECOS_PUBLIC',
+          state: 'notDecisionGrade',
+          reason: 'quarterly snapshot',
+        }),
+      });
+      expect(truth.status).toBe('NOT_DECISION_GRADE');
+      expect(isReadinessPositive(truth)).toBe(false);
+    });
+
+    it('VERIFIED decision-grade truth contributes to readiness', () => {
+      const truth = createCanonicalTruth({
+        kind: 'verification',
+        satisfied: true,
+        coverage: createCanonicalSourceCoverage({
+          sourceId: 'NPPES_API',
+          state: 'checked',
+          reason: 'CMS NPPES confirmed',
+        }),
+      });
+      expect(truth.status).toBe('VERIFIED');
+      expect(isReadinessPositive(truth)).toBe(true);
+    });
+
+    it('PENDING truth does not contribute to readiness', () => {
+      const truth = createCanonicalTruth({
+        kind: 'verification',
+        satisfied: false,
+        coverage: createCanonicalSourceCoverage({
+          sourceId: 'NPPES_API',
+          state: 'pending',
+          reason: 'not yet run',
+        }),
+      });
+      expect(truth.status).toBe('PENDING');
+      expect(isReadinessPositive(truth)).toBe(false);
+    });
+  });
+
+  describe('entity-by-entity parity — same input → same status across all surfaces', () => {
+    const ENTITY_SOURCE_MAP: Record<string, {
+      sourceId: string;
+      kind: CanonicalTruthKind;
+      checkedScenario: { satisfied: boolean; expectedStatus: string };
+      gatedScenario: { coverageState: CanonicalSourceCoverageState; expectedStatus: string };
+    }> = {
+      NPI: {
+        sourceId: 'NPPES_API',
+        kind: 'verification',
+        checkedScenario: { satisfied: true, expectedStatus: 'VERIFIED' },
+        gatedScenario: { coverageState: 'accessRequired', expectedStatus: 'ACCESS_REQUIRED' },
+      },
+      NPDB: {
+        sourceId: 'NPDB',
+        kind: 'clearance',
+        checkedScenario: { satisfied: true, expectedStatus: 'CLEAR' },
+        gatedScenario: { coverageState: 'gated', expectedStatus: 'ACCESS_REQUIRED' },
+      },
+      DEA: {
+        sourceId: 'DEA',
+        kind: 'verification',
+        checkedScenario: { satisfied: true, expectedStatus: 'VERIFIED' },
+        gatedScenario: { coverageState: 'notDecisionGrade', expectedStatus: 'NOT_DECISION_GRADE' },
+      },
+      ABMS: {
+        sourceId: 'ABMS',
+        kind: 'verification',
+        checkedScenario: { satisfied: true, expectedStatus: 'VERIFIED' },
+        gatedScenario: { coverageState: 'accessRequired', expectedStatus: 'ACCESS_REQUIRED' },
+      },
+      STATE_BOARD: {
+        sourceId: 'STATE_BOARD',
+        kind: 'verification',
+        checkedScenario: { satisfied: true, expectedStatus: 'VERIFIED' },
+        gatedScenario: { coverageState: 'gated', expectedStatus: 'ACCESS_REQUIRED' },
+      },
+      OIG_LEIE: {
+        sourceId: 'OIG_LEIE',
+        kind: 'clearance',
+        checkedScenario: { satisfied: true, expectedStatus: 'CLEAR' },
+        gatedScenario: { coverageState: 'reviewRequired', expectedStatus: 'REVIEW_REQUIRED' },
+      },
+      PECOS: {
+        sourceId: 'PECOS_PUBLIC',
+        kind: 'enrollment',
+        checkedScenario: { satisfied: true, expectedStatus: 'ENROLLED' },
+        gatedScenario: { coverageState: 'notDecisionGrade', expectedStatus: 'NOT_DECISION_GRADE' },
+      },
+    };
+
+    for (const [entity, spec] of Object.entries(ENTITY_SOURCE_MAP)) {
+      describe(`${entity} (${spec.sourceId})`, () => {
+        it(`checked + satisfied → ${spec.checkedScenario.expectedStatus}`, () => {
+          const coverage = createCanonicalSourceCoverage({
+            sourceId: spec.sourceId,
+            state: 'checked',
+            reason: `${entity} confirmed`,
+          });
+          const status = resolveCanonicalTruthStatus({
+            kind: spec.kind,
+            satisfied: spec.checkedScenario.satisfied,
+            coverage,
+          });
+          expect(status).toBe(spec.checkedScenario.expectedStatus);
+
+          const uiStatus = mapSourceCoverageStateToTrustStatus('checked', {
+            kind: spec.kind === 'clearance' ? 'clearance' : spec.kind === 'enrollment' ? 'generic' : 'verification',
+            satisfied: true,
+          });
+          if (spec.kind === 'clearance') expect(uiStatus).toBe('clear');
+          else if (spec.kind === 'verification') expect(uiStatus).toBe('verified');
+        });
+
+        it(`${spec.gatedScenario.coverageState} → ${spec.gatedScenario.expectedStatus}`, () => {
+          const coverage = createCanonicalSourceCoverage({
+            sourceId: spec.sourceId,
+            state: spec.gatedScenario.coverageState,
+            reason: `${entity} gated`,
+          });
+          const status = resolveCanonicalTruthStatus({
+            kind: spec.kind,
+            satisfied: false,
+            coverage,
+          });
+          expect(status).toBe(spec.gatedScenario.expectedStatus);
+        });
+
+        it(`gated truth status is identified by isGatedTruthStatus`, () => {
+          const gatedStatus = spec.gatedScenario.expectedStatus;
+          if (gatedStatus === 'ACCESS_REQUIRED' || gatedStatus === 'NOT_DECISION_GRADE') {
+            expect(isGatedTruthStatus(gatedStatus as any)).toBe(true);
+          }
+        });
+      });
+    }
   });
 });

@@ -208,6 +208,7 @@ const BLOCKER_EVENT_SELECT = {
   resolutionDays: true,
   resolutionMethod: true,
   status: true,
+  metadata: true,
 } satisfies Prisma.BlockerResolutionEventSelect;
 
 const START_OUTCOME_SELECT = {
@@ -242,6 +243,7 @@ export type PilotProofChainEventName =
   | 'employer_review_opened'
   | 'employer_decision_recorded'
   | 'readiness_changed'
+  | 'blocker_opened'
   | 'blocker_resolved'
   | 'start_outcome_recorded';
 
@@ -1238,13 +1240,34 @@ export async function computePilotKpis(
         detail: [previousBand, newBand].filter((value): value is string => value !== null).join(' -> ') || null,
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
+    // blocker_opened — from BlockerResolutionEvent rows (all rows have openedAt)
+    ...blockerEvents.map((row) => {
+      const metadata = readJson(row.metadata);
+      const scope = readScopeFields(metadata);
+      return {
+        eventName: 'blocker_opened' as const,
+        occurredAt: row.openedAt.toISOString(),
+        entityId: row.entityId,
+        npi: null,
+        organizationContextId: null,
+        organizationId: null,
+        pilotId: scope.pilotId,
+        workflowLane: scope.workflowLane,
+        geographyTag: scope.geographyTag,
+        sourceRecordType: 'BlockerResolutionEvent',
+        sourceRecordId: row.id,
+        outcomeStatus: row.status,
+        detail: row.blockerCode,
+      } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
+    }),
+    // blocker_resolved — from PilotOps audit events with eventType=blocker_resolved
     ...blockerResolvedMetricRows.map((row) => {
       const metadata = readJson(row.metadata);
       const scope = readScopeFields(metadata);
       const entity = readJson(metadata.entity);
       const details = readJson(metadata.details);
       return {
-        eventName: 'blocker_resolved',
+        eventName: 'blocker_resolved' as const,
         occurredAt: row.createdAt.toISOString(),
         entityId: readString(entity.id) ?? readString(metadata.entityId),
         npi: readString(metadata.npi) ?? row.clinicianId ?? null,

@@ -1,6 +1,6 @@
 import type { PassportSourceCoverageState } from '@/lib/trust/source-coverage';
 import {
-  getTrustStatusLabel,
+  getTrustStatusLabel as getCanonicalTrustStatusLabel,
   isDecisionGradePositiveTrustStatus,
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
@@ -101,10 +101,10 @@ const VDS_TRUST_STATUS_LABELS = {
   enrolled: 'Enrolled',
   pending: 'Pending',
   stale: 'Stale',
-  'review required': 'Review required',
+  review_required: 'Review required',
   unavailable: 'Unavailable',
-  'access required': 'Access required',
-  'not decision-grade': 'Not decision-grade',
+  access_required: 'Access required',
+  not_decision_grade: 'Not decision-grade',
   blocked: 'Blocked',
 } as const;
 
@@ -114,6 +114,10 @@ export function getVdsTrustStatusLabel(
   status: VdsTrustStatus,
 ): string {
   return VDS_TRUST_STATUS_LABELS[status];
+}
+
+export function getTrustStatusLabel(status: TrustUiStatus): string {
+  return TRUST_STATUS_META[status]?.label ?? getCanonicalTrustStatusLabel(status);
 }
 
 export function getTrustStatusBadgeClassName(status: TrustUiStatus): string {
@@ -188,7 +192,6 @@ export function getStatusDisplayLabel(
 }
 
 export {
-  getTrustStatusLabel,
   mapSourceCoverageStateToTrustStatus,
   resolveTrustUiStatus,
 };

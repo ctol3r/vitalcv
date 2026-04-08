@@ -39,6 +39,7 @@ import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
@@ -386,7 +387,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const rowStatus: EligibilityRowProps['status'] =
     s === 'ENROLLED'  ? 'enrolled' :
-    s === 'NOT_FOUND' ? 'review required' :
+    s === 'NOT_FOUND' ? 'review_required' :
     s === 'UNKNOWN'   ? 'unavailable' :
     'unavailable';
 
@@ -727,6 +728,38 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           </SectionReveal>
         )}
 
+        {/* ── Explicit missing items ─────────────────────────────────────── */}
+        {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
+          <SectionReveal delay={0.28}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+              <p className="text-white/50 text-sm font-medium">Data not yet available</p>
+              <p className="text-white/25 text-xs leading-relaxed">
+                These items are not covered in this snapshot. They require additional source access or have not been checked.
+              </p>
+              <div className="space-y-2 mt-1">
+                {trustPosture.missingItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Missing — not yet checked</p>
+                    </div>
+                  </div>
+                ))}
+                {trustPosture.gatedItems.map((item) => (
+                  <div key={item} className="flex items-start gap-2">
+                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <div>
+                      <p className="text-white/55 text-xs">{item}</p>
+                      <p className="text-white/25 text-[10px] mt-0.5">Gated — requires institutional access</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </SectionReveal>
+        )}
+
         {/* ── Advisory Panel — clinician-facing, clearly advisory ─── */}
         <PassportAdvisoryPanel passport={passport} />
 
@@ -778,6 +811,13 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             )}
           </div>
         </SectionReveal>
+
+        <SharePacketModal
+          open={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          npi={passport.npi ?? ''}
+          displayName={identity.displayName}
+        />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">

@@ -95,9 +95,7 @@ function makeDemoSpark(base: number, days: number = 30): DayCount[] {
 
 const DEMO_TOP_ISSUERS = [
   { name: 'CA Medical Board', credentialsIssued: 4231, trustScore: 98 },
-  { name: 'ABIM', credentialsIssued: 2847, trustScore: 97 },
   { name: 'NPI Registry', credentialsIssued: 1923, trustScore: 95 },
-  { name: 'DEA Office', credentialsIssued: 1204, trustScore: 94 },
   { name: 'NY Medical Board', credentialsIssued: 987, trustScore: 92 },
 ];
 
@@ -199,16 +197,16 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Federated Networks</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Connected Sources</p>
             <div className="space-y-2">
-              {['Nursys (Nurse Licensing)', 'CAQH (Provider Credentialing)'].map(n => (
+              {['NPPES (NPI Registry)', 'OIG/LEIE (Exclusion Check)'].map(n => (
                 <div key={n} className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-teal-400" />
                   <span className="text-sm text-muted-foreground">{n}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">250k+ credentialed clinicians</p>
+            <p className="text-xs text-muted-foreground mt-3">Live primary source verification</p>
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">

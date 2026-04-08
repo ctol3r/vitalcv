@@ -562,11 +562,12 @@ describe('post-release truth cleanup', () => {
 
     // Governance cards must be absent after public-shell narrowing
     expectMarkupExcludes(developerMarkup, [
-      'TRUST_THRESHOLD',
-      'REVOCATION_ESCALATION',
-      'PEER_ACCEPTANCE',
-      'Network Peer Acceptance',
-      'AUTHORITATIVE issuers require',
+      'Wallet Export',
+      'Connected Organizations (Preview)',
+      'Network Gateway',
+      'Webhook Guide',
+      'wallet sync',
+      'mobile app',
     ]);
     // Section label should be "Governance API", not "Trust Governance"
     // Governance API section was removed

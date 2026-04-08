@@ -2,6 +2,8 @@
 
 **MISSION:** Keep pricing aligned to the launch wedge, not to abstract platform ambition.
 
+**Last updated:** 2026-03-30 (Wave 5)
+
 ## Core Doctrine
 
 VitalCV monetizes organizational workflow execution, not the creation of truth.
@@ -97,6 +99,52 @@ Do not use pricing to imply:
 - live Nursys / FSMB coverage unless contract and connector are active
 - a full enterprise procurement motion for features outside the launch wedge
 - guaranteed savings or ROI beyond the measured pilot KPI
+
+## Per-Seat vs Per-Lookup: Pricing Model Decision
+
+**The pilot uses per-lookup (per-verified-pull) pricing, not per-seat.**
+
+| Model | What it charges for | Pilot fit |
+| --- | --- | --- |
+| Per-seat | Fixed monthly fee per named user (credentialing team member) | Not appropriate — the buyer is paying for work performed, not user licenses |
+| Per-lookup (per-verified-pull) | First access to a credential in a freshness band | **Pilot model** — directly tied to value delivered |
+
+### Why per-lookup
+
+- The buyer pays only when VitalCV performs useful work (a verified pull).
+- It aligns cost to case volume, not team size.
+- A small team running 200 lookups/month pays for 200 lookups, not for 3 seats.
+- It eliminates the "shelfware" risk where seats go unused.
+
+### What is not a billable lookup
+
+- Repeat access to the same credential in the same freshness band by the same organization.
+- Clinician self-access to their own passport.
+- Issuer/source participation.
+- Opening the employer review surface (the decision is not metered — the verified pull is).
+
+## Free vs Paid Boundary
+
+| Party / Action | Free or Paid | Why |
+| --- | --- | --- |
+| Clinician creates account, views own passport | **Free** | The clinician should never be taxed to access their own readiness data |
+| Clinician shares passport link | **Free** | Sharing does not consume a verified pull |
+| Organization's first access to a credential (verified pull) | **Paid** | This is the billable event — VitalCV performed source-backed work |
+| Organization re-opens the same credential in the same band | **Free** | No-double-pay rule |
+| Organization requests a monitoring refresh | **Paid** | A contracted refresh cycle actually executes |
+| Operator exports packet or KPI report | **Paid** | Export utility — organization is extracting value |
+| Government/registry access fees | **Paid (pass-through at cost)** | VitalCV does not mark up government fees |
+| Employer decision click (Accept/Refresh/Route) | **Free** | The decision itself is not metered |
+
+## What Must NOT Be Promised (Because It Is Not Built Yet)
+
+- Live self-serve card checkout (access is currently manual/mailto-gated)
+- Enterprise volume discounts or committed-use pricing
+- SLA-backed uptime guarantees
+- Source coverage beyond the current live stack (NPPES, OIG/LEIE, PECOS)
+- API access tier pricing
+- White-label or embedded pricing for third-party platforms
+- Guaranteed savings or ROI beyond what the pilot KPI measures
 
 ## Launch Standard
 

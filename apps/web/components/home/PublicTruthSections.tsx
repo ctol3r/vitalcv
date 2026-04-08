@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import {
   Tooltip,
   TooltipContent,

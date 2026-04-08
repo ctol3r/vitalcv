@@ -27,6 +27,12 @@ import {
   getPilotProofSnapshot as getPilotProofSnapshotService,
   pilotProofSummaryToCsv,
 } from '../services/pilot/pilotProofService';
+import {
+  computePilotKpis,
+  kpiSnapshotToCsv,
+  type PilotFilter,
+} from '../services/pilot/pilotKpiService';
+import { parseScopeFromQuery } from '../services/seal/pilotScope';
 
 const MONITORING_SECRET = process.env.MONITORING_SECRET?.trim() ?? '';
 
@@ -483,4 +489,53 @@ export function registerPilotOpsRoutes(app: Express): void {
       return res.status(code).json({ error: message });
     }
   });
+
+  // ── GET /api/pilot-ops/export?format=json|csv ─────────────────────────────
+  // Unified KPI export — read-only, monitoring-secret gated.
+  app.get('/api/pilot-ops/export', async (req: Request, res: Response) => {
+    if (!requireMonitoringSecret(req, res)) {
+      return;
+    }
+
+    try {
+      const format = readTrimmedString(req.query.format)?.toLowerCase() ?? 'json';
+      const windowDays = readWindowDays(req.query.days);
+      const scope = parseScopeFromQuery(req.query as Record<string, unknown>);
+      const filter: PilotFilter = {
+        ...scope,
+        orgContextId:
+          readTrimmedString(req.query.organizationContextId)
+          ?? readTrimmedString(req.query.orgContextId)
+          ?? readTrimmedString(req.query.org),
+      };
+
+      const snapshot = await computePilotKpis({ windowDays, filter });
+      const dateStamp = new Date().toISOString().slice(0, 10);
+
+      if (format === 'csv') {
+        const csv = kpiSnapshotToCsv(snapshot);
+        const filename = `vitalcv-pilot-ops-${dateStamp}.csv`;
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.status(200).send(csv);
+      }
+
+      // Default: JSON
+      const filename = `vitalcv-pilot-ops-${dateStamp}.json`;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.status(200).json(snapshot);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to export pilot KPIs.';
+      log('error', 'pilot_ops_export_error', { error: message });
+      return res.status(500).json({ error: message });
+    }
+  });
+}
+
+function readWindowDays(value: unknown): number {
+  const raw = readTrimmedString(value);
+  if (!raw) return 90;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 365 ? parsed : 90;
 }

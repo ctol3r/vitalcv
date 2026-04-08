@@ -537,7 +537,7 @@ describe('trust proof language', () => {
         },
         eligibility: {
           ...buildPassport().truth.eligibility,
-          status: 'NOT DECISION-GRADE',
+          status: 'NOT_DECISION_GRADE',
           satisfied: true,
           decisionGrade: false,
           coverage: contextualEligibilityCoverage,

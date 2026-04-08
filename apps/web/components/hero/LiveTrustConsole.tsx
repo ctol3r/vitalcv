@@ -21,7 +21,11 @@ import {
   resolveLivePathSourceMode,
 } from '@/lib/live-path/contracts';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
-import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
+import {
+  buildPassportLookupHref,
+  getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeSurfaceStateFromPreviewStageStatus,
+} from '@/lib/trust/public-wedge-parity';
 import {
   getStatusDisplayLabel,
   getTrustStatusLabel,

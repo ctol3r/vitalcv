@@ -183,10 +183,10 @@ export default function AskAboutEmployer({
 function generateStubAnswer(query: string, employerName: string): string {
   const q = query.toLowerCase();
   if (q.includes('license') || q.includes('credential')) {
-    return `${employerName} requires an active state medical license (L3), board certification (L3), and a verified NPI. DEA registration is required at L2 level. All credentials must be primary-source verified through VitalCV before the clear-to-start signal is issued.`;
+    return `${employerName} typically requires an active state medical license, board certification, and a current NPI. Check the employer profile for specific requirement levels and which credentials have been checked.`;
   }
   if (q.includes('how long') || q.includes('time') || q.includes('onboard')) {
-    return `${employerName} typically onboards clinicians within 5–10 business days of a complete credential file. The VitalCV trust signal dramatically reduces back-and-forth with their credentialing office.`;
+    return `${employerName} typically onboards clinicians within 5–10 business days of a complete credential file. A source-backed readiness snapshot may reduce back-and-forth with their credentialing office.`;
   }
   if (q.includes('locum') || q.includes('telehealth') || q.includes('remote')) {
     return `${employerName} accepts locums and telehealth-experienced clinicians depending on the role. Check the open roles filter for "Locums" or "Telehealth" hiring types for positions that match.`;

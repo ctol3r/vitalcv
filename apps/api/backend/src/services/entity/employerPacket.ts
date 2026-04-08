@@ -62,7 +62,16 @@ export interface EmployerEvidencePacketManifestStatusV1 {
     EmployerEvidencePacketV1['readiness'],
     'status' | 'score' | 'readiness_score' | 'level' | 'blockers'
   >;
+  decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverageSummary: CanonicalSourceCoverageSummary;
+}
+
+export interface EmployerEvidencePacketDecisionPostureV1 {
+  status: TrustPassport['readiness']['status'];
+  headline: string;
+  blockers: string[];
+  nextAction: string;
+  freshness: TrustPassport['trustPosture']['freshness'];
 }
 
 export interface EmployerEvidencePacketManifestV1 {
@@ -153,6 +162,7 @@ export interface EmployerEvidencePacketV1 {
     blockers: string[];
     nextActions: TrustPassport['readiness']['nextActions'];
   };
+  decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverage: TrustPassport['sourceCoverage'];
   decisionPosture: TrustPassport['decisionPosture'];
 }
@@ -278,10 +288,10 @@ function reviewRequiredForSource(
     case 'OIG_LEIE':
       return passport.standing.exclusionStatus === 'POSSIBLE_MATCH';
     case 'PECOS_PUBLIC':
-      return passport.truth.eligibility.status === 'REVIEW REQUIRED';
+      return passport.truth.eligibility.status === 'REVIEW_REQUIRED';
     case 'STATE_BOARD':
       return Boolean(findLicensureCredential(passport, sourceId)?.reviewRequired)
-        || passport.truth.authority.status === 'REVIEW REQUIRED';
+        || passport.truth.authority.status === 'REVIEW_REQUIRED';
     default:
       return false;
   }
@@ -410,6 +420,124 @@ function buildReceiptReferences(
   ));
 }
 
+// ── Wave 3 helper: human-readable trust explanations ──────────────────────
+
+function buildTrustExplanations(passport: TrustPassport): Record<string, string> {
+  const explanationMap: Record<CanonicalTruthStatus, (dim: string) => string> = {
+    VERIFIED:           (dim) => `${dim} has been verified against a primary source.`,
+    CLEAR:              (dim) => `${dim} check returned clear — no adverse findings.`,
+    ENROLLED:           (dim) => `${dim} enrollment confirmed in source system.`,
+    PENDING:            (dim) => `${dim} has not been checked yet or data is stale.`,
+    REVIEW_REQUIRED:    (dim) => `${dim} result requires manual review before a decision.`,
+    UNAVAILABLE:        (dim) => `${dim} source was unavailable at time of check.`,
+    ACCESS_REQUIRED:    (dim) => `${dim} source is access-restricted — additional credentials needed.`,
+    NOT_DECISION_GRADE: (dim) => `${dim} data is preview-only and not suitable for decisions.`,
+  };
+
+  return {
+    identity:    explanationMap[passport.truth.identity.status]('Identity'),
+    safety:      explanationMap[passport.truth.safety.status]('Safety (OIG/sanctions)'),
+    authority:   explanationMap[passport.truth.authority.status]('Authority (licensure/certification)'),
+    eligibility: explanationMap[passport.truth.eligibility.status]('Eligibility (Medicare enrollment)'),
+  };
+}
+
+// ── Wave 3 helper: structured blockers with severity ──────────────────────
+
+function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacketV1['structuredBlockers'] {
+  const blockers: EmployerEvidencePacketV1['structuredBlockers'] = [];
+
+  // Exclusion-related blockers are critical
+  if (!passport.standing.exclusionClear) {
+    blockers.push({
+      code: 'EXCLUSION_NOT_CLEAR',
+      label: passport.standing.exclusionStatus === 'EXCLUDED'
+        ? 'OIG exclusion match found — clinician is excluded from federal programs'
+        : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'OIG possible match — manual review required'
+          : 'OIG exclusion status has not been checked',
+      severity: passport.standing.exclusionStatus === 'EXCLUDED' ? 'critical' : 'warning',
+      source: 'OIG_LEIE',
+    });
+  }
+
+  // Review-required sources
+  for (const check of passport.sourceCoverage.checks) {
+    if (check.state === 'reviewRequired') {
+      blockers.push({
+        code: `REVIEW_REQUIRED_${check.sourceId}`,
+        label: `${check.sourceId} result requires manual adjudication`,
+        severity: 'warning',
+        source: check.sourceId,
+      });
+    }
+  }
+
+  // Missing authority credentials
+  for (const missing of passport.authority.summary.missing) {
+    blockers.push({
+      code: `MISSING_CREDENTIAL_${missing}`,
+      label: `Missing credential: ${missing}`,
+      severity: 'warning',
+      source: null,
+    });
+  }
+
+  // Stale credentials
+  for (const cred of passport.authority.credentials) {
+    if (cred.stale) {
+      blockers.push({
+        code: `STALE_CREDENTIAL_${cred.domain}`,
+        label: `Stale credential: ${cred.domain}${cred.jurisdiction ? ` (${cred.jurisdiction})` : ''}`,
+        severity: 'info',
+        source: cred.sourceId ?? null,
+      });
+    }
+  }
+
+  return blockers;
+}
+
+// ── Wave 3 helper: receipt presence ───────────────────────────────────────
+
+function hasReceiptPresence(passport: TrustPassport): boolean {
+  for (const check of passport.sourceCoverage.checks) {
+    if (check.proof?.receiptIds && check.proof.receiptIds.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function buildDecisionPosture(
+  passport: TrustPassport,
+): EmployerEvidencePacketDecisionPostureV1 {
+  const nextAction = passport.readiness.nextActions[0]?.detail
+    ?? (
+      passport.readiness.status === 'READY'
+        ? 'Accept as head start or export this packet for employer review.'
+        : passport.readiness.status === 'PARTIAL'
+          ? 'Request refresh or route to review before relying on missing lanes.'
+          : 'Route to review or request refresh before start.'
+    );
+
+  const headline = (
+    passport.readiness.status === 'READY'
+      ? 'Current source-backed checks support employer review now.'
+      : passport.readiness.status === 'PARTIAL'
+        ? 'Some decision-grade checks are still missing, gated, stale, or under review.'
+        : 'Blocking gaps remain attached to this packet.'
+  );
+
+  return {
+    status: passport.readiness.status,
+    headline,
+    blockers: [...passport.readiness.blockers],
+    nextAction,
+    freshness: passport.trustPosture.freshness,
+  };
+}
+
 export function buildEmployerEvidencePacket(input: {
   passport: TrustPassport;
   employerId: string;
@@ -422,6 +550,7 @@ export function buildEmployerEvidencePacket(input: {
   const artifactReferences = buildArtifactReferences(manifestSources);
   const receiptReferences = buildReceiptReferences(manifestSources);
   const freshness = input.passport.trustPosture.freshness;
+  const decisionPosture = buildDecisionPosture(input.passport);
 
   const manifest: EmployerEvidencePacketManifestV1 = {
     schema: 'vitalcv.employer.packet-manifest.v1',
@@ -446,6 +575,7 @@ export function buildEmployerEvidencePacket(input: {
         level: input.passport.readiness.level,
         blockers: input.passport.readiness.blockers,
       },
+      decisionPosture,
       sourceCoverageSummary,
     },
     sources: manifestSources,
@@ -524,6 +654,7 @@ export function buildEmployerEvidencePacket(input: {
       blockers: input.passport.readiness.blockers,
       nextActions: input.passport.readiness.nextActions,
     },
+    decisionPosture,
     sourceCoverage: input.passport.sourceCoverage,
     decisionPosture: input.passport.decisionPosture,
   };

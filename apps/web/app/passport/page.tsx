@@ -32,6 +32,7 @@ import {
   buildEmployerReviewHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
+  resolvePublicWedgeSurfaceStateFromDisplayLabel,
   type PublicWedgeSurfaceState,
 } from '@/lib/trust/public-wedge-parity';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';

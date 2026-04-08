@@ -113,10 +113,10 @@ function dimensionStateFromTruthStatus(
       return 'checked';
     case 'ACCESS REQUIRED':
       return 'gated';
-    case 'REVIEW REQUIRED':
+    case 'REVIEW_REQUIRED':
       return 'review_required';
     case 'UNAVAILABLE':
-    case 'NOT DECISION-GRADE':
+    case 'NOT_DECISION_GRADE':
       return 'unavailable';
     case 'PENDING':
     default:
@@ -145,13 +145,13 @@ function bucketForTruth(
     case 'CLEAR':
     case 'ENROLLED':
       return 'sourceBackedNow';
-    case 'NOT DECISION-GRADE':
+    case 'NOT_DECISION_GRADE':
       return 'contextualOnly';
-    case 'REVIEW REQUIRED':
+    case 'REVIEW_REQUIRED':
       return 'needsReview';
     case 'PENDING':
     case 'UNAVAILABLE':
-    case 'ACCESS REQUIRED':
+    case 'ACCESS_REQUIRED':
     default:
       return 'missingOrAccessRequired';
   }
@@ -367,7 +367,7 @@ export function buildPassportTrustPosture(
     {
       label: 'Exclusion check (OIG/LEIE)',
       state: dimensionStateFromTruthStatus(truth.safety),
-      note: truth.safety.status === 'REVIEW REQUIRED'
+      note: truth.safety.status === 'REVIEW_REQUIRED'
         ? 'Review required'
         : truth.safety.coverage.state !== 'checked'
           ? truth.safety.coverage.reason

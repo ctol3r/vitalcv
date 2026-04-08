@@ -58,7 +58,7 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
 
 const TRUST_STATUS_DESCRIPTORS: Record<string, string> = {
   checked: 'Confirmed in this run from the source',
-  'access required': 'This source requires institutional access',
+  'access_required': 'This source requires institutional access',
   pending: 'Not yet checked in this session',
   'preview only': 'Example data - not from a live source run',
   demo: 'Example data - not from a live source run',

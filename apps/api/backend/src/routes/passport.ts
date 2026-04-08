@@ -19,6 +19,9 @@ import prisma from '../graphql/prisma_client';
 import { proofRateLimit } from '../middleware/rateLimitFactory';
 import { log } from '../obs/logger';
 import { generateShareLink } from '../services/passport/shareLink';
+import { buildPassportByNpi } from '../services/entity/passportService';
+import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
+import { sha256ForPayload } from '../utils/deterministic';
 import {
   getCachedTrustState,
   computeClinicianTrustState,
@@ -1154,6 +1157,81 @@ export function registerPassportRoutes(app: Express): void {
     } catch (error) {
       logPassportError('passport_card_route_failed', npi, error);
       res.status(500).json({ error: 'Failed to generate passport card' });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/passport/:npi/export
+  // Wave 3: Clinician-facing structured packet export.
+  // Returns the full EmployerEvidencePacketV1 with all Wave 3 fields:
+  //   identity, sourceCoverage, freshness, blockers, nextActions,
+  //   receiptPresence, trustExplanations, structuredBlockers.
+  //
+  // Writes an ARTIFACT_EXPORTED audit event before returning the payload.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get('/api/passport/:npi/export', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    if (!validateNpi(res, npi)) {
+      return;
+    }
+
+    try {
+      const passport = await buildPassportByNpi(npi);
+      if (!passport) {
+        res.status(404).json({
+          error: 'not_found',
+          error_description: `No passport data found for NPI ${npi}.`,
+        });
+        return;
+      }
+
+      const packet = buildEmployerEvidencePacket({
+        passport,
+        employerId: 'clinician-self-export',
+      });
+
+      // Audit: write ARTIFACT_EXPORTED before returning payload
+      const auditMetadata = JSON.parse(JSON.stringify({
+        schema: 'vitalcv.clinician-export.v1',
+        exportType: 'CLINICIAN_PASSPORT_EXPORT',
+        format: 'json',
+        clinicianNpi: npi,
+        exportedAt: packet.exportedAt,
+        manifestHash: sha256ForPayload(packet.manifest),
+        sourceIds: packet.manifest.sources.map((s) => s.sourceId),
+        receiptPresence: packet.receiptPresence,
+        blockerCount: packet.structuredBlockers.length,
+      }));
+
+      await prisma.auditEvent.create({
+        data: {
+          type: 'ARTIFACT_EXPORTED',
+          hash: sha256ForPayload({
+            type: 'ARTIFACT_EXPORTED',
+            referenceId: npi,
+            metadata: auditMetadata,
+          }),
+          referenceId: passport.entityId,
+          clinicianId: npi,
+          metadata: auditMetadata,
+        },
+      });
+
+      log('info', 'clinician_passport_exported', {
+        npi_prefix: npi.slice(0, 4) + '····',
+        exportedAt: packet.exportedAt,
+        score: packet.readiness.score,
+        blockers: packet.readiness.blockers.length,
+        receiptPresence: packet.receiptPresence,
+      });
+
+      const filename = `vitalcv-passport-${npi}-${new Date().toISOString().slice(0, 10)}.json`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/json');
+      res.json(packet);
+    } catch (error) {
+      logPassportError('passport_export_route_failed', npi, error);
+      res.status(500).json({ error: 'Failed to generate passport export' });
     }
   });
 }

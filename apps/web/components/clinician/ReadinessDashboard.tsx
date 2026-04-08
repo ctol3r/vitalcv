@@ -44,7 +44,7 @@ export function ReadinessDashboard() {
           score={85}
           trustLevel="L2"
           alerts={demoAlerts}
-          onPrimaryAction={() => console.log('Primary action clicked')}
+          onPrimaryAction={() => {}}
         />
       </section>
 

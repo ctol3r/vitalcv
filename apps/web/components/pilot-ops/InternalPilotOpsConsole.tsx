@@ -609,7 +609,7 @@ export function InternalPilotOpsConsole({
                   detail={`${snapshot.operatorPanel.liveCounts.findings} findings / ${snapshot.operatorPanel.liveCounts.storylines} storylines`}
                 />
                 <MetricCard
-                  label="Marketplace"
+                  label="Opportunities"
                   value={String(snapshot.operatorPanel.liveCounts.opportunities)}
                   detail={`${snapshot.operatorPanel.liveCounts.applications ?? 0} applications visible`}
                 />

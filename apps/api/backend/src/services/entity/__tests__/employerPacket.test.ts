@@ -150,7 +150,7 @@ function buildPassport(): TrustPassport {
       },
       authority: {
         kind: 'verification',
-        status: 'ACCESS REQUIRED',
+        status: 'ACCESS_REQUIRED',
         satisfied: true,
         decisionGrade: false,
         coverage: checks[2],
@@ -352,7 +352,7 @@ describe('employer packet truth', () => {
     expect(reviewCoverage.summary).toEqual(packet.sourceCoverage.summary);
     expect(packet.identity.truthStatus).toBe('VERIFIED');
     expect(packet.safety.truthStatus).toBe('CLEAR');
-    expect(packet.authority.truthStatus).toBe('ACCESS REQUIRED');
+    expect(packet.authority.truthStatus).toBe('ACCESS_REQUIRED');
     expect(packet.eligibility.truthStatus).toBe('ENROLLED');
     expect(packet.receiptReferences).toEqual([
       { sourceId: 'NPPES_API', receiptId: 'receipt-nppes' },
@@ -397,6 +397,13 @@ describe('employer packet truth', () => {
     expect(packet.sourceCoverageSummary.checked).toEqual(['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC']);
     expect(packet.sourceCoverageSummary.gated).toEqual(['STATE_BOARD']);
     expect(packet.freshness).toEqual(passport.trustPosture.freshness);
+    expect(packet.decisionPosture).toEqual({
+      status: 'PARTIAL',
+      headline: 'Some decision-grade checks are still missing, gated, stale, or under review.',
+      blockers: [],
+      nextAction: 'Request refresh or route to review before relying on missing lanes.',
+      freshness: passport.trustPosture.freshness,
+    });
     expect(packet.sourceCoverage.checks).toEqual(expect.arrayContaining([
       expect.objectContaining({
         sourceId: 'NPPES_API',
@@ -452,6 +459,7 @@ describe('employer packet truth', () => {
           level: packet.readiness.level,
           blockers: packet.readiness.blockers,
         },
+        decisionPosture: packet.decisionPosture,
         sourceCoverageSummary: packet.sourceCoverageSummary,
       },
     }));
@@ -473,7 +481,7 @@ describe('employer packet truth', () => {
       }),
       expect.objectContaining({
         sourceId: 'STATE_BOARD',
-        truthStatus: 'ACCESS REQUIRED',
+        truthStatus: 'ACCESS_REQUIRED',
         state: 'gated',
         credentialExpiresAt: '2027-03-23T12:00:00.000Z',
         reviewRequired: false,
