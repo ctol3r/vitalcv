@@ -270,7 +270,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
         label: 'Medicare enrollment',
         confirmedNote: joinNoteParts(['Enrolled', freshness, confidence, quarterNote]),
         confirmedExplanation:
-          standing.enrollmentNote ?? 'CMS PECOS confirms an enrolled provider record in the current quarterly release.',
+          standing.enrollmentNote ?? 'CMS PECOS (Simulated) returns an enrolled status for preview. Do not rely on this for decisions.',
         missingExplanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
       });
   }
@@ -1166,8 +1166,17 @@ function ReviewClientLoaded({
       setActionState({ phase: 'downloading' });
     }
     try {
-      const res = await fetch(`${API}/api/employer-review/${passport.entityId}/packet`);
-      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const res = await fetch(
+        `${API}/api/employer-review/${passport.entityId}/packet${buildReviewScopeSearchParams({ contextId, bundleId })}`,
+      );
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({})) as { error_description?: string; error?: string };
+        throw new Error(
+          payload.error_description
+          ?? payload.error
+          ?? `Export failed (${res.status})`,
+        );
+      }
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -1178,7 +1187,16 @@ function ReviewClientLoaded({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { /* download failure is non-fatal */ }
+    } catch (error) {
+      if (mountedRef.current) {
+        setActionState({
+          phase: 'error',
+          intent: 'review',
+          message: error instanceof Error ? error.message : 'Export failed.',
+        });
+      }
+      return;
+    }
     if (mountedRef.current) {
       setActionState({ phase: 'idle' });
     }
@@ -1635,10 +1653,11 @@ function ReviewClientLoaded({
               </div>
               <div>
                 <p className="text-white/25 text-[10px] uppercase tracking-widest mb-0.5">Trust statuses</p>
-                <p><span className="text-emerald-400/60">Checked</span> — source-backed, decision-grade</p>
-                <p><span className="text-amber-400/60">Stale / Review</span> — needs refresh or manual review</p>
-                <p><span className="text-white/30">Pending</span> — not yet verified from source</p>
-                <p><span className="text-red-400/60">Blocked</span> — exclusion or critical issue found</p>
+                <p><span className="text-white/55">Checked</span> — current source coverage is attached now</p>
+                <p><span className="text-white/55">Pending</span> — the source has not completed yet</p>
+                <p><span className="text-white/55">Stale</span> — attached evidence is older than the freshness window</p>
+                <p><span className="text-white/55">Access required / Review required</span> — institutional access or manual follow-up is still needed</p>
+                <p><span className="text-white/55">Unavailable / Preview only</span> — no decision-grade source result is attached yet</p>
               </div>
             </div>
             <div className="pt-2 border-t border-white/6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">

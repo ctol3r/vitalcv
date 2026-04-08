@@ -60,6 +60,20 @@ function normalizeState(value: string | null | undefined): string | null {
     : null;
 }
 
+function isFreshStateBoardVerification(lastVerifiedAt: string | null | undefined, now: Date): boolean {
+  if (typeof lastVerifiedAt !== 'string' || lastVerifiedAt.trim().length === 0) {
+    return false;
+  }
+
+  const verifiedAtMs = Date.parse(lastVerifiedAt);
+  const freshnessWindowHours = getSourceFreshnessWindowHours('STATE_BOARD');
+  if (!Number.isFinite(verifiedAtMs) || !freshnessWindowHours) {
+    return false;
+  }
+
+  return verifiedAtMs + freshnessWindowHours * 60 * 60 * 1000 > now.getTime();
+}
+
 function buildBaseClaim(input: {
   claimType: NormalizedClaim['claimType'];
   sourceId: string;
@@ -346,19 +360,64 @@ export async function resolvePhysicianLicensureLaunchLane(input: {
       : null);
 
   if (liveStateBoardLookup) {
-    const stateBoardResult = await liveStateBoardLookup(input.npi, launchState);
-    if (
-      stateBoardResult.licenseStatus !== 'NOT_AVAILABLE'
-      && stateBoardResult.licenseStatus !== 'INACTIVE'
-    ) {
+    try {
+      const stateBoardResult = await liveStateBoardLookup(input.npi, launchState);
+      const stateBoardFresh = isFreshStateBoardVerification(
+        stateBoardResult.lastVerifiedAt,
+        new Date(input.observedAt),
+      );
+      if (!stateBoardFresh) {
+        return {
+          claims: [
+            buildUnavailableLicensureClaim({
+              npi: input.npi,
+              observedAt: input.observedAt,
+              sourceId: 'STATE_BOARD',
+              sourceUrl: stateBoardResult.sourceUrl || STATE_BOARD_CA_SOURCE_URL,
+              sourceScope: 'STATE_BOARD_MANUAL',
+              jurisdiction: launchState,
+              connectorState: 'unavailable',
+              participationStatus: 'manual_verification_required',
+              reason: `${launchState} state-board verification returned stale or invalid freshness metadata. Treat this lane as unresolved until a fresh board result is available.`,
+            }),
+          ],
+          launchState,
+          route: 'manual',
+        };
+      }
+
+      if (
+        stateBoardResult.licenseStatus !== 'NOT_AVAILABLE'
+        && stateBoardResult.licenseStatus !== 'INACTIVE'
+      ) {
+        return {
+          claims: [buildStateBoardLicenseClaim({
+            npi: input.npi,
+            observedAt: input.observedAt,
+            result: stateBoardResult,
+          })],
+          launchState,
+          route: 'state_board',
+        };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
-        claims: [buildStateBoardLicenseClaim({
-          npi: input.npi,
-          observedAt: input.observedAt,
-          result: stateBoardResult,
-        })],
+        claims: [
+          buildUnavailableLicensureClaim({
+            npi: input.npi,
+            observedAt: input.observedAt,
+            sourceId: 'STATE_BOARD',
+            sourceUrl: STATE_BOARD_CA_SOURCE_URL,
+            sourceScope: 'STATE_BOARD_MANUAL',
+            jurisdiction: launchState,
+            connectorState: 'unavailable',
+            participationStatus: 'manual_verification_required',
+            reason: `${launchState} state-board lookup failed (${message}). Treat this lane as unavailable until the source recovers or is manually verified.`,
+          }),
+        ],
         launchState,
-        route: 'state_board',
+        route: 'manual',
       };
     }
   }

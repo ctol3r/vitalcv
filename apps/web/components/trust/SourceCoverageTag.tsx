@@ -25,9 +25,9 @@ type CoverageTone = {
 function resolveTone(status: SourceCoverageTagProps['status'], decisionGrade: boolean): CoverageTone {
   if (status === 'checked' && decisionGrade) {
     return {
-      container: 'border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] text-[var(--vt-text-1)]',
-      dot: 'bg-[var(--vt-success)]',
-      badge: 'border-[var(--vt-badge-success-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-success-text)]',
+      container: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface-2)] text-[var(--vt-text-1)]',
+      dot: 'bg-[var(--vt-text-2)]',
+      badge: 'border-[var(--vt-badge-neutral-border)] bg-[var(--vt-surface)] text-[var(--vt-badge-neutral-text)]',
       label: sourceCoverageBadgeLabel({ state: status, decisionGrade }),
     };
   }

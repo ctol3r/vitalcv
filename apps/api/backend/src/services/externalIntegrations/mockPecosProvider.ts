@@ -1,10 +1,11 @@
 /**
  * Mock PECOS Provider — Wave X
  *
- * Deterministic mock for development and testing.
- * Mirrors the existing pecosEngine.ts NPI-prefix logic:
- *   - NPI starting with "1": enrolled
- *   - All others: not enrolled
+ * Deterministic preview-only stub for development and testing.
+ *
+ * This provider must never manufacture decision-grade PECOS truth from an NPI
+ * pattern. It therefore returns UNKNOWN and marks the source unavailable so
+ * downstream readiness logic fails closed instead of silently upgrading a mock.
  */
 
 import type { PecosCheck, PecosProvider } from './types';
@@ -16,16 +17,15 @@ export class MockPecosProvider implements PecosProvider {
       throw new Error('npi is required for PECOS check.');
     }
 
-    const enrolled = normalized.startsWith('1');
     const now = new Date();
     const quarter = Math.floor(now.getUTCMonth() / 3) + 1;
     const dataVersion = `${now.getUTCFullYear()}-Q${quarter}`;
 
     return {
       npi: normalized,
-      enrolled,
-      claimState: enrolled ? 'ENROLLED' : 'NOT_FOUND',
-      enrollmentType: enrolled ? 'simulated-prefix-1' : null,
+      enrolled: null,
+      claimState: 'UNKNOWN',
+      enrollmentType: null,
       observedAt: now,
       dataVersion,
       dataFreshness: 'QUARTERLY',
@@ -33,13 +33,16 @@ export class MockPecosProvider implements PecosProvider {
       checkedAt: now,
       rawPayload: {
         source: 'mock-pecos-provider',
-        method: 'npi-prefix-check',
+        unavailable: true,
+        previewOnly: true,
+        method: 'preview-stub',
         checkedAt: now.toISOString(),
         observedAt: now.toISOString(),
-        claimState: enrolled ? 'ENROLLED' : 'NOT_FOUND',
+        claimState: 'UNKNOWN',
         dataVersion,
         dataFreshness: 'QUARTERLY',
         sourceLatency: 'QUARTERLY',
+        reason: 'Mock PECOS provider is preview-only and must not be treated as decision-grade enrollment truth.',
       },
     };
   }

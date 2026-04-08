@@ -33,6 +33,56 @@ describe('claimEngine reality alignment', () => {
     expect((identityClaim?.value as Record<string, unknown>).claimType).toBe('IDENTITY');
   });
 
+  it('preserves NPPES v2 location and endpoint fields without truncation or gender loss', () => {
+    const longEndpoint = `https://example.org/fhir/${'a'.repeat(180)}`;
+    const { claims } = parseNppesResult(
+      '1234567890',
+      {
+        number: '1234567890',
+        enumeration_type: 'NPI-1',
+        basic: {
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          status: 'A',
+          credential: 'MD',
+          enumeration_date: '2016-04-01',
+          last_updated: '2026-03-01',
+          gender: 'F',
+        },
+        addresses: [
+          {
+            address_purpose: 'LOCATION',
+            address_1: 'A'.repeat(180),
+            address_2: 'Suite '.padEnd(190, 'B'),
+            city: 'San Francisco',
+            state: 'CA',
+            postal_code: '94105',
+            telephone_number: '41555501010101010101',
+          },
+        ],
+        endpoints: [
+          {
+            endpointTypeDescription: 'FHIR',
+            endpoint: longEndpoint,
+          },
+        ],
+      },
+      'artifact-0',
+      'checksum-0',
+      '2026-03-22T12:00:00.000Z',
+    );
+
+    const personalIdentity = claims.find((claim) => claim.claimType === 'PERSONAL_IDENTITY');
+    const practiceLocation = claims.find((claim) => claim.claimType === 'PRACTICE_LOCATION');
+    const endpoint = claims.find((claim) => claim.claimType === 'ENDPOINT');
+
+    expect((personalIdentity?.value as Record<string, unknown>).sex).toBe('F');
+    expect((practiceLocation?.value as Record<string, unknown>).address1).toHaveLength(180);
+    expect((practiceLocation?.value as Record<string, unknown>).address2).toHaveLength(190);
+    expect((practiceLocation?.value as Record<string, unknown>).phone).toBe('41555501010101010101');
+    expect((endpoint?.value as Record<string, unknown>).endpoint).toBe(longEndpoint);
+  });
+
   it('keeps fuzzy LEIE matches out of verified excluded state', () => {
     const { claims } = parseOigResult(
       '1234567890',

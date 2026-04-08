@@ -282,6 +282,40 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
     const addressEntries: readonly unknown[] = Array.isArray(primary.addresses)
       ? primary.addresses
       : [];
+    const practiceLocationEntries: readonly unknown[] = Array.isArray(primary.practiceLocations)
+      ? primary.practiceLocations
+      : [];
+    const endpointEntries: readonly unknown[] = Array.isArray(primary.endpoints)
+      ? primary.endpoints
+      : [];
+    const otherNamesEntries: readonly unknown[] = Array.isArray(primary.other_names)
+      ? primary.other_names
+      : [];
+
+    const otherNames: readonly string[] = Object.freeze(
+      otherNamesEntries
+        .map((entry: unknown) => {
+          if (!entry || typeof entry !== 'object') return null;
+          const record = entry as Record<string, unknown>;
+          return typeof record.organization_name === 'string'
+            ? record.organization_name.trim()
+            : [record.first_name, record.last_name]
+                .filter((part) => typeof part === 'string' && part.trim().length > 0)
+                .join(' ') || null;
+        })
+        .filter((entry: string | null): entry is string => Boolean(entry))
+    );
+
+    const endpoints: readonly string[] = Object.freeze(
+      endpointEntries
+        .map((entry: unknown) => {
+          if (!entry || typeof entry !== 'object') return null;
+          const record = entry as Record<string, unknown>;
+          return typeof record.endpointUrl === 'string' ? record.endpointUrl.trim() : null;
+        })
+        .filter((entry: string | null): entry is string => Boolean(entry))
+    );
+
     const taxonomies: readonly string[] = Object.freeze([
       ...new Set(
         taxonomyEntries
@@ -301,7 +335,7 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
     ]);
     const practiceStates: readonly string[] = Object.freeze([
       ...new Set(
-        addressEntries
+        [...addressEntries, ...practiceLocationEntries]
           .map((entry: unknown) => {
             if (!entry || typeof entry !== 'object') {
               return null;
@@ -328,6 +362,8 @@ export class NpiRegistryAdapter implements IdentityLookupAdapter {
       ...(firstName ? { firstName } : {}),
       ...(lastName ? { lastName } : {}),
       ...(organizationName ? { organizationName } : {}),
+      ...(otherNames.length > 0 ? { otherNames } : {}),
+      ...(endpoints.length > 0 ? { endpoints } : {}),
       enumerationType,
       taxonomies,
       practiceStates,

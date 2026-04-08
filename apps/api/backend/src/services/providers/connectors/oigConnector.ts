@@ -13,6 +13,11 @@ import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
 import { getConnectorMode } from './connectorFactory';
 import { runConnectorWithReliability } from './connectorReliability';
+import {
+  leieCacheStats,
+  lookupProvider,
+  prewarmLeieCache,
+} from '../../identity/leieCache';
 
 export interface OIGExclusionResult {
   npi: string;
@@ -88,20 +93,86 @@ export async function loadLeieData(csvPathOrUrl?: string): Promise<void> {
   const mode = getConnectorMode('OIG');
 
   if (mode === 'live' && csvPathOrUrl) {
-    log('info', 'oig_connector: live CSV loading not yet implemented', { source: csvPathOrUrl });
-    // TODO: download CSV, parse, populate leieIndex
-    loadSandboxData(); // Fallback to sandbox until CSV parsing is implemented
-  } else {
-    loadSandboxData();
+    log('info', 'oig_connector: ignoring explicit csvPathOrUrl in live mode; canonical LEIE cache manages source loading', {
+      source: csvPathOrUrl,
+    });
   }
+
+  if (mode === 'live') {
+    prewarmLeieCache();
+    await lookupProvider({ npi: '' });
+    return;
+  }
+
+  loadSandboxData();
 }
 
 export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult> {
+  const mode = getConnectorMode('OIG');
+
   return runConnectorWithReliability<OIGExclusionResult>({
     connector: 'OIG',
     quotaPolicy: OIG_QUOTA_POLICY,
     schemaPolicy: OIG_SCHEMA_POLICY,
     execute: async () => {
+      if (mode === 'live') {
+        const result = await lookupProvider({ npi });
+
+        if (result.cacheAge !== 'fresh' || result.verdict === 'UNCHECKED') {
+          return {
+            npi,
+            excluded: false,
+            verdict: 'UNCERTAIN',
+            exclusionType: null,
+            exclusionDate: null,
+            reinstatementDate: null,
+            waiverState: null,
+            lastCheckedAt: result.checkedAt,
+            sourceUrl: OIG_LEIE_URL,
+          };
+        }
+
+        if (result.verdict === 'POSSIBLE_MATCH') {
+          return {
+            npi,
+            excluded: false,
+            verdict: 'REVIEW_REQUIRED',
+            exclusionType: result.entry?.exclusionType ?? null,
+            exclusionDate: result.entry?.exclusionDate ?? null,
+            reinstatementDate: result.entry?.reinstatementDate ?? null,
+            waiverState: result.entry?.waiverState ?? null,
+            lastCheckedAt: result.checkedAt,
+            sourceUrl: OIG_LEIE_URL,
+          };
+        }
+
+        if (result.verdict === 'EXCLUDED') {
+          return {
+            npi,
+            excluded: true,
+            verdict: 'EXCLUDED',
+            exclusionType: result.entry?.exclusionType ?? null,
+            exclusionDate: result.entry?.exclusionDate ?? null,
+            reinstatementDate: result.entry?.reinstatementDate ?? null,
+            waiverState: result.entry?.waiverState ?? null,
+            lastCheckedAt: result.checkedAt,
+            sourceUrl: OIG_LEIE_URL,
+          };
+        }
+
+        return {
+          npi,
+          excluded: false,
+          verdict: 'CLEAR',
+          exclusionType: null,
+          exclusionDate: null,
+          reinstatementDate: null,
+          waiverState: null,
+          lastCheckedAt: result.checkedAt,
+          sourceUrl: OIG_LEIE_URL,
+        };
+      }
+
       if (leieIndex.size === 0) {
         await loadLeieData();
       }
@@ -166,6 +237,20 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
 }
 
 export function getLeieIndexStatus(): LeieIndexStatus {
+  if (getConnectorMode('OIG') === 'live') {
+    const stats = leieCacheStats();
+
+    return {
+      loaded: stats.loaded,
+      recordCount: stats.entries,
+      lastLoadedAt:
+        stats.loaded && stats.ageMs >= 0
+          ? new Date(Date.now() - stats.ageMs).toISOString()
+          : null,
+      mode: 'live',
+    };
+  }
+
   return {
     loaded: leieIndex.size > 0,
     recordCount: leieIndex.size,

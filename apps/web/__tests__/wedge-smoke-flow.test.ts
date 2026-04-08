@@ -72,6 +72,7 @@ describe('wedge smoke flow', () => {
     // the basic shape only to document the flow step.
     it('review route target is /review', () => {
       expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry).toBe('/review');
+      expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry).toBe('/review/request');
     });
 
     it('builds review URL with entityId and contextId', () => {

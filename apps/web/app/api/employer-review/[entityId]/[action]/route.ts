@@ -42,6 +42,14 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isString);
 }
 
+function buildBackendActionUrl(
+  req: NextRequest,
+  entityId: string,
+  action: string,
+): string {
+  return `${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}${req.nextUrl.search}`;
+}
+
 function unauthorizedResponse() {
   return NextResponse.json(
     {

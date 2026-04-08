@@ -131,9 +131,10 @@ function makeClaim(
 interface NppesResult {
   basic?: {
     first_name?: string; last_name?: string; middle_name?: string;
-    name_prefix?: string; credential?: string; sex?: string;
+    name_prefix?: string; name_suffix?: string; credential?: string; sex?: string; gender?: string;
     status?: string; enumeration_date?: string; last_updated?: string;
     sole_proprietor?: string;
+    organization_name?: string;
   };
   taxonomies?: Array<{
     code?: string; desc?: string; primary?: boolean;
@@ -218,7 +219,7 @@ export function parseNppesResult(
         middleName: raw.basic.middle_name ?? null,
         prefix:     raw.basic.name_prefix ?? null,
         credential: raw.basic.credential ?? null,
-        sex:        raw.basic.sex ?? null,
+        sex:        raw.basic.gender ?? raw.basic.sex ?? null,
         identityOnly: true,
         sourceDisclaimer: NPPES_IDENTITY_ONLY_EXPLANATION,
         usageRestrictions: [...NPPES_USAGE_RESTRICTIONS],

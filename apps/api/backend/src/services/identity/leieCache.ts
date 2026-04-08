@@ -20,6 +20,7 @@ import { log } from '../../obs/logger';
 const LEIE_CSV_URL = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv';
 const REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24h
 const DOWNLOAD_TIMEOUT = 30_000; // 30s
+const NPI_DIGITS_RE = /\D/g;
 
 export interface ExclusionEntry {
   npi: string;
@@ -85,6 +86,15 @@ let leieVersionDate: string | null = null;
 
 function normalizeToken(value: string): string {
   return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function normalizeNpi(value: string | null | undefined): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const digits = value.replace(NPI_DIGITS_RE, '');
+  return digits.length === 10 ? digits : '';
 }
 
 function normalizeState(value: string): string {
@@ -263,7 +273,7 @@ function entryFromRow(
   row: readonly string[],
   headerIndex: Map<string, number>,
 ): ExclusionEntry | null {
-  const npi = fieldFromRow(row, headerIndex, ['NPI'], 7);
+  const npi = normalizeNpi(fieldFromRow(row, headerIndex, ['NPI'], 7));
   const entry: ExclusionEntry = {
     npi: npi && npi !== '0000000000' ? npi : '',
     lastName: fieldFromRow(row, headerIndex, ['LASTNAME', 'LAST_NAME'], 0),
@@ -379,12 +389,17 @@ function buildIndexes(entries: readonly ExclusionEntry[]): {
 function scoreCandidate(entry: ExclusionEntry, input: LookupProviderInput): MatchCandidate | null {
   const matchedFields = new Set<string>();
 
+  const inputNpi = normalizeNpi(input.npi);
   const inputFirst = normalizeToken(input.firstName ?? '');
   const inputMiddle = normalizeToken(input.middleName ?? '');
   const inputLast = normalizeToken(input.lastName ?? '');
   const entryFirst = normalizeToken(entry.firstName);
   const entryMiddle = normalizeToken(entry.middleName);
   const entryLast = normalizeToken(entry.lastName);
+
+  if (inputNpi && entry.npi && inputNpi !== entry.npi) {
+    return null;
+  }
 
   if (!inputLast || !entryLast || inputLast !== entryLast) {
     return null;
@@ -557,16 +572,22 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
   await ensureLoaded();
 
   const checkedAt = new Date().toISOString();
+  const staleBecauseSourceRefreshFailed = Boolean(refreshError);
   const cacheAge: LeieResult['cacheAge'] =
     !npiIndex || !nameIndex
       ? 'unavailable'
-      : refreshError
+      : staleBecauseSourceRefreshFailed
         ? 'stale'
         : 'fresh';
 
+  const normalizedInput = {
+    ...input,
+    npi: normalizeNpi(input.npi),
+  };
+
   if (!npiIndex || !nameIndex) {
     return {
-      npi: input.npi,
+      npi: normalizedInput.npi,
       excluded: false,
       entry: null,
       matchedEntries: [],
@@ -584,10 +605,10 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
     };
   }
 
-  const exact = input.npi ? npiIndex.get(input.npi) ?? null : null;
+  const exact = normalizedInput.npi ? npiIndex.get(normalizedInput.npi) ?? null : null;
   if (exact) {
     return {
-      npi: input.npi,
+      npi: normalizedInput.npi,
       excluded: true,
       entry: exact,
       matchedEntries: [exact],
@@ -605,10 +626,30 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
     };
   }
 
-  const candidate = bestFuzzyCandidate(input);
+  if (normalizedInput.npi) {
+    return {
+      npi: normalizedInput.npi,
+      excluded: false,
+      entry: null,
+      matchedEntries: [],
+      source: 'LEIE_CSV',
+      checkedAt,
+      cacheAge,
+      verdict: 'CLEAR',
+      matchType: 'NONE',
+      matchConfidence: 'HIGH',
+      matchScore: 0,
+      matchedFields: [],
+      dataVersion,
+      leieVersionDate,
+      sourceLatency: 'MONTHLY',
+    };
+  }
+
+  const candidate = bestFuzzyCandidate(normalizedInput);
   if (candidate) {
     return {
-      npi: input.npi,
+      npi: normalizedInput.npi,
       excluded: false,
       entry: candidate.entry,
       matchedEntries: [candidate.entry],
@@ -627,7 +668,7 @@ export async function lookupProvider(input: LookupProviderInput): Promise<LeieRe
   }
 
   return {
-    npi: input.npi,
+    npi: normalizedInput.npi,
     excluded: false,
     entry: null,
     matchedEntries: [],

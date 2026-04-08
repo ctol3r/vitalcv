@@ -10,6 +10,7 @@
 
 import Link from 'next/link';
 import { EmployerSummaryCard } from '@/components/apply/EmployerSummaryCard';
+import { buildEmployerReviewHref } from '@/lib/trust/public-wedge-parity';
 import { canonicalCredStatus } from '@/lib/trust/status-language';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -125,7 +126,9 @@ function buildReadinessBlockers(bundle: ApplyBundle): string[] {
 
 function buildReviewHref(bundle: ApplyBundle): string {
   const target = bundle.entityId ?? bundle.npi;
-  const redirect = target ? `/review/${target}` : '/review';
+  const redirect = target
+    ? buildEmployerReviewHref(target, { bundleId: bundle.bundleId })
+    : '/review';
   return `/sign-in?redirect_url=${encodeURIComponent(redirect)}`;
 }
 

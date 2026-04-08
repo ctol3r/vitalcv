@@ -45,8 +45,9 @@ describe('public wedge parity helpers', () => {
     expect(buildPassportEntityHref('entity_123')).toBe('/passport/entity_123');
     expect(buildEmployerReviewHref('entity_123', {
       contextId: 'ctx_abc123',
+      bundleId: 'bundle_123',
       from: 'Ada Lovelace',
-    })).toBe('/review/entity_123?contextId=ctx_abc123&from=Ada+Lovelace');
+    })).toBe('/review/entity_123?contextId=ctx_abc123&bundleId=bundle_123&from=Ada+Lovelace');
   });
 
   it('maps canonical truth back into the shared public wedge status contract', () => {
@@ -131,6 +132,9 @@ describe('public wedge parity helpers', () => {
 
   it('employer entry route target resolves to /review', () => {
     expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry).toBe('/review');
+    expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry).toBe('/review/request');
+    expect(PUBLIC_WEDGE_ROUTE_TARGETS.developersEntry).toBe('/developers');
+    expect(PUBLIC_WEDGE_ROUTE_TARGETS.docsEntry).toBe('/docs');
   });
 
   it('renders unsupported source states without escalating them into strong trust badges', () => {

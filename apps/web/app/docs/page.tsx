@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Code2, Database, ShieldCheck, Activity } from 'lucide-react';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export const metadata: Metadata = {
   title: 'Documentation',
@@ -12,21 +13,21 @@ const SECTIONS = [
     icon: BookOpen,
     title: 'API Reference',
     desc: 'Endpoints for NPI ingest, passport retrieval, and employer review state.',
-    href: '/developers',
+    href: PUBLIC_WEDGE_ROUTE_TARGETS.developersEntry,
     badge: 'REST · JSON',
   },
   {
     icon: Database,
     title: 'Source Coverage',
     desc: 'The canonical source map for identity, licensure, and exclusion status.',
-    href: '/developers',
+    href: PUBLIC_WEDGE_ROUTE_TARGETS.developersEntry,
     badge: 'Evidence',
   },
   {
     icon: ShieldCheck,
     title: 'Trust Contract',
     desc: 'How VitalCV models readiness, blocks, and freshness to support safe hiring decisions.',
-    href: '/developers',
+    href: PUBLIC_WEDGE_ROUTE_TARGETS.developersEntry,
     badge: 'Wedge Logic',
   }
 ] as const;

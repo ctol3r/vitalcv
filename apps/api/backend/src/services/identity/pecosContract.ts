@@ -4,13 +4,13 @@ import { getSource } from './sourceCatalog';
 export type PecosEnrollmentStatus = EnrollmentValue['claimState'];
 
 export const PECOS_SOURCE_ID = 'PECOS_PUBLIC' as const;
-export const PECOS_SOURCE_LABEL = 'CMS PECOS' as const;
+export const PECOS_SOURCE_LABEL = 'CMS PECOS (Simulated)' as const;
 export const PECOS_SOURCE_NAME = 'PECOS' as const;
 export const PECOS_SOURCE_UNAVAILABLE = 'PECOS_UNAVAILABLE' as const;
 export const PECOS_SOURCE_LATENCY = 'QUARTERLY' as const;
 export const PECOS_DATA_FRESHNESS = 'QUARTERLY' as const;
 export const PECOS_SOURCE_DISCLAIMER =
-  'Medicare enrollment status is point-in-time quarterly PECOS data and may lag current enrollment changes.';
+  'Beta/Dataset-Driven: Medicare enrollment status is simulated for preview via NPI prefix logic. It is point-in-time quarterly PECOS data and may lag current enrollment changes. Do not treat as decision-grade.';
 
 export type PecosFetchedRecord = {
   claimState: PecosEnrollmentStatus;
