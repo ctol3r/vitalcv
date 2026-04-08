@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Loader2, RefreshCw, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -251,13 +252,16 @@ export function WalletPassport({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Your readiness
+            Your passport
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            Source-backed credential state
+            Your verified clinician record
           </h2>
           <p className="mt-1 text-sm text-zinc-400">
             NPI <span className="font-mono text-zinc-200">{trustState.npi}</span> - Updated {formatDateTime(trustState.computed_at)}
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+            This is the same record VitalCV carries into readiness, employer shares, and job applications.
           </p>
         </div>
 
@@ -288,7 +292,7 @@ export function WalletPassport({
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  Live trust state
+                  Current readiness
                 </p>
                 <p className="mt-1 text-lg font-semibold text-foreground">{trustState.readiness_status}</p>
               </div>
@@ -388,13 +392,23 @@ export function WalletPassport({
           <ArrowRight className="h-4 w-4" />
         </Link>
         <Link
+          href="/holder/opportunities"
+          className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
+        >
+          Explore roles
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+        <Link
           href={`/passport/${trustState.npi}`}
           className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-white/[0.03] px-4 text-sm font-semibold text-foreground transition hover:bg-white/[0.08] active:scale-[0.98]"
         >
-          Open public passport
+          Preview shareable passport
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+      <p className="text-xs leading-6 text-zinc-500">
+        Use the same clinician record in readiness, explore, and employer sharing. If you update your CV or evidence, those changes flow back here.
+      </p>
     </div>
   );
 }

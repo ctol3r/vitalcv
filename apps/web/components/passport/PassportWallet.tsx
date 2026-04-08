@@ -732,7 +732,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
             <p className="text-foreground/70 text-sm font-medium">Use this passport next</p>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              This passport is the same record you carry into job search and employer sharing. Review the current snapshot here, then move into a role search or share the preview with an employer.
+              This passport is the same record you carry into job search and employer sharing. Review the current snapshot here, then move into a role search or copy an employer preview without re-entering information.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <Link
@@ -819,12 +819,12 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                       <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                     )}
                     <p className="text-center text-muted-foreground/50 text-xs leading-relaxed">
-                      Generates a shareable preview link. Send it to an employer so they can instantly see your verified posture and advance you to the review stage.
+                      Generates a shareable employer preview link. Send it to an employer so they can see your current passport first and continue into the review stage.
                     </p>
                     <div className="mt-4 p-4 border border-[var(--vt-border)] bg-muted/20 text-center space-y-2">
                       <p className="text-xs text-foreground/80 font-medium">Why return tomorrow?</p>
                       <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Your readiness score recalculates as state boards update and primary sources rotate. Check back to see new opportunities unlock as your standing improves.
+                        Your readiness score recalculates as state boards update and primary sources rotate. Check back to see freshness changes, new opportunities, or stronger employer-ready proof as your standing improves.
                       </p>
                     </div>
                   </>
@@ -833,7 +833,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             ) : (
               <TrustStateCard
                 title="Link copied"
-                description="The passport preview link has been copied to your clipboard. Send it to an employer so they can see your current state and continue into the review surface."
+                description="The passport preview link has been copied to your clipboard. Send it to an employer so they can see your current state first and continue into the signed-in review surface."
                 tone="success"
                 centered
               />

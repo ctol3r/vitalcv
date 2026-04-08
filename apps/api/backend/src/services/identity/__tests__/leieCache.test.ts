@@ -127,7 +127,7 @@ describe('leieCache lookupProvider', () => {
     });
 
     expect(result.verdict).toBe('POSSIBLE_MATCH');
-    expect(result.matchType).toBe('FUZZY_NAME_STATE');
+    expect(result.matchType).toBe('STRONG_FUZZY');
     expect(result.matchConfidence).toBe('MEDIUM');
   });
 

@@ -54,7 +54,7 @@ function resumeLabel(path: string | null): { title: string; href: string } | nul
   }
 
   if (path.startsWith('/holder')) {
-    return { title: 'Return to your your readiness', href: path };
+    return { title: 'Return to your passport', href: path };
   }
 
   return { title: 'Continue where you left off', href: path };
@@ -130,14 +130,14 @@ export default function ClinicianHomeSurface() {
       ? `Come back here when new employer or readiness updates arrive. ${unreadNotifications.length} update${unreadNotifications.length === 1 ? '' : 's'} are waiting now.`
       : data.activeApplications[0]
         ? 'Come back here when employer review, blocker resolution, or readiness changes move one of your live applications.'
-        : 'Come back here when new source checks clear or a matched role becomes worth applying to.';
+        : 'Come back here when source freshness changes or a stronger matched role becomes worth applying to.';
   const tomorrowReason = highlightedChange
     ? `Tomorrow's reason to return: ${highlightedChange.title} is already recorded here, so you can pick up from the latest real change instead of starting over.`
     : unreadNotifications.length > 0
       ? `Tomorrow's reason to return: ${unreadNotifications.length} recorded update${unreadNotifications.length === 1 ? '' : 's'} are already waiting across readiness or employer review.`
       : data.activeApplications[0]
         ? 'Tomorrow\'s reason to return: employer review, blocker resolution, and readiness movement will land here against the same application record.'
-        : 'Tomorrow\'s reason to return: new source checks and stronger role matches appear here as your profile changes.';
+        : 'Tomorrow\'s reason to return: source freshness, blocker changes, and stronger role matches appear here against the same clinician record.';
   const primaryAction = resume
     ? {
         eyebrow: 'Continue',
@@ -149,7 +149,7 @@ export default function ClinicianHomeSurface() {
       }
     : {
         eyebrow: data.recommendedAction?.kind === 'finish_onboarding' ? 'Start here' : 'Next step',
-        title: data.recommendedAction?.title ?? 'Open your your readiness',
+        title: data.recommendedAction?.title ?? 'Open your passport',
         detail: highlightedChange
           ? `${data.recommendedAction?.description ?? 'Keep your verified identity ready to share.'} Latest: ${highlightedChange.title}.`
           : data.recommendedAction?.description ?? 'Keep your verified identity ready to share.',

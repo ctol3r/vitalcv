@@ -46,9 +46,9 @@ export default function SignUpPage() {
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm font-semibold text-white">Move into passport and apply</p>
+              <p className="text-sm font-semibold text-white">Move into passport, share, and apply</p>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
-                Use the same readiness and passport context when you explore roles, share with an employer, and start an application.
+                Use the same readiness and passport context when you explore roles, share a preview with an employer, and start an application.
               </p>
             </div>
           </div>

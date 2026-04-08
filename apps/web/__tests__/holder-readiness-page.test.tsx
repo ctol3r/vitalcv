@@ -124,7 +124,7 @@ describe('/holder/readiness page', () => {
     expect(markup).toContain('Ready to credential');
     expect(markup).toContain('91/100');
     expect(markup).toContain('View opportunities');
-    expect(markup).toContain('follows you into matched roles and active applications');
+    expect(markup).toContain('carry into your passport, employer shares, and applications');
     expect(markup).toContain('Use this readiness next');
     expect(markup).toContain('Open passport');
     expect(markup).toContain('Explore roles with this readiness');
@@ -132,6 +132,7 @@ describe('/holder/readiness page', () => {
     expect(markup).toContain('Resolved dea registration not verified');
     expect(markup).toContain('History');
     expect(markup).toContain('What changed because of VitalCV');
+    expect(markup).toContain('recorded readiness refresh, blocker resolution, or application state change');
     expect(markup).toContain('Blockers resolved');
     expect(markup).toContain('Readiness delta');
   });

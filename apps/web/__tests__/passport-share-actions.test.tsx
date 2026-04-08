@@ -16,10 +16,12 @@ describe('PassportShareActions', () => {
       <PassportShareActions npi="1234567890" name="Ada Lovelace" />,
     );
 
-    expect(markup).toContain('Share Passport Preview');
+    expect(markup).toContain('Share Employer Preview');
     expect(markup).toContain('Share a public preview of your current VitalCV passport.');
     expect(markup).toContain('Signed-in employer review is still required before anyone treats the share as decision-grade.');
-    expect(markup).toContain('Copy Preview Link');
-    expect(markup).toContain('current passport preview');
+    expect(markup).toContain('Copy Employer Preview Link');
+    expect(markup).toContain('employer will see first');
+    expect(markup).toContain('Preview-only, pending, or partial proof');
+    expect(markup).toContain('stays labeled that way in the shared view');
   });
 });

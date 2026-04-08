@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, BriefcaseBusiness, ClipboardList } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
@@ -70,7 +71,7 @@ export default function ClinicianApplicationsSurface() {
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Applications</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-          Track what is in motion, what needs action, and what happens next without losing the readiness snapshot that went into the application.
+          Track what is in motion, what needs action, and what happens next without losing the readiness and passport snapshot that went into the application.
         </p>
       </header>
 
@@ -235,13 +236,13 @@ export default function ClinicianApplicationsSurface() {
           </div>
           <h2 className="mt-5 text-2xl font-semibold text-white">No live applications yet</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
-            Your submitted applications and every status change will appear here.
+            Your submitted applications and every status change will appear here. Start from matched roles and VitalCV will reuse your current passport and readiness context automatically.
           </p>
           <Link
             href="/holder/opportunities"
             className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-white/90"
           >
-            View opportunities
+            Explore matched roles
             <ArrowRight className="h-4 w-4" />
           </Link>
         </section>

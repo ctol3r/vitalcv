@@ -271,6 +271,7 @@ describe('/holder/home page', () => {
     );
 
     expect(markup).toContain('Keep moving');
+    expect(markup).toContain('reusable clinician record');
     expect(markup).toContain('Readiness');
     expect(markup).toContain('What&#x27;s left');
     expect(markup).toContain('Recent changes');
@@ -285,5 +286,7 @@ describe('/holder/home page', () => {
     expect(markup).toContain('Come back here for the next recorded change');
     expect(markup).toContain('Tomorrow&#x27;s reason to return');
     expect(markup).toContain('Fresh changes');
+    expect(markup).toContain('View opportunities');
+    expect(markup).toContain('View applications');
   });
 });

@@ -103,7 +103,7 @@ const STATUS_LABEL: Record<'delivered' | 'email_fallback' | 'logged_only', strin
 
 function readinessShareBoundary(readinessLevel: string): string {
   if (readinessLevel === 'L3' || readinessLevel === 'L2') {
-    return 'This share is strong enough to start employer review, but the employer still makes the decision in their signed-in VitalCV flow.';
+    return 'This share is strong enough to start employer review, but the employer still has to sign in and continue inside VitalCV before relying on it as a decision-grade action.';
   }
 
   return 'This share is still a preview of your current state. It helps an employer see progress, but it is not decision-grade yet.';
@@ -413,7 +413,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   Credentials to Share ({selectedTypes.size} selected)
                 </p>
                 <p className="mb-3 text-xs leading-5 text-zinc-500">
-                  Choose what travels with this application. VitalCV shares only the selected credentials plus your current readiness summary, and the link expires automatically.
+                  Choose what travels with this application. VitalCV shares only the selected credentials plus your current readiness summary. The recipient sees an employer preview first, then still has to sign in for decision-grade review. Preview-only or pending items stay labeled that way.
                 </p>
                 {credentials.length === 0 ? (
                   <p className="text-xs text-zinc-500">No verified credentials on file.</p>
@@ -443,7 +443,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 )}
               </div>
               <p className="text-[10px] leading-5 text-zinc-600">
-                Bundle expires in 24 hours. Revocable at any time. Public bundle links let an employer preview what you shared, while signed-in review is still required for a decision-grade action.
+                Bundle expires in 24 hours. Revocable at any time. Public bundle links let an employer preview exactly what you shared, while signed-in review is still required for any decision-grade action.
               </p>
             </>
           )}
@@ -550,7 +550,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   </p>
                 </div>
                 <p className="mt-3 text-xs leading-5 text-zinc-400">
-                  The recipient received an expiring preview bundle containing your selected credentials and current readiness summary. Final employer action still happens in their signed-in review workflow.
+                  The recipient received an expiring employer preview containing your selected credentials and current readiness summary. Any pending or preview-only proof stays labeled that way, and final employer action still happens in their signed-in review workflow.
                 </p>
               </div>
 
@@ -637,7 +637,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   disabled={isSharing || isConfirming}
                   className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
-                  {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & share preview bundle'}
+                  {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & share employer preview'}
                 </button>
               </div>
             )}

@@ -338,7 +338,7 @@ describe('employer packet export bundle', () => {
     expect(bundle.readmeTxt).toContain('source-coverage.json');
     expect(bundle.readmeTxt).toContain('status.json');
     expect(bundle.readmeTxt).toContain('Decision posture: READY');
-    expect(bundle.readmeTxt).toContain('Safe next action: Accept as head start or export this packet for employer review.');
+    expect(bundle.readmeTxt).toContain('Safe next action: Proceed');
   });
 
   it('packages packet.json, manifest.json, source-coverage.json, status.json, and README.txt into a zip stream', async () => {

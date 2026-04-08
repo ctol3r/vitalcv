@@ -98,7 +98,7 @@ export default function ClinicianReadinessSurface() {
       ? {
           eyebrow: 'Ready to move',
           title: 'Your readiness is clear enough to keep going',
-          detail: 'You can use this verified state in matched opportunities, and every future change will land here.',
+          detail: 'You can use this state in matched opportunities, employer shares, and active applications, and every future change will land here.',
           href: data.recommendedAction?.kind === 'apply_now'
             ? data.recommendedAction.href
             : '/holder/opportunities',
@@ -184,7 +184,7 @@ export default function ClinicianReadinessSurface() {
           </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Readiness</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Readiness is the working version of your clinician record. See what VitalCV already has on file, what has been source-checked, and what still needs action before you share or apply.
+            Readiness is the working version of your clinician record. It turns your profile, uploads, and source checks into one state you can carry into your passport, employer shares, and applications.
           </p>
         </div>
 
@@ -420,7 +420,7 @@ export default function ClinicianReadinessSurface() {
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What changed because of VitalCV</p>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-              Each line below is tied to a recorded readiness or application state change, which gives you a real reason to return tomorrow when something moves.
+              Each line below is tied to a recorded readiness refresh, blocker resolution, or application state change, which gives you a real reason to return tomorrow when something moves.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">

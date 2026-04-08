@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Compass, RefreshCw } from 'lucide-react';
 import { OpportunityGrid, SelectedOpportunityBanner } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
@@ -22,9 +23,9 @@ export default function ClinicianOpportunitiesSurface() {
             <Compass className="h-3.5 w-3.5" />
             Matched opportunities
           </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">View opportunities</h1>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Explore matched roles</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Pick a role, carry your latest readiness into apply, and keep every employer update attached to the same clinician record instead of starting a separate workflow.
+            Pick a role, carry your latest readiness and passport into apply, and keep every employer update attached to the same clinician record instead of starting a separate workflow.
           </p>
         </div>
 
@@ -59,9 +60,9 @@ export default function ClinicianOpportunitiesSurface() {
 
       <ClinicianSupportCard
         topic="opportunities"
-        detail="If the role feed is empty or a live role looks mismatched, return home to review readiness first, then contact support if the same role stays out of sync."
-        primaryHref="/holder/home"
-        primaryLabel="Review home state"
+        detail="If a role looks mismatched, review your passport or readiness first. The same updated record should follow you back into this role feed."
+        primaryHref="/holder"
+        primaryLabel="Review passport"
       />
     </main>
   );

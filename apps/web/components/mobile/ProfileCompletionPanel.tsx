@@ -122,7 +122,7 @@ export default function ProfileCompletionPanel({
       }
 
       setSelectedFile(null);
-      setSuccessMessage('Your CV is stored on your profile now. Parsed details seed readiness and future applications immediately, while licenses, board status, exclusions, and other decision-grade facts still wait on source-backed checks.');
+      setSuccessMessage('Your CV is stored on your profile now. Parsed details seed your passport, readiness, and future applications immediately, while licenses, board status, exclusions, and other decision-grade facts still wait on source-backed checks.');
       await refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Resume upload failed. Please try again.');
@@ -234,7 +234,8 @@ export default function ProfileCompletionPanel({
               <p>We parse profile details now: employment history, training, education, and license mentions.</p>
               <p>We store the original file plus the structured profile summary tied to your account.</p>
               <p>Licenses, board status, exclusions, and other decision-grade facts still require source-backed checks.</p>
-              <p>Your profile improves immediately after upload, then readiness and future applications keep using the same parsed record.</p>
+              <p>Your passport and readiness improve immediately after upload, then future applications keep using the same parsed record.</p>
+              <p>You do not have to re-enter the same CV details when you return to apply later.</p>
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
@@ -243,7 +244,7 @@ export default function ProfileCompletionPanel({
               <p><span className="font-semibold text-white">Parsed into profile</span> so your CV details can seed readiness.</p>
               <p><span className="font-semibold text-white">Stored on file</span> so the original document stays attached to your account.</p>
               <p><span className="font-semibold text-white">Checked by source</span> only when a connected source confirms the claim.</p>
-              <p><span className="font-semibold text-white">Missing or needs action</span> when VitalCV still needs more evidence or a source check.</p>
+              <p><span className="font-semibold text-white">Missing or needs action</span> when VitalCV still needs more evidence or a source check before an employer can rely on it.</p>
             </div>
           </div>
           <label className="block">
@@ -282,7 +283,7 @@ export default function ProfileCompletionPanel({
             )}
           </button>
           <p className="text-xs leading-5 text-white/45">
-            After upload, return to readiness to see what changed and use the same updated profile in your next application.
+            After upload, return to readiness to see what changed in your profile checks, then use the same updated record in your passport and next application.
           </p>
         </div>
       ) : null}

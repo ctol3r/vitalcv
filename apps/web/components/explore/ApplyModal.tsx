@@ -84,21 +84,21 @@ function readinessConfidenceCopy(trustState: MobileTrustState | null): {
 } {
   if (!trustState) {
     return {
-      title: 'Your latest readiness will attach on submission',
-      detail: 'If anything else is needed later, we will show the exact next step in your application detail.',
+      title: 'Your current VitalCV record will attach on submission',
+      detail: 'If anything else is needed later, we will show the exact next step inside your application detail instead of sending you through a separate workflow.',
     };
   }
 
   if (trustState.gapSummary.length === 0) {
     return {
       title: `Ready to submit with ${trustState.readinessLevel} readiness`,
-      detail: 'Your verified profile and current readiness snapshot will go with this application automatically.',
+      detail: 'Your passport, verified profile, and current readiness snapshot will go with this application automatically.',
     };
   }
 
   return {
-    title: 'You can still submit from your current readiness state',
-    detail: 'If the employer needs more evidence, we will show it in your application detail instead of leaving you guessing.',
+    title: 'You can still submit from this current record',
+    detail: 'If the employer needs more evidence, we will show it in your application detail instead of leaving you guessing or pushing you into a separate process.',
   };
 }
 

@@ -40,6 +40,8 @@ describe('holder upload clarity', () => {
     expect(markup).toContain('Stored on file');
     expect(markup).toContain('Checked by source');
     expect(markup).toContain('Upload CV');
+    expect(markup).toContain('passport and readiness improve immediately after upload');
+    expect(markup).toContain('do not have to re-enter the same CV details');
   });
 
   it('explains what happens to supporting evidence after upload', () => {
@@ -51,8 +53,10 @@ describe('holder upload clarity', () => {
     expect(markup).toContain('The file is stored immediately');
     expect(markup).toContain('stores the attachment and parses it into the matching credential record');
     expect(markup).toContain('Upload states you will see');
-    expect(markup).toContain('Stored');
-    expect(markup).toContain('Parsed');
+    expect(markup).toContain('Stored · awaiting source check');
+    expect(markup).toContain('Parsed · confirmed on file');
     expect(markup).toContain('employers should still rely on the source-check status before treating it as decision-grade');
+    expect(markup).toContain('Passport, readiness, and any waiting application detail update');
+    expect(markup).toContain('show whether it is stored, parsed, source-checked, or still missing detail');
   });
 });

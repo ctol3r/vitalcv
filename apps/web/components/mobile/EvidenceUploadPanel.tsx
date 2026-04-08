@@ -82,13 +82,13 @@ function credentialStatusLabel(status: string): string {
     case 'VERIFIED':
       return 'Checked by source';
     case 'CONFIRMED':
-      return 'Confirmed on file';
+      return 'Parsed · confirmed on file';
     case 'PENDING_VERIFICATION':
-      return 'Stored · source check pending';
+      return 'Parsed · source check pending';
     case 'UNVERIFIED':
       return 'Stored · awaiting source check';
     case 'MISSING_INFORMATION':
-      return 'Missing details';
+      return 'Parsed · missing details';
     case 'FAILED':
     case 'REJECTED':
       return 'Needs review';
@@ -113,7 +113,7 @@ function formatWhen(value: string): string {
 
 export default function EvidenceUploadPanel({
   heading = 'Upload evidence',
-  description = 'Upload a PDF or image up to 10 MB so VitalCV can store it on your profile, show whether it is only attached or source-checked, and use it to unblock readiness or a live application.',
+  description = 'Upload a PDF or image up to 10 MB so VitalCV can attach it to your profile, show whether it is stored, parsed, source-checked, or still missing detail, and use it to unblock readiness or a live application.',
   returnToHref = '/holder/readiness',
   returnToLabel = 'Return to readiness',
 }: EvidenceUploadPanelProps) {
@@ -233,7 +233,7 @@ export default function EvidenceUploadPanel({
       setSelectedFile(null);
       const completedAt = new Date().toISOString();
       setUploadedAt(completedAt);
-      setSuccessMessage('Your file is attached to your profile now. VitalCV stored the document, linked it to the matching credential record, and will refresh readiness or waiting applications when the source-backed check finishes.');
+      setSuccessMessage('Your file is attached to your profile now. VitalCV stored the document, matched it to the credential record, and will refresh your passport, readiness, or waiting applications when the source-backed check finishes.');
       await Promise.allSettled([refresh(), loadCredentials()]);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed. Please try again.');
@@ -295,20 +295,20 @@ export default function EvidenceUploadPanel({
       <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
         <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What happens after upload</p>
         <div className="mt-3 space-y-3 text-sm text-white/70">
-          <p>The file appears in your attached evidence list right away.</p>
-          <p>VitalCV stores the attachment and parses it into the matching credential record.</p>
-          <p>Verification continues in the background if a source still needs to confirm it.</p>
-          <p>Readiness and any waiting application detail update when that check clears.</p>
+          <p>1. The file appears in your attached evidence list right away.</p>
+          <p>2. VitalCV stores the attachment and parses it into the matching credential record when it can.</p>
+          <p>3. Verification continues in the background if a source still needs to confirm it.</p>
+          <p>4. Passport, readiness, and any waiting application detail update when that check clears.</p>
         </div>
       </div>
 
       <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
         <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Upload states you will see</p>
         <div className="mt-3 space-y-2 text-sm text-white/70">
-          <p><span className="font-semibold text-white">Stored</span> means VitalCV has the file on your profile now.</p>
-          <p><span className="font-semibold text-white">Parsed</span> means the attachment was matched to the related credential record.</p>
+          <p><span className="font-semibold text-white">Stored · awaiting source check</span> means VitalCV has the file on your profile now, but a source has not confirmed it yet.</p>
+          <p><span className="font-semibold text-white">Parsed · confirmed on file</span> means the attachment was matched to the related credential record.</p>
           <p><span className="font-semibold text-white">Checked by source</span> means a connected source confirmed the claim.</p>
-          <p><span className="font-semibold text-white">Missing or needs review</span> means VitalCV still needs more detail before an employer can rely on it.</p>
+          <p><span className="font-semibold text-white">Parsed · missing details</span> or <span className="font-semibold text-white">Needs review</span> means VitalCV still needs more detail before an employer can rely on it.</p>
         </div>
       </div>
 
@@ -368,7 +368,7 @@ export default function EvidenceUploadPanel({
           </div>
         ) : (
           <p className="mt-3 text-sm leading-6 text-white/60">
-            No evidence is attached yet.
+            No evidence is attached yet. When you upload something, this list will show whether it is only stored, parsed into a credential record, source-checked, or still missing detail.
           </p>
         )}
       </div>

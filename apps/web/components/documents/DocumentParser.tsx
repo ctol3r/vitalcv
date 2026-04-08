@@ -401,7 +401,7 @@ export function DocumentParser() {
                 margin: 0,
               }}
             >
-              Drop any credential document
+              Drop a CV or credential document
             </p>
             <p
               style={{
@@ -411,7 +411,7 @@ export function DocumentParser() {
                 margin: '4px 0 0',
               }}
             >
-              PDF, PNG, JPG, TIFF — medical licenses, board certs, DEA registrations
+              PDF, PNG, JPG, TIFF — CVs, licenses, board certificates, verification letters
             </p>
           </div>
 

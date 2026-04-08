@@ -93,7 +93,7 @@ describe('ApplyBundleView', () => {
       '/sign-in?redirect_url=%2Freview%2Fentity-1%3FbundleId%3Dbundle-1',
     );
     expect(markup).toContain('This link is a preview of what the clinician shared.');
-    expect(markup).toContain('the clinician still has work left');
-    expect(markup).toContain('Pending or unavailable rows are not decision-grade.');
+    expect(markup).toContain('the clinician still has work left and that row is context only');
+    expect(markup).toContain('Pending, unavailable, or preview-only rows are not decision-grade.');
   });
 });

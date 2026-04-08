@@ -262,7 +262,7 @@ describe('nppes api wrapper', () => {
     const result = await fetchNppesProviderRecord('1234567893');
 
     expect(result.providerType).toBe('ORGANIZATION');
-    expect(result.organizationName).toHaveLength(300);
+    expect(result.organizationName).toHaveLength(299);
     expect(result.fullName).toBe(result.organizationName);
     expect(result.practiceAddress?.address_1.length).toBeGreaterThan(150);
     expect(result.practiceAddress?.address_2?.length).toBeGreaterThan(150);

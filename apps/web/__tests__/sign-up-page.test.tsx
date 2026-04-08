@@ -29,7 +29,7 @@ describe('/sign-up page', () => {
     expect(markup).toContain('Build one clinician record you can keep using.');
     expect(markup).toContain('Upload once');
     expect(markup).toContain('See what changed');
-    expect(markup).toContain('Move into passport and apply');
+    expect(markup).toContain('Move into passport, share, and apply');
     expect(markup).toContain('from sign up to upload, readiness, passport, sharing, and applications');
     expect(markup).toContain('Mock Clerk Sign Up');
   });

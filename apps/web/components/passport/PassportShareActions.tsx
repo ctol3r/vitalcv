@@ -63,10 +63,10 @@ export default function PassportShareActions({
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">
-            Share Passport Preview
+            Share Employer Preview
           </p>
           <p className="mt-2 text-sm text-slate-300">
-            Share a public preview of your current VitalCV passport. It shows your latest readiness, source coverage, and trust posture so an employer can understand where you stand. Signed-in employer review is still required before anyone treats the share as decision-grade.
+            Share a public preview of your current VitalCV passport. It shows your latest readiness snapshot, source coverage, and trust posture so an employer can understand where you stand before they sign in to continue review. Signed-in employer review is still required before anyone treats the share as decision-grade.
           </p>
         </div>
       </div>
@@ -78,8 +78,8 @@ export default function PassportShareActions({
           onClick={() => copyText(shareUrl, 'Copied link')}
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
-          <span className="block text-sm font-semibold text-foreground">Copy Preview Link</span>
-          <span className="mt-1 block text-xs text-slate-400">Public snapshot link showing your current passport preview.</span>
+          <span className="block text-sm font-semibold text-foreground">Copy Employer Preview Link</span>
+          <span className="mt-1 block text-xs text-slate-400">Public snapshot link showing the current passport preview an employer will see first.</span>
         </Button>
 
         <Button
@@ -88,7 +88,7 @@ export default function PassportShareActions({
           onClick={() => copyText(embedCode, 'Copied embed code')}
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
-          <span className="block text-sm font-semibold text-foreground">Copy Embed Code</span>
+          <span className="block text-sm font-semibold text-foreground">Copy Badge Embed Code</span>
           <span className="mt-1 block text-xs text-slate-400">HTML snippet for the same badge and public passport preview.</span>
         </Button>
 
@@ -98,9 +98,15 @@ export default function PassportShareActions({
           onClick={() => copyText(linkedInMarkdown, 'Copied LinkedIn markdown')}
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
-          <span className="block text-sm font-semibold text-foreground">Copy Profile Markdown</span>
-          <span className="mt-1 block text-xs text-slate-400">Short markdown snippet that points back to the public passport preview.</span>
+          <span className="block text-sm font-semibold text-foreground">Copy Profile Snippet</span>
+          <span className="mt-1 block text-xs text-slate-400">Short snippet that points back to the same employer preview.</span>
         </Button>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-slate-950/30 px-4 py-4 text-xs leading-6 text-slate-300">
+        <p><span className="font-semibold text-white">Employer preview</span> shows the current passport snapshot you chose to share.</p>
+        <p><span className="font-semibold text-white">Signed-in review</span> is still required before anyone can treat it as decision-grade.</p>
+        <p><span className="font-semibold text-white">Preview-only, pending, or partial proof</span> stays labeled that way in the shared view so progress is never confused with completed verification.</p>
       </div>
     </Card>
   );

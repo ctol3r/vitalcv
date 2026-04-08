@@ -320,8 +320,8 @@ describe('employer packet truth', () => {
     expect(packet.decisionPosture).toEqual({
       status: 'PARTIAL',
       headline: 'Some decision-grade checks are still missing, gated, stale, or under review.',
-      blockers: [],
       nextAction: 'Request refresh or route to review before relying on missing lanes.',
+      blockers: [],
       freshness: passport.trustPosture.freshness,
     });
     expect(packet.sourceCoverage.checks).toEqual(expect.arrayContaining([
