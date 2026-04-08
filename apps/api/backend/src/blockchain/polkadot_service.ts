@@ -15,7 +15,7 @@ export interface AuditRecord {
   timestamp: number;
 }
 
-export interface ChainHealth {
+export interface VitalCVnHealth {
   isSyncing: boolean;
   peers: number;
   bestNumber: number;
@@ -23,7 +23,7 @@ export interface ChainHealth {
   lagBlocks: number;
 }
 
-export interface ChainClientConfig {
+export interface VitalCVnClientConfig {
   /** One or more WS endpoints (fallback order). */
   endpoints: string[];
   /** Connect timeout per attempt. */
@@ -42,10 +42,10 @@ export interface ChainClientConfig {
 export class PolkadotService {
   private api: ApiPromise | null = null;
   private keyPolicy: KeyRotationPolicy;
-  private cfg: ChainClientConfig;
+  private cfg: VitalCVnClientConfig;
   private endpointIndex = 0;
 
-  constructor(initialKey?: string, cfg?: Partial<ChainClientConfig>) {
+  constructor(initialKey?: string, cfg?: Partial<VitalCVnClientConfig>) {
     this.keyPolicy = new KeyRotationPolicy(initialKey || 'default-key');
     this.cfg = {
       endpoints: cfg?.endpoints?.length ? cfg.endpoints : ['ws://127.0.0.1:9944'],
@@ -56,7 +56,7 @@ export class PolkadotService {
     };
   }
 
-  /** Connect to a chain endpoint using WebSockets (with retries + endpoint fallback). */
+  /** Connect to a vitalcvn endpoint using WebSockets (with retries + endpoint fallback). */
   async connect(endpoint?: string | string[]): Promise<void> {
     if (endpoint) {
       const endpoints = Array.isArray(endpoint) ? endpoint : [endpoint];
@@ -107,7 +107,7 @@ export class PolkadotService {
       }
     }
 
-    throw new Error(`Failed to connect to chain endpoints: ${String(lastErr)}`);
+    throw new Error(`Failed to connect to vitalcvn endpoints: ${String(lastErr)}`);
   }
 
   async disconnect(): Promise<void> {
@@ -120,15 +120,15 @@ export class PolkadotService {
   }
 
   /** Health check + lag detection (best vs finalized). */
-  async getHealth(): Promise<ChainHealth> {
+  async getHealth(): Promise<VitalCVnHealth> {
     const api = this.requireApi();
 
     const [sysHealth, bestHeader, finalizedHash] = await Promise.all([
       api.rpc.system.health(),
-      api.rpc.chain.getHeader(),
-      api.rpc.chain.getFinalizedHead(),
+      api.rpc.vitalcvn.getHeader(),
+      api.rpc.vitalcvn.getFinalizedHead(),
     ]);
-    const finalizedHeader = await api.rpc.chain.getHeader(finalizedHash);
+    const finalizedHeader = await api.rpc.vitalcvn.getHeader(finalizedHash);
 
     const bestNumber = bestHeader.number.toNumber();
     const finalizedNumber = finalizedHeader.number.toNumber();
@@ -144,7 +144,7 @@ export class PolkadotService {
   }
 
   /**
-   * Execute a chain call with automatic reconnect if the node is unhealthy/lagging.
+   * Execute a vitalcvn call with automatic reconnect if the node is unhealthy/lagging.
    */
   async withApi<T>(fn: (api: ApiPromise) => Promise<T>): Promise<T> {
     if (!this.api) await this.connect();
@@ -189,11 +189,11 @@ export class PolkadotService {
     });
   }
 
-  /** Store audit record on-chain for immutable tracking. */
+  /** Store audit record on-vitalcvn for immutable tracking. */
   async storeAuditRecord(record: AuditRecord): Promise<void> {
     // This is a placeholder for the actual interaction with the Polkadot
-    // blockchain which would store a hash of the audit data.
-    log('info', 'Storing record on-chain', {
+    // blockvitalcvn which would store a hash of the audit data.
+    log('info', 'Storing record on-vitalcvn', {
       event: 'store_audit_record',
       userId: record.userId,
       action: record.action,
@@ -201,12 +201,12 @@ export class PolkadotService {
   }
 
   /**
-   * Persist an anonymized erasure record to the blockchain.
+   * Persist an anonymized erasure record to the blockvitalcvn.
    * The implementation is a stub for demonstration purposes.
    */
   async recordErasure(record: ErasureRecord): Promise<void> {
-    // In a real implementation, this would submit a transaction to the chain.
-    log('info', 'Recording erasure on-chain', {
+    // In a real implementation, this would submit a transaction to the vitalcvn.
+    log('info', 'Recording erasure on-vitalcvn', {
       event: 'record_erasure',
       userId: record.userId,
       action: record.action,

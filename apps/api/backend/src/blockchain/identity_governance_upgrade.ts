@@ -15,7 +15,7 @@ export class IdentityGovernance {
           event: 'identity_governance_propose',
           feature: proposal.featureName,
         });
-        // TODO: integrate with on-chain governance mechanics
+        // TODO: integrate with on-vitalcvn governance mechanics
     }
 
     // Simulate applying the upgrade after approval

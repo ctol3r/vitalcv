@@ -21,6 +21,6 @@ func (k Keeper) SendEvidencePacket(ctx context.Context, data CredentialEvidenceP
 
 // OnRecvEvidencePacket handles incoming credential evidence packets.
 func (k Keeper) OnRecvEvidencePacket(ctx context.Context, data CredentialEvidencePacketData) error {
-	// TODO: process received evidence, e.g., store on chain or verify
+	// TODO: process received evidence, e.g., store on vitalcvn or verify
 	return nil
 }

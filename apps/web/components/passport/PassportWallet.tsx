@@ -568,6 +568,15 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
     buildEligibilitySection(passport),
   ];
 
+  const earliestExpiry = passport.authority?.credentials
+    ?.map(c => c.expiresAt ? new Date(c.expiresAt).getTime() : null)
+    .filter((d): d is number => d !== null)
+    .sort((a, b) => a - b)[0] || null;
+
+  const expiryMessage = earliestExpiry
+    ? `Your earliest tracked credential expires on ${new Date(earliestExpiry).toLocaleDateString()}. Returning regularly ensures your readiness score doesn't degrade unexpectedly.`
+    : `Your readiness score recalculates as state boards update and primary sources rotate. Check back to see new opportunities unlock as your standing improves.`;
+
   async function handleShare() {
     if (!passport.npi) {
       setShareError('This passport is missing an NPI and cannot be shared.');
@@ -824,7 +833,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                     <div className="mt-4 p-4 border border-[var(--vt-border)] bg-muted/20 text-center space-y-2">
                       <p className="text-xs text-foreground/80 font-medium">Why return tomorrow?</p>
                       <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Your readiness score recalculates as state boards update and primary sources rotate. Check back to see new opportunities unlock as your standing improves.
+                        {expiryMessage}
                       </p>
                     </div>
                   </>

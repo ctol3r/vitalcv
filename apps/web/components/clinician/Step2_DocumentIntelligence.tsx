@@ -69,6 +69,25 @@ export function Step2_DocumentIntelligence({
               <p className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">
                 We parse your CV and artifacts to identify what can be automatically verified against primary sources. VitalCV never shares your raw files without your explicit permission, and this evidence is used strictly to improve your readiness score.
               </p>
+              
+              <div className="grid grid-cols-2 gap-3 mb-4 mt-2">
+                <div className="bg-muted/40 rounded-lg p-2.5 border border-border/50">
+                  <div className="text-xs font-semibold text-foreground">Authority</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Licenses & DEA Registrations</div>
+                </div>
+                <div className="bg-muted/40 rounded-lg p-2.5 border border-border/50">
+                  <div className="text-xs font-semibold text-foreground">Training</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Education & Board Certs</div>
+                </div>
+                <div className="bg-muted/40 rounded-lg p-2.5 border border-border/50">
+                  <div className="text-xs font-semibold text-foreground">Identity</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Core demographics & NPI matching</div>
+                </div>
+                <div className="bg-muted/40 rounded-lg p-2.5 border border-border/50">
+                  <div className="text-xs font-semibold text-foreground">Standing</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">OIG exclusions & PECOS enrollment</div>
+                </div>
+              </div>
             </div>
             <label
               htmlFor="file-upload"

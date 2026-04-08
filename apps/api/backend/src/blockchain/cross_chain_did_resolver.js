@@ -1,9 +1,9 @@
 /**
- * CrossChainDIDResolver fetches DID documents from external resolver services.
+ * CrossVitalCVnDIDResolver fetches DID documents from external resolver services.
  * The resolverBaseUrl should point to a service compatible with the
  * Universal Resolver API, e.g. https://uniresolver.io.
  */
-export class CrossChainDIDResolver {
+export class CrossVitalCVnDIDResolver {
   constructor(resolverBaseUrl) {
     this.resolverBaseUrl = resolverBaseUrl;
   }

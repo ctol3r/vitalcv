@@ -2,7 +2,7 @@ import {
   buildSubstrateAnchor,
   type CanonicalAnchor,
   type SubstratePalletId,
-} from '@vitalcv/shared/onchain';
+} from '@vitalcv/shared/onvitalcvn';
 
 export type ObservedSubstrateEvent = Readonly<{
   pallet: SubstratePalletId;

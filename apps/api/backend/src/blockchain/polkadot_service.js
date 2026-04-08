@@ -1,5 +1,5 @@
 /**
- * Simple stub for anchoring data on chain.
+ * Simple stub for anchoring data on vitalcvn.
  * In a real implementation this would submit a transaction to Polkadot.
  */
 class PolkadotService {

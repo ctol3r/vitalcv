@@ -2,13 +2,13 @@ import { ApiPromise, SubmittableExtrinsic } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { log } from '../obs/logger';
 
-export interface ChaiCredentialMessage {
+export interface VitalCVCredentialMessage {
   credentialId: string;
   payload: string;
 }
 
 /**
- * XcmHandler provides helper utilities for parachains to send and
+ * XcmHandler provides helper utilities for paravitalcvns to send and
  * receive CHAI credential messages via XCM. The implementation is
  * intentionally lightweight and can be integrated into an existing
  * service that already initialises an ApiPromise instance.
@@ -17,15 +17,15 @@ export class XcmHandler {
   constructor(private api: ApiPromise) {}
 
   /**
-   * Sends a CHAI credential message to another parachain using a
+   * Sends a CHAI credential message to another paravitalcvn using a
    * remark-based XCM. This example uses a simple remark extrinsic but
    * can be replaced with a more sophisticated XCM format.
    */
-  async sendCredential(destParaId: number, message: ChaiCredentialMessage, signerSeed: string): Promise<void> {
+  async sendCredential(destParaId: number, message: VitalCVCredentialMessage, signerSeed: string): Promise<void> {
     const keyring = new Keyring({ type: 'sr25519' });
     const signer = keyring.addFromUri(signerSeed);
 
-    // Construct a remark payload that other parachains can parse.
+    // Construct a remark payload that other paravitalcvns can parse.
     const remark = `CHAI:${destParaId}:${JSON.stringify(message)}`;
     const tx: SubmittableExtrinsic<'promise'> = this.api.tx.system.remark(remark);
 
@@ -35,9 +35,9 @@ export class XcmHandler {
   /**
    * Starts listening for CHAI credential messages. When a remark is
    * detected that matches the CHAI prefix, the provided callback is
-   * invoked with the originating parachain id and parsed message.
+   * invoked with the originating paravitalcvn id and parsed message.
    */
-  listenForCredentials(onMessage: (paraId: number, message: ChaiCredentialMessage) => void): void {
+  listenForCredentials(onMessage: (paraId: number, message: VitalCVCredentialMessage) => void): void {
     this.api.query.system.events((events) => {
       events.forEach(({ event }) => {
         if (event.section === 'system' && event.method === 'Remarked') {
@@ -46,11 +46,11 @@ export class XcmHandler {
           if (text.startsWith('CHAI:')) {
             const [, paraId, payload] = text.split(':');
             try {
-              const message = JSON.parse(payload) as ChaiCredentialMessage;
+              const message = JSON.parse(payload) as VitalCVCredentialMessage;
               onMessage(Number(paraId), message);
             } catch (err) {
               log('error', 'Failed to parse CHAI credential message', {
-                event: 'chai_credential_parse_error',
+                event: 'vitalcv_credential_parse_error',
                 error: err instanceof Error ? err.message : 'unknown',
               });
             }

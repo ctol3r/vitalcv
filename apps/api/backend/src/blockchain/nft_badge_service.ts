@@ -10,9 +10,9 @@ export interface BadgeDetails {
 
 // Placeholder PolkadotService interface
 class PolkadotService {
-  // Simulate minting an NFT on the Polkadot chain
+  // Simulate minting an NFT on the Polkadot vitalcvn
   async mintNFT(metadata: object): Promise<string> {
-    // In a real implementation, this would interact with the blockchain
+    // In a real implementation, this would interact with the blockvitalcvn
     // Returning a fake token ID for now
     return `token-${Math.floor(Math.random() * 1e6)}`;
   }

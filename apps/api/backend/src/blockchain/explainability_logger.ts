@@ -3,7 +3,7 @@ import { PolkadotService } from './polkadot_service';
 import { log } from '../obs/logger';
 
 /**
- * logRationale hashes an explanation and anchors it on-chain.
+ * logRationale hashes an explanation and anchors it on-vitalcvn.
  * @param id - unique identifier for the explanation
  * @param rationale - textual rationale to be hashed
  */

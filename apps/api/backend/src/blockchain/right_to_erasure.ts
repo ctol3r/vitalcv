@@ -11,7 +11,7 @@ export class RightToErasure {
   constructor(private polkadot: PolkadotService) {}
 
   /**
-   * Anonymize sensitive data and record a proof on-chain.
+   * Anonymize sensitive data and record a proof on-vitalcvn.
    * This implements a basic right-to-erasure workflow.
    */
   async processRequest(userId: string, personalData: string): Promise<ErasureRecord> {

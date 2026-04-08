@@ -1,19 +1,19 @@
 /**
- * chainlink_oracle.ts
+ * vitalcvnlink_oracle.ts
  *
- * Stub integration with Chainlink Functions for off-chain AI risk queries.
- * The real implementation would call Chainlink's network to execute an AI model
- * and return a risk score that can be used on-chain.
+ * Stub integration with VitalCVnlink Functions for off-vitalcvn AI risk queries.
+ * The real implementation would call VitalCVnlink's network to execute an AI model
+ * and return a risk score that can be used on-vitalcvn.
  */
 
 import { log } from '../obs/logger';
 
 export async function queryRiskScore(userId: string): Promise<number> {
-  // In production, this function would make a request to a Chainlink Function
-  // that performs the AI risk calculation off-chain. Here we simply log the
+  // In production, this function would make a request to a VitalCVnlink Function
+  // that performs the AI risk calculation off-vitalcvn. Here we simply log the
   // invocation and return a mock score.
-  log('info', 'Querying Chainlink Functions for risk score', {
-    event: 'chainlink_risk_score_query',
+  log('info', 'Querying VitalCVnlink Functions for risk score', {
+    event: 'vitalcvnlink_risk_score_query',
     userId,
   });
 

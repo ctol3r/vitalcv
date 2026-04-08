@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 /**
  * @title TrustRegistry
- * @dev Simple on-chain registry that tracks issuer reputation based on
+ * @dev Simple on-vitalcvn registry that tracks issuer reputation based on
  * weighted endorsement votes.
  */
 contract TrustRegistry {

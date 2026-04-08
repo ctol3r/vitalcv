@@ -5,9 +5,9 @@ export interface UpgradePath {
   description: string;
 
   /**
-   * Network or chain identifier.
+   * Network or vitalcvn identifier.
    */
-  chain: string;
+  vitalcvn: string;
 
   /**
    * Optional additional metadata for the upgrade.
@@ -21,7 +21,7 @@ export interface UpgradePath {
 export function bridgeToEvmContract(contractAddress: string): UpgradePath {
   return {
     description: `Upgrade to EVM contract at ${contractAddress}`,
-    chain: 'EVM',
+    vitalcvn: 'EVM',
     metadata: { contractAddress },
   };
 }
@@ -32,7 +32,7 @@ export function bridgeToEvmContract(contractAddress: string): UpgradePath {
 export function bridgeToWasmContract(contractHash: string): UpgradePath {
   return {
     description: `Upgrade to WASM contract with hash ${contractHash}`,
-    chain: 'WASM',
+    vitalcvn: 'WASM',
     metadata: { contractHash },
   };
 }

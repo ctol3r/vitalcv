@@ -17,7 +17,7 @@ class ZkRollupBatcher {
 
   /**
    * Add an operation to the current batch.
-   * When the batch is full, finalize and anchor the proof on-chain.
+   * When the batch is full, finalize and anchor the proof on-vitalcvn.
    * @param {CredentialOp} op
    * @returns {Promise<null|{proof: string, txHash: string, batch: CredentialOp[]}>}
    */
@@ -30,7 +30,7 @@ class ZkRollupBatcher {
   }
 
   /**
-   * Finalize the current batch into a zk-rollup proof and anchor it on-chain.
+   * Finalize the current batch into a zk-rollup proof and anchor it on-vitalcvn.
    */
   async finalizeBatch() {
     const batch = this.ops;

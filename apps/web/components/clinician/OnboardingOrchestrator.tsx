@@ -517,6 +517,34 @@ export function OnboardingOrchestrator() {
         </p>
       </header>
 
+      {/* Progress Stepper */}
+      <div className="flex items-center justify-between mb-10 max-w-sm mx-auto relative before:absolute before:inset-0 before:top-1/2 before:-translate-y-1/2 before:w-full before:h-0.5 before:bg-border/60 before:z-0">
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+            npiState === 'success' ? 'bg-primary text-primary-foreground ring-4 ring-background' : 'bg-muted border border-border text-muted-foreground'
+          }`}>
+            1
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80 bg-background px-1">Identity</span>
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+            uploadState === 'success' ? 'bg-primary text-primary-foreground ring-4 ring-background' : 'bg-muted border border-border text-muted-foreground'
+          }`}>
+            2
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80 bg-background px-1">Evidence</span>
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+            trustState === 'success' ? 'bg-primary text-primary-foreground ring-4 ring-background' : 'bg-muted border border-border text-muted-foreground'
+          }`}>
+            3
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80 bg-background px-1">Passport</span>
+        </div>
+      </div>
+
       {/* Step 1: Identity Claim */}
       <Step1_IdentityClaim
         npi={npi}
