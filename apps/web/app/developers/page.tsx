@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     description:
       'Current VitalCV wedge APIs, SDK packages, and integration boundaries.',
   },
+  alternates: { canonical: 'https://vitalcv.com/developers' },
 };
 
 const ROUTE_FAMILIES = [

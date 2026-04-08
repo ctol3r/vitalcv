@@ -38,7 +38,8 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
   if (operationalRoute) {
     return (
       <>
-        <div className="relative min-h-screen">{children}</div>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--vt-accent)] focus:px-4 focus:py-2 focus:text-white focus:shadow-lg">Skip to main content</a>
+        <div id="main-content" className="relative min-h-screen">{children}</div>
         {clerkEnabled ? pilotReporter : null}
         <FeedbackButton />
         {clerkEnabled ? <PilotSignInTracker /> : null}
@@ -49,13 +50,14 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
 
   return (
     <div className="relative flex min-h-screen flex-col">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--vt-accent)] focus:px-4 focus:py-2 focus:text-white focus:shadow-lg">Skip to main content</a>
       <Navbar />
       {clerkEnabled ? (
         <SignedIn>
           <WorkspaceSwitcher />
         </SignedIn>
       ) : null}
-      <div className="relative flex-1">{children}</div>
+      <div id="main-content" className="relative flex-1">{children}</div>
       <Footer />
       <FeedbackButton />
       {clerkEnabled ? (

@@ -26,10 +26,6 @@ import {
   getPublicWedgeSurfaceBadgeMeta,
   resolvePublicWedgeSurfaceStateFromPreviewStageStatus,
 } from '@/lib/trust/public-wedge-parity';
-import {
-  getStatusDisplayLabel,
-  getTrustStatusLabel,
-} from '@/lib/trust/status-language';
 import { Input } from '@/components/ui/input';
 
 type Phase = 'idle' | 'loading' | 'preview';
@@ -320,11 +316,6 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   });
   const stages = useMemo(() => buildConsoleStages(state), [state]);
   const loadingCopy = resolveLoadingCopy(state, isFallback);
-  const checkedLabel = getTrustStatusLabel('checked');
-  const pendingLabel = getTrustStatusLabel('pending');
-  const accessRequiredLabel = getTrustStatusLabel('access_required');
-  const unavailableLabel = getTrustStatusLabel('unavailable');
-  const previewOnlyLabel = getStatusDisplayLabel('preview_only', 'Preview');
   const sourcesCheckedCount = stages.filter((stage) => stage.status === 'checked').length;
   const claimsCount = state.readiness.claimCount ?? state.readiness.credentialCount ?? null;
   const readinessSummary = typeof state.readiness.score === 'number'
@@ -582,7 +573,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 <span className="mt-2 block text-[var(--vt-accent)]">presented with proof.</span>
               </h1>
               <p className="mb-6 max-w-3xl text-sm leading-7 text-[var(--vt-text-muted)] sm:text-lg">
-                VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
+                Enter your NPI and get a source-backed credentialing snapshot in seconds. VitalCV checks NPPES, OIG/LEIE, CMS PECOS, and configured state boards — then labels each lane so you know exactly where you stand.
               </p>
               <form
                 id="npi-entry"

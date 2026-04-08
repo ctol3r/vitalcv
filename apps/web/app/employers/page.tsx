@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     title: 'For Employers',
     description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
   },
+  alternates: { canonical: 'https://vitalcv.com/employers' },
 };
 
 export default async function EmployersPage() {

@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description:
       'Browse clinical opportunities and see where your readiness snapshot may apply.',
   },
+  alternates: { canonical: 'https://vitalcv.com/explore' },
 };
 
 export default function ExplorePage() {

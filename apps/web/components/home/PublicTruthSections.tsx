@@ -62,6 +62,9 @@ export function TrustStrip() {
         <p className="mt-3 text-[11px] text-[var(--vt-text-muted)]">
           Homepage preview starts with NPPES and OIG. Other lanes stay marked as access required, pending, or preview-only until a connected source actually runs.
         </p>
+        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+          Primary-source only&ensp;·&ensp;No signup required to preview&ensp;·&ensp;NPPES + OIG live&ensp;·&ensp;CMS PECOS enrolled
+        </p>
       </div>
     </div>
   );

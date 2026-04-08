@@ -588,7 +588,7 @@ export default function ExploreClient() {
           </button>
         )}
 
-        <span className={`${hasFilters ? '' : 'ml-auto'} text-sm text-muted-foreground`}>
+        <span className={`${hasFilters ? '' : 'ml-auto'} text-sm text-muted-foreground`} aria-live="polite" role="status">
           {loading ? '…' : `${total} role${total !== 1 ? 's' : ''}`}
         </span>
       </div>

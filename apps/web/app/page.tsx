@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     description:
       'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
   },
+  alternates: { canonical: 'https://vitalcv.com' },
 };
 
 export default function HomePage() {

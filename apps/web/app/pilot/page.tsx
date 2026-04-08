@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Start a Pilot',
   description: 'Start a focused employer pilot for NPI-to-review credential readiness decisions.',
+  alternates: { canonical: 'https://vitalcv.com/pilot' },
 };
 
 const PILOT_STEPS = [
