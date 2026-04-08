@@ -52,23 +52,23 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
     badgeClassName: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
   },
   pending: {
-    label: getTrustStatusLabel('pending'),
+    label: getCanonicalTrustStatusLabel('pending'),
     badgeClassName: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
   },
   stale: {
-    label: getTrustStatusLabel('stale'),
+    label: getCanonicalTrustStatusLabel('stale'),
     badgeClassName: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
   },
   unavailable: {
-    label: getTrustStatusLabel('unavailable'),
+    label: getCanonicalTrustStatusLabel('unavailable'),
     badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
   },
   access_required: {
-    label: getTrustStatusLabel('access_required'),
+    label: getCanonicalTrustStatusLabel('access_required'),
     badgeClassName: 'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
   },
   review_required: {
-    label: getTrustStatusLabel('review_required'),
+    label: getCanonicalTrustStatusLabel('review_required'),
     badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
   },
   demo: {
@@ -117,7 +117,12 @@ export function getVdsTrustStatusLabel(
 }
 
 export function getTrustStatusLabel(status: TrustUiStatus): string {
-  return TRUST_STATUS_META[status]?.label ?? getCanonicalTrustStatusLabel(status);
+  const meta = TRUST_STATUS_META[status];
+  if (meta) {
+    return meta.label;
+  }
+
+  return getCanonicalTrustStatusLabel(status as CanonicalTrustUiStatus);
 }
 
 export function getTrustStatusBadgeClassName(status: TrustUiStatus): string {

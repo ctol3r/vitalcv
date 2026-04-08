@@ -182,7 +182,7 @@ export function ApplyBundleView({ bundle }: Props) {
                 What you are looking at
               </p>
               <p className="mt-1 text-sm text-foreground">
-                A public credential capsule with the clinician&apos;s current readiness, supporting credentials, issuer provenance, and integrity details.
+                A public preview of what the clinician chose to share: current readiness, supporting credentials, issuer provenance, and integrity details.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">NPI {bundle.npi}</p>
             </div>
@@ -192,7 +192,7 @@ export function ApplyBundleView({ bundle }: Props) {
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Sign in to continue to the employer decision surface and take action on this candidate.
+            This link is a preview of what the clinician shared. If a row is pending or unavailable, the clinician still has work left. Sign in to continue to the employer review surface before treating any item as decision-grade or taking action on the candidate.
           </p>
         </section>
 
@@ -203,7 +203,7 @@ export function ApplyBundleView({ bundle }: Props) {
               Credential Snapshot ({bundle.credentials.length})
             </p>
             <p className="mt-1 text-sm text-foreground">
-              Each row shows the credential type, issuing source, current availability, and the most recent verification timestamp included in this share.
+              Each row shows the credential type, issuing source, current availability, and the most recent verification timestamp included in this share. Pending or unavailable rows are not decision-grade.
             </p>
           </div>
           <div className="divide-y divide-white/6">

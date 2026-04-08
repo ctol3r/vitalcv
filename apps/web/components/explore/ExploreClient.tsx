@@ -741,7 +741,11 @@ function OpportunityCard({
           <h3 className="font-medium text-foreground leading-tight text-lg group-hover:text-emerald-400 transition-colors hover:text-emerald-300">{opp.title}</h3>
           <div className="flex items-center gap-2 mt-2">
             <div className="flex items-center justify-center w-5 h-5 rounded bg-muted border border-border">
-              <Building2 className="w-3 h-3 text-vt-neutral-300" />
+              {opp.organizationName ? (
+                <span className="text-[10px] font-bold text-vt-neutral-200 uppercase">{opp.organizationName[0]}</span>
+              ) : (
+                <Building2 className="w-3 h-3 text-vt-neutral-300" />
+              )}
             </div>
             <span className="text-sm font-medium text-vt-neutral-200">{opp.organizationName}</span>
           </div>

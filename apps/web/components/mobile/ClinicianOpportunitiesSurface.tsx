@@ -24,7 +24,7 @@ export default function ClinicianOpportunitiesSurface() {
           </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">View opportunities</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Pick a role, apply when you are ready, and keep every update in one place.
+            Pick a role, carry your latest readiness into apply, and keep every employer update attached to the same clinician record instead of starting a separate workflow.
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default function ClinicianOpportunitiesSurface() {
       <OpportunityGrid
         opportunities={data.opportunities}
         heading="Live opportunity feed"
-        description="Choose a role, understand the fit, and move into apply without losing context."
+        description="Choose a role, understand the fit against your current readiness, and move into apply without losing the passport, blockers, or profile context already attached to you."
       />
 
       <ClinicianSupportCard

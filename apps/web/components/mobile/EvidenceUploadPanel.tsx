@@ -79,10 +79,19 @@ function credentialLabel(record: CandidateCredentialRecord): string {
 
 function credentialStatusLabel(status: string): string {
   switch (status) {
+    case 'VERIFIED':
+      return 'Checked by source';
+    case 'CONFIRMED':
+      return 'Confirmed on file';
     case 'PENDING_VERIFICATION':
-      return 'Queued for verification';
+      return 'Stored · source check pending';
     case 'UNVERIFIED':
-      return 'Uploaded';
+      return 'Stored · awaiting source check';
+    case 'MISSING_INFORMATION':
+      return 'Missing details';
+    case 'FAILED':
+    case 'REJECTED':
+      return 'Needs review';
     default:
       return status.replace(/_/g, ' ').toLowerCase();
   }
@@ -104,7 +113,7 @@ function formatWhen(value: string): string {
 
 export default function EvidenceUploadPanel({
   heading = 'Upload evidence',
-  description = 'Upload a PDF or image up to 10 MB. It appears below right away, then we update readiness and any waiting applications as verification finishes.',
+  description = 'Upload a PDF or image up to 10 MB so VitalCV can store it on your profile, show whether it is only attached or source-checked, and use it to unblock readiness or a live application.',
   returnToHref = '/holder/readiness',
   returnToLabel = 'Return to readiness',
 }: EvidenceUploadPanelProps) {
@@ -224,7 +233,7 @@ export default function EvidenceUploadPanel({
       setSelectedFile(null);
       const completedAt = new Date().toISOString();
       setUploadedAt(completedAt);
-      setSuccessMessage('Your evidence is attached. We will update readiness and any waiting applications as soon as verification finishes.');
+      setSuccessMessage('Your file is attached to your profile now. VitalCV stored the document, linked it to the matching credential record, and will refresh readiness or waiting applications when the source-backed check finishes.');
       await Promise.allSettled([refresh(), loadCredentials()]);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed. Please try again.');
@@ -258,6 +267,10 @@ export default function EvidenceUploadPanel({
           />
         </label>
         <p className="mt-3 text-xs text-white/45">{selectedFileLabel}</p>
+        <p className="mt-2 text-xs leading-5 text-white/45">
+          Use this for a license, certificate, verification letter, or other credential evidence.
+          The file is stored immediately, but employers should still rely on the source-check status before treating it as decision-grade.
+        </p>
 
         <button
           type="button"
@@ -283,8 +296,19 @@ export default function EvidenceUploadPanel({
         <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What happens after upload</p>
         <div className="mt-3 space-y-3 text-sm text-white/70">
           <p>The file appears in your attached evidence list right away.</p>
-          <p>Verification continues in the background if the source needs to confirm it.</p>
-          <p>Readiness and any waiting application detail will update when verification clears.</p>
+          <p>VitalCV stores the attachment and parses it into the matching credential record.</p>
+          <p>Verification continues in the background if a source still needs to confirm it.</p>
+          <p>Readiness and any waiting application detail update when that check clears.</p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Upload states you will see</p>
+        <div className="mt-3 space-y-2 text-sm text-white/70">
+          <p><span className="font-semibold text-white">Stored</span> means VitalCV has the file on your profile now.</p>
+          <p><span className="font-semibold text-white">Parsed</span> means the attachment was matched to the related credential record.</p>
+          <p><span className="font-semibold text-white">Checked by source</span> means a connected source confirmed the claim.</p>
+          <p><span className="font-semibold text-white">Missing or needs review</span> means VitalCV still needs more detail before an employer can rely on it.</p>
         </div>
       </div>
 

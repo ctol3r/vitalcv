@@ -15,6 +15,28 @@ vi.mock('@/hooks/useIngestStream', () => ({
   useIngestStream: () => useIngestStreamMock(),
 }));
 
+vi.mock('@/components/ui/trust-status-badge', () => ({
+  TrustStatusBadge: ({ label }: { label?: string }) => <span>{label ?? 'status'}</span>,
+}));
+
+vi.mock('@/lib/trust/public-wedge-parity', () => ({
+  buildEmployerReviewHref: (entityId: string) => `/review/${entityId}`,
+  buildPassportEntityHref: (entityId: string) => `/passport/${entityId}`,
+  getPublicWedgeSurfaceBadgeMeta: (state: string) => ({
+    status: state === 'checked' ? 'checked' : state === 'review_required' ? 'blocked' : 'pending',
+    label: state === 'review_required'
+      ? 'Review required'
+      : state === 'unavailable'
+        ? 'Unavailable'
+        : state === 'checked'
+          ? 'Checked'
+          : state === 'access_required'
+            ? 'Access required'
+            : 'Pending',
+  }),
+  resolvePublicWedgeSurfaceStateFromDisplayLabel: () => 'checked',
+}));
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => (
     searchParamsState.npi
@@ -128,6 +150,8 @@ describe('/passport ingest page', () => {
 
     expect(markup).toContain('View full passport');
     expect(markup).toContain(buildPassportEntityHref('entity-1'));
+    expect(markup).toContain('Explore roles with this readiness');
+    expect(markup).toContain('/explore?npi=1234567890');
     expect(markup).toContain('View as employer');
     expect(markup).toContain(buildEmployerReviewHref('entity-1'));
   });

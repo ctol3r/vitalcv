@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -62,10 +63,10 @@ export default function PassportShareActions({
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">
-            Share Passport
+            Share Passport Preview
           </p>
           <p className="mt-2 text-sm text-slate-300">
-            Copy the public link, embed badge, or a LinkedIn-ready markdown snippet.
+            Share a public preview of your current VitalCV passport. It shows your latest readiness, source coverage, and trust posture so an employer can understand where you stand. Signed-in employer review is still required before anyone treats the share as decision-grade.
           </p>
         </div>
       </div>
@@ -77,8 +78,8 @@ export default function PassportShareActions({
           onClick={() => copyText(shareUrl, 'Copied link')}
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
-          <span className="block text-sm font-semibold text-foreground">Copy Link</span>
-          <span className="mt-1 block text-xs text-slate-400">Public URL for direct sharing.</span>
+          <span className="block text-sm font-semibold text-foreground">Copy Preview Link</span>
+          <span className="mt-1 block text-xs text-slate-400">Public snapshot link showing your current passport preview.</span>
         </Button>
 
         <Button
@@ -88,7 +89,7 @@ export default function PassportShareActions({
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
           <span className="block text-sm font-semibold text-foreground">Copy Embed Code</span>
-          <span className="mt-1 block text-xs text-slate-400">HTML snippet for the SVG badge.</span>
+          <span className="mt-1 block text-xs text-slate-400">HTML snippet for the same badge and public passport preview.</span>
         </Button>
 
         <Button
@@ -97,8 +98,8 @@ export default function PassportShareActions({
           onClick={() => copyText(linkedInMarkdown, 'Copied LinkedIn markdown')}
           className="h-auto rounded-2xl border-border bg-slate-950/40 px-4 py-4 text-left text-inherit hover:border-emerald-400/40 hover:bg-slate-950/70"
         >
-          <span className="block text-sm font-semibold text-foreground">Copy LinkedIn Markdown</span>
-          <span className="mt-1 block text-xs text-slate-400">Short markdown snippet naming the clinician.</span>
+          <span className="block text-sm font-semibold text-foreground">Copy Profile Markdown</span>
+          <span className="mt-1 block text-xs text-slate-400">Short markdown snippet that points back to the public passport preview.</span>
         </Button>
       </div>
     </Card>

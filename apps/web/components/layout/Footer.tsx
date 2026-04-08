@@ -29,7 +29,7 @@ export default function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <p className="text-white/70 text-sm">
-              &copy; 2026 VitalCV &middot; Built for Healthcare Mobility
+              &copy; 2026 VitalCV &middot; Source-backed credentialing readiness
             </p>
             <DeployBadge />
           </div>

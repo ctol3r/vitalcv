@@ -111,7 +111,7 @@ function dimensionStateFromTruthStatus(
     case 'CLEAR':
     case 'ENROLLED':
       return 'checked';
-    case 'ACCESS REQUIRED':
+    case 'ACCESS_REQUIRED':
       return 'gated';
     case 'REVIEW_REQUIRED':
       return 'review_required';

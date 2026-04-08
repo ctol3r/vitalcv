@@ -184,7 +184,7 @@ export default function ClinicianReadinessSurface() {
           </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Readiness</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            See how close you are to ready and what moves you forward.
+            Readiness is the working version of your clinician record. See what VitalCV already has on file, what has been source-checked, and what still needs action before you share or apply.
           </p>
         </div>
 
@@ -297,6 +297,9 @@ export default function ClinicianReadinessSurface() {
               <p className="mt-2 text-sm text-white/60">
                 Updated {formatWhen(current?.computedAt ?? null)}
               </p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
+                Your readiness state is the version that follows you into matched roles and active applications. Use it to decide whether to fix a blocker first or move straight into apply.
+              </p>
             </div>
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-right">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Level</p>
@@ -342,7 +345,7 @@ export default function ClinicianReadinessSurface() {
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Progress</p>
               <p className="mt-2 text-sm leading-6 text-white/70">
                 {data.blockers[0]
-                  ? `${data.blockers[0].detail} Every action you take here increases your trust level and application priority.`
+                  ? `${data.blockers[0].detail} Every action you take here increases what an employer can rely on and keeps applications from stalling later.`
                   : current?.reason ?? 'Your readiness is clear enough to keep moving into live opportunities.'}
               </p>
             </div>
@@ -382,11 +385,42 @@ export default function ClinicianReadinessSurface() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Use this readiness next</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">
+              After you review the score, keep moving from the same record. Open your passport, explore matched roles, or return to live applications without re-entering information.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Link
+            href="/holder"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            Open passport
+          </Link>
+          <Link
+            href="/holder/opportunities"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            Explore roles with this readiness
+          </Link>
+          <Link
+            href="/holder/applications"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            View applications
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What changed because of VitalCV</p>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-              Each line below is tied to a recorded readiness or application state change.
+              Each line below is tied to a recorded readiness or application state change, which gives you a real reason to return tomorrow when something moves.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">

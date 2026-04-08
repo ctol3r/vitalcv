@@ -1199,8 +1199,8 @@ export function registerPassportRoutes(app: Express): void {
         exportedAt: packet.exportedAt,
         manifestHash: sha256ForPayload(packet.manifest),
         sourceIds: packet.manifest.sources.map((s) => s.sourceId),
-        receiptPresence: packet.receiptPresence,
-        blockerCount: packet.structuredBlockers.length,
+        receiptReferences: packet.receiptReferences,
+        blockerCount: packet.decisionPosture.blockers.length,
       }));
 
       await prisma.auditEvent.create({
@@ -1220,9 +1220,9 @@ export function registerPassportRoutes(app: Express): void {
       log('info', 'clinician_passport_exported', {
         npi_prefix: npi.slice(0, 4) + '····',
         exportedAt: packet.exportedAt,
-        score: packet.readiness.score,
-        blockers: packet.readiness.blockers.length,
-        receiptPresence: packet.receiptPresence,
+        score: packet.decisionPosture.status,
+        blockers: packet.decisionPosture.blockers.length,
+        receiptReferences: packet.receiptReferences.length,
       });
 
       const filename = `vitalcv-passport-${npi}-${new Date().toISOString().slice(0, 10)}.json`;

@@ -216,6 +216,11 @@ describe('nppes api wrapper', () => {
       factCount: 3,
       rawResponseHash: 'npi-hash-1',
       rawResponse: { results: [] },
+      practiceAddress: null,
+      mailingAddress: null,
+      otherNames: [],
+      endpoints: [],
+      identifiers: [],
     });
 
     expect(prismaMock.provider.upsert).toHaveBeenCalledWith({

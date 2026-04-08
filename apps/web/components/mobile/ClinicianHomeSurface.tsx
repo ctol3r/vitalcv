@@ -124,6 +124,20 @@ export default function ClinicianHomeSurface() {
     readinessScore: readiness?.readinessScore ?? 0,
     completeness,
   });
+  const returnReason = highlightedChange
+    ? `Come back here for the next recorded change: ${highlightedChange.title}.`
+    : unreadNotifications.length > 0
+      ? `Come back here when new employer or readiness updates arrive. ${unreadNotifications.length} update${unreadNotifications.length === 1 ? '' : 's'} are waiting now.`
+      : data.activeApplications[0]
+        ? 'Come back here when employer review, blocker resolution, or readiness changes move one of your live applications.'
+        : 'Come back here when new source checks clear or a matched role becomes worth applying to.';
+  const tomorrowReason = highlightedChange
+    ? `Tomorrow's reason to return: ${highlightedChange.title} is already recorded here, so you can pick up from the latest real change instead of starting over.`
+    : unreadNotifications.length > 0
+      ? `Tomorrow's reason to return: ${unreadNotifications.length} recorded update${unreadNotifications.length === 1 ? '' : 's'} are already waiting across readiness or employer review.`
+      : data.activeApplications[0]
+        ? 'Tomorrow\'s reason to return: employer review, blocker resolution, and readiness movement will land here against the same application record.'
+        : 'Tomorrow\'s reason to return: new source checks and stronger role matches appear here as your profile changes.';
   const primaryAction = resume
     ? {
         eyebrow: 'Continue',
@@ -211,7 +225,7 @@ export default function ClinicianHomeSurface() {
             Keep moving
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Pick up where you left off and take the next clear step.
+            VitalCV is your reusable clinician record. It keeps your CV, source checks, readiness, and job progress connected so you can return to the next clear step without re-explaining yourself.
           </p>
         </div>
 
@@ -290,6 +304,9 @@ export default function ClinicianHomeSurface() {
               <p className="mt-2 text-sm text-white/60">
                 Last synced {new Date(data.refreshedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
+                This score reflects what VitalCV already has on file, what has been source-checked, and what still needs action before an employer can move faster.
+              </p>
             </div>
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-right">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Trust</p>
@@ -335,9 +352,15 @@ export default function ClinicianHomeSurface() {
                   ? 'You have live roles waiting when you are ready to apply.'
                   : 'Your workspace is set up and ready for the next update.'}
           </p>
+          <p className="mt-3 text-sm leading-6 text-white/60">
+            {returnReason}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-white/75">
+            {tomorrowReason}
+          </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <MetricCard label="What's left" value={`${data.blockers.length}`} />
-            <MetricCard label="Since last visit" value={`${changesSinceLastVisit.length}`} />
+            <MetricCard label="Fresh changes" value={`${changesSinceLastVisit.length}`} />
           </div>
         </div>
       </section>
@@ -370,6 +393,7 @@ export default function ClinicianHomeSurface() {
           notifications={visibleNotifications}
           maxItems={3}
           heading="Recent changes"
+          description="Return here for new source checks, blocker movement, and employer updates tied to your real applications."
         />
       </section>
 

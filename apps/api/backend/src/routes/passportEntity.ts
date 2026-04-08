@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { buildPassport } from '../services/entity/passportService';
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
+import { renderPassportPdf } from '../services/passport/passportPdf';
 import { createOrgContext, transitionOrgContextStatus } from '../domain/entity/orgContextService';
 import { isValidNpi } from '../domain/entity/npiRouter';
 import { HttpError } from '../utils/httpError';
@@ -82,6 +83,39 @@ export function registerPassportEntityRoutes(app: Express): void {
       const passport = await buildPassportDataByNpi(npi);
       if (!passport) throw new HttpError(404, 'Passport could not be built for this NPI.');
       res.json(passport);
+    }),
+  );
+
+  // ── GET /api/passport/entity/:id/pdf ────────────────────────────────────────
+  app.get(
+    '/api/passport/entity/:id([0-9a-f-]{36})/pdf',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { id } = req.params as { id: string };
+      const passport = await buildPassport(id);
+      if (!passport) throw new HttpError(404, 'Entity not found.');
+      
+      const pdf = await renderPassportPdf(passport);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="vitalcv-passport-${passport.identity?.npi ?? 'unknown'}.pdf"`);
+      res.send(pdf);
+    }),
+  );
+
+  // ── GET /api/passport/npi/:npi/pdf ──────────────────────────────────────────
+  app.get(
+    '/api/passport/npi/:npi([0-9]{10})/pdf',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { npi } = req.params as { npi: string };
+      if (!isValidNpi(npi)) throw new HttpError(400, 'Invalid NPI format.');
+      const passport = await buildPassportDataByNpi(npi);
+      if (!passport) throw new HttpError(404, 'Entity not found.');
+      
+      const pdf = await renderPassportPdf(passport);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="vitalcv-passport-${npi}.pdf"`);
+      res.send(pdf);
     }),
   );
 

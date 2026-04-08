@@ -39,7 +39,6 @@ import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
-import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
@@ -240,7 +239,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasLicensure && (
           <AuthorityRow
             title="License verification"
-            status="access required"
+            status="access_required"
             sourceLabel="Configured state board lane"
             note="Access required. Authority remains incomplete until a connected state board lane runs."
           />
@@ -393,7 +392,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const sectionStatus: AccordionItem['status'] =
     rowStatus === 'enrolled'  ? 'checked' :
-    rowStatus === 'review required' ? 'review_required' :
+    rowStatus === 'review_required' ? 'review_required' :
     'pending';
 
   // Build observed-as quarter label
@@ -428,7 +427,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
-        {rowStatus === 'review required' && (
+        {rowStatus === 'review_required' && (
           <div className="py-1.5 text-muted-foreground/40 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
@@ -554,6 +553,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const canShare    = !CLERK_PROVIDER_ENABLED || isSignedIn;
 
   const { identity, readiness, trustPosture } = passport;
+  const passportNpi = passport.npi ?? identity.npi ?? null;
   const cfg = STATUS_CONFIG[readiness.status];
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
@@ -638,7 +638,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                 : `${pendingRefreshCount} employers have requested updated credentials.`}
             </p>
             <p className="text-amber-300/60 text-[10px] mt-1 font-mono">
-              Run a new NPI check to refresh your credential data.
+              Run a new NPI check, then return here to see what changed before you share again.
             </p>
           </div>
         )}
@@ -728,6 +728,29 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           </SectionReveal>
         )}
 
+        <SectionReveal delay={0.27}>
+          <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+            <p className="text-foreground/70 text-sm font-medium">Use this passport next</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              This passport is the same record you carry into job search and employer sharing. Review the current snapshot here, then move into a role search or share the preview with an employer.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Link
+                href={passportNpi ? `/explore?npi=${encodeURIComponent(passportNpi)}` : '/explore'}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-white/[0.06]"
+              >
+                Explore roles with this passport
+              </Link>
+              <Link
+                href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-white/[0.06]"
+              >
+                Check another NPI
+              </Link>
+            </div>
+          </Card>
+        </SectionReveal>
+
         {/* ── Explicit missing items ─────────────────────────────────────── */}
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
           <SectionReveal delay={0.28}>
@@ -796,7 +819,10 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                       <p className="text-[var(--vt-critical)] text-xs text-center">{shareError}</p>
                     )}
                     <p className="text-center text-muted-foreground/40 text-xs leading-relaxed">
-                      Generates a shareable link. Send it to an employer to open the review surface.
+                      Generates a shareable preview link. Send it to an employer so they can see your current passport and continue into the review surface.
+                    </p>
+                    <p className="text-center text-muted-foreground/40 text-[11px] leading-relaxed">
+                      The copied link is a preview of your current state, not a decision-grade acceptance on its own.
                     </p>
                   </>
                 )}
@@ -804,21 +830,13 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             ) : (
               <TrustStateCard
                 title="Link copied"
-                description="The passport share link has been copied to your clipboard. Send it to an employer to open the review surface."
+                description="The passport preview link has been copied to your clipboard. Send it to an employer so they can see your current state and continue into the review surface."
                 tone="success"
                 centered
               />
             )}
           </div>
         </SectionReveal>
-
-        <SharePacketModal
-          open={shareModalOpen}
-          onClose={() => setShareModalOpen(false)}
-          npi={passport.npi ?? ''}
-          displayName={identity.displayName}
-        />
-
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="text-center pt-2">
           <Link

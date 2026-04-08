@@ -69,7 +69,12 @@ export interface EmployerEvidencePacketManifestStatusV1 {
 export interface EmployerEvidencePacketDecisionPostureV1 {
   status: TrustPassport['readiness']['status'];
   headline: string;
-  blockers: string[];
+  blockers: {
+    code: string;
+    label: string;
+    severity: string;
+    source: string | null;
+  }[];
   nextAction: string;
   freshness: TrustPassport['trustPosture']['freshness'];
 }
@@ -162,9 +167,8 @@ export interface EmployerEvidencePacketV1 {
     blockers: string[];
     nextActions: TrustPassport['readiness']['nextActions'];
   };
-  decisionPosture: EmployerEvidencePacketDecisionPostureV1;
-  sourceCoverage: TrustPassport['sourceCoverage'];
   decisionPosture: TrustPassport['decisionPosture'];
+  sourceCoverage: TrustPassport['sourceCoverage'];
 }
 
 function dedupeSorted(values: readonly string[]): string[] {
@@ -444,19 +448,19 @@ function buildTrustExplanations(passport: TrustPassport): Record<string, string>
 
 // ── Wave 3 helper: structured blockers with severity ──────────────────────
 
-function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacketV1['structuredBlockers'] {
-  const blockers: EmployerEvidencePacketV1['structuredBlockers'] = [];
+function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacketDecisionPostureV1['blockers'] {
+  const blockers: EmployerEvidencePacketDecisionPostureV1['blockers'] = [];
 
   // Exclusion-related blockers are critical
   if (!passport.standing.exclusionClear) {
     blockers.push({
-      code: 'EXCLUSION_NOT_CLEAR',
+      code: 'EXCLUSION_NOT_CLEAR' as const,
       label: passport.standing.exclusionStatus === 'EXCLUDED'
         ? 'OIG exclusion match found — clinician is excluded from federal programs'
         : passport.standing.exclusionStatus === 'POSSIBLE_MATCH'
           ? 'OIG possible match — manual review required'
           : 'OIG exclusion status has not been checked',
-      severity: passport.standing.exclusionStatus === 'EXCLUDED' ? 'critical' : 'warning',
+      severity: passport.standing.exclusionStatus === 'EXCLUDED' ? 'critical' as const : 'warning' as const,
       source: 'OIG_LEIE',
     });
   }
@@ -467,7 +471,7 @@ function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacke
       blockers.push({
         code: `REVIEW_REQUIRED_${check.sourceId}`,
         label: `${check.sourceId} result requires manual adjudication`,
-        severity: 'warning',
+        severity: 'warning' as const,
         source: check.sourceId,
       });
     }
@@ -478,7 +482,7 @@ function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacke
     blockers.push({
       code: `MISSING_CREDENTIAL_${missing}`,
       label: `Missing credential: ${missing}`,
-      severity: 'warning',
+      severity: 'warning' as const,
       source: null,
     });
   }
@@ -489,7 +493,7 @@ function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacke
       blockers.push({
         code: `STALE_CREDENTIAL_${cred.domain}`,
         label: `Stale credential: ${cred.domain}${cred.jurisdiction ? ` (${cred.jurisdiction})` : ''}`,
-        severity: 'info',
+        severity: 'info' as const,
         source: cred.sourceId ?? null,
       });
     }
@@ -532,7 +536,7 @@ function buildDecisionPosture(
   return {
     status: passport.readiness.status,
     headline,
-    blockers: [...passport.readiness.blockers],
+    blockers: buildStructuredBlockers(passport),
     nextAction,
     freshness: passport.trustPosture.freshness,
   };
@@ -654,7 +658,6 @@ export function buildEmployerEvidencePacket(input: {
       blockers: input.passport.readiness.blockers,
       nextActions: input.passport.readiness.nextActions,
     },
-    decisionPosture,
     sourceCoverage: input.passport.sourceCoverage,
     decisionPosture: input.passport.decisionPosture,
   };

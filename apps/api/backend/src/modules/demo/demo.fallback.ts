@@ -45,6 +45,9 @@ function makeProvider(
     identifiers: [],
     enumeration_date: '2010-01-01',
     last_updated: '2024-01-01',
+    mailing_address: { ...EMPTY_ADDRESS, state },
+    endpoints: [],
+    other_names: [],
   };
 }
 

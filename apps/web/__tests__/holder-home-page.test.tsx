@@ -274,6 +274,7 @@ describe('/holder/home page', () => {
     expect(markup).toContain('Readiness');
     expect(markup).toContain('What&#x27;s left');
     expect(markup).toContain('Recent changes');
+    expect(markup).toContain('source checks');
     expect(markup).toContain('Applications in motion');
     expect(markup).toContain('Momentum');
     expect(markup).toContain('Opportunities available');
@@ -281,5 +282,8 @@ describe('/holder/home page', () => {
     expect(markup).toContain('Proof of progress');
     expect(markup).toContain('Measured outcomes in your workspace');
     expect(markup).toContain('Applications submitted');
+    expect(markup).toContain('Come back here for the next recorded change');
+    expect(markup).toContain('Tomorrow&#x27;s reason to return');
+    expect(markup).toContain('Fresh changes');
   });
 });

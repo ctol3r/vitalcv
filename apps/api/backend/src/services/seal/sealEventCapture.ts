@@ -651,8 +651,8 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     });
     log('info', 'seal_start_outcome_captured', {
       entityId: entityId.slice(0, 8) + '…',
-      outcomeStatus: effectiveStatus,
-      startedAt: effectiveStartDate.toISOString(),
+      outcomeStatus: input.outcomeStatus,
+      startedAt: input.startedAt.toISOString(),
     });
   } catch (err) {
     log('warn', 'seal_start_outcome_capture_failed', {

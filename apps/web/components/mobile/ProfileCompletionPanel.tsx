@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -23,6 +23,7 @@ interface ProfileCompletionPanelProps {
 
 const RESUME_MIME_TYPES = [
   'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'image/png',
   'image/jpeg',
   'image/tiff',
@@ -72,7 +73,7 @@ export default function ProfileCompletionPanel({
     }
 
     if (!RESUME_MIME_TYPES.includes(selectedFile.type as (typeof RESUME_MIME_TYPES)[number])) {
-      setError('Unsupported file type. Upload a PDF, PNG, JPG, or TIFF.');
+      setError('Unsupported file type. Upload a PDF, DOCX, PNG, JPG, or TIFF.');
       return;
     }
 
@@ -121,7 +122,7 @@ export default function ProfileCompletionPanel({
       }
 
       setSelectedFile(null);
-      setSuccessMessage('Your resume is attached. Readiness and active applications will refresh with this profile update.');
+      setSuccessMessage('Your CV is stored on your profile now. Parsed details seed readiness and future applications immediately, while licenses, board status, exclusions, and other decision-grade facts still wait on source-backed checks.');
       await refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Resume upload failed. Please try again.');
@@ -210,7 +211,7 @@ export default function ProfileCompletionPanel({
           </p>
           <p className="mt-2 text-sm leading-6 text-white/65">
             {mode === 'resume'
-              ? 'Upload a current resume so readiness, opportunity matching, and employer review stay current.'
+              ? 'Upload a current CV or resume so VitalCV can seed your profile, show what was captured, and carry the same record into readiness and applications.'
               : mode === 'links'
                 ? 'Add your public professional links so employers and readiness checks have the context they need.'
                 : 'Confirm your work authorization so opportunities do not stall later in the application flow.'}
@@ -226,12 +227,30 @@ export default function ProfileCompletionPanel({
       </div>
 
       {mode === 'resume' ? (
-        <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
+        <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What happens to your CV</p>
+            <div className="mt-3 space-y-2 text-sm text-white/70">
+              <p>We parse profile details now: employment history, training, education, and license mentions.</p>
+              <p>We store the original file plus the structured profile summary tied to your account.</p>
+              <p>Licenses, board status, exclusions, and other decision-grade facts still require source-backed checks.</p>
+              <p>Your profile improves immediately after upload, then readiness and future applications keep using the same parsed record.</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Upload states you will see</p>
+            <div className="mt-3 space-y-2 text-sm text-white/70">
+              <p><span className="font-semibold text-white">Parsed into profile</span> so your CV details can seed readiness.</p>
+              <p><span className="font-semibold text-white">Stored on file</span> so the original document stays attached to your account.</p>
+              <p><span className="font-semibold text-white">Checked by source</span> only when a connected source confirms the claim.</p>
+              <p><span className="font-semibold text-white">Missing or needs action</span> when VitalCV still needs more evidence or a source check.</p>
+            </div>
+          </div>
           <label className="block">
-            <span className="text-sm font-semibold text-white">Resume file</span>
+            <span className="text-sm font-semibold text-white">CV or resume file</span>
             <input
               type="file"
-              accept=".pdf,image/png,image/jpeg,image/tiff"
+              accept=".pdf,.docx,image/png,image/jpeg,image/tiff"
               onChange={(event) => {
                 setSelectedFile(event.target.files?.[0] ?? null);
                 setError(null);
@@ -241,6 +260,9 @@ export default function ProfileCompletionPanel({
             />
           </label>
           <p className="mt-3 text-xs text-white/45">{selectedFileLabel}</p>
+          <p className="mt-2 text-xs leading-5 text-white/45">
+            Accepted: PDF, DOCX, PNG, JPG, or TIFF up to 10 MB.
+          </p>
           <button
             type="button"
             onClick={() => void handleResumeSubmit()}
@@ -254,11 +276,14 @@ export default function ProfileCompletionPanel({
               </>
             ) : (
               <>
-                Upload resume
+                Upload CV
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
           </button>
+          <p className="text-xs leading-5 text-white/45">
+            After upload, return to readiness to see what changed and use the same updated profile in your next application.
+          </p>
         </div>
       ) : null}
 

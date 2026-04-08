@@ -124,6 +124,11 @@ describe('/holder/readiness page', () => {
     expect(markup).toContain('Ready to credential');
     expect(markup).toContain('91/100');
     expect(markup).toContain('View opportunities');
+    expect(markup).toContain('follows you into matched roles and active applications');
+    expect(markup).toContain('Use this readiness next');
+    expect(markup).toContain('Open passport');
+    expect(markup).toContain('Explore roles with this readiness');
+    expect(markup).toContain('View applications');
     expect(markup).toContain('Resolved dea registration not verified');
     expect(markup).toContain('History');
     expect(markup).toContain('What changed because of VitalCV');

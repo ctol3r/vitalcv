@@ -102,10 +102,6 @@ export default async function StatusPage() {
   const { report, isFallback, error } = await getSourceOpsReportWithFallback();
   const sources = selectPublicSources(report.sources);
 
-  const cacheAgeLabel = fromCache && cachedAt
-    ? formatRelativeAge(new Date(cachedAt).toISOString())
-    : null;
-
   return (
     <main className="min-h-screen bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-6xl space-y-10">

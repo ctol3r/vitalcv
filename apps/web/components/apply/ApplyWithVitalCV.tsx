@@ -101,6 +101,14 @@ const STATUS_LABEL: Record<'delivered' | 'email_fallback' | 'logged_only', strin
   logged_only: 'Logged — delivery pending',
 };
 
+function readinessShareBoundary(readinessLevel: string): string {
+  if (readinessLevel === 'L3' || readinessLevel === 'L2') {
+    return 'This share is strong enough to start employer review, but the employer still makes the decision in their signed-in VitalCV flow.';
+  }
+
+  return 'This share is still a preview of your current state. It helps an employer see progress, but it is not decision-grade yet.';
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function credentialTypeLabel(type: string): string {
@@ -394,12 +402,18 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                     style={{ width: `${trustState.readiness_score}%` }}
                   />
                 </div>
+                <p className="text-xs leading-5 text-zinc-400">
+                  {readinessShareBoundary(trustState.readiness_level)}
+                </p>
               </div>
 
               {/* Selective disclosure */}
               <div>
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
                   Credentials to Share ({selectedTypes.size} selected)
+                </p>
+                <p className="mb-3 text-xs leading-5 text-zinc-500">
+                  Choose what travels with this application. VitalCV shares only the selected credentials plus your current readiness summary, and the link expires automatically.
                 </p>
                 {credentials.length === 0 ? (
                   <p className="text-xs text-zinc-500">No verified credentials on file.</p>
@@ -428,7 +442,9 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-zinc-600">Bundle expires in 24 hours. Revocable at any time.</p>
+              <p className="text-[10px] leading-5 text-zinc-600">
+                Bundle expires in 24 hours. Revocable at any time. Public bundle links let an employer preview what you shared, while signed-in review is still required for a decision-grade action.
+              </p>
             </>
           )}
 
@@ -501,7 +517,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
               </div>
 
               <p className="text-[10px] text-zinc-600 leading-relaxed">
-                This information is logged and audited. You can revoke access at any time.
+                This destination is logged and audited so you can see exactly who received the share and why. You can revoke access at any time.
               </p>
             </div>
           )}
@@ -533,6 +549,9 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                     {countdown || formatCountdown(shareResult.expiresAt)}
                   </p>
                 </div>
+                <p className="mt-3 text-xs leading-5 text-zinc-400">
+                  The recipient received an expiring preview bundle containing your selected credentials and current readiness summary. Final employer action still happens in their signed-in review workflow.
+                </p>
               </div>
 
               {/* Bundle URL */}
@@ -599,8 +618,8 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                 disabled={selectedTypes.size === 0}
                 className="w-full flex min-h-[52px] items-center justify-center rounded-xl bg-emerald-500 font-semibold text-foreground shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
-                Next: Share destination ({selectedTypes.size} credential{selectedTypes.size !== 1 ? 's' : ''}) →
-              </button>
+                  Next: Share destination ({selectedTypes.size} credential{selectedTypes.size !== 1 ? 's' : ''}) →
+                </button>
             )}
 
             {step === 'org_context' && (
@@ -618,7 +637,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   disabled={isSharing || isConfirming}
                   className="flex-[3] flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-foreground hover:bg-emerald-400 transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
-                  {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & Share'}
+                  {isConfirming ? <><Spinner size="sm" /> Confirm identity…</> : isSharing ? <><Spinner size="sm" /> Sharing…</> : 'Sign & share preview bundle'}
                 </button>
               </div>
             )}

@@ -18,6 +18,40 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@/components/apply/EmployerSummaryCard', () => ({
+  EmployerSummaryCard: ({
+    readinessLevel,
+    readinessScore,
+    readinessStatus,
+  }: {
+    readinessLevel: string;
+    readinessScore: number;
+    readinessStatus: string;
+  }) => (
+    <div>
+      Employer summary {readinessLevel} {readinessScore} {readinessStatus}
+    </div>
+  ),
+}));
+
+vi.mock('@/lib/trust/public-wedge-parity', () => ({
+  buildEmployerReviewHref: (entityId: string, options?: { bundleId?: string }) =>
+    `/review/${entityId}${options?.bundleId ? `?bundleId=${options.bundleId}` : ''}`,
+}));
+
+vi.mock('@/lib/trust/status-language', () => ({
+  canonicalCredStatus: (status: string) => {
+    const normalized = status.toLowerCase();
+    if (normalized.includes('verified') || normalized.includes('active')) {
+      return 'Verified';
+    }
+    if (normalized.includes('pending')) {
+      return 'Pending';
+    }
+    return 'Unavailable';
+  },
+}));
+
 function buildBundle(overrides: Partial<ApplyBundle> = {}): ApplyBundle {
   return {
     bundleId: 'bundle-1',
@@ -58,5 +92,8 @@ describe('ApplyBundleView', () => {
     expect(markup).toContain(
       '/sign-in?redirect_url=%2Freview%2Fentity-1%3FbundleId%3Dbundle-1',
     );
+    expect(markup).toContain('This link is a preview of what the clinician shared.');
+    expect(markup).toContain('the clinician still has work left');
+    expect(markup).toContain('Pending or unavailable rows are not decision-grade.');
   });
 });

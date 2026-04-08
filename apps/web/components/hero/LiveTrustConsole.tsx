@@ -533,7 +533,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
         }}
       />
 
-      <div className={`relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
+      <div className={`relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-12'}`}>
         <div className="mb-3 grid gap-2 sm:grid-cols-3">
           {FLOW_STEPS.map((step, index) => {
             const stepState = resolveFlowStepState(phase, index);
@@ -584,7 +584,12 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               <p className="mb-6 max-w-3xl text-sm leading-7 text-[var(--vt-text-muted)] sm:text-lg">
                 VitalCV gives healthcare professionals a source-backed credentialing snapshot from NPPES, OIG / LEIE, CMS PECOS, and configured state board coverage in seconds, then labels each lane as {checkedLabel}, {pendingLabel}, {accessRequiredLabel}, {unavailableLabel}, or {previewOnlyLabel}.
               </p>
-              <form id="npi-entry" onSubmit={handleSubmit} className="scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <form
+                id="npi-entry"
+                noValidate
+                onSubmit={handleSubmit}
+                className="scroll-mt-24 flex flex-col gap-3 sm:flex-row sm:items-center"
+              >
                 <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
                 <Input
                   ref={inputRef}

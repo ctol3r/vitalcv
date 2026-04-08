@@ -452,7 +452,7 @@ function PassportPageContent({
                 Check your <span className="italic font-serif font-medium">readiness</span>
               </h1>
               <p className="text-muted-foreground/60 text-sm mt-4 font-mono">
-                Primary sources check public records. Enter your NPI to start.
+                VitalCV builds a reusable readiness snapshot from primary sources. Enter your NPI to see what is already checked, what still needs action, and what you can carry into your passport or job search.
               </p>
             </>
           )}
@@ -600,9 +600,17 @@ function PassportPageContent({
             {/* Usable state — passport anchor is available */}
             {canViewPassport && anchorEntityId && (
               <div className="space-y-3">
+                <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground/75">
+                  Your readiness snapshot is live. Review the full passport, then move into role search with the same context attached.
+                </div>
                 <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
                   <Link href={buildPassportEntityHref(anchorEntityId)}>
                     View full passport
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
+                  <Link href={`/explore?npi=${encodeURIComponent(state.npi ?? '')}`}>
+                    Explore roles with this readiness
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">

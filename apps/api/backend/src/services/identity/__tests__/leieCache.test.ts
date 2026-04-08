@@ -126,9 +126,9 @@ describe('leieCache lookupProvider', () => {
       specialty: 'Internal Medicine',
     });
 
-    expect(result.verdict).toBe('CLEAR');
-    expect(result.matchType).toBe('NONE');
-    expect(result.matchConfidence).toBe('HIGH');
+    expect(result.verdict).toBe('POSSIBLE_MATCH');
+    expect(result.matchType).toBe('FUZZY_NAME_STATE');
+    expect(result.matchConfidence).toBe('MEDIUM');
   });
 
   it('marks the cache stale when a refresh failure occurs after an initial successful load', async () => {

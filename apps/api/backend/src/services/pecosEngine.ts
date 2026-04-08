@@ -49,7 +49,7 @@ export async function runPecosCheck(npi: string): Promise<PecosCheckPayload> {
   const persisted = await prisma.pecosCheck.create({
     data: {
       npi: normalizedNpi,
-      enrolled: result.enrolled,
+      enrolled: result.enrolled ?? false,
       enrollmentType: result.enrollmentType,
       rawPayload: rawPayload as Prisma.InputJsonValue,
       checkedAt,

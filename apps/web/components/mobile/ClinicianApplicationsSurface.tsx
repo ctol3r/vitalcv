@@ -70,7 +70,7 @@ export default function ClinicianApplicationsSurface() {
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Applications</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-          Track what is in motion, what needs action, and what happens next.
+          Track what is in motion, what needs action, and what happens next without losing the readiness snapshot that went into the application.
         </p>
       </header>
 
@@ -94,7 +94,7 @@ export default function ClinicianApplicationsSurface() {
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">What completed because of VitalCV</p>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">
-              Application progress is recorded against your verified profile, readiness, and follow-up state.
+              Application progress is recorded against your verified profile, readiness, and follow-up state so you can see what changed and why it matters.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right">

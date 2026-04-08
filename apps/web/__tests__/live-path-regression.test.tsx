@@ -645,11 +645,12 @@ describe('live path regression hardening', () => {
     expect(
       Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
     ).toEqual(['Check readiness']);
-    expect(textContent(view.container)).toContain('NPI first. Honest coverage.');
+    expect(textContent(view.container)).toContain('Credentialing readiness,');
+    expect(textContent(view.container)).toContain('presented with proof.');
     expect(textContent(view.container)).not.toContain('Continue to passport');
     expect(textContent(view.container)).not.toContain('Get Verified');
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
     await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(1);
@@ -678,7 +679,7 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole onPreviewReady={onPreviewReady} />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
     await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
@@ -716,7 +717,7 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
     await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
@@ -734,12 +735,12 @@ describe('live path regression hardening', () => {
     const fetchMock = vi.mocked(fetch);
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234');
     await clickByText(view.container, 'Check readiness');
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live readiness snapshot.');
+    expect(textContent(view.container)).toContain('NPI must be exactly 10 digits.');
 
     // PR #79: invalid NPI now fires npi_invalid event (not preview_error)
     const npiInvalidCall = trackUxEventMock.mock.calls
@@ -766,7 +767,7 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
     await clickByText(view.container, 'Check readiness');
     await flush();
     await advance(260);
@@ -1177,7 +1178,7 @@ describe('live path regression hardening', () => {
       />,
     );
 
-    await clickByText(view.container, 'Proceed with Credentialing Head Start');
+    await clickByText(view.container, 'Accept as head start');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1306,7 +1307,7 @@ describe('live path regression hardening', () => {
     const passport = buildPassport();
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_review" />);
 
-    await clickByText(view.container, 'Send to Credentialing Team');
+    await clickByText(view.container, 'Route to review');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
