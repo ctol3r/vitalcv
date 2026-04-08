@@ -132,7 +132,7 @@ export default async function StatusPage() {
                 </p>
                 <p className="text-xs text-muted-foreground/70">
                   Fallback generated at {new Date(report.timestamp).toISOString()}
-                  {error ? ` · Live fetch error: ${error}` : ''}
+                  {error ? ' · Automated recovery attempted.' : ''}
                 </p>
               </div>
             </div>

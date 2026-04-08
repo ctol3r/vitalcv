@@ -526,19 +526,19 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
       />
 
       <div className={`relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-6 ${phase === 'preview' ? 'pt-5 sm:pt-10 pb-6 sm:pb-10' : 'pt-12 sm:pt-20 pb-10 sm:pb-18'}`}>
-        <div className="mb-5 grid gap-2 sm:grid-cols-3">
+        <div className="mb-3 grid gap-2 sm:grid-cols-3">
           {FLOW_STEPS.map((step, index) => {
             const stepState = resolveFlowStepState(phase, index);
 
             return (
               <div
                 key={step}
-                className={`rounded-full border px-4 py-3 transition-colors ${flowStepClassName(stepState)}`}
+                className={`rounded-full border px-3 py-2 transition-colors ${flowStepClassName(stepState)}`}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)] sm:block">
                   Step {index + 1}
                 </p>
-                <p className="mt-1 text-xs font-medium text-[var(--vt-text-primary)]">{step}</p>
+                <p className="text-xs font-medium text-[var(--vt-text-primary)] sm:mt-1">{step}</p>
               </div>
             );
           })}

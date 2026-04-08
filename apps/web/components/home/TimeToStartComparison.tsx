@@ -16,14 +16,14 @@ const COMPARISON_ROWS: ComparisonRow[] = [
     label: 'Without VitalCV',
     valueLabel: '~90 days average',
     width: '100%',
-    fill: '#D1D5DB',
+    fill: 'var(--vt-text-muted)',
     ariaLabel: 'Without VitalCV, the average time to start is about 90 days.',
   },
   {
     label: 'With VitalCV',
     valueLabel: '~45-60 days',
     width: '55%',
-    fill: '#0A7B7F',
+    fill: 'var(--vt-accent)',
     ariaLabel: 'With VitalCV, the average time to start is about 45 to 60 days.',
   },
 ] as const;
@@ -85,12 +85,12 @@ export function TimeToStartComparison() {
   return (
     <section
       ref={sectionRef}
-      className="border-b border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)] px-4 py-10 sm:px-6 sm:py-12"
+      className="border-b border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-10 sm:px-6 sm:py-12"
       aria-labelledby="time-to-start-comparison-heading"
     >
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 max-w-3xl">
-          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground/55">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--vt-text-muted)]">
             Time to Start
           </p>
           <h2
@@ -99,7 +99,7 @@ export function TimeToStartComparison() {
           >
             The clearest proof point on the page is time back.
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground/80 sm:text-base">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--vt-text-secondary)] sm:text-base">
             Credentialing delays hold revenue and clinical capacity offline. VitalCV compresses
             the path from interview to start by making source-backed readiness reusable.
           </p>
@@ -117,14 +117,14 @@ export function TimeToStartComparison() {
             >
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">{row.label}</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground/60">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--vt-text-secondary)]">
                   {row.valueLabel}
                 </p>
               </div>
 
               <div
                 aria-label={row.ariaLabel}
-                className="relative h-5 w-full overflow-hidden rounded-full border border-white/8 bg-white/6 sm:h-6"
+                className="relative h-5 w-full overflow-hidden rounded-full border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] sm:h-6"
               >
                 <div
                   className="h-full rounded-full"
@@ -142,11 +142,11 @@ export function TimeToStartComparison() {
         <div className="mt-6">
           <Badge
             variant="outline"
-            className="border-[#0A7B7F]/25 bg-[#0A7B7F]/10 px-3 py-1.5 text-sm font-semibold text-[#9FE6E8]"
+            className="border-[var(--vt-accent)]/25 bg-[var(--vt-accent)]/10 px-3 py-1.5 text-sm font-semibold text-[var(--vt-text-primary)]"
           >
             Save ~30-45 days · ~$25,000–$60,000 in lost revenue
           </Badge>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground/55">
+          <p className="mt-2 text-xs leading-5 text-[var(--vt-text-muted)]">
             Estimated based on MGMA median locum rates and industry credentialing benchmarks.
           </p>
         </div>

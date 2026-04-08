@@ -96,6 +96,10 @@ html[data-theme='dark'] {
   --vt-edge-practice-group: #333333;
   --vt-edge-industry-payment: #f59e0b;
   --vt-overlay: rgba(20, 20, 20, 0.85);
+
+  /* Dark mode badge overrides — preview badge needs dark bg for contrast */
+  --vt-badge-preview-bg: oklch(0.22 0.04 180);
+  --vt-badge-preview-text: oklch(0.80 0.08 180);
 }
 
 /* Base Aliases */
