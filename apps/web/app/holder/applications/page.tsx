@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import ClinicianApplicationsSurface from '@/components/mobile/ClinicianApplicationsSurface';
 
 export const metadata: Metadata = {
-  title: 'Applications — VitalCV',
+  title: 'Applications',
   description: 'Live clinician application detail and next steps.',
 };
 

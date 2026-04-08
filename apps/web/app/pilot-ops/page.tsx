@@ -25,7 +25,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Pilot Ops — VitalCV',
+  title: 'Pilot Ops',
   description: 'Internal pilot KPI dashboard. Not public.',
   robots: { index: false, follow: false },
 };

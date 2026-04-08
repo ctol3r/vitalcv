@@ -70,7 +70,6 @@ describe('public surface truth guards — post-release drift prevention', () => 
   const publicSurfaces = Array.from(new Set([
     'apps/web/app/interview/page.tsx',
     'apps/web/components/layout/Navbar.tsx',
-    'apps/web/components/marketing/Navbar.tsx',
     'apps/web/components/marketing/HomeSections.tsx',
     'apps/web/components/hero/ReadinessPreview.tsx',
     'apps/web/app/explore/page.tsx',

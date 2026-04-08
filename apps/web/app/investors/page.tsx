@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Investors — VitalCV',
+  title: 'Investors',
   description:
     'VitalCV is source-backed provider identity infrastructure for healthcare credentialing. Reducing time-to-start from months to days.',
 };

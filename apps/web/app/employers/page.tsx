@@ -1,16 +1,39 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Clock, ShieldCheck, FileText } from 'lucide-react';
+import { fetchLaunchEmployers } from '@/lib/launch/marketplace';
 
 export const metadata: Metadata = {
-  title: 'For Employers — VitalCV',
+  title: 'For Employers',
   description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+  openGraph: {
+    title: 'For Employers',
+    description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+    url: 'https://vitalcv.com/employers',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'For Employers',
+    description: 'Make hiring decisions faster with source-backed clinician readiness packets.',
+  },
 };
 
-export default function EmployersPage() {
+export default async function EmployersPage() {
+  const { employers, total } = await fetchLaunchEmployers();
+
+  const hasData = employers.length > 0;
+  const directoryListed = hasData ? String(total) : '—';
+  const proofBacked = hasData
+    ? String(employers.filter((e) => e.verified).length)
+    : '—';
+  const uniqueStates = hasData
+    ? String(new Set(employers.flatMap((e) => e.states)).size)
+    : '—';
+  const employersShown = hasData ? String(employers.length) : '—';
+
   return (
     <article className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-24 sm:px-12 lg:px-24 bg-background">
-      <header className="mb-20 max-w-2xl">
+      <header className="mb-12 max-w-2xl">
         <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--vt-text-3)] mb-4">
           For Employers
         </p>
@@ -22,6 +45,25 @@ export default function EmployersPage() {
         </p>
       </header>
 
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 mb-16">
+        {([
+          { label: 'Employers shown', value: employersShown, detail: 'Currently listed in this view' },
+          { label: 'Directory-listed organizations', value: directoryListed, detail: 'Total live directory entries' },
+          { label: 'Proof-backed profiles', value: proofBacked, detail: 'Verified employer profiles' },
+          { label: 'Coverage (states)', value: uniqueStates, detail: 'U.S. states with listed employers' },
+        ] as const).map(({ label, value, detail }) => (
+          <div
+            key={label}
+            className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5"
+          >
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-3)]">{label}</p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--vt-text-1)]">{value}</p>
+            <p className="mt-1 text-xs text-[var(--vt-text-2)]">{detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="sr-only">Platform capabilities</h2>
       <div className="grid gap-12 md:grid-cols-3 mb-24">
         <div className="space-y-4">
           <Clock className="h-6 w-6 text-[var(--vt-text-3)]" />
@@ -62,7 +104,7 @@ export default function EmployersPage() {
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/"
+            href="/passport"
             className="inline-flex justify-center items-center gap-2 rounded-lg border border-[var(--vt-border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
           >
             Start with NPI Lookup

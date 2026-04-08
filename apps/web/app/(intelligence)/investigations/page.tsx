@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildLegacyRedirectHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Investigations | VitalCV',
+  title: 'Investigations',
   description: 'Focused provider investigations linked from findings, storylines, actions, and provider detail.',
 };
 

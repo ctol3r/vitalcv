@@ -4,7 +4,7 @@ import { buildApiReferenceUrls } from '@/lib/developers/public-api-reference';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'API Reference | VitalCV Docs',
+  title: 'API Reference',
   description: 'Current REST API routes surfaced by the VitalCV API host.',
 };
 

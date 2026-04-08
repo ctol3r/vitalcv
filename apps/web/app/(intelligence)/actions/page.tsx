@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildLegacyRedirectHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Actions | VitalCV',
+  title: 'Actions',
   description: 'Recommended action queue with triage mutations, pagination, and detail routes.',
 };
 

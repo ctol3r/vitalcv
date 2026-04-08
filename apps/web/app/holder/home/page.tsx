@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import ClinicianHomeSurface from '@/components/mobile/ClinicianHomeSurface';
 
 export const metadata: Metadata = {
-  title: 'Your Workspace — VitalCV',
+  title: 'Your Workspace',
   description: 'Your clinician mobile home surface.',
 };
 

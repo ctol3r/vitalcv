@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
-import { getBackendBase } from '@/lib/api';
+import { AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
 import type { SourceOpsEntry, SourceOpsReport } from '@/lib/mission-ops/sourceOpsTypes';
+import { getSourceOpsReportWithFallback } from '@/lib/status/sourceOps';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +11,21 @@ let cachedReport: SourceOpsReport | null = null;
 let cachedAt: number | null = null;
 
 export const metadata: Metadata = {
-  title: 'Status — VitalCV',
+  title: 'Status',
   description:
     'Current launch-lane source status and coverage posture for VitalCV.',
+  openGraph: {
+    title: 'Status',
+    description:
+      'Current launch-lane source status and coverage posture for VitalCV.',
+    url: 'https://vitalcv.com/status',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Status',
+    description:
+      'Current launch-lane source status and coverage posture for VitalCV.',
+  },
 };
 
 function coverageTone(state: SourceOpsEntry['coverageState']): string {
@@ -68,47 +80,6 @@ function formatRelativeAge(value: string | null): string {
   return `${Math.floor(diffHours / 24)}d ago`;
 }
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1_500;
-const FETCH_TIMEOUT_MS = 8_000;
-
-async function fetchOnce(): Promise<SourceOpsReport | null> {
-  const response = await fetch(`${getBackendBase()}/api/mission-ops/sources`, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-
-  if (!response.ok) return null;
-  return await response.json() as SourceOpsReport;
-}
-
-async function fetchSourceHealth(): Promise<{ report: SourceOpsReport | null; fromCache: boolean }> {
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const report = await fetchOnce();
-      if (report) {
-        cachedReport = report;
-        cachedAt = Date.now();
-        return { report, fromCache: false };
-      }
-    } catch {
-      // Log server-side for observability
-      console.error(`[status] fetch attempt ${attempt}/${MAX_RETRIES} failed`);
-    }
-
-    if (attempt < MAX_RETRIES) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-    }
-  }
-
-  // All retries exhausted — fall back to cached data if available
-  if (cachedReport) {
-    return { report: cachedReport, fromCache: true };
-  }
-
-  return { report: null, fromCache: false };
-}
-
 function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
   return sources
     .filter((source) => (
@@ -128,8 +99,8 @@ function selectPublicSources(sources: SourceOpsEntry[]): SourceOpsEntry[] {
 }
 
 export default async function StatusPage() {
-  const { report, fromCache } = await fetchSourceHealth();
-  const sources = report ? selectPublicSources(report.sources) : [];
+  const { report, isFallback, error } = await getSourceOpsReportWithFallback();
+  const sources = selectPublicSources(report.sources);
 
   const cacheAgeLabel = fromCache && cachedAt
     ? formatRelativeAge(new Date(cachedAt).toISOString())
@@ -152,27 +123,29 @@ export default async function StatusPage() {
               checked, stale, gated, access required, unavailable, or pending. Unsupported sources are not upgraded into stronger claims.
             </p>
           </div>
-          {report && !fromCache ? (
-            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
-              Spine status: {report.spineStatus}
-              {report.timestamp ? (
-                <span className="text-xs font-normal opacity-60">
-                  · {formatRelativeAge(report.timestamp)}
-                </span>
-              ) : null}
-            </div>
-          ) : report && fromCache ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-muted-foreground">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Showing cached data{cacheAgeLabel ? ` · ${cacheAgeLabel}` : ''}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full border border-rose-500/25 bg-rose-500/8 px-4 py-2 text-sm font-semibold text-rose-400">
-              <XCircle className="h-3.5 w-3.5" />
-              Status feed unreachable
-            </div>
-          )}
+          <div className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${spineTone(report.spineStatus)}`}>
+            Spine status: {report.spineStatus}
+          </div>
         </header>
+
+        {isFallback ? (
+          <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400" />
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Showing configured fallback posture</h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  VitalCV could not load the live source report after multiple retries. This page is showing the
+                  configured launch-lane posture instead of a blank failure state.
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Fallback generated at {new Date(report.timestamp).toISOString()}
+                  {error ? ' · Automated recovery attempted.' : ''}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-5">
@@ -201,84 +174,59 @@ export default async function StatusPage() {
           </div>
         </section>
 
-        {fromCache ? (
-          <section className="rounded-2xl border border-border bg-card p-4">
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 shrink-0" />
-              <p>
-                The live status feed is temporarily unreachable. Showing the last successful snapshot
-                {cacheAgeLabel ? ` from ${cacheAgeLabel}` : ''}.
-                Data below may not reflect the current state.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {!report ? (
-          <section className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-6">
-            <div className="flex items-start gap-3">
-              <XCircle className="mt-0.5 h-5 w-5 text-rose-400" />
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">Unable to load status data</h2>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  VitalCV could not reach the source health service after multiple attempts.
-                  Source posture should be treated as unknown until this page loads successfully.
-                  Try refreshing in a few minutes.
-                </p>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="grid gap-4 lg:grid-cols-2">
-            {sources.map((source) => (
-              <article key={source.sourceId} className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-semibold">{source.name}</h2>
-                      {source.isSpine ? (
-                        <span className="rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Spine source
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {source.coverageReason}
-                    </p>
-                  </div>
-                  <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${coverageTone(source.coverageState)}`}>
-                    {source.coverageState}
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Last success
-                    </p>
-                    <p className="mt-2 text-sm font-medium">{formatRelativeAge(source.lastSuccessAt)}</p>
-                    {source.lastSuccessAt ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{new Date(source.lastSuccessAt).toISOString()}</p>
+        <section className="grid gap-4 lg:grid-cols-2">
+          {sources.map((source) => (
+            <article key={source.sourceId} className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-semibold">{source.name}</h2>
+                    {source.isSpine ? (
+                      <span className="rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Spine source
+                      </span>
                     ) : null}
                   </div>
-                  <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Feature flag
-                    </p>
-                    <p className="mt-2 text-sm font-medium">
-                      {source.featureFlag.key} = {source.featureFlag.enabled ? 'true' : 'false'}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Operator status: {source.operatorStatus}
-                    </p>
-                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {source.coverageReason}
+                  </p>
                 </div>
-              </article>
-            ))}
-          </section>
-        )}
+                <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${coverageTone(source.coverageState)}`}>
+                  {source.coverageState}
+                </span>
+              </div>
 
-        {report && report.alerts.length > 0 ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Last success
+                  </p>
+                  <p className="mt-2 text-sm font-medium">{formatRelativeAge(source.lastSuccessAt)}</p>
+                  {source.lastSuccessAt ? (
+                    <p className="mt-1 text-xs text-muted-foreground">{new Date(source.lastSuccessAt).toISOString()}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {isFallback ? 'No live heartbeat available in fallback mode.' : 'No successful fetch recorded yet.'}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl border border-border/80 bg-background px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Feature flag
+                  </p>
+                  <p className="mt-2 text-sm font-medium">
+                    {source.featureFlag.key} = {source.featureFlag.enabled ? 'true' : 'false'}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Operator status: {source.operatorStatus}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {report.alerts.length > 0 ? (
           <section className="rounded-2xl border border-border bg-card p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Current alerts
@@ -300,7 +248,7 @@ export default async function StatusPage() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/"
+              href="/passport"
               className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
             >
               Open NPI entry

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import ClinicianReadinessSurface from '@/components/mobile/ClinicianReadinessSurface';
 
 export const metadata: Metadata = {
-  title: 'Clinician Readiness — VitalCV',
+  title: 'Clinician Readiness',
   description: 'Live readiness score, history, and trust-state changes.',
 };
 

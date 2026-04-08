@@ -13,7 +13,7 @@ import { MetricCluster, StatusBanner } from '@/src/ui/patterns';
 import { designSystemDocs } from '@/design-system/docs/catalog';
 
 export const metadata: Metadata = {
-  title: 'Design System | VitalCV',
+  title: 'Design System',
   description: 'VitalCV Design System tokens, themes, components, layouts, and graph rules.',
 };
 

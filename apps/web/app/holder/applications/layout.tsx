@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Updates — VitalCV',
+  title: 'Updates',
   description: 'Track readiness changes, blocker alerts, and live application status.',
 };
 

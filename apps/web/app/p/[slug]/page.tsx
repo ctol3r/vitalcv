@@ -184,7 +184,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!profile) {
     return {
-      title: 'Clinician Profile | VitalCV',
+      title: 'Clinician Profile',
       description: 'Clinician profile powered by the VitalCV trust network.',
     };
   }
@@ -192,8 +192,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (profile.mode === 'npi') {
     const cleared = profile.status === 'CLEARED';
     const title = cleared
-      ? `NPI ${profile.npi} — Checked Profile | VitalCV`
-      : `NPI ${profile.npi} — Partial Profile | VitalCV`;
+      ? `NPI ${profile.npi} — Checked Profile`
+      : `NPI ${profile.npi} — Partial Profile`;
     const description = `${profile.activeCredentials.length} source-backed record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Coverage varies by source and freshness.`;
     return {
       title,
@@ -206,7 +206,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = `${profile.name} — Shared Trust Profile | VitalCV`;
+  const title = `${profile.name} — Shared Trust Profile`;
   const description = 'Shared trust snapshot from VitalCV. Review source coverage and freshness before relying on it.';
   return {
     title,

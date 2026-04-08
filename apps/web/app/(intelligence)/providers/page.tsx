@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildLegacyRedirectHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Providers | VitalCV',
+  title: 'Providers',
   description: 'Provider directory with search, trust filtering, and linked detail views.',
 };
 

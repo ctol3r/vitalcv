@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildIntelligenceGraphHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Global Intelligence Map | VitalCV',
+  title: 'Global Intelligence Map',
   description: 'Dedicated geospatial intelligence workspace for shortage pressure, collaboration networks, and institutional momentum.',
 };
 

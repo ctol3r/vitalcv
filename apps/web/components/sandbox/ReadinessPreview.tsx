@@ -13,9 +13,13 @@ export default function ReadinessPreview({ npi, onClick }: ReadinessPreviewProps
   const displayNpi = isPlaceholder ? "1003000126" : npi;
 
   return (
-    <div 
-      className="mt-24 w-full border border-line p-8 bg-white/10 dark:bg-white/5 text-left relative group cursor-pointer hover:bg-white/20 dark:hover:bg-white/10 transition-colors" 
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label="Preview readiness check — continue to passport"
+      className="mt-24 w-full border border-line p-8 bg-white/10 dark:bg-white/5 text-left relative group cursor-pointer hover:bg-white/20 dark:hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
       <div className="flex justify-between items-start mb-6">
         <div>

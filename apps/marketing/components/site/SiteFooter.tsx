@@ -33,7 +33,16 @@ export default function SiteFooter() {
             <p className="mt-1 font-mono text-xs text-muted/60">
               {commitSha && <span>build {commitSha.slice(0, 7)}</span>}
               {commitSha && deployTime && <span> · </span>}
-              {deployTime && <span>{deployTime}</span>}
+              {deployTime && (
+                <span>
+                  {(() => {
+                    const d = new Date(deployTime);
+                    return Number.isNaN(d.getTime())
+                      ? deployTime
+                      : `deployed ${d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`;
+                  })()}
+                </span>
+              )}
             </p>
           )}
         </div>

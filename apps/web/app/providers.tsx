@@ -3,7 +3,6 @@
 import { RoleProvider } from '@/components/auth/RoleContext';
 import { ThemeProvider } from 'next-themes';
 import type React from 'react';
-// @ts-ignore - TS doesn't resolve posthog-js locally during next build for some reason
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 

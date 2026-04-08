@@ -26,6 +26,16 @@ const phases = [
 
 export const metadata: Metadata = {
   title: 'How it works — VitalCV',
+  description: 'See how VitalCV generates portable, cryptographically signed credential profiles from federal sources in seconds.',
+  openGraph: {
+    title: 'How it works — VitalCV',
+    description: 'See how VitalCV generates portable, cryptographically signed credential profiles from federal sources in seconds.',
+    url: 'https://vitalcv.com/how-it-works',
+  },
+  twitter: {
+    title: 'How it works — VitalCV',
+    description: 'VitalCV generates portable, signed credential profiles from federal sources in seconds.',
+  },
 };
 
 function WorkflowStep({ title, description }: { title: string; description: string }) {

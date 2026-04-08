@@ -8,7 +8,7 @@
 import { DocumentParser } from '@/components/documents/DocumentParser';
 
 export const metadata = {
-  title: 'Document Intelligence — VitalCV',
+  title: 'Document Intelligence',
   description: 'Drop any credential. Watch AI verify it.',
 };
 

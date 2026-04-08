@@ -23,6 +23,8 @@ const nextConfig = {
   async redirects() {
     return [
       { source: '/dashboard', destination: '/intelligence?view=dashboard', permanent: false },
+      { source: '/docs/api', destination: '/developers', permanent: false },
+      { source: '/employers/kaiser-permanente-norcal', destination: '/employers/kaiser-permanente-northern-california', permanent: false },
     ];
   },
   webpack: (config, { isServer }) => {

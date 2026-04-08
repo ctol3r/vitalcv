@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen, Code2, Database, ShieldCheck, Activity } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Documentation | VitalCV',
+  title: 'Documentation',
   description: 'Integrate the VitalCV readiness and employer decision wedge.',
 };
 

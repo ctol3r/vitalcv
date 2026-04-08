@@ -5,6 +5,28 @@ import { ThemeScript } from '../components/marketing/ThemeScript';
 import SiteChrome from '../components/site/SiteChrome';
 import PilotBanner from '../components/PilotBanner';
 
+const siteTitle = 'VitalCV — NPI-First Credentialing Readiness';
+const siteDescription =
+  'VitalCV gives clinicians a source-backed credentialing readiness snapshot from NPPES, OIG/LEIE, and CMS PECOS in seconds. No signup required to preview.';
+const siteUrl = 'https://vitalcv.com';
+const ogImagePath = '/og-image.png';
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'VitalCV',
+  applicationCategory: 'HealthcareApplication',
+  operatingSystem: 'Web',
+  description: siteDescription,
+  url: siteUrl,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'Free NPI preview',
+  },
+};
+
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
@@ -12,32 +34,47 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'VitalCV Redirect',
-  description:
-    'This deployment redirects to the main VitalCV web application.',
+  title: siteTitle,
+  description: siteDescription,
   authors: [{ name: 'VitalCV' }],
+  keywords: [
+    'VitalCV',
+    'credentialing readiness',
+    'NPI',
+    'NPPES',
+    'OIG/LEIE',
+    'CMS PECOS',
+    'healthcare credentialing',
+  ],
   openGraph: {
-    title: 'VitalCV Redirect',
-    description:
-      'This deployment redirects to the main VitalCV web application.',
-    url: 'https://vitalcv.com',
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
     siteName: 'VitalCV',
     locale: 'en_US',
     type: 'website',
+    images: [
+      {
+        url: ogImagePath,
+        width: 1200,
+        height: 630,
+        alt: 'VitalCV source-backed credentialing readiness preview',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV Redirect',
-    description:
-      'This deployment redirects to the main VitalCV web application.',
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImagePath],
   },
-  metadataBase: new URL('https://vitalcv.com'),
+  metadataBase: new URL(siteUrl),
   alternates: {
-    canonical: 'https://vitalcv.com',
+    canonical: siteUrl,
   },
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
   },
 };
 
@@ -50,6 +87,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       <body className={`${inter.variable} font-sans`}>
         <PilotBanner />

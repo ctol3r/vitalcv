@@ -62,7 +62,7 @@ const BACKEND = (
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { bundleId } = await params;
   return {
-    title: 'VitalCV Credential Bundle',
+    title: 'Credential Bundle',
     description: `Verified credential bundle ${bundleId} — powered by VitalCV Trust Infrastructure.`,
     robots: { index: false },
   };

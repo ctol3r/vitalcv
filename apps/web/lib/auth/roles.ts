@@ -96,6 +96,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/review(\/.*)?$/, // public review packet links
   /^\/verify(\/.*)?$/,
   /^\/trust-state(\/.*)?$/,
+  /^\/compliance(\/.*)?$/, // compliance & security posture
   /^\/clip(\/.*)?$/, // App Clip zero-install verification receipts
   /^\/\.well-known(\/.*)?$/, // OS association manifests (AASA, assetlinks)
   /^\/auth\/error$/,

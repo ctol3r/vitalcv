@@ -1,14 +1,18 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'OpenID4VC Self-Certification | VitalCV',
+  title: 'OpenID4VC Self-Certification',
   description: 'VitalCV OpenID for Verifiable Credentials self-certification status.',
   robots: { index: false },
 };
 
 export default function OpenIdSelfCertPage() {
   return (
-    <article className="max-w-2xl space-y-10">
+    <article className="mx-auto max-w-2xl space-y-10 px-6 pt-12 pb-20">
+      <Link href="/compliance" className="mb-6 inline-flex items-center gap-1.5 text-sm text-[var(--vt-text-3)] hover:text-[var(--vt-text-2)]">
+        ← Back to Compliance
+      </Link>
       <header className="space-y-4">
         <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-3)]">
           Self-Certification

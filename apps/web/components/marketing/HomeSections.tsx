@@ -5,6 +5,7 @@
  * Three narrative sections with brutalist styling - no gradients, minimal rounding
  */
 
+import type { ComponentProps } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -13,7 +14,6 @@ import {
   DollarSign,
   FileX,
   Globe,
-  Lock,
   Rocket,
   Search,
   ShieldCheck,
@@ -22,6 +22,32 @@ import {
   Activity,
 } from 'lucide-react';
 import Link from 'next/link';
+
+function StethoscopeIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M8 3v4a4 4 0 0 0 8 0V3" />
+      <path d="M12 15v2a4 4 0 0 0 8 0v-1.5a2.5 2.5 0 1 0-5 0V17a1 1 0 0 1-2 0v-2" />
+      <path d="M8 3H6" />
+      <path d="M18 3h-2" />
+      <path d="M8 7a4 4 0 0 1-4 4" />
+      <path d="M16 7a4 4 0 0 0 4 4" />
+    </svg>
+  );
+}
+
+function InstitutionIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M3 10.5 12 5l9 5.5" />
+      <path d="M5 10v8.5" />
+      <path d="M9.5 10v8.5" />
+      <path d="M14.5 10v8.5" />
+      <path d="M19 10v8.5" />
+      <path d="M3 19h18" />
+    </svg>
+  );
+}
 
 /* ─────────────────────────────────────────────────────────────
    1. PROBLEM SECTION
@@ -131,20 +157,20 @@ const STEPS = [
 
 export function HowItWorksSection() {
   return (
-    <section className="px-6 py-24">
+    <section className="bg-[var(--vt-bg)] px-6 py-24">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 border border-line bg-[var(--vt-surface)] px-4 py-1.5 mb-5">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-2 shadow-[var(--vt-shadow-pill)]">
             <CheckCircle2 className="h-3.5 w-3.5 text-[var(--vt-status-resolved)]" />
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-text-primary)]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               How It Works
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--vt-text-primary)] leading-tight">
+          <h2 className="mx-auto max-w-3xl text-3xl font-semibold tracking-[-0.03em] text-[var(--vt-text-primary)] sm:text-4xl">
             Start with one NPI.{' '}
             <span className="text-[var(--vt-status-resolved)]">See source-backed readiness.</span>
           </h2>
-          <p className="mt-4 text-[var(--vt-text-secondary)] max-w-xl mx-auto text-lg leading-relaxed">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[var(--vt-text-muted)] sm:text-lg">
             Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.
           </p>
         </div>
@@ -153,20 +179,23 @@ export function HowItWorksSection() {
           {STEPS.map((s, i) => {
             const Icon = s.icon;
             return (
-              <div key={s.step} className="border border-line p-7 bg-[var(--vt-surface)] h-full">
-                <div className="flex items-start justify-between mb-5">
-                  <div className="p-2.5 border border-line/10">
-                    <Icon className="h-5 w-5 text-[var(--vt-text-primary)]" />
+              <div
+                key={s.step}
+                className="flex h-full flex-col rounded-[28px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] p-7 shadow-[var(--vt-shadow-card)]"
+              >
+                <div className="mb-5 flex items-start justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--vt-badge-preview-bg)]">
+                    <Icon className="h-5 w-5 text-[var(--vt-accent)]" />
                   </div>
-                  <span className="text-4xl font-black opacity-10 text-[var(--vt-text-primary)]">
+                  <span className="text-4xl font-medium tracking-[-0.04em] text-[var(--vt-text-primary)] opacity-10">
                     {s.step}
                   </span>
                 </div>
 
-                <h3 className="text-base font-semibold text-[var(--vt-text-primary)] mb-2">{s.title}</h3>
-                <p className="text-sm text-[var(--vt-text-secondary)] leading-relaxed mb-4">{s.description}</p>
+                <h3 className="mb-2 text-lg font-semibold text-[var(--vt-text-primary)]">{s.title}</h3>
+                <p className="mb-5 text-sm leading-7 text-[var(--vt-text-muted)]">{s.description}</p>
 
-                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--vt-status-resolved)]">
+                <div className="mt-auto inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-badge-checked-bg)] px-3 py-1.5 text-xs font-medium text-[var(--vt-status-resolved)]">
                   <CheckCircle2 className="h-3 w-3" />
                   {s.detail}
                 </div>
@@ -180,7 +209,86 @@ export function HowItWorksSection() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   3. TRACTION / CREDIBILITY SECTION
+   3. AUDIENCE SPLIT
+───────────────────────────────────────────────────────────── */
+
+const AUDIENCE_CARDS = [
+  {
+    title: "You're a clinician.",
+    body: 'Carry your readiness profile. Stop re-verifying at every new employer.',
+    cta: 'Check my NPI',
+    href: '#npi-entry',
+    tone: 'primary',
+    Icon: StethoscopeIcon,
+  },
+  {
+    title: 'You run credentialing or recruiting.',
+    body: 'Start pilot reviews with source-backed snapshots. No vendor integration required to begin.',
+    cta: 'Request employer pilot',
+    href: '/pilot',
+    tone: 'secondary',
+    Icon: InstitutionIcon,
+  },
+] as const;
+
+export function AudienceSplitSection() {
+  return (
+    <section className="border-t border-line px-6 py-20">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-10 text-center">
+          <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--vt-text-primary)] opacity-40">
+            Who is VitalCV for?
+          </p>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--vt-text-primary)] sm:text-4xl">
+            Choose the path that matches your role.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[var(--vt-text-secondary)] sm:text-lg">
+            Clinicians start with NPI-backed readiness. Employers start with a focused pilot review flow.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {AUDIENCE_CARDS.map(({ title, body, cta, href, tone, Icon }) => (
+            <Link
+              key={title}
+              href={href}
+              className="group block rounded-[12px] border border-[rgba(26,34,40,0.10)] bg-[#FFFFFF] p-8 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[rgba(26,34,40,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(26,34,40,0.10)] text-[var(--vt-text-primary)]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="mt-1 h-4 w-4 text-[var(--vt-text-secondary)] transition-transform duration-200 group-hover:translate-x-0.5" />
+                </div>
+
+                <h3 className="mt-8 text-2xl font-semibold tracking-tight text-[var(--vt-text-primary)]">
+                  {title}
+                </h3>
+                <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--vt-text-secondary)]">
+                  {body}
+                </p>
+
+                <span
+                  className={`mt-8 inline-flex w-fit items-center justify-center rounded-lg border px-5 py-3 text-sm font-semibold transition-colors ${
+                    tone === 'primary'
+                      ? 'border-transparent bg-[#0F766E] text-white group-hover:bg-[#115E59]'
+                      : 'border-[#0F766E] bg-transparent text-[#0F766E] group-hover:bg-[#F0FDFA]'
+                  }`}
+                >
+                  {cta}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. TRACTION / CREDIBILITY SECTION
 ───────────────────────────────────────────────────────────── */
 
 const TRACTION_STATS = [
@@ -242,7 +350,7 @@ export function TractionSection() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   4. WHY NOW SECTION
+   5. WHY NOW SECTION
 ───────────────────────────────────────────────────────────── */
 
 const WHY_NOW_ITEMS = [
@@ -303,21 +411,27 @@ export function WhyNowSection() {
 
 export function BuyerPilotSection() {
   return (
-    <section className="px-6 py-20 border-t border-line">
-      <div className="max-w-5xl mx-auto border border-line bg-[var(--vt-surface)] p-8">
-        <p className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-40 text-[var(--vt-status-resolved)] mb-3">For employers</p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-[var(--vt-text-primary)]">
+    <section className="border-t border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-6 py-20">
+      <div className="mx-auto max-w-5xl rounded-[32px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] p-8 shadow-[var(--vt-shadow-soft)] sm:p-10">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-accent)]">For employers</p>
+        <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[var(--vt-text-primary)] sm:text-4xl">
           One buyer path: request pilot, then run review.
         </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--vt-text-secondary)]">
+        <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--vt-text-muted)]">
           If you run credentialing or recruiting operations, start with employer pilot entry.
           VitalCV stays focused on one workflow: NPI to readiness, passport, and review decision.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/pilot" className="border border-line bg-ink text-bg px-7 py-3 text-sm font-semibold uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center gap-2">
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/pilot"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--vt-accent)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--vt-accent-hover)]"
+          >
             Request pilot <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/employers" className="border border-line px-7 py-3 text-sm font-semibold text-[var(--vt-text-primary)] uppercase tracking-widest hover:opacity-90 transition-opacity">
+          <Link
+            href="/employers"
+            className="rounded-xl border border-[var(--vt-border)] px-7 py-3 text-sm font-semibold text-[var(--vt-text-primary)] transition-colors hover:border-[var(--vt-accent)]/30 hover:bg-[var(--vt-badge-preview-bg)]"
+          >
             Employer overview
           </Link>
         </div>

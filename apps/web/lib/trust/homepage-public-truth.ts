@@ -18,6 +18,7 @@ export type HomepagePublicTruthSource = {
   proofLabel: string;
   name: string;
   sublabel: string;
+  tooltip: string;
   sourceState: PassportSourceCoverageState;
   evidenceKind: TrustEvidenceKind;
   satisfied: boolean;
@@ -30,6 +31,8 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Identity',
     name: 'NPPES',
     sublabel: 'NPI identity',
+    tooltip:
+      'The National Plan and Provider Enumeration System assigns NPIs to all licensed healthcare providers. NPPES identity is the foundation of every downstream credential check.',
     sourceState: 'checked',
     evidenceKind: 'generic',
     satisfied: false,
@@ -40,6 +43,8 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Sanctions',
     name: 'OIG / LEIE',
     sublabel: 'Exclusion check',
+    tooltip:
+      'The OIG List of Excluded Individuals/Entities is a federal database of providers barred from Medicare/Medicaid participation. Any hit here is an immediate disqualifier for most hospital employment.',
     sourceState: 'checked',
     evidenceKind: 'generic',
     satisfied: false,
@@ -50,6 +55,8 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Enrollment',
     name: 'CMS PECOS',
     sublabel: 'Quarterly enrollment data',
+    tooltip:
+      'The Provider Enrollment, Chain and Ownership System tracks CMS enrollment status. Quarterly updates mean there may be a lag between your enrollment action and what PECOS reflects.',
     sourceState: 'notDecisionGrade',
     evidenceKind: 'generic',
     satisfied: false,
@@ -60,6 +67,8 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     proofLabel: 'Licensure',
     name: 'CA State Board / FSMB',
     sublabel: 'CA physician lane only',
+    tooltip:
+      'State medical board data confirms licensure status and any disciplinary actions. Coverage varies by state; VitalCV currently supports CA via FSMB and is expanding.',
     sourceState: 'accessRequired',
     evidenceKind: 'generic',
     satisfied: false,

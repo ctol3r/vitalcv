@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Verifier Workspace',
+  title: 'Verifier Workspace',
   description: 'Review, verify, and accept clinician credentials.',
 };
 

@@ -29,16 +29,16 @@ export function TimeToStartCard({
   });
 
   return (
-    <div className={`rounded-2xl border border-white/6 bg-black/15 p-4 ${className}`.trim()}>
+    <div className={`rounded-[24px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] p-4 shadow-[var(--vt-shadow-card)] ${className}`.trim()}>
       <div className="flex items-center gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
           Time-to-Start
         </p>
         <TooltipProvider delayDuration={150}>
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className="inline-flex items-center justify-center text-muted-foreground/40 transition-colors hover:text-foreground/48"
+                className="inline-flex items-center justify-center text-[var(--vt-text-muted)] transition-colors hover:text-[var(--vt-text-primary)]"
                 role="img"
                 aria-label="Time-to-start estimate details"
               >
@@ -53,34 +53,34 @@ export function TimeToStartCard({
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/6 bg-white/[0.03] px-3 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/40">
+        <div className="rounded-2xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
             Without VitalCV
           </p>
-          <p className="mt-1 text-sm font-semibold text-white/78">
+          <p className="mt-1 text-sm font-semibold text-[var(--vt-text-primary)]">
             {estimate.withoutVitalCvLabel}
           </p>
         </div>
-        <div className="rounded-xl border border-emerald-500/12 bg-emerald-500/[0.06] px-3 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-emerald-200/55">
+        <div className="rounded-2xl border border-[var(--vt-badge-checked-bg)] bg-[var(--vt-badge-checked-bg)] px-3 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-status-resolved)]">
             With VitalCV
           </p>
-          <p className="mt-1 text-sm font-semibold text-emerald-200/90">
+          <p className="mt-1 text-sm font-semibold text-[var(--vt-status-resolved)]">
             {estimate.withVitalCvLabel}
           </p>
         </div>
-        <div className="rounded-xl border border-white/6 bg-white/[0.03] px-3 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/40">
+        <div className="rounded-2xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
             Time Saved
           </p>
-          <p className="mt-1 text-sm font-semibold text-white/78">
+          <p className="mt-1 text-sm font-semibold text-[var(--vt-text-primary)]">
             {estimate.timeSavedLabel}
           </p>
         </div>
       </div>
 
       {estimate.penaltyDays > 0 ? (
-        <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/40">
+        <p className="mt-3 text-[10px] leading-relaxed text-[var(--vt-text-muted)]">
           Adjusted from the blockers and stale verification signals surfaced in this snapshot.
         </p>
       ) : null}

@@ -61,9 +61,11 @@ function getCanonicalPublicEntryCopyFiles(): string[] {
 }
 
 const {
+  fetchLaunchEmployersMock,
   fetchLaunchEmployerMock,
   fetchLaunchOpportunitiesMock,
 } = vi.hoisted(() => ({
+  fetchLaunchEmployersMock: vi.fn(),
   fetchLaunchEmployerMock: vi.fn(),
   fetchLaunchOpportunitiesMock: vi.fn(),
 }));
@@ -215,6 +217,7 @@ vi.mock('@/components/network/GatewayConnections', () => ({
 }));
 
 vi.mock('@/lib/launch/marketplace', () => ({
+  fetchLaunchEmployers: fetchLaunchEmployersMock,
   fetchLaunchEmployer: fetchLaunchEmployerMock,
   fetchLaunchOpportunities: fetchLaunchOpportunitiesMock,
 }));
@@ -528,7 +531,7 @@ describe('post-release truth cleanup', () => {
     // Updated: /review page now uses direct employer framing (seam-close wave)
     expect(reviewMarkup).toContain('Employer review');
     expect(reviewMarkup).toContain('Request pilot review');
-    expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/');
+    expect(findHrefByText(reviewMarkup, 'Start with NPI lookup')).toBe('/passport');
   }, 20000);
 
   it('keeps the developers hero and key resource blocks on current/preview wording', async () => {
@@ -703,6 +706,7 @@ describe('post-release truth cleanup', () => {
       });
 
     vi.stubGlobal('fetch', fetchMock);
+    fetchLaunchEmployersMock.mockResolvedValue(SAMPLE_EMPLOYER_DIRECTORY);
     fetchLaunchEmployerMock.mockResolvedValue(SAMPLE_EMPLOYER_DETAIL);
     fetchLaunchOpportunitiesMock.mockResolvedValue(SAMPLE_EMPLOYER_OPPORTUNITIES);
 

@@ -41,12 +41,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!employer) {
     return {
-      title: 'Employer Not Found — VitalCV',
+      title: 'Employer Not Found',
     };
   }
 
   return {
-    title: `${employer.name} — VitalCV`,
+    title: employer.name,
     description: employer.tagline,
   };
 }
@@ -170,7 +170,7 @@ export default async function EmployerProfilePage({ params }: Props) {
               />
 
               {employer.trustIndicators.length > 0 ? (
-                <div className="rounded-3xl border border-border bg-black/20 p-5">
+                <div id="proof" className="scroll-mt-20 rounded-3xl border border-border bg-black/20 p-5">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">Trust registry</p>
                   <div className="mt-4 space-y-2">
                     {employer.trustIndicators.map((indicator) => (

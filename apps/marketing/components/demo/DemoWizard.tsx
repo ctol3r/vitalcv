@@ -182,20 +182,24 @@ export function DemoWizard() {
           >
             <div className="relative max-w-md">
               <input
+                id="demo-wizard-npi-input"
+                name="npi"
                 type="text"
                 inputMode="numeric"
-                pattern="[0-9]*"
+                pattern="[0-9]{10}"
+                maxLength={10}
                 placeholder="Enter 10-digit NPI"
                 value={npi}
                 onChange={handleNpiChange}
                 disabled={loading}
-                aria-label="National Provider Identifier"
+                aria-label="National Provider Identifier — 10 digits"
                 aria-describedby={error ? 'demo-error' : undefined}
                 aria-invalid={error ? 'true' : undefined}
                 className="w-full rounded-lg border border-border bg-transparent px-4 py-3 pr-28 text-base text-foreground placeholder:text-muted outline-none transition-theme focus:border-foreground focus:ring-1 focus:ring-foreground disabled:opacity-50"
               />
               <button
                 type="submit"
+                aria-label="Look up NPI"
                 disabled={loading || npi.length < 10}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-theme hover:opacity-80 disabled:opacity-50"
               >

@@ -4,7 +4,7 @@ import { buildWebhookSubscribeExample } from '@/lib/developers/public-api-refere
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Webhooks | VitalCV Docs',
+  title: 'Webhooks',
   description: 'Current webhook registration routes and event contract.',
 };
 

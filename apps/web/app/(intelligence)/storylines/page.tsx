@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { buildLegacyRedirectHref } from '@/lib/intelligence/routes';
 
 export const metadata: Metadata = {
-  title: 'Storylines | VitalCV',
+  title: 'Storylines',
   description: 'Operational storyline clusters with detail routes, linked findings, and triage controls.',
 };
 

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-page-custom-font */
 import RootChrome from '@/components/layout/RootChrome';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { Toaster } from '@/components/ui/sonner';
@@ -6,7 +7,7 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Fraunces, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
@@ -20,6 +21,20 @@ const inter = Inter({
   variable: '--font-inter-var',
 });
 
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-plus-jakarta-var',
+});
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  axes: ['opsz', 'SOFT', 'WONK'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-fraunces-var',
+});
+
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
@@ -28,16 +43,56 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const fontVariables = {
-  '--font-fraunces': "'Fraunces', Georgia, serif",
-  '--font-inter': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
-  '--font-plus-jakarta': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
-  '--font-jetbrains': "'JetBrains Mono', ui-monospace, monospace",
+  // Design system tokens first (so our overrides win below)
   ...vdsCssVariables,
+  // Loaded fonts — resolve the actual next/font CSS variables
+  '--font-fraunces': "var(--font-fraunces-var), 'Fraunces', Georgia, serif",
+  '--font-plus-jakarta': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
+  '--font-inter': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
+  '--font-jetbrains': "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
+  // Public-web typography
+  '--vt-font-body': "'DM Sans', system-ui, sans-serif",
+  '--vt-font-display': "'Instrument Serif', Georgia, serif",
+  '--font-body': "'DM Sans', system-ui, sans-serif",
+  '--font-display': "'Instrument Serif', Georgia, serif",
+  '--font-sans': "'DM Sans', system-ui, sans-serif",
+  '--font-heading': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
+  '--font-serif':   "var(--font-fraunces-var), 'Fraunces', Georgia, serif",
+  '--font-mono':    "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Check Clinician Readiness in Seconds | Healthcare Credentialing',
-  description: 'Reusable trust state for clinician credentialing.',
+  title: {
+    default: 'VitalCV — Check Clinician Readiness in Seconds',
+    template: '%s — VitalCV',
+  },
+  description:
+    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed credentialing for healthcare employers and clinicians.',
+  metadataBase: new URL('https://vitalcv.com'),
+  openGraph: {
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+    url: 'https://vitalcv.com',
+    siteName: 'VitalCV',
+    type: 'website',
+    locale: 'en_US',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'VitalCV — Check Clinician Readiness in Seconds',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+    images: ['/twitter-image'],
+  },
 };
 
 const clerkEnabled = CLERK_PROVIDER_ENABLED;
@@ -85,8 +140,16 @@ export default async function RootLayout({
       lang="en"
       style={fontVariables}
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${fraunces.variable}`}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+        />
+      </head>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>

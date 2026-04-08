@@ -48,13 +48,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-foreground backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-white backdrop-blur-xl [&_a:not(.bg-white)]:text-white/80 hover:[&_a:not(.bg-white)]:text-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}
         <Link
           href="/"
-          className="font-heading text-lg font-semibold tracking-tight shrink-0"
+          className="font-heading text-lg font-semibold tracking-tight shrink-0 text-white"
           onClick={closeMenu}
         >
           VitalCV
@@ -72,7 +72,7 @@ export default function Navbar() {
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
                     ? 'bg-white/12 text-white'
-                    : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {item.label}
@@ -86,7 +86,7 @@ export default function Navbar() {
           <ThemeToggle />
           <Link
             href="/sign-in"
-            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground/80 hover:border-border hover:text-foreground transition"
+            className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/50 hover:text-white transition"
           >
             Sign In
           </Link>
@@ -100,9 +100,11 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
+          type="button"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
-          className="rounded-lg p-2 text-foreground/70 hover:bg-muted hover:text-foreground transition md:hidden"
+          aria-controls="mobile-nav-menu"
+          className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -111,7 +113,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
+        <nav id="mobile-nav-menu" className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
@@ -121,7 +123,7 @@ export default function Navbar() {
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isRouteActive(pathname, item.href)
                       ? 'bg-white/12 text-white'
-                      : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {item.label}
@@ -133,7 +135,7 @@ export default function Navbar() {
             <Link
               href="/sign-in"
               onClick={closeMenu}
-              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-foreground/80"
+              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-white/80"
             >
               Sign In
             </Link>

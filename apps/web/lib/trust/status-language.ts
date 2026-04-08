@@ -41,43 +41,43 @@ export type TrustStatusTone =
 const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: string }> = {
   verified: {
     label: 'Source-backed',
-    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
   },
   clear: {
     label: 'Checked',
-    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/70',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
   },
   checked: {
     label: 'Checked',
-    badgeClassName: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-white/12 dark:bg-white/6 dark:text-white/65',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
   },
   pending: {
     label: getTrustStatusLabel('pending'),
-    badgeClassName: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-white/8 dark:bg-white/4 dark:text-white/45',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
   },
   stale: {
     label: getTrustStatusLabel('stale'),
-    badgeClassName: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
   },
   unavailable: {
     label: getTrustStatusLabel('unavailable'),
-    badgeClassName: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-white/8 dark:bg-white/4 dark:text-white/35',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
   },
   access_required: {
     label: getTrustStatusLabel('access_required'),
-    badgeClassName: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
   },
   review_required: {
     label: getTrustStatusLabel('review_required'),
-    badgeClassName: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-200',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
   },
   demo: {
     label: 'Preview',
-    badgeClassName: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-preview-bg)] text-[var(--vt-badge-preview-text)]',
   },
   preview_only: {
     label: 'Preview',
-    badgeClassName: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200',
+    badgeClassName: 'border-transparent bg-[var(--vt-badge-preview-bg)] text-[var(--vt-badge-preview-text)]',
   },
 };
 

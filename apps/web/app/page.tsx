@@ -1,17 +1,24 @@
-'use client';
+import type { Metadata } from 'next';
+import HomePageClient from './HomePageClient';
 
-import React from 'react';
-import { HeroWithAuthPrompt } from '@/components/hero/HeroWithAuthPrompt';
-import { TrustStrip } from '@/components/home/PublicTruthSections';
-import { BuyerPilotSection, HowItWorksSection } from '@/components/marketing/HomeSections';
+export const metadata: Metadata = {
+  title: { absolute: 'VitalCV — Check Clinician Readiness in Seconds' },
+  description:
+    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed credentialing for healthcare employers and clinicians.',
+  openGraph: {
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+    url: 'https://vitalcv.com',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    description:
+      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+  },
+};
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <HeroWithAuthPrompt />
-      <TrustStrip />
-      <HowItWorksSection />
-      <BuyerPilotSection />
-    </div>
-  );
+  return <HomePageClient />;
 }

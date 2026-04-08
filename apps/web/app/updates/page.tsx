@@ -5,7 +5,7 @@ import { getDeployInfo } from '@/lib/deployInfo';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Updates — VitalCV',
+  title: 'Updates',
   description: 'Live deployment status and recent product changes.',
 };
 
@@ -80,7 +80,7 @@ const TAG_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   LIVE: 'text-emerald-400',
   BUILDING: 'text-amber-400',
-  PLANNED: 'text-muted-foreground/60',
+  PLANNED: 'text-white/40',
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -92,38 +92,38 @@ export default async function UpdatesPage() {
   const envDot = deploy.env === 'production' ? 'bg-emerald-400 animate-pulse' : deploy.env === 'preview' ? 'bg-amber-400' : 'bg-muted';
 
   return (
-    <div className="min-h-screen bg-vt-surface-ops-base px-4 sm:px-6 py-12 sm:py-16 text-foreground">
+    <div className="min-h-screen bg-vt-surface-ops-base px-4 sm:px-6 py-12 sm:py-16 text-white">
       <div className="mx-auto max-w-3xl">
 
         {/* Header */}
         <div className="mb-10 sm:mb-14">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/60">VitalCV</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Product Updates</h1>
-          <p className="text-sm text-muted-foreground">What shipped, what's building, what's next.</p>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">VitalCV</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Product Updates</h1>
+          <p className="text-sm text-white/70">What shipped, what's building, what's next.</p>
         </div>
 
         {/* Deploy status panel */}
         <section className="mb-10 rounded-2xl border border-white/8 bg-card p-5 sm:p-6">
-          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Deployment</p>
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">Deployment</p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
-              <p className="text-[10px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Environment</p>
+              <p className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Environment</p>
               <div className="flex items-center gap-1.5">
                 <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${envDot}`} />
-                <span className="text-sm font-semibold text-foreground">{envLabel}</span>
+                <span className="text-sm font-semibold text-white">{envLabel}</span>
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Commit</p>
-              <p className="font-mono text-sm text-foreground/80">{deploy.sha}</p>
+              <p className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Commit</p>
+              <p className="font-mono text-sm text-white/80">{deploy.sha}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Branch</p>
-              <p className="font-mono text-sm text-foreground/80 truncate">{deploy.branch}</p>
+              <p className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Branch</p>
+              <p className="font-mono text-sm text-white/80 truncate">{deploy.branch}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground/60 mb-1 uppercase tracking-wide">Deployed</p>
-              <p className="text-sm text-foreground/80">
+              <p className="text-[10px] text-white/50 mb-1 uppercase tracking-wide">Deployed</p>
+              <p className="text-sm text-white/80">
                 {new Date(deploy.deployedAt).toLocaleDateString('en-US', {
                   month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                 })}
@@ -131,7 +131,7 @@ export default async function UpdatesPage() {
             </div>
           </div>
           {deploy.message && (
-            <p className="mt-4 pt-4 border-t border-white/6 text-xs text-muted-foreground font-mono truncate">
+            <p className="mt-4 pt-4 border-t border-white/6 text-xs text-white/60 font-mono truncate">
               {deploy.message}
             </p>
           )}
@@ -152,16 +152,16 @@ export default async function UpdatesPage() {
 
         {/* In progress */}
         <section className="mb-10">
-          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Currently In Progress</p>
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">Currently In Progress</p>
           <div className="space-y-2">
             {IN_PROGRESS.map((item) => (
               <div key={item.label} className="flex items-start gap-3 rounded-xl border border-white/6 bg-white/2 px-4 py-3">
-                <span className={`mt-0.5 text-[10px] font-bold uppercase tracking-wide min-w-[60px] ${STATUS_COLORS[item.status] ?? 'text-muted-foreground/60'}`}>
+                <span className={`mt-0.5 text-[10px] font-bold uppercase tracking-wide min-w-[60px] ${STATUS_COLORS[item.status] ?? 'text-white/40'}`}>
                   {item.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground font-medium">{item.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.note}</p>
+                  <p className="text-sm text-white font-medium">{item.label}</p>
+                  <p className="text-xs text-white/60 mt-0.5">{item.note}</p>
                 </div>
               </div>
             ))}
@@ -170,19 +170,19 @@ export default async function UpdatesPage() {
 
         {/* Changelog */}
         <section>
-          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Recent Changes</p>
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">Recent Changes</p>
           <div className="space-y-6">
             {RECENT_CHANGES.map((entry) => (
               <div key={`${entry.date}-${entry.tag}`} className="rounded-2xl border border-white/6 bg-white/2 p-5">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <time className="text-xs text-muted-foreground/60 font-mono">{entry.date}</time>
-                  <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${TAG_COLORS[entry.tag] ?? 'bg-muted text-muted-foreground border-border'}`}>
+                  <time className="text-xs text-white/50 font-mono">{entry.date}</time>
+                  <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${TAG_COLORS[entry.tag] ?? 'bg-white/5 text-white/60 border-white/10'}`}>
                     {entry.tag}
                   </span>
                 </div>
                 <ul className="space-y-2">
                   {entry.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-foreground">
+                    <li key={item} className="flex items-start gap-2 text-sm text-white">
                       <span className="mt-1.5 h-1 w-1 rounded-full bg-muted shrink-0" />
                       {item}
                     </li>
@@ -194,10 +194,10 @@ export default async function UpdatesPage() {
         </section>
 
         {/* Footer nav */}
-        <div className="mt-12 pt-8 border-t border-white/8 flex flex-wrap gap-4 text-sm text-muted-foreground/60">
-          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-          <Link href="/labs" className="hover:text-foreground transition-colors">Labs</Link>
-          <Link href="/status" className="hover:text-foreground transition-colors">Status</Link>
+        <div className="mt-12 pt-8 border-t border-white/8 flex flex-wrap gap-4 text-sm text-white/50">
+          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <Link href="/labs" className="hover:text-white transition-colors">Labs</Link>
+          <Link href="/status" className="hover:text-white transition-colors">Status</Link>
         </div>
 
       </div>

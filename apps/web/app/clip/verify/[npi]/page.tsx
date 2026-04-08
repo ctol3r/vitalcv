@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 /* ------------------------------------------------------------------ */
 
 export const metadata: Metadata = {
-  title: 'VitalCV · Instant Verification',
+  title: 'Instant Verification',
   description: 'Cryptographic credential verification receipt',
   other: {
     'apple-itms-apps': 'app-clip-bundle-id=com.vitalcv.clip',

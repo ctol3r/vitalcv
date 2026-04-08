@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: 'Clinician Home — VitalCV',
+  title: 'Clinician Home',
   description: 'Clinician referrals are not part of the pilot release surface.',
 };
 

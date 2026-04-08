@@ -3,37 +3,63 @@
 import React from 'react';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   HOMEPAGE_PUBLIC_TRUTH_SOURCES,
   HOMEPAGE_PREVIEW_COPY,
   resolveHomepagePublicTruthSource,
 } from '@/lib/trust/homepage-public-truth';
+import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import Link from 'next/link';
 
 const HOMEPAGE_SOURCE_VIEWS = HOMEPAGE_PUBLIC_TRUTH_SOURCES.map(resolveHomepagePublicTruthSource);
 
 export function TrustStrip() {
   return (
-    <div className="border-y border-white/6 bg-white/2 py-5 px-4 sm:px-6 overflow-hidden">
+    <div className="overflow-hidden border-y border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] py-5 px-4 sm:px-6">
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/60 shrink-0">
+          <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--vt-text-muted)]">
             Current source coverage
           </p>
-          <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-wrap sm:flex-nowrap">
-            {HOMEPAGE_SOURCE_VIEWS.map((source) => (
-              <div key={source.id} className="flex items-center gap-2 shrink-0">
-                <div>
-                  <p className="text-xs font-semibold text-foreground whitespace-nowrap">{source.name}</p>
-                  <p className="text-[9px] text-muted-foreground/50 whitespace-nowrap">{source.sublabel}</p>
+          <TooltipProvider delayDuration={120}>
+            <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-wrap sm:flex-nowrap">
+              {HOMEPAGE_SOURCE_VIEWS.map((source) => (
+                <div key={source.id} className="flex items-center gap-2 shrink-0">
+                  <div>
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <p className="text-xs font-semibold text-foreground">{source.name}</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[11px] leading-none text-[var(--vt-text-muted)] transition-colors hover:text-[var(--vt-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--vt-surface)]"
+                            aria-label={`About ${source.name}`}
+                          >
+                            <span aria-hidden="true">ⓘ</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="max-w-[280px] rounded-xl border border-[var(--vt-border-subtle)] bg-[var(--vt-text-primary)] px-[14px] py-[10px] text-left text-[12px] leading-relaxed text-[var(--vt-bg)] shadow-[var(--vt-shadow-card)]"
+                        >
+                          <p>{source.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="whitespace-nowrap text-[10px] text-[var(--vt-text-muted)]">{source.sublabel}</p>
+                  </div>
+                  <TrustStatusBadge status={source.trustStatus} label={source.trustStatusLabel} size="sm" />
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] whitespace-nowrap ${source.trustStatusBadgeClassName}`}>
-                  {source.trustStatusLabel}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
-        <p className="mt-3 text-[10px] text-muted-foreground/40">
+        <p className="mt-3 text-[11px] text-[var(--vt-text-muted)]">
           Homepage preview starts with NPPES and OIG. Other lanes stay marked as access required, pending, or preview-only until a connected source actually runs.
         </p>
       </div>
