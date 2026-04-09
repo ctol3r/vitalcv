@@ -111,6 +111,17 @@ describe('marketplace proxies', () => {
     const payload = [{
       id: 'app_1',
       status: 'PENDING',
+      readiness: {
+        readinessScore: 91,
+        readinessLevel: 'L3',
+        readinessStatus: 'Ready to credential',
+        gapSummary: [],
+        keyCredentials: ['State license'],
+        trustSignals: ['NPI identity verified'],
+      },
+      continuity: {
+        reviewHref: '/review/1234567890',
+      },
       latestRecommendation: {
         actionType: 'READY_TO_INTERVIEW',
         label: 'Move to interview',
@@ -167,7 +178,9 @@ describe('marketplace proxies', () => {
     expect(init.headers.get('x-clerk-user-id')).toBe('clerk-user-9');
     expect(init.headers.get('x-clerk-user-email')).toBe('verifier@example.com');
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(payload);
+    const responseBody = await response.json();
+    expect(responseBody).toEqual(payload);
+    expect(responseBody[0]?.continuity?.reviewHref).toBe('/review/1234567890');
   });
 
   it('injects org context and server api key for hiring accept', async () => {

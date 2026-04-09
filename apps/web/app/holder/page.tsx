@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ShieldCheck, ChevronRight, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { WalletPassport } from '@/components/wallet/WalletPassport';
+import { DailyUtilityLoop } from '@/components/holder/DailyUtilityLoop';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet';
 import { CredentialPresentationActions } from '@/components/clinician/CredentialPresentationActions';
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
@@ -165,6 +166,11 @@ export default function HolderPage() {
       {/* Passport */}
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <WalletPassport npi={npi!} pollIntervalMs={30_000} />
+      </div>
+
+      {/* Daily Use Utility Loop */}
+      <div className="mx-auto max-w-3xl px-4 py-2 sm:px-6">
+        <DailyUtilityLoop npi={npi!} />
       </div>
 
       {/* Detailed credential view */}

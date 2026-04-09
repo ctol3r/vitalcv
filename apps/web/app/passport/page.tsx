@@ -30,6 +30,7 @@ import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-s
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildEmployerReviewHref,
+  buildExploreApplyHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
   resolvePublicWedgeSurfaceStateFromDisplayLabel,
@@ -390,6 +391,11 @@ function PassportPageContent({
     : displayEmployer
       ? `Checking readiness for ${displayEmployer}.`
       : null;
+  const exploreApplyHref = buildExploreApplyHref(state.npi ?? initialNpi, {
+    roleId: roleContext.roleId,
+    employerSlug: roleContext.employerSlug,
+  });
+  const exploreApplyLabel = roleContext.roleId ? 'Continue to apply' : 'Explore matched roles';
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -601,8 +607,18 @@ function PassportPageContent({
             {canViewPassport && anchorEntityId && (
               <div className="space-y-3">
                 <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
-                  <Link href={buildPassportEntityHref(anchorEntityId)}>
+                  <Link href={buildPassportEntityHref(anchorEntityId, {
+                    roleId: roleContext.roleId,
+                    roleTitle: roleContext.roleTitle,
+                    employerSlug: roleContext.employerSlug,
+                    employerName: roleContext.employerName,
+                  })}>
                     View full passport
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
+                  <Link href={exploreApplyHref}>
+                    {exploreApplyLabel}
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">

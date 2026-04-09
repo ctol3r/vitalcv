@@ -13,6 +13,7 @@ import type {
 export const PUBLIC_WEDGE_ROUTE_TARGETS = Object.freeze({
   homepageLookup: '/',
   passportEntry: '/passport',
+  exploreEntry: '/explore',
   reviewEntry: '/review',
   reviewRequestEntry: '/review/request',
   developersEntry: '/developers',
@@ -45,10 +46,62 @@ export function resolvePublicWedgeDisplayName(
   return normalizedDisplayName;
 }
 
+export interface PassportApplyContextOptions {
+  roleId?: string | null;
+  roleTitle?: string | null;
+  employerSlug?: string | null;
+  employerName?: string | null;
+}
+
 export function buildPassportEntityHref(
   entityId: string,
+  options: PassportApplyContextOptions = {},
 ): string {
-  return `${PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}/${encodeURIComponent(entityId)}`;
+  const params = new URLSearchParams();
+
+  if (typeof options.roleId === 'string' && options.roleId.trim().length > 0) {
+    params.set('role', options.roleId.trim());
+  }
+
+  if (typeof options.roleTitle === 'string' && options.roleTitle.trim().length > 0) {
+    params.set('roleTitle', options.roleTitle.trim());
+  }
+
+  if (typeof options.employerSlug === 'string' && options.employerSlug.trim().length > 0) {
+    params.set('employer', options.employerSlug.trim());
+  }
+
+  if (typeof options.employerName === 'string' && options.employerName.trim().length > 0) {
+    params.set('employerName', options.employerName.trim());
+  }
+
+  const query = params.toString();
+  return `${PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}/${encodeURIComponent(entityId)}${query ? `?${query}` : ''}`;
+}
+
+export function buildExploreApplyHref(
+  npi?: string | null,
+  options: {
+    roleId?: string | null;
+    employerSlug?: string | null;
+  } = {},
+): string {
+  const params = new URLSearchParams();
+
+  if (typeof npi === 'string' && /^\d{10}$/.test(npi.trim())) {
+    params.set('npi', npi.trim());
+  }
+
+  if (typeof options.roleId === 'string' && options.roleId.trim().length > 0) {
+    params.set('apply', options.roleId.trim());
+  }
+
+  if (typeof options.employerSlug === 'string' && options.employerSlug.trim().length > 0) {
+    params.set('organizationSlug', options.employerSlug.trim());
+  }
+
+  const query = params.toString();
+  return `${PUBLIC_WEDGE_ROUTE_TARGETS.exploreEntry}${query ? `?${query}` : ''}`;
 }
 
 export function buildEmployerReviewHref(

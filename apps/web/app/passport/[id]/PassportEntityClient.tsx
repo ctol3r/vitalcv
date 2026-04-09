@@ -7,12 +7,17 @@ import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import type { PassportApplyContextOptions } from '@/lib/trust/public-wedge-parity';
 
 interface PassportEntityClientProps {
   entityId: string;
+  roleContext?: PassportApplyContextOptions;
 }
 
-export default function PassportEntityClient({ entityId }: PassportEntityClientProps) {
+export default function PassportEntityClient({
+  entityId,
+  roleContext,
+}: PassportEntityClientProps) {
   const [passport, setPassport] = useState<PassportData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,5 +69,5 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     );
   }
 
-  return <PassportWallet passport={passport} />;
+  return <PassportWallet passport={passport} roleContext={roleContext} />;
 }

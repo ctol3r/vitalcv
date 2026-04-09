@@ -54,7 +54,11 @@ import {
   type PassportSourceCoverageCheck,
 } from '@/lib/trust/source-coverage';
 import type { VdsTrustStatus } from '@/lib/trust/status-language';
-import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
+import {
+  buildExploreApplyHref,
+  PUBLIC_WEDGE_ROUTE_TARGETS,
+  type PassportApplyContextOptions,
+} from '@/lib/trust/public-wedge-parity';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -240,7 +244,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasLicensure && (
           <AuthorityRow
             title="License verification"
-            status="access required"
+            status="access_required"
             sourceLabel="Configured state board lane"
             note="Access required. Authority remains incomplete until a connected state board lane runs."
           />
@@ -393,7 +397,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const sectionStatus: AccordionItem['status'] =
     rowStatus === 'enrolled'  ? 'checked' :
-    rowStatus === 'review required' ? 'review_required' :
+    rowStatus === 'review_required' ? 'review_required' :
     'pending';
 
   // Build observed-as quarter label
@@ -428,7 +432,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
-        {rowStatus === 'review required' && (
+        {rowStatus === 'review_required' && (
           <div className="py-1.5 text-muted-foreground/40 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
@@ -448,10 +452,12 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
 interface PassportWalletLoadedProps {
   passport: PassportData;
+  roleContext?: PassportApplyContextOptions;
 }
 
 interface PassportWalletLoadingProps {
   loading: true;
+  roleContext?: never;
 }
 
 type Props = PassportWalletLoadedProps | PassportWalletLoadingProps;
@@ -524,7 +530,7 @@ function PassportWalletLoadingShell() {
   );
 }
 
-function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
+function PassportWalletLoaded({ passport, roleContext }: PassportWalletLoadedProps) {
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).posthog) {
       (window as any).posthog.capture('Passport_Viewed', { npi: passport.npi });
@@ -535,6 +541,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [pendingRefreshCount, setPendingRefreshCount] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     const npi = passport.npi ?? passport.identity?.npi;
@@ -558,6 +565,17 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
+  const continuityNpi = passport.npi ?? passport.identity?.npi ?? null;
+  const applyHref = continuityNpi
+    ? buildExploreApplyHref(continuityNpi, {
+      roleId: roleContext?.roleId,
+      employerSlug: roleContext?.employerSlug,
+    })
+    : null;
+  const applyLabel = roleContext?.roleId ? 'Continue to apply' : 'Explore matched roles';
+  const applyDescription = roleContext?.roleId
+    ? `Carry this readiness snapshot into ${roleContext.roleTitle ?? 'the current role'}${roleContext.employerName ? ` at ${roleContext.employerName}` : ''} without re-entering your NPI.`
+    : 'Carry this readiness snapshot into the live role feed without re-entering your NPI.';
 
   // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
@@ -728,6 +746,22 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           </SectionReveal>
         )}
 
+        {applyHref ? (
+          <SectionReveal delay={0.27}>
+            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+              <p className="text-foreground/70 text-sm font-medium">Continue from readiness into action</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {applyDescription}
+              </p>
+              <Button asChild variant="outline" className="h-12 w-full rounded-xl border-border bg-card text-sm font-medium text-foreground/80 hover:border-border hover:bg-card hover:text-foreground">
+                <Link href={applyHref}>
+                  {applyLabel}
+                </Link>
+              </Button>
+            </Card>
+          </SectionReveal>
+        ) : null}
+
         {/* ── Explicit missing items ─────────────────────────────────────── */}
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
           <SectionReveal delay={0.28}>
@@ -813,10 +847,11 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         </SectionReveal>
 
         <SharePacketModal
-          open={shareModalOpen}
+          isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
           npi={passport.npi ?? ''}
-          displayName={identity.displayName}
+          clinicianName={identity.displayName}
+          entityId={''}
         />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}
@@ -843,5 +878,5 @@ export default function PassportWallet(props: Props) {
     return <PassportWalletLoadingShell />;
   }
 
-  return <PassportWalletLoaded passport={props.passport} />;
+  return <PassportWalletLoaded passport={props.passport} roleContext={props.roleContext} />;
 }

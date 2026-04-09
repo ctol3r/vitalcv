@@ -726,6 +726,13 @@ export function buildRecommendedAction(input: {
 }): RecommendedMobileAction | null {
   const completeness = input.profileCompleteness?.score ?? 0;
   const onboardingStarted = completeness > 0;
+  const applicationScopedBlocker = input.blockers.find((blocker) => (
+    Boolean(blocker.relatedApplicationId)
+    && input.activeApplications.some((application) => application.id === blocker.relatedApplicationId)
+  )) ?? null;
+  const inFlightApplication = input.activeApplications.find((application) => (
+    application.status !== 'ACCEPTED' && application.status !== 'DECLINED'
+  )) ?? input.activeApplications[0] ?? null;
 
   if (!input.trustState || completeness < 30) {
     return {
@@ -739,6 +746,26 @@ export function buildRecommendedAction(input: {
     };
   }
 
+  if (applicationScopedBlocker) {
+    return {
+      kind: 'resolve_gap',
+      title: 'Resolve what is left',
+      description: applicationScopedBlocker.detail,
+      href: applicationScopedBlocker.href,
+      ctaLabel: applicationScopedBlocker.nextActionLabel,
+    };
+  }
+
+  if (inFlightApplication) {
+    return {
+      kind: 'view_application',
+      title: 'View your application',
+      description: `${inFlightApplication.opportunity.title} is active and every update will land in one place.`,
+      href: `/holder/applications/${encodeURIComponent(inFlightApplication.id)}`,
+      ctaLabel: 'View application',
+    };
+  }
+
   if (input.blockers[0]) {
     return {
       kind: 'resolve_gap',
@@ -746,16 +773,6 @@ export function buildRecommendedAction(input: {
       description: input.blockers[0].detail,
       href: input.blockers[0].href,
       ctaLabel: input.blockers[0].nextActionLabel,
-    };
-  }
-
-  if (input.activeApplications[0]) {
-    return {
-      kind: 'view_application',
-      title: 'View your application',
-      description: `${input.activeApplications[0].opportunity.title} is active and every update will land in one place.`,
-      href: `/holder/applications/${encodeURIComponent(input.activeApplications[0].id)}`,
-      ctaLabel: 'View application',
     };
   }
 

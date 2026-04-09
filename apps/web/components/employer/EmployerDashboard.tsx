@@ -32,6 +32,7 @@ import {
   buildEmployerValueSignalsSummary,
 } from '@/lib/proof/proof-model';
 import type { EmployerValueSignals } from '@/lib/proof/types';
+import { resolveEmployerApplicationReviewLink } from '@/lib/employer/application-continuity';
 
 type AppStatus = 'PENDING' | 'REVIEWED' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN';
 
@@ -60,6 +61,9 @@ interface EmployerApplication {
     gapSummary: string[];
     keyCredentials: string[];
     trustSignals: string[];
+  } | null;
+  continuity?: {
+    reviewHref: string | null;
   } | null;
   opportunity: {
     id: string;
@@ -220,6 +224,7 @@ function ApplicationRow({
   const proofMoments = signalSummary
     ? [signalSummary.summary, ...signalSummary.preparedContext].slice(0, 4)
     : buildEmployerApplicationProofMoments(application);
+  const reviewLink = resolveEmployerApplicationReviewLink(application);
 
   return (
     <div className="rounded-2xl border border-white/8 bg-muted p-5 transition-all hover:bg-muted hover:border-border group cursor-pointer block">
@@ -276,8 +281,8 @@ function ApplicationRow({
           <div className="text-xs font-medium text-muted-foreground text-right">
             Applied {relativeTime(application.createdAt)}
           </div>
-          <Link href={`/verifier/inbox`} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
-            Review & Verify
+          <Link href={reviewLink.href} className="rounded-xl border border-border bg-muted px-4 py-2 text-xs font-bold text-foreground transition-all group-hover:bg-emerald-500 group-hover:text-foreground group-hover:border-emerald-500">
+            {reviewLink.label}
           </Link>
         </div>
       </div>

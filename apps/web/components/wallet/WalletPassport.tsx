@@ -186,6 +186,15 @@ export function WalletPassport({
     return trustState?.facts.slice(0, 4) ?? [];
   }, [trustState?.facts]);
 
+  const nextExpiry = useMemo(() => {
+    if (!trustState?.facts) return null;
+    const futureExpiries = trustState.facts
+      .map(f => (f.expiresAt ? new Date(f.expiresAt).getTime() : null))
+      .filter((time): time is number => time !== null && time > Date.now())
+      .sort((a, b) => a - b);
+    return futureExpiries.length > 0 ? futureExpiries[0] : null;
+  }, [trustState?.facts]);
+
   if (loading && !trustState) {
     return (
       <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/75 p-5 text-foreground">
@@ -261,7 +270,12 @@ export function WalletPassport({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          {nextExpiry ? (
+            <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+              Next expiry: {new Date(nextExpiry).toLocaleDateString()}
+            </span>
+          ) : null}
           <SanctionRiskBadge
             hasRisk={!trustState.exclusionClear}
             label={trustState.exclusionClear ? 'Sanctions clear' : 'Sanctions need review'}

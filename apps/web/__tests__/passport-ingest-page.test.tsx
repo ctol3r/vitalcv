@@ -4,12 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PassportPage from '../app/passport/page';
 import { createInitialIngestStreamState, type IngestStreamState } from '../hooks/ingestStreamState';
 import {
+  buildExploreApplyHref,
   buildEmployerReviewHref,
   buildPassportEntityHref,
 } from '../lib/trust/public-wedge-parity';
 
 const useIngestStreamMock = vi.fn();
-const searchParamsState = { npi: null as string | null };
+const searchParamsState = {
+  npi: null as string | null,
+  role: null as string | null,
+  employer: null as string | null,
+};
 
 vi.mock('@/hooks/useIngestStream', () => ({
   useIngestStream: () => useIngestStreamMock(),
@@ -17,8 +22,15 @@ vi.mock('@/hooks/useIngestStream', () => ({
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => (
-    searchParamsState.npi
-      ? { get: (key: string) => (key === 'npi' ? searchParamsState.npi : null) }
+    searchParamsState.npi || searchParamsState.role || searchParamsState.employer
+      ? {
+          get: (key: string) => {
+            if (key === 'npi') return searchParamsState.npi;
+            if (key === 'role') return searchParamsState.role;
+            if (key === 'employer') return searchParamsState.employer;
+            return null;
+          },
+        }
       : null
   ),
 }));
@@ -71,6 +83,8 @@ describe('/passport ingest page', () => {
   beforeEach(() => {
     useIngestStreamMock.mockReset();
     searchParamsState.npi = null;
+    searchParamsState.role = null;
+    searchParamsState.employer = null;
   });
 
   it('renders loading copy and queued source lanes while the ingest is still running', () => {
@@ -128,8 +142,48 @@ describe('/passport ingest page', () => {
 
     expect(markup).toContain('View full passport');
     expect(markup).toContain(buildPassportEntityHref('entity-1'));
+    expect(markup).toContain('Explore matched roles');
+    expect(markup).toContain(buildExploreApplyHref('1234567890'));
     expect(markup).toContain('View as employer');
     expect(markup).toContain(buildEmployerReviewHref('entity-1'));
+  });
+
+  it('keeps role-context apply continuity once the passport is usable', () => {
+    searchParamsState.npi = '1234567890';
+    searchParamsState.role = 'opp_1';
+    searchParamsState.employer = 'legacy-health';
+
+    const markup = renderForState(buildState({
+      phase: 'done',
+      completedAt: '2026-04-08T12:00:00.000Z',
+      npi: '1234567890',
+      isUsable: true,
+      anchorEntityId: 'entity-1',
+      identity: {
+        authoritative: true,
+        displayName: 'Ada Lovelace',
+        specialty: 'Family Medicine',
+      },
+      sources: {
+        nppes: 'done',
+        oig: 'done',
+        pecos: 'done',
+      },
+    }));
+
+    expect(markup).toContain('Continue to apply');
+    expect(markup).toContain(
+      buildPassportEntityHref('entity-1', {
+        roleId: 'opp_1',
+        employerSlug: 'legacy-health',
+      }).replaceAll('&', '&amp;'),
+    );
+    expect(markup).toContain(
+      buildExploreApplyHref('1234567890', {
+        roleId: 'opp_1',
+        employerSlug: 'legacy-health',
+      }).replaceAll('&', '&amp;'),
+    );
   });
 
   it('renders an honest no-profile state when NPPES did not return an authoritative record', () => {

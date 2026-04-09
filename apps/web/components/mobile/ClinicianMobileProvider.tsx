@@ -84,6 +84,10 @@ function shouldAdoptCachedDashboard(current: ClinicianMobileData, cached: Clinic
   return parseTimestamp(cached.refreshedAt) > parseTimestamp(current.refreshedAt);
 }
 
+function preferFresherDashboard(current: ClinicianMobileData, incoming: ClinicianMobileData): ClinicianMobileData {
+  return shouldAdoptCachedDashboard(incoming, current) ? current : incoming;
+}
+
 export function ClinicianMobileProvider({
   initialData,
   children,
@@ -262,7 +266,7 @@ export function ClinicianMobileProvider({
         }
 
         setIsOffline(false);
-        setData(payload);
+        setData((current) => preferFresherDashboard(current, payload));
         lastRefreshRequestAtRef.current = Date.now();
       } catch (error) {
         setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);

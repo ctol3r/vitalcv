@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TrustLabel } from '@/components/ui/trust-label';
 import {
+  buildExploreApplyHref,
   PUBLIC_WEDGE_ROUTE_TARGETS,
   PUBLIC_WEDGE_SURFACE_STATES,
   buildEmployerReviewHref,
@@ -43,6 +44,10 @@ describe('public wedge parity helpers', () => {
     );
     expect(buildPassportLookupHref(null)).toBe(PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry);
     expect(buildPassportEntityHref('entity_123')).toBe('/passport/entity_123');
+    expect(buildExploreApplyHref('1234567890', {
+      roleId: 'opp_123',
+      employerSlug: 'providence',
+    })).toBe('/explore?npi=1234567890&apply=opp_123&organizationSlug=providence');
     expect(buildEmployerReviewHref('entity_123', {
       contextId: 'ctx_abc123',
       bundleId: 'bundle_123',
@@ -131,6 +136,7 @@ describe('public wedge parity helpers', () => {
   });
 
   it('employer entry route target resolves to /review', () => {
+    expect(PUBLIC_WEDGE_ROUTE_TARGETS.exploreEntry).toBe('/explore');
     expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry).toBe('/review');
     expect(PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry).toBe('/review/request');
     expect(PUBLIC_WEDGE_ROUTE_TARGETS.developersEntry).toBe('/developers');

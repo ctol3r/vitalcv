@@ -15,6 +15,7 @@ import { PilotFailureSignal } from '@/components/pilot-ops/PilotFailureSignal';
 import { SupportActionButton } from '@/components/pilot-ops/SupportActionButton';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
+import { buildMobileFreshnessState } from '@/lib/mobile/freshness';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
@@ -84,6 +85,7 @@ export default function ClinicianReadinessSurface() {
   const npi = data.workspace?.personProfile?.npi ?? 'unknown';
   const completedProfileChecks = countCompletedProfileChecks(data.profileCompleteness?.dimensions);
   const fromOnboarding = searchParams.get('from') === 'onboarding';
+  const freshness = buildMobileFreshnessState(data.refreshedAt);
   const primaryAction = data.blockers[0]
     ? {
         eyebrow: data.blockers.length === 1 && (current?.readinessScore ?? 0) >= 80 ? 'You are close' : 'What\'s left',
@@ -222,6 +224,27 @@ export default function ClinicianReadinessSurface() {
           />
         </div>
       ) : null}
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className={`rounded-[24px] border p-4 ${
+          freshness.isStale
+            ? 'border-amber-400/20 bg-amber-400/10'
+            : freshness.isAging
+              ? 'border-sky-400/20 bg-sky-400/10'
+              : 'border-emerald-400/20 bg-emerald-400/10'
+        }`}>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/60">Freshness</p>
+          <p className="mt-3 text-lg font-semibold text-white">{freshness.label}</p>
+          <p className="mt-2 text-sm leading-6 text-white/75">{freshness.detail}</p>
+        </div>
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/60">Profile and passport progress</p>
+          <p className="mt-3 text-lg font-semibold text-white">{completedProfileChecks}/5 checks completed</p>
+          <p className="mt-2 text-sm leading-6 text-white/75">
+            Your profile completion and readiness history move together so the next required step stays visible on repeat visits.
+          </p>
+        </div>
+      </section>
 
       {fromOnboarding ? (
         <section className="rounded-[28px] border border-emerald-400/20 bg-emerald-400/10 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">

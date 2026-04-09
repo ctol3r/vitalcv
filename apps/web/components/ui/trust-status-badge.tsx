@@ -21,20 +21,10 @@ const VDS_STATUS_META: Record<SupplementalVdsTrustStatus, { className: string; l
       'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
     label: getVdsTrustStatusLabel('enrolled'),
   },
-  'review required': {
-    className:
-      'border-transparent bg-[var(--vt-badge-unavailable-bg)] text-[var(--vt-badge-unavailable-text)]',
-    label: getVdsTrustStatusLabel('review required'),
-  },
-  'access required': {
+  not_decision_grade: {
     className:
       'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
-    label: getVdsTrustStatusLabel('access required'),
-  },
-  'not decision-grade': {
-    className:
-      'border-transparent bg-[var(--vt-badge-access-bg)] text-[var(--vt-badge-access-text)]',
-    label: getVdsTrustStatusLabel('not decision-grade'),
+    label: getVdsTrustStatusLabel('not_decision_grade'),
   },
   blocked: {
     className:
@@ -82,14 +72,14 @@ function resolveTrustBadgeIcon(status: TrustBadgeStatus) {
     case 'stale':
       return Clock3;
     case 'access_required':
-    case 'access required':
-    case 'not decision-grade':
+    
+    case 'not_decision_grade':
       return Lock;
     case 'demo':
     case 'preview_only':
       return Eye;
     case 'review_required':
-    case 'review required':
+    
     case 'blocked':
     case 'unavailable':
     default:

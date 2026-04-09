@@ -115,6 +115,10 @@ export interface ApplicationReadinessSummary {
   trustSignals: string[];
 }
 
+export interface ApplicationContinuitySummary {
+  reviewHref: string | null;
+}
+
 export interface MarketplaceApplication {
   id: string;
   opportunityId: string;
@@ -130,6 +134,7 @@ export interface MarketplaceApplication {
   provider: ApplicationProviderSummary | null;
   employer: ApplicationEmployerSummary;
   readiness: ApplicationReadinessSummary | null;
+  continuity: ApplicationContinuitySummary;
   latestRecommendation: HiringRecommendationPreview | null;
   timeline: HiringTimelineEvent[];
   systemBehavesAutonomously: boolean;
@@ -389,6 +394,16 @@ function employerAcceptanceKey(organizationId: string, clinicianNpi: string): st
   return `${organizationId}:${clinicianNpi}`;
 }
 
+function buildApplicationContinuity(
+  providerNpi: string | null,
+): ApplicationContinuitySummary {
+  return {
+    reviewHref: providerNpi && NPI_RE.test(providerNpi)
+      ? `/review/${providerNpi}`
+      : null,
+  };
+}
+
 function automationEnabledForApplication(application: ApplicationRecord): boolean {
   const requirements = application.opportunity.organization.organizationProfile?.requirements;
   const envelope = parseOrganizationRequirementsEnvelope(requirements, []);
@@ -605,6 +620,7 @@ async function hydrateApplications(
         name: application.opportunity.organization.name ?? null,
       },
       readiness: readiness ? buildReadinessSummary(readiness) : null,
+      continuity: buildApplicationContinuity(application.npi ?? providerNpi),
       latestRecommendation,
       timeline: buildHiringTimeline({
         status: application.status,
@@ -666,6 +682,7 @@ async function hydrateApplication(
         name: application.opportunity.organization.name ?? null,
       },
       readiness: readiness ? buildReadinessSummary(readiness) : null,
+      continuity: buildApplicationContinuity(application.npi ?? provider?.npi ?? null),
       latestRecommendation,
       timeline: buildHiringTimeline({
         status: application.status,

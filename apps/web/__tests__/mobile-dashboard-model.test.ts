@@ -254,4 +254,288 @@ describe('mobile dashboard model helpers', () => {
       ctaLabel: 'Upload evidence',
     });
   });
+
+  it('keeps the holder next action anchored to an in-flight application when only generic blockers remain', () => {
+    const applications = normalizeClinicianApplications([
+      {
+        id: 'app_1',
+        opportunityId: 'opp_1',
+        status: 'REVIEWED',
+        createdAt: '2026-03-19T13:00:00.000Z',
+        updatedAt: '2026-03-20T09:00:00.000Z',
+        reviewedAt: '2026-03-20T09:00:00.000Z',
+        employer: { organizationId: 'org_1', name: 'Bay Area Cardiac Group' },
+        opportunity: {
+          id: 'opp_1',
+          organizationId: 'org_1',
+          organizationName: 'Bay Area Cardiac Group',
+          title: 'Cardiology Lead',
+          specialty: 'Cardiology',
+          hiringType: 'perm',
+          state: 'CA',
+          payRange: '$320k-$360k',
+          status: 'ACTIVE',
+        },
+        readiness: {
+          readinessScore: 84,
+          readinessLevel: 'L2',
+          readinessStatus: 'Mostly ready - missing evidence',
+          gapSummary: [],
+          keyCredentials: ['NPI identity verified'],
+          trustSignals: ['NPI identity verified'],
+        },
+      },
+    ]);
+
+    const data = buildClinicianMobileData({
+      base: {
+        signedIn: true,
+        workspace: {
+          personProfile: {
+            npi: '1234567890',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            specialty: 'Cardiology',
+            stateOfPractice: 'CA',
+            completeness: 88,
+          },
+        },
+        trustState: normalizeMobileTrustState({
+          npi: '1234567890',
+          readiness_level: 'L2',
+          readiness_score: 84,
+          readiness_status: 'Mostly ready - missing evidence',
+          trustBand: 'L2',
+          trustScore: 84,
+          gap_summary: ['DEA verification pending'],
+          computedAt: '2026-03-20T10:00:00.000Z',
+        }),
+        applications,
+        opportunities: [],
+        missingForHigherMatches: [],
+        refreshedAt: '2026-03-20T10:00:00.000Z',
+      },
+      profileCompleteness: {
+        score: 88,
+        dimensions: {
+          npiVerified: true,
+          resumeUploaded: true,
+          linksAdded: true,
+          workAuthProvided: true,
+          credentialsImported: true,
+        },
+      },
+      rawTrustHistory: [],
+    });
+
+    expect(data.blockers[0]?.label).toBe('DEA verification pending');
+    expect(data.recommendedAction).toMatchObject({
+      kind: 'view_application',
+      href: '/holder/applications/app_1',
+      ctaLabel: 'View application',
+    });
+  });
+
+  it('keeps an application-specific blocker as the holder next action after apply', () => {
+    const applications = normalizeClinicianApplications([
+      {
+        id: 'app_1',
+        opportunityId: 'opp_1',
+        status: 'REVIEWED',
+        createdAt: '2026-03-19T13:00:00.000Z',
+        updatedAt: '2026-03-20T09:00:00.000Z',
+        reviewedAt: '2026-03-20T09:00:00.000Z',
+        employer: { organizationId: 'org_1', name: 'Bay Area Cardiac Group' },
+        opportunity: {
+          id: 'opp_1',
+          organizationId: 'org_1',
+          organizationName: 'Bay Area Cardiac Group',
+          title: 'Cardiology Lead',
+          specialty: 'Cardiology',
+          hiringType: 'perm',
+          state: 'CA',
+          payRange: '$320k-$360k',
+          status: 'ACTIVE',
+        },
+        readiness: {
+          readinessScore: 84,
+          readinessLevel: 'L2',
+          readinessStatus: 'Mostly ready - missing evidence',
+          gapSummary: ['State license evidence missing'],
+          keyCredentials: ['NPI identity verified'],
+          trustSignals: ['NPI identity verified'],
+        },
+        latestRecommendation: {
+          actionType: 'UPLOAD_EVIDENCE',
+          label: 'Upload license evidence',
+          explanation: 'Employer review cannot proceed until updated license evidence is attached.',
+        },
+      },
+    ]);
+
+    const data = buildClinicianMobileData({
+      base: {
+        signedIn: true,
+        workspace: {
+          personProfile: {
+            npi: '1234567890',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            specialty: 'Cardiology',
+            stateOfPractice: 'CA',
+            completeness: 88,
+          },
+        },
+        trustState: normalizeMobileTrustState({
+          npi: '1234567890',
+          readiness_level: 'L2',
+          readiness_score: 84,
+          readiness_status: 'Mostly ready - missing evidence',
+          trustBand: 'L2',
+          trustScore: 84,
+          gap_summary: [],
+          computedAt: '2026-03-20T10:00:00.000Z',
+        }),
+        applications,
+        opportunities: [],
+        missingForHigherMatches: [],
+        refreshedAt: '2026-03-20T10:00:00.000Z',
+      },
+      profileCompleteness: {
+        score: 88,
+        dimensions: {
+          npiVerified: true,
+          resumeUploaded: true,
+          linksAdded: true,
+          workAuthProvided: true,
+          credentialsImported: true,
+        },
+      },
+      rawTrustHistory: [],
+    });
+
+    expect(data.recommendedAction).toMatchObject({
+      kind: 'resolve_gap',
+      ctaLabel: 'Upload evidence',
+    });
+  });
+
+  it('keeps the holder next action anchored to the in-flight application even when new roles remain visible', () => {
+    const applications = normalizeClinicianApplications([
+      {
+        id: 'app_1',
+        opportunityId: 'opp_1',
+        status: 'PENDING',
+        createdAt: '2026-03-19T13:00:00.000Z',
+        updatedAt: '2026-03-20T09:00:00.000Z',
+        employer: { organizationId: 'org_1', name: 'Bay Area Cardiac Group' },
+        opportunity: {
+          id: 'opp_1',
+          organizationId: 'org_1',
+          organizationName: 'Bay Area Cardiac Group',
+          title: 'Cardiology Lead',
+          specialty: 'Cardiology',
+          hiringType: 'perm',
+          state: 'CA',
+          payRange: '$320k-$360k',
+          status: 'ACTIVE',
+        },
+        readiness: {
+          readinessScore: 91,
+          readinessLevel: 'L3',
+          readinessStatus: 'Ready to credential',
+          gapSummary: [],
+          keyCredentials: ['State license'],
+          trustSignals: ['NPI identity verified'],
+        },
+      },
+    ]);
+
+    const opportunities = buildMobileOpportunityCards({
+      opportunities: [
+        {
+          id: 'opp_2',
+          organizationId: 'org_2',
+          organizationName: 'MindBridge Health',
+          organizationSlug: 'mindbridge-health',
+          title: 'Telepsychiatry Director',
+          specialty: 'Psychiatry',
+          hiringType: 'telehealth',
+          state: 'CA',
+          payRange: '$280k-$310k',
+          requirementLevel: 'L2',
+          description: null,
+          remote: true,
+          status: 'ACTIVE',
+          createdAt: '2026-03-20T12:00:00.000Z',
+        },
+      ],
+      applications,
+      matchPayload: {
+        npi: '1234567890',
+        clinicianName: 'Ada Lovelace',
+        specialty: 'Cardiology',
+        state: 'CA',
+        missingForHigherMatches: [],
+        matches: [
+          {
+            opportunityId: 'opp_2',
+            band: 'CLEAR',
+            score: 98,
+            blockers: [],
+            fitReasons: ['Telehealth ready'],
+          },
+        ],
+      },
+      specialty: 'Cardiology',
+      state: 'CA',
+    });
+
+    const data = buildClinicianMobileData({
+      base: {
+        signedIn: true,
+        workspace: {
+          personProfile: {
+            npi: '1234567890',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            specialty: 'Cardiology',
+            stateOfPractice: 'CA',
+            completeness: 88,
+          },
+        },
+        trustState: normalizeMobileTrustState({
+          npi: '1234567890',
+          readiness_level: 'L3',
+          readiness_score: 91,
+          readiness_status: 'Ready to credential',
+          trustBand: 'L3',
+          trustScore: 91,
+          gap_summary: [],
+          computedAt: '2026-03-20T10:00:00.000Z',
+        }),
+        applications,
+        opportunities,
+        missingForHigherMatches: [],
+        refreshedAt: '2026-03-20T10:00:00.000Z',
+      },
+      profileCompleteness: {
+        score: 88,
+        dimensions: {
+          npiVerified: true,
+          resumeUploaded: true,
+          linksAdded: true,
+          workAuthProvided: true,
+          credentialsImported: true,
+        },
+      },
+      rawTrustHistory: [],
+    });
+
+    expect(data.recommendedAction).toMatchObject({
+      kind: 'view_application',
+      href: '/holder/applications/app_1',
+      ctaLabel: 'View application',
+    });
+  });
 });

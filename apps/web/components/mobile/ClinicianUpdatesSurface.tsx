@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { BellRing, RefreshCw } from 'lucide-react';
 import { ApplicationList, NotificationList } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
+import { buildMobileFreshnessState } from '@/lib/mobile/freshness';
 
 export default function ClinicianUpdatesSurface() {
   const {
@@ -22,6 +24,8 @@ export default function ClinicianUpdatesSurface() {
   } = useClinicianMobile();
   const npi = data.workspace?.personProfile?.npi ?? 'unknown';
   const applicationNotifications = visibleNotifications.filter((notification) => Boolean(notification.relatedApplicationId));
+  const freshness = buildMobileFreshnessState(data.refreshedAt);
+  const latestChange = visibleNotifications[0] ?? null;
 
   React.useEffect(() => {
     void trackClinicianEventOncePerSession(`application-status:${npi}`, 'clinician.application_status_viewed', {
@@ -85,6 +89,42 @@ export default function ClinicianUpdatesSurface() {
           actionLabel="Return to roles"
         />
       ) : null}
+
+      <section className={`rounded-[28px] border p-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)] ${
+        freshness.isStale
+          ? 'border-amber-400/20 bg-amber-400/10'
+          : freshness.isAging
+            ? 'border-sky-400/20 bg-sky-400/10'
+            : 'border-emerald-400/20 bg-emerald-400/10'
+      }`}>
+        <p className={`text-[11px] uppercase tracking-[0.18em] ${
+          freshness.isStale
+            ? 'text-amber-100/80'
+            : freshness.isAging
+              ? 'text-sky-100/80'
+              : 'text-emerald-100/80'
+        }`}>
+          State continuity
+        </p>
+        <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold text-white">
+              {latestChange ? latestChange.title : freshness.label}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-white/85">
+              {latestChange?.body ?? freshness.detail}
+            </p>
+          </div>
+          {latestChange ? (
+            <Link
+              href={latestChange.href}
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-white/90"
+            >
+              {latestChange.ctaLabel}
+            </Link>
+          ) : null}
+        </div>
+      </section>
 
       <NotificationList
         notifications={visibleNotifications}

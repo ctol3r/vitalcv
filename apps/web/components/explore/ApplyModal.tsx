@@ -21,9 +21,10 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
+import { buildApplyContinuationHref } from '@/lib/apply-continuity';
 
 interface Opportunity {
   id: string;
@@ -109,6 +110,8 @@ export default function ApplyModal({
   onClose,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const {
     clinicianNpi,
     isClinician,
@@ -124,8 +127,12 @@ export default function ApplyModal({
   const [submittedApplication, setSubmittedApplication] = useState<MobileApplication | null>(null);
 
   const returnUrl = useMemo(
-    () => `/explore?apply=${encodeURIComponent(opportunity?.id ?? '')}`,
-    [opportunity?.id],
+    () => buildApplyContinuationHref({
+      pathname,
+      search: searchParams,
+      opportunityId: opportunity?.id ?? null,
+    }),
+    [opportunity?.id, pathname, searchParams],
   );
   const signInHref = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
   const onboardingHref = `/onboarding?returnTo=${encodeURIComponent(returnUrl)}`;

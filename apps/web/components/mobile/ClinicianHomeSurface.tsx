@@ -21,7 +21,9 @@ import type { MobileQuickAction } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import type { ClinicianNotification } from '@/lib/mobile/clinician-state';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
+import { buildMobileFreshnessState } from '@/lib/mobile/freshness';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
 function resumeLabel(path: string | null): { title: string; href: string } | null {
@@ -117,7 +119,8 @@ export default function ClinicianHomeSurface() {
   const changesSinceLastVisit = previousVisitMs > 0
     ? visibleNotifications.filter((notification) => Date.parse(notification.occurredAt) > previousVisitMs)
     : [];
-  const highlightedChange = changesSinceLastVisit[0] ?? unreadNotifications[0] ?? null;
+  const highlightedChange: ClinicianNotification | null = changesSinceLastVisit[0] ?? unreadNotifications[0] ?? null;
+  const freshness = buildMobileFreshnessState(data.refreshedAt);
   const readinessMomentum = readinessMomentumCopy({
     hasReadiness: Boolean(readiness),
     blockers: data.blockers.length,
@@ -133,12 +136,19 @@ export default function ClinicianHomeSurface() {
         label: 'Continue',
         tone: 'sky' as const,
       }
+    : highlightedChange
+      ? {
+          eyebrow: changesSinceLastVisit[0] ? 'Latest change' : 'Unread update',
+          title: highlightedChange.title,
+          detail: highlightedChange.body,
+          href: highlightedChange.href,
+          label: highlightedChange.ctaLabel,
+          tone: 'amber' as const,
+        }
     : {
         eyebrow: data.recommendedAction?.kind === 'finish_onboarding' ? 'Start here' : 'Next step',
         title: data.recommendedAction?.title ?? 'Open your your readiness',
-        detail: highlightedChange
-          ? `${data.recommendedAction?.description ?? 'Keep your verified identity ready to share.'} Latest: ${highlightedChange.title}.`
-          : data.recommendedAction?.description ?? 'Keep your verified identity ready to share.',
+        detail: data.recommendedAction?.description ?? 'Keep your verified identity ready to share.',
         href: data.recommendedAction?.href ?? '/holder',
         label: data.recommendedAction?.kind === 'resolve_gap'
           ? data.recommendedAction.ctaLabel
@@ -241,10 +251,16 @@ export default function ClinicianHomeSurface() {
       <section className={`rounded-[28px] border p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)] ${
         primaryAction.tone === 'sky'
           ? 'border-sky-400/20 bg-sky-400/10'
-          : 'border-emerald-400/20 bg-emerald-400/10'
+          : primaryAction.tone === 'amber'
+            ? 'border-amber-400/20 bg-amber-400/10'
+            : 'border-emerald-400/20 bg-emerald-400/10'
       }`}>
         <p className={`text-[11px] uppercase tracking-[0.18em] ${
-          primaryAction.tone === 'sky' ? 'text-sky-100/80' : 'text-emerald-100/80'
+          primaryAction.tone === 'sky'
+            ? 'text-sky-100/80'
+            : primaryAction.tone === 'amber'
+              ? 'text-amber-100/80'
+              : 'text-emerald-100/80'
         }`}>
           {primaryAction.eyebrow}
         </p>
@@ -252,13 +268,21 @@ export default function ClinicianHomeSurface() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-white">{primaryAction.title}</h2>
             <p className={`mt-2 text-sm leading-6 ${
-              primaryAction.tone === 'sky' ? 'text-sky-50/85' : 'text-emerald-50/85'
+              primaryAction.tone === 'sky'
+                ? 'text-sky-50/85'
+                : primaryAction.tone === 'amber'
+                  ? 'text-amber-50/85'
+                  : 'text-emerald-50/85'
             }`}>
               {primaryAction.detail}
             </p>
             {highlightedChange?.occurredAt ? (
               <p className={`mt-3 text-xs ${
-                primaryAction.tone === 'sky' ? 'text-sky-100/70' : 'text-emerald-100/70'
+                primaryAction.tone === 'sky'
+                  ? 'text-sky-100/70'
+                  : primaryAction.tone === 'amber'
+                    ? 'text-amber-100/70'
+                    : 'text-emerald-100/70'
               }`}>
                 Latest change recorded {new Date(highlightedChange.occurredAt).toLocaleString([], {
                   month: 'short',
@@ -287,9 +311,13 @@ export default function ClinicianHomeSurface() {
               <h2 className="mt-3 text-2xl font-semibold text-white">
                 {readiness?.readinessStatus ?? 'Readiness analysis in progress...'}
               </h2>
-              <p className="mt-2 text-sm text-white/60">
-                Last synced {new Date(data.refreshedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              <p
+                className="mt-2 text-sm text-white/60"
+                title={freshness.absoluteLabel ?? undefined}
+              >
+                {freshness.label}
               </p>
+              <p className="mt-1 text-sm text-white/45">{freshness.detail}</p>
             </div>
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-right">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Trust</p>

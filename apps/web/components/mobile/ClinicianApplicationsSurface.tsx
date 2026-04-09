@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BriefcaseBusiness, ClipboardList } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { applicationStatusLabel, applicationStatusTone } from '@/lib/mobile/dashboard';
+import { buildMobileFreshnessState } from '@/lib/mobile/freshness';
 import { buildApplicationProofMoments, buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
 function toneClasses(tone: ReturnType<typeof applicationStatusTone>): string {
@@ -59,6 +60,8 @@ export default function ClinicianApplicationsSurface() {
   const activeApplications = data.activeApplications;
   const followUpCount = data.blockers.filter((blocker) => blocker.relatedApplicationId).length;
   const acceptedCount = activeApplications.filter((application) => application.status === 'ACCEPTED').length;
+  const freshestOpportunity = data.availableOpportunities[0] ?? data.opportunities.find((opportunity) => !opportunity.application) ?? null;
+  const freshness = buildMobileFreshnessState(data.refreshedAt);
   const proof = buildClinicianProofSummary(data);
 
   return (
@@ -86,6 +89,63 @@ export default function ClinicianApplicationsSurface() {
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
           <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Needs follow-up</p>
           <p className="mt-2 text-3xl font-semibold text-amber-100">{followUpCount}</p>
+        </div>
+      </section>
+
+      <section className={`rounded-[32px] border p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)] ${
+        freshness.isStale
+          ? 'border-amber-400/20 bg-amber-400/10'
+          : freshness.isAging
+            ? 'border-sky-400/20 bg-sky-400/10'
+            : 'border-emerald-400/20 bg-emerald-400/10'
+      }`}>
+        <p className={`text-[11px] uppercase tracking-[0.18em] ${
+          freshness.isStale
+            ? 'text-amber-100/80'
+            : freshness.isAging
+              ? 'text-sky-100/80'
+              : 'text-emerald-100/80'
+        }`}>
+          Utility continuity
+        </p>
+        <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold text-white">
+              {activeApplications[0]
+                ? 'Application state stays attached to your readiness'
+                : 'No application is in motion yet'}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-white/85">
+              {activeApplications[0]
+                ? freshness.detail
+                : freshestOpportunity
+                  ? `Next recorded step: ${freshestOpportunity.title}`
+                  : data.recommendedAction?.description ?? freshness.detail}
+            </p>
+            {freshestOpportunity && !activeApplications[0] ? (
+              <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/65">Apply now</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {freshestOpportunity && !activeApplications[0] ? (
+              <>
+                <Link
+                  href={`/holder/opportunities?apply=${encodeURIComponent(freshestOpportunity.id)}`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-white/90"
+                >
+                  Apply to best match
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={`/opportunities/${encodeURIComponent(freshestOpportunity.id)}`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+                >
+                  Apply now
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
+            ) : null}
+          </div>
         </div>
       </section>
 
@@ -235,7 +295,9 @@ export default function ClinicianApplicationsSurface() {
           </div>
           <h2 className="mt-5 text-2xl font-semibold text-white">No live applications yet</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
-            Your submitted applications and every status change will appear here.
+            {freshestOpportunity
+              ? `Next recorded step: ${freshestOpportunity.title}`
+              : 'Your submitted applications and every status change will appear here.'}
           </p>
           <Link
             href="/holder/opportunities"
