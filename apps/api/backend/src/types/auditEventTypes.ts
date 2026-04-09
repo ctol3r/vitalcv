@@ -28,7 +28,9 @@ export type EmployerReviewEventType =
   | 'EMPLOYER_REVIEW_ACCEPTED'
   | 'EMPLOYER_REVIEW_REFRESH_REQUESTED'
   | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW'
-  | 'EMPLOYER_PACKET_SHARED';
+  | 'EMPLOYER_PACKET_SHARED'
+  | 'APPLICATION_MISSING_INFO_REQUESTED'
+  | 'APPLICATION_MISSING_INFO_CLOSED';
 
 // ── Trust chain (wedge domain) ───────────────────────────────
 export type TrustChainEventType =

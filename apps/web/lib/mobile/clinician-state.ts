@@ -598,7 +598,8 @@ function buildApplicationNotifications(applications: readonly MobileApplication[
       type: 'application_status_changed',
       occurredAt: application.updatedAt,
       title: `Application ${application.status.toLowerCase().replace(/_/g, ' ')}`,
-      body: application.latestRecommendation?.explanation
+      body: application.reviewNote
+        ?? application.latestRecommendation?.explanation
         ?? `${application.opportunity.title} is now ${application.status.toLowerCase().replace(/_/g, ' ')}.`,
       href: `/holder/applications/${encodeURIComponent(application.id)}`,
       ctaLabel: 'View application',
