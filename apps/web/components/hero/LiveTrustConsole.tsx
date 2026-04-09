@@ -533,7 +533,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   setNpi(e.target.value.replace(/\D/g, ''));
                 }}
                 placeholder="Enter 10-digit NPI"
-                className={`h-14 min-w-0 flex-1 rounded-xl border-border bg-card px-4 text-center text-[16px] text-foreground placeholder:text-muted-foreground shadow-sm transition-[border-color,box-shadow] duration-150 focus-visible:border-primary/40 focus-visible:ring-ring sm:text-left ${
+                style={{ height: '3.5rem', minHeight: '3.5rem' }}
+                className={`min-w-0 flex-1 rounded-xl border-border bg-card px-4 py-3 text-center text-[16px] text-foreground placeholder:text-muted-foreground shadow-sm transition-[border-color,box-shadow] duration-150 focus-visible:border-primary/40 focus-visible:ring-ring sm:text-left ${
                   phase === 'idle' && !npi
                     ? '[animation:vcv-input-pulse_2.5s_ease-in-out_infinite]'
                     : ''
