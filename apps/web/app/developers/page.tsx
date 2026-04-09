@@ -81,7 +81,7 @@ const ROUTE_FAMILIES = [
   },
   {
     title: 'Wallet sync',
-    detail: 'Current mobile wallet sync surface used by the Expo client.',
+    detail: 'Current mobile mobile wallet preview surface used by the Expo client.',
     routes: [
       'GET /api/credentials/wallet',
       'GET /api/credentials/wallet/:subject/summary',
@@ -120,7 +120,7 @@ export default function DevelopersPage() {
             <p className="text-base leading-7 text-muted-foreground">
               This page intentionally stays narrow. It documents the current integration truth:
               source-backed identity ingest, passport retrieval, employer review actions,
-              workspace context, pilot reporting, and wallet sync.
+              workspace context, pilot reporting, and mobile wallet preview.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
