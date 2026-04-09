@@ -16,6 +16,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { log } from '../../obs/logger';
+import { fetchWithRetry } from '../../utils/fetchWithRetry';
 
 const LEIE_CSV_URL = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv';
 const REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24h
@@ -507,17 +508,11 @@ async function refresh(): Promise<void> {
   const startedAt = Date.now();
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT);
-    const response = await fetch(LEIE_CSV_URL, {
-      signal: controller.signal,
-      headers: { Accept: 'text/csv,text/plain,*/*' },
-    });
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      throw new Error(`LEIE CSV HTTP ${response.status}`);
-    }
+    const response = await fetchWithRetry(
+      LEIE_CSV_URL,
+      { headers: { Accept: 'text/csv,text/plain,*/*' } },
+      { maxRetries: 2, baseDelayMs: 1000, timeoutMs: DOWNLOAD_TIMEOUT, label: 'leie_csv' },
+    );
 
     const csv = await response.text();
     const baseEntries = buildEntriesFromCsv(csv);

@@ -34,7 +34,7 @@ const SCOPE_GUARDS = [
 
 export default function PilotPage() {
   return (
-    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
+    <main className="bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-4xl space-y-10">
         <div className="space-y-4">
           <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">

@@ -49,13 +49,19 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
 
   return (
     <div className="relative flex min-h-screen flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-background"
+      >
+        Skip to content
+      </a>
       <Navbar />
       {clerkEnabled ? (
         <SignedIn>
           <WorkspaceSwitcher />
         </SignedIn>
       ) : null}
-      <div className="relative flex-1">{children}</div>
+      <div id="main-content" className="relative flex-1">{children}</div>
       <Footer />
       <FeedbackButton />
       {clerkEnabled ? (

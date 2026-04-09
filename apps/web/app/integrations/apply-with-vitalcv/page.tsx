@@ -37,7 +37,7 @@ export default function ApplyWithVitalCVPlayground() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground px-6 py-16">
+    <main className="bg-background text-foreground px-6 py-16">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-semibold">Apply with VitalCV</h1>
         <p className="mt-3 text-muted-foreground text-lg">

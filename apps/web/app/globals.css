@@ -139,6 +139,76 @@ body {
   --sidebar-ring: var(--vt-focus-ring);
 }
 
+/* ─── Dark mode semantic overrides ────────────────────────
+   Explicit overrides ensure dark mode works regardless of
+   how Tailwind v4 resolves the var() chain in @theme.
+   Values sourced from themes/index.css html.dark block. */
+.dark {
+  --background: #141414;
+  --foreground: #E4E3E0;
+  --card: #1A1A1A;
+  --card-foreground: #E4E3E0;
+  --popover: #1A1A1A;
+  --popover-foreground: #E4E3E0;
+  --primary: #E4E3E0;
+  --primary-foreground: #141414;
+  --secondary: #222222;
+  --secondary-foreground: #E4E3E0;
+  --muted: #222222;
+  --muted-foreground: #E4E3E0CC;
+  --accent: #E4E3E0;
+  --accent-foreground: #141414;
+  --destructive: #ef4444;
+  --destructive-foreground: white;
+  --border: #333333;
+  --input: #333333;
+  --ring: #E4E3E0;
+  --trust-green: #10b981;
+  --trust-green-foreground: white;
+  --trust-yellow: #f59e0b;
+  --trust-yellow-foreground: #E4E3E0;
+  --trust-red: #ef4444;
+  --trust-red-foreground: white;
+  --claim-l0: #33333366;
+  --claim-l0-foreground: #E4E3E0CC;
+  --claim-l1: #3b82f6;
+  --claim-l1-foreground: white;
+  --claim-l2: #8b5cf6;
+  --claim-l2-foreground: #E4E3E0;
+  --claim-l3: #10b981;
+  --claim-l3-foreground: white;
+  --surface-elevated: #1A1A1A;
+  --sage: #10b981;
+  --infra-blue: #E4E3E0;
+  --infra-blue-light: #E4E3E0;
+  --infra-blue-muted: color-mix(in oklab, #E4E3E0 18%, #1A1A1A);
+  --infra-red: #ef4444;
+  --infra-red-light: #ef4444;
+  --infra-red-muted: color-mix(in oklab, #ef4444 16%, #1A1A1A);
+  --infra-green: #10b981;
+  --infra-green-light: #10b981;
+  --infra-green-muted: color-mix(in oklab, #10b981 16%, #1A1A1A);
+  --infra-amber: #f59e0b;
+  --infra-violet: #8b5cf6;
+  --infra-surface: #1A1A1A;
+  --infra-surface-alt: #222222;
+  --infra-grid: #33333366;
+  --infra-border: #333333;
+  --chart-1: #ef4444;
+  --chart-2: #10b981;
+  --chart-3: #E4E3E0;
+  --chart-4: #f59e0b;
+  --chart-5: #E4E3E0CC;
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #E4E3E0;
+  --sidebar-primary: #E4E3E0;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #E4E3E0;
+  --sidebar-border: #333333;
+  --sidebar-ring: #E4E3E0;
+}
+
 /* ─── Tailwind v4 theme bridge ──────────────────────────── */
 @theme inline {
   --font-heading: var(--font-fraunces);

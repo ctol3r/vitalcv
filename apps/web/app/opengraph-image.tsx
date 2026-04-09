@@ -93,7 +93,7 @@ export default function OgImage() {
             lineHeight: 1.5,
           }}
         >
-          Source-backed credentialing truth — NPPES, OIG/LEIE, PECOS, FSMB
+          Source-backed credentialing truth — NPPES, OIG/LEIE, PECOS
         </div>
 
         {/* Source badges */}
@@ -104,7 +104,7 @@ export default function OgImage() {
             marginTop: '40px',
           }}
         >
-          {['NPPES', 'OIG/LEIE', 'PECOS', 'FSMB'].map((source) => (
+          {['NPPES', 'OIG/LEIE', 'PECOS'].map((source) => (
             <div
               key={source}
               style={{

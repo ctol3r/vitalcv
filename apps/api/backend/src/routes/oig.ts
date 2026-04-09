@@ -13,6 +13,7 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { checkExclusion, batchCheckExclusions } from '../services/psv/oigLeieChecker';
 import type { ExclusionCheckParams } from '../services/psv/oigLeieChecker';
 
@@ -41,8 +42,12 @@ interface NppesName {
 async function resolveNameFromNppes(npi: string): Promise<NppesName> {
   try {
     const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error(`NPPES HTTP ${res.status}`);
+    const res = await fetchWithRetry(url, undefined, {
+      maxRetries: 2,
+      baseDelayMs: 400,
+      timeoutMs: 8_000,
+      label: 'oig_nppes_resolve',
+    });
 
     const data = (await res.json()) as any;
     const result = data?.results?.[0];
@@ -59,7 +64,7 @@ async function resolveNameFromNppes(npi: string): Promise<NppesName> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log('warn', 'oig_nppes_resolve_failed', { npi, error: message });
-    throw new HttpError(422, `Could not resolve provider name from NPPES for NPI ${npi}: ${message}`);
+    throw new HttpError(502, `Could not resolve provider name from NPPES for NPI ${npi}: ${message}`);
   }
 }
 
@@ -94,6 +99,13 @@ export function registerOigRoutes(app: Express): void {
         firstName,
         lastName,
         ...result,
+        lastVerifiedAt: result.checkedAt,
+        provenance: {
+          exclusionSource: 'OIG LEIE Monthly CSV',
+          exclusionEndpoint: 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv',
+          nameSource: 'CMS NPPES Registry',
+          nameEndpoint: 'https://npiregistry.cms.hhs.gov/api/?version=2.1',
+        },
       });
     }),
   );
@@ -142,7 +154,12 @@ export function registerOigRoutes(app: Express): void {
         results: results.map((r, i) => ({
           ...params[i],
           ...r,
+          lastVerifiedAt: r.checkedAt,
         })),
+        provenance: {
+          exclusionSource: 'OIG LEIE Monthly CSV',
+          exclusionEndpoint: 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv',
+        },
       });
     }),
   );

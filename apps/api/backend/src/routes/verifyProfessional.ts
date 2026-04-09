@@ -76,6 +76,14 @@ interface VerificationResponse {
   blockingIssues: string[];
   warnings:       string[];
 
+  lastVerifiedAt: string;
+  provenance: {
+    identity: string;
+    exclusions: string;
+    licensure: string;
+    endpoint: string;
+  };
+
   passportUrl:        string;
   authorityGraphUrl:  string;
   agentsUrl:          string;
@@ -292,6 +300,7 @@ async function buildVerification(
     credentialType,
     jurisdiction,
     verifiedAt,
+    lastVerifiedAt: verifiedAt,
     liveChecked,
     authorization: { verdict, confidence, summary, reasons },
     trustBand,
@@ -299,6 +308,12 @@ async function buildVerification(
     checks,
     blockingIssues,
     warnings,
+    provenance: {
+      identity: 'CMS NPPES Registry',
+      exclusions: 'OIG LEIE Monthly CSV',
+      licensure: liveChecked ? 'Agent Swarm (live)' : 'Cached artifacts',
+      endpoint: 'https://npiregistry.cms.hhs.gov/api/?version=2.1',
+    },
     passportUrl:       `${base}/p/${npi}`,
     authorityGraphUrl: `${base}/api/authority/${npi}`,
     agentsUrl:         `${base}/api/agents/status/${npi}`,

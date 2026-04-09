@@ -613,8 +613,11 @@ export default function ApplyModal({
                     onChange={(event) => setCoverNote(event.target.value)}
                     rows={4}
                     placeholder="Briefly introduce yourself or highlight relevant experience..."
-                    className="glue-input glue-input--emerald min-h-[112px] w-full resize-none px-4 py-3 text-sm leading-6"
+                    className="glue-input glue-input--emerald min-h-[112px] w-full resize-none px-4 py-3 text-sm leading-6 mb-2"
                   />
+                  <p className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-100/50 p-2.5 rounded-lg border border-zinc-200">
+                    Applying with VitalCV includes your living readiness passport. Employers can instantly verify your current standing, dramatically speeding up the credentialing review timeline.
+                  </p>
                 </div>
 
                 {phase === 'error' ? (
@@ -673,7 +676,7 @@ export default function ApplyModal({
                     </>
                   ) : (
                     <>
-                      Apply now
+                      Apply with passport
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}

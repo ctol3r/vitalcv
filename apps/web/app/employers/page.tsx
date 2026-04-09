@@ -32,7 +32,7 @@ export default async function EmployersPage() {
   const employersShown = hasData ? String(employers.length) : '—';
 
   return (
-    <article className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-24 sm:px-12 lg:px-24 bg-background">
+    <article className="mx-auto flex max-w-7xl flex-col px-6 py-24 sm:px-12 lg:px-24 bg-background">
       <header className="mb-12 max-w-2xl">
         <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--vt-text-3)] mb-4">
           For Employers

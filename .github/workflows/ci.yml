@@ -45,3 +45,6 @@ jobs:
         run: pnpm --filter @vitalcv/web test
       - name: Build web app
         run: pnpm --filter @vitalcv/web build
+      - name: Launch-Gate Smoke Test
+        run: bash scripts/launch-gate.sh
+

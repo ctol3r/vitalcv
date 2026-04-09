@@ -17,9 +17,6 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
-// See docs/VCV_UI_DOCTRINE.md §3 for the full Navbar ruleset.
-// Three primary paths. Features (passport, interview) are reachable from within flows.
-// Developers is secondary — present but not the wedge.
 const NAV_ITEMS = [
   { href: '/passport',    label: 'Check Readiness' },
   { href: '/explore',     label: 'Explore Roles' },
@@ -48,13 +45,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-vt-surface-ops-base/90 text-white backdrop-blur-xl [&_a:not(.bg-white)]:text-white/80 hover:[&_a:not(.bg-white)]:text-white">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}
         <Link
           href="/"
-          className="font-heading text-lg font-semibold tracking-tight shrink-0 text-white"
+          className="font-heading text-lg font-semibold tracking-tight shrink-0 text-foreground"
           onClick={closeMenu}
         >
           VitalCV
@@ -71,8 +68,8 @@ export default function Navbar() {
                 onClick={() => handleNavItemClick(item.label)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                   active
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                 }`}
               >
                 {item.label}
@@ -86,13 +83,13 @@ export default function Navbar() {
           <ThemeToggle />
           <Link
             href="/sign-in"
-            className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 hover:border-white/50 hover:text-white transition"
+            className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
           >
             Sign In
           </Link>
           <Link
             href="/passport"
-            className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[oklch(0.22_0.01_60)] hover:bg-white/90 transition"
+            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-semibold text-background hover:bg-foreground/90 transition"
           >
             Check Readiness
           </Link>
@@ -104,7 +101,7 @@ export default function Navbar() {
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
           aria-controls="mobile-nav-menu"
-          className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white transition md:hidden"
+          className="rounded-lg p-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -113,7 +110,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav id="mobile-nav-menu" className="border-t border-border bg-[oklch(0.18_0.01_60)] px-6 py-4 md:hidden">
+        <nav id="mobile-nav-menu" className="border-t border-border bg-background px-6 py-4 md:hidden">
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
@@ -122,8 +119,8 @@ export default function Navbar() {
                   onClick={() => handleNavItemClick(item.label)}
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isRouteActive(pathname, item.href)
-                      ? 'bg-white/12 text-white'
-                      : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      ? 'bg-foreground/10 text-foreground'
+                      : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                   }`}
                 >
                   {item.label}
@@ -135,14 +132,14 @@ export default function Navbar() {
             <Link
               href="/sign-in"
               onClick={closeMenu}
-              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-white/80"
+              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-muted-foreground"
             >
               Sign In
             </Link>
             <Link
               href="/passport"
               onClick={closeMenu}
-              className="flex-1 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-[oklch(0.22_0.01_60)]"
+              className="flex-1 rounded-xl bg-foreground py-2.5 text-center text-sm font-semibold text-background"
             >
               Check Readiness
             </Link>

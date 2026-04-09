@@ -80,6 +80,10 @@ import {
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
 import {
+  buildEmployerProofPacketDownloadUrl,
+  employerProofPacketFilename,
+} from '@/lib/export/employer-proof-packet';
+import {
   resolveAuthorityAccordionStatus,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -1166,9 +1170,12 @@ function ReviewClientLoaded({
       setActionState({ phase: 'downloading' });
     }
     try {
-      const res = await fetch(
-        `${API}/api/employer-review/${passport.entityId}/packet${buildReviewScopeSearchParams({ contextId, bundleId })}`,
-      );
+      const npi = passport.identity.npi ?? passport.npi;
+      if (!npi) {
+        throw new Error('This review does not have a valid NPI for packet export.');
+      }
+
+      const res = await fetch(buildEmployerProofPacketDownloadUrl(npi));
       if (!res.ok) {
         const payload = await res.json().catch(() => ({})) as { error_description?: string; error?: string };
         throw new Error(
@@ -1181,12 +1188,11 @@ function ReviewClientLoaded({
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      const npi  = passport.identity.npi ?? passport.entityId;
-      a.download = `vitalcv-passport-${npi}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = employerProofPacketFilename(npi);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
       if (mountedRef.current) {
         setActionState({
@@ -1695,7 +1701,7 @@ function ReviewClientLoaded({
                 }
                 className="h-9 rounded-xl border-border px-4 py-2 text-[11px] font-medium text-foreground hover:border-border hover:text-foreground/70"
               >
-                {actionState.phase === 'downloading' ? 'Exporting…' : 'Export passport proof'}
+                {actionState.phase === 'downloading' ? 'Exporting…' : 'Download Packet'}
               </Button>
             )}
             className="rounded-2xl border-white/8 bg-white/[0.03]"

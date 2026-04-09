@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { npi } = await params;
   return {
     title: `Verify NPI ${npi}`,
-    description: `Source-backed readiness verification for NPI ${npi}. Check credentialing status against NPPES, OIG/LEIE, PECOS, and FSMB.`,
+    description: `Source-backed readiness verification for NPI ${npi}. Check credentialing status against NPPES, OIG/LEIE, PECOS, and CMS PECOS.`,
     openGraph: {
       title: `Verify NPI ${npi}`,
       description: `Source-backed readiness verification for NPI ${npi}.`,

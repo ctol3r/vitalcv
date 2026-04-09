@@ -27,6 +27,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
+import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildEmployerReviewHref,
@@ -38,6 +39,29 @@ import {
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
+
+// ── NPI Luhn checksum validation (ISO/IEC 7812 with "80840" prefix) ────────────
+function isValidNpiChecksum(npi: string): boolean {
+  if (npi.length !== 10 || /\D/.test(npi)) return false;
+  const digits = ('80840' + npi).split('').map(Number);
+  let sum = 0;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let d = digits[i];
+    if ((digits.length - 1 - i) % 2 === 1) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+const SOURCE_EXPLANATIONS = [
+  { id: 'nppes', name: 'NPPES', description: 'Identity verification from the National Plan and Provider Enumeration System' },
+  { id: 'oig', name: 'OIG / LEIE', description: 'Exclusion check against the Office of Inspector General\u2019s List of Excluded Individuals' },
+  { id: 'pecos', name: 'CMS PECOS', description: 'Medicare enrollment verification from Provider Enrollment, Chain, and Ownership System' },
+  { id: 'fsmb', name: 'FSMB / State Board', description: 'State medical board licensure verification via the Federation of State Medical Boards', locked: true },
+] as const;
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -396,6 +420,7 @@ function PassportPageContent({
     const trimmed = npi.trim();
     if (/\D/.test(trimmed)) { setInputError('NPI must contain only digits.'); return; }
     if (trimmed.length !== 10) { setInputError('NPI must be exactly 10 digits.'); return; }
+    if (!isValidNpiChecksum(trimmed)) { setInputError('This NPI does not pass the Luhn check. Please verify the number.'); return; }
     setInputError(null);
     startIngest(trimmed);
   }
@@ -432,80 +457,151 @@ function PassportPageContent({
           ? 'Unavailable'
           : undefined;
 
+  const npiValid = npi.length === 10 && !/\D/.test(npi);
+  const npiChecksumOk = npiValid && isValidNpiChecksum(npi);
+
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center px-4 pt-16 sm:pt-28 pb-24">
-      <div className="w-full max-w-lg space-y-10">
+    <main className="bg-background px-4 pt-16 sm:pt-20 pb-24">
+      <div className="mx-auto w-full max-w-5xl">
 
-        {/* Wordmark */}
-        <div>
-          {readinessContext ? (
-            <div className="mb-5 rounded-2xl border border-border bg-card px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Role context
-              </p>
-              <p className="mt-2 text-sm text-foreground/80">{readinessContext}</p>
-            </div>
-          ) : null}
-          {!isActive && (
-            <>
-              <h1 className="text-foreground text-4xl sm:text-5xl font-bold tracking-tighter uppercase leading-none">
-                Check your <span className="italic font-serif font-medium">readiness</span>
-              </h1>
-              <p className="text-muted-foreground/60 text-sm mt-4 font-mono">
-                Primary sources check public records. Enter your NPI to start.
-              </p>
-            </>
-          )}
-        </div>
+        {/* Role context banner */}
+        {readinessContext ? (
+          <div className="mb-6 rounded-2xl border border-border bg-card px-4 py-3 max-w-lg">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Role context
+            </p>
+            <p className="mt-2 text-sm text-foreground/80">{readinessContext}</p>
+          </div>
+        ) : null}
 
-        {/* NPI entry — hidden while running */}
+        {/* Idle state — two-column layout */}
         {!isActive && (
-          <form onSubmit={handleSubmit} className="space-y-1 relative">
-            <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
-            <div className="relative">
-              <Input
-                id="npi-input"
-                name="npi"
-                type="text"
-                inputMode="numeric"
-                pattern="\d{10}"
-                maxLength={10}
-                autoComplete="off"
-                aria-label="Enter your 10-digit NPI number"
-                aria-invalid={!!inputError}
-                aria-describedby={inputError ? 'npi-error' : undefined}
-                value={npi}
-                onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
-                placeholder="Enter 10-digit NPI"
-                className="h-16 w-full rounded-none border-0 border-b-2 border-border bg-transparent px-2 text-2xl font-mono tracking-widest text-foreground placeholder:text-muted-foreground/20 shadow-none focus-visible:ring-0 focus-visible:border-foreground uppercase pr-12"
-              />
-              <Button
-                type="submit"
-                disabled={npi.length !== 10}
-                className="absolute right-0 bottom-2 h-10 w-10 rounded-none bg-transparent text-foreground p-0 shadow-none hover:bg-transparent disabled:opacity-20"
-                aria-label="Check readiness"
-              >
-                →
-              </Button>
-            </div>
-            {inputError && (
-              <p id="npi-error" role="alert" className="text-red-500/70 text-xs font-mono mt-1">{inputError}</p>
-            )}
-          </form>
-        )}
+          <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:items-start">
+            {/* Left column: heading + form + source explanations */}
+            <div className="space-y-8">
+              <div>
+                <h1 className="text-foreground text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
+                  Check Your Readiness
+                </h1>
+                <p className="text-muted-foreground text-sm sm:text-base mt-3 leading-relaxed max-w-xl">
+                  Enter your NPI to instantly verify your credentialing status across NPPES,
+                  OIG/LEIE, PECOS, and state medical boards. Results appear in seconds.
+                </p>
+              </div>
 
-        {/* Source strip */}
-        {!isActive && (
-          <div className="flex gap-6 opacity-30">
-            {['NPPES', 'OIG/LEIE', 'PECOS', 'FSMB'].map(s => (
-              <span key={s} className="text-[10px] font-bold uppercase tracking-widest">{s}</span>
-            ))}
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
+                <div className="flex gap-3 sm:items-center flex-col sm:flex-row">
+                  <div className="relative flex-1">
+                    <Input
+                      id="npi-input"
+                      name="npi"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="\d{10}"
+                      maxLength={10}
+                      autoComplete="off"
+                      aria-label="Enter your 10-digit NPI number"
+                      aria-invalid={!!inputError}
+                      aria-describedby={inputError ? 'npi-error' : undefined}
+                      value={npi}
+                      onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Enter 10-digit NPI"
+                      className="h-14 w-full rounded-xl border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
+                    />
+                    {/* Real-time visual feedback */}
+                    {npi.length > 0 && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground/50">
+                        {npi.length}/10
+                        {npiValid && (npiChecksumOk
+                          ? <span className="ml-1.5 text-trust-green">✓</span>
+                          : <span className="ml-1.5 text-trust-red">✗</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={!npiValid}
+                    className="h-14 rounded-xl bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
+                  >
+                    Check readiness
+                  </Button>
+                </div>
+                {inputError && (
+                  <p id="npi-error" role="alert" className="text-destructive text-xs mt-1">{inputError}</p>
+                )}
+              </form>
+
+              {/* Source explanations */}
+              <div className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Sources checked
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {SOURCE_EXPLANATIONS.map(src => (
+                    <div key={src.id} className="flex gap-3 rounded-xl border border-border bg-card p-3.5">
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-[10px] font-bold text-muted-foreground">
+                        {src.id === 'nppes' ? 'NP' : src.id === 'oig' ? 'OI' : src.id === 'pecos' ? 'PE' : 'SB'}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{src.name}</p>
+                          {src.locked && <span className="rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground flex items-center gap-1"><svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Access Required</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{src.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground/60 leading-relaxed">
+                VitalCV only checks publicly available data. No PHI is stored. No signup required to preview.
+              </p>
+            </div>
+
+            {/* Right column: sample readiness card */}
+            <div className="hidden lg:block">
+              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Sample readiness snapshot
+                </p>
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold text-foreground">Jane A. Smith, MD</p>
+                  <p className="text-sm text-muted-foreground">Internal Medicine · NPI 1234567890</p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: 'NPPES', status: 'Checked', tone: 'text-trust-green' },
+                    { label: 'OIG / LEIE', status: 'Checked', tone: 'text-trust-green' },
+                    { label: 'CMS PECOS', status: 'Enrolled', tone: 'text-trust-green' },
+                    { label: 'State Board', status: 'Access required', tone: 'text-trust-yellow' },
+                  ].map(s => (
+                    <div key={s.label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-sm text-muted-foreground">{s.label}</span>
+                      <span className={`text-xs font-medium ${s.tone}`}>{s.status}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-border bg-background p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
+                    <span className="text-xs font-semibold text-trust-green">READY</span>
+                  </div>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground/50 text-center">
+                  This is a sample — enter your NPI to see real results
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Live ingest panel */}
         {isActive && (
-          <div className="space-y-5 animate-fade-in-up">
+          <div className="mx-auto max-w-lg space-y-5 animate-fade-in-up">
 
             {/* Phase label */}
             {isRunning && (
@@ -626,6 +722,11 @@ function PassportPageContent({
               </div>
             )}
 
+            {/* What's Next — actionable uploads after readiness snapshot */}
+            {canViewPassport && (
+              <WhatsNextPanel state={state} />
+            )}
+
             {/* Terminal no-profile state */}
             {noProfileYet && (
               <TrustStateCard
@@ -679,16 +780,6 @@ function PassportPageContent({
               </Button>
             </div>
           </div>
-        )}
-
-        {/* Footer */}
-        {!isActive && (
-          <p className="text-center text-muted-foreground/40 text-xs">
-            Already have an account?{' '}
-            <Link href="/sign-in" className="text-muted-foreground underline underline-offset-2 hover:text-foreground/70 transition-colors">
-              Sign in
-            </Link>
-          </p>
         )}
 
       </div>

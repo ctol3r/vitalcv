@@ -37,9 +37,34 @@ function statusToCode(status: number): string {
       return 'RATE_LIMITED';
     case 500:
       return 'INTERNAL_ERROR';
+    case 502:
+      return 'SOURCE_UNAVAILABLE';
     case 503:
       return 'SERVICE_UNAVAILABLE';
     default:
       return 'ERROR';
+  }
+}
+
+/**
+ * Thrown when an upstream data source (NPPES, OIG/LEIE, etc.) cannot be reached.
+ * Route handlers should catch this and return 502 with a clean
+ * "Source Temporarily Unavailable" message — never fake data.
+ */
+export class SourceUnavailableError extends HttpError {
+  readonly source: string;
+  readonly sourceUrl: string;
+
+  constructor(source: string, sourceUrl: string, detail?: string) {
+    super(
+      502,
+      detail
+        ? `${source} source temporarily unavailable: ${detail}`
+        : `${source} source temporarily unavailable`,
+      'SOURCE_UNAVAILABLE',
+    );
+    this.name = 'SourceUnavailableError';
+    this.source = source;
+    this.sourceUrl = sourceUrl;
   }
 }

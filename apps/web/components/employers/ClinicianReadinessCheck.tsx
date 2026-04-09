@@ -147,10 +147,10 @@ export default function ClinicianReadinessCheck({
           )}
 
           <Link
-            href={`/review?npi=${npi}&employer=${encodeURIComponent(employerSlug)}`}
+            href={`/passport?npi=${npi}&employer=${encodeURIComponent(employerSlug)}`}
             className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
           >
-            Request full review
+            Check your full passport requirements
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>

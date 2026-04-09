@@ -348,6 +348,7 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
             ? 'REVIEW_REQUIRED'
             : 'UNCERTAIN';
   } catch (error) {
+    const failedAt = new Date().toISOString();
     result = {
       npi: normalizedNpi,
       excluded: false,
@@ -356,8 +357,10 @@ export async function ingestOigStatus(npi: string): Promise<CredentialIngestionR
       exclusionDate: null,
       reinstatementDate: null,
       waiverState: null,
-      lastCheckedAt: new Date().toISOString(),
+      lastCheckedAt: failedAt,
       sourceUrl: 'https://oig.hhs.gov/exclusions/exclusions_list.asp',
+      lastVerifiedAt: failedAt,
+      provenance: 'OIG LEIE Monthly CSV (check failed)',
     };
     log('warn', 'credential_ingestion_oig_status_failed', {
       npi: normalizedNpi,

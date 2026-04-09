@@ -67,8 +67,22 @@ export const metadata: Metadata = {
     template: '%s — VitalCV',
   },
   description:
-    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed credentialing for healthcare employers and clinicians.',
+    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed healthcare credentialing verification for employers and clinicians.',
   metadataBase: new URL('https://vitalcv.com'),
+  keywords: [
+    'healthcare credentialing',
+    'clinician verification',
+    'NPI lookup',
+    'NPPES',
+    'OIG LEIE',
+    'PECOS',
+    'provider credentialing',
+    'medical license verification',
+  ],
+  robots: { index: true, follow: true },
+  other: {
+    'theme-color': '#2C3E2D',
+  },
   openGraph: {
     title: 'VitalCV — Check Clinician Readiness in Seconds',
     description:

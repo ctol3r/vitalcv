@@ -175,7 +175,7 @@ export function SystemConsole() {
               <MagneticButton>
                 <Link
                   href="/developers"
-                  className="inline-flex items-center gap-2 rounded-xl border border-infra-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-infra-surface-alt"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
                 >
                   API Docs
                 </Link>
@@ -204,7 +204,7 @@ export function SystemConsole() {
             className="space-y-4"
           >
             {/* Terminal */}
-            <div className="rounded-2xl border border-infra-border bg-white/90 backdrop-blur-sm p-5 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-infra-green" />
                 <span className="h-2 w-2 rounded-full bg-infra-amber" />
