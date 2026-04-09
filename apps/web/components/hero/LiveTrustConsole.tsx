@@ -554,7 +554,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 className="h-14 w-full shrink-0 rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
               >
                 <span aria-live="polite">
-                  {phase === 'loading' ? 'Checking...' : 'Check Credential Readiness'}
+                  {phase === 'loading' ? 'Checking...' : 'Apply with VCV'}
                 </span>
               </Button>
             </form>
