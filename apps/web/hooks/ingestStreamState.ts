@@ -36,6 +36,7 @@ export interface StreamIdentity {
   specialty?: string;
   credentials?: string;
   enumerationDate?: string;
+  lastUpdated?: string;
   taxonomies?: Array<{ code: string; desc: string; primary: boolean }>;
   address?: { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
   entityType?: string;
@@ -202,6 +203,7 @@ function mergeIdentity(
     specialty: readString(payload, 'specialty') ?? prev.specialty,
     credentials: readString(payload, 'credentials') ?? prev.credentials,
     enumerationDate: readString(payload, 'enumerationDate') ?? prev.enumerationDate,
+    lastUpdated: readString(payload, 'lastUpdated') ?? prev.lastUpdated,
     taxonomies,
     address,
     entityType: readString(payload, 'entityType') ?? prev.entityType,

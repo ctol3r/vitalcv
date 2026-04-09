@@ -120,6 +120,7 @@ export interface NpiResolution {
   taxonomies?:     { code: string; desc: string; state?: string; license?: string; primary: boolean }[];
   enumerationDate?: string;
   address?:        { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
+  lastUpdated?:    string;
   status:          'ACTIVE' | 'DEACTIVATED' | 'UNKNOWN';
   source:          'NPPES_API' | 'CACHED';
   resolvedAt:      string;                 // ISO

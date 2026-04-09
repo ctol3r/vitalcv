@@ -204,6 +204,7 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
       credentials: readJsonString(metadata, 'credentials'),
       specialty: readJsonString(metadata, 'specialty'),
       enumerationDate: readJsonString(metadata, 'enumerationDate'),
+      lastUpdated: readJsonString(metadata, 'lastUpdated'),
       address: metadata.address,
       taxonomies: metadata.taxonomies,
     });

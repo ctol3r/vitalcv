@@ -263,6 +263,7 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
       primary: t.primary ?? false,
     }));
     const enumerationDate = basic.enumeration_date;
+    const lastUpdated     = basic.last_updated;
     const primaryAddress  = record.addresses?.find(a => a.address_purpose === 'LOCATION') ?? record.addresses?.[0];
     const address         = primaryAddress ? {
       line1: primaryAddress.address_1 ?? '',
@@ -291,6 +292,7 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
       credentials,
       taxonomies,
       enumerationDate,
+      lastUpdated,
       address,
       status,
       source:          'NPPES_API',
