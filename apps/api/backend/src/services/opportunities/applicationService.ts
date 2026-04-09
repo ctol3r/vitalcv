@@ -1,3 +1,4 @@
+import { processApplicationBilling } from '../billing/billingEngine';
 /**
  * applicationService.ts — Wave 229
  *
