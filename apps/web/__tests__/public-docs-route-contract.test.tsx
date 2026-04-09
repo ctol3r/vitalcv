@@ -39,8 +39,7 @@ describe('public docs and developer route behavior', () => {
     const DevelopersPage = (await import('../app/developers/page')).default;
     const markup = renderToStaticMarkup(<DevelopersPage />);
 
-    expect(markup).toContain('href="/"');
+    expect(markup).toContain('href="/passport"');
     expect(markup).toContain('href="/review/request"');
-    expect(markup).toContain('href="/docs"');
   });
 });

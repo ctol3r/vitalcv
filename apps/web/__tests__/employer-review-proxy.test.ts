@@ -93,6 +93,17 @@ function buildPacketPayload() {
     entityId: 'entity-1',
     clinicianNpi: '1234567890',
     displayName: 'Ada Lovelace',
+    receiptReferences: [{ sourceId: 'STATE_BOARD', receiptId: 'receipt-1' }],
+    artifactReferences: [{ sourceId: 'STATE_BOARD', artifactId: 'artifact-1' }],
+    sourceCoverage: {
+      checks: [
+        {
+          sourceId: 'STATE_BOARD',
+          state: 'accessRequired',
+          reason: 'Institutional state board access is required.',
+        },
+      ],
+    },
     truth: {
       identity: { status: 'VERIFIED' },
       safety: { status: 'CLEAR' },
@@ -158,22 +169,12 @@ function buildPacketPayload() {
         },
       ],
     },
-    receiptReferences: [{ sourceId: 'STATE_BOARD', receiptId: 'receipt-1' }],
-    artifactReferences: [{ sourceId: 'STATE_BOARD', artifactId: 'artifact-1' }],
     freshness: {},
     identity: {},
     safety: {},
     authority: {},
     eligibility: {},
     readiness: {},
-    sourceCoverage: {
-      checks: [
-        {
-          sourceId: 'STATE_BOARD',
-          state: 'accessRequired',
-          reason: 'Institutional state board access is required.',
-        },
-      ],
     },
   };
 }

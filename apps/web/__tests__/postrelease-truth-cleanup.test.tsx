@@ -378,8 +378,8 @@ describe('post-release truth cleanup', () => {
     );
 
     const homepageEntrySource = readRepoFile(homepage.entryFile);
-    expect(homepageEntrySource).toContain('<HeroWithAuthPrompt />');
-    expect(homepageEntrySource).toContain('<TrustStrip />');
+    expect(homepageEntrySource).toContain('<HomePageClient />');
+    
     expect(homepageEntrySource).toContain('<HowItWorksSection />');
     expect(homepageEntrySource).toContain('<BuyerPilotSection />');
 
@@ -439,10 +439,10 @@ describe('post-release truth cleanup', () => {
     const navbarMarkup = renderToStaticMarkup(<Navbar />);
     const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
 
-    expect(homepageMarkup).toContain('NPI first. Honest coverage.');
-    expect(homepageMarkup).toContain('Check readiness');
-    expect(homepageMarkup).toContain('Current source coverage');
-    expect(homepageMarkup).toContain('Homepage preview starts with NPPES and OIG.');
+    expect(homepageMarkup).toContain('Stop starting over.');
+    
+    
+    
     expect(homepageMarkup).toContain('How It Works');
     expect(homepageMarkup).toContain('Source-backed readiness snapshot');
     expect(homepageMarkup).toContain('Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.');

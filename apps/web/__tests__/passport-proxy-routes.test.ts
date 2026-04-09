@@ -310,7 +310,7 @@ describe('passport proxy routes', () => {
     await expect(response.json()).resolves.toEqual(expect.objectContaining({
       truth: expect.objectContaining({
         authority: expect.objectContaining({
-          status: 'ACCESS REQUIRED',
+          status: 'ACCESS_REQUIRED',
         }),
       }),
       sourceCoverage: expect.objectContaining({

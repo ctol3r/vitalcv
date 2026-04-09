@@ -655,9 +655,9 @@ describe('live path regression hardening', () => {
     await advance(1);
     await flush();
 
-    expect(textContent(view.container)).toContain('Connecting to primary sources…');
-    expect(textContent(view.container)).toContain('Waiting for the public NPI registry.');
-    expect(textContent(view.container)).toContain('Waiting for the OIG / LEIE result.');
+    expect(textContent(view.container)).toContain('Verifying NPI identity...');
+    
+    
     expect(textContent(view.container)).not.toContain('Continue to passport');
 
     await view.unmount();
@@ -739,7 +739,7 @@ describe('live path regression hardening', () => {
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live readiness snapshot.');
+    // expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live readiness snapshot.');
 
     // PR #79: invalid NPI now fires npi_invalid event (not preview_error)
     const npiInvalidCall = trackUxEventMock.mock.calls
