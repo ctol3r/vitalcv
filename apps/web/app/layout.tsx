@@ -63,11 +63,11 @@ const fontVariables = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'VitalCV — Check Clinician Readiness in Seconds',
+    default: 'VitalCV — Stop Starting Over. Start Ready.',
     template: '%s — VitalCV',
   },
   description:
-    'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS. Instant source-backed healthcare credentialing verification for employers and clinicians.',
+    'Enter your NPI to see what\'s checked, what\'s missing, and what could delay your next role — using real federal sources. Credential readiness infrastructure for healthcare.',
   metadataBase: new URL('https://vitalcv.com'),
   keywords: [
     'healthcare credentialing',
@@ -96,7 +96,7 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'VitalCV — Check Clinician Readiness in Seconds',
+        alt: 'VitalCV — Stop Starting Over. Start Ready.',
       },
     ],
   },
@@ -104,7 +104,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'VitalCV — Check Clinician Readiness in Seconds',
     description:
-      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+      'Enter your NPI to see what\'s checked, what\'s missing, and what could delay your next role.',
     images: ['/twitter-image'],
   },
 };

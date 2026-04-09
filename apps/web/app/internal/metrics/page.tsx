@@ -109,6 +109,11 @@ export default async function InternalMetricsPage({
           Open enterprise signals
         </Link>
       </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        <Link href="/internal/funnel-debug" className="underline underline-offset-4">
+          Open conversion funnel
+        </Link>
+      </p>
     </main>
   );
 }

@@ -15,6 +15,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { resolvePublicWedgeDisplayName } from '@/lib/trust/public-wedge-parity';
 
 interface CreateAccountModalProps {
@@ -28,10 +29,18 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
   const cardRef = useRef<HTMLDivElement>(null);
   const resolvedDisplayName = resolvePublicWedgeDisplayName(displayName, npi);
 
+  // Track modal impression
+  useEffect(() => {
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_PROMPT_SHOWN, { npi_length: npi.length });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- fire once on mount
+
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onDismiss();
+      if (e.key === 'Escape') {
+        trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_PROMPT_DISMISSED, { method: 'escape' });
+        onDismiss();
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -39,10 +48,19 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onDismiss();
+    if (e.target === e.currentTarget) {
+      trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_PROMPT_DISMISSED, { method: 'backdrop' });
+      onDismiss();
+    }
+  };
+
+  const handleDismiss = () => {
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_PROMPT_DISMISSED, { method: 'button' });
+    onDismiss();
   };
 
   const handleClaim = () => {
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_CLICKED);
     const params = new URLSearchParams({ npi, displayName: resolvedDisplayName });
     router.push(`/sign-up?${params.toString()}`);
   };
@@ -63,7 +81,7 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
       >
         {/* Close button */}
         <button
-          onClick={onDismiss}
+          onClick={handleDismiss}
           aria-label="Dismiss"
           className="absolute top-4 right-4 text-muted-foreground/60 hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full"
         >
@@ -112,7 +130,7 @@ export function CreateAccountModal({ npi, displayName, onDismiss }: CreateAccoun
 
         {/* Skip */}
         <button
-          onClick={onDismiss}
+          onClick={handleDismiss}
           className="w-full text-muted-foreground hover:text-foreground text-sm py-2 transition-colors min-h-[44px]"
         >
           Skip for now
