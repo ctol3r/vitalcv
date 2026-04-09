@@ -258,6 +258,9 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   const sourcesCheckedCount = stages.filter((s) => s.status === 'checked').length;
   const readinessScore = typeof state.readiness.score === 'number' ? state.readiness.score : null;
   const readinessLevel = state.readiness.level ?? null;
+  const sourceBackedClaimCount = state.readiness.claimCount ?? 0;
+  const hasSourceBackedClaims = sourceBackedClaimCount > 0;
+  
   const continueDisabled = !state.isUsable && !Boolean(state.completedAt) && state.phase !== 'error';
   const trimmedNpi = npi.trim();
 
@@ -698,19 +701,23 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               style={{ animation: 'vcv-stagger-in 350ms ease-out 400ms both' }}
             >
+              {hasSourceBackedClaims ? (
+                <Button
+                  variant="default"
+                  onClick={handleContinue}
+                  disabled={continueDisabled}
+                  className="h-12 w-full rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
+                >
+                  {continueDisabled ? 'Checking readiness...' : 'Download Proof'}
+                </Button>
+              ) : null}
               <Button
-                variant="default"
+                variant={hasSourceBackedClaims ? "outline" : "default"}
                 onClick={handleContinue}
                 disabled={continueDisabled}
-                className="h-12 w-full rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
-              >
-                {continueDisabled ? 'Checking readiness...' : 'Download Proof'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleContinue}
-                disabled={continueDisabled}
-                className="h-12 w-full rounded-xl px-6 text-sm font-medium min-h-[44px] sm:w-auto"
+                className={`h-12 w-full rounded-xl px-6 text-sm font-medium min-h-[44px] sm:w-auto ${
+                  !hasSourceBackedClaims ? 'w-full' : ''
+                }`}
               >
                 Continue to full passport
               </Button>

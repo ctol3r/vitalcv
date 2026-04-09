@@ -17,7 +17,7 @@
  *   - Source names and checked timestamps shown where available
  */
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Accordion, type AccordionItem } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,8 @@ import {
 } from '@/lib/trust/status-language';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import type { IngestStreamState } from '@/hooks/useIngestStream';
+
+void React;
 
 // ── Real trust-state shape (matches trustStateEngine output) ─
 
@@ -521,6 +523,25 @@ function buildLiveAccordion(streamState: IngestStreamState): AccordionItem[] {
         <ProofDetailsList
           rows={[
             { id: 'source', label: 'Source', value: 'NPPES', tone: 'strong' },
+            ...(streamState.identity.displayName ? [
+              { id: 'name', label: 'Verified name', value: streamState.identity.displayName },
+              { id: 'entity-type', label: 'Entity type', value: streamState.identity.npiType === 'TYPE_2' ? 'Organization (Type 2)' : 'Individual (Type 1)' },
+            ] : []),
+            ...(streamState.identity.credentials ? [
+              { id: 'credentials', label: 'Credentials', value: streamState.identity.credentials },
+            ] : []),
+            ...(streamState.identity.specialty ? [
+              { id: 'taxonomy', label: 'Primary taxonomy', value: streamState.identity.specialty },
+            ] : []),
+            ...(streamState.identity.status ? [
+              { id: 'npi-status', label: 'NPI status', value: streamState.identity.status },
+            ] : []),
+            ...(streamState.identity.enumerationDate ? [
+              { id: 'enumeration-date', label: 'Enumeration date', value: streamState.identity.enumerationDate },
+            ] : []),
+            ...(streamState.identity.address ? [
+              { id: 'address', label: 'Practice location', value: `${streamState.identity.address.city}, ${streamState.identity.address.state}` },
+            ] : []),
             { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
             {
               id: 'freshness',
@@ -805,7 +826,8 @@ export function ReadinessPreview({
   if (streamState && !isDemo) {
     const displayName = streamState.identity.displayName ?? `NPI ${npi}`;
     const displaySpec = streamState.identity.specialty ?? 'Resolving provider profile';
-    const liveScoreKnown = typeof streamState.readiness.score === 'number';
+    const liveScoreKnown = typeof streamState.readiness.score === 'number'
+      && (streamState.readiness.claimCount ?? 0) > 0;
     const liveTone: ReadinessTone =
       streamState.phase === 'error' && !streamState.isUsable
         ? 'blocked'

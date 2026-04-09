@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
@@ -13,6 +14,8 @@ import {
 import { Card } from '@/components/ui/card';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import type { IngestStreamState } from '@/hooks/ingestStreamState';
+
+void React;
 
 // ── Requirement definitions ──────────────────────────────────────────────────
 

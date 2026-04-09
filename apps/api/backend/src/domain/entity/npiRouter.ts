@@ -63,6 +63,7 @@ interface NppesAddress {
   state?:           string;
   postal_code?:     string;
   country_code?:    string;
+  telephone_number?: string;
 }
 
 interface NppesRecord {
@@ -252,6 +253,25 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
     const displayName     = extractDisplayName(basic, enumerationType);
     const specialty       = extractPrimarySpecialty(record.taxonomies ?? []);
     const status          = mapNppesStatus(basic.status);
+    
+    const credentials     = basic.credential;
+    const taxonomies      = (record.taxonomies ?? []).map(t => ({
+      code: t.code ?? '',
+      desc: t.desc ?? '',
+      state: t.state,
+      license: t.license,
+      primary: t.primary ?? false,
+    }));
+    const enumerationDate = basic.enumeration_date;
+    const primaryAddress  = record.addresses?.find(a => a.address_purpose === 'LOCATION') ?? record.addresses?.[0];
+    const address         = primaryAddress ? {
+      line1: primaryAddress.address_1 ?? '',
+      city: primaryAddress.city ?? '',
+      state: primaryAddress.state ?? '',
+      zip: primaryAddress.postal_code ?? '',
+      country: primaryAddress.country_code ?? 'US',
+      phone: primaryAddress.telephone_number,
+    } : undefined;
 
     const routingDecision = makeNpiRoutingDecision(npi, enumerationType, 'NPPES_API');
     log('info', 'npiRouter: resolved', {
@@ -268,6 +288,10 @@ export async function resolveNpi(npi: string): Promise<NpiResolution> {
       routingContext:   routing.workflowContext,
       displayName,
       specialty,
+      credentials,
+      taxonomies,
+      enumerationDate,
+      address,
       status,
       source:          'NPPES_API',
       resolvedAt:      new Date().toISOString(),

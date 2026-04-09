@@ -559,6 +559,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
+  const showReadinessScore = sourceCoverageChecks.some((check) => check.state === 'checked');
 
   // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
@@ -662,8 +663,14 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             <div className="text-right shrink-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Readiness</p>
               <div className="text-5xl font-bold tracking-tighter font-mono text-foreground">
-                {readiness.score ?? '–'}<span className="text-2xl text-muted-foreground/40">/100</span>
+                {showReadinessScore ? readiness.score : 'Withheld'}
+                {showReadinessScore ? <span className="text-2xl text-muted-foreground/40">/100</span> : null}
               </div>
+              {!showReadinessScore ? (
+                <p className="mt-2 text-[10px] text-muted-foreground/40 uppercase tracking-widest">
+                  Score appears after source-backed claims attach
+                </p>
+              ) : null}
               <div className="mt-2">
                 <TrustStatusBadge
                   status={resolveLivePathReadinessStatus(readiness.status)}

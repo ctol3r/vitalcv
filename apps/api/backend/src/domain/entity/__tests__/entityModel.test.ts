@@ -26,6 +26,7 @@ import {
   classifyEnumerationType,
   deriveCanonicalId,
   buildEntityFromNppesRecord,
+  resolveNpi,
   canAssignRole,
   isValidRelationship,
 } from '../npiRouter';
@@ -64,6 +65,83 @@ describe('classifyEnumerationType', () => {
   });
   it('defaults to TYPE_1 for undefined', () => {
     expect(classifyEnumerationType(undefined)).toBe('TYPE_1');
+  });
+});
+
+describe('resolveNpi', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.restoreAllMocks();
+  });
+
+  it('hydrates specialty, credentials, taxonomy, and address fields from a valid public NPPES record', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result_count: 1,
+        results: [
+          {
+            number: '1234567890',
+            enumeration_type: 'NPI-1',
+            basic: {
+              first_name: 'Macie',
+              last_name: 'Miller',
+              credential: 'NP',
+              status: 'A',
+              enumeration_date: '2020-01-15',
+            },
+            taxonomies: [
+              {
+                code: '363LP2300X',
+                desc: 'Primary Care Nurse Practitioner',
+                primary: true,
+                state: 'OR',
+                license: 'NP-12345',
+              },
+            ],
+            addresses: [
+              {
+                address_purpose: 'LOCATION',
+                address_1: '100 Main St',
+                city: 'Portland',
+                state: 'OR',
+                postal_code: '97205',
+                country_code: 'US',
+                telephone_number: '5035550100',
+              },
+            ],
+          },
+        ],
+      }),
+    }) as unknown as typeof fetch;
+
+    const resolution = await resolveNpi('1234567890');
+
+    expect(resolution.displayName).toBe('Macie Miller, NP');
+    expect(resolution.specialty).toBe('Primary Care Nurse Practitioner');
+    expect(resolution.credentials).toBe('NP');
+    expect(resolution.enumerationDate).toBe('2020-01-15');
+    expect(resolution.taxonomies).toEqual([
+      {
+        code: '363LP2300X',
+        desc: 'Primary Care Nurse Practitioner',
+        state: 'OR',
+        license: 'NP-12345',
+        primary: true,
+      },
+    ]);
+    expect(resolution.address).toEqual({
+      line1: '100 Main St',
+      city: 'Portland',
+      state: 'OR',
+      zip: '97205',
+      country: 'US',
+      phone: '5035550100',
+    });
+    expect(resolution.status).toBe('ACTIVE');
+    expect(resolution.source).toBe('NPPES_API');
   });
 });
 

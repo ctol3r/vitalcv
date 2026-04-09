@@ -143,7 +143,19 @@ describe('passportService', () => {
     ]);
     prismaMock.vcvEducationRecord.findMany.mockResolvedValue([]);
     prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
-    prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'artifact-nppes',
+      rawPayload: {
+        enumeration_type: 'NPI-1',
+        basic: {
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+        },
+      },
+      verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+      observedAt: new Date('2026-03-23T12:00:00.000Z'),
+      expiresAt: new Date('2026-03-30T12:00:00.000Z'),
+    });
     (resolveCredentialEvidence as jest.Mock).mockReturnValue({
       publicSafe: true,
       validArtifactIds: [],
@@ -294,6 +306,7 @@ describe('passportService', () => {
       subjectLabel: 'Provider',
     });
     prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'artifact-nppes',
       rawPayload: {
         enumeration_type: 'NPI-1',
         basic: {
@@ -328,6 +341,7 @@ describe('passportService', () => {
       subjectLabel: 'Organization',
     });
     prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'artifact-nppes',
       rawPayload: {
         enumeration_type: 'NPI-2',
         basic: {
@@ -339,6 +353,60 @@ describe('passportService', () => {
     const passport = await buildPassport('entity-1');
 
     expect(passport?.identity.displayName).toBe('Vital Health Group');
+  });
+
+  it('hydrates specialty from the attached NPPES taxonomy when entity metadata is blank', async () => {
+    (getEntityById as jest.Mock).mockResolvedValue({
+      entity: {
+        id: 'entity-1',
+        displayName: 'Unknown Provider',
+        npi: '1234567890',
+        entityType: 'PERSON',
+        sourceIds: ['NPPES_API'],
+        verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+        metadata: {
+          status: 'ACTIVE',
+        },
+      },
+      roles: [],
+      relationships: [],
+      credentials: [],
+      routingEntry: '/get-ready',
+      subjectLabel: 'Provider',
+    });
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'artifact-nppes',
+      rawPayload: {
+        enumeration_type: 'NPI-1',
+        basic: {
+          first_name: 'Macie',
+          last_name: 'Miller',
+        },
+        taxonomies: [
+          { code: '363LP2300X', desc: 'Primary Care Nurse Practitioner', primary: true },
+        ],
+      },
+      verifiedAt: new Date('2026-03-23T12:00:00.000Z'),
+      observedAt: new Date('2026-03-23T12:00:00.000Z'),
+      expiresAt: new Date('2026-03-30T12:00:00.000Z'),
+    });
+
+    const passport = await buildPassport('entity-1');
+
+    expect(passport?.identity.displayName).toBe('Macie Miller');
+    expect(passport?.identity.specialty).toBe('Primary Care Nurse Practitioner');
+    expect(passport?.sourceCoverage.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceId: 'NPPES_API',
+          state: 'checked',
+          provenance: expect.objectContaining({
+            artifactId: 'artifact-nppes',
+            artifactIds: ['artifact-nppes'],
+          }),
+        }),
+      ]),
+    );
   });
 
   it('uses a generic placeholder only when no identity source is available', async () => {
@@ -368,6 +436,7 @@ describe('passportService', () => {
   });
 
   it('builds explicit fallback source coverage with freshness windows when trust state is missing', async () => {
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
     prismaMock.vcvCredential.findMany.mockResolvedValue([
       buildCredential({
         id: 'cred-licensure-manual',
@@ -402,11 +471,10 @@ describe('passportService', () => {
       }),
     }));
     expect(nppes).toEqual(expect.objectContaining({
-      state: 'checked',
+      state: 'pending',
       freshnessWindowHours: 168,
-      observedAt: '2026-03-23T12:00:00.000Z',
       freshness: expect.objectContaining({
-        status: 'current',
+        status: 'unknown',
       }),
     }));
     expect(pecos).toEqual(expect.objectContaining({
@@ -416,9 +484,21 @@ describe('passportService', () => {
         status: 'unknown',
       }),
     }));
-    expect(passport?.trustPosture.safeToRelyOnNow).toContain('Identity confirmed via CMS NPPES.');
+    expect(passport?.trustPosture.safeToRelyOnNow).toEqual([]);
+    expect(passport?.readiness.status).toBe('PARTIAL');
+    expect(passport?.readiness.score).toBe(0);
+    expect(passport?.readiness.level).toBe('L0');
+    expect(passport?.readiness.blockers).toEqual([]);
+    expect(passport?.readiness.gaps).toEqual(
+      expect.arrayContaining([
+        'Missing: EXCLUSION_CHECK',
+        'Missing: IDENTITY',
+        'Missing: LICENSURE',
+      ]),
+    );
     expect(passport?.trustPosture.missingItems).toEqual(
       expect.arrayContaining([
+        'NPPES identity source not yet checked',
         'State licensure is outside the current production lane and must be verified manually',
         'OIG LEIE source not yet checked',
         'PECOS enrollment source not yet checked',
@@ -426,12 +506,42 @@ describe('passportService', () => {
     );
     expect(passport?.trustPosture.dimensions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'identity', state: 'current' }),
+        expect.objectContaining({ id: 'identity', state: 'missing' }),
         expect.objectContaining({ id: 'authority', state: 'missing' }),
         expect.objectContaining({ id: 'safety', state: 'missing' }),
         expect.objectContaining({ id: 'eligibility', state: 'missing' }),
       ]),
     );
+  });
+
+  it('downgrades optimistic NPPES checked coverage when no NPPES artifact is attached', async () => {
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue(null);
+    (getCachedTrustState as jest.Mock).mockResolvedValue({
+      licensureStatus: 'unknown',
+      exclusionStatus: 'UNCHECKED',
+      pecosStatus: 'UNCHECKED',
+      readiness_level: 'L3',
+      readiness_score: 91,
+      gap_summary: [],
+      blockers: [],
+      sourceCoverage: [
+        createCanonicalSourceCoverage({
+          sourceId: 'NPPES_API',
+          state: 'checked',
+          reason: 'NPPES identity checked',
+        }),
+      ],
+    });
+
+    const passport = await buildPassport('entity-1');
+    const nppes = passport?.sourceCoverage.checks.find((check) => check.sourceId === 'NPPES_API');
+
+    expect(nppes).toEqual(expect.objectContaining({
+      state: 'pending',
+      reason: 'NPPES identity source not yet checked',
+    }));
+    expect(passport?.truth.identity.status).toBe('PENDING');
+    expect(passport?.readiness.score).toBe(0);
   });
 
   it('surfaces a healthy posture with source-backed claims that are safe to rely on now', async () => {
@@ -564,7 +674,9 @@ describe('passportService', () => {
     expect(passport?.trustPosture.reviewRequiredItems).toContain(
       'OIG LEIE returned a possible match and requires human adjudication',
     );
-    expect(passport?.trustPosture.blockers).toContain('OIG/LEIE possible match requires review');
+    expect(passport?.readiness.status).toBe('PARTIAL');
+    expect(passport?.readiness.blockers).toEqual([]);
+    expect(passport?.readiness.gaps).toContain('OIG/LEIE possible match requires review');
   });
 
   it('withholds unbacked credentials from public-safe passport truth and readiness', async () => {

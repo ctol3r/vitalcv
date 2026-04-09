@@ -644,13 +644,13 @@ describe('live path regression hardening', () => {
 
     expect(
       Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
-    ).toEqual(['Check readiness']);
-    expect(textContent(view.container)).toContain('NPI first. Honest coverage.');
+    ).toEqual(['Check Credential Readiness']);
+    expect(textContent(view.container)).toContain('Stop starting over.Start ready.');
     expect(textContent(view.container)).not.toContain('Continue to passport');
     expect(textContent(view.container)).not.toContain('Get Verified');
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Check readiness');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
+    await clickByText(view.container, 'Check Credential Readiness');
     await flush();
     await advance(1);
     await flush();
@@ -678,8 +678,8 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole onPreviewReady={onPreviewReady} />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Check readiness');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
+    await clickByText(view.container, 'Check Credential Readiness');
     await flush();
     await advance(260);
     await flush();
@@ -716,8 +716,8 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Check readiness');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
+    await clickByText(view.container, 'Check Credential Readiness');
     await flush();
     await advance(260);
     await flush();
@@ -734,8 +734,8 @@ describe('live path regression hardening', () => {
     const fetchMock = vi.mocked(fetch);
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234');
-    await clickByText(view.container, 'Check readiness');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234');
+    await clickByText(view.container, 'Check Credential Readiness');
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -766,8 +766,8 @@ describe('live path regression hardening', () => {
 
     const view = await renderNode(<LiveTrustConsole />);
 
-    await setInputValue(view.container, 'NPI number', '1234567890');
-    await clickByText(view.container, 'Check readiness');
+    await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
+    await clickByText(view.container, 'Check Credential Readiness');
     await flush();
     await advance(260);
     await flush();
@@ -1177,7 +1177,7 @@ describe('live path regression hardening', () => {
       />,
     );
 
-    await clickByText(view.container, 'Proceed with Credentialing Head Start');
+    await clickByText(view.container, 'Accept as head start');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1306,7 +1306,7 @@ describe('live path regression hardening', () => {
     const passport = buildPassport();
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_review" />);
 
-    await clickByText(view.container, 'Send to Credentialing Team');
+    await clickByText(view.container, 'Route to review');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(

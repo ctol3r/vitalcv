@@ -446,8 +446,8 @@ export function buildPassportProofSections(passport: PassportData): AccordionIte
 }
 
 export function summarizePassportProofSections(items: AccordionItem[]) {
-  const decisionGradeCount = 0;
-  const informationalCount = items.filter((item) => item.status === 'checked').length;
+  const decisionGradeCount = items.filter((item) => item.status === 'checked').length;
+  const informationalCount = 0;
   const warningCount = items.filter((item) => item.status === 'review_required' || item.status === 'stale').length;
   const incompleteCount = items.filter((item) => item.status === 'pending' || item.status === 'unavailable' || item.status === 'access_required').length;
 

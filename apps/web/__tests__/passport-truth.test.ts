@@ -100,4 +100,29 @@ describe('passport truth helpers', () => {
       stale: true,
     })).toBe('stale');
   });
+
+  it('keeps pending, unavailable, and access-required authority lanes distinct', () => {
+    const pending = buildCredential({
+      status: 'UNRESOLVED',
+      authorityClaimCode: undefined,
+      connectorState: 'connected',
+      participationStatus: 'verified_result',
+    });
+    const unavailable = buildCredential({
+      status: 'UNRESOLVED',
+      authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+      connectorState: 'unavailable',
+      participationStatus: 'verified_result',
+    });
+    const accessRequired = buildCredential({
+      status: 'UNRESOLVED',
+      authorityClaimCode: 'AUTHORITY_UNAVAILABLE',
+      connectorState: 'unavailable',
+      participationStatus: 'institution_access_unavailable',
+    });
+
+    expect(resolveAuthorityTrustStatus(pending)).toBe('pending');
+    expect(resolveAuthorityTrustStatus(unavailable)).toBe('unavailable');
+    expect(resolveAuthorityTrustStatus(accessRequired)).toBe('access_required');
+  });
 });

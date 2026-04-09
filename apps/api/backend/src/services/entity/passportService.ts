@@ -25,11 +25,11 @@ import {
 } from '../trust/trustStateEngine';
 import {
   daysUntilExpiry,
-  isCredentialBlocking,
   isCredentialCurrentStatus,
   isCredentialSatisfied,
   isCredentialStale,
   isDecisionGrade,
+  normalizeCredentialStatus,
   normalizeExclusionCredentialStatus,
 } from '../../domain/entity/contracts';
 import { log } from '../../obs/logger';
@@ -292,6 +292,25 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
   BLOCKED: null as unknown as number,
 };
 
+function derivePassportReadinessLevel(
+  score: number,
+  status: 'READY' | 'PARTIAL' | 'BLOCKED',
+): string {
+  if (status === 'BLOCKED') {
+    return 'L0';
+  }
+  if (score >= 80 && status === 'READY') {
+    return 'L3';
+  }
+  if (score >= 60) {
+    return 'L2';
+  }
+  if (score > 0) {
+    return 'L1';
+  }
+  return 'L0';
+}
+
 function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
 }
@@ -380,35 +399,96 @@ function resolveDisplayNameFromNppesArtifact(input: {
   return organizationName;
 }
 
-async function resolvePassportIdentityDisplayName(input: {
+function resolveSpecialtyFromNppesArtifact(rawPayload: unknown): string | undefined {
+  const payload = pickArtifactPayload(rawPayload);
+  const nestedResults = Array.isArray(payload.results) ? payload.results : [];
+  const nestedResult = asRecord(nestedResults[0]);
+  const taxonomies: unknown[] = Array.isArray(payload.taxonomies)
+    ? payload.taxonomies
+    : Array.isArray(nestedResult.taxonomies)
+      ? nestedResult.taxonomies
+      : Array.isArray(asRecord(payload.basic).taxonomies)
+        ? (asRecord(payload.basic).taxonomies as unknown[])
+        : [];
+
+  const preferredTaxonomy = taxonomies.find((entry: unknown) => (
+    asRecord(entry).primary === true && stringValue(asRecord(entry).desc)
+  )) ?? taxonomies.find((entry: unknown) => stringValue(asRecord(entry).desc));
+
+  return stringValue(asRecord(preferredTaxonomy).desc);
+}
+
+function isReadinessBlockingFinding(finding: string): boolean {
+  const normalized = finding.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    normalized.includes('exclusion confirmed')
+    || normalized.includes('license expired')
+    || normalized.includes('license discipline')
+    || normalized.includes('board order severity blocks readiness')
+    || normalized.includes('medicare enrollment not found')
+    || normalized.includes('credentials are suspended or revoked')
+    || normalized.startsWith('proof missing:')
+    || normalized.startsWith('missing artifact source:')
+    || normalized.startsWith('unbacked credential withheld:')
+  );
+}
+
+type NppesIdentityArtifact = {
+  id: string;
+  rawPayload: unknown;
+  checksum: string | null;
+  sourceUrl: string | null;
+  parserVersion: string | null;
+  fetchedAt: Date | null;
+  verifiedAt: Date;
+  observedAt: Date | null;
+  expiresAt: Date | null;
+};
+
+async function findLatestNppesIdentityArtifact(
+  npi: string,
+): Promise<NppesIdentityArtifact | null> {
+  return prisma.verificationArtifact.findFirst({
+    where: {
+      npi,
+      source: {
+        in: ['NPPES_API', 'NPPES', 'NPI_REGISTRY'],
+      },
+    },
+    select: {
+      id: true,
+      rawPayload: true,
+      checksum: true,
+      sourceUrl: true,
+      parserVersion: true,
+      fetchedAt: true,
+      verifiedAt: true,
+      observedAt: true,
+      expiresAt: true,
+    },
+    orderBy: [
+      { verifiedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
+  }) as Promise<NppesIdentityArtifact | null>;
+}
+
+function resolvePassportIdentityDisplayName(input: {
   npi?: string;
   entityType: string;
   fallbackDisplayName: string;
-}): Promise<string> {
-  if (input.npi) {
-    const nppesArtifact = await prisma.verificationArtifact.findFirst({
-      where: {
-        npi: input.npi,
-        source: {
-          in: ['NPPES_API', 'NPPES', 'NPI_REGISTRY'],
-        },
-      },
-      select: {
-        rawPayload: true,
-      },
-      orderBy: [
-        { verifiedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    });
-
-    const nppesDisplayName = resolveDisplayNameFromNppesArtifact({
-      rawPayload: nppesArtifact?.rawPayload,
-      entityType: input.entityType,
-    });
-    if (nppesDisplayName) {
-      return nppesDisplayName;
-    }
+  nppesArtifact: NppesIdentityArtifact | null;
+}): string {
+  const nppesDisplayName = resolveDisplayNameFromNppesArtifact({
+    rawPayload: input.nppesArtifact?.rawPayload,
+    entityType: input.entityType,
+  });
+  if (nppesDisplayName) {
+    return nppesDisplayName;
   }
 
   if (!isGenericIdentityPlaceholder(input.fallbackDisplayName)) {
@@ -563,6 +643,7 @@ function buildFallbackPassportSourceCoverage(input: {
   authority: PassportAuthority;
   standing: PassportStanding;
   lastCheckedAt: string;
+  nppesIdentityArtifact: NppesIdentityArtifact | null;
 }): CanonicalSourceCoverage[] {
   const licensureCredential = input.authority.credentials.find(
     (credential) => credential.domain === 'LICENSURE',
@@ -607,16 +688,34 @@ function buildFallbackPassportSourceCoverage(input: {
       )
         ? 'checked'
         : 'pending';
+  const nppesCheckedAt =
+    input.nppesIdentityArtifact?.observedAt?.toISOString()
+    ?? input.nppesIdentityArtifact?.verifiedAt?.toISOString()
+    ?? null;
+  const hasNppesIdentityArtifact = input.nppesIdentityArtifact != null;
 
   return [
     createCanonicalSourceCoverage({
       sourceId: 'NPPES_API',
-      state: input.identity.npi ? 'checked' : 'pending',
-      reason: input.identity.npi
+      state: hasNppesIdentityArtifact ? 'checked' : 'pending',
+      reason: hasNppesIdentityArtifact
         ? 'NPPES identity checked'
         : 'NPPES identity source not yet checked',
-      checkedAt: input.lastCheckedAt,
+      checkedAt: nppesCheckedAt,
+      observedAt: nppesCheckedAt,
+      expiresAt: input.nppesIdentityArtifact?.expiresAt?.toISOString() ?? null,
+      artifactId: input.nppesIdentityArtifact?.id ?? null,
+      sourceUrl: input.nppesIdentityArtifact?.sourceUrl ?? null,
+      rawArtifactRef: input.nppesIdentityArtifact?.id ?? null,
+      checksum: input.nppesIdentityArtifact?.checksum ?? null,
+      parserVersion: input.nppesIdentityArtifact?.parserVersion ?? null,
       freshnessWindowHours: getSourceFreshnessWindowHours('NPPES_API'),
+      proof: input.nppesIdentityArtifact
+        ? {
+            artifactIds: [input.nppesIdentityArtifact.id],
+            receiptIds: [],
+          }
+        : null,
     }),
     createCanonicalSourceCoverage({
       sourceId: 'OIG_LEIE',
@@ -686,8 +785,18 @@ function buildPassportSourceCoverage(input: {
   lastCheckedAt: string;
   proofBySource: ReadonlyMap<string, SourceProofRefs>;
   artifactsById: ReadonlyMap<string, SourceProofArtifact>;
+  nppesIdentityArtifact: NppesIdentityArtifact | null;
 }): CanonicalSourceCoverageReport {
-  const latestArtifactForSource = (sourceId: string): SourceProofArtifact | null => {
+  const latestArtifactForSource = (
+    sourceId: string,
+  ): SourceProofArtifact | NppesIdentityArtifact | null => {
+    if (
+      ['NPPES_API', 'NPPES', 'NPI_REGISTRY'].includes(sourceId)
+      && input.nppesIdentityArtifact
+    ) {
+      return input.nppesIdentityArtifact;
+    }
+
     const proofArtifactIds = input.proofBySource.get(sourceId)?.artifactIds ?? [];
     const sourceArtifacts = proofArtifactIds
       .map((artifactId) => input.artifactsById.get(artifactId))
@@ -714,22 +823,38 @@ function buildPassportSourceCoverage(input: {
 
   const baseChecks = input.trustState?.sourceCoverage?.length
     ? input.trustState.sourceCoverage
-    : buildFallbackPassportSourceCoverage({
+      : buildFallbackPassportSourceCoverage({
         identity: input.identity,
         authority: input.authority,
         standing: input.standing,
         lastCheckedAt: input.lastCheckedAt,
+        nppesIdentityArtifact: input.nppesIdentityArtifact,
       });
 
   const checks = baseChecks
     .map((check) => {
-      const proof = input.proofBySource.get(check.sourceId) ?? null;
       const latestArtifact = latestArtifactForSource(check.sourceId);
+      const proof = input.proofBySource.get(check.sourceId)
+        ?? (
+          latestArtifact?.id
+            ? {
+                artifactIds: [latestArtifact.id],
+                receiptIds: [],
+              }
+            : null
+        );
       const artifactId = check.artifactId ?? latestArtifact?.id ?? null;
+      const isNppesCoverage =
+        check.sourceId === 'NPPES_API'
+        || check.sourceId === 'NPPES'
+        || check.sourceId === 'NPI_REGISTRY';
+      const shouldDowngradeUncheckedIdentity = isNppesCoverage
+        && check.state === 'checked'
+        && input.nppesIdentityArtifact == null;
       const checkedAt = check.checkedAt
         ?? latestArtifact?.observedAt?.toISOString()
         ?? latestArtifact?.fetchedAt?.toISOString()
-        ?? latestArtifact?.verifiedAt.toISOString()
+        ?? latestArtifact?.verifiedAt?.toISOString()
         ?? null;
       const observedAt = check.observedAt
         ?? latestArtifact?.observedAt?.toISOString()
@@ -740,10 +865,12 @@ function buildPassportSourceCoverage(input: {
 
       return createCanonicalSourceCoverage({
         sourceId: check.sourceId,
-        state: check.state,
-        reason: check.reason,
-        checkedAt,
-        observedAt,
+        state: shouldDowngradeUncheckedIdentity ? 'pending' : check.state,
+        reason: shouldDowngradeUncheckedIdentity
+          ? 'NPPES identity source not yet checked'
+          : check.reason,
+        checkedAt: shouldDowngradeUncheckedIdentity ? null : checkedAt,
+        observedAt: shouldDowngradeUncheckedIdentity ? null : observedAt,
         expiresAt,
         artifactId,
         sourceUrl: check.sourceUrl ?? latestArtifact?.sourceUrl ?? null,
@@ -909,7 +1036,10 @@ export function buildPassportTruth(input: {
   return Object.freeze({
     identity: createCanonicalTruth({
       kind: 'verification',
-      satisfied: Boolean(input.identity.displayName && input.identity.npi),
+      satisfied: input.sourceCoverage.checks.some((check) => (
+        ['NPPES_API', 'NPPES', 'NPI_REGISTRY'].includes(check.sourceId)
+        && check.state === 'checked'
+      )),
       coverage: selectCoverageCheck(
         input.sourceCoverage,
         ['NPPES_API', 'NPPES'],
@@ -1469,10 +1599,14 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
 
   const { entity } = record;
   const npi = entity.npi ?? undefined;
-  const displayName = await resolvePassportIdentityDisplayName({
+  const nppesIdentityArtifact = npi
+    ? await findLatestNppesIdentityArtifact(npi)
+    : null;
+  const displayName = resolvePassportIdentityDisplayName({
     npi,
     entityType: entity.entityType,
     fallbackDisplayName: entity.displayName,
+    nppesArtifact: nppesIdentityArtifact,
   });
   const receiptClient = getVerificationReceiptRecordClient();
   const credentials = await prisma.vcvCredential.findMany({
@@ -1702,6 +1836,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const exclusionClear = exclusionStatus === 'CLEAR';
 
   const negativeFindings: string[] = [];
+  const blockingFindings: string[] = [];
+  const reviewAndAvailabilityFindings: string[] = [];
   if (exclusionStatus === 'EXCLUDED') negativeFindings.push('OIG/LEIE exclusion confirmed');
   if (exclusionStatus === 'POSSIBLE_MATCH') negativeFindings.push('OIG/LEIE possible match requires review');
   if (exclusionStatus === 'UNCHECKED') negativeFindings.push('OIG/LEIE check not yet verified');
@@ -1724,6 +1860,30 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     if (isNotFound) {
       negativeFindings.push('Medicare enrollment not found in CMS PECOS data');
     }
+  }
+  if (exclusionStatus === 'EXCLUDED') {
+    blockingFindings.push('OIG/LEIE exclusion confirmed');
+  }
+  if (exclusionStatus === 'POSSIBLE_MATCH') {
+    reviewAndAvailabilityFindings.push('OIG/LEIE possible match requires review');
+  }
+  if (exclusionStatus === 'UNCHECKED') {
+    reviewAndAvailabilityFindings.push('OIG/LEIE check not yet verified');
+  }
+  if (trustState?.licensureStatus === 'expired') {
+    blockingFindings.push('License expired');
+  }
+  if (trustState?.blockers?.includes('LICENSE_DISCIPLINED')) {
+    blockingFindings.push('License discipline requires resolution');
+  }
+  if (trustState?.blockers?.includes('BOARD_ORDER_BLOCK')) {
+    blockingFindings.push('Board order severity blocks readiness');
+  }
+  if (trustState?.blockers?.includes('BOARD_ORDER_REVIEW')) {
+    reviewAndAvailabilityFindings.push('Board order requires manual review');
+  }
+  if (trustState?.gap_summary?.some((gap) => gap.toLowerCase().includes('authority source unavailable'))) {
+    reviewAndAvailabilityFindings.push('Authority verification source unavailable');
   }
 
   const licensureStatus = trustState?.licensureStatus
@@ -1832,7 +1992,9 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     entityId,
     displayName,
     npi,
-    specialty: meta.specialty as string | undefined,
+    specialty:
+      (meta.specialty as string | undefined)
+      ?? resolveSpecialtyFromNppesArtifact(nppesIdentityArtifact?.rawPayload),
     entityType: entity.entityType,
     status: (meta.status as string | undefined) ?? 'ACTIVE',
   };
@@ -1848,6 +2010,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       artifactsById,
     }),
     artifactsById,
+    nppesIdentityArtifact,
   });
   const truth = buildPassportTruth({
     identity,
@@ -1878,6 +2041,15 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     });
   });
   const activeDomains = new Set(decisionGradeSatisfiedCredentials.map((credential) => credential.domain));
+  if (truth.identity.status === 'VERIFIED') {
+    activeDomains.add('IDENTITY');
+  }
+  if (truth.safety.status === 'CLEAR') {
+    activeDomains.add('EXCLUSION_CHECK');
+  }
+  if (truth.authority.status === 'VERIFIED') {
+    activeDomains.add('LICENSURE');
+  }
   missingBlocking = BLOCKING_DOMAINS.filter(
     (domain) => !activeDomains.has(domain as import('@prisma/client').VcvCredentialDomain),
   );
@@ -1915,17 +2087,22 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   }
 
   const blockers: string[] = [
-    ...negativeFindings,
     ...eligibilityBlockers,
-    ...missingBlocking.map(d => `Missing: ${d}`),
+    ...blockingFindings,
     ...evidenceGaps,
   ];
-  if (usableCredentials.some(isCredentialBlocking)) blockers.push('Credentials require review');
-  if (credList.some(c => c.status === 'EXPIRED')) blockers.push('Expired credentials');
+  if (usableCredentials.some((credential) => {
+    const normalized = normalizeCredentialStatus(credential.status);
+    return normalized === 'SUSPENDED' || normalized === 'REVOKED';
+  })) {
+    blockers.push('Credentials are suspended or revoked');
+  }
 
   const gaps: string[] = [
     ...(trustState?.gap_summary ?? []),
+    ...reviewAndAvailabilityFindings,
     ...eligibilityGaps,
+    ...missingBlocking.map((domain) => `Missing: ${domain}`),
     ...Object.values(truth)
       .filter((entry) => entry.status === 'NOT_DECISION_GRADE')
       .map((entry) => entry.coverage.reason),
@@ -1933,22 +2110,21 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       .filter((credential) => credential.stale && isCredentialCurrentStatus(credential.domain, credential.status))
       .map((credential) => `Stale: ${credential.domain}`),
   ];
-  const normalizedBlockers = dedupeStrings(blockers);
+  const normalizedBlockers = dedupeStrings(blockers).filter(isReadinessBlockingFinding);
   const normalizedGaps = dedupeStrings(gaps);
 
   let readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' = 'READY';
   if (normalizedBlockers.length > 0)   readinessStatus = 'BLOCKED';
   else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
-  else if (missingBlocking.length > 0) readinessStatus = 'BLOCKED';
   // Derive readiness score from source coverage rather than hardcoding.
   // Each checked launch-spine source contributes 25 points (4 sources × 25 = 100 max).
   // Non-checked sources contribute 0. This ensures the score reflects real source state.
-  const readinessScore = trustState?.readiness_score ?? (() => {
-    const spineChecks = sourceCoverage.checks.filter(
-      (check) => LAUNCH_SPINE_SOURCE_IDS.includes(check.sourceId as LaunchSpineSourceId),
-    );
-    const checkedCount = spineChecks.filter((check) => check.state === 'checked').length;
-    const baseScore = checkedCount * 25;
+  const spineChecks = sourceCoverage.checks.filter(
+    (check) => LAUNCH_SPINE_SOURCE_IDS.includes(check.sourceId as LaunchSpineSourceId),
+  );
+  const checkedCount = spineChecks.filter((check) => check.state === 'checked').length;
+  const baseScore = checkedCount * 25;
+  const readinessScore = (() => {
     // Blockers cap score at 20 max; gaps cap at 75 max.
     if (normalizedBlockers.length > 0) return Math.min(baseScore, 20);
     if (normalizedGaps.length > 0) return Math.min(baseScore, 75);
@@ -1971,8 +2147,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     status:             readinessStatus,
     score:              readinessScore,
     readiness_score:    readinessScore,
-    level:              trustState?.readiness_level
-                        ?? (readinessStatus === 'READY' ? 'L3' : readinessStatus === 'PARTIAL' ? 'L2' : 'L0'),
+    level:              derivePassportReadinessLevel(readinessScore, readinessStatus),
     blockers:           normalizedBlockers,
     gaps:               normalizedGaps,
     nextActions,

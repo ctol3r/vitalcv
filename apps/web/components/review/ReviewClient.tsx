@@ -913,13 +913,11 @@ function ReviewClientLoaded({
   const latestAuthorityObservationAt = latestCredentialObservationDate(authority.credentials);
 
   const missingDomains    = authority.summary.missing;
-  const blocked = Array.from(new Set([
-    ...readiness.blockers,
-    ...missingDomains.map((domain) => domain.replace(/_/g, ' ').toLowerCase()),
-  ]));
+  const blocked = Array.from(new Set(readiness.blockers));
   const reviewTruth = buildPassportReviewTruthModel(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
+  const showReadinessScore = proofSummary.decisionGradeCount > 0;
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
@@ -1459,7 +1457,14 @@ function ReviewClientLoaded({
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Readiness</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{readiness.score}/100</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {showReadinessScore ? `${readiness.score}/100` : 'Withheld'}
+              </p>
+              {!showReadinessScore ? (
+                <p className="mt-1 text-[11px] text-muted-foreground/60">
+                  Score appears after source-backed claims attach.
+                </p>
+              ) : null}
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Trust band</p>
@@ -1596,7 +1601,9 @@ function ReviewClientLoaded({
             {/* Q5: What blocks start? + Q6: What do I do? */}
             <div className="border-t border-border pt-4 space-y-1 text-sm">
               <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
-              <p className="text-foreground font-medium pb-1">{readiness.score}% ready</p>
+              <p className="text-foreground font-medium pb-1">
+                {showReadinessScore ? `${readiness.score}% ready` : 'Readiness score withheld until source-backed claims attach'}
+              </p>
 
               {/* Q5: Blockers */}
               {blocked.length > 0 && (

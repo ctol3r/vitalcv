@@ -34,6 +34,10 @@ export interface StreamIdentity {
   entityId?: string;
   displayName?: string;
   specialty?: string;
+  credentials?: string;
+  enumerationDate?: string;
+  taxonomies?: Array<{ code: string; desc: string; primary: boolean }>;
+  address?: { city: string; state: string };
   entityType?: string;
   npiType?: string;
   status?: string;
@@ -182,10 +186,24 @@ function mergeIdentity(
   const identityStatus = readString(payload, 'identityStatus') ?? prev.status;
   const sourceResult = readSourceResult(payload) ?? prev.sourceResult;
 
+  let taxonomies = prev.taxonomies;
+  if (Array.isArray(payload.taxonomies)) {
+    taxonomies = payload.taxonomies as Array<{ code: string; desc: string; primary: boolean }>;
+  }
+
+  let address = prev.address;
+  if (payload.address && typeof payload.address === 'object') {
+    address = payload.address as { city: string; state: string };
+  }
+
   return {
     entityId: readString(payload, 'entityId') ?? prev.entityId,
     displayName,
     specialty: readString(payload, 'specialty') ?? prev.specialty,
+    credentials: readString(payload, 'credentials') ?? prev.credentials,
+    enumerationDate: readString(payload, 'enumerationDate') ?? prev.enumerationDate,
+    taxonomies,
+    address,
     entityType: readString(payload, 'entityType') ?? prev.entityType,
     npiType: readString(payload, 'npiType') ?? prev.npiType,
     status: identityStatus,

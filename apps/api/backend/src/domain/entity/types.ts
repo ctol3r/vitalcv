@@ -116,6 +116,10 @@ export interface NpiResolution {
   routingContext:  WorkflowContext;        // initial workflow context
   displayName:     string;
   specialty?:      string;
+  credentials?:    string;
+  taxonomies?:     { code: string; desc: string; state?: string; license?: string; primary: boolean }[];
+  enumerationDate?: string;
+  address?:        { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
   status:          'ACTIVE' | 'DEACTIVATED' | 'UNKNOWN';
   source:          'NPPES_API' | 'CACHED';
   resolvedAt:      string;                 // ISO

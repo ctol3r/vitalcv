@@ -107,4 +107,71 @@ describe('/p/[slug] public passport page', () => {
     expect(markup).toContain('Apply with VitalCV');
     expect(markup).not.toContain('licenseNumber');
   }, 15000);
+
+  it('disables proof downloads when no source-backed claims are attached', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        npi: '1234567890',
+        status: 'PENDING',
+        trustBand: 'L1',
+        readinessScore: 25,
+        lastAnchored: null,
+        activeCredentials: [],
+        readiness: {
+          evaluated: true,
+          isEligible: false,
+          missingRequirements: ['State licensure'],
+          traceCount: 0,
+        },
+        artifactSummaries: [
+          {
+            artifactId: 'artifact-1',
+            issuer: 'CMS NPPES',
+            status: 'ACTIVE',
+            lifecycleState: 'active',
+            verifiedAt: '2026-03-02T00:00:00.000Z',
+            expiresAt: null,
+            monitoring: false,
+            checksum: 'checksum-1234567890',
+            claimCount: 0,
+            claimHashes: [],
+            selectiveDisclosure: null,
+          },
+        ],
+        issuerProvenance: [],
+        monitoringSummary: {
+          monitoredArtifactCount: 0,
+          totalArtifactCount: 1,
+          coverageRate: 0,
+          activeAlertCount: 0,
+          latestAlertAt: null,
+        },
+        proof: {
+          jsonUrl: '/api/trust-proof/1234567890',
+          pdfUrl: '/api/trust-proof/1234567890?format=pdf',
+          auditBundleJson: '/api/artifact/bundle/1234567890',
+          auditBundleDownload: '/api/artifact/bundle/1234567890/download',
+        },
+        events: [],
+        generatedAt: '2026-03-03T00:00:00.000Z',
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { default: PassportPage } = await import('../app/p/[slug]/page');
+    const element = await PassportPage({
+      params: Promise.resolve({ slug: '1234567890' }),
+    });
+    const markup = renderToStaticMarkup(element);
+
+    expect(markup).toContain('No source-backed claims are attached yet');
+    expect(markup).toContain('JSON proof unavailable');
+    expect(markup).toContain('PDF proof unavailable');
+    expect(markup).not.toContain('Download JSON Proof');
+    expect(markup).not.toContain('Download PDF Proof');
+  }, 15000);
 });

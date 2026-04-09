@@ -192,6 +192,8 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
       }
     }
 
+    const metadata = (entityRecord.entity.metadata as Record<string, unknown>) ?? {};
+
     await finalizeSourceResult(runId, 'nppes', resultBySource.get('nppes') ?? null, {
       resultStatus: resultBySource.get('nppes')?.status ?? 'FAILED',
       entityId: entityRecord.entity.id,
@@ -199,6 +201,11 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
       entityType: entityRecord.entity.entityType,
       npiType: entityRecord.entity.npiType,
       identityStatus: readJsonString(entityRecord.entity.metadata, 'status'),
+      credentials: readJsonString(metadata, 'credentials'),
+      specialty: readJsonString(metadata, 'specialty'),
+      enumerationDate: readJsonString(metadata, 'enumerationDate'),
+      address: metadata.address,
+      taxonomies: metadata.taxonomies,
     });
     await finalizeSourceResult(runId, 'oig', resultBySource.get('oig') ?? null);
     await finalizeSourceResult(runId, 'pecos', resultBySource.get('pecos') ?? null);

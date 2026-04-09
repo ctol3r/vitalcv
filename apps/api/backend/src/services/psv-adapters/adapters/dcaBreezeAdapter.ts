@@ -9,14 +9,29 @@ export class DcaBreezeAdapter extends BasePsvAdapter {
     const start = Date.now();
     try {
       const res = await fetch(sourceUrl, { signal: AbortSignal.timeout(this.config.timeout), headers: { Accept: 'application/json' } });
+      if (!res.ok) {
+        throw new Error(`DCA API returned ${res.status}`);
+      }
       const json = await res.json() as unknown;
       return { rawResponse: json, sourceUrl, responseTimeMs: Date.now() - start };
-    } catch {
-      return { rawResponse: { stub: true, npi, state: 'CA', note: 'DCA BreEZe stub' }, sourceUrl, responseTimeMs: Date.now() - start };
+    } catch (err) {
+      throw new Error(`Failed to fetch DCA BreEZe data: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   protected normalize(r: unknown) {
     const rec = r as Record<string, unknown>;
-    return { normalizedData: rec, status: 'ACTIVE' as const, state: 'CA', licenseNumber: String(rec.licenseNumber ?? rec.license_number ?? ''), expiresAt: String(rec.expirationDate ?? '') };
+    const statusStr = String(rec.status ?? '').toUpperCase();
+    let mappedStatus: 'ACTIVE' | 'EXPIRED' | 'NOT_FOUND' | 'ERROR' = 'ERROR';
+    if (statusStr.includes('ACTIVE') || statusStr.includes('CURRENT')) mappedStatus = 'ACTIVE';
+    else if (statusStr.includes('EXPIRED') || statusStr.includes('INACTIVE')) mappedStatus = 'EXPIRED';
+    else if (rec.error === 'NOT_FOUND') mappedStatus = 'NOT_FOUND';
+    
+    return {
+      normalizedData: rec,
+      status: mappedStatus,
+      state: 'CA',
+      licenseNumber: String(rec.licenseNumber ?? rec.license_number ?? ''),
+      expiresAt: String(rec.expirationDate ?? ''),
+    };
   }
 }

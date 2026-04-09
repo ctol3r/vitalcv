@@ -457,26 +457,55 @@ function MonitoringSummaryCard({ summary }: { summary: NpiProfile['monitoringSum
   );
 }
 
-function ProofCard({ proof }: { proof: NpiProfile['proof'] }) {
+function hasDownloadableSourceBackedProof(
+  artifacts: NpiProfile['artifactSummaries'],
+): boolean {
+  return artifacts.some((artifact) => (
+    artifact.claimCount > 0 && artifact.claimHashes.length > 0
+  ));
+}
+
+function ProofCard({
+  proof,
+  hasDownloadableProof,
+}: {
+  proof: NpiProfile['proof'];
+  hasDownloadableProof: boolean;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shareable Proof Bundle</p>
       <p className="mt-2 text-sm text-muted-foreground">
-        Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.
+        {hasDownloadableProof
+          ? 'Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.'
+          : 'No source-backed claims are attached yet, so proof downloads stay disabled until the first checked claim lands.'}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <a
-          href={proof.jsonUrl}
-          className="rounded-lg bg-green-600 px-4 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-green-700"
-        >
-          Download JSON Proof
-        </a>
-        <a
-          href={proof.pdfUrl}
-          className="rounded-lg border border-border px-4 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          Download PDF Proof
-        </a>
+        {hasDownloadableProof ? (
+          <>
+            <a
+              href={proof.jsonUrl}
+              className="rounded-lg bg-green-600 px-4 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-green-700"
+            >
+              Download JSON Proof
+            </a>
+            <a
+              href={proof.pdfUrl}
+              className="rounded-lg border border-border px-4 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Download PDF Proof
+            </a>
+          </>
+        ) : (
+          <>
+            <span className="rounded-lg border border-border bg-muted px-4 py-3 text-center text-sm font-medium text-muted-foreground">
+              JSON proof unavailable
+            </span>
+            <span className="rounded-lg border border-border bg-muted px-4 py-3 text-center text-sm font-medium text-muted-foreground">
+              PDF proof unavailable
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -739,7 +768,10 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               </section>
 
               <section className="mb-8">
-                <ProofCard proof={profile.proof} />
+                <ProofCard
+                  proof={profile.proof}
+                  hasDownloadableProof={hasDownloadableSourceBackedProof(profile.artifactSummaries)}
+                />
               </section>
 
               <section className="mb-8 flex justify-center">

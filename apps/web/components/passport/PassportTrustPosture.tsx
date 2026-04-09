@@ -94,6 +94,7 @@ export function PassportTrustPosture({
     : posture.staleItems.length > 0 ? 'Refresh recommended'
     : safeItems.length > 0 ? 'Source-backed now'
     : 'Coverage still building';
+  const showScore = posture.dimensions.some((dimension) => dimension.state === 'current');
 
   return (
     <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] py-0 shadow-none">
@@ -109,9 +110,11 @@ export function PassportTrustPosture({
           <div className="flex items-start justify-between gap-4 sm:block sm:text-right">
             <div>
               <p className={`text-4xl font-semibold tabular-nums tracking-tight ${band.scoreClass}`}>
-                {posture.score}
+                {showScore ? posture.score : 'Withheld'}
               </p>
-              <p className="text-[10px] text-muted-foreground/30">{posture.band} / 100</p>
+              <p className="text-[10px] text-muted-foreground/30">
+                {showScore ? `${posture.band} / 100` : 'Score appears once source-backed claims attach'}
+              </p>
             </div>
             <div className="sm:mt-3">
               <TrustStatusBadge status={summaryStatus} label={summaryLabel} size="sm" />

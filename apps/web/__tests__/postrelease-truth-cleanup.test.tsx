@@ -492,6 +492,7 @@ describe('post-release truth cleanup', () => {
     expectMarkupExcludes(markup, ['Identity verified', 'Source verification']);
   });
 
+
   it('keeps explore hero copy and CTA routes aligned with the public wedge', async () => {
     const [{ metadata: exploreMetadata }, { default: LabsPage }] = await Promise.all([
       import('../app/explore/page'),

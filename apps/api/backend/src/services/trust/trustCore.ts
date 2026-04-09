@@ -184,7 +184,7 @@ function hardBlockDimensions(
 ): ReadonlySet<TrustDimensionId> {
   const blocked = new Set<TrustDimensionId>();
 
-  if (dimensions.identity.status !== 'MET') {
+  if (dimensions.identity.status === 'BLOCKED') {
     blocked.add('identity');
   }
   if (dimensions.exclusion.status === 'BLOCKED') {
@@ -192,6 +192,9 @@ function hardBlockDimensions(
   }
   if (dimensions.licensure.status === 'BLOCKED') {
     blocked.add('licensure');
+  }
+  if (dimensions.enrollment.status === 'BLOCKED') {
+    blocked.add('enrollment');
   }
 
   return blocked;
@@ -251,7 +254,7 @@ export function computeDeterministicTrustReadiness(input: {
   const unmet = Object.values(dimensions).some((dimension) => dimension.status === 'UNMET');
 
   const overallStatus: DeterministicTrustReadiness['overallStatus'] =
-    hardBlocks.size > 0 || dimensions.enrollment.status === 'BLOCKED'
+    hardBlocks.size > 0
       ? 'BLOCKED'
       : reviewRequired
         ? 'PENDING_VERIFICATION'

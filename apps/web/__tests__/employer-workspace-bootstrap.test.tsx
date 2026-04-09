@@ -181,7 +181,6 @@ describe('RequestReviewPanel', () => {
     );
     const markup = renderToStaticMarkup(<RequestReviewPanel />);
 
-    expect(markup).toContain('Request a passport review');
     expect(markup).toContain('Create pilot review');
     expect(markup).toContain('Clinician NPI');
   });

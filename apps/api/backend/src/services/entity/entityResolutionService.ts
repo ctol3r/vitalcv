@@ -69,6 +69,10 @@ export async function resolveEntityFromNpi(npi: string): Promise<EntityRecord> {
       verifiedAt:  new Date(),
       metadata: {
         specialty:      resolution.specialty,
+        credentials:    resolution.credentials,
+        taxonomies:     resolution.taxonomies,
+        enumerationDate: resolution.enumerationDate,
+        address:        resolution.address,
         status:         resolution.status,
         enumerationType: resolution.enumerationType,
       } as import('@prisma/client').Prisma.InputJsonValue,
@@ -78,6 +82,10 @@ export async function resolveEntityFromNpi(npi: string): Promise<EntityRecord> {
       verifiedAt:  new Date(),
       metadata: {
         specialty:      resolution.specialty,
+        credentials:    resolution.credentials,
+        taxonomies:     resolution.taxonomies,
+        enumerationDate: resolution.enumerationDate,
+        address:        resolution.address,
         status:         resolution.status,
         enumerationType: resolution.enumerationType,
       } as import('@prisma/client').Prisma.InputJsonValue,

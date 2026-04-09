@@ -312,6 +312,9 @@ describe('passport review truth', () => {
     expect(truth.buckets.needsReview.map((item) => item.label)).toContain('Sanctions & Exclusions');
     expect(truth.buckets.missingOrAccessRequired.map((item) => item.label)).toContain('DEA / Controlled Substance');
     expect(truth.buckets.nextActions.map((item) => item.label)).toContain('Upload DEA evidence');
+    expect(truth.proofSummary.decisionGradeCount).toBe(3);
+    expect(truth.proofSummary.informationalCount).toBe(0);
+    expect(truth.proofSummary.warningCount).toBe(1);
   });
 
   it('keeps manual-only authority out of source-backed truth', () => {

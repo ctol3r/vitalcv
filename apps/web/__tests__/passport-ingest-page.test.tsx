@@ -171,7 +171,8 @@ describe('/passport ingest page', () => {
       },
     }));
 
-    expect(markup).toContain('Profile resolved but not yet anchored.');
+    expect(markup).toContain('Profile resolved, but passport continuation is still provisional.');
+    expect(markup).toContain('no source-backed passport anchor was written for this run');
     expect(markup).not.toContain('View full passport');
   });
 
