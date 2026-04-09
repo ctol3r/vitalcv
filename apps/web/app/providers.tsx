@@ -1,6 +1,7 @@
 'use client';
 
 import { RoleProvider } from '@/components/auth/RoleContext';
+import { captureUtmParams } from '@/lib/analytics/funnel';
 import { ThemeProvider } from 'next-themes';
 import type React from 'react';
 import posthog from 'posthog-js';
@@ -12,6 +13,9 @@ if (typeof window !== 'undefined') {
     person_profiles: 'identified_only',
     capture_pageview: false, // We usually handle this separately in App Router, or we can just enable it
   });
+
+  // Persist UTM params from the landing URL for funnel attribution
+  captureUtmParams();
 }
 
 export default function Providers({

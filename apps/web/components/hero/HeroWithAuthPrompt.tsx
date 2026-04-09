@@ -16,7 +16,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LiveTrustConsole } from './LiveTrustConsole';
-import { CreateAccountModal } from '@/components/auth/CreateAccountModal';
+import { SignUpBanner } from '@/components/hero/SignUpBanner';
 import { useAuthPrompt } from '@/hooks/useAuthPrompt';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 
@@ -49,8 +49,8 @@ function HeroWithPromptShell() {
     }
     setResolvedNpi(npi);
     setDisplayName(name);
-    setShowModal(false);
-    modalTimer.current = setTimeout(() => setShowModal(true), 1200);
+    // Show banner immediately — it has its own internal delay (2.5s)
+    setShowModal(true);
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -69,11 +69,14 @@ function HeroWithPromptShell() {
       </Suspense>
 
       {showModal && shouldPrompt && resolvedNpi && (
-        <CreateAccountModal
-          npi={resolvedNpi}
-          displayName={displayName}
-          onDismiss={handleDismiss}
-        />
+        <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
+          <SignUpBanner
+            npi={resolvedNpi}
+            displayName={displayName}
+            onDismiss={handleDismiss}
+            delayMs={2500}
+          />
+        </div>
       )}
     </>
   );

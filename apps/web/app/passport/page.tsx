@@ -57,11 +57,11 @@ function isValidNpiChecksum(npi: string): boolean {
 }
 
 const SOURCE_EXPLANATIONS = [
-  { id: 'nppes', name: 'NPPES', description: 'Identity verification from the National Plan and Provider Enumeration System' },
-  { id: 'oig', name: 'OIG / LEIE', description: 'Exclusion check against the Office of Inspector General\u2019s List of Excluded Individuals' },
-  { id: 'pecos', name: 'CMS PECOS', description: 'Medicare enrollment verification from Provider Enrollment, Chain, and Ownership System' },
+  { id: 'nppes', name: 'NPPES', description: 'Identity verification from the National Plan and Provider Enumeration System', locked: false },
+  { id: 'oig', name: 'OIG / LEIE', description: 'Exclusion check against the Office of Inspector General\u2019s List of Excluded Individuals', locked: false },
+  { id: 'pecos', name: 'CMS PECOS', description: 'Medicare enrollment verification from Provider Enrollment, Chain, and Ownership System', locked: false },
   { id: 'fsmb', name: 'FSMB / State Board', description: 'State medical board licensure verification via the Federation of State Medical Boards', locked: true },
-] as const;
+];
 
 // ── Status label helper ────────────────────────────────────────────────────────
 

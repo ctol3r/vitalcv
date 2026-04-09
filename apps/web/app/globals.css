@@ -72,6 +72,75 @@ body {
   }
 }
 
+/* ── Funnel Conversion Animations ────────────────────────────── */
+
+@keyframes vcv-input-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--vt-focus-ring);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--vt-accent) 15%, transparent);
+  }
+}
+
+@keyframes vcv-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vcv-loading-step-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes vcv-loading-check {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes vcv-banner-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vcv-score-count {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 :root {
   --background: var(--vt-bg);
   --foreground: var(--vt-text-primary);
