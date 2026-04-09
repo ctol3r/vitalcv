@@ -395,6 +395,8 @@ model Application {
   reviewNote      String?           @map("review_note")
   missingRequests MissingRequest[]
   price           Float?            @map("price")
+  timeline        Json?             @map("timeline")
+  progress        Json?             @map("progress")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
