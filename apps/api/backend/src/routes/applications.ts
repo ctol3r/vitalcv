@@ -7,8 +7,11 @@
  *   DELETE /api/applications/:appId/withdraw   — clinician withdraws
  *
  *   GET    /api/employer/applications           — verifier lists all org applications
+ *   GET    /api/employer/applications/dashboard — verifier lists workflow buckets
  *   GET    /api/opportunities/:id/applications  — verifier lists for one opportunity
  *   PATCH  /api/applications/:appId/review      — verifier reviews (REVIEWED|ACCEPTED|DECLINED)
+ *   GET    /api/applications/:appId/workflow    — verifier reads workflow detail
+ *   POST   /api/applications/:appId/workflow-action — verifier runs accept/request_info/reject
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -20,6 +23,11 @@ import {
   listApplicationsForOpportunity,
   reviewApplication,
 } from '../services/opportunities/applicationService';
+import {
+  getEmployerWorkflowApplication,
+  listEmployerWorkflowDashboard,
+  runEmployerWorkflowAction,
+} from '../services/opportunities/employerWorkflowService';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
@@ -79,6 +87,16 @@ export function registerApplicationRoutes(app: Express): void {
     }),
   );
 
+  /* ── Verifier: workflow dashboard ── */
+  app.get(
+    '/api/employer/applications/dashboard',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireClerkUserId(req);
+      const dashboard = await listEmployerWorkflowDashboard(clerkUserId);
+      res.json(dashboard);
+    }),
+  );
+
   /* ── Verifier: list applications for one opportunity ── */
   app.get(
     '/api/opportunities/:id/applications',
@@ -132,6 +150,69 @@ export function registerApplicationRoutes(app: Express): void {
       }
 
       res.json(updated);
+    }),
+  );
+
+  /* ── Verifier: workflow detail ── */
+  app.get(
+    '/api/applications/:appId/workflow',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireClerkUserId(req);
+      const { appId } = req.params;
+      const workflowApplication = await getEmployerWorkflowApplication(appId, clerkUserId);
+      res.json(workflowApplication);
+    }),
+  );
+
+  /* ── Verifier: workflow action ── */
+  app.post(
+    '/api/applications/:appId/workflow-action',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireClerkUserId(req);
+      const { appId } = req.params;
+      const {
+        action,
+        requests,
+        reviewNote,
+      } = req.body as {
+        action?: string;
+        requests?: Array<{ field?: string; message?: string }>;
+        reviewNote?: string;
+      };
+
+      if (!action || !['accept', 'request_info', 'reject'].includes(action)) {
+        throw new HttpError(400, 'action must be accept, request_info, or reject.');
+      }
+
+      const result = await runEmployerWorkflowAction({
+        action: action as 'accept' | 'request_info' | 'reject',
+        applicationId: appId,
+        reviewerClerkUserId: clerkUserId,
+        requests: requests?.map((request) => ({
+          field: request.field ?? '',
+          message: request.message ?? '',
+        })),
+        reviewNote,
+      });
+
+      if (action === 'accept' || action === 'reject') {
+        const decisionAction = action === 'accept' ? 'APPROVE' : 'REJECT';
+
+        capsuleEngine.createDecisionFromApplication({
+          applicationId: appId,
+          verifierClerkUserId: clerkUserId,
+          decisionType: 'HIRING',
+          decisionAction,
+        }).catch((err: unknown) => {
+          log('warn', 'applications: workflow_capsule_creation_failed', {
+            applicationId: appId,
+            action,
+            error: String(err),
+          });
+        });
+      }
+
+      res.json(result);
     }),
   );
 }
