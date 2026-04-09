@@ -240,7 +240,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {!hasLicensure && (
           <AuthorityRow
             title="License verification"
-            status="access required"
+            status="access_required"
             sourceLabel="Configured state board lane"
             note="Access required. Authority remains incomplete until a connected state board lane runs."
           />
@@ -393,7 +393,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
 
   const sectionStatus: AccordionItem['status'] =
     rowStatus === 'enrolled'  ? 'checked' :
-    rowStatus === 'review required' ? 'review_required' :
+    rowStatus === 'review_required' ? 'review_required' :
     'pending';
 
   // Build observed-as quarter label
@@ -428,7 +428,7 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
-        {rowStatus === 'review required' && (
+        {rowStatus === 'review_required' && (
           <div className="py-1.5 text-muted-foreground/40 text-xs pl-4 leading-relaxed">
             Not finding a provider in PECOS may indicate non-enrollment or a quarterly data lag.
             Confirm by requesting current enrollment confirmation directly or via pecos.cms.hhs.gov.
@@ -535,6 +535,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const [shared,  setShared]  = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [pendingRefreshCount, setPendingRefreshCount] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     const npi = passport.npi ?? passport.identity?.npi;
@@ -813,10 +814,11 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         </SectionReveal>
 
         <SharePacketModal
-          open={shareModalOpen}
+          isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
           npi={passport.npi ?? ''}
-          displayName={identity.displayName}
+          clinicianName={identity.displayName}
+          entityId={''}
         />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}

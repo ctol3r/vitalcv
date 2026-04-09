@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Zap,
   Activity,
+  DollarSign,
 } from 'lucide-react';
 import Link from 'next/link';
 

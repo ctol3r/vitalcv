@@ -884,17 +884,17 @@ function OpportunityCard({
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
             application
               ? 'border border-border bg-muted text-foreground hover:bg-muted'
-              : 'bg-gradient-to-b from-vt-success to-emerald-600 text-black shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:brightness-110'
+              : 'bg-emerald-500 text-black shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:brightness-110'
           }`}
         >
-          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply with VitalCV'}
+          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply with passport'}
         </button>
         {opp.organizationSlug && (
           <Link
             href={`/employers/${opp.organizationSlug}`}
             className="flex items-center justify-center rounded-xl border border-vt-neutral-800 px-4 py-2.5 text-sm font-medium text-vt-neutral-200 transition-all hover:border-vt-neutral-700 hover:bg-vt-neutral-800/50 hover:text-foreground vt-glass"
           >
-            View proof
+            Employer requirements
           </Link>
         )}
       </div>
