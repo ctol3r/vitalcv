@@ -371,22 +371,32 @@ enum ApplicationStatus {
   ACCEPTED
   DECLINED
   WITHDRAWN
+  DRAFT
+  SUBMITTED
+  VIEWED
+  IN_REVIEW
+  CREDENTIALING
+  APPROVED
+  REJECTED
+  STARTED
 }
 
 /// Clinician application to a job opportunity
 model Application {
-  id            String            @id @default(uuid()) @db.Uuid
-  opportunityId String            @map("opportunity_id") @db.Uuid
-  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  clerkUserId   String            @map("clerk_user_id")
-  npi           String?
-  coverNote     String?           @map("cover_note")
-  status        ApplicationStatus @default(PENDING)
-  reviewedBy    String?           @map("reviewed_by") // verifier clerkUserId
-  reviewedAt    DateTime?         @map("reviewed_at")
-  reviewNote    String?           @map("review_note")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
+  id              String            @id @default(uuid()) @db.Uuid
+  opportunityId   String            @map("opportunity_id") @db.Uuid
+  opportunity     Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  clerkUserId     String            @map("clerk_user_id")
+  npi             String?
+  coverNote       String?           @map("cover_note")
+  status          ApplicationStatus @default(PENDING)
+  reviewedBy      String?           @map("reviewed_by") // verifier clerkUserId
+  reviewedAt      DateTime?         @map("reviewed_at")
+  reviewNote      String?           @map("review_note")
+  missingRequests MissingRequest[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([opportunityId, clerkUserId])
   @@index([clerkUserId])
@@ -452,23 +462,23 @@ enum MembershipRole {
 
 /// Linked profile for an individual clinician (Type 1 NPI)
 model PersonProfile {
-  id              String                @id @default(uuid()) @db.Uuid
-  userId          String                @unique @map("user_id") @db.Uuid
-  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  npi             String?               @unique
-  npiType         NpiType?              @default(TYPE_1) @map("npi_type")
-  firstName       String?               @map("first_name")
-  lastName        String?               @map("last_name")
-  specialty       String?
-  stateOfPractice String?               @map("state_of_practice")
-  workAuthStatus  String?               @map("work_auth_status")
-  resumeUrl       String?               @map("resume_url")
-  linkedinUrl     String?               @map("linkedin_url")
-  portfolioUrl    String?               @map("portfolio_url")
-  completeness    Int                   @default(0)
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
-  memberships     WorkspaceMembership[]
+  id                String                @id @default(uuid()) @db.Uuid
+  userId            String                @unique @map("user_id") @db.Uuid
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  npi               String?               @unique
+  npiType           NpiType?              @default(TYPE_1) @map("npi_type")
+  firstName         String?               @map("first_name")
+  lastName          String?               @map("last_name")
+  specialty         String?
+  stateOfPractice   String?               @map("state_of_practice")
+  workAuthStatus    String?               @map("work_auth_status")
+  resumeUrl         String?               @map("resume_url")
+  linkedinUrl       String?               @map("linkedin_url")
+  portfolioUrl      String?               @map("portfolio_url")
+  completeness      Int                   @default(0)
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  memberships       WorkspaceMembership[]
   providerLocations ProviderLocation[]
 
   @@index([npi])
@@ -517,31 +527,31 @@ model OrganizationProfile {
 }
 
 model Institution {
-  id                  String              @id @default(uuid()) @db.Uuid
-  vcvEntityId         String?             @unique @map("vcv_entity_id") @db.Uuid
-  organizationProfileId String?           @unique @map("organization_profile_id") @db.Uuid
-  canonicalName       String              @map("canonical_name")
-  slug                String              @unique
-  rorId               String?             @unique @map("ror_id")
-  addressLine1        String?             @map("address_line1")
-  addressLine2        String?             @map("address_line2")
-  city                String?
-  stateCode           String?             @map("state_code")
-  postalCode          String?             @map("postal_code")
-  countryCode         String              @default("US") @map("country_code")
-  latitude            Decimal?            @db.Decimal(9, 6)
-  longitude           Decimal?            @db.Decimal(9, 6)
-  geocodeStatus       GeocodeStatus       @default(PENDING) @map("geocode_status")
-  geocodePrecision    GeocodePrecision    @default(UNRESOLVED) @map("geocode_precision")
-  geocodeSource       String?             @map("geocode_source")
-  geocodeAttempts     Int                 @default(0) @map("geocode_attempts")
-  lastGeocodedAt      DateTime?           @map("last_geocoded_at")
-  lastGeocodeError    String?             @map("last_geocode_error")
-  metadata            Json                @default("{}") @db.JsonB
-  createdAt           DateTime            @default(now()) @map("created_at")
-  updatedAt           DateTime            @updatedAt @map("updated_at")
+  id                    String           @id @default(uuid()) @db.Uuid
+  vcvEntityId           String?          @unique @map("vcv_entity_id") @db.Uuid
+  organizationProfileId String?          @unique @map("organization_profile_id") @db.Uuid
+  canonicalName         String           @map("canonical_name")
+  slug                  String           @unique
+  rorId                 String?          @unique @map("ror_id")
+  addressLine1          String?          @map("address_line1")
+  addressLine2          String?          @map("address_line2")
+  city                  String?
+  stateCode             String?          @map("state_code")
+  postalCode            String?          @map("postal_code")
+  countryCode           String           @default("US") @map("country_code")
+  latitude              Decimal?         @db.Decimal(9, 6)
+  longitude             Decimal?         @db.Decimal(9, 6)
+  geocodeStatus         GeocodeStatus    @default(PENDING) @map("geocode_status")
+  geocodePrecision      GeocodePrecision @default(UNRESOLVED) @map("geocode_precision")
+  geocodeSource         String?          @map("geocode_source")
+  geocodeAttempts       Int              @default(0) @map("geocode_attempts")
+  lastGeocodedAt        DateTime?        @map("last_geocoded_at")
+  lastGeocodeError      String?          @map("last_geocode_error")
+  metadata              Json             @default("{}") @db.JsonB
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
 
-  vcvEntity           VcvEntity?          @relation(fields: [vcvEntityId], references: [id], onDelete: SetNull)
+  vcvEntity           VcvEntity?           @relation(fields: [vcvEntityId], references: [id], onDelete: SetNull)
   organizationProfile OrganizationProfile? @relation(fields: [organizationProfileId], references: [id], onDelete: SetNull)
 
   @@index([latitude, longitude])
@@ -552,38 +562,38 @@ model Institution {
 }
 
 model ProviderLocation {
-  id                 String                   @id @default(uuid()) @db.Uuid
-  subjectNpi         String                   @map("subject_npi")
-  personProfileId    String?                  @map("person_profile_id") @db.Uuid
-  claimRecordId      String?                  @unique @map("claim_record_id") @db.Uuid
-  locationType       ProviderLocationType     @default(PRACTICE) @map("location_type")
-  isCurrent          Boolean                  @default(true) @map("is_current")
-  sourceId           String                   @map("source_id")
-  trustTier          String                   @map("trust_tier")
-  confidenceScore    Float                    @map("confidence_score")
-  addressHash        String                   @map("address_hash")
-  addressLine1       String?                  @map("address_line1")
-  addressLine2       String?                  @map("address_line2")
-  city               String?
-  stateCode          String?                  @map("state_code")
-  postalCode         String?                  @map("postal_code")
-  countryCode        String                   @default("US") @map("country_code")
-  countyFips         String?                  @map("county_fips")
-  latitude           Decimal?                 @db.Decimal(9, 6)
-  longitude          Decimal?                 @db.Decimal(9, 6)
-  geocodeStatus      GeocodeStatus            @default(PENDING) @map("geocode_status")
-  geocodePrecision   GeocodePrecision         @default(UNRESOLVED) @map("geocode_precision")
-  geocodeSource      String?                  @map("geocode_source")
-  geocodeAttempts    Int                      @default(0) @map("geocode_attempts")
-  lastGeocodedAt     DateTime?                @map("last_geocoded_at")
-  lastGeocodeError   String?                  @map("last_geocode_error")
-  observedAt         DateTime                 @map("observed_at")
-  metadata           Json                     @default("{}") @db.JsonB
-  createdAt          DateTime                 @default(now()) @map("created_at")
-  updatedAt          DateTime                 @updatedAt @map("updated_at")
+  id               String               @id @default(uuid()) @db.Uuid
+  subjectNpi       String               @map("subject_npi")
+  personProfileId  String?              @map("person_profile_id") @db.Uuid
+  claimRecordId    String?              @unique @map("claim_record_id") @db.Uuid
+  locationType     ProviderLocationType @default(PRACTICE) @map("location_type")
+  isCurrent        Boolean              @default(true) @map("is_current")
+  sourceId         String               @map("source_id")
+  trustTier        String               @map("trust_tier")
+  confidenceScore  Float                @map("confidence_score")
+  addressHash      String               @map("address_hash")
+  addressLine1     String?              @map("address_line1")
+  addressLine2     String?              @map("address_line2")
+  city             String?
+  stateCode        String?              @map("state_code")
+  postalCode       String?              @map("postal_code")
+  countryCode      String               @default("US") @map("country_code")
+  countyFips       String?              @map("county_fips")
+  latitude         Decimal?             @db.Decimal(9, 6)
+  longitude        Decimal?             @db.Decimal(9, 6)
+  geocodeStatus    GeocodeStatus        @default(PENDING) @map("geocode_status")
+  geocodePrecision GeocodePrecision     @default(UNRESOLVED) @map("geocode_precision")
+  geocodeSource    String?              @map("geocode_source")
+  geocodeAttempts  Int                  @default(0) @map("geocode_attempts")
+  lastGeocodedAt   DateTime?            @map("last_geocoded_at")
+  lastGeocodeError String?              @map("last_geocode_error")
+  observedAt       DateTime             @map("observed_at")
+  metadata         Json                 @default("{}") @db.JsonB
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
-  personProfile      PersonProfile?           @relation(fields: [personProfileId], references: [id], onDelete: SetNull)
-  claimRecord        ClaimRecord?             @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
+  personProfile       PersonProfile?               @relation(fields: [personProfileId], references: [id], onDelete: SetNull)
+  claimRecord         ClaimRecord?                 @relation(fields: [claimRecordId], references: [id], onDelete: SetNull)
   boundaryAssignments ProviderBoundaryAssignment[]
 
   @@index([subjectNpi, isCurrent])
@@ -595,24 +605,24 @@ model ProviderLocation {
 }
 
 model GeographicBoundary {
-  id               String                 @id @default(uuid()) @db.Uuid
-  boundaryType     GeographicBoundaryType @map("boundary_type")
-  externalId       String                 @map("external_id")
-  name             String
-  stateCode        String?                @map("state_code")
-  countyFips       String?                @map("county_fips")
-  centroidLat      Decimal?               @map("centroid_lat") @db.Decimal(9, 6)
-  centroidLng      Decimal?               @map("centroid_lng") @db.Decimal(9, 6)
-  bboxMinLat       Decimal?               @map("bbox_min_lat") @db.Decimal(9, 6)
-  bboxMinLng       Decimal?               @map("bbox_min_lng") @db.Decimal(9, 6)
-  bboxMaxLat       Decimal?               @map("bbox_max_lat") @db.Decimal(9, 6)
-  bboxMaxLng       Decimal?               @map("bbox_max_lng") @db.Decimal(9, 6)
-  geometryGeoJson  Json                   @map("geometry_geojson") @db.JsonB
-  sourceDataset    String                 @map("source_dataset")
-  dataVersion      String                 @map("data_version")
-  metadata         Json                   @default("{}") @db.JsonB
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
+  id              String                 @id @default(uuid()) @db.Uuid
+  boundaryType    GeographicBoundaryType @map("boundary_type")
+  externalId      String                 @map("external_id")
+  name            String
+  stateCode       String?                @map("state_code")
+  countyFips      String?                @map("county_fips")
+  centroidLat     Decimal?               @map("centroid_lat") @db.Decimal(9, 6)
+  centroidLng     Decimal?               @map("centroid_lng") @db.Decimal(9, 6)
+  bboxMinLat      Decimal?               @map("bbox_min_lat") @db.Decimal(9, 6)
+  bboxMinLng      Decimal?               @map("bbox_min_lng") @db.Decimal(9, 6)
+  bboxMaxLat      Decimal?               @map("bbox_max_lat") @db.Decimal(9, 6)
+  bboxMaxLng      Decimal?               @map("bbox_max_lng") @db.Decimal(9, 6)
+  geometryGeoJson Json                   @map("geometry_geojson") @db.JsonB
+  sourceDataset   String                 @map("source_dataset")
+  dataVersion     String                 @map("data_version")
+  metadata        Json                   @default("{}") @db.JsonB
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
 
   providerAssignments ProviderBoundaryAssignment[]
 
@@ -624,16 +634,16 @@ model GeographicBoundary {
 }
 
 model ProviderBoundaryAssignment {
-  id                 String                  @id @default(uuid()) @db.Uuid
-  providerLocationId String                  @map("provider_location_id") @db.Uuid
-  boundaryId         String                  @map("boundary_id") @db.Uuid
+  id                 String                   @id @default(uuid()) @db.Uuid
+  providerLocationId String                   @map("provider_location_id") @db.Uuid
+  boundaryId         String                   @map("boundary_id") @db.Uuid
   assignmentMethod   BoundaryAssignmentMethod @map("assignment_method")
-  confidence         Float                   @default(0)
-  createdAt          DateTime                @default(now()) @map("created_at")
-  updatedAt          DateTime                @updatedAt @map("updated_at")
+  confidence         Float                    @default(0)
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
 
-  providerLocation   ProviderLocation        @relation(fields: [providerLocationId], references: [id], onDelete: Cascade)
-  boundary           GeographicBoundary      @relation(fields: [boundaryId], references: [id], onDelete: Cascade)
+  providerLocation ProviderLocation   @relation(fields: [providerLocationId], references: [id], onDelete: Cascade)
+  boundary         GeographicBoundary @relation(fields: [boundaryId], references: [id], onDelete: Cascade)
 
   @@unique([providerLocationId, boundaryId])
   @@index([boundaryId])
@@ -2278,23 +2288,23 @@ model OutboxEvent {
 /// their verified credential bundle.  This is the first half of the
 /// ON Loop — the moment an employer says "we will hire this person".
 model EmployerAcceptance {
-  id           String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
   /// Internal employer identifier (domain-level, not a FK to preserve loose coupling).
-  employerId   String
+  employerId       String
   /// Organization/workspace that recorded the acceptance when available.
-  acceptedByOrgId String?
+  acceptedByOrgId  String?
   /// 10-digit NPI of the clinician being accepted.
-  clinicianNpi String
+  clinicianNpi     String
   /// Optional: the VerificationArtifact that anchored the decision.
-  artifactId   String?
+  artifactId       String?
   /// PENDING | ACCEPTED | WITHDRAWN
-  status       String   @default("ACCEPTED")
-  acceptedAt   DateTime @default(now())
+  status           String   @default("ACCEPTED")
+  acceptedAt       DateTime @default(now())
   /// Scope contract: pilot | full | partial
-  acceptanceScope String @default("pilot")
+  acceptanceScope  String   @default("pilot")
   /// Human-readable rationale for the acceptance decision.
   acceptanceReason String?
-  createdAt    DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   startAttestations StartAttestation[]
 
@@ -3363,10 +3373,10 @@ model VcvEntity {
   institution            Institution?
 
   // SEAL training back-relations
-  advisoryOutcomeEvents    AdvisoryOutcomeEvent[]    @relation("advisory_outcome_entity")
-  blockerResolutionEvents  BlockerResolutionEvent[]  @relation("blocker_resolution_entity")
-  employerDecisionEvents   EmployerDecisionEvent[]   @relation("employer_decision_entity")
-  startOutcomeEvents       StartOutcomeEvent[]       @relation("start_outcome_entity")
+  advisoryOutcomeEvents   AdvisoryOutcomeEvent[]   @relation("advisory_outcome_entity")
+  blockerResolutionEvents BlockerResolutionEvent[] @relation("blocker_resolution_entity")
+  employerDecisionEvents  EmployerDecisionEvent[]  @relation("employer_decision_entity")
+  startOutcomeEvents      StartOutcomeEvent[]      @relation("start_outcome_entity")
 
   @@index([npi])
   @@index([entityType])
@@ -3806,29 +3816,29 @@ model VcvUserEntityClaim {
 /// and what the user/employer subsequently did.
 /// Used to train SEAL on: which advisory states correlate with good outcomes.
 model AdvisoryOutcomeEvent {
-  id                         String   @id @default(uuid()) @db.Uuid
-  entityId                   String   @map("entity_id") @db.Uuid
-  organizationContextId      String?  @map("organization_context_id") @db.Uuid
+  id                        String   @id @default(uuid()) @db.Uuid
+  entityId                  String   @map("entity_id") @db.Uuid
+  organizationContextId     String?  @map("organization_context_id") @db.Uuid
   /// Version of the advisory model that produced this output (e.g. "243.1")
-  advisoryVersion            String   @map("advisory_version")
+  advisoryVersion           String   @map("advisory_version")
   /// FK to a snapshot of advisory inputs at the time of the event
-  advisoryInputSnapshotRef   String?  @map("advisory_input_snapshot_ref")
+  advisoryInputSnapshotRef  String?  @map("advisory_input_snapshot_ref")
   /// FK to a snapshot of advisory outputs shown to the user
-  advisoryOutputSnapshotRef  String?  @map("advisory_output_snapshot_ref")
+  advisoryOutputSnapshotRef String?  @map("advisory_output_snapshot_ref")
   /// PASSPORT_VIEW | SHARE_INITIATED | EMPLOYER_REVIEW | INTERVIEW_MODE | PACKET_EXPORT
-  eventType                  String   @map("event_type")
-  eventTimestamp             DateTime @default(now()) @map("event_timestamp")
+  eventType                 String   @map("event_type")
+  eventTimestamp            DateTime @default(now()) @map("event_timestamp")
   /// Blockers present at time of event — captured for training
-  blockersAtEvent            Json     @default("[]") @db.JsonB @map("blockers_at_event")
+  blockersAtEvent           Json     @default("[]") @map("blockers_at_event") @db.JsonB
   /// Readiness score at time of event
-  readinessScoreAtEvent      Int?     @map("readiness_score_at_event")
+  readinessScoreAtEvent     Int?     @map("readiness_score_at_event")
   /// Which sources were checked at time of event
-  sourceCoverageAtEvent      Json     @default("{}") @db.JsonB @map("source_coverage_at_event")
+  sourceCoverageAtEvent     Json     @default("{}") @map("source_coverage_at_event") @db.JsonB
   /// Free-form outcome metadata (e.g. employer_decision, share_destination)
-  metadata                   Json     @default("{}") @db.JsonB
+  metadata                  Json     @default("{}") @db.JsonB
 
-  entity              VcvEntity              @relation("advisory_outcome_entity",    fields: [entityId],              references: [id], onDelete: Cascade)
-  organizationContext VcvOrganizationContext? @relation("advisory_outcome_org_ctx",  fields: [organizationContextId], references: [id], onDelete: SetNull)
+  entity              VcvEntity               @relation("advisory_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  organizationContext VcvOrganizationContext? @relation("advisory_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: SetNull)
 
   @@index([entityId, eventTimestamp])
   @@index([eventType, eventTimestamp])
@@ -3866,25 +3876,25 @@ model BlockerResolutionEvent {
 /// Records the employer's decision at review time with full context snapshot.
 /// Primary signal for SEAL's "conditional proceed" recommendations.
 model EmployerDecisionEvent {
-  id                    String   @id @default(uuid()) @db.Uuid
-  entityId              String   @map("entity_id") @db.Uuid
-  organizationContextId String?  @map("organization_context_id") @db.Uuid
+  id                       String   @id @default(uuid()) @db.Uuid
+  entityId                 String   @map("entity_id") @db.Uuid
+  organizationContextId    String?  @map("organization_context_id") @db.Uuid
   /// PROCEED | HOLD | REQUEST_REFRESH | ROUTE_TO_REVIEW | REJECT
-  decision              String
-  decidedAt             DateTime @default(now()) @map("decided_at")
+  decision                 String
+  decidedAt                DateTime @default(now()) @map("decided_at")
   /// Role of the reviewer: EMPLOYER | CREDENTIALING_COORDINATOR | RECRUITER | SYSTEM
-  reviewerRole          String   @default("EMPLOYER") @map("reviewer_role")
+  reviewerRole             String   @default("EMPLOYER") @map("reviewer_role")
   /// Audit event ID from the action that triggered this decision
-  auditEventId          String?  @map("audit_event_id")
+  auditEventId             String?  @map("audit_event_id")
   /// Trust state snapshot at decision time
-  trustSnapshotAtDecision Json   @default("{}") @db.JsonB @map("trust_snapshot_at_decision")
+  trustSnapshotAtDecision  Json     @default("{}") @map("trust_snapshot_at_decision") @db.JsonB
   /// Blockers present at decision time
-  blockersAtDecision    Json     @default("[]") @db.JsonB @map("blockers_at_decision")
+  blockersAtDecision       Json     @default("[]") @map("blockers_at_decision") @db.JsonB
   /// Readiness score at decision time
-  readinessScoreAtDecision Int?  @map("readiness_score_at_decision")
-  metadata              Json     @default("{}") @db.JsonB
+  readinessScoreAtDecision Int?     @map("readiness_score_at_decision")
+  metadata                 Json     @default("{}") @db.JsonB
 
-  entity              VcvEntity              @relation("employer_decision_entity",  fields: [entityId],              references: [id], onDelete: Cascade)
+  entity              VcvEntity               @relation("employer_decision_entity", fields: [entityId], references: [id], onDelete: Cascade)
   organizationContext VcvOrganizationContext? @relation("employer_decision_org_ctx", fields: [organizationContextId], references: [id], onDelete: SetNull)
 
   @@index([entityId, decidedAt])
@@ -3896,30 +3906,43 @@ model EmployerDecisionEvent {
 /// Records actual start outcomes with delta calculations.
 /// Primary signal for SEAL's "time to start" estimates.
 model StartOutcomeEvent {
-  id                    String    @id @default(uuid()) @db.Uuid
-  entityId              String    @map("entity_id") @db.Uuid
-  organizationContextId String?   @map("organization_context_id") @db.Uuid
-  startedAt             DateTime  @map("started_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  entityId              String   @map("entity_id") @db.Uuid
+  organizationContextId String?  @map("organization_context_id") @db.Uuid
+  startedAt             DateTime @map("started_at")
   /// Days from first employer review event to start
-  daysFromFirstReview   Int?      @map("days_from_first_review")
+  daysFromFirstReview   Int?     @map("days_from_first_review")
   /// Days from first share event to start
-  daysFromShare         Int?      @map("days_from_share")
+  daysFromShare         Int?     @map("days_from_share")
   /// Days from readiness score reaching L2+ to start
-  daysFromReady         Int?      @map("days_from_ready")
+  daysFromReady         Int?     @map("days_from_ready")
   /// Readiness score at time of start
-  readinessScoreAtStart Int?      @map("readiness_score_at_start")
+  readinessScoreAtStart Int?     @map("readiness_score_at_start")
   /// Blockers present at time of start (should be empty for clean starts)
-  blockersAtStart       Json      @default("[]") @db.JsonB @map("blockers_at_start")
+  blockersAtStart       Json     @default("[]") @map("blockers_at_start") @db.JsonB
   /// Source coverage at time of start
-  sourceCoverageAtStart Json      @default("{}") @db.JsonB @map("source_coverage_at_start")
-  metadata              Json      @default("{}") @db.JsonB
+  sourceCoverageAtStart Json     @default("{}") @map("source_coverage_at_start") @db.JsonB
+  metadata              Json     @default("{}") @db.JsonB
 
-  entity              VcvEntity              @relation("start_outcome_entity",    fields: [entityId],              references: [id], onDelete: Cascade)
-  organizationContext VcvOrganizationContext? @relation("start_outcome_org_ctx",  fields: [organizationContextId], references: [id], onDelete: SetNull)
+  entity              VcvEntity               @relation("start_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  organizationContext VcvOrganizationContext? @relation("start_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: SetNull)
 
   @@index([entityId, startedAt])
   @@index([organizationContextId, startedAt])
   @@index([daysFromFirstReview])
   @@index([daysFromReady])
   @@map("start_outcome_events")
+}
+
+model MissingRequest {
+  id            String      @id @default(uuid()) @db.Uuid
+  applicationId String      @map("application_id") @db.Uuid
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  field         String
+  message       String
+  status        String      @default("OPEN")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("missing_requests")
 }
