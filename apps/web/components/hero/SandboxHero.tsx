@@ -101,7 +101,7 @@ export function SandboxHero() {
         role="button"
         tabIndex={0}
         aria-label="Preview readiness check — continue to passport"
-        className="mt-24 w-full max-w-3xl border border-[var(--vt-border)] p-8 bg-white/10 dark:bg-white/5 text-left relative group cursor-pointer hover:bg-white/20 dark:hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="mt-24 w-full max-w-3xl border border-[var(--vt-border)] p-8 bg-foreground/10 text-left relative group cursor-pointer hover:bg-foreground/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={handlePreviewClick}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePreviewClick(); } }}
       >
@@ -124,19 +124,19 @@ export function SandboxHero() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-60 font-mono text-[var(--vt-text-primary)]">
-          <div className="border border-[var(--vt-border)] p-3 bg-white/10 dark:bg-white/5">
+          <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Identity</div>
             <div className="text-[10px] font-bold">VERIFIED</div>
           </div>
-          <div className="border border-[var(--vt-border)] p-3 bg-white/10 dark:bg-white/5">
+          <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Sanctions</div>
             <div className="text-[10px] font-bold">CLEAR</div>
           </div>
-          <div className="border border-[var(--vt-border)] p-3 bg-white/10 dark:bg-white/5">
+          <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Licensure</div>
             <div className="text-[10px] font-bold">CHECKED</div>
           </div>
-          <div className="border border-[var(--vt-border)] p-3 bg-white/10 dark:bg-white/5">
+          <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Readiness</div>
             <div className="text-[10px] font-bold">84%</div>
           </div>

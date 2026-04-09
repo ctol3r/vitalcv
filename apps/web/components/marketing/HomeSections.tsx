@@ -252,28 +252,28 @@ export function AudienceSplitSection() {
             <Link
               key={title}
               href={href}
-              className="group block rounded-[12px] border border-[rgba(26,34,40,0.10)] bg-[#FFFFFF] p-8 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[rgba(26,34,40,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group block rounded-[12px] border border-border bg-card p-8 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-foreground/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <div className="flex h-full flex-col">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(26,34,40,0.10)] text-[var(--vt-text-primary)]">
+                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <ArrowRight className="mt-1 h-4 w-4 text-[var(--vt-text-secondary)] transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <ArrowRight className="mt-1 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
                 </div>
 
-                <h3 className="mt-8 text-2xl font-semibold tracking-tight text-[var(--vt-text-primary)]">
+                <h3 className="mt-8 text-2xl font-semibold tracking-tight text-foreground">
                   {title}
                 </h3>
-                <p className="mt-3 max-w-md text-base leading-relaxed text-[var(--vt-text-secondary)]">
+                <p className="mt-3 max-w-md text-base leading-relaxed text-muted-foreground">
                   {body}
                 </p>
 
                 <span
                   className={`mt-8 inline-flex w-fit items-center justify-center rounded-lg border px-5 py-3 text-sm font-semibold transition-colors ${
                     tone === 'primary'
-                      ? 'border-transparent bg-[#0F766E] text-white group-hover:bg-[#115E59]'
-                      : 'border-[#0F766E] bg-transparent text-[#0F766E] group-hover:bg-[#F0FDFA]'
+                      ? 'border-transparent bg-trust-green text-trust-green-foreground group-hover:bg-trust-green/90'
+                      : 'border-trust-green bg-transparent text-trust-green group-hover:bg-trust-green/10'
                   }`}
                 >
                   {cta}
@@ -424,7 +424,7 @@ export function BuyerPilotSection() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/pilot"
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--vt-accent)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--vt-accent-hover)]"
+            className="inline-flex items-center gap-2 rounded-xl bg-foreground px-7 py-3 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
           >
             Request pilot <ArrowRight className="h-4 w-4" />
           </Link>

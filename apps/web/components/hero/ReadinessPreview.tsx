@@ -112,7 +112,7 @@ function resolveBlockerSeverity(blocker: string): 'critical' | 'high' | 'medium'
 const SEVERITY_STYLES: Record<string, string> = {
   critical: 'text-rose-300/80',
   high: 'text-amber-300/70',
-  medium: 'text-white/50',
+  medium: 'text-foreground/50',
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -175,7 +175,7 @@ function accordionMeta(label: string) {
   return (
     <Badge
       variant="outline"
-      className="rounded-full border-white/8 bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+      className="rounded-full border-foreground/8 bg-card px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
     >
       {label}
     </Badge>
@@ -673,8 +673,8 @@ export function ReadinessPreview({
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
         aria-live="polite"
       >
-        <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
-          <CardHeader className="border-b border-white/6 px-5 py-4">
+        <Card className="overflow-hidden rounded-2xl border-foreground/8 bg-foreground/[0.04] py-0 shadow-none">
+          <CardHeader className="border-b border-foreground/6 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -710,7 +710,7 @@ export function ReadinessPreview({
 
             {/* Per-source status summary */}
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Source coverage</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/25">Source coverage</p>
               {[
                 { id: 'npi', label: 'NPI Registry (NPPES)', ok: ts.identityVerified },
                 { id: 'oig', label: 'OIG / LEIE Exclusions', ok: ts.exclusionClear },
@@ -718,8 +718,8 @@ export function ReadinessPreview({
                 { id: 'pecos', label: 'CMS PECOS Enrollment', ok: false },
                 { id: 'board', label: 'Board Certification (ABMS)', ok: false },
               ].map(src => (
-                <div key={src.id} className="flex items-center justify-between rounded-lg border border-white/6 bg-black/10 px-3 py-2">
-                  <span className="text-xs text-white/55">{src.label}</span>
+                <div key={src.id} className="flex items-center justify-between rounded-lg border border-foreground/6 bg-foreground/10 px-3 py-2">
+                  <span className="text-xs text-foreground/55">{src.label}</span>
                   <TrustStatusBadge
                     status={src.ok ? 'checked' : (src.id === 'pecos' || src.id === 'board') ? 'access_required' : 'pending'}
                     label={src.ok ? 'Checked' : (src.id === 'pecos' || src.id === 'board') ? 'Access required' : 'Pending'}
@@ -747,7 +747,7 @@ export function ReadinessPreview({
                 ))}
               </div>
               {confirmedItems.length > 0 ? (
-                <div className="space-y-3 border-t border-white/6 pt-3">
+                <div className="space-y-3 border-t border-foreground/6 pt-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Checked in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {confirmedItems.map(item => (
@@ -764,7 +764,7 @@ export function ReadinessPreview({
               eyebrow="Proof"
               title="Source checks"
               description="Expand each section to see where the snapshot is checked, access required, or still missing."
-              className="rounded-xl border-white/6 bg-muted"
+              className="rounded-xl border-foreground/6 bg-muted"
               contentClassName="px-5 py-1"
             >
               <Accordion
@@ -774,8 +774,8 @@ export function ReadinessPreview({
             </EvidenceDisclosureCard>
           </CardContent>
 
-          <CardFooter className="border-t border-white/6 px-5 py-4">
-            <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+          <CardFooter className="border-t border-foreground/6 px-5 py-4">
+            <div className="w-full rounded-2xl border border-foreground/6 bg-foreground/15 p-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
                 <p className="mt-1 text-sm font-medium text-foreground/70">Carry this snapshot into your passport.</p>
@@ -832,8 +832,8 @@ export function ReadinessPreview({
         style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
         aria-live="polite"
       >
-        <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
-          <CardHeader className="border-b border-white/6 px-5 py-4">
+        <Card className="overflow-hidden rounded-2xl border-foreground/8 bg-foreground/[0.04] py-0 shadow-none">
+          <CardHeader className="border-b border-foreground/6 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -904,7 +904,7 @@ export function ReadinessPreview({
                 ))}
               </div>
               {checkedItems.length > 0 ? (
-                <div className="space-y-3 border-t border-white/6 pt-3">
+                <div className="space-y-3 border-t border-foreground/6 pt-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Checked in this run</p>
                   <div className="flex flex-wrap gap-2">
                     {checkedItems.map(item => (
@@ -921,7 +921,7 @@ export function ReadinessPreview({
               eyebrow="Proof"
               title="Source checks"
               description="Expand each section to see what is checked, pending, access required, or unavailable in the live run."
-              className="rounded-xl border-white/6 bg-muted"
+              className="rounded-xl border-foreground/6 bg-muted"
               contentClassName="px-5 py-1"
             >
               <Accordion
@@ -931,8 +931,8 @@ export function ReadinessPreview({
             </EvidenceDisclosureCard>
           </CardContent>
 
-          <CardFooter className="border-t border-white/6 px-5 py-4">
-            <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+          <CardFooter className="border-t border-foreground/6 px-5 py-4">
+            <div className="w-full rounded-2xl border border-foreground/6 bg-foreground/15 p-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
                 <p className="mt-1 text-sm font-medium text-foreground/70">
@@ -994,7 +994,7 @@ export function ReadinessPreview({
       style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(6px)' }}
       aria-live="polite"
     >
-      <Card className="overflow-hidden rounded-2xl border-white/8 bg-white/[0.04] py-0 shadow-none">
+      <Card className="overflow-hidden rounded-2xl border-foreground/8 bg-foreground/[0.04] py-0 shadow-none">
         <CardHeader className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
@@ -1041,7 +1041,7 @@ export function ReadinessPreview({
               ))}
             </div>
             {checkedItems.length > 0 ? (
-              <div className="space-y-3 border-t border-white/6 pt-3">
+              <div className="space-y-3 border-t border-foreground/6 pt-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">Completed in this lookup</p>
                 <div className="flex flex-wrap gap-2">
                   {checkedItems.map(item => (
@@ -1058,7 +1058,7 @@ export function ReadinessPreview({
             eyebrow="Proof"
             title="Source checks"
             description="Completed checks stay marked as checked. Everything else remains pending, access required, or unavailable until a live retry finishes."
-            className="rounded-xl border-white/6 bg-muted"
+            className="rounded-xl border-foreground/6 bg-muted"
             contentClassName="px-5 py-1"
           >
             <Accordion
@@ -1068,8 +1068,8 @@ export function ReadinessPreview({
           </EvidenceDisclosureCard>
         </CardContent>
 
-        <CardFooter className="border-t border-white/6 px-5 py-4">
-          <div className="w-full rounded-2xl border border-white/6 bg-black/15 p-4">
+        <CardFooter className="border-t border-foreground/6 px-5 py-4">
+          <div className="w-full rounded-2xl border border-foreground/6 bg-foreground/15 p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/30">Next step</p>
               <p className="mt-1 text-sm font-medium text-foreground/70">Continue to passport with this NPI.</p>

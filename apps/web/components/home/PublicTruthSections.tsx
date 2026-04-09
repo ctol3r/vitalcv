@@ -96,7 +96,7 @@ export function InterviewModeTeaser() {
 
                 <div className="sm:w-64 shrink-0">
                   <div className="rounded-xl border border-border bg-card overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/6 flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/60">Proof Card</p>
                       <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 bg-muted rounded px-1.5 py-0.5">
                         {HOMEPAGE_PREVIEW_COPY.badge}
@@ -110,7 +110,7 @@ export function InterviewModeTeaser() {
                         </div>
                       ))}
                     </div>
-                    <div className="px-4 py-3 border-t border-white/6 flex items-center justify-between bg-white/2">
+                    <div className="px-4 py-3 border-t border-border/60 flex items-center justify-between bg-muted/50">
                       <span className="text-[10px] text-muted-foreground/60">{HOMEPAGE_PREVIEW_COPY.footerLead}</span>
                       <span className="text-[10px] text-muted-foreground/40">{HOMEPAGE_PREVIEW_COPY.footerNote}</span>
                     </div>

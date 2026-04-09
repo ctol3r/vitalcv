@@ -619,7 +619,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   type="submit"
                   variant="default"
                   disabled={phase === 'loading'}
-                  className="h-14 w-full shrink-0 rounded-2xl bg-[var(--vt-accent)] px-5 text-sm font-semibold whitespace-nowrap text-white hover:bg-[var(--vt-accent-hover)] sm:w-auto"
+                  className="h-14 w-full shrink-0 rounded-2xl bg-foreground px-5 text-sm font-semibold whitespace-nowrap text-background hover:bg-foreground/90 sm:w-auto"
                 >
                   <span aria-live="polite">{phase === 'loading' ? loadingCopy : 'Check readiness'}</span>
                 </Button>
