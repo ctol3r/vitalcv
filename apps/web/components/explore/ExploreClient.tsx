@@ -193,7 +193,8 @@ export default function ExploreClient() {
   const [startUrgency, setStartUrgency] = useState(() => searchParams.get('startUrgency') ?? '');
   const [readinessStatus, setReadinessStatus] = useState(() => searchParams.get('readinessStatus') ?? '');
   const [missingRequirement, setMissingRequirement] = useState(() => searchParams.get('missingRequirement') ?? '');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [opportunities, setOpportunities] = useState<ApiOpportunity[]>([]);
   const [applications, setApplications] = useState<MobileApplication[]>([]);
@@ -460,6 +461,15 @@ export default function ExploreClient() {
   }, [loading, opportunities, searchParams, updateApplyParam]);
 
   const hasFilters = specialty || state || hiringType || organizationSlug || remoteOnly || payModel || payMin || payMax || visaSponsorship || benefits || employerType || startUrgency || readinessStatus || missingRequirement;
+  const filteredOpportunities = searchQuery.trim()
+    ? opportunities.filter(opp => {
+        const q = searchQuery.toLowerCase();
+        return opp.title.toLowerCase().includes(q)
+          || opp.organizationName.toLowerCase().includes(q)
+          || opp.specialty.toLowerCase().includes(q)
+          || opp.state.toLowerCase().includes(q);
+      })
+    : opportunities;
   const applicationsByOpportunityId = new Map(
     applications.map((application) => [application.opportunityId, application]),
   );
@@ -485,7 +495,19 @@ export default function ExploreClient() {
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <h1 className="text-2xl font-bold tracking-tight mb-6">Explore Clinical Roles</h1>
 
-      {/* Filter bar */}
+      {/* Search + Filter bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search roles by title, specialty, or employer…"
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 pl-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-3 mb-8">
         <button
           type="button"
@@ -616,7 +638,7 @@ export default function ExploreClient() {
         <div className="flex justify-center py-20">
           <Loader2 className="h-7 w-7 text-vt-neutral-800 animate-spin" />
         </div>
-      ) : opportunities.length === 0 ? (
+      ) : filteredOpportunities.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center border border-vt-neutral-800 bg-vt-surface-ops-raised/30 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-vt-neutral-800/50 mb-6 ring-1 ring-white/10 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)]">
             <Zap className="h-7 w-7 text-vt-neutral-400" />
@@ -635,7 +657,7 @@ export default function ExploreClient() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {opportunities.map(opp => (
+          {filteredOpportunities.map(opp => (
             <OpportunityCard
               key={opp.id}
               opp={opp}
@@ -734,7 +756,7 @@ function OpportunityCard({
       {/* Header — employer identity prominent */}
       <div className="flex items-start justify-between gap-3 relative z-10">
         <Link
-          href={`/opportunities/${encodeURIComponent(opp.id)}`}
+          href={opp.organizationSlug ? `/employers/${opp.organizationSlug}` : `/passport?role=${encodeURIComponent(opp.id)}&roleTitle=${encodeURIComponent(opp.title)}&employer=${encodeURIComponent(opp.organizationSlug ?? '')}&employerName=${encodeURIComponent(opp.organizationName)}`}
           onClick={trackOpportunityView}
           className="min-w-0 flex-1"
         >

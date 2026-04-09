@@ -14,5 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: 'https://vitalcv.com/compliance/openid-self-cert', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
     { url: 'https://vitalcv.com/updates', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.5 },
     { url: 'https://vitalcv.com/status', lastModified: new Date(), changeFrequency: 'hourly', priority: 0.4 },
+    { url: 'https://vitalcv.com/about', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
+    { url: 'https://vitalcv.com/pricing', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
   ];
 }

@@ -523,7 +523,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     <section className="relative overflow-hidden bg-background">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 dark:opacity-0 transition-opacity duration-300"
         style={{
           background: [
             'radial-gradient(circle at top left, rgba(10,123,127,0.10), transparent 34%)',

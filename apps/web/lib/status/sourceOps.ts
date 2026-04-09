@@ -135,16 +135,37 @@ async function fetchLiveSourceOpsReport(): Promise<SourceOpsReport> {
 }
 
 function buildFallbackSourceOpsReport(now = new Date()): SourceOpsReport {
-  const checks: CanonicalSourceCoverage[] = [];
+  let checks: CanonicalSourceCoverage[] = [];
   const sources: SourceOpsEntry[] = FALLBACK_SOURCE_SEEDS.map((seed) => {
-    const coverage = createCanonicalSourceCoverage({
-      sourceId: seed.sourceId,
-      state: seed.coverageState,
-      reason: seed.coverageReason,
-      checkedAt: null,
-      freshnessWindowHours: seed.freshnessSlaHours,
-    });
-    checks.push(coverage);
+    try {
+      const coverage = createCanonicalSourceCoverage({
+        sourceId: seed.sourceId,
+        state: seed.coverageState,
+        reason: seed.coverageReason,
+        checkedAt: null,
+        freshnessWindowHours: seed.freshnessSlaHours,
+      });
+      checks.push(coverage);
+    } catch {
+      // Fallback coverage construction failed — continue without it
+    }
+
+    let freshness: SourceOpsEntry['freshness'];
+    try {
+      freshness = buildSourceHealthFreshness({
+        coverageState: seed.coverageState,
+        lastSuccessAt: null,
+        freshnessWindowHours: seed.freshnessSlaHours,
+        now,
+      });
+    } catch {
+      freshness = buildSourceHealthFreshness({
+        coverageState: 'stale',
+        lastSuccessAt: null,
+        freshnessWindowHours: seed.freshnessSlaHours,
+        now: new Date(0),
+      });
+    }
 
     return {
       sourceId: seed.sourceId,
@@ -160,21 +181,23 @@ function buildFallbackSourceOpsReport(now = new Date()): SourceOpsReport {
       lastFailureAt: null,
       consecutiveFailures: 0,
       freshnessSlaHours: seed.freshnessSlaHours,
-      freshness: buildSourceHealthFreshness({
-        coverageState: seed.coverageState,
-        lastSuccessAt: null,
-        freshnessWindowHours: seed.freshnessSlaHours,
-        now,
-      }),
+      freshness,
     };
   });
+
+  let summary: ReturnType<typeof summarizeCanonicalSourceCoverage>;
+  try {
+    summary = summarizeCanonicalSourceCoverage(checks);
+  } catch {
+    summary = summarizeCanonicalSourceCoverage([]);
+  }
 
   return {
     timestamp: now.toISOString(),
     sources,
     sourceCoverage: {
       checks,
-      summary: summarizeCanonicalSourceCoverage(checks),
+      summary,
     },
     spineStatus: 'DEGRADED',
     alerts: [

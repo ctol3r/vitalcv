@@ -18,6 +18,9 @@
 import { appendAuditEvent } from '../audit/auditLedger';
 import { log } from '../../obs/logger';
 import { lookupProvider } from '../identity/leieCache';
+import { SourceUnavailableError } from '../../utils/httpError';
+
+const LEIE_SOURCE_URL = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +39,10 @@ export interface ExclusionResult {
   cacheAge: 'fresh' | 'stale' | 'unavailable';
   sourceLatency: 'MONTHLY';
   dataFreshness: 'MONTHLY';
+  /** ISO 8601 timestamp of when this result was last verified against the live source. */
+  lastVerifiedAt: string;
+  /** Exact source URL or DB identifier for data provenance audit trail. */
+  provenance: string;
 }
 
 export interface ExclusionCheckParams {
@@ -48,23 +55,27 @@ export interface ExclusionCheckParams {
 }
 
 const OIG_LOOKUP_TIMEOUT_MS = 4_000;
+const OIG_LEIE_PROVENANCE = 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv';
 
 // ── Disabled / unchecked result ──────────────────────────────────────────────
 
 function uncheckedResult(details: string): ExclusionResult {
+  const now = new Date().toISOString();
   return {
     excluded: false,
     matchType: 'UNCHECKED',
     matchConfidence: 'UNCERTAIN',
     status: 'UNCHECKED',
     details,
-    checkedAt: new Date().toISOString(),
+    checkedAt: now,
     source: 'OIG_LEIE',
     leieVersionDate: null,
     dataVersion: null,
     cacheAge: 'unavailable',
     sourceLatency: 'MONTHLY',
     dataFreshness: 'MONTHLY',
+    lastVerifiedAt: now,
+    provenance: OIG_LEIE_PROVENANCE,
   };
 }
 
@@ -120,6 +131,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         cacheAge: result.cacheAge,
         sourceLatency: result.sourceLatency,
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: result.checkedAt,
+        provenance: OIG_LEIE_PROVENANCE,
       };
     }
 
@@ -140,6 +153,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         cacheAge: result.cacheAge,
         sourceLatency: result.sourceLatency,
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: result.checkedAt,
+        provenance: OIG_LEIE_PROVENANCE,
       };
     }
 
@@ -158,6 +173,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         cacheAge: result.cacheAge,
         sourceLatency: result.sourceLatency,
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: result.checkedAt,
+        provenance: OIG_LEIE_PROVENANCE,
       };
     }
 
@@ -175,6 +192,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         cacheAge: result.cacheAge,
         sourceLatency: result.sourceLatency,
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: result.checkedAt,
+        provenance: OIG_LEIE_PROVENANCE,
       };
     }
 

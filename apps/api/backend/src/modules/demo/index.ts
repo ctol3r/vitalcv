@@ -32,7 +32,7 @@ function asyncHandler(
 export function registerDemoRoutes(app: Express): void {
   app.get('/demo/status', handleDemoStatus);
   app.get('/demo/provider', demoRateLimit, asyncHandler(handleDemoProviderLookup));
-  app.post('/demo/issue', demoRateLimit, handleDemoIssue);
+  app.post('/demo/issue', demoRateLimit, asyncHandler(handleDemoIssue));
   app.post('/demo/verify', demoRateLimit, asyncHandler(handleDemoVerify));
   app.get('/demo/sample-npis', demoRateLimit, handleDemoSampleNpis);
 }

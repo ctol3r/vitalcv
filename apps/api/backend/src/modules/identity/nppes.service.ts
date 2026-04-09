@@ -1,21 +1,42 @@
 import { HttpError } from '../../utils/httpError';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { fetchWithRetry } from '../../utils/fetchWithRetry';
 import type { RawNppesResponse, NppesFetchResult } from './types';
 
 const CMS_NPPES_ENDPOINT =
   'https://npiregistry.cms.hhs.gov/api/?version=2.1';
 
+/** In-memory NPPES response cache with TTL */
+const NPPES_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const nppesCache = new Map<string, { result: NppesFetchResult; cachedAt: number }>();
+
 /**
  * Fetch provider data from the CMS NPPES Registry by NPI number.
  * Returns the raw payload and its SHA-256 hash for audit integrity.
+ *
+ * Includes:
+ *   - Exponential backoff retry (3 attempts) for transient failures
+ *   - In-memory cache with 15-minute TTL to avoid hammering CMS
  */
 export async function fetchNpiFromCMS(npi: string): Promise<NppesFetchResult> {
+  // Check cache first
+  const cached = nppesCache.get(npi);
+  if (cached && Date.now() - cached.cachedAt < NPPES_CACHE_TTL_MS) {
+    log('info', 'nppes_cache_hit', { npi, ageMs: Date.now() - cached.cachedAt });
+    return cached.result;
+  }
+
   const url = `${CMS_NPPES_ENDPOINT}&number=${encodeURIComponent(npi)}`;
 
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetchWithRetry(url, undefined, {
+      maxRetries: 3,
+      baseDelayMs: 500,
+      timeoutMs: 10_000,
+      label: 'nppes',
+    });
   } catch (err) {
     log('error', 'nppes_fetch_failed', {
       npi,
@@ -49,5 +70,28 @@ export async function fetchNpiFromCMS(npi: string): Promise<NppesFetchResult> {
     throw new HttpError(404, `NPI ${npi} not found in CMS NPPES Registry`);
   }
 
-  return { rawPayload, payloadHash };
+  const result = { rawPayload, payloadHash };
+
+  // Cache successful responses
+  nppesCache.set(npi, { result, cachedAt: Date.now() });
+
+  // Evict stale entries (cap at 10k to prevent unbounded growth)
+  if (nppesCache.size > 10_000) {
+    const now = Date.now();
+    for (const [key, entry] of nppesCache) {
+      if (now - entry.cachedAt > NPPES_CACHE_TTL_MS) nppesCache.delete(key);
+    }
+  }
+
+  return result;
+}
+
+/** Expose cache stats for health/status endpoints */
+export function nppesCacheStats(): { size: number; ttlMs: number } {
+  return { size: nppesCache.size, ttlMs: NPPES_CACHE_TTL_MS };
+}
+
+/** Clear the NPPES cache — for tests only */
+export function resetNppesCacheForTests(): void {
+  nppesCache.clear();
 }

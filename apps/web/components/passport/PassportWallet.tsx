@@ -785,7 +785,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                 ) : (
                   <>
                     <Button
-                      onClick={handleShare}
+                      onClick={() => setShareModalOpen(true)}
                       disabled={sharing || !isAuthReady}
                       variant="success"
                       className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"

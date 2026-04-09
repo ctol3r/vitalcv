@@ -6,8 +6,46 @@ import {
 import { normalizeProvider } from '../../modules/identity/nppes.validator';
 import type { NormalizedAddress } from '../../modules/identity/types';
 import prisma from '../../graphql/prisma_client';
+import {
+  executeWithRetry,
+  isRetryableConnectorError,
+} from '../../../../../../core/connectors/retryPolicy';
+import { SourceUnavailableError } from '../../utils/httpError';
+import { log } from '../../obs/logger';
 
 const npiRegistryAdapter = new NpiRegistryAdapter();
+
+// ── NPPES Response Cache ─────────────────────────────────────────────
+// In-memory TTL cache to prevent rate-limiting from CMS NPPES API.
+// NPPES data changes infrequently; 1-hour TTL is a safe default.
+
+const NPPES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface NppesCacheEntry {
+  record: NppesProviderRecord;
+  cachedAt: number;
+}
+
+const nppesCache = new Map<string, NppesCacheEntry>();
+
+function getCachedNppesRecord(npi: string): NppesProviderRecord | null {
+  const entry = nppesCache.get(npi);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > NPPES_CACHE_TTL_MS) {
+    nppesCache.delete(npi);
+    return null;
+  }
+  return entry.record;
+}
+
+function setCachedNppesRecord(npi: string, record: NppesProviderRecord): void {
+  nppesCache.set(npi, { record, cachedAt: Date.now() });
+}
+
+/** Exposed for operational monitoring. */
+export function nppesCacheStats(): { size: number; ttlMs: number } {
+  return { size: nppesCache.size, ttlMs: NPPES_CACHE_TTL_MS };
+}
 
 type NppesSourceStatus = 'ACTIVE' | 'DEACTIVATED' | 'NOT_FOUND';
 
@@ -52,6 +90,10 @@ export interface NppesProviderRecord {
   factCount: number;
   rawResponseHash: string;
   rawResponse: unknown;
+  /** ISO 8601 timestamp of when this record was last verified against the live source. */
+  lastVerifiedAt: string;
+  /** Exact source URL or identifier for data provenance audit trail. */
+  provenance: string;
 }
 
 type PersistedNppesProviderRecord = NppesProviderRecord & {
@@ -162,7 +204,30 @@ function fallbackPracticeStates(rawResponse: unknown): readonly string[] {
 
 export async function fetchNppesProviderRecord(npi: string): Promise<NppesProviderRecord> {
   const normalizedNpi = normalizeNpi(npi);
-  const batch = await npiRegistryAdapter.lookupByNpi(normalizedNpi);
+
+  // Return cached record if fresh
+  const cached = getCachedNppesRecord(normalizedNpi);
+  if (cached) {
+    log('info', 'nppes_cache_hit', { npi: normalizedNpi });
+    return cached;
+  }
+
+  // Fetch with exponential backoff retry
+  const { result: batch } = await executeWithRetry<CredentialFactBatch>({
+    connector: 'NPPES',
+    operation: () => npiRegistryAdapter.lookupByNpi(normalizedNpi),
+    shouldRetry: isRetryableConnectorError,
+    policy: { maxRetries: 3, baseDelayMs: 500, maxDelayMs: 8_000, jitterRatio: 0.25, maxCumulativeDelayMs: 20_000 },
+    onRetry: ({ attempt, delayMs, error }) => {
+      log('warn', 'nppes_retry', { npi: normalizedNpi, attempt, delayMs, error: error.message });
+    },
+  }).catch((err) => {
+    throw new SourceUnavailableError(
+      'CMS_NPPES',
+      `https://npiregistry.cms.hhs.gov/api/?number=${normalizedNpi}&version=2.1`,
+      err instanceof Error ? err.message : String(err),
+    );
+  });
   const identityFact = extractNpiIdentityFact(batch);
   const parsed = parseRawNpiResponse(batch.rawResponse);
   const normalizedProvider = parsed.status === 'NOT_FOUND'
@@ -204,7 +269,7 @@ export async function fetchNppesProviderRecord(npi: string): Promise<NppesProvid
     ...((identityFact as Record<string, unknown> | null)?.otherNames as string[] | undefined ?? []),
   ]);
 
-  return {
+  const record: NppesProviderRecord = {
     npi: normalizedNpi,
     fullName,
     providerType,
@@ -248,7 +313,12 @@ export async function fetchNppesProviderRecord(npi: string): Promise<NppesProvid
     factCount: batch.summary.factCount,
     rawResponseHash: batch.rawResponseHash,
     rawResponse: batch.rawResponse,
+    lastVerifiedAt: batch.retrievalTime,
+    provenance: batch.summary.sourceUrl,
   };
+
+  setCachedNppesRecord(normalizedNpi, record);
+  return record;
 }
 
 export async function persistNppesProviderRecord(

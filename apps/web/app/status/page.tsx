@@ -102,10 +102,10 @@ export default async function StatusPage() {
   const { report, isFallback, error } = await getSourceOpsReportWithFallback();
   const sources = selectPublicSources(report.sources);
 
-  const cacheAgeLabel = null;
+
 
   return (
-    <main className="min-h-screen bg-background px-6 py-16 text-foreground">
+    <main className="bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-6xl space-y-10">
         <header className="space-y-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-400">

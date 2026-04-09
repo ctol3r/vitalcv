@@ -8,7 +8,7 @@ import { AudienceSplitSection, BuyerPilotSection, HowItWorksSection } from '@/co
 
 export default function HomePageClient() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <HeroWithAuthPrompt />
       <TimeToStartComparison />
       <TrustStrip />

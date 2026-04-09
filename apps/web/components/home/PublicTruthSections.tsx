@@ -14,7 +14,6 @@ import {
   HOMEPAGE_PREVIEW_COPY,
   resolveHomepagePublicTruthSource,
 } from '@/lib/trust/homepage-public-truth';
-import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import Link from 'next/link';
 
 const HOMEPAGE_SOURCE_VIEWS = HOMEPAGE_PUBLIC_TRUTH_SOURCES.map(resolveHomepagePublicTruthSource);

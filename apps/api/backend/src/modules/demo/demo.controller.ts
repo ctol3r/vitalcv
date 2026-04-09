@@ -5,12 +5,6 @@ import { fetchNpiFromCMS } from '../identity/nppes.service';
 import { normalizeProvider } from '../identity/nppes.validator';
 import { generateIdentityArtifact } from '../identity/nppes.artifact.generator';
 import { signArtifact } from '../identity/signer';
-import {
-  SAMPLE_NPI_LIST,
-  SAMPLE_PROVIDERS,
-  getCachedProvider,
-  getCachedArtifact,
-} from './demo.fallback';
 
 const NPI_PATTERN = /^\d{10}$/;
 const BOOT_TIME = Date.now();
@@ -36,20 +30,18 @@ export async function handleDemoProviderLookup(
     const { rawPayload } = await fetchNpiFromCMS(npi);
     const provider = normalizeProvider(rawPayload);
 
-    log('info', 'demo_provider_lookup', { npi, source: 'live' });
+    log('info', 'demo_provider_lookup', { npi, source: 'CMS_NPPES_LIVE' });
 
-    res.json({ provider, source: 'live' });
+    res.json({
+      provider,
+      source: 'CMS_NPPES_LIVE',
+      provenance: { system: 'CMS NPPES Registry', endpoint: 'https://npiregistry.cms.hhs.gov/api/?version=2.1' },
+      lastVerifiedAt: new Date().toISOString(),
+    });
   } catch (err) {
-    const cached = getCachedProvider(npi);
-    if (cached) {
-      log('info', 'demo_provider_lookup_fallback', { npi, source: 'cached' });
-      res.json({ provider: cached, source: 'cached' });
-      return;
-    }
-
-    const status = (err as { statusCode?: number }).statusCode;
+    const status = (err as { status?: number }).status;
     if (status === 404) {
-      res.status(404).json({ error: `NPI ${npi} not found` });
+      res.status(404).json({ error: `NPI ${npi} not found in CMS NPPES Registry` });
       return;
     }
 
@@ -59,7 +51,8 @@ export async function handleDemoProviderLookup(
     });
 
     res.status(502).json({
-      error: 'Unable to reach CMS NPPES. Try a sample NPI.',
+      error: 'CMS NPPES Registry is unreachable. No fallback data is served.',
+      code: 'UPSTREAM_UNAVAILABLE',
     });
   }
 }
@@ -101,7 +94,7 @@ export async function handleDemoVerify(
       log('info', 'demo_verify_signing_unavailable', { npi });
     }
 
-    log('info', 'demo_verify_success', { npi, source: 'live', signing_available });
+    log('info', 'demo_verify_success', { npi, source: 'CMS_NPPES_LIVE', signing_available });
 
     res.json({
       success: true,
@@ -109,26 +102,14 @@ export async function handleDemoVerify(
       artifact_hash,
       signature,
       signing_available,
-      source: 'live',
+      source: 'CMS_NPPES_LIVE',
+      provenance: { system: 'CMS NPPES Registry', endpoint: 'https://npiregistry.cms.hhs.gov/api/?version=2.1' },
+      lastVerifiedAt: new Date().toISOString(),
     });
   } catch (err) {
-    const cached = getCachedArtifact(npi);
-    if (cached) {
-      log('info', 'demo_verify_fallback', { npi, source: 'cached' });
-      res.json({
-        success: true,
-        artifact: cached.artifact,
-        artifact_hash: cached.artifact_hash,
-        signature: null,
-        signing_available: false,
-        source: 'cached',
-      });
-      return;
-    }
-
-    const status = (err as { statusCode?: number }).statusCode;
+    const status = (err as { status?: number }).status;
     if (status === 404) {
-      res.status(404).json({ error: `NPI ${npi} not found` });
+      res.status(404).json({ error: `NPI ${npi} not found in CMS NPPES Registry` });
       return;
     }
 
@@ -138,7 +119,8 @@ export async function handleDemoVerify(
     });
 
     res.status(502).json({
-      error: 'Unable to complete verification. Try a sample NPI.',
+      error: 'CMS NPPES Registry is unreachable. No fallback data is served.',
+      code: 'UPSTREAM_UNAVAILABLE',
     });
   }
 }
@@ -146,13 +128,20 @@ export async function handleDemoVerify(
 /**
  * GET /demo/sample-npis
  *
- * Returns a list of known-good NPIs for the demo wizard.
+ * Returns a list of well-known public NPIs for the demo wizard.
+ * These are real NPIs from the public CMS registry — no synthetic data.
  */
 export function handleDemoSampleNpis(
   _req: Request,
   res: Response,
 ): void {
-  res.json({ samples: SAMPLE_NPI_LIST });
+  res.json({
+    samples: [
+      { npi: '1003000126', note: 'Look up any valid 10-digit NPI against CMS NPPES' },
+    ],
+    source: 'STATIC_REFERENCE',
+    notice: 'Use /demo/provider?npi=<NPI> for live CMS NPPES data. No synthetic data is served.',
+  });
 }
 
 /**
@@ -169,12 +158,11 @@ export function handleDemoStatus(
   const clinicianId =
     typeof req.query.clinician_id === 'string' ? req.query.clinician_id.trim() : '';
 
-  // Trust-state mock: the web app routes /trust-state → /demo/status in demo mode.
+  // Trust-state: no mock data — return 503 if trust-state engine is not available.
   if (clinicianId && clinicianId !== '_ping') {
-    res.json({
-      start_ready: true,
-      crs: { score: 0.82, band: 'GREEN' as const },
-      blocking_reasons: [],
+    res.status(503).json({
+      error: 'Trust-state data requires live verification. No synthetic trust scores are served.',
+      code: 'NO_MOCK_TRUST_STATE',
       clinician_id: clinicianId,
     });
     return;
@@ -201,13 +189,14 @@ export function handleDemoStatus(
 /**
  * POST /demo/issue
  *
- * Issues a mock W3C Verifiable Credential for a sample provider.
+ * Issues a W3C Verifiable Credential backed by live CMS NPPES data.
  * Accepts { npi } in the body. Returns a VC in W3C VC Data Model 2.0 format.
+ * No synthetic/sample data — upstream must be reachable.
  */
-export function handleDemoIssue(
+export async function handleDemoIssue(
   req: Request,
   res: Response,
-): void {
+): Promise<void> {
   const { npi } = req.body as { npi?: string };
 
   if (!npi || !NPI_PATTERN.test(npi)) {
@@ -215,11 +204,18 @@ export function handleDemoIssue(
     return;
   }
 
-  const provider = SAMPLE_PROVIDERS[npi] ?? getCachedProvider(npi);
-  if (!provider) {
-    res.status(404).json({
-      error: `NPI ${npi} not in demo dataset. Try: ${SAMPLE_NPI_LIST.map((s) => s.npi).join(', ')}`,
-    });
+  let provider;
+  try {
+    const { rawPayload } = await fetchNpiFromCMS(npi);
+    provider = normalizeProvider(rawPayload);
+  } catch (err) {
+    const status = (err as { status?: number }).status;
+    if (status === 404) {
+      res.status(404).json({ error: `NPI ${npi} not found in CMS NPPES Registry` });
+      return;
+    }
+    log('error', 'demo_issue_nppes_failed', { npi, error: err instanceof Error ? err.message : 'unknown' });
+    res.status(502).json({ error: 'CMS NPPES Registry is unreachable. No fallback data is served.', code: 'UPSTREAM_UNAVAILABLE' });
     return;
   }
 
@@ -242,7 +238,7 @@ export function handleDemoIssue(
     credentialSubject: {
       id: `did:npi:${provider.npi}`,
       npi: provider.npi,
-      name: `${provider.first_name} ${provider.last_name}`,
+      name: provider.display_name,
       specialty: provider.primary_taxonomy,
       status: provider.status === 'A' ? 'active' : 'inactive',
       enumerationType: provider.enumeration_type,
@@ -272,5 +268,8 @@ export function handleDemoIssue(
       credential_id: credentialId,
       issued_at: issuedAt,
     },
+    source: 'CMS_NPPES_LIVE',
+    provenance: { system: 'CMS NPPES Registry', endpoint: 'https://npiregistry.cms.hhs.gov/api/?version=2.1' },
+    lastVerifiedAt: issuedAt,
   });
 }

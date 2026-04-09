@@ -1,18 +1,19 @@
 /**
- * oigConnector.ts — Wave 127: OIG Exclusion List Connector
+ * oigConnector.ts — Production-hardened OIG Exclusion List Connector
  *
  * Checks the HHS OIG LEIE (List of Excluded Individuals/Entities)
- * for provider exclusion status.
+ * for provider exclusion status via the monthly CSV cache.
  *
- * Sandbox: 10 deterministic fixture exclusions + NPI-hash lookup
- * Live: download monthly LEIE CSV and index by NPI
+ * All sandbox/mock data has been removed. If the LEIE source is
+ * unavailable, this connector throws SourceUnavailableError rather
+ * than returning synthetic data.
  */
 
 import { createHash } from 'node:crypto';
 import { log } from '../../../obs/logger';
 import { recordProvenance } from '../providerSourceProvenance';
-import { getConnectorMode } from './connectorFactory';
 import { runConnectorWithReliability } from './connectorReliability';
+import { SourceUnavailableError } from '../../../utils/httpError';
 import {
   leieCacheStats,
   lookupProvider,
@@ -29,6 +30,10 @@ export interface OIGExclusionResult {
   waiverState: string | null;
   lastCheckedAt: string;
   sourceUrl: string;
+  /** ISO 8601 timestamp of when this result was last verified against the live source. */
+  lastVerifiedAt: string;
+  /** Exact source URL or identifier for data provenance audit trail. */
+  provenance: string;
 }
 
 export interface LeieExclusionRecord {
@@ -58,149 +63,83 @@ const OIG_SCHEMA_POLICY = {
   allowAdditionalFields: true,
 } as const;
 
-// ── LEIE In-Memory Index ────────────────────────────────────────────
-
-const leieIndex = new Map<string, LeieExclusionRecord>();
-let lastLoadedAt: string | null = null;
-
-// ── Sandbox Fixtures ────────────────────────────────────────────────
-
-const SANDBOX_EXCLUSIONS: LeieExclusionRecord[] = [
-  { npi: '1111111111', lastName: 'SMITH', firstName: 'JOHN', exclusionType: '1128(a)(1)', exclusionDate: '2022-03-15', reinstatementDate: null, waiverState: null },
-  { npi: '2222222222', lastName: 'JONES', firstName: 'MARY', exclusionType: '1128(a)(2)', exclusionDate: '2021-06-01', reinstatementDate: null, waiverState: null },
-  { npi: '3333333333', lastName: 'WILLIAMS', firstName: 'ROBERT', exclusionType: '1128(a)(3)', exclusionDate: '2023-01-10', reinstatementDate: null, waiverState: 'CA' },
-  { npi: '4444444444', lastName: 'BROWN', firstName: 'PATRICIA', exclusionType: '1128(a)(4)', exclusionDate: '2020-11-20', reinstatementDate: '2025-11-20', waiverState: null },
-  { npi: '5555555555', lastName: 'DAVIS', firstName: 'MICHAEL', exclusionType: '1128(b)(1)', exclusionDate: '2022-09-01', reinstatementDate: null, waiverState: null },
-  { npi: '6666666666', lastName: 'MILLER', firstName: 'JENNIFER', exclusionType: '1128(b)(4)', exclusionDate: '2023-04-15', reinstatementDate: null, waiverState: 'TX' },
-  { npi: '7777777777', lastName: 'WILSON', firstName: 'DAVID', exclusionType: '1128(a)(1)', exclusionDate: '2021-12-01', reinstatementDate: null, waiverState: null },
-  { npi: '8888888888', lastName: 'MOORE', firstName: 'LINDA', exclusionType: '1128(a)(2)', exclusionDate: '2022-07-15', reinstatementDate: null, waiverState: null },
-  { npi: '9999999999', lastName: 'TAYLOR', firstName: 'JAMES', exclusionType: '1128(b)(7)', exclusionDate: '2023-02-28', reinstatementDate: null, waiverState: 'NY' },
-  { npi: '1234567890', lastName: 'ANDERSON', firstName: 'ELIZABETH', exclusionType: '1128(a)(3)', exclusionDate: '2024-01-05', reinstatementDate: null, waiverState: null },
-];
-
-function loadSandboxData(): void {
-  leieIndex.clear();
-  for (const record of SANDBOX_EXCLUSIONS) {
-    leieIndex.set(record.npi, record);
-  }
-  lastLoadedAt = new Date().toISOString();
-  log('info', 'oig_connector: sandbox LEIE data loaded', { records: SANDBOX_EXCLUSIONS.length });
-}
-
 // ── Public API ──────────────────────────────────────────────────────
 
-export async function loadLeieData(csvPathOrUrl?: string): Promise<void> {
-  const mode = getConnectorMode('OIG');
-
-  if (mode === 'live' && csvPathOrUrl) {
-    log('info', 'oig_connector: ignoring explicit csvPathOrUrl in live mode; canonical LEIE cache manages source loading', {
-      source: csvPathOrUrl,
-    });
-  }
-
-  if (mode === 'live') {
-    prewarmLeieCache();
-    await lookupProvider({ npi: '' });
-    return;
-  }
-
-  loadSandboxData();
+export async function loadLeieData(): Promise<void> {
+  prewarmLeieCache();
+  await lookupProvider({ npi: '' });
 }
 
 export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult> {
-  const mode = getConnectorMode('OIG');
-
   return runConnectorWithReliability<OIGExclusionResult>({
     connector: 'OIG',
     quotaPolicy: OIG_QUOTA_POLICY,
     schemaPolicy: OIG_SCHEMA_POLICY,
     execute: async () => {
-      if (mode === 'live') {
-        const result = await lookupProvider({ npi });
+      const result = await lookupProvider({ npi });
+      const now = result.checkedAt;
 
-        if (result.cacheAge !== 'fresh' || result.verdict === 'UNCHECKED') {
-          return {
-            npi,
-            excluded: false,
-            verdict: 'UNCERTAIN',
-            exclusionType: null,
-            exclusionDate: null,
-            reinstatementDate: null,
-            waiverState: null,
-            lastCheckedAt: result.checkedAt,
-            sourceUrl: OIG_LEIE_URL,
-          };
-        }
+      if (result.cacheAge === 'unavailable') {
+        throw new SourceUnavailableError(
+          'OIG_LEIE',
+          OIG_LEIE_URL,
+          'LEIE monthly CSV cache could not be loaded. Cannot verify exclusion status.',
+        );
+      }
 
-        if (result.verdict === 'POSSIBLE_MATCH') {
-          return {
-            npi,
-            excluded: false,
-            verdict: 'REVIEW_REQUIRED',
-            exclusionType: result.entry?.exclusionType ?? null,
-            exclusionDate: result.entry?.exclusionDate ?? null,
-            reinstatementDate: result.entry?.reinstatementDate ?? null,
-            waiverState: result.entry?.waiverState ?? null,
-            lastCheckedAt: result.checkedAt,
-            sourceUrl: OIG_LEIE_URL,
-          };
-        }
+      if (result.cacheAge !== 'fresh' || result.verdict === 'UNCHECKED') {
+        throw new SourceUnavailableError(
+          'OIG_LEIE',
+          OIG_LEIE_URL,
+          `LEIE cache is ${result.cacheAge}. Cannot provide authoritative exclusion status.`,
+        );
+      }
 
-        if (result.verdict === 'EXCLUDED') {
-          return {
-            npi,
-            excluded: true,
-            verdict: 'EXCLUDED',
-            exclusionType: result.entry?.exclusionType ?? null,
-            exclusionDate: result.entry?.exclusionDate ?? null,
-            reinstatementDate: result.entry?.reinstatementDate ?? null,
-            waiverState: result.entry?.waiverState ?? null,
-            lastCheckedAt: result.checkedAt,
-            sourceUrl: OIG_LEIE_URL,
-          };
-        }
-
+      if (result.verdict === 'POSSIBLE_MATCH') {
         return {
           npi,
           excluded: false,
-          verdict: 'CLEAR',
-          exclusionType: null,
-          exclusionDate: null,
-          reinstatementDate: null,
-          waiverState: null,
-          lastCheckedAt: result.checkedAt,
+          verdict: 'REVIEW_REQUIRED',
+          exclusionType: result.entry?.exclusionType ?? null,
+          exclusionDate: result.entry?.exclusionDate ?? null,
+          reinstatementDate: result.entry?.reinstatementDate ?? null,
+          waiverState: result.entry?.waiverState ?? null,
+          lastCheckedAt: now,
           sourceUrl: OIG_LEIE_URL,
+          lastVerifiedAt: now,
+          provenance: OIG_LEIE_URL,
         };
       }
 
-      if (leieIndex.size === 0) {
-        await loadLeieData();
+      if (result.verdict === 'EXCLUDED') {
+        return {
+          npi,
+          excluded: true,
+          verdict: 'EXCLUDED',
+          exclusionType: result.entry?.exclusionType ?? null,
+          exclusionDate: result.entry?.exclusionDate ?? null,
+          reinstatementDate: result.entry?.reinstatementDate ?? null,
+          waiverState: result.entry?.waiverState ?? null,
+          lastCheckedAt: now,
+          sourceUrl: OIG_LEIE_URL,
+          lastVerifiedAt: now,
+          provenance: OIG_LEIE_URL,
+        };
       }
 
-      const record = leieIndex.get(npi);
-      return record
-        ? {
-            npi,
-            excluded: true,
-            verdict: 'EXCLUDED',
-            exclusionType: record.exclusionType,
-            exclusionDate: record.exclusionDate,
-            reinstatementDate: record.reinstatementDate,
-            waiverState: record.waiverState,
-            lastCheckedAt: new Date().toISOString(),
-            sourceUrl: OIG_LEIE_URL,
-          }
-        : {
-            npi,
-            excluded: false,
-            verdict: 'CLEAR',
-            exclusionType: null,
-            exclusionDate: null,
-            reinstatementDate: null,
-            waiverState: null,
-            lastCheckedAt: new Date().toISOString(),
-            sourceUrl: OIG_LEIE_URL,
-          };
+      return {
+        npi,
+        excluded: false,
+        verdict: 'CLEAR',
+        exclusionType: null,
+        exclusionDate: null,
+        reinstatementDate: null,
+        waiverState: null,
+        lastCheckedAt: now,
+        sourceUrl: OIG_LEIE_URL,
+        lastVerifiedAt: now,
+        provenance: OIG_LEIE_URL,
+      };
     },
     afterSuccess: async (result) => {
       recordProvenance({
@@ -211,50 +150,28 @@ export async function checkOIGExclusion(npi: string): Promise<OIGExclusionResult
       });
     },
     onFailure: ({ reason, stage, error }) => {
-      if (stage === 'quarantine') {
-        log('warn', 'oig_connector: connector quarantined', { npi, reason });
-        return;
-      }
-
       log('error', 'oig_connector: check failed', {
         npi,
         error: error?.message ?? reason,
         stage,
       });
     },
-    fallback: () => ({
-      npi,
-      excluded: false,
-      verdict: 'UNCERTAIN',
-      exclusionType: null,
-      exclusionDate: null,
-      reinstatementDate: null,
-      waiverState: null,
-      lastCheckedAt: new Date().toISOString(),
-      sourceUrl: OIG_LEIE_URL,
-    }),
+    fallback: ({ reason }) => {
+      throw new SourceUnavailableError('OIG_LEIE', OIG_LEIE_URL, reason);
+    },
   });
 }
 
 export function getLeieIndexStatus(): LeieIndexStatus {
-  if (getConnectorMode('OIG') === 'live') {
-    const stats = leieCacheStats();
-
-    return {
-      loaded: stats.loaded,
-      recordCount: stats.entries,
-      lastLoadedAt:
-        stats.loaded && stats.ageMs >= 0
-          ? new Date(Date.now() - stats.ageMs).toISOString()
-          : null,
-      mode: 'live',
-    };
-  }
+  const stats = leieCacheStats();
 
   return {
-    loaded: leieIndex.size > 0,
-    recordCount: leieIndex.size,
-    lastLoadedAt,
-    mode: getConnectorMode('OIG'),
+    loaded: stats.loaded,
+    recordCount: stats.entries,
+    lastLoadedAt:
+      stats.loaded && stats.ageMs >= 0
+        ? new Date(Date.now() - stats.ageMs).toISOString()
+        : null,
+    mode: 'live',
   };
 }
