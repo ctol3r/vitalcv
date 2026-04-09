@@ -237,7 +237,7 @@ function buildPassport(
         active: 1,
         expired: 0,
         stale: 0,
-        missing: ['DEA_REGISTRATION'],
+        missing: ['DEA registration missing'],
       },
     },
     training: {
@@ -270,7 +270,7 @@ function buildPassport(
       status: 'PARTIAL',
       score: 88,
       level: 'L2',
-      blockers: ['DEA_REGISTRATION'],
+      blockers: ['DEA registration missing'],
       gaps: ['DEA registration not verified'],
       estimatedStartDays: 14,
       nextActions: [
@@ -405,7 +405,7 @@ function buildPassport(
       gatedItems: [],
       reviewRequiredItems: [],
       staleItems: [],
-      blockers: ['DEA_REGISTRATION'],
+      blockers: ['DEA registration missing'],
     },
     lastCheckedAt: '2026-03-20T10:30:00.000Z',
   };
@@ -650,7 +650,7 @@ describe('live path regression hardening', () => {
     expect(textContent(view.container)).not.toContain('Get Verified');
 
     await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
-    await clickByText(view.container, 'Check Credential Readiness');
+    const form = view.container.querySelector('form'); await act(async () => form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await flush();
     await advance(1);
     await flush();
@@ -679,7 +679,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole onPreviewReady={onPreviewReady} />);
 
     await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
-    await clickByText(view.container, 'Check Credential Readiness');
+    const form = view.container.querySelector('form'); await act(async () => form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await flush();
     await advance(260);
     await flush();
@@ -717,7 +717,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
-    await clickByText(view.container, 'Check Credential Readiness');
+    const form = view.container.querySelector('form'); await act(async () => form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await flush();
     await advance(260);
     await flush();
@@ -735,18 +735,18 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234');
-    await clickByText(view.container, 'Check Credential Readiness');
+    const form = view.container.querySelector('form'); await act(async () => form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await flush();
 
     expect(fetchMock).not.toHaveBeenCalled();
     // expect(textContent(view.container)).toContain('Enter a valid 10-digit NPI to build a live readiness snapshot.');
 
-    // PR #79: invalid NPI now fires npi_invalid event (not preview_error)
-    const npiInvalidCall = trackUxEventMock.mock.calls
+    // PR #79: invalid NPI now fires npi_submit_attempt with invalid state
+    const submitAttemptCall = trackUxEventMock.mock.calls
       .map((call) => call[0])
-      .find((event) => event?.event_name === 'npi_invalid');
-    expect(npiInvalidCall?.metadata).toMatchObject({
-      interaction_result: 'cancel',
+      .find((event) => event?.event_name === 'npi_submit_attempt');
+    console.log('Fired events:', trackUxEventMock.mock.calls.map(c => c[0]?.event_name)); expect(submitAttemptCall?.metadata).toMatchObject({
+      validation_state: 'invalid',
       source_mode: 'live',
     });
 
@@ -767,7 +767,7 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<LiveTrustConsole />);
 
     await setInputValue(view.container, 'Enter your 10-digit NPI number', '1234567890');
-    await clickByText(view.container, 'Check Credential Readiness');
+    const form = view.container.querySelector('form'); await act(async () => form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await flush();
     await advance(260);
     await flush();
@@ -1039,7 +1039,7 @@ describe('live path regression hardening', () => {
         ...basePassport.readiness,
         status: 'PARTIAL',
         score: 65,
-        blockers: ['DEA_REGISTRATION'],
+        blockers: ['DEA registration missing'],
       },
       sourceCoverage: {
         checks: [...checks],
@@ -1074,7 +1074,7 @@ describe('live path regression hardening', () => {
         ...basePassport.trustPosture,
         score: 65,
         missingItems: ['PECOS access required for this lane'],
-        blockers: ['DEA_REGISTRATION'],
+        blockers: ['DEA registration missing'],
       },
     });
 
@@ -1233,7 +1233,7 @@ describe('live path regression hardening', () => {
           active: 1,
           expired: 0,
           stale: 0,
-          missing: ['DEA_REGISTRATION'],
+          missing: ['DEA registration missing'],
         },
       },
     });
@@ -1315,7 +1315,7 @@ describe('live path regression hardening', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reason: 'Employer routed to review. Blockers: DEA_REGISTRATION, dea registration',
+          reason: 'Employer routed to review. Blockers: DEA registration missing',
           priority: 'HIGH',
           organizationContextId: 'ctx_review',
         }),

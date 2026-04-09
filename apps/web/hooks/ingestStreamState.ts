@@ -37,7 +37,7 @@ export interface StreamIdentity {
   credentials?: string;
   enumerationDate?: string;
   taxonomies?: Array<{ code: string; desc: string; primary: boolean }>;
-  address?: { city: string; state: string };
+  address?: { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
   entityType?: string;
   npiType?: string;
   status?: string;
@@ -193,7 +193,7 @@ function mergeIdentity(
 
   let address = prev.address;
   if (payload.address && typeof payload.address === 'object') {
-    address = payload.address as { city: string; state: string };
+    address = payload.address as { line1: string; city: string; state: string; zip: string; country: string; phone?: string };
   }
 
   return {

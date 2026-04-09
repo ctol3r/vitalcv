@@ -107,9 +107,15 @@ function buildPacketPayload() {
     truth: {
       identity: { status: 'VERIFIED' },
       safety: { status: 'CLEAR' },
-      authority: { status: 'ACCESS REQUIRED' },
+      authority: { status: 'ACCESS_REQUIRED' },
       eligibility: { status: 'ENROLLED' },
     },
+    freshness: {},
+    identity: {},
+    safety: {},
+    authority: {},
+    eligibility: {},
+    readiness: {},
     manifest: {
       schema: 'vitalcv.employer.packet-manifest.v1',
       packetSchema: 'vitalcv.employer.packet.v1',
@@ -168,13 +174,43 @@ function buildPacketPayload() {
           receiptIds: ['receipt-1'],
         },
       ],
-    },
-    freshness: {},
-    identity: {},
-    safety: {},
-    authority: {},
-    eligibility: {},
-    readiness: {},
+      sources: [
+        {
+          sourceId: 'STATE_BOARD',
+          truthStatus: 'ACCESS_REQUIRED',
+          state: 'accessRequired',
+          reason: 'Institutional state board access is required.',
+          checkedAt: null,
+          observedAt: null,
+          expiresAt: null,
+          freshness: {
+            status: 'unknown',
+            checkedAt: null,
+            observedAt: null,
+            expiresAt: null,
+            freshnessWindowHours: null,
+          },
+          provenance: {
+            artifactId: null,
+            artifactIds: ['artifact-1'],
+            receiptIds: ['receipt-1'],
+            sourceUrl: null,
+            rawArtifactRef: null,
+            checksum: null,
+            parserVersion: null,
+          },
+          parserVersion: null,
+          checksum: null,
+          sourceUrl: null,
+          rawArtifactRef: null,
+          freshnessWindowHours: null,
+          confidenceLabel: null,
+          reviewRequired: false,
+          artifactId: null,
+          artifactIds: ['artifact-1'],
+          receiptIds: ['receipt-1'],
+        },
+      ],
     },
   };
 }
@@ -447,6 +483,10 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     }) as never, {
       params: Promise.resolve({ entityId: 'entity-1', action: 'packet' }),
     });
+
+    if (response.status !== 200) {
+      console.log('Error payload:', await response.clone().json());
+    }
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual(expect.objectContaining({

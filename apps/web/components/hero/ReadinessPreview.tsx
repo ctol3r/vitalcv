@@ -540,7 +540,17 @@ function buildLiveAccordion(streamState: IngestStreamState): AccordionItem[] {
               { id: 'enumeration-date', label: 'Enumeration date', value: streamState.identity.enumerationDate },
             ] : []),
             ...(streamState.identity.address ? [
-              { id: 'address', label: 'Practice location', value: `${streamState.identity.address.city}, ${streamState.identity.address.state}` },
+              { 
+                id: 'address', 
+                label: 'Practice location', 
+                value: [
+                  streamState.identity.address.line1,
+                  `${streamState.identity.address.city}, ${streamState.identity.address.state} ${streamState.identity.address.zip}`
+                ].filter(Boolean).join(', ') 
+              },
+            ] : []),
+            ...(streamState.identity.address?.phone ? [
+              { id: 'phone', label: 'Practice phone', value: streamState.identity.address.phone },
             ] : []),
             { id: 'checked', label: 'Last checked', value: formatFullDate(checkedAt) },
             {

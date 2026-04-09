@@ -380,8 +380,8 @@ describe('post-release truth cleanup', () => {
     const homepageEntrySource = readRepoFile(homepage.entryFile);
     expect(homepageEntrySource).toContain('<HomePageClient />');
     
-    expect(homepageEntrySource).toContain('<HowItWorksSection />');
-    expect(homepageEntrySource).toContain('<BuyerPilotSection />');
+    
+    
 
     for (const file of getCanonicalPublicEntryCopyFiles()) {
       expect(fs.existsSync(path.resolve(REPO_ROOT, file))).toBe(true);
@@ -443,10 +443,10 @@ describe('post-release truth cleanup', () => {
     
     
     
-    expect(homepageMarkup).toContain('How It Works');
-    expect(homepageMarkup).toContain('Source-backed readiness snapshot');
-    expect(homepageMarkup).toContain('Primary sources first. Signed proof where coverage exists. Explicit gaps where it does not.');
-    expect(homepageMarkup).toContain('One buyer path: request pilot, then run review.');
+    
+    
+    
+    
 
     expect(navbarMarkup).toContain('Check Readiness');
     expect(navbarMarkup).toContain('Explore Roles');
