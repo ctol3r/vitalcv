@@ -21,6 +21,7 @@ import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload, employerReviewPayloadToJson } from '../entity/employerReviewPayload';
 import { getNotificationProvider } from '../providers/notificationProvider';
 import { log } from '../../obs/logger';
+import { recordValidationEvent } from '../revenue/revenueValidationService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -333,6 +334,21 @@ export async function shareBundle(
       receiptRefs: reviewPayload?.receiptReferences ?? [],
       sourceCoverage: reviewPayload ? employerReviewPayloadToJson(reviewPayload.sourceCoverage) : undefined,
       expiresAt: new Date(bundle.expiresAt),
+    },
+  });
+
+  await recordValidationEvent({
+    eventName: 'bundle_shared',
+    bundleId: bundle.bundleId,
+    npi,
+    organizationId: orgContext.organization_id,
+    orgName: orgContext.name,
+    notes: orgContext.purpose_of_use,
+    metadata: {
+      shareId: shareRecord.id,
+      deliveryStatus: shareRecord.deliveryStatus,
+      webhookStatus: shareRecord.webhookStatus,
+      credentialCount: bundle.credentials.length,
     },
   });
 

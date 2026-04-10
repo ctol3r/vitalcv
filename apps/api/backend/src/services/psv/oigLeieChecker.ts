@@ -211,41 +211,49 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       cacheAge: result.cacheAge,
       sourceLatency: result.sourceLatency,
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: result.checkedAt,
+      provenance: OIG_LEIE_PROVENANCE,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log('warn', 'oig_leie_fetch_error', { error: message, firstName: params.firstName, lastName: params.lastName });
 
     if (isTimeoutError(err)) {
+      const now = new Date().toISOString();
       return {
         excluded: false,
         matchType: 'UNCHECKED',
         matchConfidence: 'UNCERTAIN',
         status: 'UNCHECKED',
         details: `LEIE lookup timed out after ${OIG_LOOKUP_TIMEOUT_MS}ms — manual verification required.`,
-        checkedAt: new Date().toISOString(),
+        checkedAt: now,
         source: 'OIG_LEIE',
         leieVersionDate: null,
         dataVersion: null,
         cacheAge: 'unavailable',
         sourceLatency: 'MONTHLY',
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: now,
+        provenance: OIG_LEIE_PROVENANCE,
       };
     }
 
+    const now = new Date().toISOString();
     return {
       excluded: false,
       matchType: 'UNCHECKED',
       matchConfidence: 'UNCERTAIN',
       status: 'UNCHECKED',
       details: `LEIE lookup failed (${message}) — manual verification required.`,
-      checkedAt: new Date().toISOString(),
+      checkedAt: now,
       source: 'OIG_LEIE',
       leieVersionDate: null,
       dataVersion: null,
       cacheAge: 'unavailable',
       sourceLatency: 'MONTHLY',
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: now,
+      provenance: OIG_LEIE_PROVENANCE,
     };
   }
 }

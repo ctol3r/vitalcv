@@ -358,7 +358,7 @@ function ensureActionableState(application: EmployerWorkflowApplication): void {
 async function closeOpenMissingRequests(input: {
   tx: WorkflowTransaction;
   application: EmployerWorkflowApplication;
-  action: 'accept' | 'reject';
+  action: EmployerWorkflowAction;
   now: Date;
 }): Promise<void> {
   const openRequests = input.application.missingRequests.filter((request) => request.status === 'OPEN');

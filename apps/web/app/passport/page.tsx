@@ -204,11 +204,11 @@ function formatExclusionLabel(
   }
 
   if (!checked) {
-    return state === 'done' ? 'Checked' : undefined;
+    return state === 'done' ? 'Clear' : undefined;
   }
 
   if (exclusionClear === true) {
-    return 'Checked';
+    return 'Clear';
   }
 
   if (exclusionClear === false) {
@@ -223,7 +223,7 @@ function formatExclusionLabel(
     return 'Excluded';
   }
 
-  return 'Checked';
+  return 'Clear';
 }
 
 function formatEnrollmentLabel(

@@ -16,6 +16,7 @@ import prisma from '../../graphql/prisma_client';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload } from '../entity/employerReviewPayload';
 import { log } from '../../obs/logger';
+import { recordValidationEvent } from '../revenue/revenueValidationService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,18 @@ export async function generateApplyBundle(
     requestFields: { npi, selectiveClaims: options?.selectiveClaims },
     resultFields: { bundleId, credentialCount: allCredentials.length, expiresAt },
     severity: 'INFO',
+  });
+
+  await recordValidationEvent({
+    eventName: 'bundle_generated',
+    bundleId,
+    npi,
+    notes: 'Apply bundle generated for employer distribution.',
+    metadata: {
+      credentialCount: allCredentials.length,
+      readiness_score: bundle.trustState.readiness_score,
+      monitoringStatus,
+    },
   });
 
   log('info', 'apply_bundle_generated', { npi, bundleId, credentialCount: allCredentials.length });

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 interface Props {
   params: Promise<{ npi: string }>;
@@ -17,6 +17,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// This route was previously a dead shell that rendered "Verification results
+// will appear here." and never fetched data. The real NPI ingest experience
+// lives on /passport, which auto-starts the SSE stream when ?npi= is present.
+// Forward there so deep-links show identity + sanctions + readiness
+// immediately instead of a permanent empty state.
 export default async function VerifyNpiPage({ params }: Props) {
   const { npi } = await params;
 
@@ -24,20 +29,5 @@ export default async function VerifyNpiPage({ params }: Props) {
     notFound();
   }
 
-  return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-16">
-      <h1 className="text-xl font-semibold tracking-tight text-neutral-950">
-        Verification
-      </h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        NPI: {npi}
-      </p>
-
-      <div className="mt-8 rounded-lg border border-neutral-200 p-6">
-        <p className="text-sm text-neutral-600">
-          Verification results will appear here.
-        </p>
-      </div>
-    </main>
-  );
+  redirect(`/passport?npi=${encodeURIComponent(npi)}`);
 }

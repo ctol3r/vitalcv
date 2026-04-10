@@ -123,6 +123,7 @@ import { registerFederationMetadataRoutes } from './routes/federationMetadata'; 
 import { registerConformanceRoutes } from './routes/conformance';          // Wave 114: Conformance + Receipts
 import { registerSubscriptionRoutes } from './routes/subscriptions';       // Wave 115: Subscription Billing
 import { registerAnalyticsRoutes } from './routes/analytics';              // Wave 116: Analytics
+import { registerRevenueValidationRoutes } from './routes/revenueValidation';
 import { registerNetworkAnalyticsRoutes } from './routes/networkAnalytics'; // Wave 140: Network Telemetry
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
 import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
@@ -3542,6 +3543,7 @@ registerFederationMetadataRoutes(app); // Wave 113: OpenID Federation Trust Meta
 registerConformanceRoutes(app);       // Wave 114: Conformance Suite + Audit Receipts
 registerSubscriptionRoutes(app);      // Wave 115: Subscription Billing & API Keys
 registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
+registerRevenueValidationRoutes(app); // Revenue validation: deals, buyer signals, KPI snapshots
 registerNetworkAnalyticsRoutes(app);  // Wave 140: Network Telemetry Intelligence
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
 registerFeedbackRoutes(app);          // Wave 119: Feedback Loop

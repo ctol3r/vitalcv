@@ -164,7 +164,19 @@ export interface EmployerEvidencePacketV1 {
   };
   decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverage: TrustPassport['sourceCoverage'];
-  decisionPosture: TrustPassport['decisionPosture'];
+
+  // ── Wave 3 additions ───────────────────────────────────────────────────
+  /** True if any source coverage check carries receipt IDs for audit replay. */
+  receiptPresence: boolean;
+  /** Human-readable, per-dimension explanations derived from truth status. */
+  trustExplanations: Record<string, string>;
+  /** Structured blocker list with code/label/severity/source for UI + audits. */
+  structuredBlockers: Array<{
+    code: string;
+    label: string;
+    severity: 'critical' | 'warning' | 'info';
+    source: string | null;
+  }>;
 }
 
 function dedupeSorted(values: readonly string[]): string[] {
@@ -656,6 +668,10 @@ export function buildEmployerEvidencePacket(input: {
     },
     decisionPosture,
     sourceCoverage: input.passport.sourceCoverage,
-    decisionPosture: input.passport.decisionPosture,
+
+    // ── Wave 3 fields ──────────────────────────────────────────────────
+    receiptPresence: hasReceiptPresence(input.passport),
+    trustExplanations: buildTrustExplanations(input.passport),
+    structuredBlockers: buildStructuredBlockers(input.passport),
   };
 }

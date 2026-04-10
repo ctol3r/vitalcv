@@ -239,6 +239,10 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
   const submitStartedAtRef = useRef<number | null>(null);
   const npiFocusTrackedRef = useRef(false);
   const resultsDisplayedTrackedRef = useRef(false);
+  // TTFV: guard the auto-start effect so URL-based deep-links only fire the
+  // ingest stream once per mount — otherwise React strict mode / re-renders
+  // would spawn duplicate SSE streams for the same NPI.
+  const autoStartedRef = useRef(false);
 
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn });
   const hasLiveSignal = Boolean(
@@ -270,6 +274,55 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     }
   }, [initialNpi, npi, phase]);
 
+  // TTFV: auto-start the ingest stream when the homepage is opened with a
+  // valid ?npi=… query param. Matches /passport so deep-links show identity +
+  // sanctions + decision immediately instead of stalling on the hero form.
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (!initialNpi) return;
+    if (!LIVE_PATH_NPI_RE.test(initialNpi)) return;
+    if (phase !== 'idle') return;
+    if (state.runId || state.startedAt) return;
+
+    autoStartedRef.current = true;
+    setFormMessage(null);
+    setPhase('preview');
+    setPreviewIn(true);
+    setFallbackReason(null);
+    previewTrackedRef.current = false;
+    previewErrorTrackedRef.current = false;
+    previewReadyTrackedRef.current = false;
+    resultsDisplayedTrackedRef.current = false;
+    submitStartedAtRef.current = performance.now();
+
+    trackUxEvent({
+      event_name: UX_EVENTS.NPI_SUBMIT_ATTEMPT,
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: initialNpi.length,
+        source_mode: 'live',
+        validation_state: 'valid',
+      },
+    });
+
+    hashNpi(initialNpi).then((npiHash) => {
+      trackFunnelEvent(FUNNEL_EVENTS.NPI_SUBMITTED, { npi_hash: npiHash });
+    });
+
+    trackUxEvent({
+      event_name: UX_EVENTS.SOURCE_CHECK_STARTED,
+      component_id: 'homepage_npi_flow',
+      metadata: {
+        auth_state: authState,
+        npi_length: initialNpi.length,
+        source_mode: 'live',
+      },
+    });
+
+    void startIngest(initialNpi);
+  }, [authState, initialNpi, phase, startIngest, state.runId, state.startedAt]);
+
   useEffect(() => {
     if (pageLoadTrackedRef.current || !isLoaded) return;
 
@@ -295,16 +348,17 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
     }
   }, [phase, state, trimmedNpi]);
 
+  // TTFV: promote to preview the moment we have *any* live signal, not when
+  // the whole run is terminal. The preview panel renders source rows with
+  // "loading" / "pending" badges that update progressively — so the user sees
+  // identity + sanctions + decision the moment each source resolves.
   useEffect(() => {
-    if (phase === 'loading' && hasLiveSignal && !previewIn) {
-      setPreviewIn(true);
-    }
-
-    if (phase === 'loading' && (state.isUsable || Boolean(state.completedAt) || state.phase === 'error')) {
+    if (phase !== 'loading') return;
+    if (hasLiveSignal || state.isUsable || Boolean(state.completedAt) || state.phase === 'error') {
       setPhase('preview');
       setPreviewIn(true);
     }
-  }, [hasLiveSignal, phase, previewIn, state.completedAt, state.isUsable, state.phase]);
+  }, [hasLiveSignal, phase, state.completedAt, state.isUsable, state.phase]);
 
   useEffect(() => {
     if (!previewIn || previewTrackedRef.current) return;
@@ -422,8 +476,11 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
     setFormMessage(null);
     setNpi(nextNpi);
-    setPhase('loading');
-    setPreviewIn(false);
+    // TTFV: show the preview panel immediately — no artificial loading phase.
+    // The source rows render with live spinner/pending/checked badges that
+    // progressively update as each SSE event arrives from the backend.
+    setPhase('preview');
+    setPreviewIn(true);
     setFallbackReason(null);
     previewTrackedRef.current = false;
     previewErrorTrackedRef.current = false;

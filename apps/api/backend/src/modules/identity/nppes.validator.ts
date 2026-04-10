@@ -24,10 +24,10 @@ import type {
   NormalizedAddress,
   NppesSmokeSample,
   RawNppesAddress,
-  type RawNppesEndpoint,
-  type RawNppesOtherName,
-  type NormalizedEndpoint,
-  type NormalizedOtherName,
+  RawNppesEndpoint,
+  RawNppesOtherName,
+  NormalizedEndpoint,
+  NormalizedOtherName,
 } from './types';
 
 // ── Field-length thresholds (NPPES v2 maximums) ────────────────────────────

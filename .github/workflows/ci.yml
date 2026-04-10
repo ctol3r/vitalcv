@@ -39,6 +39,12 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build workspace dependencies
+        # Workspace packages publish `main: dist/index.js`. Vitest and Next.js
+        # both resolve through node_modules -> workspace symlink -> package.json,
+        # so `dist/` must exist before `test` or `build` runs. We build only
+        # upstream deps of @vitalcv/web (not web itself) via pnpm's filter.
+        run: pnpm --filter "...^@vitalcv/web" build
       - name: Lint web app
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
@@ -47,4 +53,3 @@ jobs:
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
         run: bash scripts/launch-gate.sh
-

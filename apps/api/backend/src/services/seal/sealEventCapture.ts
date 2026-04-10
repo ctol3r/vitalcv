@@ -615,6 +615,10 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     const entityId = await resolveStartOutcomeEntityId(input.entityId);
     if (!entityId) return;
 
+    // actualStartDate overrides startedAt when provided; outcomeStatus defaults to STARTED
+    const effectiveStartDate: Date = input.actualStartDate ?? input.startedAt;
+    const effectiveStatus: StartOutcomeStatus = input.outcomeStatus ?? 'STARTED';
+
     const resolvedContext = await resolveStartOutcomeContext({
       organizationContextId: input.organizationContextId ?? null,
       metadata: input.metadata ?? {},
@@ -622,7 +626,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
     });
     const timings = await deriveStartOutcomeTimings(
       entityId,
-      input.startedAt,
+      effectiveStartDate,
       resolvedContext.organizationContextId,
       resolvedContext.scope,
     );
@@ -633,7 +637,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         id:                    randomUUID(),
         entityId,
         organizationContextId: resolvedContext.organizationContextId,
-        startedAt:             input.startedAt,
+        startedAt:             effectiveStartDate,
         daysFromFirstReview:   timings.daysFromFirstReview,
         daysFromShare:         timings.daysFromShare,
         daysFromReady:         timings.daysFromReady,
@@ -643,7 +647,7 @@ export async function captureStartOutcome(input: CaptureStartOutcomeInput): Prom
         metadata:              JSON.parse(JSON.stringify(mergeScope({
           ...resolvedContext.metadata,
           eventName: 'start_outcome_recorded',
-          outcomeStatus: 'STARTED',
+          outcomeStatus: effectiveStatus,
           organizationContextId: resolvedContext.organizationContextId,
           capturedAt,
         }, resolvedContext.scope))),

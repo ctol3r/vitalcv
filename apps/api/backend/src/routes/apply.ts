@@ -19,6 +19,7 @@ import {
   validateOrganizationContext,
   ShareValidationError,
 } from '../services/distribution/applyShareService';
+import { recordValidationEvent } from '../services/revenue/revenueValidationService';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 
@@ -62,6 +63,15 @@ export function registerApplyRoutes(app: Express): void {
         res.status(410).json({ error: 'Bundle has expired.', expiresAt: bundle.expiresAt });
         return;
       }
+      await recordValidationEvent({
+        eventName: 'employer_viewed',
+        bundleId: bundle.bundleId,
+        npi: bundle.npi,
+        metadata: {
+          expiresAt: bundle.expiresAt,
+          readiness_score: bundle.trustState.readiness_score,
+        },
+      });
       res.json(bundle);
     }),
   );

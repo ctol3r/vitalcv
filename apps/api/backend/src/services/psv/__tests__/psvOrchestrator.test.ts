@@ -159,6 +159,8 @@ describe('PSV orchestrator stack', () => {
       cacheAge: 'fresh',
       sourceLatency: 'MONTHLY',
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: '2026-01-01T00:00:00.000Z',
+      provenance: 'test://oig-leie',
     });
 
     const payload = await OigLeieAdapter.verify({ npi: '1234567890' });
@@ -260,6 +262,8 @@ describe('PSV orchestrator stack', () => {
       cacheAge: 'fresh',
       sourceLatency: 'MONTHLY',
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: '2026-01-01T00:00:00.000Z',
+      provenance: 'test://oig-leie',
     });
 
     const orchestrator = new PsvOrchestrator(

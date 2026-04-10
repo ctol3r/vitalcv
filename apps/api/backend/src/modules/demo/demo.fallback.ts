@@ -41,8 +41,11 @@ function makeProvider(
     primary_taxonomy_code,
     taxonomies: [{ code: primary_taxonomy_code, taxonomy_group: '', desc: primary_taxonomy, state, license, primary: true }],
     practice_address: { ...EMPTY_ADDRESS, state },
+    mailing_address: null,
     addresses: [{ ...EMPTY_ADDRESS, state }],
     identifiers: [],
+    endpoints: [],
+    other_names: [],
     enumeration_date: '2010-01-01',
     last_updated: '2024-01-01',
   };
