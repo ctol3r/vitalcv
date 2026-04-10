@@ -1,3 +1,4 @@
+import { signPayloadES256 } from './cryptoService';
 import { createHash, randomUUID } from 'crypto';
 import prisma from '../../graphql/prisma_client';
 import { CredentialingProgress } from '../../domain/entity/vcvApplication'; // Assuming we can use this
@@ -42,7 +43,7 @@ export function generatePSVArtifact(input: {
     sourceUrl: input.sourceUrl,
     verificationMethod: input.verificationMethod,
     verifiedBy: 'system',
-    signature: 'system-es256-sig-placeholder',
+    signature: signPayloadES256({ checksum, source: input.source, subjectId: input.subjectId }),
     expiresAt,
     status: 'valid'
   };
