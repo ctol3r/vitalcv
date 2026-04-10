@@ -376,6 +376,11 @@ enum ApplicationStatus {
   VIEWED
   IN_REVIEW
   CREDENTIALING
+  COLLECTING_DOCS
+  VERIFICATION
+  WAITING_ON_SOURCE
+  READY_FOR_REVIEW
+  COMMITTEE_REVIEW
   APPROVED
   REJECTED
   STARTED
@@ -397,7 +402,9 @@ model Application {
   price           Float?            @map("price")
   timeline        Json?             @map("timeline")
   progress        Json?             @map("progress")
-  compliance      Json?             @map("compliance")
+  blockers        Json?             @map("blockers")
+
+  compliance Json? @map("compliance")
 
   artifacts Json? @map("artifacts")
 

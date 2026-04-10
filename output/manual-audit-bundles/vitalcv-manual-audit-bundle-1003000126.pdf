@@ -1,0 +1,89 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 1011 >>
+stream
+BT
+/F1 12 Tf
+14 TL
+54 738 Td
+(VitalCV Manual Audit Bundle) Tj
+T*
+() Tj
+T*
+(Generated: 2026-04-10T17:24:13.629Z) Tj
+T*
+(Provider: ARDALAN ENKESHAFI, M.D.) Tj
+T*
+(NPI: 1003000126) Tj
+T*
+(Taxonomy: Hospitalist) Tj
+T*
+() Tj
+T*
+(Identity \(NPPES\): ACTIVE) Tj
+T*
+(Identity checked at: 2026-04-10T17:24:11.573Z) Tj
+T*
+() Tj
+T*
+(Sanctions \(OIG\): CLEAR) Tj
+T*
+(Sanctions checked at: 2026-04-10T17:24:13.617Z) Tj
+T*
+() Tj
+T*
+(Enrollment \(PECOS\): UNKNOWN) Tj
+T*
+(Enrollment note: Enrollment status could not be resolved from the current) Tj
+T*
+(  quarterly PECOS data. Current environment uses preview-only PECOS data, so) Tj
+T*
+(  confirm enrollment manually before employer acceptance.) Tj
+T*
+() Tj
+T*
+(Decision: PARTIAL) Tj
+T*
+(Estimated time saved: 45 minutes) Tj
+T*
+() Tj
+T*
+(Blockers:) Tj
+T*
+(- CMS PECOS did not return decision-grade enrollment status in this environment.) Tj
+T*
+() Tj
+T*
+(Next steps:) Tj
+T*
+(- Resolve Medicare enrollment manually and attach the evidence to the audit) Tj
+T*
+(  packet.) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+5 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000001142 00000 n 
+0000001268 00000 n 
+0000001325 00000 n 
+trailer
+<< /Size 6 /Root 5 0 R >>
+startxref
+1374
+%%EOF

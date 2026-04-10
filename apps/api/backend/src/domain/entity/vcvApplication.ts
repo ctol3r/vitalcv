@@ -4,6 +4,11 @@ export type ApplicationStatus =
   | 'viewed'
   | 'in_review'
   | 'credentialing'
+  | 'collecting_docs'
+  | 'verification'
+  | 'waiting_on_source'
+  | 'ready_for_review'
+  | 'committee_review'
   | 'approved'
   | 'rejected'
   | 'started';
@@ -30,6 +35,11 @@ export interface CredentialingProgress {
   enrollment: LaneProgress;
 }
 
+export type ApplicationBlocker = {
+  type: string;
+  severity: 'high' | 'medium' | 'low';
+};
+
 export type VCVApplication = {
   npi: string;
   identity: any;
@@ -46,8 +56,34 @@ export type VCVApplication = {
   timeline: ApplicationTimelineEvent[];
   audit_logs: ApplicationAuditLog[];
   progress: CredentialingProgress;
+  blockers: ApplicationBlocker[];
   eta: string;
 };
+
+export function nextAction(application: Partial<VCVApplication>): string {
+  if (application.status === 'collecting_docs') {
+    return 'Upload required documents';
+  }
+  if (application.status === 'waiting_on_source') {
+    return 'Waiting on source response';
+  }
+  if (application.status === 'ready_for_review') {
+    return 'Ready for credentialing review';
+  }
+  if (application.blockers && application.blockers.length > 0) {
+    if (application.blockers.some(b => b.type === 'missing_license' && b.severity === 'high')) {
+      return 'Upload required documents';
+    }
+  }
+  if (application.progress && application.progress.sanctions === 'pending' && !application.blockers?.some(b => b.severity === 'high')) {
+    // If sanctions are pending but there are no HIGH severity blockers, it's ready for review (Macie case)
+    return 'Ready for review';
+  }
+  if (application.progress && application.progress.sanctions === 'pending') {
+    return 'Waiting on source response';
+  }
+  return 'Ready for review';
+}
 
 export function estimateTimeToStart(progress: CredentialingProgress): string {
   if (progress.enrollment === 'missing' || progress.enrollment === 'in_progress' || progress.enrollment === 'pending') {
