@@ -58,6 +58,7 @@ export type VCVApplication = {
   progress: CredentialingProgress;
   blockers: ApplicationBlocker[];
   eta: string;
+  decision?: { status: string; reasoning: string[]; blockers: string[]; nextSteps: string[] };
 };
 
 export function nextAction(application: Partial<VCVApplication>): string {
