@@ -58,9 +58,17 @@ test.describe('NPI Truth Engine Validation', () => {
     await expect(page.getByText('Macie Miller').first()).toBeVisible();
     await expect(page.getByText('Identity Verified (NPPES)').first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Download Proof/i })).toBeVisible();
-    
+
     // Check score is present since it's valid
     await expect(page.getByText('95/100 · L3').first()).toBeVisible();
+
+    // State-integrity guarantee (fix/state-integrity):
+    // A fully-checked happy path MUST NOT surface any "Unavailable" copy.
+    // "Unavailable" is reserved for hard source failures (timeout/FAILED).
+    // Identity + at least one data point must both be visible.
+    await expect(page.getByText(/unavailable/i)).toHaveCount(0);
+    await expect(page.getByText('Macie Miller').first()).toBeVisible();
+    await expect(page.getByText(/95\s*\/\s*100/).first()).toBeVisible();
   });
 
   test('2. Deactivated NPI', async ({ page }) => {

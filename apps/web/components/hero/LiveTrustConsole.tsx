@@ -192,13 +192,17 @@ function resolveStageBadge(stageStatus: ConsoleStageStatus): {
     case 'access_required':
       return { status: 'access_required', label: 'Access required' };
     case 'unavailable':
+      // "Unavailable" is reserved for hard source failures. This branch is
+      // only reached when the ingest stream reports sources.*==='error'
+      // (source FAILED, stream error, or disconnect while checking).
       return { status: 'unavailable', label: 'Unavailable' };
     case 'review_required':
       return { status: 'review_required', label: 'Review required' };
     case 'loading':
+      return { status: 'pending', label: 'Loading' };
     case 'pending':
     default:
-      return { status: 'pending', label: 'Pending' };
+      return { status: 'pending', label: 'Not yet verified' };
   }
 }
 
@@ -580,10 +584,43 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
             {/* Deterministic loading sequence */}
             {phase === 'loading' && (
-              <FunnelLoadingSequence
-                streamState={state}
-                visible={phase === 'loading'}
-              />
+              <>
+                {/*
+                 * State-integrity guarantee: as soon as the live run has an
+                 * identity signal, surface it alongside at least one live
+                 * data point. This prevents the hero from showing an opaque
+                 * loading state that reads as "nothing is happening" when we
+                 * actually already know who the provider is.
+                 */}
+                {state.identity.displayName && (
+                  <div
+                    className="mx-auto mt-6 flex max-w-md items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Resolving provider
+                      </p>
+                      <p className="mt-0.5 truncate text-sm font-medium text-foreground">
+                        {state.identity.displayName}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {stages.filter((s) => s.status === 'checked').length} of {stages.length} sources checked
+                      </p>
+                    </div>
+                    <TrustStatusBadge
+                      status={state.identity.authoritative ? 'checked' : 'pending'}
+                      label={state.identity.authoritative ? 'Checked' : 'Loading'}
+                      size="sm"
+                    />
+                  </div>
+                )}
+                <FunnelLoadingSequence
+                  streamState={state}
+                  visible={phase === 'loading'}
+                />
+              </>
             )}
           </motion.div>
         ) : (

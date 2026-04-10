@@ -775,7 +775,11 @@ describe('live path regression hardening', () => {
     const content = textContent(view.container);
     expect(content).toContain('Preview unavailable — using your NPI only');
     expect(content).toContain('NPI 1234567890');
-    expect(content).toContain('Pending');
+    // State-integrity (fix/state-integrity): "Pending" is no longer a UI
+    // label — pending state now reads as "Loading". "Unavailable" is
+    // preserved because backend-unreachable IS a hard source failure.
+    expect(content).toContain('Loading');
+    expect(content).not.toContain('Pending');
     expect(content).toContain('Access required');
     expect(content).toContain('Unavailable');
     expect(content).not.toContain('Sarah Chen');

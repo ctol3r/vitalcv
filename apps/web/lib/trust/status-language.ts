@@ -13,8 +13,14 @@ import {
  *
  * Copy guardrails:
  * - Never show Verified or Clear without real, decision-grade evidence.
- * - Unsupported or not-yet-run sources render as pending, stale, unavailable,
- *   access required, or review required.
+ * - State integrity: "Unavailable" is reserved for hard source failures
+ *   (stream error, source FAILED, backend unreachable). It is never the
+ *   default label for "we haven't checked yet".
+ *   - pending  → "Loading" (an active run is in flight)
+ *   - stale    → "Stale"
+ *   - unavailable → "Unavailable" (hard failure only)
+ *   - access_required → "Access required" (institutional gate)
+ *   - review_required → "Review required"
  * - Preview payloads must render as Preview.
  * - Honest partial truth beats fake certainty.
  */
@@ -52,7 +58,7 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
     badgeClassName: 'border-transparent bg-[var(--vt-badge-checked-bg)] text-[var(--vt-badge-checked-text)]',
   },
   pending: {
-    label: 'Pending',
+    label: 'Loading',
     badgeClassName: 'border-transparent bg-[var(--vt-badge-pending-bg)] text-[var(--vt-badge-pending-text)]',
   },
   stale: {
@@ -85,8 +91,14 @@ const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
   verified: ['Source-backed'],
   clear: ['Checked', 'No sanctions found'],
   checked: ['Checked', 'Source-backed'],
-  pending: ['Pending'],
+  // State integrity: "Loading" is the live-run copy. "Not yet verified" is
+  // the explicit idle copy used by surfaces that want to say "no run yet"
+  // rather than imply a failure. Both map to the `pending` badge slot.
+  pending: ['Loading', 'Not yet verified'],
   stale: ['Stale'],
+  // "Unavailable" is the hard-failure copy. It is only produced when the
+  // ingest stream reports a source as FAILED/ERROR or the backend is
+  // unreachable. Never use it to mean "not yet checked".
   unavailable: ['Unavailable'],
   access_required: ['Access required'],
   review_required: ['Review required'],
@@ -99,7 +111,7 @@ const VDS_TRUST_STATUS_LABELS = {
   verified: 'Source-backed',
   clear: 'Checked',
   enrolled: 'Enrolled',
-  pending: 'Pending',
+  pending: 'Loading',
   stale: 'Stale',
   review_required: 'Review required',
   unavailable: 'Unavailable',
@@ -221,10 +233,10 @@ export function canonicalCredStatus(raw: string): string {
     clear: 'Checked',
     ACTIVE: 'Active',
     active: 'Active',
-    PENDING: 'Pending',
-    pending: 'Pending',
-    UNVERIFIED: 'Pending',
-    unverified: 'Pending',
+    PENDING: 'Loading',
+    pending: 'Loading',
+    UNVERIFIED: 'Loading',
+    unverified: 'Loading',
     EXPIRED: 'Unavailable',
     expired: 'Unavailable',
     STALE: 'Stale',

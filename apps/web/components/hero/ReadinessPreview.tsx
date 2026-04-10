@@ -467,9 +467,9 @@ function resolveLiveLicenseStatus(streamState: IngestStreamState) {
 
   return {
     badgeStatus: 'pending' as const,
-    badgeLabel: 'Pending',
+    badgeLabel: 'Loading',
     accordionStatus: 'pending' as const,
-    metaLabel: 'pending',
+    metaLabel: 'loading',
     freshness: 'Waiting for source coverage',
     note: 'VitalCV is still resolving whether a connected state board lane is available for this clinician.',
   };

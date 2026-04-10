@@ -88,7 +88,12 @@ describe('/passport ingest page', () => {
     expect(markup).toContain('NPPES');
     expect(markup).toContain('OIG / LEIE');
     expect(markup).toContain('CMS PECOS');
-    expect(markup).toContain('Pending');
+    // State-integrity: "Pending" is no longer a UI label. NPPES is
+    // actively checking so it reads as "Loading"; OIG and PECOS are idle
+    // in the queue so they read as "Not yet verified".
+    expect(markup).toContain('Loading');
+    expect(markup).toContain('Not yet verified');
+    expect(markup).not.toContain('Pending');
     expect(markup).not.toContain('View full passport');
   });
 
@@ -101,7 +106,10 @@ describe('/passport ingest page', () => {
     }));
 
     expect(markup).toContain('Connecting to primary sources…');
-    expect(markup).toContain('Pending');
+    // State-integrity: sources in phase 'starting' are still 'pending' in
+    // the initial state \u2014 they read as "Not yet verified", never "Pending".
+    expect(markup).toContain('Not yet verified');
+    expect(markup).not.toContain('Pending');
     expect(markup).not.toContain('Check your readiness');
   });
 

@@ -118,12 +118,15 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   status: TrustBadgeStatus;
   label: string;
 } {
+  // State-integrity: "Pending" is no longer a UI label. An active run
+  // reads as "Loading"; an idle queue entry reads as "Not yet verified".
+  // "Unavailable" is reserved for hard source failures (state === 'error').
   if (state === 'checking') {
-    return { status: 'pending', label: 'Pending' };
+    return { status: 'pending', label: 'Loading' };
   }
 
   if (state === 'pending') {
-    return { status: 'pending', label: 'Pending' };
+    return { status: 'pending', label: 'Not yet verified' };
   }
 
   if (state === 'error') {
@@ -278,7 +281,7 @@ function formatLicenseLabel(
     return 'Access required';
   }
 
-  return state === 'checking' ? 'Pending' : undefined;
+  return state === 'checking' ? 'Loading' : undefined;
 }
 
 function humanizeContextToken(value: string): string {

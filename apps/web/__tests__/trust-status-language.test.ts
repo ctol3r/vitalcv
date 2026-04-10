@@ -64,6 +64,13 @@ describe('trust status language', () => {
     expect(getStatusDisplayLabel('clear', 'No sanctions found')).toBe('No sanctions found');
     expect(getStatusDisplayLabel('preview_only', 'Preview only')).toBe('Preview only');
     expect(getStatusDisplayLabel('checked', 'Enrolled')).toBe('Checked');
-    expect(getStatusDisplayLabel('pending', 'Verified')).toBe('Pending');
+    // State-integrity: a caller trying to label a pending slot as
+    // "Verified" gets rejected by the SAFE_DISPLAY_LABELS allowlist and
+    // falls through to the canonical pending copy, which is now "Loading"
+    // (never "Pending", never anything that implies certainty).
+    expect(getStatusDisplayLabel('pending', 'Verified')).toBe('Loading');
+    // Both accepted pending labels round-trip through the allowlist.
+    expect(getStatusDisplayLabel('pending', 'Loading')).toBe('Loading');
+    expect(getStatusDisplayLabel('pending', 'Not yet verified')).toBe('Not yet verified');
   });
 });

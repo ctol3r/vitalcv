@@ -97,11 +97,15 @@ describe('public wedge parity helpers', () => {
   });
 
   it('keeps shared wedge state labels explicit across homepage, passport, review, and request surfaces', () => {
+    // State-integrity (fix/state-integrity):
+    //   pending → "Loading"  (an active live run is in flight)
+    //   unavailable → "Unavailable" (reserved for hard source failures)
+    //   access_required stays explicit
     expect(
       PUBLIC_WEDGE_SURFACE_STATES.map((state) => [state, getPublicWedgeSurfaceStateLabel(state)]),
     ).toEqual([
       ['checked', 'Checked'],
-      ['pending', 'Pending'],
+      ['pending', 'Loading'],
       ['stale', 'Stale'],
       ['access_required', 'Access required'],
       ['unavailable', 'Unavailable'],
