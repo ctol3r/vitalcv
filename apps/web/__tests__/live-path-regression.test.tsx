@@ -644,7 +644,7 @@ describe('live path regression hardening', () => {
 
     expect(
       Array.from(view.container.querySelectorAll('button')).map((node) => node.textContent?.trim()),
-    ).toEqual(['Check Credential Readiness']);
+    ).toEqual(['Apply with VCV']);
     expect(textContent(view.container)).toContain('Stop starting over.Start ready.');
     expect(textContent(view.container)).not.toContain('Continue to passport');
     expect(textContent(view.container)).not.toContain('Get Verified');
