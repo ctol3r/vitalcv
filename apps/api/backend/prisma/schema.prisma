@@ -397,6 +397,7 @@ model Application {
   price           Float?            @map("price")
   timeline        Json?             @map("timeline")
   progress        Json?             @map("progress")
+  artifacts       Json?             @map("artifacts")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
