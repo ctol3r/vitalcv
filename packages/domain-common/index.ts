@@ -59,6 +59,23 @@ export {
   verifyCanonicalPath,
 } from './employmentGuards';
 export {
+  EMPLOYMENT_CLAIM_SOURCES,
+  EMPLOYMENT_CLAIM_CONFIDENCE_VALUES,
+  type EmploymentClaim,
+  type EmploymentClaimSource,
+  type EmploymentClaimConfidence,
+  type EmploymentClaimAgreement,
+  type EmploymentGraph,
+  type EmploymentGraphNode,
+} from './providerEmploymentContracts';
+export {
+  buildEmploymentGraph,
+  composeConfidence,
+  getCurrentEmployers,
+  groupClaimsByEmployer,
+  hasConflict,
+} from './providerEmploymentGraph';
+export {
   PSVSource,
   PSV_SOURCE_VALUES,
   PSVStatus,
@@ -93,3 +110,27 @@ export {
   type AuthorityFacility,
   type AuthorityIssuerType,
 } from './src/authorityEvents';
+export {
+  AUTHORITATIVE_SOURCES,
+  CONFIDENCE_SOURCE_VALUES,
+  CONFIDENCE_TYPE_VALUES,
+  ConfidenceError,
+  INFERRED_THRESHOLD,
+  SOURCE_LABELS,
+  SOURCE_WEIGHTS,
+  UNKNOWN_CONFIDENCE,
+  VERIFIED_THRESHOLD,
+  assertAllFieldsHaveConfidence,
+  assertConfidenceValid,
+  clampScore,
+  classifyConfidence,
+  confidenceField,
+  fromSource,
+  isConfidence,
+  isConfidenceField,
+  unknownField,
+  type Confidence,
+  type ConfidenceField,
+  type ConfidenceSource,
+  type ConfidenceType,
+} from './dataConfidence';

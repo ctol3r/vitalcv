@@ -83,6 +83,14 @@ export interface ProfileViewProps<K extends string> {
 
   /** Optional subheadline (e.g. provider specialty, NPI, clinic name). */
   subtitle?: string;
+
+  /**
+   * When true, every row appends ` · ${sourceLabel}` to its display value.
+   * Off by default — the source already lives in the badge tooltip; this is
+   * an opt-in debugging affordance for QA, screenshots, and pilot review
+   * sessions where the canonical surface needs to be readable in print.
+   */
+  debug?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -92,6 +100,7 @@ export function ProfileView<K extends string>({
   fieldLabels,
   title = 'Provider profile',
   subtitle,
+  debug = false,
 }: ProfileViewProps<K>) {
   // (I1, I3) Project every key into a view. Missing/malformed fields become
   // "unknown"-typed views so the row is still rendered downstream — no field
@@ -129,6 +138,7 @@ export function ProfileView<K extends string>({
             key={key}
             label={fieldLabels[key]}
             view={view}
+            debug={debug}
           />
         ))}
       </ul>
@@ -150,10 +160,16 @@ export function ProfileView<K extends string>({
 interface ProfileFieldRowProps {
   label: string;
   view: FieldConfidenceView<unknown>;
+  debug: boolean;
 }
 
-function ProfileFieldRow({ label, view }: ProfileFieldRowProps) {
-  const display = formatFieldValue(view);
+function ProfileFieldRow({ label, view, debug }: ProfileFieldRowProps) {
+  const { display, full } = formatField(view, { debug });
+  // Surface the untruncated text via title attr only when truncation actually
+  // hid something. Avoids a noisy redundant tooltip on short, fully-visible
+  // values, and keeps the badge's compliance tooltip the only hover affordance
+  // on rows where there's nothing extra to reveal.
+  const valueTitle = display !== full ? full : undefined;
 
   return (
     <li className="flex items-start justify-between gap-4 py-3">
@@ -161,7 +177,10 @@ function ProfileFieldRow({ label, view }: ProfileFieldRowProps) {
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
           {label}
         </p>
-        <p className="mt-1 break-words text-sm text-foreground/90">
+        <p
+          className="mt-1 break-words text-sm text-foreground/90"
+          title={valueTitle}
+        >
           {display}
         </p>
       </div>
@@ -171,49 +190,99 @@ function ProfileFieldRow({ label, view }: ProfileFieldRowProps) {
   );
 }
 
-// ── Value formatter (learning-mode contribution point) ────────────────────
+// ── Value formatter ───────────────────────────────────────────────────────
 //
-// TODO(learning-mode): This is the single most UX-shaping decision in
-// ProfileView — how do we render a field's VALUE in the "butter experience"
-// slot? The right answer depends on decisions about null handling, type
-// coercion, date formatting, and truncation that can't be made without seeing
-// real enriched passport data from the on-device pipeline.
+// Resolves the "butter experience" value-rendering decision laid out in the
+// original TODO. The chosen posture for v1:
 //
-// Trade-offs to consider (pick what matches the brand posture, then iterate):
+//   (a) Null handling      → em dash '—'. Same width everywhere, no system-
+//                            error voice, doesn't shadow the Unknown badge.
+//   (b) Non-string values  → typed switch (string / number / boolean / Date /
+//                            array / object). Delegating to `String(value)`
+//                            is too risky once domain models start carrying
+//                            Dates and nested objects — '[object Object]' is
+//                            a compliance smell, not a UX bug.
+//   (c) Long strings       → hard truncate at TRUNCATE_AT with U+2026 and a
+//                            `title` attr exposing the full value (see
+//                            ProfileFieldRow). Wrapping was rejected because
+//                            it breaks the deterministic row alignment that
+//                            makes verified/inferred rank visually scannable.
+//   (d) Source echo        → off by default. The badge tooltip already names
+//                            the source. The `debug` prop opts in to inline
+//                            ` · {sourceLabel}` for QA, screenshots, and
+//                            print-friendly review sessions.
 //
-//   (a) Null handling:
-//       - "—" (em dash): minimal, honest, always the same width.
-//       - "Not available": verbose; can read like a system error.
-//       - "Unknown": duplicates the badge label for Unknown-typed rows,
-//         which creates redundant noise.
-//
-//   (b) Non-string values (Date, number, boolean, object):
-//       - Delegate to `String(value)` and trust callers to pre-format.
-//         (Simpler contract; risk of "[object Object]" in production.)
-//       - Type-switch here on primitive vs Date vs object.
-//         (More robust; more code to maintain.)
-//
-//   (c) Long strings (addresses, bios, sanctions notes):
-//       - Truncate with ellipsis + move full value to title attr.
-//         (Compact but requires width tuning per surface.)
-//       - Wrap across multiple lines.
-//         (Canonical but breaks row alignment in dense layouts.)
-//
-//   (d) Source echo:
-//       - Append source label (e.g. "Jane Doe · NPPES") for verified rows.
-//         (Redundant with the badge tooltip but visually immediate.)
-//       - Keep source inside the tooltip only.
-//         (Cleaner; requires hover for full provenance.)
-//
-// The stub below makes the safest v1 choice: String coercion + em dash for
-// null. It is deliberately insufficient for the "butter experience" bar.
-// Replace it with ~5–10 lines that match how the canonical profile should
-// feel once you've seen the first real enrichment output.
-//
-// Returns a string so the row layout stays stable. Promote to ReactNode if
-// you need to embed inline elements (e.g. a copy-to-clipboard affordance on
-// NPI numbers).
-function formatFieldValue(view: FieldConfidenceView<unknown>): string {
-  if (view.value === null || view.value === undefined) return '—';
-  return String(view.value);
+// Returns `{ display, full }` so the row can wire up the truncation tooltip
+// without re-running the formatter or duplicating logic. Promote either field
+// to ReactNode at the call site if you ever need inline elements (e.g. a
+// copy-to-clipboard button on NPI numbers) — the formatter contract stays
+// pure and deterministic.
+
+const TRUNCATE_AT = 80;
+const ELLIPSIS = '\u2026'; // …
+const EMPTY_VALUE = '\u2014'; // —
+
+interface FormattedField {
+  /** Text to render in the row's value slot. May be truncated. */
+  readonly display: string;
+  /** Untruncated text — pass to a `title` attr if it differs from `display`. */
+  readonly full: string;
+}
+
+function formatField(
+  view: FieldConfidenceView<unknown>,
+  options: { debug: boolean },
+): FormattedField {
+  const raw = stringifyValue(view.value);
+  if (raw.length === 0) {
+    return { display: EMPTY_VALUE, full: EMPTY_VALUE };
+  }
+
+  const echoed = options.debug ? `${raw} \u00B7 ${view.sourceLabel}` : raw;
+
+  if (echoed.length <= TRUNCATE_AT) {
+    return { display: echoed, full: echoed };
+  }
+
+  // Truncate to TRUNCATE_AT - 1 so the appended ellipsis keeps the visible
+  // length <= TRUNCATE_AT. Always retain `echoed` (with debug suffix) as the
+  // full text so the title attr matches what would have been shown.
+  return {
+    display: echoed.slice(0, TRUNCATE_AT - 1) + ELLIPSIS,
+    full: echoed,
+  };
+}
+
+/**
+ * Pure value-to-string coercion for arbitrary `unknown` payloads.
+ *
+ * Returns the empty string for null/undefined/NaN-Date so `formatField` can
+ * collapse them to the canonical EMPTY_VALUE — keeps the "is this empty?"
+ * decision in one place.
+ */
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : '';
+  }
+  if (typeof value === 'bigint') return value.toString();
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+  }
+  if (Array.isArray(value)) {
+    return value.map(stringifyValue).filter((entry) => entry.length > 0).join(', ');
+  }
+  if (typeof value === 'object') {
+    // Last resort. Any field reaching this branch is a smell — wrap your
+    // domain types in a typed projection upstream rather than leaning on
+    // JSON.stringify in the renderer.
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[unserializable]';
+    }
+  }
+  return String(value);
 }
