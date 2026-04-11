@@ -3,6 +3,7 @@ import type {
   IntelligenceActionWorkflowEffects,
   IntelligenceRecommendationDecision,
 } from './contracts';
+import type { EmploymentGraph } from './employment-graph';
 
 export interface InvestigatorFindingEntity {
   entityType: string;
@@ -313,6 +314,7 @@ export interface ProviderDetailResponse {
     totalCredentialCount: number;
     activeCredentialCount: number;
   };
+  employmentGraph: EmploymentGraph;
   profile: PublicProviderProfile;
   credentials: Array<{
     id: string;

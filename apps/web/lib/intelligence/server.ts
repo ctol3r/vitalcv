@@ -9,6 +9,7 @@ import type {
   StorylineDetailResponse,
 } from './detail-types';
 import { computeProviderView } from './contracts';
+import { buildEmploymentGraphFromIdentityClaims } from './employment-graph';
 import {
   normalizeActionDetailResponse,
   normalizeFindingDetailResponse,
@@ -48,7 +49,15 @@ type IdentitySummaryResponse = {
 
 type IdentityClaimsResponse = {
   claims?: Array<{
+    claimId?: string;
     claimType?: string;
+    status?: string;
+    sourceId?: string;
+    tier?: string;
+    confidenceScore?: number;
+    reviewRequired?: boolean;
+    reviewReason?: string | null;
+    observedAt?: string;
     value?: Record<string, unknown> | null;
   }>;
 };
@@ -382,7 +391,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
     fetchBackendJson<IdentitySummaryResponse>(`/api/identity/${encodeURIComponent(npi)}`),
     fetchBackendJson<IdentityClaimsResponse>(
       `/api/identity/${encodeURIComponent(npi)}/claims`,
-      new URLSearchParams({ status: 'ACTIVE', limit: '200' }),
+      new URLSearchParams({ limit: '200' }),
     ),
     fetchBackendJson<FindingListResponse>(
       '/api/investigators/findings',
@@ -414,7 +423,8 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
   }
 
   const identitySummary = identity.ok ? identity.payload.identity ?? null : null;
-  const activeClaims = claims.ok ? claims.payload.claims ?? [] : [];
+  const allClaims = claims.ok ? claims.payload.claims ?? [] : [];
+  const activeClaims = allClaims.filter((claim) => claim.status === 'ACTIVE');
   const passportPublic = passport.ok ? passport.payload.public : undefined;
   const providerSignals = signalSummary.ok ? signalSummary.payload : null;
   const readinessScore = Math.max(
@@ -466,6 +476,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
     primaryIssuer,
     lastVerifiedAt: profile.payload.lastAnchored ?? null,
   });
+  const employmentGraph = buildEmploymentGraphFromIdentityClaims(allClaims);
 
   return {
     provider: {
@@ -487,6 +498,7 @@ export async function loadProviderDetail(npi: string): Promise<ProviderDetailRes
       totalCredentialCount,
       activeCredentialCount,
     },
+    employmentGraph,
     profile: profile.payload,
     credentials: passport.ok ? passport.payload.credentials ?? [] : [],
     findings: findings.ok ? (findings.payload.findings ?? []).slice(0, 6) : [],

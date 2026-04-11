@@ -2,6 +2,13 @@
 /** YC MVP - behavior frozen. Do not modify without scope approval. */
 export { TrustStateResolver } from './TrustStateResolver';
 export {
+  DecisionState,
+  getMissingCriticalFields,
+  isDecisionReady,
+  type DecisionProfile,
+  type DecisionProfileSection,
+} from './decisionState';
+export {
   validateCredentialArtifact,
   validateVerificationArtifact,
 } from './artifactValidation';

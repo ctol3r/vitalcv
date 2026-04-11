@@ -10,6 +10,7 @@ import type { BadgeTone } from './primitives';
 import { BackLink, EntityLink, OpsBadge, OpsCard, SurfaceBanner, SurfaceErrorState, TimestampPair, riskScoreColor, trustScoreColor, severityTone } from './primitives';
 import { OperationsShell } from './shell';
 import { GraphWorkbenchPanel } from './graph-workbench-panel';
+import { EmploymentHistoryCard } from './employment-history-card';
 
 function intelligenceTone(value: string): BadgeTone {
   const normalized = value.trim().toLowerCase();
@@ -198,6 +199,8 @@ export function ProviderDetailView({
               </div>
             ) : null}
           </OpsCard>
+
+          <EmploymentHistoryCard employmentGraph={current.employmentGraph} />
 
           <OpsCard className="space-y-4">
             <div className="flex items-center justify-between gap-3">
