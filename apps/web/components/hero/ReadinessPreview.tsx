@@ -198,7 +198,7 @@ function buildRealAccordion(ts: ClinicianTrustState): AccordionItem[] {
   return [
     {
       id: 'identity',
-      trigger: 'Identity Verification',
+      trigger: 'Identity Verified (NPPES)',
       triggerRight: accordionMeta(checkedMeta),
       status: npiStatus,
       content: (
@@ -314,7 +314,7 @@ function buildDegradedAccordion(
   return [
     {
       id: 'identity',
-      trigger: 'Identity Verification',
+      trigger: 'Identity Verified (NPPES)',
       triggerRight: nppesChecked ? accordionMeta('checked in this lookup') : unavailableMeta,
       status: nppesChecked ? 'checked' : 'unavailable',
       content: (
@@ -510,7 +510,7 @@ function buildLiveAccordion(streamState: IngestStreamState): AccordionItem[] {
   return [
     {
       id: 'identity',
-      trigger: 'Identity Verification',
+      trigger: 'Identity Verified (NPPES)',
       triggerRight: accordionMeta(
         identityStatus === 'checked'
           ? `checked ${formatCompactProofDate(checkedAt)}`
