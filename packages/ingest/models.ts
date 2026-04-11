@@ -16,13 +16,42 @@ export type LicenseCandidate = Readonly<{
   status: VerificationStatus;
 }>;
 
+/**
+ * Full-fidelity per-taxonomy record from the CMS NPPES v2.1 API.
+ *
+ * Mirrors the `NormalizedTaxonomy` shape used by the hardened
+ * `normalizeProvider` path in `apps/api/backend/src/modules/identity/nppes.validator.ts`,
+ * so role-mapping consumers can read either source without branching.
+ */
+export type NpiTaxonomy = Readonly<{
+  code: string;
+  desc: string;
+  state: string;
+  license: string;
+  primary: boolean;
+}>;
+
 export type ClinicianIdentity = Readonly<{
   clinician_id: string;
   npi: string;
   first_name: string;
   last_name: string;
+  /**
+   * Raw credential string from CMS `basic.credential` (e.g. "PA-C",
+   * "DO, FACC", "PhD, MPH"). Stored verbatim — no splitting, trimming only.
+   * Omitted when the source field is empty or absent.
+   */
+  credentials?: string;
   enumeration_type: string;
+  /**
+   * @deprecated Flattened taxonomy descriptions (desc or code, one per entry).
+   * Retained for backward compatibility with ClinicianIdentity JSON blobs
+   * already persisted to `prisma.clinicianIdentity.data`. New consumers should
+   * read `taxonomies` for the full shape (code, primary, state, license).
+   */
   taxonomy: readonly string[];
+  /** Full per-taxonomy records; primary entry (if any) has `primary: true`. */
+  taxonomies: readonly NpiTaxonomy[];
   practice_locations: readonly PracticeLocation[];
   licenses: readonly LicenseCandidate[];
   status: VerificationStatus;

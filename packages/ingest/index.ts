@@ -2,6 +2,7 @@ export type {
   VerificationStatus,
   PracticeLocation,
   LicenseCandidate,
+  NpiTaxonomy,
   ClinicianIdentity,
   CandidateCredential,
   CandidateCredentialParseSummary,

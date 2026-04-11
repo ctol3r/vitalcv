@@ -109,6 +109,13 @@ async function emitAudit(
  * Type 2 = Organization / NPI-2 (groups, hospitals)
  *
  * Without a live NPPES call, we default to TYPE_1 and let the user correct.
+ *
+ * Hydration fix (fix/nppes-full-hydration, 2026-04-10): this function
+ * previously read camelCase fields (`provider.firstName`, `provider.taxonomyCode`,
+ * `provider.stateOfPractice`) that do not exist on `NormalizedProvider`. Those
+ * reads silently returned `undefined`, so every successful NPPES lookup
+ * surfaced as "no data" — indistinguishable from an upstream failure. The
+ * actual shape is snake_case with `primary_taxonomy_code` and `practice_address.state`.
  */
 async function detectNpiType(npi: string): Promise<{
   npiType:    'TYPE_1' | 'TYPE_2';
@@ -117,20 +124,20 @@ async function detectNpiType(npi: string): Promise<{
   specialty?: string;
   state?:     string;
 }> {
-  // Attempt live NPPES v2 lookup (imported from existing module)
+  // Attempt live NPPES v2 lookup (imported from existing module).
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { fetchNpiFromCMS, normalizeProvider } = require('../../modules/identity');
+    const { fetchNpiFromCMS, normalizeProvider } = require('../../modules/identity') as typeof import('../../modules/identity');
     const raw = await fetchNpiFromCMS(npi);
     if (raw) {
-      const provider = normalizeProvider(raw);
-      const isOrg = raw.enumeration_type === 'NPI-2';
+      const provider = normalizeProvider(raw.rawPayload);
+      const isOrg = provider.enumeration_type === 'NPI-2';
       return {
         npiType:   isOrg ? 'TYPE_2' : 'TYPE_1',
-        firstName: provider.firstName ?? undefined,
-        lastName:  provider.lastName  ?? undefined,
-        specialty: Array.isArray(provider.taxonomyCode) ? provider.taxonomyCode[0] : undefined,
-        state:     provider.stateOfPractice ?? undefined,
+        firstName: provider.first_name || undefined,
+        lastName:  provider.last_name  || undefined,
+        specialty: provider.primary_taxonomy_code ?? undefined,
+        state:     provider.practice_address?.state ?? undefined,
       };
     }
   } catch (err) {
