@@ -82,10 +82,16 @@ const TRUST_STATUS_META: Record<TrustUiStatus, { label: string; badgeClassName: 
 };
 
 const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
-  verified: ['Source-backed'],
+  // Hybrid loader copy: `Updated just now` is the freshness-within-10s copy
+  // emitted by surfaces that just received an authoritative SSE event.
+  // `Source-backed` remains the steady-state label once that window closes.
+  verified: ['Source-backed', 'Updated just now'],
   clear: ['Checked', 'No sanctions found'],
   checked: ['Checked', 'Source-backed'],
-  pending: ['Pending'],
+  // `Checking…` is the in-flight copy used while an ingest source is running
+  // (source_start received, source_complete not yet). `Pending` remains the
+  // steady-state "no run in flight" copy.
+  pending: ['Pending', 'Checking…'],
   stale: ['Stale'],
   unavailable: ['Unavailable'],
   access_required: ['Access required'],

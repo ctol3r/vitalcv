@@ -39,6 +39,8 @@ import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
+import { useHybridProviderData } from '@/hooks/useHybridProviderData';
+import type { IngestStreamState } from '@/hooks/ingestStreamState';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
@@ -540,6 +542,12 @@ interface ReviewClientLoadedProps {
   bundleId?:  string;
   sharedBy?:  string;
   acceptanceHistory?: EmployerAcceptanceHistoryResponse;
+  /**
+   * Hybrid-loader seed produced by ReviewPageClient via `passportToStreamSeed`.
+   * When provided, the client hook uses it as the initial streaming state on
+   * first paint and writes it through to localStorage.
+   */
+  hybridSeed?: IngestStreamState | null;
 }
 
 interface ReviewClientLoadingProps {
@@ -884,7 +892,20 @@ function ReviewClientLoaded({
   bundleId,
   sharedBy,
   acceptanceHistory,
+  hybridSeed,
 }: ReviewClientLoadedProps) {
+  // Hybrid loader wiring — populates the synchronous identity cache with the
+  // SSR-computed seed so subsequent visits render instantly. /review is not a
+  // streaming surface (no public ingest run for employer entity keys), so
+  // autoStart is false — this hook call exists solely for the write-through
+  // side effect. Render continues to flow from the authoritative `passport`
+  // prop below; we intentionally do not read streaming state here.
+  useHybridProviderData({
+    key: passport.npi ?? passport.identity.npi ?? passport.entityId,
+    ssrSeed: hybridSeed ?? null,
+    autoStart: false,
+  });
+
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
   const [confirmStartState, setConfirmStartState] = useState<

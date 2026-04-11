@@ -7,6 +7,7 @@ import { getBackendBase } from '@/lib/api';
 import type {
   EmployerAcceptanceHistoryResponse,
 } from '@/lib/employer-review-actions';
+import { passportToStreamSeed } from '@/lib/hybrid-loader/passportToStreamSeed';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
@@ -172,6 +173,12 @@ export default async function ReviewPageClient({
     }),
   }).catch(() => null);
 
+  // Hybrid-loader SSR→client bridge: compute the initial IngestStreamState on
+  // the server from the authoritative PassportData. The client wrapper
+  // (useHybridProviderData) uses this as its first-paint state and writes it
+  // through to localStorage so subsequent visits render instantly.
+  const hybridSeed = passportToStreamSeed(passport);
+
   return (
     <ReviewClient
       passport={passport}
@@ -179,6 +186,7 @@ export default async function ReviewPageClient({
       bundleId={bundleId}
       sharedBy={from}
       acceptanceHistory={acceptanceHistory}
+      hybridSeed={hybridSeed}
     />
   );
 }
