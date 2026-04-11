@@ -16,6 +16,46 @@ export type LicenseCandidate = Readonly<{
   status: VerificationStatus;
 }>;
 
+/**
+ * Provenance of an education or training record. `inferred` records were
+ * not literally extracted from a source document — they were synthesised
+ * by a deterministic rule (e.g. PA-C credential implies an accredited
+ * PA program). The UI must surface inferred records as such.
+ */
+export type EducationTrainingProvenance = 'extracted' | 'inferred' | 'verified';
+
+/**
+ * A single education record for a provider. Mirrors the `education` table:
+ *   provider_id, institution, degree, year, confidence
+ *
+ * `confidence` is a 0..1 score (not 0..100) so it composes cleanly with
+ * other probabilistic signals in the data-confidence engine. The display
+ * layer scales it to a percentage for the UI.
+ */
+export type EducationRecord = Readonly<{
+  provider_id: string;
+  institution: string;
+  degree: string;
+  year?: number;
+  confidence: number;
+  provenance: EducationTrainingProvenance;
+}>;
+
+/**
+ * A single training record for a provider. Mirrors the `training` table:
+ *   provider_id, program, specialty, year, confidence
+ *
+ * Used for residencies, fellowships, accredited PA programs, etc.
+ */
+export type TrainingRecord = Readonly<{
+  provider_id: string;
+  program: string;
+  specialty?: string;
+  year?: number;
+  confidence: number;
+  provenance: EducationTrainingProvenance;
+}>;
+
 export type ClinicianIdentity = Readonly<{
   clinician_id: string;
   npi: string;

@@ -7,7 +7,21 @@ export type {
   CandidateCredentialParseSummary,
   IngestConflictType,
   IngestConflictRecord,
+  EducationRecord,
+  TrainingRecord,
+  EducationTrainingProvenance,
 } from './models';
+
+export {
+  EDUCATION_TRAINING_CONFIDENCE,
+  PA_C_INFERRED_PROGRAM,
+  PA_C_INFERRED_SPECIALTY,
+  buildEducationRecord,
+  formatTrainingDisplay,
+  inferTrainingFromCredentials,
+  isPaCCredential,
+  normalizeInstitution,
+} from './educationTraining';
 
 export { hashStablePayload } from './hash';
 

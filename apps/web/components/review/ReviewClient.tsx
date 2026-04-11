@@ -38,6 +38,7 @@ import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstima
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import { DecisionBlock } from '@/components/review/DecisionBlock';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
@@ -280,257 +281,6 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
   }
 }
 
-// ── BinaryDecisionCard ────────────────────────────────────────────────────────
-
-type DecisionPostureStatus = PassportData['readiness']['status'];
-
-function resolveDecisionCardPosture(passport: PassportData): {
-  status: DecisionPostureStatus;
-  headline: string;
-  nextAction: string;
-  freshnessLabel: string;
-} {
-  if (passport.decisionPosture) {
-    return {
-      status: passport.decisionPosture.status,
-      headline: passport.decisionPosture.headline,
-      nextAction: passport.decisionPosture.nextAction,
-      freshnessLabel: passport.decisionPosture.freshness.label,
-    };
-  }
-
-  const status = passport.readiness.status;
-
-  return {
-    status,
-    headline:
-      status === 'READY'
-        ? 'All attached decision-grade sources support employer review.'
-        : status === 'BLOCKED'
-          ? 'Blocking gaps remain attached to this review.'
-          : 'Some decision-grade sources are still missing, gated, or pending.',
-    nextAction:
-      passport.readiness.nextActions[0]?.detail
-      ?? (
-        status === 'READY'
-          ? 'Accept as head start.'
-          : status === 'BLOCKED'
-            ? 'Route to review or request refresh before start.'
-            : 'Request refresh for the missing decision-grade checks.'
-      ),
-    freshnessLabel: passport.trustPosture.freshness.label,
-  };
-}
-
-interface BinaryDecisionCardProps {
-  passport: PassportData;
-  blocked: string[];
-  safetyRow: { status: TrustStatus };
-  identityStatus: TrustStatus;
-  authorityCredentials: PassportData['authority']['credentials'];
-  acceptanceHistorySummary: EmployerAcceptanceHistoryResponse['summary'];
-  canPersistActions: boolean;
-  previewOnlyMessage: string | null;
-  onAccept: () => void;
-  onRequestRefresh: () => void;
-  onRouteToReview: () => void;
-}
-
-function BinaryDecisionCard({
-  passport,
-  blocked,
-  safetyRow,
-  identityStatus,
-  authorityCredentials,
-  acceptanceHistorySummary,
-  canPersistActions,
-  previewOnlyMessage,
-  onAccept,
-  onRequestRefresh,
-  onRouteToReview,
-}: BinaryDecisionCardProps) {
-  const { identity, standing } = passport;
-  const decisionPosture = resolveDecisionCardPosture(passport);
-
-  // Active license check
-  const hasActiveLicense = authorityCredentials.some(
-    (c) => c.domain === 'LICENSURE' && c.status === 'ACTIVE',
-  );
-
-  const DECISION_COLORS: Record<DecisionPostureStatus, string> = {
-    READY:   'border-emerald-500/30 bg-emerald-500/[0.06]',
-    PARTIAL: 'border-amber-500/30 bg-amber-500/[0.05]',
-    BLOCKED: 'border-rose-500/25 bg-rose-500/[0.05]',
-  };
-  const DECISION_TEXT: Record<DecisionPostureStatus, string> = {
-    READY:   'text-emerald-400',
-    PARTIAL: 'text-amber-400',
-    BLOCKED: 'text-rose-400',
-  };
-
-  // Enrollment status
-  const enrollmentStatus =
-    standing.pecosEnrollmentStatus ?? (
-      standing.pecosStatus === 'enrolled' ? 'ENROLLED' :
-      standing.pecosStatus === 'not_enrolled' ? 'NOT_FOUND' : 'UNCHECKED'
-    );
-  const enrollmentOk = enrollmentStatus === 'ENROLLED';
-
-  // 4 canonical bullets — key facts for <10s employer decision
-  const bullets: { label: string; source: string; ok: boolean; reason?: string }[] = [
-    {
-      label: 'Identity checked',
-      source: 'NPPES',
-      ok: passport.decisionPosture
-        ? passport.decisionPosture.proven.some((item) => item.dimension === 'identity')
-        : identityStatus === 'checked',
-      reason:
-        passport.decisionPosture?.missing.find((item) => item.dimension === 'identity')?.reason
-        ?? (identityStatus !== 'checked' ? 'NPPES identity check incomplete' : undefined),
-    },
-    {
-      label: 'Safety checked',
-      source: 'OIG/LEIE',
-      ok: passport.decisionPosture
-        ? passport.decisionPosture.proven.some((item) => item.dimension === 'safety')
-        : standing.exclusionStatus === 'CLEAR',
-      reason:
-        passport.decisionPosture?.missing.find((item) => item.dimension === 'safety')?.reason
-        ?? (standing.exclusionStatus !== 'CLEAR' ? `OIG status: ${standing.exclusionStatus ?? 'UNKNOWN'}` : undefined),
-    },
-    {
-      label: 'License source-backed',
-      source: 'State Board',
-      ok: passport.decisionPosture
-        ? passport.decisionPosture.proven.some((item) => item.dimension === 'authority')
-        : hasActiveLicense,
-      reason:
-        passport.decisionPosture?.missing.find((item) => item.dimension === 'authority')?.reason
-        ?? (!hasActiveLicense ? 'No active license found in source data' : undefined),
-    },
-    {
-      label: 'Enrollment checked',
-      source: 'CMS PECOS',
-      ok: passport.decisionPosture
-        ? passport.decisionPosture.proven.some((item) => item.dimension === 'eligibility')
-        : enrollmentOk,
-      reason:
-        passport.decisionPosture?.missing.find((item) => item.dimension === 'eligibility')?.reason
-        ?? (!enrollmentOk
-          ? enrollmentStatus === 'NOT_FOUND' ? 'Not found in CMS enrollment data' : 'Enrollment not yet checked'
-          : undefined),
-    },
-  ];
-
-  return (
-    <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionPosture.status]}>
-      {/* Name + decision readiness */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician Under Review</p>
-          <h1 className="text-foreground text-3xl font-bold uppercase tracking-tight leading-none">{identity.displayName}</h1>
-          {identity.specialty && <p className="text-muted-foreground text-sm mt-2 font-mono">{identity.specialty}</p>}
-          <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground/70">
-            {decisionPosture.headline}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Decision Posture</p>
-          <p className={"text-2xl font-bold font-mono " + DECISION_TEXT[decisionPosture.status]}>{decisionPosture.status}</p>
-        </div>
-      </div>
-
-      {/* 3 canonical bullets */}
-      <div className="mt-4 space-y-2.5">
-        {bullets.map((bullet) => (
-          <div key={bullet.label} className="flex items-start gap-3">
-            <span className={`mt-0.5 text-sm shrink-0 ${bullet.ok ? 'text-emerald-400' : 'text-rose-400/80'}`}>
-              {bullet.ok ? '✓' : '✗'}
-            </span>
-            <div>
-              <p className={`text-sm font-medium ${bullet.ok ? 'text-foreground/80' : 'text-foreground'}`}>
-                {bullet.label}
-              </p>
-              <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                {bullet.ok ? bullet.source : (bullet.reason ?? bullet.source)}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Blockers summary if any */}
-      {blocked.length > 0 && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
-        </p>
-      )}
-
-      <div className="mt-4 rounded-2xl border border-border bg-black/15 px-4 py-3">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Portable acceptance</p>
-        <p className="mt-1 text-sm font-medium text-foreground">{acceptanceHistorySummary.headline}</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/60">
-          {acceptanceHistorySummary.trustCopy
-            ?? 'Any future VitalCV acceptance will appear here with its organization-specific scope.'}
-        </p>
-      </div>
-
-      {/* Action row */}
-      <div className="mt-6 space-y-2">
-        <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Next best action</p>
-              <p className="mt-1 text-sm leading-relaxed text-foreground">
-                {decisionPosture.nextAction}
-              </p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Freshness</p>
-              <p className="mt-1 text-xs text-foreground/70">{decisionPosture.freshnessLabel}</p>
-            </div>
-          </div>
-          {blocked.length > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
-            </p>
-          )}
-        </div>
-        <Button
-          onClick={onAccept}
-          disabled={!canPersistActions || decisionPosture.status === 'BLOCKED'}
-          variant="success"
-          className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
-        >
-          {decisionPosture.status === 'BLOCKED'
-            ? 'Acceptance blocked — resolve blockers first'
-            : `Accept as head start${blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}`}
-        </Button>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            onClick={onRequestRefresh}
-            disabled={!canPersistActions}
-            variant="outline"
-            className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
-          >
-            Request refresh
-          </Button>
-          <Button
-            onClick={onRouteToReview}
-            disabled={!canPersistActions}
-            variant="outline"
-            className="h-11 rounded-none border-red-500/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-red-500/70 hover:bg-red-500 hover:text-white hover:border-red-500"
-          >
-            Route to review
-          </Button>
-        </div>
-        {previewOnlyMessage && (
-          <p className="text-center text-[10px] text-muted-foreground/40 pt-1 font-mono">{previewOnlyMessage}</p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ── Main review component ──────────────────────────────────────────────────────
 
@@ -917,7 +667,6 @@ function ReviewClientLoaded({
   const reviewTruth = buildPassportReviewTruthModel(passport);
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
-  const showReadinessScore = proofSummary.decisionGradeCount > 0;
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
@@ -1217,17 +966,13 @@ function ReviewClientLoaded({
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            BINARY DECISION CARD — Above the fold. Employer decides here.
-            <10 seconds. Everything else is collapsed below.
+            DECISION BLOCK — Above the fold. Decision-grade output, instant.
+            One verdict, what's still needed, what this means for your team.
+            No scores, no empty states, no freshness warnings.
         ══════════════════════════════════════════════════════════════════ */}
         {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
-          <BinaryDecisionCard
+          <DecisionBlock
             passport={passport}
-            blocked={blocked}
-            safetyRow={safetyRow}
-            identityStatus={identityStatus}
-            authorityCredentials={authority.credentials}
-            acceptanceHistorySummary={acceptanceHistoryState.summary}
             canPersistActions={canPersistActions}
             previewOnlyMessage={previewOnlyMessage}
             onAccept={handleAccept}
@@ -1454,53 +1199,19 @@ function ReviewClientLoaded({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Readiness</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">
-                {showReadinessScore ? `${readiness.score}/100` : 'Withheld'}
-              </p>
-              {!showReadinessScore ? (
-                <p className="mt-1 text-[11px] text-muted-foreground/60">
-                  Score appears after source-backed claims attach.
-                </p>
-              ) : null}
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Trust band</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{readiness.level}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Freshness</p>
-              <p className="mt-1 text-sm font-medium text-foreground">{freshnessState}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground/60">{formatProofDate(lastSyncedAt) ?? 'Not checked'}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Proof completeness</p>
-              <p className="mt-1 text-sm font-medium text-foreground">
-                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/60">
-                {proofSummary.warningCount > 0 ? `${proofSummary.warningCount} review warning${proofSummary.warningCount === 1 ? '' : 's'}` : 'No review warnings'}
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Decision snapshot</p>
-                <p className="mt-1 text-sm leading-relaxed text-foreground">
-                  {blocked.length > 0
-                    ? `Proceed only as a head start. ${blocked.length} blocker${blocked.length === 1 ? '' : 's'} still need review or refresh.`
-                    : 'No visible blockers are attached to this review right now.'}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground/50">
-                Estimated start: {readiness.estimatedStartDays === null ? 'Cannot estimate while blocked' : readiness.estimatedStartDays === 0 ? '0 days' : `~${readiness.estimatedStartDays} days`}
-              </p>
-            </div>
-          </div>
+          {/* Score grid, freshness warning, and decision-snapshot empty state
+              removed — the DecisionBlock above is the single verdict surface.
+              The proof sections below remain as the audit trail. */}
+          {blocked.length > 0 && (
+            <p className="text-xs text-muted-foreground/60">
+              Estimated start:{' '}
+              {readiness.estimatedStartDays === null
+                ? 'Cannot estimate while blocked'
+                : readiness.estimatedStartDays === 0
+                  ? '0 days'
+                  : `~${readiness.estimatedStartDays} days`}
+            </p>
+          )}
 
           {/* MS16-F: Employer 6-question flow — strict order */}
           <div className="pt-2 mt-4 space-y-6">
@@ -1601,9 +1312,6 @@ function ReviewClientLoaded({
             {/* Q5: What blocks start? + Q6: What do I do? */}
             <div className="border-t border-border pt-4 space-y-1 text-sm">
               <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
-              <p className="text-foreground font-medium pb-1">
-                {showReadinessScore ? `${readiness.score}% ready` : 'Readiness score withheld until source-backed claims attach'}
-              </p>
 
               {/* Q5: Blockers */}
               {blocked.length > 0 && (
@@ -1737,12 +1445,14 @@ function ReviewClientLoaded({
                 {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
               </p>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Review warnings</p>
-              <p className="mt-1 text-sm text-foreground/60">
-                {blocked.length > 0 ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}` : 'No blockers'}
-              </p>
-            </div>
+            {blocked.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Review warnings</p>
+                <p className="mt-1 text-sm text-foreground/60">
+                  {blocked.length} blocker{blocked.length === 1 ? '' : 's'}
+                </p>
+              </div>
+            )}
           </div>
           {persistedActionState ? (
             <div className="mt-4 border-t border-white/8 pt-4">
