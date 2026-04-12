@@ -33,6 +33,7 @@ import {
   getPilotTelemetryDashboard,
 } from '../services/system/pilotTelemetry';
 import { getCacheCounters } from '../services/trust/trustStateCache';
+import { getActiveDivergencePenalty } from '../services/identity/divergenceEngine';
 
 // ── NPI validation ────────────────────────────────────────────────────────────
 
@@ -100,6 +101,11 @@ export function buildTrustStateResolverDeps(): TrustStateResolverDependencies {
     acceptances: {
       async existsForClinician(clinician_id: string): Promise<boolean> {
         return (await prisma.acceptance.count({ where: { subjectId: clinician_id } })) > 0;
+      },
+    },
+    divergence: {
+      async getForClinician(clinician_id: string): Promise<{ penalty: number; hasBlocking: boolean }> {
+        return getActiveDivergencePenalty(clinician_id);
       },
     },
   });

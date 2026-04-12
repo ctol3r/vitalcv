@@ -125,7 +125,7 @@ export function createTraceId(): string {
  * the mutation must not be committed. The caller should not return 2xx.
  */
 export async function requireAuditBeforeResponse(
-  db: { auditEvent: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> } },
+  db: any,
   input: {
     type: string;
     hash: string;

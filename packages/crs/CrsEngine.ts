@@ -9,7 +9,8 @@ export type CrsBlockingReason =
   | 'MISSING_PSV'
   | 'EXPIRED_PSV'
   | 'REVOKED_PSV'
-  | 'MISSING_ACCEPTANCE';
+  | 'MISSING_ACCEPTANCE'
+  | 'ACTIVE_DIVERGENCE';
 
 export type CrsOutput = Readonly<{
   clinician_id: string;
@@ -27,6 +28,12 @@ export type CrsEngineDependencies = Readonly<{
   };
   acceptances: {
     existsForClinician(clinician_id: string): boolean | Promise<boolean>;
+  };
+  divergence?: {
+    getForClinician(
+      clinician_id: string,
+      as_of: string,
+    ): { penalty: number; hasBlocking: boolean } | Promise<{ penalty: number; hasBlocking: boolean }>;
   };
   now?: () => Date;
   missing_acceptance_band?: 'YELLOW' | 'RED';
@@ -74,6 +81,9 @@ export class CrsEngine {
       this.deps.receipts.listByClinician(input.clinician_id),
       this.deps.acceptances.existsForClinician(input.clinician_id),
     ]);
+    const divergence = this.deps.divergence
+      ? await this.deps.divergence.getForClinician(input.clinician_id, asOf)
+      : { penalty: 0, hasBlocking: false };
 
     const receiptSummary = validateReceiptSet(receipts, asOf);
 
@@ -82,6 +92,7 @@ export class CrsEngine {
     if (receiptSummary.has_expired) reasons.add('EXPIRED_PSV');
     if (receiptSummary.has_revoked) reasons.add('REVOKED_PSV');
     if (!hasAcceptance) reasons.add('MISSING_ACCEPTANCE');
+    if (divergence.hasBlocking) reasons.add('ACTIVE_DIVERGENCE');
 
     const orderedReasons = sortReasons(reasons);
 
@@ -100,6 +111,17 @@ export class CrsEngine {
         score = 80;
         band = 'YELLOW';
       }
+    }
+
+    score = Math.max(0, score - Math.max(0, divergence.penalty));
+
+    if (band !== 'RED') {
+      band = score >= 80 ? 'GREEN' : 'YELLOW';
+    }
+
+    if (divergence.hasBlocking && band !== 'RED') {
+      score = Math.min(score, 79);
+      band = 'YELLOW';
     }
 
     return Object.freeze({

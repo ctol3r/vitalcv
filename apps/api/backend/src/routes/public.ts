@@ -28,6 +28,7 @@ import { CrsEngine } from '@vitalcv/crs';
 import type { TrustStateReceiptRecord } from '@vitalcv/psv';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { getActiveDivergencePenalty } from '../services/identity/divergenceEngine';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -269,6 +270,11 @@ async function handlePublicProfile(req: Request, res: Response): Promise<void> {
           select: { id: true },
         });
         return row !== null;
+      },
+    },
+    divergence: {
+      async getForClinician(clinician_id: string): Promise<{ penalty: number; hasBlocking: boolean }> {
+        return getActiveDivergencePenalty(clinician_id);
       },
     },
   });

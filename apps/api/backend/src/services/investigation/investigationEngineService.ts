@@ -176,9 +176,9 @@ function mapTrustBreakdown(
       sources: [...dimension.sources],
     })),
     contradictions: trustScore.contradictions.map((contradiction) => ({
-      severity: contradiction.severity === 'CRITICAL'
+      severity: contradiction.severity === 'HIGH'
         ? 'CRITICAL'
-        : contradiction.severity === 'MODERATE'
+        : contradiction.severity === 'MEDIUM'
           ? 'MEDIUM'
           : 'LOW',
       dimension: contradiction.dimension,

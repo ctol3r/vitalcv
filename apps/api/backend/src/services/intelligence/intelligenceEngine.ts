@@ -147,7 +147,7 @@ export async function runIngestionLoop(
         type: 'DIVERGENCE_DETECTED', npi, loop: 1,
         payload: {
           conflicts: divergence.conflicts.length,
-          critical: divergence.conflicts.filter(c => c.severity === 'CRITICAL').length,
+          high: divergence.conflicts.filter(c => c.active && c.severity === 'HIGH').length,
           penalty: divergence.totalPenalty,
         },
       });
@@ -188,10 +188,10 @@ export async function runAnomalyLoop(npi: string): Promise<AnomalyReport> {
   // Step 1: Divergence
   const divergence = await detectDivergence(npi);
   if (divergence.conflicts.length > 0) {
-    for (const c of divergence.conflicts) {
+    for (const c of divergence.conflicts.filter((conflict) => conflict.active)) {
       actionItems.push(`[${c.severity}] ${c.description}`);
       await emitIntelligenceEvent({
-        type: c.severity === 'CRITICAL' ? 'ALERT_FIRED' : 'DIVERGENCE_DETECTED',
+        type: c.severity === 'HIGH' ? 'ALERT_FIRED' : 'DIVERGENCE_DETECTED',
         npi, loop: 2,
         payload: { conflictId: c.id, severity: c.severity, description: c.description },
       });

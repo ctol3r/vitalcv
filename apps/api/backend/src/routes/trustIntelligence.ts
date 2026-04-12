@@ -17,7 +17,12 @@
 import type { Express, Request, Response } from 'express';
 import { computeTrustScoreV1, batchTrustScore, TRUST_SCORE_VERSION, DIMENSION_WEIGHTS } from '../services/trust/trustScoreV1';
 import { computeTrustFreshness } from '../services/identity/freshnessModel';
-import { detectDivergence, batchDivergenceScan } from '../services/identity/divergenceEngine';
+import {
+  detectDivergence,
+  batchDivergenceScan,
+  listDivergenceHistory,
+  resolveDivergenceConflict,
+} from '../services/identity/divergenceEngine';
 import {
   recordFreshnessDecaySignals,
   recordTrustScoreSnapshot,
@@ -71,7 +76,7 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
         },
         recordedAt: score.computedAt,
       });
-      const statusCode = score.contradictions.some(c => c.severity === 'CRITICAL') ? 207 : 200;
+      const statusCode = score.contradictions.some(c => c.severity === 'HIGH') ? 207 : 200;
       res.status(statusCode).json({
         schema:   'https://vitalcv.com/trust-score/v1',
         ...score,
@@ -187,6 +192,7 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
         subjectId: npi,
         conflicts: report.conflicts.map((conflict) => ({
           id: conflict.id,
+          ruleId: conflict.ruleId,
           claimType: conflict.claimType,
           severity: conflict.severity,
           description: conflict.description,
@@ -194,6 +200,7 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
           values: conflict.values,
           detectedAt: conflict.detectedAt,
           resolution: conflict.resolution,
+          active: conflict.active,
         })),
       });
       const statusCode = report.hasBlocking ? 207 : 200;
@@ -204,6 +211,58 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
     } catch (err) {
       log('error', `[TrustIntelligence] divergence failed for NPI ${npi}: ${(err as Error)?.message}`);
       res.status(500).json({ error: 'Divergence detection failed', npi });
+    }
+  });
+
+  app.get('/api/trust/divergence/:npi/history', async (req: Request, res: Response) => {
+    const { npi } = req.params;
+    if (!validateNpi(res, npi)) return;
+
+    try {
+      const history = await listDivergenceHistory(npi);
+      res.json({
+        schema: 'https://vitalcv.com/trust-divergence-history/v1',
+        ...history,
+      });
+    } catch (err) {
+      log('error', `[TrustIntelligence] divergence history failed for NPI ${npi}: ${(err as Error)?.message}`);
+      res.status(500).json({ error: 'Divergence history lookup failed', npi });
+    }
+  });
+
+  app.post('/api/trust/divergence/:npi/:conflictId/resolve', async (req: Request, res: Response) => {
+    const { npi, conflictId } = req.params;
+    if (!validateNpi(res, npi)) return;
+
+    const resolvedBy = typeof req.headers['x-clerk-user-id'] === 'string'
+      ? req.headers['x-clerk-user-id'].trim()
+      : '';
+    if (!resolvedBy) {
+      return res.status(401).json({ error: 'Missing x-clerk-user-id header' });
+    }
+
+    const body = req.body as { note?: unknown } | undefined;
+    const note = typeof body?.note === 'string' ? body.note.trim() : undefined;
+
+    try {
+      const result = await resolveDivergenceConflict({
+        npi,
+        conflictId,
+        resolvedBy,
+        note,
+      });
+
+      if (!result) {
+        return res.status(404).json({ error: 'Divergence conflict not found', npi, conflictId });
+      }
+
+      return res.status(200).json({
+        schema: 'https://vitalcv.com/trust-divergence-resolution/v1',
+        ...result,
+      });
+    } catch (err) {
+      log('error', `[TrustIntelligence] divergence resolve failed for NPI ${npi}: ${(err as Error)?.message}`);
+      return res.status(500).json({ error: 'Divergence resolution failed', npi, conflictId });
     }
   });
 
@@ -308,9 +367,9 @@ export function registerTrustIntelligenceRoutes(app: Express): void {
       },
 
       penalties: {
-        CRITICAL: { deduction: 15, effect: 'Band capped at L1, requires manual review' },
-        MODERATE: { deduction: 7,  effect: 'Score reduced, flagged for review' },
-        MINOR:    { deduction: 3,  effect: 'Score reduced, logged' },
+        HIGH:   { deduction: 15, effect: 'Band capped at L1, requires manual review' },
+        MEDIUM: { deduction: 7,  effect: 'Score reduced, flagged for review' },
+        LOW:    { deduction: 3,  effect: 'Score reduced, logged' },
       },
 
       freshnessWindows: {

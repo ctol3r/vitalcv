@@ -37,6 +37,7 @@ import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCar
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
@@ -1692,6 +1693,10 @@ function ReviewClientLoaded({
 
         {/* ── M2: Freshness panel — above proof so stale warnings are visible before expanding ── */}
         <FreshnessPanel entries={freshnessEntries} />
+
+        {passport.divergence?.activeCount ? (
+          <DivergenceSummaryCard divergence={passport.divergence} mode="review" />
+        ) : null}
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (

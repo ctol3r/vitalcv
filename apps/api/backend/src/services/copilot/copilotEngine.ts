@@ -397,7 +397,7 @@ function handleExplain(classified: ClassifiedQuery, _sessionId: string): Copilot
       `• **Coverage** (10 pts) — Breadth of sources checked\n` +
       `• **Freshness** (7 pts) — Recency of verification\n` +
       `• **Academic** (3 pts) — Research/publication identity\n\n` +
-      `Cross-source contradictions apply penalties: CRITICAL −15, MODERATE −7, MINOR −3.\n\n` +
+      `Cross-source contradictions apply penalties: HIGH −15, MEDIUM −7, LOW −3.\n\n` +
       `Full methodology: GET /api/trust/methodology`,
       { type: 'explanation', payload: { topic: 'trust_score_methodology', content: 'Trust Score V1' } },
       ['What is L3?', 'What is verification freshness?', 'What is divergence detection?'],
@@ -407,7 +407,7 @@ function handleExplain(classified: ClassifiedQuery, _sessionId: string): Copilot
   if (/l[0-3]|trust band|band/.test(lower)) {
     return makeResponse(classified, 'EXPLAIN',
       `**Trust Bands**\n\n` +
-      `🟢 **L3 — VERIFIED** (≥80 pts): Exclusion clear, no critical contradictions\n` +
+      `🟢 **L3 — VERIFIED** (≥80 pts): Exclusion clear, no high-severity divergences\n` +
       `🟡 **L2 — CREDENTIALED** (≥60 pts): Exclusion not excluded\n` +
       `🟠 **L1 — PARTIAL** (≥40 pts): Some verification, gaps remain\n` +
       `🔴 **L0 — UNVERIFIED** (<40 pts): Insufficient verification data`,
@@ -443,7 +443,7 @@ function handleExplain(classified: ClassifiedQuery, _sessionId: string): Copilot
       `• Practice location differences\n` +
       `• Identity name mismatch\n` +
       `• Specialty discrepancies\n\n` +
-      `Penalties: CRITICAL −15 pts, MODERATE −7 pts, MINOR −3 pts.`,
+      `Penalties: HIGH −15 pts, MEDIUM −7 pts, LOW −3 pts.`,
       { type: 'explanation', payload: { topic: 'divergence', content: 'Cross-source divergence' } },
       ['Check divergence for a specific NPI', 'Show providers with conflicts'],
     );

@@ -39,15 +39,19 @@ export const divergenceInvestigator: Investigator = {
     }
 
     const score = await computeTrustScoreV1(npi);
-    const evidence: FindingEvidence[] = divergence.conflicts.map(c => ({
+    const activeConflicts = divergence.conflicts.filter((conflict) => conflict.active);
+    if (activeConflicts.length === 0) {
+      return { findings: [], scannedNpis: 1, durationMs: Date.now() - startMs };
+    }
+    const evidence: FindingEvidence[] = activeConflicts.map(c => ({
       source: `DivergenceEngine:${c.id}`,
       claim: `[${c.severity}] ${c.description}`,
-      confidence: c.severity === 'CRITICAL' ? 0.95 : c.severity === 'MODERATE' ? 0.8 : 0.7,
+      confidence: c.severity === 'HIGH' ? 0.95 : c.severity === 'MEDIUM' ? 0.82 : 0.7,
       timestamp: c.detectedAt,
     }));
 
-    const hasCritical = divergence.conflicts.some(c => c.severity === 'CRITICAL');
-    const severity = hasCritical ? 'CRITICAL' as const
+    const hasBlocking = activeConflicts.some(c => c.severity === 'HIGH');
+    const severity = hasBlocking ? 'CRITICAL' as const
       : divergence.totalPenalty >= 10 ? 'HIGH' as const
       : 'MEDIUM' as const;
 
@@ -56,11 +60,11 @@ export const divergenceInvestigator: Investigator = {
       { id: 'verify', label: 'Re-verify conflicting sources', type: 'verify', payload: { npi, sources: divergence.conflicts.map(c => c.sources).flat() } },
     ];
 
-    if (hasCritical) {
-      actions.push({ id: 'escalate', label: 'Escalate to compliance', type: 'escalate', payload: { npi, reason: 'CRITICAL divergence' } });
+    if (hasBlocking) {
+      actions.push({ id: 'escalate', label: 'Escalate to compliance', type: 'escalate', payload: { npi, reason: 'HIGH divergence' } });
     }
 
-    const conflictSummary = divergence.conflicts
+    const conflictSummary = activeConflicts
       .slice(0, 3)
       .map(c => `${c.description}`)
       .join('; ');
@@ -72,20 +76,20 @@ export const divergenceInvestigator: Investigator = {
         severity,
         title: `${divergence.conflicts.length} cross-source conflict(s) for NPI ${npi}`,
         summary: `Sources disagree about NPI ${npi}: ${conflictSummary}. Total penalty: −${divergence.totalPenalty} pts (score now ${score.score}/100).`,
-        explanation: `Cross-source divergence detected across ${new Set(divergence.conflicts.flatMap(c => c.sources)).size} authoritative sources. ` +
-          `${divergence.conflicts.length} conflict(s) found. ` +
-          `${hasCritical ? 'CRITICAL conflict present — trust band capped at L1 maximum. ' : ''}` +
+        explanation: `Cross-source divergence detected across ${new Set(activeConflicts.flatMap(c => c.sources)).size} authoritative sources. ` +
+          `${activeConflicts.length} active conflict(s) found. ` +
+          `${hasBlocking ? 'High-severity conflict present — trust band capped at L1 maximum. ' : ''}` +
           `Current trust score: ${score.score}/100 (${score.bandLabel}). ` +
           `Penalty applied: −${divergence.totalPenalty} points. ` +
-          `Resolution priority: ${hasCritical ? 'IMMEDIATE' : 'within next verification cycle'}.`,
+          `Resolution priority: ${hasBlocking ? 'IMMEDIATE' : 'within next verification cycle'}.`,
         npis: [npi],
         evidence,
         actions,
         relatedFindings: [],
         metadata: {
-          conflictCount: divergence.conflicts.length,
+          conflictCount: activeConflicts.length,
           totalPenalty: divergence.totalPenalty,
-          hasCritical,
+          hasCritical: hasBlocking,
           currentScore: score.score,
           band: score.band,
         },

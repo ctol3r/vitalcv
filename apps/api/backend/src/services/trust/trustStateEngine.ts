@@ -45,6 +45,7 @@ import {
   boardOrderSeverityRequiresReview,
   normalizeBoardOrderSeverity,
 } from '../authority/contracts';
+import { detectDivergence, type DivergenceReport } from '../identity/divergenceEngine';
 import {
   getTrustStateMemoryCache,
   setTrustStateMemoryCache,
@@ -67,6 +68,24 @@ export interface CanonicalFactSummary {
   verifiedAt?: string;
   expiresAt?: string;
   details?: string;
+}
+
+export interface TrustStateDivergenceSummary {
+  activeCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  totalPenalty: number;
+  summary: string;
+  conflicts: Array<{
+    id: string;
+    severity: 'HIGH' | 'MEDIUM' | 'LOW';
+    description: string;
+    sources: string[];
+    penalty: number;
+    active: boolean;
+    resolution: 'OPEN' | 'RESOLVED';
+  }>;
 }
 
 /** Methodology version — bump when scoring logic changes */
@@ -100,6 +119,7 @@ export interface ClinicianTrustState {
   /** Backward-compat aliases */
   trustBand: TrustBand;
   trustScore: number;
+  divergence?: TrustStateDivergenceSummary;
   facts: CanonicalFactSummary[];
   gaps: string[];
   computedAt: string;
@@ -680,6 +700,7 @@ function capTrustScore(input: {
   baseScore: number;
   licensureBlocked: boolean;
   reviewRequired: boolean;
+  divergenceBlocking?: boolean;
   unresolvedAuthorityLicensure?: boolean;
   pecosStatus: PecosStatus;
 }): number {
@@ -689,6 +710,7 @@ function capTrustScore(input: {
 
   if (
     input.reviewRequired
+    || Boolean(input.divergenceBlocking)
     || Boolean(input.unresolvedAuthorityLicensure)
     || input.pecosStatus !== 'ENROLLED'
   ) {
@@ -702,6 +724,7 @@ function buildReadinessStatusHeadline(input: {
   trustBand: TrustBand;
   blockers: readonly string[];
   reviewRequired: boolean;
+  divergenceBlocking?: boolean;
   unresolvedAuthorityLicensure?: boolean;
   pecosStatus: PecosStatus;
 }): string {
@@ -722,6 +745,9 @@ function buildReadinessStatusHeadline(input: {
   if (input.blockers.some((blocker) => /board order severity blocks/i.test(blocker))) {
     return 'Blocked — board order severity requires manual resolution';
   }
+  if (input.divergenceBlocking || input.blockers.some((blocker) => /cross-source divergence/i.test(blocker))) {
+    return 'Review required — resolve cross-source divergence';
+  }
   if (input.blockers.some((blocker) => /license expired/i.test(blocker))) {
     return 'Blocked — state license expired';
   }
@@ -739,6 +765,40 @@ function buildReadinessStatusHeadline(input: {
   }
 
   return readinessStatusMap[input.trustBand];
+}
+
+function buildTrustStateDivergenceSummary(report: DivergenceReport): TrustStateDivergenceSummary {
+  const active = report.conflicts.filter((conflict) => conflict.active);
+
+  return {
+    activeCount: active.length,
+    highCount: active.filter((conflict) => conflict.severity === 'HIGH').length,
+    mediumCount: active.filter((conflict) => conflict.severity === 'MEDIUM').length,
+    lowCount: active.filter((conflict) => conflict.severity === 'LOW').length,
+    totalPenalty: report.totalPenalty,
+    summary: report.summary,
+    conflicts: report.conflicts.slice(0, 5).map((conflict) => ({
+      id: conflict.id,
+      severity: conflict.severity,
+      description: conflict.description,
+      sources: conflict.sources,
+      penalty: conflict.penalty,
+      active: conflict.active,
+      resolution: conflict.resolution,
+    })),
+  };
+}
+
+async function safeDetectDivergence(npi: string): Promise<DivergenceReport | null> {
+  try {
+    return await detectDivergence(npi);
+  } catch (error) {
+    log('warn', 'trust_state_divergence_detection_failed', {
+      npi,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 function appendUniqueGap(gaps: string[], gap: string): void {
@@ -1133,28 +1193,44 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     licensure: licensureAssessment,
     enrollment: enrollmentAssessment,
   });
+  const divergenceReport = await safeDetectDivergence(npi);
+  const divergenceBlocking = divergenceReport?.hasBlocking ?? false;
+  const divergenceGaps = divergenceReport
+    ? divergenceReport.conflicts
+      .filter((conflict) => conflict.active)
+      .map((conflict) => `Divergence: ${conflict.description}`)
+    : [];
 
   const reviewRequired =
     exclusionAssessment.status === 'REVIEW_REQUIRED'
     || licensureAssessment.status === 'REVIEW_REQUIRED';
 
-  const trustScore = capTrustScore({
+  const cappedTrustScore = capTrustScore({
     baseScore: readinessBase.readinessScore,
     licensureBlocked:
       authoritySignals.disciplinedLicense
       || authoritySignals.boardOrderBlocks
       || licensureStatus === 'expired',
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
+    divergenceBlocking,
     unresolvedAuthorityLicensure,
     pecosStatus,
   });
 
-  const blockers = Array.from(new Set([...readinessBase.blockers, ...authoritySignals.blockers]));
-  const gaps = Array.from(new Set([...readinessBase.gaps, ...authoritySignals.gaps]));
+  const blockers = Array.from(new Set([
+    ...readinessBase.blockers,
+    ...authoritySignals.blockers,
+    ...(divergenceBlocking ? ['Cross-source divergence requires resolution'] : []),
+  ]));
+  const gaps = Array.from(new Set([
+    ...readinessBase.gaps,
+    ...authoritySignals.gaps,
+    ...divergenceGaps,
+  ]));
   const readiness = {
     ...readinessBase,
-    readinessScore: trustScore,
-    readiness_score: trustScore,
+    readinessScore: Math.max(0, cappedTrustScore - (divergenceReport?.totalPenalty ?? 0)),
+    readiness_score: Math.max(0, cappedTrustScore - (divergenceReport?.totalPenalty ?? 0)),
     blockers,
     gaps,
   };
@@ -1162,13 +1238,14 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   const trustBand = deriveTrustBandFromReadiness({
     readiness,
     identityMet: identityAssessment.status === 'MET',
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
   });
 
   const readinessStatus = buildReadinessStatusHeadline({
     trustBand,
     blockers,
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
+    divergenceBlocking,
     unresolvedAuthorityLicensure,
     pecosStatus,
   });
@@ -1181,19 +1258,20 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     exclusionStatus,
     pecosStatus,
     credentialCount,
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
     blockers: readiness.blockers,
     nextActions: readiness.nextActions,
     confidenceWeighting: readiness.confidenceWeighting,
     sourceCoverage: readiness.sourceCoverage,
     readiness_level: trustBand,
     readiness_status: readinessStatus,
-    readiness_score: trustScore,
+    readiness_score: readiness.readinessScore,
     gap_summary: readiness.gaps,
     methodology_version: METHODOLOGY_VERSION,
     computed_at: computedAt,
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
+    divergence: divergenceReport ? buildTrustStateDivergenceSummary(divergenceReport) : undefined,
     facts,
     gaps: readiness.gaps,
     computedAt,
@@ -1202,7 +1280,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
   log('info', 'trust_state_computed_from_ingested_artifacts', {
     npi,
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
     identityVerified,
     licensureStatus,
     exclusionClear,
@@ -1211,7 +1289,7 @@ async function computeClinicianTrustStateFromIngestedArtifacts(
     credentialCount,
     factCount: facts.length,
     gapCount: gaps.length,
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
   });
 
   return state;
@@ -1610,28 +1688,40 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     licensure: licensureAssessment,
     enrollment: enrollmentAssessment,
   });
+  const divergenceReport = await safeDetectDivergence(npi);
+  const divergenceBlocking = divergenceReport?.hasBlocking ?? false;
+  const divergenceGaps = divergenceReport
+    ? divergenceReport.conflicts
+      .filter((conflict) => conflict.active)
+      .map((conflict) => `Divergence: ${conflict.description}`)
+    : [];
   const reviewRequired = exclusionAssessment.status === 'REVIEW_REQUIRED';
   const trustScore = capTrustScore({
     baseScore: readinessBase.readinessScore,
     licensureBlocked: licensureStatus === 'expired',
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
+    divergenceBlocking,
     pecosStatus,
   });
   const readiness = {
     ...readinessBase,
-    readinessScore: trustScore,
-    readiness_score: trustScore,
+    readinessScore: Math.max(0, trustScore - (divergenceReport?.totalPenalty ?? 0)),
+    readiness_score: Math.max(0, trustScore - (divergenceReport?.totalPenalty ?? 0)),
+    gaps: Array.from(new Set([...readinessBase.gaps, ...divergenceGaps])),
   };
   const trustBand = deriveTrustBandFromReadiness({
     readiness,
     identityMet: identityAssessment.status === 'MET',
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
   });
 
   const readiness_status = buildReadinessStatusHeadline({
     trustBand,
-    blockers: readiness.blockers,
-    reviewRequired,
+    blockers: divergenceBlocking
+      ? [...readiness.blockers, 'Cross-source divergence requires resolution']
+      : readiness.blockers,
+    reviewRequired: reviewRequired || divergenceBlocking,
+    divergenceBlocking,
     pecosStatus,
   });
 
@@ -1643,19 +1733,22 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     exclusionStatus,
     pecosStatus,
     credentialCount,
-    reviewRequired,
-    blockers: readiness.blockers,
+    reviewRequired: reviewRequired || divergenceBlocking,
+    blockers: divergenceBlocking
+      ? [...readiness.blockers, 'Cross-source divergence requires resolution']
+      : readiness.blockers,
     nextActions: readiness.nextActions,
     confidenceWeighting: readiness.confidenceWeighting,
     sourceCoverage: readiness.sourceCoverage,
     readiness_level: trustBand,
     readiness_status,
-    readiness_score: trustScore,
+    readiness_score: readiness.readinessScore,
     gap_summary: readiness.gaps,
     methodology_version: METHODOLOGY_VERSION,
     computed_at: computedAt,
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
+    divergence: divergenceReport ? buildTrustStateDivergenceSummary(divergenceReport) : undefined,
     facts,
     gaps: readiness.gaps,
     computedAt,
@@ -1664,7 +1757,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
   log('info', 'trust_state_computed', {
     npi,
     trustBand,
-    trustScore,
+    trustScore: readiness.readinessScore,
     identityVerified,
     licensureStatus,
     exclusionClear,
@@ -1673,7 +1766,7 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
     credentialCount,
     factCount: facts.length,
     gapCount: readiness.gaps.length,
-    reviewRequired,
+    reviewRequired: reviewRequired || divergenceBlocking,
   });
 
   return state;

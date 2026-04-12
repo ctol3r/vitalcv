@@ -134,17 +134,17 @@ export async function generateActions(npi: string): Promise<RecommendedAction[]>
   }
 
   // ── Divergence resolution actions ────────────────────────────────────────
-  for (const conflict of divergence.conflicts) {
-    const isCritical = conflict.severity === 'CRITICAL';
+  for (const conflict of divergence.conflicts.filter((entry) => entry.active)) {
+    const isBlocking = conflict.severity === 'HIGH';
     actions.push({
       id: makeActionId(),
       category: 'RESOLVE_CONFLICT',
-      priority: isCritical ? 'CRITICAL' : 'HIGH',
+      priority: isBlocking ? 'CRITICAL' : 'HIGH',
       title: `Resolve ${conflict.severity} conflict: ${conflict.description.slice(0, 60)}`,
       description: `Cross-source conflict detected between ${conflict.sources.join(' and ')}. Penalty: −${conflict.penalty} pts.`,
-      rationale: isCritical
-        ? 'CRITICAL conflict caps trust band at L1. Resolution is required for L2+ certification.'
-        : `MODERATE conflict reduces trust score by ${conflict.penalty} points. Resolution improves overall confidence.`,
+      rationale: isBlocking
+        ? 'High-severity divergence caps trust band at L1. Resolution is required for L2+ certification.'
+        : `${conflict.severity} divergence reduces trust score by ${conflict.penalty} points. Resolution improves overall confidence.`,
       impact: `Resolving this conflict would restore +${conflict.penalty} trust score points.`,
       npi,
       estimatedImpact: conflict.penalty,

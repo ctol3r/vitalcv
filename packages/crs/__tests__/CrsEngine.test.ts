@@ -87,4 +87,37 @@ describe('CrsEngine', () => {
     expect(afterExpiry.band).toBe('RED');
     expect(afterExpiry.blocking_reasons).toContain('EXPIRED_PSV');
   });
+
+  it('applies divergence penalties and blocks GREEN when a high-severity divergence is active', async () => {
+    const engine = new CrsEngine({
+      receipts: {
+        listByClinician: async () => [
+          {
+            receipt_id: 'rcpt-ok',
+            fetched_at: '2026-02-06T10:00:00.000Z',
+            ttl_seconds: 7200,
+            revoked: false,
+          },
+        ],
+      },
+      acceptances: {
+        existsForClinician: async () => true,
+      },
+      divergence: {
+        getForClinician: async () => ({
+          penalty: 15,
+          hasBlocking: true,
+        }),
+      },
+    });
+
+    const result = await engine.computeForClinician({
+      clinician_id: 'clin-1',
+      as_of: '2026-02-06T10:05:00.000Z',
+    });
+
+    expect(result.score).toBe(79);
+    expect(result.band).toBe('YELLOW');
+    expect(result.blocking_reasons).toContain('ACTIVE_DIVERGENCE');
+  });
 });

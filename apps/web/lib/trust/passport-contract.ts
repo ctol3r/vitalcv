@@ -189,8 +189,27 @@ export interface PassportData {
   trustPosture: PassportTrustPosture;
   decisionPosture?: DecisionPosture;
   lastCheckedAt: string;
+  divergence?: PassportDivergence;
   /** Wave 245: Continuous monitoring status */
   monitoring?: PassportMonitoringStatus;
+}
+
+export interface PassportDivergence {
+  activeCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  totalPenalty: number;
+  summary: string;
+  conflicts: Array<{
+    id: string;
+    severity: 'HIGH' | 'MEDIUM' | 'LOW';
+    description: string;
+    sources: string[];
+    penalty: number;
+    active: boolean;
+    resolution: 'OPEN' | 'RESOLVED';
+  }>;
 }
 
 /** Wave 245: Monitoring status for passport UI */

@@ -676,6 +676,7 @@ export async function syncDivergenceReport(
     subjectId: string;
     conflicts: Array<{
       id: string;
+      ruleId?: string;
       claimType: string;
       severity: string;
       description: string;
@@ -683,6 +684,7 @@ export async function syncDivergenceReport(
       values: string[];
       detectedAt: string;
       resolution: string;
+      active?: boolean;
     }>;
   },
   prismaClient: PrismaClient = prisma,
@@ -694,9 +696,10 @@ export async function syncDivergenceReport(
     subjectId: input.subjectId,
     sourceIds: conflict.sources,
     severity: mapSeverity(conflict.severity),
-    confidence: conflict.severity === 'CRITICAL' ? 0.95 : conflict.severity === 'MODERATE' ? 0.8 : 0.65,
+    confidence: conflict.severity === 'HIGH' ? 0.95 : conflict.severity === 'MEDIUM' ? 0.82 : 0.65,
     fingerprint: sha256Hex(JSON.stringify({
       id: conflict.id,
+      ruleId: conflict.ruleId ?? null,
       claimType: conflict.claimType,
       sources: conflict.sources,
       values: conflict.values,
@@ -705,8 +708,13 @@ export async function syncDivergenceReport(
     outcome: conflict.resolution === 'RESOLVED' ? 'RESOLVED' : 'CONFIRMED',
     detectedAt: conflict.detectedAt,
     metadata: {
+      kind: 'TRUST_DIVERGENCE',
+      ruleId: conflict.ruleId ?? null,
+      claimType: conflict.claimType,
       description: conflict.description,
+      sources: conflict.sources,
       values: conflict.values,
+      active: conflict.active ?? (conflict.resolution !== 'RESOLVED'),
     },
   }));
 

@@ -23,6 +23,7 @@ import {
   getCachedTrustState,
   type ClinicianTrustState,
 } from '../trust/trustStateEngine';
+import { detectDivergence } from '../identity/divergenceEngine';
 import {
   daysUntilExpiry,
   isCredentialCurrentStatus,
@@ -279,6 +280,24 @@ export interface PassportMonitoringStatus {
   activeAlertCount: number;
 }
 
+export interface PassportDivergence {
+  activeCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  totalPenalty: number;
+  summary: string;
+  conflicts: Array<{
+    id: string;
+    severity: 'HIGH' | 'MEDIUM' | 'LOW';
+    description: string;
+    sources: string[];
+    penalty: number;
+    active: boolean;
+    resolution: 'OPEN' | 'RESOLVED';
+  }>;
+}
+
 export interface TrustPassport {
   entityId:       string;
   npi?:           string;
@@ -293,6 +312,7 @@ export interface TrustPassport {
   trustPosture:   PassportTrustPosture;
   decisionPosture: DecisionPosture;
   lastCheckedAt:  string;
+  divergence?:    PassportDivergence;
   /** Wave 245: Continuous monitoring status */
   monitoring?:    PassportMonitoringStatus;
 }
@@ -355,6 +375,30 @@ function pickArtifactPayload(rawPayload: unknown): JsonRecord {
   const payload = asRecord(rawPayload);
   const nestedPayload = asRecord(payload.payload_json);
   return Object.keys(nestedPayload).length > 0 ? nestedPayload : payload;
+}
+
+function mapPassportDivergence(value: ClinicianTrustState['divergence'] | null | undefined): PassportDivergence | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return {
+    activeCount: value.activeCount,
+    highCount: value.highCount,
+    mediumCount: value.mediumCount,
+    lowCount: value.lowCount,
+    totalPenalty: value.totalPenalty,
+    summary: value.summary,
+    conflicts: value.conflicts.map((conflict) => ({
+      id: conflict.id,
+      severity: conflict.severity,
+      description: conflict.description,
+      sources: conflict.sources,
+      penalty: conflict.penalty,
+      active: conflict.active,
+      resolution: conflict.resolution,
+    })),
+  };
 }
 
 function joinIdentityName(firstName?: string, lastName?: string): string | undefined {
@@ -1723,6 +1767,31 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       trustState = await getCachedTrustState(npi);
     } catch { /* trust state may not exist yet — degrade gracefully */ }
   }
+  let divergence: PassportDivergence | undefined = mapPassportDivergence(trustState?.divergence);
+  if (!divergence && npi) {
+    try {
+      const report = await detectDivergence(npi);
+      divergence = {
+        activeCount: report.conflicts.filter((conflict) => conflict.active).length,
+        highCount: report.conflicts.filter((conflict) => conflict.active && conflict.severity === 'HIGH').length,
+        mediumCount: report.conflicts.filter((conflict) => conflict.active && conflict.severity === 'MEDIUM').length,
+        lowCount: report.conflicts.filter((conflict) => conflict.active && conflict.severity === 'LOW').length,
+        totalPenalty: report.totalPenalty,
+        summary: report.summary,
+        conflicts: report.conflicts.map((conflict) => ({
+          id: conflict.id,
+          severity: conflict.severity,
+          description: conflict.description,
+          sources: conflict.sources,
+          penalty: conflict.penalty,
+          active: conflict.active,
+          resolution: conflict.resolution,
+        })),
+      };
+    } catch {
+      divergence = undefined;
+    }
+  }
 
   // ── Authority ─────────────────────────────────────────────────────────────
   const credList: PassportCredential[] = usableCredentials.map(c => {
@@ -2105,6 +2174,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     ...eligibilityBlockers,
     ...blockingFindings,
     ...evidenceGaps,
+    ...(divergence?.highCount ? ['Cross-source divergence requires resolution'] : []),
   ];
   if (usableCredentials.some((credential) => {
     const normalized = normalizeCredentialStatus(credential.status);
@@ -2117,6 +2187,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     ...(trustState?.gap_summary ?? []),
     ...reviewAndAvailabilityFindings,
     ...eligibilityGaps,
+    ...(divergence
+      ? divergence.conflicts
+        .filter((conflict) => conflict.active)
+        .map((conflict) => `Divergence: ${conflict.description}`)
+      : []),
     ...missingBlocking.map((domain) => `Missing: ${domain}`),
     ...Object.values(truth)
       .filter((entry) => entry.status === 'NOT_DECISION_GRADE')
@@ -2141,9 +2216,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const baseScore = checkedCount * 25;
   const readinessScore = (() => {
     // Blockers cap score at 20 max; gaps cap at 75 max.
-    if (normalizedBlockers.length > 0) return Math.min(baseScore, 20);
-    if (normalizedGaps.length > 0) return Math.min(baseScore, 75);
-    return baseScore;
+    const cappedScore =
+      normalizedBlockers.length > 0 ? Math.min(baseScore, 20)
+      : normalizedGaps.length > 0 ? Math.min(baseScore, 75)
+      : baseScore;
+    return Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
   })();
   // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
   // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.
@@ -2244,6 +2321,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     trustPosture,
     decisionPosture,
     lastCheckedAt,
+    divergence,
   };
 }
 

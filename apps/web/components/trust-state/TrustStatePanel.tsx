@@ -50,6 +50,23 @@ interface ClinicianTrustState {
   credentialCount: number;
   trustBand: TrustBand;
   trustScore: number;
+  divergence?: {
+    activeCount: number;
+    highCount: number;
+    mediumCount: number;
+    lowCount: number;
+    totalPenalty: number;
+    summary: string;
+    conflicts: Array<{
+      id: string;
+      severity: 'HIGH' | 'MEDIUM' | 'LOW';
+      description: string;
+      sources: string[];
+      penalty: number;
+      active: boolean;
+      resolution: 'OPEN' | 'RESOLVED';
+    }>;
+  };
   facts: CanonicalFactSummary[];
   gaps: string[];
   computedAt: string;
@@ -252,6 +269,31 @@ export function TrustStatePanel({ npi, readOnly = false, className = '' }: Trust
           />
         </div>
       </div>
+
+      {state.divergence?.activeCount ? (
+        <div className="mx-4 mb-2 rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-amber-100">Action needed</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-amber-50/80">
+                {state.divergence.highCount > 0
+                  ? 'Cross-source divergence is holding this profile in review-required territory.'
+                  : 'Cross-source divergence is reducing the current readiness score.'}
+              </p>
+            </div>
+            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-100">
+              -{state.divergence.totalPenalty}
+            </span>
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {state.divergence.conflicts.filter((conflict) => conflict.active).slice(0, 2).map((conflict) => (
+              <p key={conflict.id} className="text-[11px] leading-relaxed text-zinc-200/80">
+                <span className="font-semibold text-amber-100">{conflict.severity}</span> {conflict.description}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Evidence checklist */}
       <div className="px-4 py-2 space-y-1.5 border-t border-zinc-800/40">

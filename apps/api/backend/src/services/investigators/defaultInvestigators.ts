@@ -635,7 +635,7 @@ async function buildDivergenceFindings(
 
     const severity = report.hasBlocking || (institutionMismatch?.names.length ?? 0) >= 3
       ? 'critical'
-      : report.conflicts.some((conflict) => conflict.severity === 'MODERATE') || staleSignals.length > 0
+      : report.conflicts.some((conflict) => conflict.active && conflict.severity === 'MEDIUM') || staleSignals.length > 0
         ? 'high'
         : 'medium';
 

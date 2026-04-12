@@ -69,7 +69,7 @@ export interface DimensionScore {
 }
 
 export interface ContradictionRecord {
-  severity:    'CRITICAL' | 'MODERATE' | 'MINOR';
+  severity:    'HIGH' | 'MEDIUM' | 'LOW';
   dimension:   DimensionKey;
   description: string;
   penalty:     number;           // Points deducted from total
@@ -112,7 +112,7 @@ export interface TrustScoreV1 {
 
 // ── Band thresholds ────────────────────────────────────────────────────────────
 //
-// L3 requires: ≥80 pts, exclusion=CLEAR, no CRITICAL contradictions
+// L3 requires: ≥80 pts, exclusion=CLEAR, no HIGH contradictions
 // L2 requires: ≥60 pts, exclusion != EXCLUDED
 // L1 requires: ≥40 pts
 // L0: anything else
@@ -120,12 +120,12 @@ export interface TrustScoreV1 {
 function deriveBandFromScore(
   score: number,
   exclusionStatus: DimensionStatus,
-  hasCriticalContradiction: boolean,
+  hasBlockingContradiction: boolean,
 ): { band: TrustBand; label: string } {
   if (exclusionStatus === 'EXCLUDED') {
     return { band: 'L0', label: 'EXCLUDED' };
   }
-  if (hasCriticalContradiction) {
+  if (hasBlockingContradiction) {
     return { band: 'L1', label: 'REVIEW_REQUIRED' };
   }
   if (score >= 80 && exclusionStatus === 'CLEAR') {
@@ -556,15 +556,16 @@ function scoreAcademic(artifacts: ArtifactSummary[]): DimensionScore {
 // ── Contradiction penalty scorer ───────────────────────────────────────────────
 
 function scoreContradictions(divergenceReport: DivergenceReport): ContradictionRecord[] {
-  return divergenceReport.conflicts.map(conflict => ({
+  return divergenceReport.conflicts
+    .filter((conflict) => conflict.active)
+    .map(conflict => ({
     severity:    conflict.severity,
     dimension:   conflict.dimension as DimensionKey,
     description: conflict.description,
-    penalty:     conflict.severity === 'CRITICAL' ? 15
-               : conflict.severity === 'MODERATE' ? 7
-               : 3,
+    penalty:     conflict.penalty,
     sources:     conflict.sources,
     claimType:   conflict.claimType,
+    resolvedAt:  conflict.resolvedAt,
   }));
 }
 
@@ -651,8 +652,8 @@ export async function computeTrustScoreV1(npi: string): Promise<TrustScoreV1> {
   );
 
   // Derive band
-  const hasCritical = contradictions.some(c => c.severity === 'CRITICAL');
-  const { band, label: bandLabel } = deriveBandFromScore(score, exclusion.status, hasCritical);
+  const hasBlockingContradiction = contradictions.some(c => c.severity === 'HIGH');
+  const { band, label: bandLabel } = deriveBandFromScore(score, exclusion.status, hasBlockingContradiction);
 
   // Aggregate gaps (prioritized)
   const gaps = [
@@ -667,7 +668,7 @@ export async function computeTrustScoreV1(npi: string): Promise<TrustScoreV1> {
 
   // Trust limits (score caps)
   const trustLimits: string[] = [];
-  if (hasCritical) trustLimits.push('Score band capped at L1: critical contradiction detected');
+  if (hasBlockingContradiction) trustLimits.push('Score band capped at L1: high-severity divergence detected');
   if (exclusion.status === 'UNKNOWN') trustLimits.push('Exclusion UNKNOWN: band capped at L1');
   if (exclusion.status === 'STALE') trustLimits.push('Exclusion data stale: re-check required');
   if (licensure.status === 'STALE') trustLimits.push('License data stale: may not reflect current status');

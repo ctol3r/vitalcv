@@ -42,6 +42,7 @@ import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCar
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
   resolveAuthorityMethodLabel,
@@ -755,6 +756,12 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         <SectionReveal delay={0.15}>
           <PassportSourceCoveragePanel checks={sourceCoverageChecks} />
         </SectionReveal>
+
+        {passport.divergence?.activeCount ? (
+          <SectionReveal delay={0.18}>
+            <DivergenceSummaryCard divergence={passport.divergence} mode="passport" />
+          </SectionReveal>
+        ) : null}
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <SectionReveal delay={0.2}>

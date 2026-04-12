@@ -340,9 +340,9 @@ export async function investigateProvider(npi: string): Promise<InvestigationRep
   }
 
   if (profile.divergence.conflicts.length > 0) {
-    const critical = profile.divergence.conflicts.filter(c => c.severity === 'CRITICAL');
-    if (critical.length > 0) {
-      recommendations.push(`${critical.length} CRITICAL conflict(s) detected. Immediate review required.`);
+    const blocking = profile.divergence.conflicts.filter(c => c.active && c.severity === 'HIGH');
+    if (blocking.length > 0) {
+      recommendations.push(`${blocking.length} HIGH conflict(s) detected. Immediate review required.`);
     }
   }
 

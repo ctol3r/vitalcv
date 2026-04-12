@@ -4,6 +4,7 @@ import prisma from '../../graphql/prisma_client';
 import { sha256Hex } from '../../utils/deterministic';
 import { PrismaCredentialIngestionRepository } from '../../../repositories/credentialIngestion.repo';
 import { BackendCanonicalCredentialFactStore } from '../psvInterop/canonicalFactStore';
+import { getActiveDivergencePenalty } from '../identity/divergenceEngine';
 import type {
   ActiveCredentialArtifactRecord,
   ActiveVerificationArtifactRecord,
@@ -391,6 +392,11 @@ export async function buildPASObject(npi: string): Promise<PASObject> {
           select: { id: true },
         });
         return row !== null;
+      },
+    },
+    divergence: {
+      async getForClinician(clinician_id: string): Promise<{ penalty: number; hasBlocking: boolean }> {
+        return getActiveDivergencePenalty(clinician_id);
       },
     },
   });

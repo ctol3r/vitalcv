@@ -16,7 +16,7 @@
       "@vitalcv/domain/*": ["packages/domain/*"],
       "@vitalcv/domain-core": ["packages/domain-core/index.ts"],
       "@vitalcv/domain-events": ["packages/domain-events/index.ts"],
-      "@vitalcv/domain-common": ["packages/domain-common/src"],
+      "@vitalcv/domain-common": ["packages/domain-common/index.ts"],
       "@vitalcv/ingest": ["packages/ingest/index.ts"],
       "@vitalcv/psv": ["packages/psv"],
       "@vitalcv/psv/*": ["packages/psv/*"],
