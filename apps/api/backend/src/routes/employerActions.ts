@@ -30,6 +30,9 @@ import {
   captureEmployerDecision,
   captureStartOutcome,
 } from '../services/seal/sealEventCapture';
+import { emitLearningEvent } from '../services/feedback/prismaEventStore';
+import { captureDecisionSignal } from '../services/feedback/decisionSignalService';
+import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
@@ -225,6 +228,27 @@ export function registerEmployerActionRoutes(app: Express): void {
         }),
       });
 
+      // Learning: capture accept decision signal + trigger boost recomputation
+      void captureDecisionSignal({
+        entityId,
+        employerId,
+        decision: 'accept',
+        trustSnapshot: snap ? {
+          readinessStatus: snap.readinessStatus,
+          readinessScore: snap.readinessScore,
+          trustBand: snap.trustBand,
+          trustScore: snap.trustScore,
+          blockerCount: snap.blockerCount,
+          topBlockers: snap.topBlockers,
+          exclusionStatus: snap.exclusionStatus,
+          verifiedCredentialCount: snap.verifiedCredentialCount,
+          staleCredentialCount: snap.staleCredentialCount,
+          snapshotHash: snap.snapshotHash,
+        } : null,
+        bundleId: state.attribution.bundleId,
+      });
+      void recomputeMatchBoosts().catch(() => {});
+
       return void res.status(201).json({ ok: true, state });
     }),
   );
@@ -309,6 +333,26 @@ export function registerEmployerActionRoutes(app: Express): void {
         }),
       });
 
+      // Learning: capture request-info decision signal
+      void captureDecisionSignal({
+        entityId,
+        employerId,
+        decision: 'request_info',
+        trustSnapshot: snap ? {
+          readinessStatus: snap.readinessStatus,
+          readinessScore: snap.readinessScore,
+          trustBand: snap.trustBand,
+          trustScore: snap.trustScore,
+          blockerCount: snap.blockerCount,
+          topBlockers: snap.topBlockers,
+          exclusionStatus: snap.exclusionStatus,
+          verifiedCredentialCount: snap.verifiedCredentialCount,
+          staleCredentialCount: snap.staleCredentialCount,
+          snapshotHash: snap.snapshotHash,
+        } : null,
+        bundleId: state.attribution.bundleId,
+      });
+
       return void res.status(201).json({ ok: true, state });
     }),
   );
@@ -390,6 +434,27 @@ export function registerEmployerActionRoutes(app: Express): void {
         }),
       });
 
+      // Learning: capture reject decision signal + trigger boost recomputation
+      void captureDecisionSignal({
+        entityId,
+        employerId,
+        decision: 'reject',
+        trustSnapshot: state.trustSnapshot ? {
+          readinessStatus: state.trustSnapshot.readinessStatus,
+          readinessScore: state.trustSnapshot.readinessScore,
+          trustBand: state.trustSnapshot.trustBand,
+          trustScore: state.trustSnapshot.trustScore,
+          blockerCount: state.trustSnapshot.blockerCount,
+          topBlockers: state.trustSnapshot.topBlockers,
+          exclusionStatus: state.trustSnapshot.exclusionStatus,
+          verifiedCredentialCount: state.trustSnapshot.verifiedCredentialCount,
+          staleCredentialCount: state.trustSnapshot.staleCredentialCount,
+          snapshotHash: state.trustSnapshot.snapshotHash,
+        } : null,
+        bundleId: state.attribution.bundleId,
+      });
+      void recomputeMatchBoosts().catch(() => {});
+
       return void res.status(201).json({ ok: true, state });
     }),
   );
@@ -415,6 +480,15 @@ export function registerEmployerActionRoutes(app: Express): void {
         bundleId: typeof req.query.bundleId === 'string'
           ? req.query.bundleId
           : undefined,
+      });
+
+      // Learning: track employer viewed event (fire-and-forget)
+      emitLearningEvent({
+        type: 'EMPLOYER_VIEWED',
+        providerId: entityId,
+        employerId,
+        metadata: {},
+        payload: {},
       });
 
       return void res.status(200).json({ ok: true, state });

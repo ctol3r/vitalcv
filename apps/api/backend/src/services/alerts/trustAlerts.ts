@@ -23,7 +23,12 @@ export type TrustAlertType =
   | 'identity_delta'
   | 'source_stale'
   | 'claim_delta'
-  | 'watchtower_delta';
+  | 'watchtower_delta'
+  // Wave 245: Continuous monitoring alert types
+  | 'license_expired'
+  | 'sanction_detected'
+  | 'enrollment_lapsed'
+  | 'score_degraded';
 
 export type TrustAlertSeverity =
   | 'INFO'
@@ -223,4 +228,55 @@ export function getAlert(alertId: string): TrustAlert | null {
 /** Total unacknowledged count. */
 export function unacknowledgedCount(): number {
   return Array.from(alertCache.values()).filter((alert) => !alert.acknowledged).length;
+}
+
+// ── Wave 245: Monitoring alert helpers ────────────────────────────────
+
+export type MonitoringAlertKind =
+  | 'LICENSE_EXPIRED'
+  | 'SANCTION_DETECTED'
+  | 'ENROLLMENT_LAPSED'
+  | 'SCORE_DEGRADED';
+
+const MONITORING_ALERT_MAP: Record<MonitoringAlertKind, {
+  type: TrustAlertType;
+  severity: TrustAlertSeverity;
+}> = {
+  LICENSE_EXPIRED:    { type: 'license_expired',    severity: 'HIGH' },
+  SANCTION_DETECTED:  { type: 'sanction_detected',  severity: 'CRITICAL' },
+  ENROLLMENT_LAPSED:  { type: 'enrollment_lapsed',  severity: 'WARNING' },
+  SCORE_DEGRADED:     { type: 'score_degraded',     severity: 'WARNING' },
+};
+
+/**
+ * Emit a monitoring alert and dispatch notification via the notification provider.
+ * Every monitoring alert writes an AuditEvent before returning.
+ */
+export async function emitMonitoringAlert(input: {
+  kind: MonitoringAlertKind;
+  npi: string;
+  title: string;
+  description: string;
+  credentialId?: string;
+  recommendedAction: string;
+}): Promise<TrustAlert> {
+  const config = MONITORING_ALERT_MAP[input.kind];
+  const alert = await emitAlert({
+    type: config.type,
+    severity: config.severity,
+    title: input.title,
+    description: input.description,
+    credentialId: input.credentialId,
+    subject: input.npi,
+    recommendedAction: input.recommendedAction,
+  });
+
+  log('warn', 'monitoring_alert_dispatched', {
+    alertId: alert.alertId,
+    kind: input.kind,
+    npi: `${input.npi.slice(0, 4)}****`,
+    severity: config.severity,
+  });
+
+  return alert;
 }

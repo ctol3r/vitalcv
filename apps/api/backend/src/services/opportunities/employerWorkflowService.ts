@@ -545,7 +545,7 @@ export async function runEmployerWorkflowAction(input: {
     await closeOpenMissingRequests({
       tx: workflowTx,
       application,
-      action: input.action,
+      action: input.action as any,
       now,
     });
   });

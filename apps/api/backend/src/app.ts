@@ -200,6 +200,8 @@ import { registerInvestigatorRoutes } from './routes/investigators';            
 import { registerInvestigatorApiRoutes } from './routes/investigatorApi';              // FE16-A: Autonomous investigator engine API
 import { startInvestigatorScheduler } from './services/investigators/investigatorScheduler';
 import { registerAgentRoutes } from './routes/agents';                                 // FE21-A: Autonomous strategy agents API
+import { registerLearningTrackRoutes } from './routes/learningTrack';                  // Learning: frontend event tracking
+import { registerLearningAnalyticsRoutes } from './routes/learningAnalytics';          // Learning: analytics + feedback loop
 import { startStrategyAgentScheduler } from './services/strategyAgents/strategyAgentScheduler';
 import {
     createArtifactFromNursys,
@@ -3635,6 +3637,8 @@ registerFederationDiscoveryRoutes(app); // Wave 166 — Federation Discovery
 registerPassportAnalyticsRoutes(app);   // Wave 167 — Passport Analytics
 registerWalletExportRoutes(app);       // Wave 154 — Wallet Interoperability Bridge
 registerComplianceCopilotRoutes(app);  // Wave 157 — Compliance Co-Pilot
+registerLearningTrackRoutes(app);      // Learning: frontend event tracking
+registerLearningAnalyticsRoutes(app);  // Learning: analytics + feedback loop
 
 if (BACKGROUND_JOBS_ENABLED) {
   // Avoid open handles and unrelated database chatter during Jest runs.

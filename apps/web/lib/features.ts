@@ -93,6 +93,11 @@ export const FEATURES = {
 
   /** Wave 214: Contract registry — INTERNAL */
   CONTRACT_REGISTRY:     flag('NEXT_PUBLIC_FEATURE_CONTRACT_REGISTRY',     false),
+
+  // ── WAVE 3: CONTINUOUS MONITORING (Wave 245) ─────────────────────────────────
+
+  /** Wave 245: Continuous credential monitoring — PILOT */
+  CONTINUOUS_MONITORING: flag('NEXT_PUBLIC_FEATURE_CONTINUOUS_MONITORING', false),
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;
@@ -124,4 +129,6 @@ export const ROLLOUT_TIERS: Record<FeatureKey, 'INTERNAL' | 'PILOT' | 'PUBLIC'> 
   DRAWER_SYSTEM:         'INTERNAL',
   MISSION_OPS_V2:        'INTERNAL',
   CONTRACT_REGISTRY:     'INTERNAL',
+  // Wave 3
+  CONTINUOUS_MONITORING: 'PILOT',
 };

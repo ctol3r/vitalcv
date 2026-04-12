@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import { isValidNpi } from '../domain/entity/npiRouter';
+import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { log } from '../obs/logger';
 import type { PersistedIngestEvent } from '../services/ingest/contracts';
 import { getIngestRun, startIngestRun } from '../services/ingest/ingestOrchestrator';
@@ -33,6 +34,9 @@ export function registerIngestStreamRoutes(app: Express): void {
 
     try {
       const run = await startIngestRun(npi);
+
+      // Learning: track NPI check event (fire-and-forget)
+      emitLearningEvent({ type: 'NPI_CHECKED', providerId: npi, metadata: {}, payload: {} });
 
       log('info', 'ingest_run_started', { runId: run.id, npi, status: run.status });
       res.status(202).json({

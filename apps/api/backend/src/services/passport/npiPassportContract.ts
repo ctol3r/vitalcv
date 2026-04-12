@@ -31,6 +31,8 @@ import {
   type LoadedPassportData,
   type PassportCredential as LegacyPassportCredential,
 } from '../../routes/passport';
+import prisma from '../../graphql/prisma_client';
+import { unacknowledgedCount } from '../alerts/trustAlerts';
 
 type PassportCredentialSummary = {
   id: string;
@@ -530,6 +532,75 @@ function lastCheckedAt(report: CanonicalSourceCoverageReport, computedAt: string
   );
 }
 
+// ── Wave 245: Monitoring status builder ──────────────────────────────────────
+
+type MonitoringStatus = {
+  active: boolean;
+  lastCheckAt: string | null;
+  monitoredSources: Array<{
+    sourceId: string;
+    sourceLabel: string;
+    lastCheckAt: string | null;
+    status: 'active' | 'paused' | 'error';
+  }>;
+  activeAlertCount: number;
+};
+
+async function buildMonitoringStatus(npi: string): Promise<MonitoringStatus> {
+  const monitoredArtifacts = await prisma.verificationArtifact.findMany({
+    where: { npi, monitoring: true },
+    select: {
+      source: true,
+      statusLastChecked: true,
+      lifecycleState: true,
+    },
+    orderBy: { statusLastChecked: 'desc' },
+  });
+
+  if (monitoredArtifacts.length === 0) {
+    return { active: false, lastCheckAt: null, monitoredSources: [], activeAlertCount: 0 };
+  }
+
+  const sourceMap = new Map<string, { lastCheck: Date | null; state: string }>();
+  let latestCheck: Date | null = null;
+
+  for (const artifact of monitoredArtifacts) {
+    if (!sourceMap.has(artifact.source)) {
+      sourceMap.set(artifact.source, {
+        lastCheck: artifact.statusLastChecked,
+        state: artifact.lifecycleState ?? 'active',
+      });
+    }
+    if (artifact.statusLastChecked) {
+      if (!latestCheck || artifact.statusLastChecked > latestCheck) {
+        latestCheck = artifact.statusLastChecked;
+      }
+    }
+  }
+
+  const SOURCE_LABELS: Record<string, string> = {
+    'nursys-enotify': 'Nursys e-Notify',
+    NURSYS: 'Nursys',
+    STATE_BOARD: 'State Board',
+    OIG_LEIE: 'OIG/LEIE',
+    NPPES: 'CMS NPPES',
+  };
+
+  const monitoredSources = Array.from(sourceMap.entries()).map(([sourceId, data]) => ({
+    sourceId,
+    sourceLabel: SOURCE_LABELS[sourceId] ?? sourceId,
+    lastCheckAt: data.lastCheck?.toISOString() ?? null,
+    status: (data.state === 'error' ? 'error' : 'active') as 'active' | 'paused' | 'error',
+  }));
+
+  return {
+    active: true,
+    lastCheckAt: latestCheck?.toISOString() ?? null,
+    monitoredSources,
+    activeAlertCount: unacknowledgedCount(),
+  };
+}
+
 export async function buildPassportDataByNpi(
   npi: string,
 ): Promise<PassportDataContract | null> {
@@ -590,6 +661,9 @@ export async function buildPassportDataByNpi(
     trustPosture,
   });
 
+  // Wave 245: Build monitoring status
+  const monitoring = await buildMonitoringStatus(npi);
+
   return {
     entityId,
     npi,
@@ -605,5 +679,6 @@ export async function buildPassportDataByNpi(
     trustPosture,
     decisionPosture,
     lastCheckedAt: computedLastCheckedAt,
+    monitoring,
   };
 }

@@ -211,6 +211,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       cacheAge: result.cacheAge,
       sourceLatency: result.sourceLatency,
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: result.checkedAt,
+      provenance: OIG_LEIE_PROVENANCE,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -230,6 +232,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
         cacheAge: 'unavailable',
         sourceLatency: 'MONTHLY',
         dataFreshness: 'MONTHLY',
+        lastVerifiedAt: new Date().toISOString(),
+        provenance: 'API',
       };
     }
 
@@ -246,6 +250,8 @@ async function liveOigCheck(params: ExclusionCheckParams): Promise<ExclusionResu
       cacheAge: 'unavailable',
       sourceLatency: 'MONTHLY',
       dataFreshness: 'MONTHLY',
+      lastVerifiedAt: new Date().toISOString(),
+      provenance: 'API',
     };
   }
 }

@@ -37,6 +37,7 @@ import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import type { PassportData, ReadinessStatus } from '@/lib/trust/passport-contract';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
+import { useTrackEvent } from '@/lib/learning/useTrackEvent';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { SharePacketModal } from '@/components/passport/SharePacketModal';
@@ -525,11 +526,16 @@ function PassportWalletLoadingShell() {
 }
 
 function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
+  const trackEvent = useTrackEvent();
+
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).posthog) {
       (window as any).posthog.capture('Passport_Viewed', { npi: passport.npi });
     }
-  }, [passport.npi]);
+    if (passport.npi) {
+      trackEvent('PROFILE_VIEWED', { providerId: passport.npi });
+    }
+  }, [passport.npi, trackEvent]);
 
   const [sharing, setSharing] = useState(false);
   const [shared,  setShared]  = useState(false);
@@ -685,6 +691,51 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         <SectionReveal delay={0}>
           <PassportTrustPosture posture={trustPosture} />
         </SectionReveal>
+
+        {/* ── Wave 245: Continuous Monitoring Status ─────────────────────── */}
+        {passport.monitoring?.active && (
+          <SectionReveal delay={0.02}>
+            <div className="border border-[var(--vt-border)] bg-card px-5 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">
+                    Continuously Monitored
+                  </p>
+                </div>
+                {passport.monitoring.activeAlertCount > 0 && (
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                    {passport.monitoring.activeAlertCount} alert{passport.monitoring.activeAlertCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              {passport.monitoring.lastCheckAt && (
+                <p className="mt-1 text-[10px] text-muted-foreground/40 font-mono">
+                  Last check: {formatProofDate(passport.monitoring.lastCheckAt)}
+                </p>
+              )}
+              {passport.monitoring.monitoredSources.length > 0 && (
+                <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
+                  {passport.monitoring.monitoredSources.map((source) => (
+                    <div key={source.sourceId} className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground/60 font-mono">{source.sourceLabel}</span>
+                      <div className="flex items-center gap-1.5">
+                        {source.lastCheckAt && (
+                          <span className="text-muted-foreground/30">{formatProofDate(source.lastCheckAt)}</span>
+                        )}
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          source.status === 'active' ? 'bg-emerald-500' :
+                          source.status === 'paused' ? 'bg-amber-500' :
+                          'bg-red-500'
+                        }`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SectionReveal>
+        )}
 
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (

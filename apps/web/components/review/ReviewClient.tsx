@@ -21,6 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useTrackEvent } from '@/lib/learning/useTrackEvent';
 import Link from 'next/link';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
@@ -900,6 +901,7 @@ function ReviewClientLoaded({
   const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
   const mountedRef = useRef(true);
   const actionInFlightRef = useRef(false);
+  const trackEvent = useTrackEvent();
   const reviewOpenedTrackedRef = useRef(false);
 
   const { identity, readiness, standing, authority } = passport;
@@ -973,8 +975,9 @@ function ReviewClientLoaded({
       },
     });
 
+    trackEvent('EMPLOYER_VIEWED', { providerId: passport.entityId });
     reviewOpenedTrackedRef.current = true;
-  }, [authState, blocked.length, bundleId, canPersistActions, contextId, isLoaded, sharedBy]);
+  }, [authState, blocked.length, bundleId, canPersistActions, contextId, isLoaded, sharedBy, trackEvent, passport.entityId]);
 
   useEffect(() => {
     if (!canPersistActions) {

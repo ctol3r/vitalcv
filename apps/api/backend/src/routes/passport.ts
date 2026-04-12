@@ -18,6 +18,7 @@ import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { proofRateLimit } from '../middleware/rateLimitFactory';
 import { log } from '../obs/logger';
+import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { generateShareLink } from '../services/passport/shareLink';
 import { buildPassportByNpi } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
@@ -1023,6 +1024,9 @@ export function registerPassportRoutes(app: Express): void {
 
       const passport = buildPassportForMode(data.passport, mode);
 
+      // Learning: track profile viewed event (fire-and-forget)
+      emitLearningEvent({ type: 'PROFILE_VIEWED', timestamp: new Date(), providerId: npi, metadata: { mode }, payload: {} });
+
       res.setHeader('X-Passport-Mode', mode);
       res.setHeader('X-Passport-Version', '2.0');
       res.json(passport);
@@ -1199,8 +1203,8 @@ export function registerPassportRoutes(app: Express): void {
         exportedAt: packet.exportedAt,
         manifestHash: sha256ForPayload(packet.manifest),
         sourceIds: packet.manifest.sources.map((s) => s.sourceId),
-        receiptPresence: packet.receiptPresence,
-        blockerCount: packet.structuredBlockers.length,
+        receiptReferences: packet.receiptReferences,
+        blockerCount: (packet as any).structuredBlockers?.length || 0,
       }));
 
       await prisma.auditEvent.create({
@@ -1222,7 +1226,7 @@ export function registerPassportRoutes(app: Express): void {
         exportedAt: packet.exportedAt,
         score: packet.readiness.score,
         blockers: packet.readiness.blockers.length,
-        receiptPresence: packet.receiptPresence,
+        receiptReferences: packet.receiptReferences,
       });
 
       const filename = `vitalcv-passport-${npi}-${new Date().toISOString().slice(0, 10)}.json`;

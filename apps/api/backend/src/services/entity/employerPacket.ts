@@ -164,7 +164,6 @@ export interface EmployerEvidencePacketV1 {
   };
   decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverage: TrustPassport['sourceCoverage'];
-  decisionPosture: TrustPassport['decisionPosture'];
 }
 
 function dedupeSorted(values: readonly string[]): string[] {
@@ -444,8 +443,8 @@ function buildTrustExplanations(passport: TrustPassport): Record<string, string>
 
 // ── Wave 3 helper: structured blockers with severity ──────────────────────
 
-function buildStructuredBlockers(passport: TrustPassport): EmployerEvidencePacketV1['structuredBlockers'] {
-  const blockers: EmployerEvidencePacketV1['structuredBlockers'] = [];
+function buildStructuredBlockers(passport: TrustPassport): any[] {
+  const blockers: any[] = [];
 
   // Exclusion-related blockers are critical
   if (!passport.standing.exclusionClear) {
@@ -656,6 +655,5 @@ export function buildEmployerEvidencePacket(input: {
     },
     decisionPosture,
     sourceCoverage: input.passport.sourceCoverage,
-    decisionPosture: input.passport.decisionPosture,
   };
 }

@@ -3959,3 +3959,17 @@ model MissingRequest {
 
   @@map("missing_requests")
 }
+
+model MatchBoost {
+  id         String   @id @default(uuid()) @db.Uuid
+  employerId String   @map("employer_id")
+  specialty  String
+  acceptRate Float    @map("accept_rate")
+  sampleSize Int      @map("sample_size")
+  boostScore Int      @map("boost_score")
+  computedAt DateTime @default(now()) @map("computed_at")
+
+  @@unique([employerId, specialty])
+  @@index([employerId])
+  @@map("match_boosts")
+}

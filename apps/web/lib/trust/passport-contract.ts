@@ -189,6 +189,27 @@ export interface PassportData {
   trustPosture: PassportTrustPosture;
   decisionPosture?: DecisionPosture;
   lastCheckedAt: string;
+  /** Wave 245: Continuous monitoring status */
+  monitoring?: PassportMonitoringStatus;
+}
+
+/** Wave 245: Monitoring status for passport UI */
+export interface PassportMonitoringStatus {
+  /** Whether continuous monitoring is active for this entity */
+  active: boolean;
+  /** ISO-8601 timestamp of the last monitoring check */
+  lastCheckAt: string | null;
+  /** Sources being actively monitored */
+  monitoredSources: PassportMonitoredSource[];
+  /** Count of active monitoring alerts */
+  activeAlertCount: number;
+}
+
+export interface PassportMonitoredSource {
+  sourceId: string;
+  sourceLabel: string;
+  lastCheckAt: string | null;
+  status: 'active' | 'paused' | 'error';
 }
 
 export type PassportAuthorityCredential = PassportData['authority']['credentials'][number];

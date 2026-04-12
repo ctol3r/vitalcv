@@ -16,6 +16,7 @@ import prisma from '../../graphql/prisma_client';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload } from '../entity/employerReviewPayload';
 import { log } from '../../obs/logger';
+import { emitLearningEvent } from '../feedback/prismaEventStore';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,14 @@ export async function generateApplyBundle(
     requestFields: { npi, selectiveClaims: options?.selectiveClaims },
     resultFields: { bundleId, credentialCount: allCredentials.length, expiresAt },
     severity: 'INFO',
+  });
+
+  // Learning: track snapshot creation (fire-and-forget)
+  emitLearningEvent({
+    type: 'SNAPSHOT_CREATED',
+    providerId: npi,
+    metadata: { bundleId, credentialCount: allCredentials.length, monitoringStatus },
+    payload: {},
   });
 
   log('info', 'apply_bundle_generated', { npi, bundleId, credentialCount: allCredentials.length });

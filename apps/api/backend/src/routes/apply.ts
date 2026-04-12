@@ -21,6 +21,7 @@ import {
 } from '../services/distribution/applyShareService';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
+import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -126,6 +127,16 @@ export function registerApplyRoutes(app: Express): void {
       }
 
       const result = await shareBundle(npi, clerkUserId, orgCtx, { selectiveClaims });
+
+      // Learning: track application submitted (fire-and-forget)
+      emitLearningEvent({
+        type: 'APPLICATION_SUBMITTED',
+        providerId: npi,
+        employerId: orgCtx.organization_id,
+        metadata: { shareId: result.shareId, bundleId: result.bundleId },
+        payload: {},
+      });
+
       res.status(201).json(result);
     }),
   );

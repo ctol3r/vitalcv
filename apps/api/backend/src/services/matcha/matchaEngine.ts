@@ -12,6 +12,7 @@
  *   5. Intent fit                 — 20 pts
  *   6. Employer preference fit    — 15 pts
  *   7. Prequalification bonus     — 10 pts
+ *   8. Historical outcome boost   — ±8 pts (from employer accept/reject patterns)
  */
 
 import { randomUUID } from 'crypto';
@@ -52,6 +53,7 @@ export function scoreOpportunity(
   clinician: ClinicianProfile,
   intent: CandidateIntent | null,
   opp: Opportunity,
+  options?: { historicalBoostScore?: number },
 ): MatchExplanation {
   const fitReasons: FitReason[] = [];
   const blockers: MatchBlocker[] = [];
@@ -231,8 +233,24 @@ export function scoreOpportunity(
   }
   score += prequalBonus;
 
-  // Cap at 100
-  score = Math.min(100, score);
+  // ── 8. Historical outcome boost (±8 pts) ──────────────────────────────────
+  // Baked into score from cached employer accept/reject patterns.
+  // Never overrides hard credential gating — only adjusts soft ranking.
+
+  const historicalBoost = options?.historicalBoostScore ?? 0;
+  if (historicalBoost !== 0) {
+    score += historicalBoost;
+    fitReasons.push({
+      dimension: 'historical',
+      label: historicalBoost > 0
+        ? `Employer has high accept rate for similar profiles (+${historicalBoost})`
+        : `Employer has low accept rate for similar profiles (${historicalBoost})`,
+      positive: historicalBoost > 0,
+    });
+  }
+
+  // Cap at 100, floor at 0
+  score = Math.max(0, Math.min(100, score));
   const band = scoreToBand(score, false);
 
   // Instant offer: CLEAR band + prequalified + no soft blockers
@@ -257,12 +275,15 @@ export function matchOpportunities(
   clinician: ClinicianProfile,
   intent: CandidateIntent | null,
   opportunities: Opportunity[],
+  boostMap?: Map<string, number>,
 ): OpportunityMatch[] {
   return opportunities
     .filter(o => o.active)
     .map(opp => ({
       opportunity: opp,
-      explanation: scoreOpportunity(clinician, intent, opp),
+      explanation: scoreOpportunity(clinician, intent, opp, {
+        historicalBoostScore: boostMap?.get(opp.id) ?? 0,
+      }),
     }))
     .sort((a, b) => b.explanation.matchScore - a.explanation.matchScore);
 }

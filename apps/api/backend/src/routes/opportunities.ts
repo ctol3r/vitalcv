@@ -22,6 +22,7 @@ import {
   upsertOrgProfile,
 } from '../services/opportunities/opportunityService';
 import { HttpError } from '../utils/httpError';
+import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import prisma from '../graphql/prisma_client';
 import { sha256ForPayload } from '../utils/deterministic';
 import type { EmployerRequirementSpec } from '../services/employers/employerCatalog';
@@ -228,6 +229,12 @@ export function registerOpportunityRoutes(app: Express): void {
       });
       if (!opportunity) {
         throw new HttpError(404, 'Opportunity not found.');
+      }
+
+      // Learning: track job viewed event (fire-and-forget)
+      const viewerNpi = typeof req.query.npi === 'string' ? req.query.npi : undefined;
+      if (viewerNpi) {
+        emitLearningEvent({ type: 'JOB_VIEWED', providerId: viewerNpi, jobId: opportunityId, payload: {}, metadata: {} });
       }
 
       res.json({ opportunity });

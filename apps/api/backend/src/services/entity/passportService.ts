@@ -266,6 +266,19 @@ export interface DecisionPosture {
   nextAction: string;
 }
 
+/** Wave 245: Monitoring status for passport UI */
+export interface PassportMonitoringStatus {
+  active: boolean;
+  lastCheckAt: string | null;
+  monitoredSources: Array<{
+    sourceId: string;
+    sourceLabel: string;
+    lastCheckAt: string | null;
+    status: 'active' | 'paused' | 'error';
+  }>;
+  activeAlertCount: number;
+}
+
 export interface TrustPassport {
   entityId:       string;
   npi?:           string;
@@ -280,6 +293,8 @@ export interface TrustPassport {
   trustPosture:   PassportTrustPosture;
   decisionPosture: DecisionPosture;
   lastCheckedAt:  string;
+  /** Wave 245: Continuous monitoring status */
+  monitoring?:    PassportMonitoringStatus;
 }
 
 // ── Blocking domains ──────────────────────────────────────────────────────────

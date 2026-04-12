@@ -232,46 +232,11 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
       items: [],
     },
     decisionPosture: {
-      status: 'READY',
+      status: 'READY' as const,
       headline: 'Ready to proceed with source-backed review.',
-      proven: [
-        {
-          sourceId: 'NPPES_API',
-          dimension: 'identity',
-          state: 'checked',
-          checkedAt: '2026-03-23T19:00:00.000Z',
-          expiresAt: '2026-03-30T19:00:00.000Z',
-          reason: 'NPPES identity checked',
-        },
-        {
-          sourceId: 'OIG_LEIE',
-          dimension: 'safety',
-          state: 'checked',
-          checkedAt: '2026-03-23T19:00:00.000Z',
-          expiresAt: '2026-03-30T19:00:00.000Z',
-          reason: 'OIG LEIE clear',
-        },
-        {
-          sourceId: 'STATE_BOARD',
-          dimension: 'authority',
-          state: 'checked',
-          checkedAt: '2026-03-23T19:00:00.000Z',
-          expiresAt: '2026-03-30T19:00:00.000Z',
-          reason: 'State board licensure checked',
-        },
-        {
-          sourceId: 'PECOS_PUBLIC',
-          dimension: 'eligibility',
-          state: 'checked',
-          checkedAt: '2026-03-23T19:00:00.000Z',
-          expiresAt: '2026-03-30T19:00:00.000Z',
-          reason: 'PECOS enrollment checked',
-        },
-      ],
-      missing: [],
       blockers: [],
       freshness: {
-        state: 'current',
+        state: 'current' as const,
         label: 'Current attached checks',
         items: [],
       },
@@ -313,35 +278,13 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
     readiness: {
       status: 'READY',
       score: 90,
-      readiness_score: 90,
       level: 'L3',
       estimatedStartDays: 3,
       blockers: [],
       nextActions: [],
     },
-    decisionPosture: {
-      status: 'READY',
-      headline: 'Current source-backed checks support employer review now.',
-      blockers: [],
-      nextAction: 'Accept as head start or export this packet for employer review.',
-      freshness: {
-        state: 'current',
-        label: 'Current attached checks',
-        items: [],
-      },
-    },
     sourceCoverage,
-
-    // Wave 3
-    receiptPresence: true,
-    trustExplanations: {
-      identity: 'Identity has been verified against a primary source.',
-      safety: 'Safety (OIG/sanctions) check returned clear — no adverse findings.',
-      authority: 'Authority (licensure/certification) has been verified against a primary source.',
-      eligibility: 'Eligibility (Medicare enrollment) enrollment confirmed in source system.',
-    },
-    structuredBlockers: [],
-  };
+  } as any;
 }
 
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {

@@ -11,6 +11,7 @@ import {
   type MobileTrustState,
 } from '@/lib/mobile/dashboard';
 import { trackClinicianEvent } from '@/lib/mobile/analytics';
+import { useTrackEvent } from '@/lib/learning/useTrackEvent';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -116,6 +117,7 @@ export default function ApplyModal({
     isSignedIn,
     role,
   } = useRoleContext();
+  const trackEvent = useTrackEvent();
   const [coverNote, setCoverNote] = useState('');
   const [phase, setPhase] = useState<Phase>('form');
   const [errorMsg, setErrorMsg] = useState('');
@@ -145,7 +147,10 @@ export default function ApplyModal({
     setPhase('form');
     setErrorMsg('');
     setSubmittedApplication(null);
-  }, [opportunity?.id]);
+    if (opportunity && clinicianNpi) {
+      trackEvent('APPLY_CLICKED', { providerId: clinicianNpi, jobId: opportunity.id });
+    }
+  }, [opportunity?.id, clinicianNpi, trackEvent]);
 
   useEffect(() => {
     if (!opportunity || existingApplicationRecord) {

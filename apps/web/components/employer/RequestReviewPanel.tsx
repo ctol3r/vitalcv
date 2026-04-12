@@ -1,20 +1,4 @@
-import React from 'react';
 'use client';
-
-/**
- * RequestReviewPanel — Employer-initiated review context creation.
- *
- * States:
- *   idle           → NPI form
- *   loading        → creating context
- *   needs_setup    → employer workspace not found; shows EmployerWorkspaceSetup inline
- *   done           → context created, review link ready
- *   error          → generic error with retry
- *
- * Auth:
- *   not_signed_in  → sign-in prompt (Clerk enabled) or direct form (no Clerk)
- */
-
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
