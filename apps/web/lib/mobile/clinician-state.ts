@@ -7,6 +7,7 @@ import {
   type MobileTrustBand,
   type MobileTrustState,
 } from '@/lib/mobile/dashboard';
+import { evaluateMobileApplyEligibility } from '@/lib/mobile/summaries';
 import type { ClinicianProofPayload, OutcomeStateChange } from '@/lib/proof/types';
 
 export interface MobileProfileCompleteness {
@@ -764,8 +765,10 @@ export function buildRecommendedAction(input: {
     ?? null;
 
   if (availableOpportunity) {
-    const canApplyDirectly = availableOpportunity.match?.band === 'CLEAR'
-      || availableOpportunity.match?.band === 'NEAR_CLEAR';
+    const applyEligibility = evaluateMobileApplyEligibility({
+      opportunity: availableOpportunity,
+    });
+    const canApplyDirectly = applyEligibility.canApply;
 
     return {
       kind: 'apply_now',

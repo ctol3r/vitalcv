@@ -29,6 +29,23 @@ jest.mock('../../services/seal/sealEventCapture', () => ({
   captureEmployerDecision: jest.fn(),
 }));
 
+jest.mock('../../services/distribution/vcvSnapshotService', () => ({
+  trackEmployerAction: jest.fn(() => Promise.resolve({
+    snapshot: {
+      id: 'snapshot-1',
+      providerId: 'entity-1',
+      decision: 'PROCEED',
+      verifiedData: {},
+      missingCritical: [],
+      missingNonCritical: [],
+      createdAt: '2026-03-23T18:00:00.000Z',
+      lastValidatedAt: '2026-03-23T18:00:00.000Z',
+    },
+    reused: false,
+    auditEventId: 'signal-audit-1',
+  })),
+}));
+
 jest.mock('../../services/entity/passportService', () => ({
   buildPassport: jest.fn(),
   buildPassportByNpi: jest.fn().mockResolvedValue(null),

@@ -1,4 +1,8 @@
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
+import {
+  mobileApplicationStatusLabel,
+  mobileApplicationStatusTone,
+} from '@/lib/mobile/summaries';
 
 export type MobileTrustBand = 'L0' | 'L1' | 'L2' | 'L3';
 export type MobileMatchBand = 'CLEAR' | 'NEAR_CLEAR' | 'PARTIAL' | 'INELIGIBLE';
@@ -438,34 +442,9 @@ export function buildMobileOpportunityCards(input: {
 }
 
 export function applicationStatusLabel(status: string): string {
-  switch (status) {
-    case 'PENDING':
-      return 'Submitted';
-    case 'REVIEWED':
-      return 'In review';
-    case 'ACCEPTED':
-      return 'Accepted';
-    case 'DECLINED':
-      return 'Declined';
-    case 'WITHDRAWN':
-      return 'Withdrawn';
-    default:
-      return status.replace(/_/g, ' ').toLowerCase();
-  }
+  return mobileApplicationStatusLabel(status);
 }
 
 export function applicationStatusTone(status: string): 'emerald' | 'sky' | 'amber' | 'rose' | 'zinc' {
-  switch (status) {
-    case 'ACCEPTED':
-      return 'emerald';
-    case 'REVIEWED':
-      return 'sky';
-    case 'DECLINED':
-      return 'rose';
-    case 'WITHDRAWN':
-      return 'zinc';
-    case 'PENDING':
-    default:
-      return 'amber';
-  }
+  return mobileApplicationStatusTone(status);
 }

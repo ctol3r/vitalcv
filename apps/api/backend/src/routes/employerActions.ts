@@ -30,6 +30,7 @@ import {
   captureEmployerDecision,
   captureStartOutcome,
 } from '../services/seal/sealEventCapture';
+import { trackEmployerAction } from '../services/distribution/vcvSnapshotService';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
@@ -225,6 +226,24 @@ export function registerEmployerActionRoutes(app: Express): void {
         }),
       });
 
+      void trackEmployerAction({
+        actorId: employerId,
+        providerId: entityId,
+        decision: 'PROCEED',
+        bundleId: state.attribution.bundleId,
+        metadata: {
+          auditEventId: state.auditEventId,
+          organizationContextId: state.attribution.organizationContextId,
+          acceptanceScope: state.acceptance?.acceptanceScope ?? null,
+        },
+      }).catch((err: unknown) => {
+        log('warn', 'employer_review_accept_snapshot_tracking_failed', {
+          entityId,
+          auditEventId: state.auditEventId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+
       return void res.status(201).json({ ok: true, state });
     }),
   );
@@ -309,6 +328,25 @@ export function registerEmployerActionRoutes(app: Express): void {
         }),
       });
 
+      void trackEmployerAction({
+        actorId: employerId,
+        providerId: entityId,
+        decision: 'REQUEST_REFRESH',
+        bundleId: state.attribution.bundleId,
+        metadata: {
+          auditEventId: state.auditEventId,
+          organizationContextId: state.attribution.organizationContextId,
+          staleSources: state.details.staleSources,
+          missingDomains: state.details.missingDomains,
+        },
+      }).catch((err: unknown) => {
+        log('warn', 'employer_review_refresh_snapshot_tracking_failed', {
+          entityId,
+          auditEventId: state.auditEventId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+
       return void res.status(201).json({ ok: true, state });
     }),
   );
@@ -388,6 +426,25 @@ export function registerEmployerActionRoutes(app: Express): void {
             reviewItemCreated: state.persistence.reviewItemCreated,
           },
         }),
+      });
+
+      void trackEmployerAction({
+        actorId: employerId,
+        providerId: entityId,
+        decision: 'ROUTE_TO_REVIEW',
+        bundleId: state.attribution.bundleId,
+        metadata: {
+          auditEventId: state.auditEventId,
+          organizationContextId: state.attribution.organizationContextId,
+          priority: state.details.priority,
+          reviewItemCreated: state.persistence.reviewItemCreated,
+        },
+      }).catch((err: unknown) => {
+        log('warn', 'employer_review_route_snapshot_tracking_failed', {
+          entityId,
+          auditEventId: state.auditEventId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
 
       return void res.status(201).json({ ok: true, state });

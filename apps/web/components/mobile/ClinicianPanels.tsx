@@ -34,6 +34,7 @@ import {
   type MobileApplication,
   type MobileOpportunityCard,
 } from '@/lib/mobile/dashboard';
+import { buildCompactBadgeLabel } from '@/lib/mobile/summaries';
 
 export interface MobileQuickAction {
   id: string;
@@ -93,18 +94,21 @@ function matchTone(opportunity: MobileOpportunityCard): string {
 
 function matchLabel(opportunity: MobileOpportunityCard): string {
   if (opportunity.application) {
-    return applicationStatusLabel(opportunity.application.status);
+    return buildCompactBadgeLabel({
+      kind: 'application',
+      status: opportunity.application.status,
+    });
   }
 
   switch (opportunity.match?.band) {
     case 'CLEAR':
-      return 'Clear to start';
+      return buildCompactBadgeLabel({ kind: 'match', band: 'CLEAR' });
     case 'NEAR_CLEAR':
-      return 'Almost ready';
+      return buildCompactBadgeLabel({ kind: 'match', band: 'NEAR_CLEAR' });
     case 'PARTIAL':
-      return 'Partial fit';
+      return buildCompactBadgeLabel({ kind: 'match', band: 'PARTIAL' });
     case 'INELIGIBLE':
-      return 'Needs work';
+      return buildCompactBadgeLabel({ kind: 'match', band: 'INELIGIBLE' });
     default:
       return 'Live role';
   }

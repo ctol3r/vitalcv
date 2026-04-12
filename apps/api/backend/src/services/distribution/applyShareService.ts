@@ -20,6 +20,7 @@ import { generateApplyBundle, type ApplyBundle } from './applyBundle';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload, employerReviewPayloadToJson } from '../entity/employerReviewPayload';
 import { getNotificationProvider } from '../providers/notificationProvider';
+import { trackApplyEvent } from './vcvSnapshotService';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -370,6 +371,26 @@ export async function shareBundle(
   });
 
   const bundleUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://vitalcv.com'}/apply/${bundle.bundleId}`;
+
+  if (reviewPayload) {
+    void trackApplyEvent({
+      actorId: clerkUserId,
+      bundleId: bundle.bundleId,
+      profile: reviewPayload,
+      metadata: {
+        shareId: shareRecord.id,
+        organizationId: orgContext.organization_id,
+        organizationName: orgContext.name,
+        deliveryStatus: shareRecord.deliveryStatus,
+      },
+    }).catch((err: unknown) => {
+      log('warn', 'apply_share_snapshot_tracking_failed', {
+        bundleId: bundle.bundleId,
+        shareId: shareRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
 
   return {
     success: true,
