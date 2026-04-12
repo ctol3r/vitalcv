@@ -202,6 +202,7 @@ import { startInvestigatorScheduler } from './services/investigators/investigato
 import { registerAgentRoutes } from './routes/agents';                                 // FE21-A: Autonomous strategy agents API
 import { registerLearningTrackRoutes } from './routes/learningTrack';                  // Learning: frontend event tracking
 import { registerLearningAnalyticsRoutes } from './routes/learningAnalytics';          // Learning: analytics + feedback loop
+import { registerResearchRoutes } from './routes/research';                             // Wave 12: Research Identity Layer
 import { startStrategyAgentScheduler } from './services/strategyAgents/strategyAgentScheduler';
 import {
     createArtifactFromNursys,
@@ -3639,6 +3640,7 @@ registerWalletExportRoutes(app);       // Wave 154 — Wallet Interoperability B
 registerComplianceCopilotRoutes(app);  // Wave 157 — Compliance Co-Pilot
 registerLearningTrackRoutes(app);      // Learning: frontend event tracking
 registerLearningAnalyticsRoutes(app);  // Learning: analytics + feedback loop
+registerResearchRoutes(app);           // Wave 12: Research Identity Layer
 
 if (BACKGROUND_JOBS_ENABLED) {
   // Avoid open handles and unrelated database chatter during Jest runs.
