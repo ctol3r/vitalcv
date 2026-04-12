@@ -93,3 +93,18 @@ export {
   type AuthorityFacility,
   type AuthorityIssuerType,
 } from './src/authorityEvents';
+export {
+  type PubMedArticle,
+  type PubMedSearchResult,
+  type OrcidVerificationStatus,
+  type OrcidAffiliation,
+  type OrcidWork,
+  type OrcidProfile,
+  type ClinicalTrialRole,
+  type ClinicalTrialPhase,
+  type ClinicalTrialStatus,
+  type ClinicalTrialRecord,
+  type ClinicalTrialSearchResult,
+  type ResearchActivityScore,
+  type ResearchDisclosurePreferences,
+} from './researchContracts';

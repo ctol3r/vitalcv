@@ -200,6 +200,7 @@ import { registerInvestigatorRoutes } from './routes/investigators';            
 import { registerInvestigatorApiRoutes } from './routes/investigatorApi';              // FE16-A: Autonomous investigator engine API
 import { startInvestigatorScheduler } from './services/investigators/investigatorScheduler';
 import { registerAgentRoutes } from './routes/agents';                                 // FE21-A: Autonomous strategy agents API
+import { registerResearchRoutes } from './routes/research';                             // Wave 12: Research Identity Layer
 import { startStrategyAgentScheduler } from './services/strategyAgents/strategyAgentScheduler';
 import {
     createArtifactFromNursys,

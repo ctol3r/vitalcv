@@ -47,6 +47,15 @@ export type OperationalEventType =
   | 'VALIDATION_ERROR'
   | 'TRUST_STATE_CHECK';
 
+// ── Research identity layer (Wave 12) ───────────────────────
+export type ResearchEventType =
+  | 'RESEARCH_PUBMED_FETCHED'
+  | 'RESEARCH_ORCID_LINKED'
+  | 'RESEARCH_ORCID_UNLINKED'
+  | 'RESEARCH_TRIALS_FETCHED'
+  | 'RESEARCH_SCORE_COMPUTED'
+  | 'RESEARCH_DISCLOSURE_UPDATED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -54,4 +63,5 @@ export type AuditEventType =
   | ArtifactEventType
   | EmployerReviewEventType
   | TrustChainEventType
-  | OperationalEventType;
+  | OperationalEventType
+  | ResearchEventType;
