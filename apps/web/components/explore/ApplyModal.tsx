@@ -681,7 +681,7 @@ export default function ApplyModal({
                     </>
                   ) : (
                     <>
-                      Apply with passport
+                      Apply now
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}

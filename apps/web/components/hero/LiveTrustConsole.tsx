@@ -571,12 +571,54 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
 
             {/* Trust signals */}
             <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span>No sign-up required</span>
+              <span>Check clinician readiness across federal sources in under 60 seconds.</span>
               <span aria-hidden="true" className="hidden text-border sm:inline">·</span>
-              <span>Uses real sources: NPPES · OIG · PECOS</span>
-              <span aria-hidden="true" className="hidden text-border sm:inline">·</span>
-              <span>Under 60 seconds</span>
+              <span>This is not full credentialing. This is pre-screening before credentialing.</span>
             </p>
+
+            {/* How it Works */}
+            <div className="mt-8 mb-6 grid grid-cols-3 gap-4 text-center max-w-xl mx-auto border-t border-b border-border py-4">
+              <div className="flex flex-col items-center">
+                <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-2">1</span>
+                <span className="text-xs text-muted-foreground">Enter NPI</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-2">2</span>
+                <span className="text-xs text-muted-foreground">We check federal sources</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-2">3</span>
+                <span className="text-xs text-muted-foreground">Get readiness instantly</span>
+              </div>
+            </div>
+
+            {/* Example Output */}
+            {phase === 'idle' && (
+              <div className="mt-8 max-w-sm mx-auto bg-card border border-border p-5 rounded-2xl shadow-sm text-left">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Example Output</span>
+                  <span className="bg-muted px-2 py-0.5 rounded text-[10px] text-foreground font-medium">85/100 L2</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-foreground">NPPES Verification</span>
+                    <span className="text-emerald-500 font-medium text-xs">✔ Found</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-foreground">OIG Sanctions</span>
+                    <span className="text-emerald-500 font-medium text-xs">✔ Clear</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-foreground">PECOS Enrollment</span>
+                    <span className="text-amber-500 font-medium text-xs">⏳ Checking</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-foreground">State License</span>
+                    <span className="text-rose-500 font-medium text-xs">⚠ Missing</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Deterministic loading sequence */}
             {phase === 'loading' && (

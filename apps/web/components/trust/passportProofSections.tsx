@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import type { PassportResearchData } from '@/lib/trust/research-passport-types';
 import { Badge } from '@/components/ui/badge';
 import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import type { AccordionItem } from '@/components/ui/accordion';
@@ -430,7 +431,142 @@ function eligibilityProofSection(passport: PassportData): AccordionItem | null {
   };
 }
 
-export function buildPassportProofSections(passport: PassportData): AccordionItem[] {
+function divergenceProofSection(passport: PassportData): AccordionItem | null {
+  const divergence = passport.divergence;
+  if (!divergence || divergence.activeCount === 0) {
+    return null;
+  }
+
+  const status: AccordionItem['status'] =
+    divergence.highCount > 0 ? 'review_required'
+    : divergence.activeCount > 0 ? 'stale'
+    : 'checked';
+
+  const severityParts: string[] = [];
+  if (divergence.highCount > 0) severityParts.push(`${divergence.highCount} high`);
+  if (divergence.mediumCount > 0) severityParts.push(`${divergence.mediumCount} medium`);
+  if (divergence.lowCount > 0) severityParts.push(`${divergence.lowCount} low`);
+
+  return {
+    id: 'divergence',
+    trigger: 'Cross-Source Divergence',
+    triggerRight: accordionMeta(
+      `${divergence.activeCount} active conflict${divergence.activeCount === 1 ? '' : 's'}`,
+    ),
+    status,
+    content: (
+      <ProofDetailsList
+        rows={[
+          { id: 'source', label: 'Source', value: 'Cross-source divergence engine', tone: 'strong' },
+          {
+            id: 'active',
+            label: 'Active conflicts',
+            value: `${divergence.activeCount} — ${severityParts.join(', ') || 'none'}`,
+          },
+          {
+            id: 'penalty',
+            label: 'Total CRS penalty',
+            value: divergence.totalPenalty > 0 ? `-${divergence.totalPenalty}` : 'None',
+          },
+          {
+            id: 'trust-note',
+            label: 'Trust note',
+            value:
+              divergence.highCount > 0
+                ? 'High-severity cross-source conflicts are attached. Employer should not proceed without manual review and resolution.'
+                : 'Cross-source divergence detected. Resolve conflicts to recover the CRS penalty and restore a cleaner trust posture.',
+          },
+          {
+            id: 'status-note',
+            label: 'Status note',
+            value:
+              divergence.highCount > 0
+                ? 'At least one conflict involves identity, license status, or sanctions — these block automated trust advancement.'
+                : 'Active conflicts apply score penalties. Resolved conflicts restore the penalty automatically.',
+            tone: 'muted',
+          },
+        ]}
+      />
+    ),
+  };
+}
+
+function researchProofSection(research: PassportResearchData | null | undefined): AccordionItem | null {
+  if (!research) {
+    return null;
+  }
+
+  const { publications, orcid, trials, activityScore } = research;
+  const itemCount = publications.length + trials.length;
+  if (itemCount === 0 && !orcid && !activityScore) {
+    return null;
+  }
+
+  const sources: string[] = [];
+  if (publications.length > 0) sources.push('PubMed');
+  if (orcid) sources.push('ORCID');
+  if (trials.length > 0) sources.push('ClinicalTrials.gov');
+
+  const hasOrcidVerified = orcid?.verificationStatus === 'VERIFIED';
+  const status: AccordionItem['status'] = hasOrcidVerified ? 'checked' : 'pending';
+
+  return {
+    id: 'research',
+    trigger: 'Research & Publications',
+    triggerRight: accordionMeta(
+      itemCount > 0 ? `${itemCount} record${itemCount === 1 ? '' : 's'}` : 'no records',
+    ),
+    status,
+    content: (
+      <ProofDetailsList
+        rows={[
+          { id: 'source', label: 'Sources', value: sources.join(' · ') || 'None attached', tone: 'strong' },
+          {
+            id: 'publications',
+            label: 'Publications',
+            value: publications.length > 0
+              ? `${publications.length} publication${publications.length === 1 ? '' : 's'} found`
+              : 'None found',
+          },
+          {
+            id: 'trials',
+            label: 'Clinical trials',
+            value: trials.length > 0
+              ? `${trials.length} trial${trials.length === 1 ? '' : 's'} found`
+              : 'None found',
+          },
+          {
+            id: 'orcid',
+            label: 'ORCID',
+            value: orcid
+              ? `${orcid.orcidId} — ${orcid.verificationStatus.toLowerCase()}`
+              : 'Not linked',
+          },
+          {
+            id: 'score',
+            label: 'Activity score',
+            value: activityScore ? `${activityScore.score.toFixed(1)} / 10` : 'Not computed',
+          },
+          {
+            id: 'trust-note',
+            label: 'Trust note',
+            value: 'Research and publication data is informational. It supplements the credentialing trust stack but does not replace it.',
+          },
+          {
+            id: 'status-note',
+            label: 'Status note',
+            value: hasOrcidVerified
+              ? 'ORCID is verified. Publication and trial data are cross-referenced against the linked identity.'
+              : 'Research data is attached but ORCID verification is not yet complete. Treat as supplementary only.',
+            tone: 'muted',
+          },
+        ]}
+      />
+    ),
+  };
+}
+
+export function buildPassportProofSections(passport: PassportData, research?: PassportResearchData | null): AccordionItem[] {
   const items: AccordionItem[] = [
     identityProofSection(passport),
     authorityProofSection(passport),
@@ -440,6 +576,16 @@ export function buildPassportProofSections(passport: PassportData): AccordionIte
   const eligibility = eligibilityProofSection(passport);
   if (eligibility) {
     items.push(eligibility);
+  }
+
+  const divergence = divergenceProofSection(passport);
+  if (divergence) {
+    items.push(divergence);
+  }
+
+  const researchSection = researchProofSection(research);
+  if (researchSection) {
+    items.push(researchSection);
   }
 
   return items;

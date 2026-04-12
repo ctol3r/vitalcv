@@ -53,7 +53,7 @@ export function getBackendBase(): string {
   if (base) return base;
   // Match the shared resolver: fall back to Railway on Vercel, localhost otherwise
   return process.env.VERCEL
-    ? 'https://delightful-essence-production.up.railway.app'
+    ? 'https://api.vitalcv.com'
     : 'http://localhost:4000';
 }
 

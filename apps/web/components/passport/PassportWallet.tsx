@@ -43,6 +43,9 @@ import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCo
 import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
+import { TrustSummarySection } from '@/components/passport/TrustSummarySection';
+import { ResearchPublicationsSection } from '@/components/passport/ResearchPublicationsSection';
+import type { PassportResearchData } from '@/lib/trust/research-passport-types';
 import { formatProofDate } from '@/lib/trust/proof-language';
 import {
   resolveAuthorityMethodLabel,
@@ -688,7 +691,12 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           </div>
         </div>
 
-        {/* ── Trust Posture ─────────────────────────────────────────────────── */}
+        {/* ── Trust Summary — at-a-glance posture ───────────────────────── */}
+        <SectionReveal delay={0}>
+          <TrustSummarySection posture={trustPosture} lastCheckedAt={passport.lastCheckedAt} />
+        </SectionReveal>
+
+        {/* ── Trust Posture — full dimensional detail ──────────────────── */}
         <SectionReveal delay={0}>
           <PassportTrustPosture posture={trustPosture} />
         </SectionReveal>
@@ -762,6 +770,16 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             <DivergenceSummaryCard divergence={passport.divergence} mode="passport" />
           </SectionReveal>
         ) : null}
+
+        {/* ── Research & Publications — Wave 12 ────────────────────────────── */}
+        {(passport as PassportData & { research?: PassportResearchData }).research && (
+          <SectionReveal delay={0.19}>
+            <ResearchPublicationsSection
+              research={(passport as PassportData & { research?: PassportResearchData }).research ?? null}
+              mode="passport"
+            />
+          </SectionReveal>
+        )}
 
         {/* ── Details accordion ─────────────────────────────────────────────── */}
         <SectionReveal delay={0.2}>

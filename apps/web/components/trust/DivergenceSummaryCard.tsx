@@ -18,15 +18,21 @@ function severityBadgeClass(severity: 'HIGH' | 'MEDIUM' | 'LOW'): string {
 export function DivergenceSummaryCard({
   divergence,
   mode = 'passport',
+  showResolved = false,
 }: {
   divergence?: PassportDivergence | null;
   mode?: 'passport' | 'review';
+  showResolved?: boolean;
 }) {
-  if (!divergence || divergence.activeCount === 0) {
+  if (!divergence || (divergence.activeCount === 0 && !showResolved)) {
     return null;
   }
 
   const activeConflicts = divergence.conflicts.filter((conflict) => conflict.active);
+  const resolvedConflicts = showResolved
+    ? divergence.conflicts.filter((conflict) => !conflict.active)
+    : [];
+  const displayConflicts = [...activeConflicts, ...resolvedConflicts];
   const highSeverity = divergence.highCount > 0;
 
   return (
@@ -71,22 +77,40 @@ export function DivergenceSummaryCard({
       </div>
 
       <div className="space-y-2 border-t border-white/8 pt-3">
-        {activeConflicts.slice(0, 3).map((conflict) => (
-          <div key={conflict.id} className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
+        {displayConflicts.slice(0, 4).map((conflict) => (
+          <div
+            key={conflict.id}
+            className={[
+              'rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3',
+              !conflict.active ? 'opacity-50' : '',
+            ].join(' ')}
+          >
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm leading-relaxed text-foreground/78">{conflict.description}</p>
-              <Badge variant="outline" className={severityBadgeClass(conflict.severity)}>
-                {conflict.severity}
-              </Badge>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Badge
+                  variant="outline"
+                  className={
+                    conflict.active
+                      ? 'rounded-full border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-100'
+                      : 'rounded-full border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-200'
+                  }
+                >
+                  {conflict.active ? 'OPEN' : 'RESOLVED'}
+                </Badge>
+                <Badge variant="outline" className={severityBadgeClass(conflict.severity)}>
+                  {conflict.severity}
+                </Badge>
+              </div>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              {conflict.sources.join(' vs ')}{conflict.penalty > 0 ? ` · -${conflict.penalty} CRS` : ''}
+              {conflict.sources.join(' vs ')}{conflict.active && conflict.penalty > 0 ? ` · -${conflict.penalty} CRS` : ''}
             </p>
           </div>
         ))}
-        {activeConflicts.length > 3 ? (
+        {displayConflicts.length > 4 ? (
           <p className="text-[11px] text-muted-foreground">
-            +{activeConflicts.length - 3} more divergence flag{activeConflicts.length - 3 === 1 ? '' : 's'} in this record.
+            +{displayConflicts.length - 4} more divergence flag{displayConflicts.length - 4 === 1 ? '' : 's'} in this record.
           </p>
         ) : null}
       </div>

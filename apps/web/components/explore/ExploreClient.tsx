@@ -880,13 +880,6 @@ function OpportunityCard({
              </p>
              <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
-           <Link
-             href={buildPassportRoleHref(opp)}
-             aria-label={formatRoleContextBanner(opp)}
-             className="text-xs font-semibold px-4 py-2 rounded-full bg-muted border border-border text-foreground hover:bg-muted transition-colors shrink-0 ml-4"
-           >
-              Calculate Fit
-           </Link>
         </div>
       )}
 
@@ -909,7 +902,7 @@ function OpportunityCard({
               : 'bg-emerald-500 text-black shadow-[0_2px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:brightness-110'
           }`}
         >
-          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply with passport'}
+          <Zap className="w-4 h-4" /> {application ? 'View application' : 'Apply now'}
         </button>
         {opp.organizationSlug && (
           <Link
