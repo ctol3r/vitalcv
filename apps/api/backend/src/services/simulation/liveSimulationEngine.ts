@@ -43,7 +43,17 @@ export interface SimulationResult {
   estimatedImpact: {
     hospitalsAffected: number;
     privilegesImpacted: number;
+    revenueImpact?: {
+      dailyRevenue: number;
+      daysUntilReplacement: number;
+      totalAtRisk: number;
+    };
+    staffingGap?: {
+      uncoveredShifts: number;
+      affectedLocations: string[];
+    };
   };
+  simulationId?: string;
   simulatedAt: string;
 }
 
@@ -145,6 +155,35 @@ function extractOrganization(capsule: { subjectNpi: string; metadata: unknown })
   return `Hospital ${capsule.subjectNpi.slice(0, 4)}**`;
 }
 
+
+// ── Revenue and Staffing Models ──────────────────────────────────────────────
+
+const SPECIALTY_MODELS: Record<string, { dailyRevenue: number; daysToReplace: number; shiftsPerWeek: number }> = {
+  CRNA: { dailyRevenue: 5000, daysToReplace: 120, shiftsPerWeek: 4 },
+  ANESTHESIOLOGIST: { dailyRevenue: 8000, daysToReplace: 150, shiftsPerWeek: 4 },
+  RN: { dailyRevenue: 1500, daysToReplace: 60, shiftsPerWeek: 3.5 },
+  NP: { dailyRevenue: 3000, daysToReplace: 90, shiftsPerWeek: 4 },
+  DEFAULT: { dailyRevenue: 2500, daysToReplace: 90, shiftsPerWeek: 4 },
+};
+
+function calculateImpactModels(specialty?: string, organizations?: string[]) {
+  const model = SPECIALTY_MODELS[specialty?.toUpperCase() || ''] || SPECIALTY_MODELS.DEFAULT;
+  const totalAtRisk = model.dailyRevenue * model.daysToReplace;
+  const uncoveredShifts = Math.floor(model.daysToReplace * (model.shiftsPerWeek / 7));
+
+  return {
+    revenueImpact: {
+      dailyRevenue: model.dailyRevenue,
+      daysUntilReplacement: model.daysToReplace,
+      totalAtRisk,
+    },
+    staffingGap: {
+      uncoveredShifts,
+      affectedLocations: organizations || [],
+    }
+  };
+}
+
 // ── simulateCredentialRevocation ──────────────────────────────────────────────
 
 export async function simulateCredentialRevocation(params: {
@@ -221,7 +260,9 @@ export async function simulateCredentialRevocation(params: {
     estimatedImpact: {
       hospitalsAffected: affectedOrgs.length,
       privilegesImpacted: privilegingCapsules.length,
+      ...calculateImpactModels('DEFAULT', affectedOrgs),
     },
+    simulationId: 'sim_' + Date.now() + Math.random().toString(36).substring(2, 9),
     simulatedAt,
   };
 
@@ -336,7 +377,9 @@ export async function simulateLicenseExpiration(params: {
     estimatedImpact: {
       hospitalsAffected: affectedOrgs.length,
       privilegesImpacted: invalidatedCapsules.length,
+      ...calculateImpactModels('DEFAULT', affectedOrgs),
     },
+    simulationId: 'sim_' + Date.now() + Math.random().toString(36).substring(2, 9),
     simulatedAt,
   };
 

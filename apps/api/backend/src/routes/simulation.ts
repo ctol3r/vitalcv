@@ -21,6 +21,38 @@ const VALID_EVENT_TYPES = ['credential_expired', 'credential_revoked', 'credenti
 
 export function registerSimulationRoutes(app: Express): void {
 
+  // ── Live: get simulation results ─────────────────────────────────────────
+  app.get('/api/simulation/:id/results', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    // In a real system, we'd fetch this from the database or Redis using the simulation ID.
+    // For now, we return a synthesized mocked result based on the ID.
+    try {
+      res.json({
+        simulationId: id,
+        status: 'COMPLETE',
+        result: {
+          estimatedImpact: {
+            hospitalsAffected: 1,
+            privilegesImpacted: 1,
+            revenueImpact: {
+              dailyRevenue: 2500,
+              daysUntilReplacement: 90,
+              totalAtRisk: 225000
+            },
+            staffingGap: {
+              uncoveredShifts: 51,
+              affectedLocations: ['Mocked Location']
+            }
+          }
+        }
+      });
+    } catch (err) {
+      log('error', 'simulation_route: fetch_results_failed', { id, error: String(err) });
+      res.status(500).json({ error: 'Failed to fetch simulation results' });
+    }
+  });
+
+
   // ── Legacy: graph-based simulation ────────────────────────────────────────
   app.post('/api/simulation/run', async (req: Request, res: Response) => {
     const { npi, eventType, credentialId, issuerNodeId, label } = req.body ?? {};
