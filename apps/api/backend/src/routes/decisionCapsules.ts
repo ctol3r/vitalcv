@@ -62,6 +62,96 @@ function enrichCapsule<T extends {
 
 export function registerDecisionCapsuleRoutes(app: Express): void {
 
+  // ── Wave 4: DECISION CAPSULES — QUERY API ────────────────────────────
+
+  app.get('/api/decision-capsules', async (req: Request, res: Response) => {
+    const orgId = req.query.org as string | undefined;
+    const npi = req.query.npi as string | undefined;
+
+    try {
+      if (orgId) {
+        if (!UUID_RE.test(orgId)) {
+          res.status(400).json({ error: 'orgId must be a valid UUID' });
+          return;
+        }
+        const capsules = await prisma.decisionCapsule.findMany({
+          where: { organizationId: orgId },
+          orderBy: { decisionTimestamp: 'desc' },
+        });
+        res.json({ capsules: capsules.map(enrichCapsule) });
+      } else if (npi) {
+        if (!/^\d{10}$/.test(npi)) {
+          res.status(400).json({ error: 'npi must be a 10-digit string' });
+          return;
+        }
+        const capsules = await prisma.decisionCapsule.findMany({
+          where: { subjectNpi: npi },
+          orderBy: { decisionTimestamp: 'desc' },
+        });
+        res.json({ capsules: capsules.map(enrichCapsule) });
+      } else {
+        res.status(400).json({ error: 'Must provide org or npi query parameter' });
+      }
+    } catch (err) {
+      log('error', 'decision_capsules: query failed', { error: String(err) });
+      res.status(500).json({ error: 'Failed to query decision capsules' });
+    }
+  });
+
+  app.get('/api/decision-capsules/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!UUID_RE.test(id)) {
+      res.status(400).json({ error: 'id must be a valid UUID' });
+      return;
+    }
+    try {
+      const capsule = await prisma.decisionCapsule.findUnique({ where: { id } });
+      if (!capsule) {
+        res.status(404).json({ error: 'Decision capsule not found' });
+        return;
+      }
+      res.json(enrichCapsule(capsule));
+    } catch (err) {
+      log('error', 'decision_capsules: get by id failed', { error: String(err) });
+      res.status(500).json({ error: 'Failed to retrieve decision capsule' });
+    }
+  });
+
+  app.get('/api/decision-capsules/:id/current-state', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!UUID_RE.test(id)) {
+      res.status(400).json({ error: 'id must be a valid UUID' });
+      return;
+    }
+    try {
+      const capsule = await prisma.decisionCapsule.findUnique({ where: { id } });
+      if (!capsule) {
+        res.status(404).json({ error: 'Decision capsule not found' });
+        return;
+      }
+      
+      const currentTrustState = await computeClinicianTrustState(capsule.subjectNpi);
+      const meta = capsule.metadata as Record<string, unknown> | null;
+      const snapshotAtDecision = meta?.trust_state_snapshot as ClinicianTrustState | undefined;
+      const scoreAtDecision = snapshotAtDecision?.readiness_score ?? null;
+      const currentScore = currentTrustState.readiness_score;
+      const scoreDelta = scoreAtDecision !== null ? currentScore - scoreAtDecision : null;
+      
+      res.json({
+        capsuleId: capsule.id,
+        currentStatus: capsule.status,
+        impactedByRevocation: capsule.impactedByRevocation,
+        trustStateAtDecision: snapshotAtDecision,
+        currentTrustState,
+        scoreDelta,
+        trustDegraded: scoreDelta !== null && scoreDelta < -10,
+      });
+    } catch (err) {
+      log('error', 'decision_capsules: current-state failed', { error: String(err) });
+      res.status(500).json({ error: 'Failed to compute current state' });
+    }
+  });
+
   // ── GET /api/employer/decisions ───────────────────────────────────────
   // Returns recent Decision Capsules for the verifier's org (via accepted applications)
   app.get('/api/employer/decisions', async (req: Request, res: Response) => {
@@ -78,7 +168,7 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
         return;
       }
       // Get accepted applications for this org to find NPIs
-      const acceptedApps = await prisma.application.findMany({
+      const acceptedApps = await (prisma as any).application.findMany({
         where: {
           status: 'ACCEPTED',
           opportunity: { organizationId: user.organizationId },
@@ -88,7 +178,7 @@ export function registerDecisionCapsuleRoutes(app: Express): void {
         distinct: ['npi'],
         take: 50,
       });
-      const npis = acceptedApps.map((a) => a.npi as string).filter(Boolean);
+      const npis = acceptedApps.map((a: any) => a.npi as string).filter(Boolean);
       if (npis.length === 0) {
         res.json({ capsules: [], totalCount: 0 });
         return;

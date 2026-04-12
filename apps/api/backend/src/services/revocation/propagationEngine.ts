@@ -327,6 +327,7 @@ export async function updateDecisionCapsuleStatus(params: {
     where: { id: params.capsule.id },
     data: {
       status: nextStatus,
+      impactedByRevocation: true,
       metadata: metadata as Prisma.InputJsonValue,
     },
   });
