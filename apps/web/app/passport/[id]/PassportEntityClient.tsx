@@ -51,7 +51,7 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
             actions={(
               <div className="flex w-full flex-col gap-2">
                 <Button asChild variant="default" className="h-11 w-full rounded-full">
-                  <Link href="/onboarding">Check readiness</Link>
+                  <Link href="/passport">Check readiness</Link>
                 </Button>
                 <Button asChild variant="outline" className="h-11 w-full rounded-full border-border bg-card text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground">
                   <Link href="/passport">View another NPI</Link>
