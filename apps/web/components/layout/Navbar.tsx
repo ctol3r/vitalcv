@@ -82,7 +82,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <ThemeToggle />
           <Link
-            href="/sign-in"
+            href={pathname && pathname !== '/' ? `/sign-in?redirect_url=${encodeURIComponent(pathname)}` : '/sign-in'}
             className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
           >
             Sign In
@@ -130,7 +130,7 @@ export default function Navbar() {
           </ul>
           <div className="mt-4 flex gap-2 border-t border-border pt-4">
             <Link
-              href="/sign-in"
+              href={pathname && pathname !== '/' ? `/sign-in?redirect_url=${encodeURIComponent(pathname)}` : '/sign-in'}
               onClick={closeMenu}
               className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-muted-foreground"
             >

@@ -128,29 +128,33 @@ export default async function ReviewPageClient({
   });
 
   if (!passport) {
+    const isOrgError = passportResult.errorDescription?.includes('organization_context') ?? false;
     return (
-      <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
+      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <TrustStateCard
             eyebrow="Employer review"
-            title="Employer review unavailable"
-            description={(
-              <>
-                <span>{passportResult.errorDescription ?? DEFAULT_REVIEW_ERROR}</span>
-                <span className="block pt-2 text-muted-foreground/60">
-                  No decision card is rendered until VitalCV can hydrate a passport record for this entity. Shared review context must also still be valid when one is supplied.
-                </span>
-              </>
-            )}
+            title={isOrgError ? 'Set up employer workspace' : 'Employer review unavailable'}
+            description={
+              isOrgError
+                ? 'Sign in and configure your employer workspace to access the full review surface.'
+                : 'This clinician passport is not available for review yet. The clinician may need to run a readiness check first.'
+            }
             tone="warning"
             centered
             actions={(
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button asChild variant="outline" className="h-11 rounded-full border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <Link href={retryHref}>Try again</Link>
-                </Button>
+                {isOrgError ? (
+                  <Button asChild variant="default" className="h-11 rounded-full">
+                    <Link href="/sign-in?redirect_url=/review">Sign in</Link>
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" className="h-11 rounded-full border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <Link href={retryHref}>Try again</Link>
+                  </Button>
+                )}
                 <Button asChild variant="ghost" className="h-11 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.homepageLookup}>Back to home</Link>
+                  <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry}>Back to review</Link>
                 </Button>
               </div>
             )}

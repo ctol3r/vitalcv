@@ -112,13 +112,13 @@ export function ReadinessDemo() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-foreground/70">Live demo — no login required</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-foreground/70">Sample output — no login required</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
             This is what your profile looks like.
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-            Real readiness data, real verified sources, real blockers — surfaced instantly.
+            Illustrative readiness output showing verified sources, scores, and blockers.
           </p>
         </div>
 
@@ -243,10 +243,9 @@ export function ReadinessDemo() {
 
             {/* Footer */}
             <div className="px-5 sm:px-6 py-3 border-t border-white/6 flex items-center justify-between bg-white/1">
-              <p className="text-[10px] text-muted-foreground/40">Demo data · NPI {profile.npi}</p>
+              <p className="text-[10px] text-muted-foreground/40">Illustrative data · NPI {profile.npi}</p>
               <div className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[10px] text-muted-foreground/60">Real verification running in production</p>
+                <p className="text-[10px] text-muted-foreground/60">Enter your NPI above to see real results</p>
               </div>
             </div>
           </motion.div>

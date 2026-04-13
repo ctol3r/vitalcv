@@ -164,12 +164,23 @@ export function WalletDashboard() {
   return (
     <div className="mx-auto max-w-6xl px-8 py-16 space-y-14">
 
+      {/* ── Demo data banner ──────────────────────────────── */}
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+          Demo preview — illustrative data only
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This wallet shows sample credentials. Connect your NPI to see your real
+          verification status.
+        </p>
+      </div>
+
       {/* ── Header ──────────────────────────────────────── */}
       <header className="flex items-start justify-between gap-6">
         <div className="space-y-2">
           <h1 className="font-heading text-4xl font-bold tracking-tight">Credential Wallet</h1>
           <p className="text-lg text-muted-foreground">
-            {DEMO_CLINICIAN_NAME} · Your verified credentials, readiness score, and next steps.
+            Demo Provider · Sample credentials, readiness score, and next steps.
           </p>
         </div>
         <div className="flex items-center gap-3">

@@ -47,7 +47,11 @@ export function SignUpBanner({
 
   const handleClaim = () => {
     trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_CLICKED, { variant: 'banner' });
-    const params = new URLSearchParams({ npi, displayName });
+    const params = new URLSearchParams({
+      npi,
+      displayName,
+      redirect_url: `/passport?npi=${encodeURIComponent(npi)}`,
+    });
     router.push(`/sign-up?${params.toString()}`);
   };
 

@@ -568,8 +568,8 @@ function PassportPageContent({
                   Sample readiness snapshot
                 </p>
                 <div className="space-y-1">
-                  <p className="text-lg font-semibold text-foreground">Jane A. Smith, MD</p>
-                  <p className="text-sm text-muted-foreground">Internal Medicine · NPI 1234567890</p>
+                  <p className="text-lg font-semibold text-foreground">[Your Name]</p>
+                  <p className="text-sm text-muted-foreground">[Specialty] · NPI [Your NPI]</p>
                 </div>
                 <div className="space-y-2">
                   {[

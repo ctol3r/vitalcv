@@ -19,30 +19,30 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-vt-surface-ops-base text-slate-200">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
       <PilotFailureSignal
-        title="View interrupted"
-        message={error.message}
+        title="Page could not load"
+        message={error.digest ?? 'runtime_error'}
         queueItem={{ source: 'route_failure' }}
         details={{
           digest: error.digest ?? null,
         }}
-        dedupeKey={`app-error:${error.digest ?? error.message}`}
+        dedupeKey={`app-error:${error.digest ?? 'unknown'}`}
       />
       <div className="max-w-md animate-fade-in-up px-6 text-center">
-        <div className="text-5xl mb-6 opacity-80">💭</div>
         <h1 className="text-2xl font-semibold mb-3 text-foreground">
-          View Interrupted
+          Something went wrong
         </h1>
-        <p className="text-slate-400 mb-8 text-sm leading-relaxed">
-          The platform encountered a temporary issue loading this view. Your data remains secure.
+        <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+          This page couldn&apos;t load. Your data is safe — try reloading, or
+          return to the homepage and continue from there.
         </p>
         <div className="flex flex-col gap-3">
           <button
             onClick={reset}
-            className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-[#080e1a] hover:bg-white/90 transition"
+            className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-90 transition"
           >
-            Reload View
+            Try again
           </button>
           <Link
             href="/"
@@ -52,8 +52,8 @@ export default function Error({
           </Link>
           <SupportActionButton
             label="Contact support"
-            title="View interrupted"
-            messagePrefill={error.message}
+            title="Page could not load"
+            messagePrefill={error.digest ?? 'An error occurred'}
             className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground/85 transition hover:border-border hover:text-foreground"
           />
         </div>

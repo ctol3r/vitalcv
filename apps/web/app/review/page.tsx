@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default function ReviewLandingPage() {
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-sm px-4 pt-20 pb-16">
+      <div className="mx-auto max-w-lg px-4 pt-20 pb-16">
         <div className="space-y-6 text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">

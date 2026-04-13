@@ -41,20 +41,20 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
 
   if (!passport) {
     return (
-      <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center justify-center px-4">
+      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm animate-fade-in-up">
           <TrustStateCard
             eyebrow="Passport"
-            title="Passport not ready yet"
-            description="Your NPI was checked but hasn't been fully indexed. Complete NPI verification to activate your passport."
+            title="Passport not available"
+            description="This passport hasn't been generated yet. Run a readiness check first to create a source-backed passport."
             centered
             actions={(
               <div className="flex w-full flex-col gap-2">
                 <Button asChild variant="default" className="h-11 w-full rounded-full">
-                  <Link href="/onboarding">Check readiness</Link>
+                  <Link href="/passport">Check readiness</Link>
                 </Button>
                 <Button asChild variant="outline" className="h-11 w-full rounded-full border-border bg-card text-foreground/70 hover:border-border hover:bg-muted hover:text-foreground">
-                  <Link href="/passport">View another NPI</Link>
+                  <Link href="/">Return home</Link>
                 </Button>
               </div>
             )}

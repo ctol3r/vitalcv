@@ -81,7 +81,7 @@ export class PrismaTrustAlertsRepository implements TrustAlertsRepository {
     const rows = await prisma.trustAlertRecord.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return sortAlerts(rows.map((row) => toDomainAlert(row)));
+    return sortAlerts(rows.map((row: TrustAlertRow) => toDomainAlert(row)));
   }
 
   async createAlert(alert: TrustAlert): Promise<TrustAlert> {
