@@ -1488,6 +1488,292 @@ model AuditEvent {
   @@index([merkleRoot])
 }
 
+// ── Pilot Operations Events ────────────────────────────────────────────────
+// These models track pilot KPI data for interview-to-start velocity tracking
+
+model AdvisoryOutcomeEvent {
+  id                     String     @id @default(uuid()) @db.Uuid
+  entityId               String     @map("entity_id") @db.Uuid
+  entity                 VcvEntity? @relation("advisory_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  organizationContextId  String?    @map("organization_context_id") @db.Uuid
+  organizationContext    VcvOrganizationContext? @relation("advisory_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
+  advisoryVersion        String     @map("advisory_version")
+  eventType              String     @map("event_type")
+  eventTimestamp         DateTime   @map("event_timestamp")
+  readinessScoreAtEvent  Int?       @map("readiness_score_at_event")
+  blockersAtEvent         Json       @map("blockers_at_event")
+  metadata               Json
+  createdAt              DateTime   @default(now())
+
+  @@index([entityId])
+  @@index([organizationContextId])
+  @@index([eventTimestamp])
+  @@map("advisory_outcome_events")
+}
+
+model EmployerDecisionEvent {
+  id                     String     @id @default(uuid()) @db.Uuid
+  entityId               String     @map("entity_id") @db.Uuid
+  entity                 VcvEntity? @relation("employer_decision_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  organizationContextId  String?    @map("organization_context_id") @db.Uuid
+  organizationContext    VcvOrganizationContext? @relation("employer_decision_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
+  decision               String
+  decidedAt              DateTime   @map("decided_at")
+  readinessScoreAtDecision Int?     @map("readiness_score_at_decision")
+  blockersAtDecision      Json       @map("blockers_at_decision")
+  metadata               Json
+  createdAt              DateTime   @default(now())
+
+  @@index([entityId])
+  @@index([organizationContextId])
+  @@index([decidedAt])
+  @@map("employer_decision_events")
+}
+
+model BlockerResolutionEvent {
+  id               String     @id @default(uuid()) @db.Uuid
+  entityId         String     @map("entity_id") @db.Uuid
+  entity           VcvEntity? @relation("blocker_resolution_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  blockerCode      String     @map("blocker_code")
+  openedAt         DateTime   @map("opened_at")
+  resolvedAt       DateTime?  @map("resolved_at")
+  resolutionDays   Int?       @map("resolution_days")
+  resolutionMethod String?    @map("resolution_method")
+  status           String
+  metadata         Json
+  createdAt        DateTime   @default(now())
+
+  @@index([entityId])
+  @@index([blockerCode])
+  @@index([resolvedAt])
+  @@map("blocker_resolution_events")
+}
+
+model StartOutcomeEvent {
+  id                    String     @id @default(uuid()) @db.Uuid
+  entityId              String     @map("entity_id") @db.Uuid
+  entity                VcvEntity? @relation("start_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
+  organizationContextId String?    @map("organization_context_id") @db.Uuid
+  organizationContext    VcvOrganizationContext? @relation("start_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
+  startedAt             DateTime   @map("started_at")
+  daysFromFirstReview    Int?       @map("days_from_first_review")
+  daysFromShare          Int?       @map("days_from_share")
+  daysFromReady          Int?       @map("days_from_ready")
+  readinessScoreAtStart  Int?       @map("readiness_score_at_start")
+  blockersAtStart        Json       @map("blockers_at_start")
+  metadata              Json
+  createdAt             DateTime   @default(now())
+
+  @@index([entityId])
+  @@index([organizationContextId])
+  @@index([startedAt])
+  @@map("start_outcome_events")
+}
+
+model SystemFailureEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+ entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  failureType String  @map("failure_type")
+  failureMessage String @map("failure_message")
+  metadata   Json
+  occurredAt DateTime @map("occurred_at")
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([failureType])
+  @@index([occurredAt])
+  @@map("system_failure_events")
+}
+
+// ── Employment / Hiring Models ──────────────────────────────────────────────
+
+model Application {
+  id            String            @id @default(uuid()) @db.Uuid
+  opportunityId String            @map("opportunity_id") @db.Uuid
+  clerkUserId   String            @map("clerk_user_id")
+  npi           String?
+  coverNote     String?           @map("cover_note")
+  status        ApplicationStatus @default(PENDING)
+  price          Decimal?          @db.Decimal(10, 2)
+  reviewedBy    String?           @map("reviewed_by")
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewNote    String?           @map("review_note")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([opportunityId])
+  @@index([clerkUserId])
+  @@index([status])
+  @@map("applications")
+}
+
+model EmployerAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  entityId     String   @map("entity_id") @db.Uuid
+  organization String
+  employerId   String?  @map("employer_id")
+  clinicianNpi String?  @map("clinician_npi")
+  artifactId   String?  @map("artifact_id")
+  status       String?  @default("ACCEPTED")
+  acceptedAt   DateTime @map("accepted_at")
+  acceptedBy   String?  @map("accepted_by")
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([entityId])
+  @@index([organization])
+  @@index([acceptedAt])
+  @@map("employer_acceptances")
+}
+
+model StartAttestation {
+  id          String   @id @default(uuid()) @db.Uuid
+  entityId    String   @map("entity_id") @db.Uuid
+  startedAt   DateTime @map("started_at")
+  actualStart DateTime? @map("actual_start")
+  role        String?
+  facility    String?
+  attestedBy  String?  @map("attested_by")
+  attestedAt  DateTime? @map("attested_at")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityId])
+  @@index([startedAt])
+  @@map("start_attestations")
+}
+
+model BillingEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventType   String   @map("event_type")
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  entityId    String?  @map("entity_id")
+  userId      String?  @map("user_id")
+  referenceId String?  @map("reference_id")
+  metadata    Json?
+  occurredAt  DateTime @map("occurred_at")
+  createdAt   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([entityId])
+  @@index([userId])
+  @@index([occurredAt])
+  @@map("billing_events")
+}
+
+model SubscriptionApiKey {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  apiKey          String   @map("api_key") @unique
+  status          String   @default("ACTIVE")
+  clinicianId     String?  @map("clinician_id")
+  tier            String?
+  rateLimit       Int?     @map("rate_limit")
+  requestCount    Int      @default(0) @map("request_count")
+  expiresAt       DateTime? @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  lastUsedAt      DateTime? @map("last_used_at")
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([apiKey])
+  @@map("subscription_api_keys")
+}
+
+model EmployerWebhookConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  organization   String?
+  title          String?
+  webhookUrl     String   @map("webhook_url")
+  secret         String?
+  eventType      String   @map("event_type")
+  isActive       Boolean  @default(true) @map("is_active")
+  retryCount     Int      @default(0) @map("retry_count")
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@map("employer_webhook_configs")
+}
+
+model Feedback {
+  id           String   @id @default(uuid()) @db.Uuid
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id")
+  userId       String?  @map("user_id")
+  feedbackType String   @map("feedback_type")
+  rating       Int?
+  comment      String?  @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([feedbackType])
+  @@map("feedback")
+}
+
+// ── Ontology / Reference Data ────────────────────────────────────────────────
+
+model ResidencyProgram {
+  id                String   @id @default(uuid()) @db.Uuid
+  programName       String   @map("program_name")
+  name              String   // alias for programName
+  institution       String
+  acgmeCode         String?  @map("acgme_code")
+  hospitalAffiliation String? @map("hospital_affiliation")
+  state             String?
+  specialty         String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([institution])
+  @@index([state, specialty])
+  @@map("residency_programs")
+}
+
+model SpecialtyTaxonomy {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  boardName   String?  @map("board_name")
+  description String?
+  category    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([code])
+  @@index([category])
+  @@map("specialty_taxonomies")
+}
+
+model StateComplianceRule {
+  id                      String   @id @default(uuid()) @db.Uuid
+  state                   String
+  ruleType                String   @map("rule_type")
+  description             String
+  requirement             String
+  specialty               String?
+  requiredCredentialTypes Json     @map("required_credential_types") @default("[]")
+  renewalWindowDays       Int?     @map("renewal_window_days")
+  metadata                Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([state, ruleType])
+  @@index([state])
+  @@map("state_compliance_rules")
+}
+
 model MonitoringEvent {
   id             String   @id @default(uuid()) @db.Uuid
   npi            String
@@ -1668,6 +1954,7 @@ model BundleShareEvent {
   sharedAt              DateTime  @default(now()) @map("shared_at")
   expiresAt             DateTime  @map("expires_at")
   organizationContextId String?   @map("organization_context_id") @db.Uuid
+  organizationContext   VcvOrganizationContext? @relation("bundle_share_org_ctx", fields: [organizationContextId], references: [id], onDelete: SetNull)
   subjectEntityId       String?   @map("subject_entity_id") @db.Uuid
   deliveryStatus        String    @default("PENDING") @map("delivery_status")
   checkedAt             DateTime  @default(now()) @map("checked_at")
@@ -2551,6 +2838,12 @@ model VcvEntity {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   institution Institution?
 
+  // SEAL training back-relations
+  advisoryOutcomeEvents   AdvisoryOutcomeEvent[]   @relation("advisory_outcome_entity")
+  blockerResolutionEvents BlockerResolutionEvent[] @relation("blocker_resolution_entity")
+  employerDecisionEvents  EmployerDecisionEvent[]  @relation("employer_decision_entity")
+  startOutcomeEvents      StartOutcomeEvent[]      @relation("start_outcome_entity")
+
   @@index([npi])
   @@index([entityType], map: "vcv_entities_type_idx")
   @@index([entityType, npi], map: "vcv_entities_type_npi_idx")
@@ -2762,6 +3055,16 @@ model VcvOrganizationContext {
   @@index([contextType, status], map: "vcv_org_ctx_type_status_idx")
   @@index([createdByUserId], map: "vcv_org_ctx_user_idx")
   @@map("vcv_organization_contexts")
+
+  // Relations
+  subjects          VcvOrgContextSubject[]   @relation("org_context_subjects")
+  statusEvents      VcvOrgContextStatusEvent[] @relation("org_context_status_events")
+  bundleShareEvents BundleShareEvent[]       @relation("bundle_share_org_ctx")
+
+  // SEAL training back-relations
+  advisoryOutcomeEvents  AdvisoryOutcomeEvent[]  @relation("advisory_outcome_org_ctx")
+  employerDecisionEvents EmployerDecisionEvent[] @relation("employer_decision_org_ctx")
+  startOutcomeEvents     StartOutcomeEvent[]     @relation("start_outcome_org_ctx")
 }
 
 /// A subject (entity + optional credential set) participating in an org context.
@@ -2769,6 +3072,7 @@ model VcvOrganizationContext {
 model VcvOrgContextSubject {
   id               String    @id(map: "vcv_org_ctx_subj_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contextId        String    @map("context_id") @db.Uuid
+  context         VcvOrganizationContext? @relation("org_context_subjects", fields: [contextId], references: [id], onDelete: Cascade)
   subjectId        String    @map("subject_id") @db.Uuid
   /// Specific credential(s) being reviewed in this context (nullable = all)
   credentialId     String?   @map("credential_id") @db.Uuid
@@ -2796,6 +3100,7 @@ model VcvOrgContextSubject {
 model VcvOrgContextStatusEvent {
   id          String               @id(map: "vcv_org_ctx_evt_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contextId   String               @map("context_id") @db.Uuid
+  context     VcvOrganizationContext? @relation("org_context_status_events", fields: [contextId], references: [id], onDelete: Cascade)
   fromStatus  VcvOrgContextStatus? @map("from_status")
   toStatus    VcvOrgContextStatus  @map("to_status")
   triggeredBy String?              @map("triggered_by")
