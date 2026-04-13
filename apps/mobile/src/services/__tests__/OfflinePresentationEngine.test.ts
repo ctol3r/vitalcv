@@ -24,7 +24,7 @@ const credential: StoredCredential = {
   npi: '1234567890',
   type: 'MedicalLicense',
   issuer: 'VitalCV State Board',
-  status: 'VALID',
+  status: 'ACTIVE',
   issuedAt: '2026-01-01T00:00:00.000Z',
   expiresAt: '2026-12-01T00:00:00.000Z',
   vcJwt: 'jwt-presentation',

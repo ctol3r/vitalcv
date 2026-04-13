@@ -23,30 +23,28 @@ export default function EmployerNotifications({ orgId }: { orgId: string }) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await axios.get("/api/employer/notifications", {
-        headers: { "x-organization-id": orgId }
-      });
-      setNotifications(res.data.notifications || []);
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
-    }
-  };
-
   useEffect(() => {
-    // Initial fetch
-    fetchNotifications();
+    const fetchNotifications = async () => {
+      try {
+        const res = await axios.get("/api/employer/notifications", {
+          headers: { "x-organization-id": orgId }
+        });
+        setNotifications(res.data.notifications || []);
+      } catch {
+        // fetch failed — notifications stay empty
+      }
+    };
 
-    // Setup WebSocket connection
+    void fetchNotifications();
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}?orgId=${orgId}`;
-    
+
     const connectWs = () => {
       const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
-        console.log("WebSocket connected for notifications");
+        // connected
       };
 
       ws.onmessage = (event) => {
@@ -61,7 +59,6 @@ export default function EmployerNotifications({ orgId }: { orgId: string }) {
       };
 
       ws.onclose = () => {
-        console.log("WebSocket disconnected. Reconnecting in 5s...");
         setTimeout(connectWs, 5000);
       };
 
@@ -235,11 +232,16 @@ export default function EmployerNotifications({ orgId }: { orgId: string }) {
               )}
             </div>
             
-            <div className="p-2 border-t border-line bg-ink/5 text-center">
-              <button className="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity w-full py-2">
-                View All Activity
-              </button>
-            </div>
+            {notifications.length > 0 && (
+              <div className="p-2 border-t border-line bg-ink/5 text-center">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity w-full py-2"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

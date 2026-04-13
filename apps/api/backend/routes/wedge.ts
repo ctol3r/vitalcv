@@ -11,6 +11,7 @@ import {
   assertCanStart,
   subjectStatus,
 } from '@vitalcv/domain';
+import { getCrsBand } from '@vitalcv/domain-core';
 import {
   getAcceptanceById,
   insertAcceptance,
@@ -175,12 +176,6 @@ function parseObjectField(value: unknown, field: string): Record<string, unknown
   return value as Record<string, unknown>;
 }
 
-function resolveCrsBand(score: number): 'GREEN' | 'YELLOW' | 'RED' {
-  if (score >= 80) return 'GREEN';
-  if (score >= 50) return 'YELLOW';
-  return 'RED';
-}
-
 async function resolveCrsSnapshot(clinicianId: string): Promise<CrsSnapshot> {
   if (!neo4jConfigured()) {
     return {
@@ -194,7 +189,7 @@ async function resolveCrsSnapshot(clinicianId: string): Promise<CrsSnapshot> {
     const readiness = await getReadinessScore(clinicianId);
     return {
       score: readiness.score,
-      band: resolveCrsBand(readiness.score),
+      band: getCrsBand(readiness.score),
       factors: readiness.factors as Record<string, unknown>,
     };
   } catch {

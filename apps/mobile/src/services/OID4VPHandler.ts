@@ -50,7 +50,7 @@ function mapStoredCredentialToVpToken(credential: StoredCredential): Record<stri
     subject: credential.npi,
     claims: credential.claims,
     signature: credential.vcJwt,
-    status: credential.status === 'VALID' ? 'ACTIVE' : credential.status,
+    status: credential.status,
     issuedAt: credential.issuedAt,
     ...(credential.expiresAt ? { expiresAt: credential.expiresAt } : {}),
     schemaVersion: '1.0',

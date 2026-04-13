@@ -31,16 +31,20 @@ export default function HolderPage() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [npi, setNpi] = useState<string | null>(null);
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadProfile() {
       try {
         const res = await fetch('/api/me/workspaces');
+        if (cancelled) return;
         if (!res.ok) {
           setPhase('error');
           return;
         }
         const data = await res.json() as { personProfile?: WorkspaceProfile | null };
+        if (cancelled) return;
         const pp = data.personProfile;
         if (pp?.npi) {
           setNpi(pp.npi);
@@ -50,11 +54,13 @@ export default function HolderPage() {
           setPhase('no_npi');
         }
       } catch {
-        setPhase('error');
+        if (!cancelled) setPhase('error');
       }
     }
+    setPhase('loading');
     void loadProfile();
-  }, []);
+    return () => { cancelled = true; };
+  }, [retryCount]);
 
   /* ── Loading ── */
   if (phase === 'loading') {
@@ -77,7 +83,7 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your your readiness</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your readiness</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
               VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
@@ -122,7 +128,7 @@ export default function HolderPage() {
           <p className="text-foreground font-medium">Couldn&apos;t load your profile</p>
           <p className="text-sm text-zinc-400">Try refreshing the page. If it keeps happening, check your connection.</p>
           <button
-            onClick={() => { setPhase('loading'); }}
+            onClick={() => setRetryCount((c) => c + 1)}
             className="rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 hover:text-foreground transition"
           >
             Try again

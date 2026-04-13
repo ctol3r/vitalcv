@@ -9,7 +9,7 @@ const KEY_PAIR_STORAGE_KEY = 'wallet:keypair';
 const CREDENTIAL_INDEX_STORAGE_KEY = 'wallet:credential:index';
 const NPI_STORAGE_KEY = 'wallet:settings:npi';
 
-export type StoredCredentialStatus = 'VALID' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED';
+export type StoredCredentialStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED';
 
 export interface StoredCredential {
   id: string;
@@ -65,7 +65,7 @@ function normalizeStatus(status: string | undefined): StoredCredentialStatus {
     case 'SUSPENDED':
       return status.toUpperCase() as StoredCredentialStatus;
     default:
-      return 'VALID';
+      return 'ACTIVE';
   }
 }
 

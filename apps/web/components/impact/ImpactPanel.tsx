@@ -18,22 +18,26 @@ const API_BASE =
 export default function ImpactPanel({ npi }: { npi: string }) {
   const [impact, setImpact] = useState<ImpactData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadImpact() {
       try {
         const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
         const res = await fetch(`${base}/impact/${npi}?specialty=cardiology`);
+        if (cancelled) return;
+        if (!res.ok) { setFailed(true); return; }
         const data = await res.json();
-        setImpact(data);
-      } catch (err) {
-        console.error('Impact load failed', err);
+        if (!cancelled) setImpact(data);
+      } catch {
+        if (!cancelled) setFailed(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-
-    loadImpact();
+    void loadImpact();
+    return () => { cancelled = true; };
   }, [npi]);
 
   if (loading) {
@@ -44,7 +48,13 @@ export default function ImpactPanel({ npi }: { npi: string }) {
     );
   }
 
-  if (!impact) return null;
+  if (failed || !impact) {
+    return (
+      <div className="p-10 rounded-3xl border bg-muted text-muted-foreground text-sm text-center">
+        Impact data is not available right now.
+      </div>
+    );
+  }
 
   return (
     <div className="p-12 rounded-3xl border bg-background shadow-lg space-y-6">
@@ -83,7 +93,7 @@ export default function ImpactPanel({ npi }: { npi: string }) {
 
       <div className="text-center text-2xl font-semibold mt-6">
         Estimated Revenue Recovered: $
-        {impact.estimated_revenue_recovered.toLocaleString()}
+        {(impact.estimated_revenue_recovered ?? 0).toLocaleString()}
       </div>
     </div>
   );

@@ -107,7 +107,7 @@ export default function WalletScreen() {
         npi: storedNpi ?? 'unknown',
         type: newCredType.trim(),
         issuer: newCredIssuer.trim() || 'Self-issued',
-        status: 'VALID',
+        status: 'ACTIVE',
         issuedAt: new Date().toISOString(),
         vcJwt: '',
         claims,
