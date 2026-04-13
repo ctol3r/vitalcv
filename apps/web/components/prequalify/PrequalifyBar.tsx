@@ -74,7 +74,7 @@ export default function PrequalifyBar({ steps = DEFAULT_STEPS, dismissed = false
           {/* CTA */}
           <div className="flex shrink-0 items-center gap-2">
             <Link
-              href="/onboarding"
+              href="/passport"
               className="inline-flex items-center gap-1.5 rounded-full bg-vt-success px-4 py-2 text-xs font-semibold text-black hover:bg-vt-success/90 transition"
             >
               <Zap className="h-3.5 w-3.5" />

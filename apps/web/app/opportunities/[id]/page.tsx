@@ -201,7 +201,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
   }
 
   const applyHref = `/explore?${exploreParams.toString()}`;
-  const onboardingHref = `/onboarding?returnTo=${encodeURIComponent(applyHref)}`;
+  const onboardingHref = `/passport?returnTo=${encodeURIComponent(applyHref)}`;
   const sourceUpdatedAt = formatDate(opportunity.source?.updatedAt ?? opportunity.freshness?.lastUpdatedAt ?? opportunity.updatedAt);
   const comparison = opportunity.comparison ?? null;
   const explanation = opportunity.explanation ?? {
