@@ -43,6 +43,7 @@ import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCo
 import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
+import { ActionableNextSteps } from '@/components/trust/ActionableNextSteps';
 import { TrustSummarySection } from '@/components/passport/TrustSummarySection';
 import { ResearchPublicationsSection } from '@/components/passport/ResearchPublicationsSection';
 import type { PassportResearchData } from '@/lib/trust/research-passport-types';
@@ -794,23 +795,15 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           </EvidenceDisclosureCard>
         </SectionReveal>
 
-        {/* ── Next actions (from readiness engine) ──────────────────────────── */}
-        {readiness.nextActions.length > 0 && (
-          <SectionReveal delay={0.25}>
-            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-              <p className="text-foreground/70 text-sm font-medium">What should happen next</p>
-              {readiness.nextActions.slice(0, 4).map((action) => (
-                <div key={action.id} className="flex items-start gap-3">
-                  <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
-                  <div>
-                    <p className="text-foreground/70 text-sm">{action.title}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{action.detail}</p>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          </SectionReveal>
-        )}
+        {/* ── Wave 13: Actionable Next Steps (clinician mode) ──────────── */}
+        <SectionReveal delay={0.25}>
+          <ActionableNextSteps
+            readiness={readiness}
+            trustPosture={trustPosture}
+            divergence={passport.divergence}
+            mode="clinician"
+          />
+        </SectionReveal>
 
         {/* ── Explicit missing items ─────────────────────────────────────── */}
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (

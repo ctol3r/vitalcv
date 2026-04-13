@@ -38,6 +38,9 @@ import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCo
 import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
+import { ActionableNextSteps } from '@/components/trust/ActionableNextSteps';
+import { ScoreExplainabilityBlock } from '@/components/employer/ScoreExplainabilityBlock';
+import { EmployerDecisionPosture } from '@/components/review/EmployerDecisionPosture';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
@@ -1506,6 +1509,12 @@ function ReviewClientLoaded({
             </div>
           </div>
 
+          {/* ── Wave 13: Employer Decision Posture ─────────────────────── */}
+          <EmployerDecisionPosture passport={passport} />
+
+          {/* ── Wave 13: Score Explainability ──────────────────────────── */}
+          <ScoreExplainabilityBlock passport={passport} />
+
           {/* MS16-F: Employer 6-question flow — strict order */}
           <div className="pt-2 mt-4 space-y-6">
             {/* Q1: Who is this? */}
@@ -1697,6 +1706,14 @@ function ReviewClientLoaded({
         {passport.divergence?.activeCount ? (
           <DivergenceSummaryCard divergence={passport.divergence} mode="review" />
         ) : null}
+
+        {/* ── Wave 13: Actionable Next Steps (employer mode) ──────────── */}
+        <ActionableNextSteps
+          readiness={readiness}
+          trustPosture={passport.trustPosture}
+          divergence={passport.divergence}
+          mode="employer"
+        />
 
         {/* ── Proof panel — collapsible ────────────────────────────────────── */}
         {proofItems.length > 0 && (
