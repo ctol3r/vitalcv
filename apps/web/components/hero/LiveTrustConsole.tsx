@@ -708,7 +708,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   disabled={continueDisabled}
                   className="h-12 w-full rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
                 >
-                  {continueDisabled ? 'Checking readiness...' : 'Download Proof'}
+                  {continueDisabled ? 'Checking readiness...' : 'View full readiness'}
                 </Button>
               ) : null}
               <Button
