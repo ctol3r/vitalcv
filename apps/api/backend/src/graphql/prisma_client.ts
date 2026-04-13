@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { invalidateGraphSnapshots } from '../services/graph-engine/invalidation';
 import { createGraphNodeId } from '../services/graph-engine/ids';
+import { syncTrustGraphForPrismaWrite } from '../services/graph-engine/graphSyncEngine';
 import { invalidateGeospatialCache } from '../services/geospatial/geospatialCache';
 import { invalidateTrustStateCache } from '../services/trust/trustStateCache';
 import { recordDatabaseQuerySample } from '../qa/performanceWatchers';
@@ -26,6 +27,9 @@ const GRAPH_INVALIDATION_MODELS = new Set([
   'decisioncapsule',
   'sourcerecord',
   'claimrecord',
+  'providerdecisionstate',
+  'employerdecisionevent',
+  'anomalyhistory',
   'searchobject',
 ]);
 const GEOSPATIAL_INVALIDATION_MODELS = new Set([
@@ -294,6 +298,28 @@ async function extractGraphInvalidationTargets(
       }
       break;
     }
+    case 'providerdecisionstate': {
+      addTrustModes();
+      const npi = readStringValue(record.npi) ?? readStringValue(data.npi) ?? readStringValue(where.npi);
+      if (looksLikeNpi(npi)) {
+        focusNodeIds.add(createClinicianGraphNodeId(npi));
+      }
+      break;
+    }
+    case 'employerdecisionevent': {
+      addTrustModes();
+      break;
+    }
+    case 'anomalyhistory': {
+      addTrustModes();
+      const subjectType = readStringValue(record.subjectType) ?? readStringValue(data.subjectType);
+      const subjectId = readStringValue(record.subjectId) ?? readStringValue(data.subjectId);
+      const anomalyKey = readStringValue(record.anomalyKey) ?? readStringValue(data.anomalyKey);
+      if (subjectType === 'NPI' && looksLikeNpi(subjectId) && anomalyKey?.startsWith('div_')) {
+        focusNodeIds.add(createClinicianGraphNodeId(subjectId));
+      }
+      break;
+    }
     case 'searchobject': {
       addKnowledgeModes();
       const searchObjectId = readStringValue(record.id) ?? readStringValue(where.id);
@@ -392,6 +418,12 @@ if (typeof prismaWithMiddleware.$use === 'function') {
       && INVALIDATION_ACTIONS.has(params.action)
       && GRAPH_INVALIDATION_MODELS.has(params.model.toLowerCase())
     ) {
+      await syncTrustGraphForPrismaWrite(prisma, {
+        model: params.model,
+        action: params.action,
+        record: readRecordValue(result),
+      });
+
       const targets = await extractGraphInvalidationTargets(prisma, params, result);
       if (targets) {
         await invalidateGraphSnapshots(prisma, {

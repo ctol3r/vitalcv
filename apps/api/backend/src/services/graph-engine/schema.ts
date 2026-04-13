@@ -21,6 +21,7 @@ export const NODE_TYPES = [
   'clinician', 'organization', 'institution', 'specialty',
   'program', 'publication', 'trial', 'claim', 'artifact',
   'receipt', 'source', 'credential', 'license', 'decision',
+  'snapshot', 'divergence',
   'exclusion', 'enrollment',
 ] as const;
 
@@ -75,6 +76,8 @@ export const COLOR_GROUPS: Record<NodeType, string> = {
   credential:    '#10b981', // emerald
   license:       '#22c55e', // green
   decision:      '#f8fafc', // white
+  snapshot:      '#38bdf8', // sky
+  divergence:    '#ef4444', // red
   exclusion:     '#ef4444', // red
   enrollment:    '#3b82f6', // blue
 };
@@ -379,7 +382,7 @@ export const EDGE_COLORS: Record<string, string> = {
 const KNOWLEDGE_TYPES: NodeType[] = ['note', 'document', 'tag', 'attachment', 'group'];
 const TRUST_TYPES: NodeType[] = ['clinician', 'organization', 'institution', 'specialty',
   'program', 'publication', 'trial', 'claim', 'artifact', 'receipt', 'source',
-  'credential', 'license', 'decision', 'exclusion', 'enrollment'];
+  'credential', 'license', 'decision', 'snapshot', 'divergence', 'exclusion', 'enrollment'];
 
 export function nodeLayer(type: NodeType): GraphLayer {
   if (KNOWLEDGE_TYPES.includes(type)) return 'knowledge';
@@ -393,7 +396,7 @@ export function edgeLayer(type: EdgeType): GraphLayer {
   return 'trust';
 }
 
-export const GRAPH_SCHEMA_VERSION = '272.2';
+export const GRAPH_SCHEMA_VERSION = '272.3';
 export const GRAPH_FILTER_SCHEMA_VERSION = '1';
 
 export const EXPLICIT_EDGE_TYPES = new Set<EdgeType>(['explicit_link', 'backlink']);
