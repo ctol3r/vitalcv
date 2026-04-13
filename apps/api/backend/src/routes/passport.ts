@@ -30,6 +30,8 @@ import {
   type TrustBand as ReadinessLevel,
 } from '../services/trust/trustStateEngine';
 
+import { authMiddleware } from '../middleware/authMiddleware';
+
 const NPI_RE = /^\d{10}$/;
 const PUBLIC_TYPES = new Set(['NPI_IDENTITY', 'NPI_ENROLLMENT', 'STATE_LICENSE', 'BOARD_CERTIFICATION', 'ENROLLMENT', 'SANCTIONS_CHECK', 'IDENTITY', 'PUBLICATION', 'AFFILIATION']);
 
@@ -111,7 +113,7 @@ type PassportDecision = {
   artifactHash: string;
 };
 
-type PassportAccessMode = 'public' | 'wallet' | 'selective';
+type PassportAccessMode = 'public' | 'wallet' | 'selective' | 'authorized';
 
 export type PassportDocument = {
   npi: string;
@@ -518,13 +520,19 @@ function buildBadgeSvg(passport: PassportDocument): string {
 
 // ── Access mode helpers ──────────────────────────────────────────────────────
 
-/** Wallet mode: simple NPI-as-token for pilot (production = real JWT) */
+/** Wallet mode: require strict Clerk session validation */
 function resolveAccessMode(
   npi: string,
   mode: string | undefined,
-  token: string | undefined,
+  clerkUserId: string | undefined,
 ): PassportAccessMode {
-  if (mode === 'wallet' && token === npi) return 'wallet';
+  if (clerkUserId) {
+    // If they have a session, grant wallet or authorized view based on role or self
+    // For now, if authenticated, allow wallet mode (holder view) or authorized (employer)
+    if (mode === 'wallet') return 'wallet';
+    if (mode === 'authorized') return 'authorized';
+    return 'wallet'; // Default to authenticated view if they have a session
+  }
   if (mode === 'selective') return 'selective';
   return 'public';
 }
@@ -937,8 +945,8 @@ function buildPassportForMode(
   doc: PassportDocument,
   mode: PassportAccessMode,
 ): PassportDocument {
-  if (mode === 'wallet') {
-    return { ...doc, accessMode: 'wallet' };
+  if (mode === 'wallet' || mode === 'authorized') {
+    return { ...doc, accessMode: mode };
   }
 
   // public mode — strip sensitive fields
@@ -997,6 +1005,7 @@ function logPassportError(route: string, npi: string, error: unknown): void {
 }
 
 export function registerPassportRoutes(app: Express): void {
+  app.use('/api/passport', authMiddleware);
 
   /**
    * GET /api/passport/:npi
@@ -1015,7 +1024,7 @@ export function registerPassportRoutes(app: Express): void {
     const mode = resolveAccessMode(
       npi,
       req.query.mode as string | undefined,
-      req.query.token as string | undefined,
+      (req as any).clerkUserId,
     );
 
     try {

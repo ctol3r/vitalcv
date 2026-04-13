@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 export interface AuditLogEntry {
   timestamp: string;
   message: string;
@@ -30,24 +28,9 @@ export function AuditTerminal({ entries, className }: AuditTerminalProps) {
         <span className="text-[10px] uppercase tracking-widest">Verification Audit Log</span>
       </div>
 
-      <motion.ol
-        className="space-y-1"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: { transition: { staggerChildren: 0.15 } },
-        }}
-      >
+      <ol className="space-y-1">
         {entries.map((entry) => (
-          <motion.li
-            key={entry.timestamp + entry.message}
-            variants={{
-              hidden: { opacity: 0, x: -8 },
-              visible: { opacity: 1, x: 0 },
-            }}
-            transition={{ duration: 0.3 }}
-          >
+          <li key={entry.timestamp + entry.message}>
             <span className="text-muted-foreground">[{entry.timestamp}]</span>{' '}
             <span className={entry.status ? STATUS_COLORS[entry.status] : 'text-foreground/70'}>
               {entry.message}
@@ -55,9 +38,9 @@ export function AuditTerminal({ entries, className }: AuditTerminalProps) {
             {entry.hash ? (
               <span className="text-muted-foreground/50"> ...{entry.hash.slice(-12)}</span>
             ) : null}
-          </motion.li>
+          </li>
         ))}
-      </motion.ol>
+      </ol>
     </div>
   );
 }

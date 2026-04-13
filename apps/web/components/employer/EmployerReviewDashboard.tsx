@@ -11,7 +11,6 @@
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   ArrowRight,
   Calendar,
@@ -259,10 +258,8 @@ export function EmployerReviewDashboard({
           </div>
         ) : (
           filteredPackets.map((packet) => (
-            <motion.div
+            <div
               key={packet.npi}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
             >
               <Card
                 interactive
@@ -320,7 +317,7 @@ export function EmployerReviewDashboard({
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           ))
         )}
       </div>

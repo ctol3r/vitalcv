@@ -7,9 +7,13 @@ import { orchestrateVerification } from '../services/psv-adapters/psvOrchestrato
 import { computeReadiness } from '../services/verticals/readiness/readinessEngine';
 import { log } from '../obs/logger';
 
+import { authMiddleware } from '../middleware/authMiddleware';
+
 function enabled(): boolean { return parseBooleanEnv(process.env.FEATURE_READINESS_ENGINE, false); }
 
 export function registerReadinessRoutes(app: Express): void {
+  app.use('/api/readiness', authMiddleware);
+
   app.get('/api/readiness/:npi/clear-to-start', async (req: Request, res: Response) => {
     if (!enabled()) { res.status(404).json({ error: 'Not found' }); return; }
     const { state, profession } = req.query as { state?: string; profession?: string };
@@ -17,6 +21,19 @@ export function registerReadinessRoutes(app: Express): void {
     try {
       const { artifacts } = await orchestrateVerification(req.params.npi);
       const report = computeReadiness(req.params.npi, state, profession, artifacts);
+      
+      if (!(req as any).isAuthenticated) {
+        res.json({
+          clearToStart: report.overallStatus === 'CLEAR_TO_START',
+          report: {
+            overallStatus: report.overallStatus,
+            readinessScore: report.readinessScore,
+            // Redact other fields
+          }
+        });
+        return;
+      }
+      
       res.json({ clearToStart: report.overallStatus === 'CLEAR_TO_START', daysEstimate: report.endorsement_timeline.estimatedDays, report });
     } catch (err) {
       log('error', 'readiness_clear_to_start_failed', { npi: req.params.npi, error: String(err) });
@@ -29,6 +46,17 @@ export function registerReadinessRoutes(app: Express): void {
     const { state, profession } = req.query as { state?: string; profession?: string };
     if (!state || !profession) { res.status(400).json({ error: 'state and profession required' }); return; }
     const { artifacts } = await orchestrateVerification(req.params.npi);
-    res.json(computeReadiness(req.params.npi, state, profession, artifacts));
+    const report = computeReadiness(req.params.npi, state, profession, artifacts);
+
+    if (!(req as any).isAuthenticated) {
+      res.json({
+        overallStatus: report.overallStatus,
+        readinessScore: report.readinessScore,
+        // Redact other fields
+      });
+      return;
+    }
+
+    res.json(report);
   });
 }
