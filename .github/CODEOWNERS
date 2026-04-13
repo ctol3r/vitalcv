@@ -1,0 +1,47 @@
+# Code Owners for VitalCV
+#
+# Format: <file-pattern> @owner
+# Multiple owners: @owner1 @owner2
+#
+# Code owners must approve PRs that touch their areas
+
+# Core platform
+/ @chris
+
+# API routes and endpoints
+packages/api/ @chris
+
+# Frontend/web application
+apps/web/ @chris
+
+# Core business logic
+packages/core/src/ @chris
+
+# Database schemas and migrations
+packages/core/src/db/ @chris
+
+# Infrastructure and deployment
+.github/ @chris
+infra/ @chris
+k8s/ @chris
+
+# Package configuration
+package.json @chris
+turbo.json @chris
+tsconfig.base.json @chris
+
+# CI/CD workflows
+.github/workflows/ @chris
+
+# Documentation
+README.md @chris
+docs/ @chris
+
+# Engineering discipline
+ENGINEERING.md @chris
+
+# Testing
+tests/ @chris
+
+# Blockchain/Web3
+blockchain/ @chris

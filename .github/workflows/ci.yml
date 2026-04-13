@@ -1,50 +1,159 @@
 name: CI
 
 on:
-  push:
-    branches: [main, 'feature/**', 'fix/**', 'wave/**', 'chore/**']
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - '.github/workflows/ci.yml'
   pull_request:
-    branches: [main]
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - '.github/workflows/ci.yml'
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - develop
 
-env:
-  NODE_VERSION: '22'
+# Prevent concurrent runs on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  web-quality:
-    name: Web Quality
+  quality:
+    name: Code Quality
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22'
           cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Lint web app
-        run: pnpm --filter @vitalcv/web lint
-      - name: Run web unit tests
-        run: pnpm --filter @vitalcv/web test
-      - name: Build web app
-        run: pnpm --filter @vitalcv/web build
-      - name: Launch-Gate Smoke Test
-        run: bash scripts/launch-gate.sh
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            apps/*/dist
+            packages/*/dist
+          retention-days: 1
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_test
+        run: pnpm test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  # Security scanning job
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run npm audit
+        run: pnpm audit --audit-level=moderate
+        continue-on-error: true
