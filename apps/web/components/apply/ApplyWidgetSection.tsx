@@ -23,8 +23,8 @@ export function ApplyWidgetSection({ npi }: Props) {
         <p className="text-xs text-zinc-600 mb-3">
           Complete onboarding to activate your clinician profile and generate a shareable credential bundle.
         </p>
-        <Link href="/onboarding" className="text-xs font-semibold text-emerald-400 hover:text-emerald-300">
-          Finish onboarding →
+        <Link href="/passport" className="text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+          Check readiness →
         </Link>
       </div>
     );

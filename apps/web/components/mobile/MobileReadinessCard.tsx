@@ -154,10 +154,10 @@ export function MobileReadinessCard({
           Your clinician workspace is not fully linked yet, so readiness cannot be attached to applications.
         </p>
         <Link
-          href="/onboarding"
+          href="/passport"
           className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
         >
-          Finish onboarding
+          Check readiness
           <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
