@@ -77,6 +77,8 @@ jobs:
         run: pnpm turbo run lint
 
       - name: Run tests (non-backend packages)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
         run: pnpm turbo run test --filter=!@vitalcv/api
 
   deploy-api:
