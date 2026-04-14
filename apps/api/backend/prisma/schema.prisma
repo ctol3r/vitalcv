@@ -1760,6 +1760,26 @@ model ActionLog {
   @@map("action_log")
 }
 
+/// Sidecar activation record for the Start graph.
+/// NOT a replacement for Start (which is the audit-grade attestation
+/// event) and NOT FK-linked to Acceptance. acceptanceRef is a plain
+/// string reference so this table never imposes relational constraints
+/// on the existing Acceptance chain.
+model StartActivation {
+  id              String    @id @default(uuid()) @db.Uuid
+  clinicianNpi    String    @map("clinician_npi")
+  orgId           String?   @map("org_id")
+  acceptanceRef   String    @map("acceptance_ref")
+  activationState String    @map("activation_state")
+  activatedAt     DateTime? @map("activated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([clinicianNpi])
+  @@index([acceptanceRef])
+  @@index([createdAt])
+  @@map("start_activation")
+}
+
 /// Sidecar snapshot of decision + trust state at the moment an accept
 /// action was recorded. NOT a replacement for Acceptance and NOT an
 /// audit record — a system-memory snapshot for replayability. Kept
