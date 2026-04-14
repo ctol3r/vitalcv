@@ -111,21 +111,6 @@ function deriveEvidenceSummary(coverage?: CoverageInput | null): {
   return { reason: fragments.join(', '), sources };
 }
 
-function buildEvidenceLine(input: {
-  evidenceCount: number;
-  checkedSourceCount: number;
-}): string {
-  if (input.checkedSourceCount > 0) {
-    return `${input.checkedSourceCount} checked source${input.checkedSourceCount === 1 ? '' : 's'} on file`;
-  }
-
-  if (input.evidenceCount > 0) {
-    return `${input.evidenceCount} source-backed record${input.evidenceCount === 1 ? '' : 's'} reviewed`;
-  }
-
-  return 'Verified source review still in progress';
-}
-
 const CONSEQUENCE_COPY: Record<NextBestActionKind, string | null> = {
   PROCEED: 'Approving will mark this candidate as ready for hiring within your system.',
   REVERIFY: 'A fresh verification request will be queued against the source authority.',
@@ -251,26 +236,23 @@ export function NextBestActionCard({
   // Prefer evidence-derived reason over backend-supplied reason when we
   // have any verified sources to point to. Falls back to nba.reason
   // (and finally to a safe default) so the surface is never blank.
-  const displayReason = evidence.reason || nba.reason || 'Based on the verified information currently attached to this profile.';
-  const evidenceLine = buildEvidenceLine({
-    evidenceCount: nba.evidenceCount,
-    checkedSourceCount: evidence.sources.length,
-  });
+  const displayReason =
+    evidence.reason || nba.reason || 'the verified information currently attached to this profile';
 
   return (
     <div className={`rounded-2xl border-2 ${meta.cardTone} p-6 sm:p-8`}>
       <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-        Recommended next step
+        Recommended Next Step
       </p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
         {meta.headline}
       </h1>
       <p className="mt-3 break-words text-base font-medium opacity-90 md:text-lg">
-        {displayReason}
+        <span className="font-semibold">Why:</span> {displayReason}
       </p>
 
       <p className="mt-4 text-sm font-semibold opacity-80">
-        {evidenceLine}
+        Based on verified sources and prior outcomes.
       </p>
 
       {evidence.sources.length > 0 && (
