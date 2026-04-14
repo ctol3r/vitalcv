@@ -49,6 +49,16 @@ export interface OmegaAcceptance {
   history: OmegaAcceptanceEvent[];
 }
 
+export interface OmegaActivation {
+  id: string;
+  clinicianNpi: string;
+  orgId: string | null;
+  acceptanceRef: string;
+  activationState: string;
+  activatedAt: string | null;
+  createdAt: string;
+}
+
 export type OmegaStatus = 'ok' | 'not_found' | 'partial';
 
 export interface OmegaResponse {
@@ -61,6 +71,7 @@ export interface OmegaResponse {
   reuse_signal: ReuseSignal | null;
   recent_actions: OmegaRecentAction[];
   acceptance: OmegaAcceptance | null;
+  activation: OmegaActivation | null;
   generatedAt: string;
 }
 
@@ -106,45 +117,57 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       reuse_signal: null,
       recent_actions: [],
       acceptance: null,
+      activation: null,
       generatedAt,
     };
   }
 
-  const [passportResult, reuseResult, actionResult, acceptanceResult, snapshotResult] =
-    await Promise.allSettled([
-      buildPassportDataByNpi(npi),
-      computeReuseSignal(npi),
-      prisma.actionLog.findMany({
-        where: { npi },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-      prisma.acceptance.findMany({
-        where: { subjectId: npi },
-        orderBy: { acceptedAt: 'desc' },
-        take: 10,
-        select: {
-          id: true,
-          acceptanceId: true,
-          employerId: true,
-          acceptedAt: true,
-          decisionState: true,
-          trustSignalsSnapshot: true,
-          role: true,
-        },
-      }),
-      prisma.acceptanceSnapshot.findMany({
-        where: { clinicianNpi: npi },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-    ]);
+  const [
+    passportResult,
+    reuseResult,
+    actionResult,
+    acceptanceResult,
+    snapshotResult,
+    activationResult,
+  ] = await Promise.allSettled([
+    buildPassportDataByNpi(npi),
+    computeReuseSignal(npi),
+    prisma.actionLog.findMany({
+      where: { npi },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+    prisma.acceptance.findMany({
+      where: { subjectId: npi },
+      orderBy: { acceptedAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        acceptanceId: true,
+        employerId: true,
+        acceptedAt: true,
+        decisionState: true,
+        trustSignalsSnapshot: true,
+        role: true,
+      },
+    }),
+    prisma.acceptanceSnapshot.findMany({
+      where: { clinicianNpi: npi },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+    prisma.startActivation.findFirst({
+      where: { clinicianNpi: npi },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
 
   const passport = passportResult.status === 'fulfilled' ? passportResult.value : null;
   const reuseFailed = reuseResult.status === 'rejected';
   const actionsFailed = actionResult.status === 'rejected';
   const acceptanceFailed = acceptanceResult.status === 'rejected';
   const snapshotFailed = snapshotResult.status === 'rejected';
+  const activationFailed = activationResult.status === 'rejected';
 
   if (reuseFailed) {
     log('warn', 'omega_reuse_signal_failed', {
@@ -174,11 +197,23 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
         snapshotResult.reason instanceof Error ? snapshotResult.reason.message : 'unknown',
     });
   }
+  if (activationFailed) {
+    log('warn', 'omega_start_activation_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      message:
+        activationResult.reason instanceof Error ? activationResult.reason.message : 'unknown',
+    });
+  }
 
   const acceptance: OmegaAcceptance | null = buildAcceptanceView(
     acceptanceResult.status === 'fulfilled' ? acceptanceResult.value : [],
     snapshotResult.status === 'fulfilled' ? snapshotResult.value : [],
   );
+
+  const activation: OmegaActivation | null =
+    activationResult.status === 'fulfilled' && activationResult.value
+      ? mapActivationRow(activationResult.value)
+      : null;
 
   if (!passport) {
     return {
@@ -199,6 +234,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
             }))
           : [],
       acceptance,
+      activation,
       generatedAt,
     };
   }
@@ -216,7 +252,9 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
 
   return {
     status:
-      reuseFailed || actionsFailed || acceptanceFailed || snapshotFailed ? 'partial' : 'ok',
+      reuseFailed || actionsFailed || acceptanceFailed || snapshotFailed || activationFailed
+        ? 'partial'
+        : 'ok',
     subject: { npi },
     context,
     decision: passport.decision,
@@ -225,7 +263,30 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     reuse_signal,
     recent_actions,
     acceptance,
+    activation,
     generatedAt,
+  };
+}
+
+type StartActivationRow = {
+  id: string;
+  clinicianNpi: string;
+  orgId: string | null;
+  acceptanceRef: string;
+  activationState: string;
+  activatedAt: Date | null;
+  createdAt: Date;
+};
+
+function mapActivationRow(row: StartActivationRow): OmegaActivation {
+  return {
+    id: row.id,
+    clinicianNpi: row.clinicianNpi,
+    orgId: row.orgId,
+    acceptanceRef: row.acceptanceRef,
+    activationState: row.activationState,
+    activatedAt: row.activatedAt ? row.activatedAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
