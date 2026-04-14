@@ -737,48 +737,7 @@ function EmployerActionHooks({ npi }: { npi: string }) {
 }
 
 
-function EmployerActionHooks({ npi }: { npi: string }) {
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto max-w-2xl px-6 py-3">
-        <div className="flex items-center justify-center gap-4 pb-2">
-          <p className="text-xs text-muted-foreground">Did this decision make sense?</p>
-          <button
-            onClick={() => postTelemetry(npi, 'feedback_clear')}
-            className="text-xs text-green-600 hover:underline"
-          >Yes</button>
-          <button
-            onClick={() => {
-              const c = prompt('What was confusing?');
-              if (c) {
-                fetch('/api/pilot/friction', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ npi, contextPhase: 'decision_view', userComment: c }),
-                }).catch(() => {});
-              }
-            }}
-            className="text-xs text-red-500 hover:underline"
-          >No</button>
-        </div>
-        <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={() => postTelemetry(npi, 'flag')}
-            className="rounded-md border border-red-200 bg-red-50 text-red-600 px-4 py-2 text-sm font-medium transition-colors hover:bg-red-100"
-          >Flag Issue</button>
-          <button
-            onClick={() => postTelemetry(npi, 'request_data')}
-            className="rounded-md border border-amber-200 bg-amber-50 text-amber-600 px-4 py-2 text-sm font-medium transition-colors hover:bg-amber-100"
-          >Request More Data</button>
-          <button
-            onClick={() => postTelemetry(npi, 'accept')}
-            className="rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
-          >Accept Candidate</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 
 // ── Page ──────────────────────────────────────────────────────────────────
