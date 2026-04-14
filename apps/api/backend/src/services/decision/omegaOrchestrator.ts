@@ -93,14 +93,13 @@ export class OmegaOrchestrator {
     let startCreated = false;
     if (action === 'accept') {
       try {
-        await prisma.startAttestation.create({
+        await prisma.startActivation.create({
           data: {
-            acceptanceId: acceptance.id,
             clinicianNpi: npi,
             orgId,
+            acceptanceId: acceptance.id,
             role,
             activationState: 'READY_TO_START',
-            startedAt: new Date(),
             metadata: JSON.parse(JSON.stringify({ decisionState, trustSnapshot })),
           },
         });
