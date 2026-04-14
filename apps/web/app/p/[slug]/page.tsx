@@ -32,6 +32,7 @@ import {
   getRecentActionEmptyMessage,
 } from '@/lib/trust/decision-copy';
 import { DecisionActions } from './DecisionActions';
+import { CopyShareLink } from './CopyShareLink';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -879,13 +880,18 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {profile.mode === 'npi' && (
             <>
               {/* Zero-context onboarding header */}
-              <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-center">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Credential readiness snapshot
-                </p>
-                <p className="mt-1 text-sm text-foreground">
-                  This is a credential readiness snapshot for a clinician, built from verified public sources.
-                </p>
+              <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Credential readiness snapshot
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      This is a credential readiness snapshot for a clinician, built from verified public sources.
+                    </p>
+                  </div>
+                  <CopyShareLink npi={profile.npi} />
+                </div>
               </section>
 
               {/* Hierarchy per Wave: decision → actions → limitations → everything else */}
