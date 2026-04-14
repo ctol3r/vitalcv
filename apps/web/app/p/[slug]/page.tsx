@@ -757,13 +757,6 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       </div>
 
       {/* Sticky CTA — mode-aware */}
-      {profile.mode === 'npi' && (
-        <EmployerReviewActions npi={profile.npi} nbaPayload={null} />
-      )}
-      {profile.mode === 'slug' && (
-        <EmployerReviewActions npi={profile.slug} nbaPayload={null} />
-      )}
-      
       <EmployerTracker 
         npi={profile.mode === 'npi' ? profile.npi : undefined} 
         slug={profile.mode === 'slug' ? profile.slug : undefined} 

@@ -53,45 +53,17 @@ export function EmployerReviewActions({
 
   return (
     <>
-      {nbaPayload && (
+      {successMsg && (
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm">
+          <p className="text-sm font-bold text-green-700 text-center">✓ {successMsg}</p>
+        </div>
+      )}
+      {!successMsg && nbaPayload && (
         <EmployerNextBestAction
           nba={nbaPayload}
           onActionClick={loading ? undefined : handleNbaAction}
         />
       )}
-
-      {/* Legacy sticky CTA bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">
-              {successMsg || 'Ready to make a hiring decision?'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {successMsg
-                ? 'Your decision has been securely recorded. Refreshing context...'
-                : 'Select an action based on the verified trust posture above.'}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              disabled={loading || !!successMsg}
-              onClick={() => handleAction('flag', 'Decision Recorded: Escalated')}
-              className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
-            >
-              Reject Candidate
-            </button>
-            <button
-              disabled={loading || !!successMsg}
-              onClick={() => handleAction('accept', 'Decision Recorded: Accept')}
-              className="rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              Hire Candidate
-            </button>
-          </div>
-        </div>
-      </div>
     </>
   );
 }
