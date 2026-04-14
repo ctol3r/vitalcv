@@ -31,13 +31,13 @@ The recommendation is a pure function of:
 5. **The Async Rule**:
    - `CHECKING` → `HOLD`
 
-## 4. Output Structure
-Every evaluation returns a standardized payload:
-```json
-{
-  "action": "PROCEED",
-  "reason": "Clinician is DECISION_GRADE with no active drift.",
-  "confidence": 0.95
-}
-```
-*Confidence* degrades based on data staleness or conflicting historical learning signals.
+## 5. Empirical Learning (Data-Driven Guidance)
+While deterministic rules govern hard blockers, fuzzy decisions (like proceeding on a `PARTIAL` passport) are governed by empirical learning.
+
+Before falling back to static rules, the NBA Engine queries `prismaEventStore` for historical outcomes of identical credential profiles.
+
+### Data-Driven Overrides
+- **High Historic Drift Risk:** If similar profiles resulted in `DRIFT_OCCURRED` > 15% of the time, the engine suppresses the `PROCEED` recommendation and downgrades to `REQUEST_DATA`, adjusting the confidence score dynamically.
+- **Empirically Safe Gaps:** If a `PARTIAL` passport has historically resulted in `START_ACTIVATED` > 85% of the time without downstream issues, the engine overrides the static gap rule and recommends `PROCEED`.
+
+Every NBA payload strictly indicates whether the recommendation was derived from deterministic logic or historical learning signals via the `derivedFromLearning` boolean.
