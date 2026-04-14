@@ -15,6 +15,7 @@
 import prisma from '../graphql/prisma_client';
 import { buildPassportDataByNpi, type PassportDataContract } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
+import { computeDriftSignal, type DriftSignal } from './drift';
 import { log } from '../obs/logger';
 
 export interface OmegaRequest {
@@ -72,6 +73,7 @@ export interface OmegaResponse {
   recent_actions: OmegaRecentAction[];
   acceptance: OmegaAcceptance | null;
   activation: OmegaActivation | null;
+  drift: DriftSignal;
   generatedAt: string;
 }
 
@@ -118,6 +120,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       recent_actions: [],
       acceptance: null,
       activation: null,
+      drift: computeDriftSignal({ passport: null, reuseSignal: null }),
       generatedAt,
     };
   }
@@ -215,6 +218,11 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       ? mapActivationRow(activationResult.value)
       : null;
 
+  const drift: DriftSignal = computeDriftSignal({
+    passport: passportResult.status === 'fulfilled' ? passportResult.value : null,
+    reuseSignal: reuseResult.status === 'fulfilled' ? reuseResult.value : null,
+  });
+
   if (!passport) {
     return {
       status: 'not_found',
@@ -235,6 +243,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
           : [],
       acceptance,
       activation,
+      drift,
       generatedAt,
     };
   }
@@ -264,6 +273,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     recent_actions,
     acceptance,
     activation,
+    drift,
     generatedAt,
   };
 }
