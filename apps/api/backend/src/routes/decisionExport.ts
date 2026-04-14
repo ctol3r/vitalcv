@@ -14,6 +14,8 @@ import {
   extractCapsuleDecisionAttestations,
   type DecisionAttestationRecord,
 } from '../services/audit/replayEngine';
+import { logEvent } from '../services/audit/eventWriter';
+import { hashAttestation } from '../services/attestation/canonicalize';
 
 const NPI_RE = /^\d{10}$/;
 const SYSTEM_VERSION = process.env.GIT_SHA ?? 'pilot';
@@ -143,6 +145,27 @@ export function registerDecisionExportRoutes(app: Express): void {
         );
       }
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+      // Audit chain — emit manifest.generated for every successful export
+      // and manifest.downloaded when the request explicitly downloads.
+      // outputsHash is a deterministic digest of the artifact body so
+      // each event is verifiably tied to a specific manifest version.
+      const manifestHash = hashAttestation(artifact);
+      void logEvent({
+        eventType: 'manifest.generated',
+        subjectNpi: npi,
+        outputsHash: manifestHash,
+        metadata: { schemaVersion: artifact.schemaVersion, systemVersion: SYSTEM_VERSION },
+      });
+      if (wantsDownload) {
+        void logEvent({
+          eventType: 'manifest.downloaded',
+          subjectNpi: npi,
+          outputsHash: manifestHash,
+          metadata: { schemaVersion: artifact.schemaVersion },
+        });
+      }
+
       log('info', 'decision_export_served', {
         npi_prefix: npi.slice(0, 4) + '····',
         download: wantsDownload,

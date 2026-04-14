@@ -16,6 +16,7 @@ import { log } from '../obs/logger';
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
 import { computeReuseSignal } from '../services/actions/reuseSignal';
 import { hashAttestation } from '../services/attestation/canonicalize';
+import { logEvent } from '../services/audit/eventWriter';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_ACTIONS = new Set(['accept', 'request_data', 'flag'] as const);
@@ -38,7 +39,7 @@ function isActionKind(value: unknown): value is ActionKind {
 async function recordDecisionAttestation(
   npi: string,
   action: ActionKind,
-): Promise<void> {
+): Promise<{ hash: string; decisionState: string } | null> {
   try {
     const [passportResult, reuseResult] = await Promise.allSettled([
       buildPassportDataByNpi(npi),
@@ -78,14 +79,22 @@ async function recordDecisionAttestation(
         hash,
       },
     });
+    return { hash, decisionState };
   } catch (error) {
     log('warn', 'decision_attestation_write_failed', {
       npi_prefix: npi.slice(0, 4) + '····',
       action,
       message: error instanceof Error ? error.message : 'unknown',
     });
+    return null;
   }
 }
+
+const ACTION_AUDIT_EVENT_TYPE: Record<ActionKind, string> = {
+  accept: 'employer.accepted_head_start',
+  request_data: 'employer.requested_more_data',
+  flag: 'employer.flagged_for_review',
+};
 
 export function registerActionLogRoutes(app: Express): void {
   app.post('/api/employer-actions', async (req: Request, res: Response) => {
@@ -155,7 +164,18 @@ export function registerActionLogRoutes(app: Express): void {
       }
 
       // Tamper-evident attestation — best-effort, never blocks.
-      await recordDecisionAttestation(npi, action);
+      const attestation = await recordDecisionAttestation(npi, action);
+      // Audit-event chain — fire-and-forget; outputsHash is the
+      // attestation digest so external auditors can correlate.
+      await logEvent({
+        eventType: ACTION_AUDIT_EVENT_TYPE[action],
+        subjectNpi: npi,
+        outputsHash: attestation?.hash ?? null,
+        metadata: {
+          action,
+          decisionState: attestation?.decisionState ?? null,
+        },
+      });
 
       log('info', 'employer_action_routed', {
         npi_prefix: npi.slice(0, 4) + '····',
