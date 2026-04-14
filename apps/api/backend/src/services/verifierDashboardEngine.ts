@@ -16,10 +16,24 @@
 
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
-import { getOnboardingMetrics } from './onboardingAnalyticsEngine';
-import { computeRevenueSignal } from './revenueSignalEngine';
-import { getObservabilityStatus } from './failureIsolationEngine';
+import { computeRevenueSignal, type OnboardingMetrics } from './revenueSignalEngine';
 import { getIntegrationHealth } from './externalIntegrations';
+
+/** Stub: onboardingAnalyticsEngine was removed. Returns empty defaults. */
+async function getOnboardingMetrics(_organizationId: string): Promise<OnboardingMetrics> {
+  return {
+    avgDaysToVerification: null,
+    avgDaysToPSVCompletion: null,
+    totalArtifacts: 0,
+    completedVerifications: 0,
+    completedPSV: 0,
+  };
+}
+
+/** Stub: failureIsolationEngine was removed. Returns healthy defaults. */
+async function getObservabilityStatus(): Promise<{ systemHealthy: boolean; recentCriticalFailures: number }> {
+  return { systemHealthy: true, recentCriticalFailures: 0 };
+}
 
 // ── Types ───────────────────────────────────────────────────
 

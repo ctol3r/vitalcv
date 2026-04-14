@@ -73,21 +73,22 @@ export interface HiringAutomationMetadata extends Record<string, unknown> {
   previewRecommendationConfidence: number | null;
 }
 
-const hiringApplicationArgs = Prisma.validator<Prisma.ApplicationDefaultArgs>()({
-  include: {
-    opportunity: {
-      include: {
-        organization: {
-          include: {
-            organizationProfile: true,
-          },
-        },
-      },
-    },
-  },
-});
-
-type HiringApplicationRecord = Prisma.ApplicationGetPayload<typeof hiringApplicationArgs>;
+// Application model removed from schema — type and args stubbed.
+type HiringApplicationRecord = {
+  id: string;
+  npi: string | null;
+  status: string;
+  reviewNote: string | null;
+  opportunityId: string;
+  opportunity: {
+    title?: string;
+    organizationId: string;
+    organization: {
+      name: string;
+      organizationProfile: { requirements: unknown } | null;
+    };
+  };
+};
 
 function isMissingTableError(
   error: unknown,
@@ -503,222 +504,11 @@ export function extractHiringAutomationMetadata(value: unknown): HiringAutomatio
 }
 
 export async function generateHiringAutomationActions(
-  nowIso: string,
-  prismaClient: PrismaClient,
+  _nowIso: string,
+  _prismaClient: PrismaClient,
 ): Promise<RecommendedAction[]> {
-  const applications = await prismaClient.application.findMany({
-    where: {
-      status: {
-        in: [...ACTIVE_APPLICATION_STATUSES],
-      },
-    },
-    ...hiringApplicationArgs,
-  }).catch((error) => {
-    if (isMissingTableError(error, 'Application')) {
-      log('warn', 'hiring_automation_optional_table_unavailable', {
-        table: 'Application',
-      });
-      return [];
-    }
-
-    throw error;
-  });
-
-  if (applications.length === 0) {
-    return [];
-  }
-
-  const organizationIds = [...new Set(applications.map((application) => application.opportunity.organizationId))];
-  const webhookConfigs = await prismaClient.employerWebhookConfig.findMany({
-    where: {
-      employerId: { in: organizationIds },
-      active: true,
-    },
-    select: {
-      employerId: true,
-    },
-  });
-  const webhookEnabledOrgIds = new Set(webhookConfigs.map((config) => config.employerId));
-
-  const npis = [...new Set(applications.map((application) => application.npi).filter((npi): npi is string => Boolean(npi)))];
-  const trustStates = new Map(
-    await Promise.all(
-      npis.map(async (npi) => [npi, await getCachedTrustState(npi)] as const),
-    ),
-  );
-
-  const findings = npis.length === 0
-    ? []
-    : await prismaClient.investigatorFinding.findMany({
-        where: {
-          entityIds: { hasSome: npis },
-          status: { in: [...ACTIVE_FINDING_STATUSES] },
-        },
-        select: {
-          findingId: true,
-          title: true,
-          summary: true,
-          severity: true,
-          status: true,
-          storylineKey: true,
-          entityIds: true,
-        },
-        orderBy: [
-          { priorityScore: 'desc' },
-          { lastSeenAt: 'desc' },
-        ],
-      });
-
-  const findingsByNpi = new Map<string, Array<{
-    findingId: string;
-    title: string;
-    summary: string;
-    severity: string;
-    status: string;
-    storylineKey: string;
-  }>>();
-
-  for (const finding of findings) {
-    const matchedNpi = finding.entityIds.find((entityId) => /^\d{10}$/.test(entityId));
-    if (!matchedNpi) {
-      continue;
-    }
-
-    const current = findingsByNpi.get(matchedNpi) ?? [];
-    current.push({
-      findingId: finding.findingId,
-      title: finding.title,
-      summary: finding.summary,
-      severity: finding.severity,
-      status: finding.status,
-      storylineKey: finding.storylineKey,
-    });
-    findingsByNpi.set(matchedNpi, current);
-  }
-
-  const actions: RecommendedAction[] = [];
-
-  for (const application of applications) {
-    const providerNpi = application.npi;
-    if (!providerNpi) {
-      continue;
-    }
-
-    const trustState = trustStates.get(providerNpi) ?? null;
-    const orgProfile = application.opportunity.organization.organizationProfile;
-    if (!trustState || !orgProfile) {
-      continue;
-    }
-
-    const envelope = parseOrganizationRequirementsEnvelope(orgProfile.requirements, []);
-    if (!envelope.automationRules.enabled) {
-      continue;
-    }
-
-    const providerLabel = providerNpi;
-    const missingCredentials = buildMissingCredentials(trustState, application);
-    const risk = buildRiskSummary(findingsByNpi.get(providerNpi) ?? []);
-    const actionType = resolveActionType({
-      readinessScore: trustState.readiness_score,
-      rules: envelope.automationRules,
-      missingCredentials,
-      hasBlockingRisk: risk.hasBlockingRisk,
-    });
-    const recommendationConfidence = confidenceForAction(
-      actionType,
-      trustState.readiness_score,
-      missingCredentials,
-      risk.hasBlockingRisk,
-    );
-    const workflowEffects = buildWorkflowEffects({
-      actionType,
-      missingCredentials,
-      notifyEmployer: envelope.automationRules.notifyEmployer,
-      notifyClinician: envelope.automationRules.notifyClinician,
-      webhookEligible: webhookEnabledOrgIds.has(application.opportunity.organizationId),
-    });
-    const previewEligible = typeof envelope.automationRules.autoAcceptThreshold === 'number'
-      && trustState.readiness_score >= envelope.automationRules.autoAcceptThreshold
-      && missingCredentials.length === 0
-      && !risk.hasBlockingRisk;
-
-    const explanation = buildActionExplanation({
-      actionType,
-      providerLabel,
-      opportunityTitle: application.opportunity.title,
-      readinessScore: trustState.readiness_score,
-      missingCredentials,
-      riskSummary: risk.explanation,
-      organizationName: application.opportunity.organization.name,
-      storylines: risk.storylineCount,
-    });
-
-    const recommendation = recommendationLabel(actionType);
-    const metadata: HiringAutomationMetadata = {
-      autoGenerated: true,
-      applicationId: application.id,
-      opportunityId: application.opportunityId,
-      organizationId: application.opportunity.organizationId,
-      organizationName: application.opportunity.organization.name ?? null,
-      providerNpi,
-      providerLabel,
-      recommendationLabel: recommendation,
-      recommendationConfidence,
-      workflowEffects,
-      previewActionType: previewEligible ? 'ACCEPT_RECOMMENDED' : null,
-      previewRecommendationLabel: previewEligible ? 'Recommend acceptance' : null,
-      previewRecommendationConfidence: previewEligible ? previewConfidence(trustState.readiness_score) : null,
-    };
-
-    actions.push({
-      actionId: buildActionId({
-        actionType,
-        applicationId: application.id,
-        providerNpi,
-        opportunityId: application.opportunityId,
-      }),
-      actionType,
-      targetEntity: {
-        entityType: 'provider',
-        entityId: providerNpi,
-        entityLabel: providerLabel,
-      },
-      recommendedAction: recommendation,
-      priority: priorityFor(actionType),
-      priorityScore: priorityScoreFor(actionType, trustState.readiness_score),
-      confidence: recommendationConfidence,
-      explanation,
-      createdAt: nowIso,
-      status: 'pending',
-      storylineKey: risk.hasBlockingRisk ? (findingsByNpi.get(providerNpi)?.[0]?.storylineKey ?? null) : null,
-      sourceFindingIds: risk.sourceFindingIds,
-      predictionIds: [],
-      evidence: [
-        {
-          label: 'Readiness score',
-          snippet: `${trustState.readiness_score}/100`,
-          source: 'trust_state',
-        },
-        ...(missingCredentials.length > 0
-          ? [{
-              label: 'Missing credentials',
-              snippet: missingCredentials.join(', '),
-              source: 'automation_rules',
-            }]
-          : []),
-        ...(risk.hasBlockingRisk
-          ? [{
-              label: 'Blocking risk',
-              snippet: risk.explanation,
-              source: 'investigator_findings',
-            }]
-          : []),
-      ],
-      metadata,
-    });
-  }
-
-  return actions;
+  // Application + EmployerWebhookConfig models removed — return empty.
+  return [];
 }
 
 export async function queueHiringAutomationSideEffects(

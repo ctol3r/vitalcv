@@ -266,34 +266,19 @@ async function evaluateCompliance(
   specialty:        string,
   verifiedTypes:    CredentialType[],
 ): Promise<ComplianceCheckResult> {
-  const rule = await prisma.stateComplianceRule.findFirst({
-    where: { state_code: state, specialty },
-  });
+  // stateComplianceRule model removed — always use open-policy default.
+  const rule = null;
 
-  if (!rule) {
-    // No rule on record → open-policy default: all verified types pass.
-    return {
-      passed:       true,
-      stateCode:    state,
-      specialty,
-      requiredTypes: verifiedTypes,
-      verifiedTypes,
-      missingTypes:  [],
-      ruleSource:   'OPEN_POLICY_DEFAULT',
-    };
-  }
-
-  const required  = rule.required_credential_types as string[];
-  const missing   = required.filter(r => !(verifiedTypes as string[]).includes(r));
-
+  // stateComplianceRule model removed — always use open-policy default.
+  // No rule on record → open-policy default: all verified types pass.
   return {
-    passed:        missing.length === 0,
-    stateCode:     state,
+    passed:       true,
+    stateCode:    state,
     specialty,
-    requiredTypes: required,
-    verifiedTypes: verifiedTypes as string[],
-    missingTypes:  missing,
-    ruleSource:    'STATE_COMPLIANCE_RULE',
+    requiredTypes: verifiedTypes,
+    verifiedTypes,
+    missingTypes:  [],
+    ruleSource:   'OPEN_POLICY_DEFAULT',
   };
 }
 

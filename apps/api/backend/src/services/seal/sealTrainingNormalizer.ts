@@ -24,9 +24,6 @@
  * Used for: offline model training, feature engineering, snapshot export
  */
 
-import prisma from '../../graphql/prisma_client';
-import { log } from '../../obs/logger';
-
 // ── Output shape ───────────────────────────────────────────────────────────
 
 /**
@@ -91,207 +88,16 @@ export interface SealTrainingRow {
   };
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function inferExclusionStatus(blockers: string[]): string {
-  if (blockers.some(b => /excluded|exclusion/i.test(b)))  return 'EXCLUDED';
-  if (blockers.some(b => /possible_match|possible match/i.test(b))) return 'POSSIBLE_MATCH';
-  return 'CLEAR';
-}
-
-function inferAuthorityStatus(blockers: string[]): string {
-  if (blockers.some(b => /licen|disciplin|expired/i.test(b))) return 'review';
-  if (blockers.some(b => /missing.*licen/i.test(b))) return 'missing';
-  return 'active';
-}
-
-function inferEnrollmentStatus(blockers: string[]): string {
-  if (blockers.some(b => /enrollment not found|pecos/i.test(b))) return 'NOT_FOUND';
-  if (blockers.some(b => /enrollment.*review/i.test(b))) return 'UNKNOWN';
-  return 'ENROLLED_OR_UNCHECKED';
-}
-
-function inferConfidenceMix(sourceCoverage: Record<string, unknown>): string {
-  const checked = (sourceCoverage.checked as string[] | undefined) ?? [];
-  const gated = (sourceCoverage['gated'] as string[] | undefined) ?? [];
-  const previewOnly = (sourceCoverage.previewOnly as string[] | undefined) ?? [];
-  if (checked.length >= 2 && gated.length > 0) return 'HIGH';
-  if (checked.length >= 2) return 'MIXED';
-  if (checked.length > 0 || previewOnly.length > 0) return 'LOW';
-  return 'UNKNOWN';
-}
-
-function blockerSeverity(count: number): 'BLOCKING' | 'WARNING' | 'NONE' {
-  if (count >= 2) return 'BLOCKING';
-  if (count === 1) return 'WARNING';
-  return 'NONE';
-}
-
 // ── Main normalizer ────────────────────────────────────────────────────────
 
-export async function buildTrainingRows(opts: {
+export async function buildTrainingRows(_opts: {
   from:   Date;
   to:     Date;
   limit?: number;
 }): Promise<SealTrainingRow[]> {
-  const { from, to, limit = 10_000 } = opts;
-
-  // Anchor on employer_decision_events — the most informative label signal
-  // Fetch decisions with related entity + orgContext via include (Prisma join)
-  const decisions = await prisma.employerDecisionEvent.findMany({
-    where:   { decidedAt: { gte: from, lte: to } },
-    orderBy: { decidedAt: 'asc' },
-    take:    limit,
-    include: {
-      entity:              { select: { npiType: true, entityType: true } },
-      organizationContext: { select: { contextType: true } },
-    },
-  });
-
-  if (decisions.length === 0) return [];
-
-  // Batch-fetch related events per entity
-  const entityIds = [...new Set(decisions.map(d => d.entityId))];
-
-  const [advisoryMap, shareMap, startMap, avgResolutionMap] = await Promise.all([
-    // Last advisory event before each decision
-    prisma.advisoryOutcomeEvent.findMany({
-      where:   { entityId: { in: entityIds }, eventTimestamp: { lte: to } },
-      orderBy: { eventTimestamp: 'desc' },
-      select: {
-        entityId:              true,
-        eventType:             true,
-        blockersAtEvent:       true,
-        readinessScoreAtEvent: true,
-        sourceCoverageAtEvent: true,
-        eventTimestamp:        true,
-      },
-    }).then(rows => {
-      // Key: entityId → most recent event before decision
-      const map = new Map<string, typeof rows[0]>();
-      for (const row of rows) {
-        if (!map.has(row.entityId)) map.set(row.entityId, row);
-      }
-      return map;
-    }),
-
-    // Did a share event fire before the decision?
-    prisma.advisoryOutcomeEvent.findMany({
-      where: { entityId: { in: entityIds }, eventType: 'SHARE_INITIATED', eventTimestamp: { lte: to } },
-      select: { entityId: true },
-    }).then(rows => new Set(rows.map(r => r.entityId))),
-
-    // Start outcome events
-    prisma.startOutcomeEvent.findMany({
-      where:   { entityId: { in: entityIds } },
-      orderBy: { startedAt: 'asc' },
-      select: {
-        entityId:              true,
-        startedAt:             true,
-        daysFromFirstReview:   true,
-        daysFromShare:         true,
-        daysFromReady:         true,
-        readinessScoreAtStart: true,
-        blockersAtStart:       true,
-      },
-    }).then(rows => {
-      const map = new Map<string, typeof rows[0]>();
-      for (const row of rows) {
-        if (!map.has(row.entityId)) map.set(row.entityId, row);
-      }
-      return map;
-    }),
-
-    // Average resolution days per entity from resolved blockers
-    prisma.blockerResolutionEvent.groupBy({
-      by:     ['entityId'],
-      where:  { entityId: { in: entityIds }, status: 'RESOLVED', resolutionDays: { not: null } },
-      _avg:   { resolutionDays: true },
-    }).then(rows => {
-      const map = new Map<string, number | null>();
-      for (const row of rows) map.set(row.entityId, row._avg.resolutionDays);
-      return map;
-    }),
-  ]);
-
-  const rows: SealTrainingRow[] = [];
-
-  for (const d of decisions) {
-    try {
-      const blockers = Array.isArray(d.blockersAtDecision)
-        ? (d.blockersAtDecision as string[])
-        : [];
-      const trustSnapshot = (d.trustSnapshotAtDecision ?? {}) as Record<string, unknown>;
-      const advisory      = advisoryMap.get(d.entityId);
-      const sourceCov     = (advisory?.sourceCoverageAtEvent ?? trustSnapshot['sourceCoverage'] ?? {}) as Record<string, unknown>;
-      const startEvent    = startMap.get(d.entityId);
-      const orgCtx = d.organizationContext;
-
-      const row: SealTrainingRow = {
-        row_id:           `${d.entityId.slice(0, 8)}-${d.decidedAt.toISOString().slice(0, 10)}`,
-        entity_id_prefix: d.entityId.slice(0, 8),
-        snapshot_date:    d.decidedAt.toISOString().slice(0, 10),
-
-        entity_features: {
-          provider_type: (d as typeof d & { entity?: { entityType?: string } }).entity?.entityType ?? null,
-          npi_type:      (d as typeof d & { entity?: { npiType?: string } }).entity?.npiType ?? null,
-        },
-
-        trust_features: {
-          readiness_score:   d.readinessScoreAtDecision ?? null,
-          identity_status:   blockers.some(b => /identity/i.test(b)) ? 'missing' : 'confirmed',
-          exclusion_status:  inferExclusionStatus(blockers),
-          authority_status:  inferAuthorityStatus(blockers),
-          enrollment_status: inferEnrollmentStatus(blockers),
-          source_coverage:   (sourceCov.checked as string[] | undefined) ?? [],
-          confidence_mix:    inferConfidenceMix(sourceCov),
-          blocker_count:     blockers.length,
-        },
-
-        blocker_features: {
-          blocker_codes:       blockers,
-          blocker_count:       blockers.length,
-          blocker_severity:    blockerSeverity(blockers.length),
-          avg_resolution_days: avgResolutionMap.get(d.entityId) ?? null,
-        },
-
-        context_features: {
-          has_org_context: !!d.organizationContextId,
-          // contextType mapped from VcvOrgContextType enum (CREDENTIALING, APPLICATION, etc.)
-          purpose_of_use: (orgCtx as { contextType?: string } | null)?.contextType ?? null,
-        },
-
-        action_features: {
-          share_sent:        shareMap.has(d.entityId),
-          advisory_shown:    !!advisory,
-          advisory_type:     advisory?.eventType ?? null,
-          employer_decision: d.decision,
-        },
-
-        outcome_features: {
-          started:                !!startEvent,
-          days_to_start:          startEvent?.daysFromFirstReview ?? null,
-          days_from_first_review: startEvent?.daysFromFirstReview ?? null,
-          days_from_share:        startEvent?.daysFromShare ?? null,
-          days_from_ready:        startEvent?.daysFromReady ?? null,
-          blockers_at_start:      startEvent
-            ? (Array.isArray(startEvent.blockersAtStart)
-                ? (startEvent.blockersAtStart as string[]).length
-                : 0)
-            : null,
-        },
-      };
-
-      rows.push(row);
-    } catch (rowErr) {
-      log('warn', 'seal_training_row_build_failed', {
-        decisionId: d.id,
-        error: rowErr instanceof Error ? rowErr.message : String(rowErr),
-      });
-    }
-  }
-
-  return rows;
+  // TODO: removed — referenced non-existent Prisma models:
+  //   employerDecisionEvent, advisoryOutcomeEvent, startOutcomeEvent, blockerResolutionEvent
+  return [];
 }
 
 // ── Dataset snapshot ───────────────────────────────────────────────────────
@@ -332,16 +138,12 @@ export async function getSealEventCounts(): Promise<{
   employerDecisionEvents:  number;
   startOutcomeEvents:      number;
 }> {
-  const [advisory, blocker, decision, start] = await Promise.all([
-    prisma.advisoryOutcomeEvent.count(),
-    prisma.blockerResolutionEvent.count(),
-    prisma.employerDecisionEvent.count(),
-    prisma.startOutcomeEvent.count(),
-  ]);
+  // TODO: removed — referenced non-existent Prisma models:
+  //   advisoryOutcomeEvent, blockerResolutionEvent, employerDecisionEvent, startOutcomeEvent
   return {
-    advisoryOutcomeEvents:   advisory,
-    blockerResolutionEvents: blocker,
-    employerDecisionEvents:  decision,
-    startOutcomeEvents:      start,
+    advisoryOutcomeEvents:   0,
+    blockerResolutionEvents: 0,
+    employerDecisionEvents:  0,
+    startOutcomeEvents:      0,
   };
 }

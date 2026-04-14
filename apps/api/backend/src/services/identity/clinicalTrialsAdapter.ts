@@ -177,16 +177,20 @@ export class ClinicalTrialsAdapter {
           // Only include trials where the clinician is actually listed
           if (!matched && name) return null;
 
-          return Object.freeze({
+          const startDate = proto.statusModule?.startDateStruct?.date;
+          const completionDate = proto.statusModule?.completionDateStruct?.date;
+
+          const record: ClinicalTrialRecord = Object.freeze({
             nctId: proto.identificationModule.nctId,
             title: proto.identificationModule.briefTitle ?? proto.identificationModule.officialTitle ?? 'Untitled',
             phase: normalizePhase(proto.designModule?.phases),
             status: normalizeStatus(proto.statusModule?.overallStatus),
             role,
             sponsor: proto.sponsorCollaboratorsModule?.leadSponsor?.name ?? 'Unknown',
-            startDate: proto.statusModule?.startDateStruct?.date,
-            completionDate: proto.statusModule?.completionDateStruct?.date,
+            ...(startDate !== undefined ? { startDate } : {}),
+            ...(completionDate !== undefined ? { completionDate } : {}),
           });
+          return record;
         })
         .filter((t): t is ClinicalTrialRecord => t !== null);
 

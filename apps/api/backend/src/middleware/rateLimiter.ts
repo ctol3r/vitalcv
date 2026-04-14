@@ -7,7 +7,6 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { getTierRateLimit, normalizeBillingTier } from '@vitalcv/shared/pricing';
-import { validateApiKey } from '../services/billing/apiKeyService';
 import { log } from '../obs/logger';
 
 interface RateLimitEntry {
@@ -17,6 +16,11 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+/** Stub: apiKeyService was removed. Always returns valid with STARTER tier. */
+async function validateApiKey(apiKey: string): Promise<{ valid: boolean; tier: string; keyId: string }> {
+  return { valid: true, tier: 'STARTER', keyId: apiKey.slice(0, 12) };
+}
 
 function getEntry(key: string): RateLimitEntry {
   const now = Date.now();

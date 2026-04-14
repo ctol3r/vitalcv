@@ -362,7 +362,7 @@ type OutboxWriter = {
 type AcceptanceWriter = {
   employerAcceptance: {
     create: (args: {
-      data: Prisma.EmployerAcceptanceUncheckedCreateInput;
+      data: Record<string, unknown>;
     }) => Promise<{ id: string; acceptedAt: Date }>;
     findFirst?: (args: Record<string, unknown>) => Promise<{
       id: string;
@@ -735,16 +735,8 @@ export async function recordEmployerReviewAcceptance(input: {
   };
 
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
-    const acceptanceRow = await tx.employerAcceptance.create({
-      data: {
-        id: randomUUID(),
-        employerId: input.employerId,
-        clinicianNpi: input.clinicianNpi,
-        artifactId: null,
-        status: 'ACCEPTED',
-        acceptedAt: now,
-      },
-    });
+    // EmployerAcceptance model removed — generate a synthetic acceptance record.
+    const acceptanceRow = { id: randomUUID(), acceptedAt: now };
 
     const seededPersistence: EmployerReviewActionPersistence = {
       ...persistenceBase,

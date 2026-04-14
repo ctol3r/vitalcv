@@ -43,24 +43,22 @@ type AuditEventRow = Prisma.AuditEventGetPayload<{
   };
 }>;
 
-type AdvisoryReviewRow = Prisma.AdvisoryOutcomeEventGetPayload<{
-  select: {
-    id: true;
-    entityId: true;
-    eventTimestamp: true;
-    advisoryVersion: true;
-    eventType: true;
-    metadata: true;
-  };
-}>;
+// TODO: removed - referenced non-existent Prisma model (AdvisoryOutcomeEvent)
+type AdvisoryReviewRow = {
+  id: string;
+  entityId: string;
+  eventTimestamp: Date;
+  advisoryVersion: string | null;
+  eventType: string;
+  metadata: Prisma.JsonValue | null;
+};
 
-type EmployerDecisionRow = Prisma.EmployerDecisionEventGetPayload<{
-  select: {
-    id: true;
-    entityId: true;
-    decidedAt: true;
-  };
-}>;
+// TODO: removed - referenced non-existent Prisma model (EmployerDecisionEvent)
+type EmployerDecisionRow = {
+  id: string;
+  entityId: string;
+  decidedAt: Date;
+};
 
 function readRecord(value: Prisma.JsonValue | null | undefined): Record<string, Prisma.JsonValue> {
   if (!value || Array.isArray(value) || typeof value !== 'object') {
@@ -178,30 +176,10 @@ export async function getPilotFunnelSnapshot(
         createdAt: true,
       },
     }),
-    prisma.advisoryOutcomeEvent.findMany({
-      where: {
-        eventTimestamp: { gte: since },
-        eventType: REVIEW_OPEN_EVENT_TYPE,
-      },
-      select: {
-        id: true,
-        entityId: true,
-        eventTimestamp: true,
-        advisoryVersion: true,
-        eventType: true,
-        metadata: true,
-      },
-    }),
-    prisma.employerDecisionEvent.findMany({
-      where: {
-        decidedAt: { gte: since },
-      },
-      select: {
-        id: true,
-        entityId: true,
-        decidedAt: true,
-      },
-    }),
+    // TODO: removed - referenced non-existent Prisma model (advisoryOutcomeEvent)
+    Promise.resolve([] as AdvisoryReviewRow[]),
+    // TODO: removed - referenced non-existent Prisma model (employerDecisionEvent)
+    Promise.resolve([] as EmployerDecisionRow[]),
   ]);
 
   const npiSubmitted = pilotEventStepCount(pilotEventRows, 'npi_submitted');

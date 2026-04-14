@@ -165,37 +165,17 @@ function isMissingTableError(error: unknown): boolean {
 }
 
 async function loadResidencyProgramsBySpecialty(
-  prismaClient: PrismaClient,
+  _prismaClient: PrismaClient,
 ): Promise<ResidencyProgramSpecialtyBucket[]> {
-  try {
-    const rows = await prismaClient.residencyProgram.groupBy({
-      by: ['specialty'],
-      _count: { _all: true },
-    });
-    return rows as ResidencyProgramSpecialtyBucket[];
-  } catch (error) {
-    if (isMissingTableError(error)) {
-      return [];
-    }
-    throw error;
-  }
+  // residencyProgram model removed — return empty array.
+  return [];
 }
 
 async function loadResidencyProgramsByInstitution(
-  prismaClient: PrismaClient,
+  _prismaClient: PrismaClient,
 ): Promise<ResidencyProgramInstitutionBucket[]> {
-  try {
-    const rows = await prismaClient.residencyProgram.groupBy({
-      by: ['hospital_affiliation'],
-      _count: { _all: true },
-    });
-    return rows as ResidencyProgramInstitutionBucket[];
-  } catch (error) {
-    if (isMissingTableError(error)) {
-      return [];
-    }
-    throw error;
-  }
+  // residencyProgram model removed — return empty array.
+  return [];
 }
 
 function daysAgo(nowIso: string, days: number): Date {

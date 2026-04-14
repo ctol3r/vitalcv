@@ -298,11 +298,11 @@ function buildReuseRate(capsules: CapsuleProjection[]): {
 async function loadOrganizationScope(organizationId: string): Promise<OrganizationScope> {
   const opportunities = await prisma.opportunity.findMany({
     where: { organizationId },
-    select: { id: true, organization: { select: { name: true } } },
+    select: { id: true, organizationId: true },
   });
 
-  const organizationName = opportunities[0]?.organization.name
-    ?? (await prisma.organization.findUnique({
+  const organizationName =
+    (await prisma.organization.findUnique({
       where: { id: organizationId },
       select: { name: true },
     }))?.name
@@ -310,43 +310,28 @@ async function loadOrganizationScope(organizationId: string): Promise<Organizati
 
   const opportunityIds = opportunities.map((opportunity) => opportunity.id);
 
-  const applications = await prisma.application.findMany({
-    where: { opportunity: { organizationId } },
-    select: { status: true, npi: true },
-  });
-
-  const cohortNpis = [...new Set(applications
-    .map((application) => application.npi)
-    .filter((npi): npi is string => typeof npi === 'string' && /^\d{10}$/.test(npi)))];
+  // TODO: removed - referenced non-existent Prisma model 'application'
+  const cohortNpis: string[] = [];
 
   return {
     organizationId,
     organizationName,
     opportunityIds,
     cohortNpis,
-    totalApplications: applications.length,
-    totalAccepted: applications.filter((application) => application.status === 'ACCEPTED').length,
+    totalApplications: 0,
+    totalAccepted: 0,
   };
 }
 
 async function loadSystemScope(): Promise<OrganizationScope> {
-  const applications = await prisma.application.findMany({
-    select: {
-      opportunityId: true,
-      status: true,
-      npi: true,
-    },
-  });
-
+  // TODO: removed - referenced non-existent Prisma model 'application'
   return {
     organizationId: 'system',
     organizationName: 'System',
-    opportunityIds: [...new Set(applications.map((application) => application.opportunityId))],
-    cohortNpis: [...new Set(applications
-      .map((application) => application.npi)
-      .filter((npi): npi is string => typeof npi === 'string' && /^\d{10}$/.test(npi)))],
-    totalApplications: applications.length,
-    totalAccepted: applications.filter((application) => application.status === 'ACCEPTED').length,
+    opportunityIds: [],
+    cohortNpis: [],
+    totalApplications: 0,
+    totalAccepted: 0,
   };
 }
 
@@ -450,32 +435,9 @@ async function loadDecisionCapsules(cohortNpis: string[]): Promise<CapsuleProjec
   return capsules;
 }
 
-async function loadStartDeltaRecords(organizationId?: string): Promise<StartDeltaRecord[]> {
-  const starts = await prisma.startAttestation.findMany({
-    where: organizationId
-      ? {
-          acceptance: {
-            employerId: organizationId,
-          },
-        }
-      : undefined,
-    select: {
-      startedAt: true,
-      acceptance: {
-        select: {
-          acceptedAt: true,
-        },
-      },
-    },
-    orderBy: { startedAt: 'desc' },
-  });
-
-  return starts
-    .map((start) => ({
-      acceptedAt: start.acceptance.acceptedAt,
-      startedAt: start.startedAt,
-    }))
-    .filter((record) => record.startedAt.getTime() >= record.acceptedAt.getTime());
+async function loadStartDeltaRecords(_organizationId?: string): Promise<StartDeltaRecord[]> {
+  // TODO: removed - referenced non-existent Prisma model 'startAttestation'
+  return [];
 }
 
 function buildTimeToStartSummary(records: StartDeltaRecord[]): Pick<

@@ -865,14 +865,8 @@ export async function syncInstitutions(
         value: true,
       },
     }),
-    prismaClient.residencyProgram.findMany({
-      take: sourceLimit,
-      select: {
-        acgme_code: true,
-        hospital_affiliation: true,
-        specialty: true,
-      },
-    }),
+    // residencyProgram model removed — return empty array
+    Promise.resolve([] as Array<{ acgme_code: string; hospital_affiliation: string; specialty: string }>),
   ]);
 
   const candidates = new Map<string, InstitutionCandidate>();

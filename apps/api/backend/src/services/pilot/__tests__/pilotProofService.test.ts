@@ -32,11 +32,6 @@ jest.mock('../../../graphql/prisma_client', () => ({
   },
 }));
 
-jest.mock('../../opportunities/applicationService', () => ({
-  listAllOrgApplications: jest.fn(),
-  listClinicianApplications: jest.fn(),
-}));
-
 jest.mock('../../trust/trustStateEngine', () => ({
   getTrustStateHistory: jest.fn(),
 }));

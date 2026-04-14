@@ -646,12 +646,7 @@ async function buildProjection(
     }),
     prismaClient.organization.findMany({
       where: organizationScope.length > 0 ? { id: { in: organizationScope } } : undefined,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         organizationProfile: {
           select: {
             id: true,
@@ -672,10 +667,7 @@ async function buildProjection(
         : organizationScope.length > 0
           ? { organizationProfile: { organizationId: { in: organizationScope } } }
           : undefined,
-      select: {
-        role: true,
-        active: true,
-        createdAt: true,
+      include: {
         personProfile: {
           select: { npi: true },
         },
@@ -701,19 +693,15 @@ async function buildProjection(
         },
       }),
     ),
-    safeOptionalFindMany('Application', () =>
-      prismaClient.application.findMany({
-        where: npiScope.length > 0 ? { npi: { in: npiScope } } : undefined,
-        select: {
-          id: true,
-          opportunityId: true,
-          npi: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-    ),
+    // TODO: removed - referenced non-existent Prisma model 'application'
+    Promise.resolve([] as Array<{
+      id: string;
+      opportunityId: string;
+      npi: string | null;
+      status: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }>),
     prismaClient.verificationArtifact.findMany({
       where: npiScope.length > 0 ? { npi: { in: npiScope } } : undefined,
       select: {
@@ -893,10 +881,12 @@ async function buildProjection(
 
   for (const membership of workspaceMemberships) {
     if (!membership.active) continue;
-    const clinicianNode = membership.personProfile.npi
+    const clinicianNode = membership.personProfile?.npi
       ? clinicianNodeByNpi.get(membership.personProfile.npi)
       : undefined;
-    const orgNode = organizationNodeById.get(membership.organizationProfile.organizationId);
+    const orgNode = membership.organizationProfile?.organizationId
+      ? organizationNodeById.get(membership.organizationProfile.organizationId)
+      : undefined;
     if (!clinicianNode || !orgNode) continue;
 
     addEdge(context, buildEdge({

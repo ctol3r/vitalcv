@@ -2,15 +2,38 @@ import { ApplicationStatus, Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { computePilotKpis, type PilotKpiSnapshot } from './pilotKpiService';
 import {
-  listAllOrgApplications,
-  listClinicianApplications,
-  type MarketplaceApplication,
-} from '../opportunities/applicationService';
-import {
   getTrustStateHistory,
   type ClinicianTrustState,
   type TrustBand,
 } from '../trust/trustStateEngine';
+
+// TODO: removed - referenced non-existent module (applicationService)
+// MarketplaceApplication and related functions are stubbed locally.
+interface MarketplaceApplication {
+  id: string;
+  npi: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+  reviewedAt: string | null;
+  provider: { fullName: string | null; npi: string | null } | null;
+  readiness: {
+    readinessLevel: TrustBand;
+    readinessScore: number;
+    keyCredentials: Array<{ label: string }>;
+    gapSummary: string[];
+  } | null;
+}
+
+// TODO: removed - referenced non-existent module (applicationService)
+async function listClinicianApplications(_clerkUserId: string): Promise<MarketplaceApplication[]> {
+  return [];
+}
+
+// TODO: removed - referenced non-existent module (applicationService)
+async function listAllOrgApplications(_clerkUserId: string): Promise<MarketplaceApplication[]> {
+  return [];
+}
 
 const PILOT_EVENT_AUDIT_TYPE = 'PILOT_OPS_EVENT';
 const DEFAULT_LOOKBACK_HOURS = 30 * 24;
@@ -33,6 +56,50 @@ type AuditEventRow = {
   id: string;
   metadata: Prisma.JsonValue | null;
   createdAt: Date;
+};
+
+/** Shape of findingEntityLink.findMany with nested finding relation */
+type FindingEntityLinkRow = {
+  entityId: string;
+  createdAt: Date;
+  finding: {
+    findingId: string;
+    title: string;
+    severity: string;
+    createdAt: Date;
+  };
+};
+
+/** Shape of storylineEntityLink.findMany with nested storyline relation */
+type StorylineEntityLinkRow = {
+  entityKey: string;
+  storyline: {
+    storylineId: string;
+    title: string;
+    findingIds: string[];
+    createdAt: Date;
+  };
+  lastSeenAt: Date;
+};
+
+/** Shape of actionRecommendation rows */
+type ActionRecommendationRow = {
+  id: string;
+  targetEntityId: string;
+  actionType: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** Shape of application rows from the dead prisma.application model */
+type ApplicationRow = {
+  id: string;
+  clerkUserId: string;
+  npi: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date | null;
+  reviewedAt: Date | null;
 };
 
 type TrustSnapshot = {
@@ -689,7 +756,13 @@ export async function getClinicianProofSummary(
   });
   const npi = user?.personProfile?.npi ?? null;
 
-  const [applications, eventRows, trustHistory, findings, storylines] = await Promise.all([
+  const [applications, eventRows, trustHistory, findings, storylines]: [
+    MarketplaceApplication[],
+    AuditEventRow[],
+    ClinicianTrustState[],
+    FindingEntityLinkRow[],
+    StorylineEntityLinkRow[],
+  ] = await Promise.all([
     listClinicianApplications(clerkUserId),
     prisma.auditEvent.findMany({
       where: {
@@ -724,7 +797,7 @@ export async function getClinicianProofSummary(
           },
           orderBy: { createdAt: 'desc' },
           take: 4,
-        })
+        }) as Promise<FindingEntityLinkRow[]>
       : Promise.resolve([]),
     npi
       ? prisma.storylineEntityLink.findMany({
@@ -744,7 +817,7 @@ export async function getClinicianProofSummary(
           },
           orderBy: { lastSeenAt: 'desc' },
           take: 4,
-        })
+        }) as Promise<StorylineEntityLinkRow[]>
       : Promise.resolve([]),
   ]);
 
@@ -895,7 +968,7 @@ export async function getEmployerValueSignals(
     .map((application) => application.provider?.npi ?? application.npi)
     .filter((npi): npi is string => Boolean(npi)))];
 
-  const [findings, storylines, actions] = providerNpis.length > 0
+  const [findings, storylines, actions]: [FindingEntityLinkRow[], StorylineEntityLinkRow[], ActionRecommendationRow[]] = providerNpis.length > 0
     ? await Promise.all([
         prisma.findingEntityLink.findMany({
           where: {
@@ -915,7 +988,7 @@ export async function getEmployerValueSignals(
             },
           },
           orderBy: { createdAt: 'desc' },
-        }),
+        }) as Promise<FindingEntityLinkRow[]>,
         prisma.storylineEntityLink.findMany({
           where: {
             entityType: 'PROVIDER',
@@ -932,7 +1005,7 @@ export async function getEmployerValueSignals(
             },
           },
           orderBy: { lastSeenAt: 'desc' },
-        }),
+        }) as Promise<StorylineEntityLinkRow[]>,
         prisma.actionRecommendation.findMany({
           where: {
             targetEntityType: 'provider',
@@ -947,7 +1020,7 @@ export async function getEmployerValueSignals(
             updatedAt: true,
           },
           orderBy: { updatedAt: 'desc' },
-        }),
+        }) as Promise<ActionRecommendationRow[]>,
       ])
     : [[], [], []];
 
@@ -1116,9 +1189,22 @@ export async function getPilotProofSummary(
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
   const historyWindowSince = new Date(Date.now() - DEFAULT_HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
+  const eventRows = await prisma.auditEvent.findMany({
+    where: {
+      type: PILOT_EVENT_AUDIT_TYPE,
+      createdAt: { gte: since },
+    },
+    select: {
+      id: true,
+      metadata: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  // TODO: removed - referenced non-existent Prisma model (application)
+  const applications: ApplicationRow[] = [];
+
   const [
-    eventRows,
-    applications,
     trustArtifacts,
     recentFindings,
     recentStorylines,
@@ -1127,36 +1213,11 @@ export async function getPilotProofSummary(
     currentStorylinesCount,
     currentActionsCount,
     earliestPilotEvent,
-    earliestApplication,
     earliestTrustArtifact,
     earliestFinding,
     earliestStoryline,
     livePilotSnapshot,
   ] = await Promise.all([
-    prisma.auditEvent.findMany({
-      where: {
-        type: PILOT_EVENT_AUDIT_TYPE,
-        createdAt: { gte: since },
-      },
-      select: {
-        id: true,
-        metadata: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.application.findMany({
-      select: {
-        id: true,
-        clerkUserId: true,
-        npi: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        reviewedAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
     prisma.verificationArtifact.findMany({
       where: {
         source: 'TRUST_STATE_ENGINE',
@@ -1212,10 +1273,6 @@ export async function getPilotProofSummary(
       orderBy: { createdAt: 'asc' },
       select: { createdAt: true },
     }),
-    prisma.application.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { createdAt: true },
-    }),
     prisma.verificationArtifact.findFirst({
       where: { source: 'TRUST_STATE_ENGINE' },
       orderBy: { verifiedAt: 'asc' },
@@ -1231,6 +1288,8 @@ export async function getPilotProofSummary(
     }),
     computePilotKpis({ windowDays: livePilotWindowDays }),
   ]);
+  // TODO: removed - referenced non-existent Prisma model (application)
+  const earliestApplication = null as { createdAt: Date } | null;
 
   const trustHistory: ClinicianTrustState[] = [];
   trustArtifacts.forEach((artifact) => {

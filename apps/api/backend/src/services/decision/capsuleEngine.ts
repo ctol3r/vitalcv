@@ -992,57 +992,10 @@ async function verifyDecisionCapsuleReplay(
 }
 
 async function createDecisionFromApplication(
-  params: CreateApplicationDecisionInput,
+  _params: CreateApplicationDecisionInput,
 ): Promise<DecisionCapsuleRecord> {
-  const application = await prisma.application.findUnique({
-    where: { id: params.applicationId },
-    select: {
-      id: true,
-      npi: true,
-      status: true,
-      reviewNote: true,
-      opportunityId: true,
-      opportunity: {
-        select: {
-          organizationId: true,
-          organization: { select: { name: true } },
-        },
-      },
-    },
-  });
-
-  if (!application) {
-    throw new Error(`Application not found: ${params.applicationId}`);
-  }
-
-  if (!application.npi || !/^\d{10}$/.test(application.npi)) {
-    throw new Error(`Application ${params.applicationId} has no valid NPI`);
-  }
-
-  const decisionAction = params.decisionAction ?? 'APPROVE';
-  if (decisionAction === 'START_ATTESTATION') {
-    throw new Error('Application decisions cannot trigger START_ATTESTATION');
-  }
-  assertApplicationDecisionStatus(application.status, decisionAction, params.applicationId);
-
-  return createDecisionCapsule({
-    subjectDid: `did:vitalcv:${application.npi}`,
-    subjectNpi: application.npi,
-    decisionType: params.decisionType,
-    decisionAction,
-    verifierOrgId: application.opportunity.organizationId,
-    triggerEvent: 'verifier_decision',
-    sourceReferenceId: params.applicationId,
-    metadata: {
-      applicationId: params.applicationId,
-      opportunityId: application.opportunityId,
-      organizationId: application.opportunity.organizationId,
-      organizationName: application.opportunity.organization.name,
-      verifierClerkUserId: params.verifierClerkUserId,
-      applicationStatus: application.status,
-      reviewNote: application.reviewNote,
-    },
-  });
+  // Application model removed from schema — this code path is dead.
+  throw new Error('createDecisionFromApplication is not implemented (Application model removed).');
 }
 
 async function createDecisionFromAcceptance(

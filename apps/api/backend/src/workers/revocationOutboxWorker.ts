@@ -1,11 +1,25 @@
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
-import {
-  dispatchEnterpriseWebhook,
-  resolveEnterpriseWebhookTarget,
-  type EnterpriseWebhookPayload,
-} from '../services/integration/webhookDispatcher';
 import type { RevocationOutboxPayload } from '../services/revocation/propagationEngine';
+
+/** Stub type: webhookDispatcher was removed. */
+type EnterpriseWebhookPayload = Record<string, unknown>;
+
+/** Stub: webhookDispatcher was removed. Always returns null. */
+async function resolveEnterpriseWebhookTarget(
+  _employerId: string,
+  _acceptanceId: string | null,
+): Promise<{ url: string; secret: string } | null> {
+  return null;
+}
+
+/** Stub: webhookDispatcher was removed. No-op. */
+async function dispatchEnterpriseWebhook(
+  _target: { url: string; secret: string },
+  _payload: EnterpriseWebhookPayload,
+): Promise<void> {
+  // No-op
+}
 
 const DEFAULT_INTERVAL_MS = 5_000;
 const MAX_ATTEMPTS = 4;

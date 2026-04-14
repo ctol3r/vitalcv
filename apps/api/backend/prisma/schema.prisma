@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id             String     @id @default(uuid()) @db.Uuid
-  clerkUserId    String     @unique
-  email          String     @unique
-  role           UserRole   @default(CLINICIAN)
-  roleVersion    Int        @default(1)
-  status         UserStatus @default(INVITED)
-  organizationId String?    @db.Uuid
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  clerkUserId         String               @unique
+  email               String               @unique
+  role                UserRole             @default(CLINICIAN)
+  roleVersion         Int                  @default(1)
+  status              UserStatus           @default(INVITED)
+  organizationId      String?              @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  personProfile       PersonProfile?
+  workspacePreference WorkspacePreference?
 
   @@index([clerkUserId])
   @@index([organizationId])
@@ -260,11 +262,13 @@ model ShareLink {
 }
 
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  organizationProfile OrganizationProfile?
+  opportunities       Opportunity[]
 }
 
 model Opportunity {
@@ -280,7 +284,8 @@ model Opportunity {
   remote           Boolean  @default(false)
   status           String   @default("ACTIVE")
   createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  organization     Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
@@ -305,6 +310,8 @@ model PersonProfile {
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
   providerLocations ProviderLocation[]
+  user              User                 @relation(fields: [userId], references: [id])
+  memberships       WorkspaceMembership[]
 
   @@index([npi])
   @@index([userId])
@@ -340,6 +347,8 @@ model OrganizationProfile {
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   institution           Institution?
+  organization          Organization         @relation(fields: [organizationId], references: [id])
+  memberships           WorkspaceMembership[]
 
   @@index([npi])
   @@index([organizationId])
@@ -481,6 +490,9 @@ model WorkspaceMembership {
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at")
 
+  personProfile         PersonProfile       @relation(fields: [personProfileId], references: [id])
+  organizationProfile   OrganizationProfile @relation(fields: [organizationProfileId], references: [id])
+
   @@unique([personProfileId, organizationProfileId], map: "workspace_memberships_person_org_key")
   @@index([organizationProfileId], map: "workspace_memberships_org_idx")
   @@index([personProfileId], map: "workspace_memberships_person_idx")
@@ -497,6 +509,8 @@ model WorkspacePreference {
   lastSwitchedAt   DateTime?     @map("last_switched_at")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  user             User          @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "workspace_preferences_user_idx")
   @@map("workspace_preferences")
@@ -1831,6 +1845,7 @@ model SearchObject {
   indexedAt   DateTime         @default(now())
   freshAt     DateTime?
   active      Boolean          @default(true)
+  acl         SearchObjectACL[]
 
   @@index([type])
   @@index([aclLevel])
@@ -1841,8 +1856,9 @@ model SearchObject {
 
 /// Fine-grained ACL: which role/org can access which search object
 model SearchObjectACL {
-  id             String   @id @default(uuid()) @db.Uuid
-  searchObjectId String   @db.Uuid
+  id             String       @id @default(uuid()) @db.Uuid
+  searchObjectId String       @db.Uuid
+  searchObject   SearchObject @relation(fields: [searchObjectId], references: [id])
   /// If set, only users with this role can see the object
   roleRequired   String?
   /// If set, only members of this org can see the object
@@ -2549,7 +2565,13 @@ model VcvEntity {
   metadata    Json          @default("{}")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
-  institution Institution?
+  institution            Institution?
+  subjectRelationships   VcvEntityRelationship[]  @relation("EntityRelSubject")
+  objectRelationships    VcvEntityRelationship[]  @relation("EntityRelObject")
+  subjectCredentials     VcvCredential[]          @relation("CredSubject")
+  issuedCredentials      VcvCredential[]          @relation("CredIssuer")
+  educationRecords       VcvEducationRecord[]
+  requestedContexts      VcvOrganizationContext[]
 
   @@index([npi])
   @@index([entityType], map: "vcv_entities_type_idx")
@@ -2599,6 +2621,8 @@ model VcvEntityRelationship {
   metadata         Json                @default("{}")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
+  subject          VcvEntity           @relation("EntityRelSubject", fields: [subjectId], references: [id])
+  object           VcvEntity           @relation("EntityRelObject", fields: [objectId], references: [id])
 
   @@index([objectId, relationshipType], map: "vcv_rel_object_type_idx")
   @@index([subjectId, objectId], map: "vcv_rel_pair_idx")
@@ -2675,6 +2699,8 @@ model VcvCredential {
   confidence               Float?
   supersededByCredentialId String?              @map("superseded_by_credential_id") @db.Uuid
   supersedesCredentialId   String?              @map("supersedes_credential_id") @db.Uuid
+  subject                  VcvEntity            @relation("CredSubject", fields: [subjectId], references: [id])
+  issuer                   VcvEntity?           @relation("CredIssuer", fields: [issuerId], references: [id])
 
   @@index([expiresAt], map: "vcv_cred_expires_idx")
   @@index([credentialFamilyKey], map: "vcv_cred_family_idx")
@@ -2714,6 +2740,7 @@ model VcvEducationRecord {
   metadata          Json                 @default("{}")
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
+  institution       VcvEntity?           @relation(fields: [institutionId], references: [id])
 
   @@index([acgmeCode], map: "vcv_edu_acgme_idx")
   @@index([subjectId, completed], map: "vcv_edu_completed_idx")
@@ -2756,6 +2783,9 @@ model VcvOrganizationContext {
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  requestor       VcvEntity              @relation(fields: [requestorId], references: [id])
+  subjects        VcvOrgContextSubject[]
+
   @@index([externalRefId], map: "vcv_org_ctx_ext_ref_idx")
   @@index([requestorId, contextType], map: "vcv_org_ctx_requestor_type_idx")
   @@index([status], map: "vcv_org_ctx_status_idx")
@@ -2784,6 +2814,8 @@ model VcvOrgContextSubject {
   metadata         Json      @default("{}")
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  context          VcvOrganizationContext @relation(fields: [contextId], references: [id])
 
   @@unique([contextId, subjectId], map: "vcv_org_ctx_subj_uq")
   @@index([contextId], map: "vcv_org_ctx_subj_ctx_idx")

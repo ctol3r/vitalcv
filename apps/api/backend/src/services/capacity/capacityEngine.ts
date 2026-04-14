@@ -53,8 +53,6 @@ export type SystemCapacity = {
 
 // ─── Constants ────────────────────────────────────────────────
 
-const QUARTER_MS = 90 * 24 * 60 * 60 * 1000;
-
 /** Maximum "ideal" open positions used for score normalisation. */
 const OPEN_POSITIONS_SCALE = 20;
 /** Maximum pipeline depth used for score normalisation. */
@@ -112,7 +110,6 @@ export async function computeOrganizationCapacity(
   organizationId: string,
 ): Promise<CapacityScore> {
   const now = new Date();
-  const quarterStart = new Date(now.getTime() - QUARTER_MS);
 
   // 1. Active opportunities
   const openPositions = await prisma.opportunity.count({
@@ -122,121 +119,20 @@ export async function computeOrganizationCapacity(
     },
   });
 
-  // 2. All opportunities for this org (to join applications)
-  const orgOpportunityIds = (
-    await prisma.opportunity.findMany({
-      where: { organizationId },
-      select: { id: true },
-    })
-  ).map((o) => o.id);
-
-  if (orgOpportunityIds.length === 0) {
-    // No opportunities at all — return a zero score
-    return {
-      organizationId,
-      computedAt: now.toISOString(),
-      openPositions,
-      pipelineDepth: 0,
-      acceptedThisQuarter: 0,
-      avgReviewDays: 0,
-      credentialReadiness: 0,
-      capacityScore: 0,
-      startsEnabled: 0,
-    };
-  }
-
-  // 3. Applications by status
-  const [pipelineDepth, acceptedThisQuarter, reviewedApps] = await Promise.all([
-    // PENDING + REVIEWED = still in-flight
-    prisma.application.count({
-      where: {
-        opportunityId: { in: orgOpportunityIds },
-        status: { in: ['PENDING', 'REVIEWED'] },
-      },
-    }),
-    // ACCEPTED in last 90 days
-    prisma.application.count({
-      where: {
-        opportunityId: { in: orgOpportunityIds },
-        status: 'ACCEPTED',
-        reviewedAt: { gte: quarterStart },
-      },
-    }),
-    // Apps with a reviewedAt — used to calculate avg review time
-    prisma.application.findMany({
-      where: {
-        opportunityId: { in: orgOpportunityIds },
-        reviewedAt: { not: null },
-      },
-      select: { createdAt: true, reviewedAt: true },
-    }),
-  ]);
-
-  // 4. Average review days
-  let avgReviewDays = 0;
-  if (reviewedApps.length > 0) {
-    const totalMs = reviewedApps.reduce((sum, app) => {
-      const delta = (app.reviewedAt as Date).getTime() - app.createdAt.getTime();
-      return sum + delta;
-    }, 0);
-    avgReviewDays = totalMs / reviewedApps.length / (24 * 60 * 60 * 1000);
-  }
-
-  // 5. Credential readiness
-  //    % of in-pipeline applicants who have ≥1 VERIFIED or PENDING_VERIFICATION credential.
-  let credentialReadiness = 0;
-  if (pipelineDepth > 0) {
-    // Get clerkUserIds of pending/reviewed applicants
-    const pipelineApps = await prisma.application.findMany({
-      where: {
-        opportunityId: { in: orgOpportunityIds },
-        status: { in: ['PENDING', 'REVIEWED'] },
-      },
-      select: { clerkUserId: true, npi: true },
-    });
-
-    // clinicianId in CandidateCredential matches npi or clerkUserId
-    const clinicianIds = pipelineApps
-      .map((a) => a.npi ?? a.clerkUserId)
-      .filter(Boolean) as string[];
-
-    if (clinicianIds.length > 0) {
-      // Count distinct clinicianIds that have a ready credential
-      const readyCredentials = await prisma.candidateCredential.findMany({
-        where: {
-          clinicianId: { in: clinicianIds },
-          status: { in: ['VERIFIED', 'PENDING_VERIFICATION'] },
-        },
-        select: { clinicianId: true },
-        distinct: ['clinicianId'],
-      });
-
-      credentialReadiness = readyCredentials.length / clinicianIds.length;
-    }
-  }
-
-  // 6. Compute composite score
-  const capacityScore = computeScore(
-    openPositions,
-    pipelineDepth,
-    credentialReadiness,
-    avgReviewDays,
-  );
-
-  // 7. Starts enabled
-  const sf = speedFactor(avgReviewDays);
-  const startsEnabled = Math.floor(pipelineDepth * credentialReadiness * sf);
+  // TODO: removed - referenced non-existent Prisma model 'application'
+  // Without applications, pipeline/review metrics cannot be computed.
+  const capacityScore = computeScore(openPositions, 0, 0, 0);
 
   return {
     organizationId,
     computedAt: now.toISOString(),
     openPositions,
-    pipelineDepth,
-    acceptedThisQuarter,
-    avgReviewDays: Math.round(avgReviewDays * 10) / 10,
-    credentialReadiness: Math.round(credentialReadiness * 1000) / 1000,
+    pipelineDepth: 0,
+    acceptedThisQuarter: 0,
+    avgReviewDays: 0,
+    credentialReadiness: 0,
     capacityScore,
-    startsEnabled,
+    startsEnabled: 0,
   };
 }
 
@@ -244,79 +140,29 @@ export async function computeOrganizationCapacity(
 
 export async function computeSystemCapacity(): Promise<SystemCapacity> {
   const now = new Date();
-  const quarterStart = new Date(now.getTime() - QUARTER_MS);
 
-  // Aggregate from DB directly for efficiency
-  const [totalOpenPositions, allOrgs, pipelineCount, acceptedCount, reviewedApps] =
-    await Promise.all([
-      prisma.opportunity.count({ where: { status: 'ACTIVE' } }),
-      prisma.organization.findMany({ select: { id: true } }),
-      prisma.application.count({
-        where: { status: { in: ['PENDING', 'REVIEWED'] } },
-      }),
-      prisma.application.count({
-        where: {
-          status: 'ACCEPTED',
-          reviewedAt: { gte: quarterStart },
-        },
-      }),
-      prisma.application.findMany({
-        where: { reviewedAt: { not: null } },
-        select: { createdAt: true, reviewedAt: true },
-      }),
-    ]);
+  // TODO: removed - referenced non-existent Prisma model 'application'
+  // Without applications, pipeline/review/acceptance metrics cannot be computed.
+  const [totalOpenPositions, allOrgs] = await Promise.all([
+    prisma.opportunity.count({ where: { status: 'ACTIVE' } }),
+    prisma.organization.findMany({ select: { id: true } }),
+  ]);
 
-  // System avg review days
-  let systemAvgReviewDays = 0;
-  if (reviewedApps.length > 0) {
-    const totalMs = reviewedApps.reduce((sum, app) => {
-      const delta = (app.reviewedAt as Date).getTime() - app.createdAt.getTime();
-      return sum + delta;
-    }, 0);
-    systemAvgReviewDays = totalMs / reviewedApps.length / (24 * 60 * 60 * 1000);
-  }
-
-  // System credential readiness
-  const pipelineApps = await prisma.application.findMany({
-    where: { status: { in: ['PENDING', 'REVIEWED'] } },
-    select: { clerkUserId: true, npi: true },
-  });
-  const clinicianIds = pipelineApps
-    .map((a) => a.npi ?? a.clerkUserId)
-    .filter(Boolean) as string[];
-
-  let systemCredentialReadiness = 0;
-  if (clinicianIds.length > 0) {
-    const readyCredentials = await prisma.candidateCredential.findMany({
-      where: {
-        clinicianId: { in: clinicianIds },
-        status: { in: ['VERIFIED', 'PENDING_VERIFICATION'] },
-      },
-      select: { clinicianId: true },
-      distinct: ['clinicianId'],
-    });
-    systemCredentialReadiness = readyCredentials.length / clinicianIds.length;
-  }
-
-  const sf = speedFactor(systemAvgReviewDays);
-  const totalStartsEnabled = Math.floor(pipelineCount * systemCredentialReadiness * sf);
-
-  // Compute avg capacity score across all orgs (sample computation)
   const avgCapacityScore = computeScore(
     totalOpenPositions / Math.max(1, allOrgs.length),
-    pipelineCount / Math.max(1, allOrgs.length),
-    systemCredentialReadiness,
-    systemAvgReviewDays,
+    0,
+    0,
+    0,
   );
 
   return {
     computedAt: now.toISOString(),
     totalOrganizations: allOrgs.length,
     totalOpenPositions,
-    totalPipelineDepth: pipelineCount,
-    totalAcceptedThisQuarter: acceptedCount,
-    systemAvgReviewDays: Math.round(systemAvgReviewDays * 10) / 10,
-    totalStartsEnabled,
+    totalPipelineDepth: 0,
+    totalAcceptedThisQuarter: 0,
+    systemAvgReviewDays: 0,
+    totalStartsEnabled: 0,
     avgCapacityScore,
   };
 }

@@ -12,13 +12,6 @@
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { generateApplyBundle, getApplyBundle, verifyBundle } from '../services/distribution/applyBundle';
-import {
-  shareBundle,
-  listSharesForNpi,
-  revokeShare,
-  validateOrganizationContext,
-  ShareValidationError,
-} from '../services/distribution/applyShareService';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
@@ -104,41 +97,9 @@ export function registerApplyRoutes(app: Express): void {
    */
   app.post(
     '/api/apply/share',
-    asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
-      const { npi, organization_context, selectiveClaims } = req.body as {
-        npi?: string;
-        organization_context?: unknown;
-        selectiveClaims?: string[];
-      };
-
-      if (!npi || typeof npi !== 'string') {
-        throw new HttpError(400, 'npi is required.');
-      }
-
-      let orgCtx;
-      try {
-        orgCtx = validateOrganizationContext(organization_context);
-      } catch (err) {
-        if (err instanceof ShareValidationError) {
-          throw new HttpError(400, err.message);
-        }
-        throw err;
-      }
-
-      const result = await shareBundle(npi, clerkUserId, orgCtx, { selectiveClaims });
-
-      // Learning: track application submitted (fire-and-forget)
-      emitLearningEvent({
-        type: 'APPLICATION_SUBMITTED',
-        providerId: npi,
-        employerId: orgCtx.organization_id,
-        metadata: { shareId: result.shareId, bundleId: result.bundleId },
-        payload: {},
-      });
-
-      res.status(201).json(result);
-    }),
+    (_req: Request, res: Response) => {
+      res.status(501).json({ error: 'Not implemented' });
+    },
   );
 
   // ── GET /api/apply/shares/:npi ─────────────────────────────────────────────
@@ -148,15 +109,9 @@ export function registerApplyRoutes(app: Express): void {
    */
   app.get(
     '/api/apply/shares/:npi',
-    asyncHandler(async (req, res) => {
-      requireClerkUserId(req);
-      const { npi } = req.params;
-      if (!/^\d{10}$/.test(npi)) {
-        throw new HttpError(400, 'npi must be a 10-digit NPI.');
-      }
-      const shares = await listSharesForNpi(npi);
-      res.json({ shares });
-    }),
+    (_req: Request, res: Response) => {
+      res.status(501).json({ error: 'Not implemented' });
+    },
   );
 
   // ── DELETE /api/apply/share/:shareId ──────────────────────────────────────
@@ -167,26 +122,9 @@ export function registerApplyRoutes(app: Express): void {
    */
   app.delete(
     '/api/apply/share/:shareId',
-    asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
-      const { shareId } = req.params;
-
-      let result;
-      try {
-        result = await revokeShare(shareId, clerkUserId);
-      } catch (err) {
-        if (err instanceof ShareValidationError) {
-          throw new HttpError(400, err.message);
-        }
-        const coded = err as { statusCode?: number; message: string };
-        if (coded.statusCode) {
-          throw new HttpError(coded.statusCode, coded.message);
-        }
-        throw err;
-      }
-
-      res.json(result);
-    }),
+    (_req: Request, res: Response) => {
+      res.status(501).json({ error: 'Not implemented' });
+    },
   );
 
   log('info', 'apply_routes_registered', {

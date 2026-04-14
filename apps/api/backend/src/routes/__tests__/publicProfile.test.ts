@@ -21,10 +21,6 @@ jest.mock('../../middleware/publicSafety', () => ({
   publicApiRateLimit: (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
 }));
 
-jest.mock('../../services/ledger/statusListManager', () => ({
-  isRevoked: jest.fn().mockResolvedValue(false),
-}));
-
 jest.mock('../../services/intelligence/graphRagEvaluator', () => ({
   ReadinessEvaluator: jest.fn().mockImplementation(() => ({
     evaluateCandidate: jest.fn().mockResolvedValue({

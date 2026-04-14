@@ -128,14 +128,17 @@ export class PubMedAdapter {
           const article = resultMap[pmid];
           if (!article || !article.title) return null;
 
-          return Object.freeze({
+          const doi = parseDoi(article.elocationid);
+
+          const record: PubMedArticle = Object.freeze({
             pmid,
             title: article.title,
             journal: article.fulljournalname ?? 'Unknown',
             publicationDate: article.sortpubdate?.slice(0, 10) ?? 'Unknown',
             authorPosition: resolveAuthorPosition(article.authors, name),
-            doi: parseDoi(article.elocationid),
+            ...(doi !== undefined ? { doi } : {}),
           });
+          return record;
         })
         .filter((a): a is PubMedArticle => a !== null);
 

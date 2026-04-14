@@ -137,21 +137,8 @@ export async function getApiUsageSummary(): Promise<{
   activeKeys: number;
   totalRequests: number;
 }> {
-  try {
-    const [totalKeys, activeKeys, agg] = await Promise.all([
-      prisma.subscriptionApiKey.count(),
-      prisma.subscriptionApiKey.count({ where: { revokedAt: null } }),
-      prisma.subscriptionApiKey.aggregate({ _sum: { requestCount: true } }),
-    ]);
-    return {
-      totalKeys,
-      activeKeys,
-      totalRequests: agg._sum.requestCount ?? 0,
-    };
-  } catch (err) {
-    log('error', 'analytics_api_usage_error', { error: String(err) });
-    return { totalKeys: 0, activeKeys: 0, totalRequests: 0 };
-  }
+  // SubscriptionApiKey model removed from schema — return defaults.
+  return { totalKeys: 0, activeKeys: 0, totalRequests: 0 };
 }
 
 export async function getPlatformOverview(): Promise<{

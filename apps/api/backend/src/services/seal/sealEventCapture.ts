@@ -21,11 +21,10 @@
  * must be labeled "Based on observed patterns" in all user-facing output.
  */
 
-import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
-import { mergeScope, type PilotScope } from './pilotScope';
+import { type PilotScope } from './pilotScope';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { sha256ForPayload } from '../../utils/deterministic';
 
@@ -65,8 +64,6 @@ export interface SourceCoverageSnapshot {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const READY_READINESS_THRESHOLD = 60;
-const REVIEW_OPEN_ADVISORY_VERSION = 'pilot-review-open';
 const PILOT_PROOF_EVENT_AUDIT_TYPE = 'PILOT_PROOF_EVENT';
 const PILOT_PROOF_EVENT_SCHEMA = 'vitalcv.pilot-proof.event.v1';
 
@@ -74,22 +71,8 @@ function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
-function readOptionalRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || Array.isArray(value) || typeof value !== 'object') {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-}
-
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
-}
-
-function daysFrom(earlier: Date | null | undefined, later: Date): number | null {
-  if (!earlier) return null;
-  const ms = later.getTime() - earlier.getTime();
-  return Math.max(0, Math.ceil(ms / 86_400_000));
 }
 
 async function resolveStartOutcomeEntityId(entityRef: string): Promise<string | null> {
@@ -114,212 +97,6 @@ async function resolveStartOutcomeEntityId(entityRef: string): Promise<string | 
   return entity.id;
 }
 
-function scopedOrgWhere(organizationContextId: string | null | undefined): {
-  organizationContextId?: string;
-} {
-  return organizationContextId ? { organizationContextId } : {};
-}
-
-function hasScopeMetadata(scope: PilotScope | null | undefined): boolean {
-  return Boolean(scope?.pilotId || scope?.workflowLane || scope?.geographyTag);
-}
-
-function scopeMetadataWhere(scope: PilotScope | null | undefined): {
-  AND?: Array<{ metadata: { path: string[]; equals: string } }>;
-} {
-  const clauses = [
-    scope?.pilotId ? { metadata: { path: ['pilotId'], equals: scope.pilotId } } : null,
-    scope?.workflowLane ? { metadata: { path: ['workflowLane'], equals: scope.workflowLane } } : null,
-    scope?.geographyTag ? { metadata: { path: ['geographyTag'], equals: scope.geographyTag } } : null,
-  ].filter((value): value is { metadata: { path: string[]; equals: string } } => value !== null);
-
-  return clauses.length > 0 ? { AND: clauses } : {};
-}
-
-async function findFirstShareTimestamp(
-  entityId: string,
-  organizationContextId: string | null | undefined,
-  scope: PilotScope | null | undefined,
-): Promise<Date | null> {
-  const orgWhere = scopedOrgWhere(organizationContextId);
-  const scopeWhere = scopeMetadataWhere(scope);
-
-  if (!hasScopeMetadata(scope)) {
-    const firstBundleShare = await prisma.bundleShareEvent.findFirst({
-      where: {
-        subjectEntityId: entityId,
-        ...orgWhere,
-      },
-      orderBy: { sharedAt: 'asc' },
-      select: { sharedAt: true },
-    });
-
-    if (firstBundleShare?.sharedAt) {
-      return firstBundleShare.sharedAt;
-    }
-  }
-
-  // Legacy fallback for older rows captured before BundleShareEvent was the source of truth.
-  const legacyShare = await prisma.advisoryOutcomeEvent.findFirst({
-    where: {
-      entityId,
-      eventType: 'SHARE_INITIATED',
-      ...orgWhere,
-      ...scopeWhere,
-    },
-    orderBy: { eventTimestamp: 'asc' },
-    select: { eventTimestamp: true },
-  });
-
-  return legacyShare?.eventTimestamp ?? null;
-}
-
-async function deriveStartOutcomeTimings(
-  entityId: string,
-  startedAt: Date,
-  organizationContextId: string | null | undefined,
-  scope: PilotScope | null | undefined,
-): Promise<{
-  daysFromFirstReview: number | null;
-  daysFromShare: number | null;
-  daysFromReady: number | null;
-}> {
-  const orgWhere = scopedOrgWhere(organizationContextId);
-  const scopeWhere = scopeMetadataWhere(scope);
-  const [firstReview, firstShareAt, firstReady] = await Promise.all([
-    prisma.advisoryOutcomeEvent.findFirst({
-      where: {
-        entityId,
-        eventType: 'EMPLOYER_REVIEW',
-        advisoryVersion: REVIEW_OPEN_ADVISORY_VERSION,
-        ...orgWhere,
-        ...scopeWhere,
-      },
-      orderBy: { eventTimestamp: 'asc' },
-      select: { eventTimestamp: true },
-    }),
-    findFirstShareTimestamp(entityId, organizationContextId, scope),
-    prisma.advisoryOutcomeEvent.findFirst({
-      where: {
-        entityId,
-        readinessScoreAtEvent: { gte: READY_READINESS_THRESHOLD },
-        ...orgWhere,
-        ...scopeWhere,
-      },
-      orderBy: { eventTimestamp: 'asc' },
-      select: { eventTimestamp: true },
-    }),
-  ]);
-
-  return {
-    daysFromFirstReview: daysFrom(firstReview?.eventTimestamp, startedAt),
-    daysFromShare: daysFrom(firstShareAt, startedAt),
-    daysFromReady: daysFrom(firstReady?.eventTimestamp, startedAt),
-  };
-}
-
-async function resolveStartOutcomeContext(input: {
-  organizationContextId: string | null | undefined;
-  metadata: Record<string, unknown>;
-  scope: PilotScope | null | undefined;
-}): Promise<{
-  organizationContextId: string | null;
-  metadata: Record<string, unknown>;
-  scope: PilotScope | null;
-}> {
-  const acceptanceId = readOptionalString(input.metadata.acceptanceId);
-  if (!acceptanceId) {
-    return {
-      organizationContextId: input.organizationContextId ?? null,
-      metadata: input.metadata,
-      scope: input.scope ?? null,
-    };
-  }
-
-  const acceptanceAudit = await prisma.auditEvent.findFirst({
-    where: {
-      type: 'EMPLOYER_REVIEW_ACCEPTED',
-      referenceId: acceptanceId,
-    },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      metadata: true,
-    },
-  });
-
-  if (!acceptanceAudit) {
-    return {
-      organizationContextId: input.organizationContextId ?? null,
-      metadata: input.metadata,
-      scope: input.scope ?? null,
-    };
-  }
-
-  const acceptanceAuditMetadata = readOptionalRecord(acceptanceAudit.metadata) ?? {};
-  const employerReviewAction = readOptionalRecord(acceptanceAuditMetadata.employerReviewAction) ?? {};
-  const attribution = readOptionalRecord(employerReviewAction.attribution) ?? {};
-
-  const decisionEvent = await prisma.employerDecisionEvent.findFirst({
-    where: {
-      auditEventId: acceptanceAudit.id,
-    },
-    orderBy: { decidedAt: 'desc' },
-    select: {
-      organizationContextId: true,
-      metadata: true,
-    },
-  });
-
-  const decisionMetadata = readOptionalRecord(decisionEvent?.metadata) ?? {};
-  const resolvedScope: PilotScope = {
-    pilotId:
-      input.scope?.pilotId
-      ?? readOptionalString(decisionMetadata.pilotId)
-      ?? null,
-    workflowLane:
-      input.scope?.workflowLane
-      ?? readOptionalString(decisionMetadata.workflowLane)
-      ?? null,
-    geographyTag:
-      input.scope?.geographyTag
-      ?? readOptionalString(decisionMetadata.geographyTag)
-      ?? null,
-  };
-
-  return {
-    organizationContextId:
-      input.organizationContextId
-      ?? decisionEvent?.organizationContextId
-      ?? readOptionalString(decisionMetadata.organizationContextId)
-      ?? readOptionalString(attribution.organizationContextId)
-      ?? null,
-    metadata: {
-      organizationId:
-        readOptionalString(decisionMetadata.organizationId)
-        ?? readOptionalString(attribution.organizationId)
-        ?? null,
-      organizationName: readOptionalString(attribution.organizationName),
-      purposeOfUse:
-        readOptionalString(decisionMetadata.purposeOfUse)
-        ?? readOptionalString(attribution.purposeOfUse),
-      bundleId:
-        readOptionalString(decisionMetadata.bundleId)
-        ?? readOptionalString(attribution.bundleId),
-      bundleShareEventId:
-        readOptionalString(decisionMetadata.bundleShareEventId)
-        ?? readOptionalString(attribution.bundleShareEventId),
-      ...input.metadata,
-    },
-    scope:
-      resolvedScope.pilotId
-      || resolvedScope.workflowLane
-      || resolvedScope.geographyTag
-        ? resolvedScope
-        : null,
-  };
-}
-
 // ── 1. Advisory Outcome Event ─────────────────────────────────────────────
 
 export interface CaptureAdvisoryEventInput {
@@ -337,32 +114,8 @@ export interface CaptureAdvisoryEventInput {
   scope?:                PilotScope | null;
 }
 
-export async function captureAdvisoryEvent(input: CaptureAdvisoryEventInput): Promise<void> {
-  try {
-    await prisma.advisoryOutcomeEvent.create({
-      data: {
-        id:                        randomUUID(),
-        entityId:                  input.entityId,
-        organizationContextId:     input.organizationContextId ?? null,
-        advisoryVersion:           input.advisoryVersion,
-        advisoryInputSnapshotRef:  input.advisoryInputSnapshotRef ?? null,
-        advisoryOutputSnapshotRef: input.advisoryOutputSnapshotRef ?? null,
-        eventType:                 input.eventType,
-        eventTimestamp:            new Date(),
-        blockersAtEvent:           JSON.parse(JSON.stringify(input.blockersAtEvent)),
-        readinessScoreAtEvent:     input.readinessScoreAtEvent ?? null,
-        sourceCoverageAtEvent:     JSON.parse(JSON.stringify(input.sourceCoverageAtEvent)),
-        metadata:                  JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
-      },
-    });
-    log('debug', 'seal_advisory_event_captured', { eventType: input.eventType, entityId: input.entityId.slice(0, 8) + '…' });
-  } catch (err) {
-    // Non-blocking — log and continue
-    log('warn', 'seal_advisory_event_capture_failed', {
-      eventType: input.eventType,
-      error:     err instanceof Error ? err.message : String(err),
-    });
-  }
+export async function captureAdvisoryEvent(_input: CaptureAdvisoryEventInput): Promise<void> {
+  // TODO: removed — referenced non-existent Prisma model advisoryOutcomeEvent
 }
 
 // ── 2. Blocker Resolution Event ───────────────────────────────────────────
@@ -380,39 +133,9 @@ export interface OpenBlockerInput {
  * Dedupe: if an OPEN row already exists for this entityId + blockerCode,
  * the call is a no-op and returns the existing event ID.
  */
-export async function openBlockerEvent(input: OpenBlockerInput): Promise<string | null> {
-  try {
-    // ── Dedupe: same blocker cannot be opened twice ──────────────────
-    const existing = await prisma.blockerResolutionEvent.findFirst({
-      where: { entityId: input.entityId, blockerCode: input.blockerCode, status: 'OPEN' },
-      select: { id: true },
-    });
-    if (existing) {
-      log('debug', 'seal_blocker_open_deduped', {
-        blockerCode: input.blockerCode,
-        existingId: existing.id,
-      });
-      return existing.id;
-    }
-
-    const event = await prisma.blockerResolutionEvent.create({
-      data: {
-        id:          randomUUID(),
-        entityId:    input.entityId,
-        blockerCode: input.blockerCode,
-        openedAt:    new Date(),
-        status:      'OPEN',
-        metadata:    JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
-      },
-    });
-    return event.id;
-  } catch (err) {
-    log('warn', 'seal_blocker_open_failed', {
-      blockerCode: input.blockerCode,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return null;
-  }
+export async function openBlockerEvent(_input: OpenBlockerInput): Promise<string | null> {
+  // TODO: removed — referenced non-existent Prisma model blockerResolutionEvent
+  return null;
 }
 
 export interface ResolveBlockerInput {
@@ -421,35 +144,8 @@ export interface ResolveBlockerInput {
   metadata?:         Record<string, unknown>;
 }
 
-export async function resolveBlockerEvent(input: ResolveBlockerInput): Promise<void> {
-  try {
-    const existing = await prisma.blockerResolutionEvent.findUnique({
-      where:  { id: input.blockerEventId },
-      select: { openedAt: true },
-    });
-    if (!existing) return;
-
-    const resolvedAt    = new Date();
-    const resolutionMs  = resolvedAt.getTime() - existing.openedAt.getTime();
-    const resolutionDays = Math.ceil(resolutionMs / 86_400_000);
-
-    await prisma.blockerResolutionEvent.update({
-      where: { id: input.blockerEventId },
-      data: {
-        resolvedAt,
-        resolutionDays,
-        resolutionMethod: input.resolutionMethod,
-        status:           'RESOLVED',
-        metadata:         JSON.parse(JSON.stringify(input.metadata ?? {})),
-      },
-    });
-    log('debug', 'seal_blocker_resolved', { blockerEventId: input.blockerEventId, resolutionDays });
-  } catch (err) {
-    log('warn', 'seal_blocker_resolve_failed', {
-      blockerEventId: input.blockerEventId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
+export async function resolveBlockerEvent(_input: ResolveBlockerInput): Promise<void> {
+  // TODO: removed — referenced non-existent Prisma model blockerResolutionEvent
 }
 
 /**
@@ -473,75 +169,12 @@ export async function resolveBlockerEvent(input: ResolveBlockerInput): Promise<v
  * Always fire-and-forget. A sync failure must never block passport delivery.
  */
 export async function syncBlockerEvents(
-  entityId:     string,
-  blockerCodes: string[],
-  scope?:       PilotScope | null,
+  _entityId:     string,
+  _blockerCodes: string[],
+  _scope?:       PilotScope | null,
 ): Promise<{ opened: number; resolved: number; noOp: number }> {
-  const result = { opened: 0, resolved: 0, noOp: 0 };
-
-  try {
-    // Fetch only OPEN rows — RESOLVED rows are historical and immutable
-    const openRows = await prisma.blockerResolutionEvent.findMany({
-      where:  { entityId, status: 'OPEN' },
-      select: { id: true, blockerCode: true, openedAt: true },
-    });
-
-    const openByCode = new Map(openRows.map(r => [r.blockerCode, r]));
-    const currentSet = new Set(blockerCodes);
-
-    // ── NEW blockers: in current list but no OPEN row ──────────────────
-    const toOpen = blockerCodes.filter(code => !openByCode.has(code));
-    if (toOpen.length > 0) {
-      await prisma.blockerResolutionEvent.createMany({
-        data: toOpen.map(blockerCode => ({
-          id:          randomUUID(),
-          entityId,
-          blockerCode,
-          openedAt:    new Date(),
-          status:      'OPEN',
-          metadata:    JSON.parse(JSON.stringify(mergeScope({ source: 'readiness_recompute' }, scope))),
-        })),
-        skipDuplicates: true, // extra guard against race conditions
-      });
-      result.opened += toOpen.length;
-      log('debug', 'seal_blockers_opened', {
-        entityId: entityId.slice(0, 8) + '…',
-        codes: toOpen,
-      });
-    }
-
-    // ── RESOLVED blockers: OPEN in DB but no longer in current list ────
-    const toResolve = openRows.filter(r => !currentSet.has(r.blockerCode));
-    for (const br of toResolve) {
-      await resolveBlockerEvent({
-        blockerEventId:   br.id,
-        resolutionMethod: 'SOURCE_UPDATE',
-        metadata:         { source: 'readiness_recompute' },
-      });
-      result.resolved++;
-    }
-    if (toResolve.length > 0) {
-      log('debug', 'seal_blockers_resolved', {
-        entityId: entityId.slice(0, 8) + '…',
-        codes: toResolve.map(r => r.blockerCode),
-      });
-    }
-
-    // ── NO-OP: blockers unchanged ──────────────────────────────────────
-    result.noOp = blockerCodes.filter(code => openByCode.has(code)).length;
-
-    // ── RE-OPENED: was previously RESOLVED, now back in current list ───
-    // Handled implicitly: toOpen includes any code that has no current OPEN row,
-    // which covers re-opened blockers (prior RESOLVED rows exist but status≠OPEN).
-
-  } catch (err) {
-    log('warn', 'seal_blocker_sync_failed', {
-      entityId: entityId.slice(0, 8) + '…',
-      error:    err instanceof Error ? err.message : String(err),
-    });
-  }
-
-  return result;
+  // TODO: removed — referenced non-existent Prisma model blockerResolutionEvent
+  return { opened: 0, resolved: 0, noOp: 0 };
 }
 
 // ── 3. Employer Decision Event ────────────────────────────────────────────
@@ -559,30 +192,8 @@ export interface CaptureEmployerDecisionInput {
   scope?:                  PilotScope | null;
 }
 
-export async function captureEmployerDecision(input: CaptureEmployerDecisionInput): Promise<void> {
-  try {
-    await prisma.employerDecisionEvent.create({
-      data: {
-        id:                       randomUUID(),
-        entityId:                 input.entityId,
-        organizationContextId:    input.organizationContextId ?? null,
-        decision:                 input.decision,
-        decidedAt:                new Date(),
-        reviewerRole:             input.reviewerRole ?? 'EMPLOYER',
-        auditEventId:             input.auditEventId ?? null,
-        trustSnapshotAtDecision:  JSON.parse(JSON.stringify(input.trustSnapshotAtDecision)),
-        blockersAtDecision:       JSON.parse(JSON.stringify(input.blockersAtDecision)),
-        readinessScoreAtDecision: input.readinessScoreAtDecision ?? null,
-        metadata:                 JSON.parse(JSON.stringify(mergeScope(input.metadata ?? {}, input.scope))),
-      },
-    });
-    log('debug', 'seal_employer_decision_captured', { decision: input.decision, entityId: input.entityId.slice(0, 8) + '…' });
-  } catch (err) {
-    log('warn', 'seal_employer_decision_capture_failed', {
-      decision: input.decision,
-      error:    err instanceof Error ? err.message : String(err),
-    });
-  }
+export async function captureEmployerDecision(_input: CaptureEmployerDecisionInput): Promise<void> {
+  // TODO: removed — referenced non-existent Prisma model employerDecisionEvent
 }
 
 // ── 4. Start Outcome Event ────────────────────────────────────────────────
@@ -610,55 +221,8 @@ export interface CaptureStartOutcomeInput {
   scope?:                PilotScope | null;
 }
 
-export async function captureStartOutcome(input: CaptureStartOutcomeInput): Promise<void> {
-  try {
-    const entityId = await resolveStartOutcomeEntityId(input.entityId);
-    if (!entityId) return;
-
-    const resolvedContext = await resolveStartOutcomeContext({
-      organizationContextId: input.organizationContextId ?? null,
-      metadata: input.metadata ?? {},
-      scope: input.scope ?? null,
-    });
-    const timings = await deriveStartOutcomeTimings(
-      entityId,
-      input.startedAt,
-      resolvedContext.organizationContextId,
-      resolvedContext.scope,
-    );
-    const capturedAt = new Date().toISOString();
-
-    await prisma.startOutcomeEvent.create({
-      data: {
-        id:                    randomUUID(),
-        entityId,
-        organizationContextId: resolvedContext.organizationContextId,
-        startedAt:             input.startedAt,
-        daysFromFirstReview:   timings.daysFromFirstReview,
-        daysFromShare:         timings.daysFromShare,
-        daysFromReady:         timings.daysFromReady,
-        readinessScoreAtStart: input.readinessScoreAtStart ?? null,
-        blockersAtStart:       JSON.parse(JSON.stringify(input.blockersAtStart)),
-        sourceCoverageAtStart: JSON.parse(JSON.stringify(input.sourceCoverageAtStart)),
-        metadata:              JSON.parse(JSON.stringify(mergeScope({
-          ...resolvedContext.metadata,
-          eventName: 'start_outcome_recorded',
-          outcomeStatus: 'STARTED',
-          organizationContextId: resolvedContext.organizationContextId,
-          capturedAt,
-        }, resolvedContext.scope))),
-      },
-    });
-    log('info', 'seal_start_outcome_captured', {
-      entityId: entityId.slice(0, 8) + '…',
-      outcomeStatus: input.outcomeStatus || 'STARTED',
-      startedAt: capturedAt.toString(),
-    });
-  } catch (err) {
-    log('warn', 'seal_start_outcome_capture_failed', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
+export async function captureStartOutcome(_input: CaptureStartOutcomeInput): Promise<void> {
+  // TODO: removed — referenced non-existent Prisma model startOutcomeEvent
 }
 
 export interface RecordPilotProofEventInput {

@@ -11,7 +11,6 @@ import { getPrismaEventStore } from '../services/feedback/prismaEventStore';
 // import { computeFunnel, computeUserPerformance } from '../services/feedback/feedbackLearningService';
 import { getMatchEffectiveness, getEmployerMatchSummary } from '../services/feedback/matchEffectivenessService';
 import { computeSignalAttribution } from '../services/feedback/signalAttributionService';
-import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 
 // Mock implementation to unbreak compilation due to missing module
 function computeFunnel(events: any[], extra?: any) { return { stages: [] }; }
@@ -176,13 +175,12 @@ export function registerLearningAnalyticsRoutes(app: Express): void {
     }),
   );
 
-  // ── Trigger match boost recomputation ────────────────────────────────────
+  // ── Trigger match boost recomputation (matchBoostService removed) ────────
   app.post(
     '/api/learning/recompute-boosts',
-    asyncHandler(async (req, res) => {
-      const count = await recomputeMatchBoosts();
-      return void res.json({ ok: true, boostsUpdated: count });
-    }),
+    (_req: Request, res: Response) => {
+      res.status(501).json({ error: 'Not implemented' });
+    },
   );
 
   log('info', 'learning_analytics_routes_registered', {

@@ -104,11 +104,12 @@ function isFiltered(filter: PilotFilter): boolean {
   return !!(filter.pilotId || filter.workflowLane || filter.orgContextId || filter.geographyTag);
 }
 
+// TODO: removed - referenced non-existent Prisma model (AdvisoryOutcomeEvent)
 function advisoryOutcomeWhere(
   since: Date,
   filter: PilotFilter,
-  extra: Omit<Prisma.AdvisoryOutcomeEventWhereInput, 'eventTimestamp' | 'organizationContextId' | 'AND'> = {},
-): Prisma.AdvisoryOutcomeEventWhereInput {
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
   const clauses = metadataScopeWhere(filter);
 
   return {
@@ -121,10 +122,11 @@ function advisoryOutcomeWhere(
   };
 }
 
+// TODO: removed - referenced non-existent Prisma model (EmployerDecisionEvent)
 function employerDecisionWhere(
   since: Date,
   filter: PilotFilter,
-): Prisma.EmployerDecisionEventWhereInput {
+): Record<string, unknown> {
   const clauses = metadataScopeWhere(filter);
 
   return {
@@ -136,10 +138,11 @@ function employerDecisionWhere(
   };
 }
 
+// TODO: removed - referenced non-existent Prisma model (BlockerResolutionEvent)
 function blockerResolutionWhere(
   since: Date,
   filter: PilotFilter,
-): Prisma.BlockerResolutionEventWhereInput {
+): Record<string, unknown> {
   const clauses = metadataScopeWhere(filter);
 
   return {
@@ -150,10 +153,11 @@ function blockerResolutionWhere(
   };
 }
 
+// TODO: removed - referenced non-existent Prisma model (StartOutcomeEvent)
 function startOutcomeWhere(
   since: Date,
   filter: PilotFilter,
-): Prisma.StartOutcomeEventWhereInput {
+): Record<string, unknown> {
   const clauses = metadataScopeWhere(filter);
 
   return {
@@ -176,6 +180,7 @@ const SHARE_EVENT_SELECT = {
   npi: true,
 } satisfies Prisma.BundleShareEventSelect;
 
+// TODO: removed - referenced non-existent Prisma model (AdvisoryOutcomeEvent)
 const ADVISORY_EVENT_SELECT = {
   id: true,
   entityId: true,
@@ -186,8 +191,9 @@ const ADVISORY_EVENT_SELECT = {
   readinessScoreAtEvent: true,
   blockersAtEvent: true,
   metadata: true,
-} satisfies Prisma.AdvisoryOutcomeEventSelect;
+} as const;
 
+// TODO: removed - referenced non-existent Prisma model (EmployerDecisionEvent)
 const DECISION_EVENT_SELECT = {
   id: true,
   entityId: true,
@@ -197,8 +203,9 @@ const DECISION_EVENT_SELECT = {
   readinessScoreAtDecision: true,
   blockersAtDecision: true,
   metadata: true,
-} satisfies Prisma.EmployerDecisionEventSelect;
+} as const;
 
+// TODO: removed - referenced non-existent Prisma model (BlockerResolutionEvent)
 const BLOCKER_EVENT_SELECT = {
   id: true,
   entityId: true,
@@ -209,8 +216,9 @@ const BLOCKER_EVENT_SELECT = {
   resolutionMethod: true,
   status: true,
   metadata: true,
-} satisfies Prisma.BlockerResolutionEventSelect;
+} as const;
 
+// TODO: removed - referenced non-existent Prisma model (StartOutcomeEvent)
 const START_OUTCOME_SELECT = {
   id: true,
   entityId: true,
@@ -222,7 +230,7 @@ const START_OUTCOME_SELECT = {
   readinessScoreAtStart: true,
   blockersAtStart: true,
   metadata: true,
-} satisfies Prisma.StartOutcomeEventSelect;
+} as const;
 
 const AUDIT_EVENT_SELECT = {
   id: true,
@@ -234,9 +242,55 @@ const AUDIT_EVENT_SELECT = {
   createdAt: true,
 } satisfies Prisma.AuditEventSelect;
 
-type StartOutcomeRow = Prisma.StartOutcomeEventGetPayload<{ select: typeof START_OUTCOME_SELECT }>;
+// TODO: removed - referenced non-existent Prisma model (StartOutcomeEvent)
+type StartOutcomeRow = {
+  id: string;
+  entityId: string;
+  organizationContextId: string | null;
+  startedAt: Date;
+  daysFromFirstReview: number | null;
+  daysFromShare: number | null;
+  daysFromReady: number | null;
+  readinessScoreAtStart: number | null;
+  blockersAtStart: unknown;
+  metadata: unknown;
+};
+// TODO: removed - referenced non-existent Prisma model (EmployerDecisionEvent)
+type DecisionEventRow = {
+  id: string;
+  entityId: string;
+  organizationContextId: string | null;
+  decision: string;
+  decidedAt: Date;
+  readinessScoreAtDecision: number | null;
+  blockersAtDecision: unknown;
+  metadata: unknown;
+};
+// TODO: removed - referenced non-existent Prisma model (BlockerResolutionEvent)
+type BlockerEventRow = {
+  id: string;
+  entityId: string;
+  blockerCode: string;
+  openedAt: Date;
+  resolvedAt: Date | null;
+  resolutionDays: number | null;
+  resolutionMethod: string | null;
+  status: string;
+  metadata: unknown;
+};
 type AuditEventRow = Prisma.AuditEventGetPayload<{ select: typeof AUDIT_EVENT_SELECT }>;
-type AdvisoryEventRow = Prisma.AdvisoryOutcomeEventGetPayload<{ select: typeof ADVISORY_EVENT_SELECT }>;
+// TODO: removed - referenced non-existent Prisma model (AdvisoryOutcomeEvent)
+type AdvisoryEventRow = {
+  id: string;
+  entityId: string;
+  organizationContextId: string | null;
+  advisoryVersion: string | null;
+  eventType: string;
+  eventTimestamp: Date;
+  readinessScoreAtEvent: number | null;
+  blockersAtEvent: unknown;
+  metadata: unknown;
+};
 
 export type PilotProofChainEventName =
   | 'packet_shared'
@@ -807,28 +861,17 @@ export async function computePilotKpis(
       orderBy: { sharedAt: 'asc' },
     }),
 
-    prisma.advisoryOutcomeEvent.findMany({
-      where: advisoryOutcomeWhere(since, filter),
-      select: ADVISORY_EVENT_SELECT,
-      orderBy: { eventTimestamp: 'asc' },
-    }),
+    // TODO: removed - referenced non-existent Prisma model (advisoryOutcomeEvent)
+    Promise.resolve([] as AdvisoryEventRow[]),
 
-    prisma.employerDecisionEvent.findMany({
-      where: employerDecisionWhere(since, filter),
-      select: DECISION_EVENT_SELECT,
-      orderBy: { decidedAt: 'asc' },
-    }),
+    // TODO: removed - referenced non-existent Prisma model (employerDecisionEvent)
+    Promise.resolve([] as DecisionEventRow[]),
 
-    prisma.blockerResolutionEvent.findMany({
-      where: blockerResolutionWhere(since, filter),
-      select: BLOCKER_EVENT_SELECT,
-    }),
+    // TODO: removed - referenced non-existent Prisma model (blockerResolutionEvent)
+    Promise.resolve([] as BlockerEventRow[]),
 
-    prisma.startOutcomeEvent.findMany({
-      where: startOutcomeWhere(since, filter),
-      select: START_OUTCOME_SELECT,
-      orderBy: { startedAt: 'asc' },
-    }),
+    // TODO: removed - referenced non-existent Prisma model (startOutcomeEvent)
+    Promise.resolve([] as StartOutcomeRow[]),
 
     prisma.auditEvent.findMany({
       where: {
@@ -846,24 +889,18 @@ export async function computePilotKpis(
           ...(filter.orgContextId ? { organizationContextId: filter.orgContextId } : {}),
         },
       }),
-      prisma.advisoryOutcomeEvent.count({
-        where: advisoryOutcomeWhere(since, filter),
-      }),
-      prisma.employerDecisionEvent.count({
-        where: employerDecisionWhere(since, filter),
-      }),
-      prisma.blockerResolutionEvent.count({
-        where: blockerResolutionWhere(since, filter),
-      }),
-      prisma.startOutcomeEvent.count({
-        where: startOutcomeWhere(since, filter),
-      }),
-      prisma.employerAcceptance.count({
-        where: { acceptedAt: { gte: since } },
-      }),
-      prisma.startAttestation.count({
-        where: { startedAt: { gte: since } },
-      }),
+      // TODO: removed - referenced non-existent Prisma model (advisoryOutcomeEvent)
+      Promise.resolve(0),
+      // TODO: removed - referenced non-existent Prisma model (employerDecisionEvent)
+      Promise.resolve(0),
+      // TODO: removed - referenced non-existent Prisma model (blockerResolutionEvent)
+      Promise.resolve(0),
+      // TODO: removed - referenced non-existent Prisma model (startOutcomeEvent)
+      Promise.resolve(0),
+      // TODO: removed - referenced non-existent Prisma model (employerAcceptance)
+      Promise.resolve(0),
+      // TODO: removed - referenced non-existent Prisma model (startAttestation)
+      Promise.resolve(0),
     ]),
   ]);
 

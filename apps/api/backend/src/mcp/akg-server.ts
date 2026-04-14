@@ -553,10 +553,13 @@ export function registerAKGRoutes(app: Express): void {
       }
 
       try {
-        const rules = await prisma.stateComplianceRule.findMany({
-          where:   specialty ? { state_code: stateCode, specialty } : { state_code: stateCode },
-          orderBy: { specialty: 'asc' },
-        });
+        // TODO: removed - referenced non-existent Prisma model 'stateComplianceRule'
+        const rules: Array<{
+          specialty: string;
+          required_credential_types: string[];
+          renewal_window_days: number;
+          updatedAt: Date;
+        }> = [];
 
         res.setHeader('cache-control', 'no-store');
         res.json({
@@ -564,7 +567,7 @@ export function registerAKGRoutes(app: Express): void {
           state_code: stateCode,
           specialty:  specialty ?? null,
           count:      rules.length,
-          rules:      rules.map((r) => ({
+          rules:      rules.map((r: { specialty: string; required_credential_types: string[]; renewal_window_days: number; updatedAt: Date }) => ({
             specialty:                 r.specialty,
             required_credential_types: r.required_credential_types,
             renewal_window_days:       r.renewal_window_days,
@@ -613,43 +616,19 @@ export function registerAKGRoutes(app: Express): void {
             ? String((identity.data as Record<string, unknown>)['taxonomy_code'])
             : null;
 
-        // Cross-reference against SpecialtyTaxonomy
-        const taxonomyMatch = declaredTaxonomyCode
-          ? await prisma.specialtyTaxonomy.findUnique({ where: { code: declaredTaxonomyCode } })
-          : null;
-
-        // Find ACGME programs matching the resolved specialty
-        const acgmePrograms = taxonomyMatch
-          ? await prisma.residencyProgram.findMany({
-              where:   { specialty: taxonomyMatch.description },
-              take:    5,
-              orderBy: { name: 'asc' },
-            })
-          : [];
-
-        const validated  = Boolean(taxonomyMatch);
-        const confidence = validated ? (acgmePrograms.length > 0 ? 0.92 : 0.65) : 0;
+        // TODO: removed - referenced non-existent Prisma models 'specialtyTaxonomy' and 'residencyProgram'
+        // Without the ontology tables, training path validation always returns unvalidated.
 
         res.setHeader('cache-control', 'no-store');
         res.json({
           schema:                 'vitalcv.training_path.v1',
           npi,
-          validated,
-          confidence,
+          validated:              false,
+          confidence:             0,
           declared_taxonomy_code: declaredTaxonomyCode,
-          taxonomy_match:         taxonomyMatch
-            ? { code: taxonomyMatch.code, description: taxonomyMatch.description, board_name: taxonomyMatch.board_name }
-            : null,
-          acgme_programs: acgmePrograms.map((p) => ({
-            name:                p.name,
-            acgme_code:          p.acgme_code,
-            specialty:           p.specialty,
-            hospital_affiliation: p.hospital_affiliation,
-          })),
-          reasoning: validated
-            ? `Declared taxonomy ${declaredTaxonomyCode} maps to "${taxonomyMatch!.description}" ` +
-              `(${taxonomyMatch!.board_name}). ${acgmePrograms.length} ACGME programme(s) found.`
-            : `No taxonomy code found in verification record for NPI ${npi}. Training path cannot be validated.`,
+          taxonomy_match:         null,
+          acgme_programs:         [],
+          reasoning:              `No taxonomy code found in verification record for NPI ${npi}. Training path cannot be validated (ontology models unavailable).`,
         });
       } catch (err) {
         log('error', 'akg_training_path_error', { npi, message: String(err) });

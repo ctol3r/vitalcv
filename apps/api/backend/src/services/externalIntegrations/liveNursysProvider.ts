@@ -10,7 +10,6 @@
  */
 
 import type { NursysEvent, NursysProvider } from './types';
-import { logSystemFailure } from '../failureIsolationEngine';
 import { log } from '../../obs/logger';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -58,7 +57,7 @@ export class LiveNursysProvider implements NursysProvider {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'unknown');
-        await logSystemFailure('live-nursys-provider', 'error', `Nursys API returned ${response.status}: ${errorText}`);
+        /* logSystemFailure removed — model deleted */ //('live-nursys-provider', 'error', `Nursys API returned ${response.status}: ${errorText}`);
         return [];
       }
 
@@ -87,7 +86,7 @@ export class LiveNursysProvider implements NursysProvider {
       return events;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
-      await logSystemFailure('live-nursys-provider', 'error', `Nursys API call failed: ${message}`);
+      /* logSystemFailure removed — model deleted */ //('live-nursys-provider', 'error', `Nursys API call failed: ${message}`);
       return [];
     } finally {
       clearTimeout(timeout);

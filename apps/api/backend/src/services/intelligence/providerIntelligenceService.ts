@@ -523,22 +523,9 @@ function connectorObservedSet(
 async function loadResidencyPrograms(
   prismaClient: PrismaClient,
 ): Promise<ResidencyProgramRow[]> {
-  try {
-    return await prismaClient.residencyProgram.findMany({
-      select: {
-        name: true,
-        specialty: true,
-        acgme_code: true,
-        hospital_affiliation: true,
-      },
-      take: 1_000,
-    });
-  } catch (error) {
-    if (isMissingTableError(error)) {
-      return [];
-    }
-    throw error;
-  }
+  // residencyProgram model removed — return empty array.
+  void prismaClient;
+  return [];
 }
 
 function claimAnchorKey(claim: ClaimRow): string | null {
@@ -964,18 +951,8 @@ async function loadBaseData(
       take: 1_000,
     }),
     prismaClient.opportunity.findMany({
-      select: {
-        title: true,
-        specialty: true,
-        state: true,
-        payRange: true,
-        createdAt: true,
-        organization: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
+      include: {
+        organization: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 4_000,

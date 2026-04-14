@@ -14,8 +14,6 @@
  * No randomness. No external SaaS dependency.
  */
 
-import type { OnboardingMetrics } from './onboardingAnalyticsEngine';
-
 // ── Constants ────────────────────────────────────────────────
 
 /** Industry baseline: NCQA standard PSV window (calendar days). */
@@ -32,6 +30,14 @@ export type RevenueSignal = {
   avgDaysSaved: number | null;
   avgDailyRevenuePerClinician: number;
   estimatedRevenueRecovered: number | null;
+  completedPSV: number;
+};
+
+export type OnboardingMetrics = {
+  avgDaysToVerification: number | null;
+  avgDaysToPSVCompletion: number | null;
+  totalArtifacts: number;
+  completedVerifications: number;
   completedPSV: number;
 };
 

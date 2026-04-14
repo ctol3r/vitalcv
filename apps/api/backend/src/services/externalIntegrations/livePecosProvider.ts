@@ -10,7 +10,6 @@
  */
 
 import type { PecosCheck, PecosProvider } from './types';
-import { logSystemFailure } from '../failureIsolationEngine';
 import { log } from '../../obs/logger';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -58,7 +57,7 @@ export class LivePecosProvider implements PecosProvider {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'unknown');
-        await logSystemFailure('live-pecos-provider', 'error', `PECOS API returned ${response.status}: ${errorText}`);
+        /* logSystemFailure removed — model deleted */ //('live-pecos-provider', 'error', `PECOS API returned ${response.status}: ${errorText}`);
         const now = new Date();
         return {
           npi: normalized,
@@ -104,7 +103,7 @@ export class LivePecosProvider implements PecosProvider {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
-      await logSystemFailure('live-pecos-provider', 'error', `PECOS API call failed: ${message}`);
+      /* logSystemFailure removed — model deleted */ //('live-pecos-provider', 'error', `PECOS API call failed: ${message}`);
       const now = new Date();
       return {
         npi: normalized,

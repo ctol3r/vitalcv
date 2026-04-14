@@ -28,11 +28,9 @@ import { HttpError } from '../utils/httpError';
 import { sha256ForPayload } from '../utils/deterministic';
 import {
   captureEmployerDecision,
-  captureStartOutcome,
 } from '../services/seal/sealEventCapture';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { captureDecisionSignal } from '../services/feedback/decisionSignalService';
-import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
@@ -132,18 +130,8 @@ export function registerEmployerActionRoutes(app: Express): void {
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
 
-      // Guard: no duplicate open acceptances
-      const existing = await prisma.employerAcceptance.findFirst({
-        where:  { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
-        select: { id: true },
-      });
-      if (existing) {
-        return void res.status(409).json({
-          error:             'already_accepted',
-          error_description: 'An active acceptance already exists for this employer/NPI pair.',
-          acceptanceId:      existing.id,
-        });
-      }
+      // Guard: duplicate acceptance check (EmployerAcceptance model removed)
+      // Previously checked prisma.employerAcceptance — now skipped.
 
       // ── Source coverage gate ────────────────────────────────────────
       // Validate that the passport is not BLOCKED at the moment of acceptance.
@@ -247,7 +235,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         } : null,
         bundleId: state.attribution.bundleId,
       });
-      void recomputeMatchBoosts().catch(() => {});
+      // recomputeMatchBoosts removed (matchBoostService deleted)
 
       return void res.status(201).json({ ok: true, state });
     }),
@@ -453,7 +441,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         } : null,
         bundleId: state.attribution.bundleId,
       });
-      void recomputeMatchBoosts().catch(() => {});
+      // recomputeMatchBoosts removed (matchBoostService deleted)
 
       return void res.status(201).json({ ok: true, state });
     }),
@@ -681,136 +669,12 @@ export function registerEmployerActionRoutes(app: Express): void {
   //                 non-repudiation event).
   // Returns: { ok, attestationId, auditEventId, startedAt }
   // ─────────────────────────────────────────────────────────────────────────
+  // confirm-start stubbed: EmployerAcceptance + StartAttestation models removed from schema.
   app.post(
     '/api/employer-review/:entityId/confirm-start',
-    asyncHandler(async (req, res) => {
-      const employerId = requireClerkUserId(req);
-      const { entityId } = req.params;
-
-      if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
-
-      const subject = await resolveEmployerReviewSubject(entityId);
-      if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
-
-      const { startedAt, role, facility, acceptanceId: bodyAcceptanceId } = (req.body ?? {}) as {
-        startedAt?: string;
-        role?:      string;
-        facility?:  string;
-        acceptanceId?: string;
-      };
-
-      if (!startedAt) throw new HttpError(400, 'startedAt is required.');
-      if (!role?.trim()) throw new HttpError(400, 'role is required.');
-      if (!facility?.trim()) throw new HttpError(400, 'facility is required.');
-
-      const startDate = new Date(startedAt);
-      if (isNaN(startDate.getTime())) throw new HttpError(400, 'startedAt must be a valid ISO date.');
-
-      // Resolve the open acceptance for this employer+clinician.
-      // If a specific acceptanceId is provided, use it; otherwise find the most recent ACCEPTED one.
-      const acceptance = await (bodyAcceptanceId
-        ? prisma.employerAcceptance.findFirst({
-            where:  { id: bodyAcceptanceId, employerId, status: 'ACCEPTED' },
-            select: { id: true, clinicianNpi: true },
-          })
-        : prisma.employerAcceptance.findFirst({
-            where:   { employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
-            orderBy: { acceptedAt: 'desc' },
-            select:  { id: true, clinicianNpi: true },
-          })
-      );
-
-      if (!acceptance) {
-        throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
-      }
-
-      const attestationId = randomUUID();
-      const auditEventId  = randomUUID();
-      const attestationHash = sha256ForPayload({
-        attestationId,
-        acceptanceId: acceptance.id,
-        entityId,
-        employerId,
-        clinicianNpi: acceptance.clinicianNpi,
-        startedAt: startDate.toISOString(),
-        role,
-        facility,
-      });
-
-      // AUDIT: START_ATTESTED is one of the 5 canonical non-repudiation events.
-      // StartAttestation and AuditEvent are written atomically before returning 2xx.
-      const { attestation } = await prisma.$transaction(async (tx) => {
-        const created = await tx.startAttestation.create({
-          data: {
-            id:          attestationId,
-            acceptanceId: acceptance.id,
-            role:        role.trim(),
-            facility:    facility.trim(),
-            startedAt:   startDate,
-          },
-        });
-
-        await tx.auditEvent.create({
-          data: {
-            id:          auditEventId,
-            type:        'START_ATTESTED',
-            hash:        attestationHash,
-            referenceId: attestationId,
-            clinicianId: acceptance.clinicianNpi,
-            anchored:    false,
-            metadata: {
-              attestationId,
-              acceptanceId: acceptance.id,
-              entityId,
-              employerId,
-              startedAt:   startDate.toISOString(),
-              role,
-              facility,
-            },
-          },
-        });
-
-        return { attestation: created };
-      });
-
-      log('info', 'employer_start_attested', {
-        attestationId:  attestation.id,
-        auditEventId,
-        acceptanceId:   acceptance.id,
-        entityId,
-        employerId,
-        npi_prefix:     acceptance.clinicianNpi.slice(0, 4) + '····',
-        startedAt:      startDate.toISOString(),
-      });
-
-      // SEAL: fire-and-forget start outcome capture for KPI funnel
-      void captureStartOutcome({
-        entityId,
-        startedAt:             startDate,
-        blockersAtStart:       [],
-        sourceCoverageAtStart: {},
-        metadata: {
-          attestationId:  attestation.id,
-          acceptanceId:   acceptance.id,
-          employerId,
-          role,
-          facility,
-          recordedVia: 'employer_review_confirm_start',
-        },
-      }).catch((err: unknown) => {
-        log('warn', 'start_outcome_capture_failed', {
-          attestationId: attestation.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
-
-      return void res.status(201).json({
-        ok:            true,
-        attestationId: attestation.id,
-        auditEventId,
-        startedAt:     startDate.toISOString(),
-      });
-    }),
+    (_req: Request, res: Response) => {
+      res.status(501).json({ error: 'Not implemented' });
+    },
   );
 
   // ─────────────────────────────────────────────────────────────────────────

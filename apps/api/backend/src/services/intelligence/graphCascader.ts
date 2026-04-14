@@ -108,23 +108,8 @@ export class GraphCascader {
   }
 
   private async setRevocationBit(index: number) {
-    const state = await prisma.statusListState.findUnique({
-      where: { id: 'singleton' }
-    });
-    if (!state) return;
-
-    // Decode, set bit, encode
-    // For here, we do a basic mock update or log, as updating the bitstring without the existing library code might be error-prone.
-    log('info', `[GraphCascader] Setting StatusList2021 revocation bit at index: ${index}`);
-
-    // In a real implementation we would import pako and jose or standard builtins for zlib
-    // to edit the bit. We update the version to force cache busting for VC verifiers.
-    await prisma.statusListState.update({
-      where: { id: 'singleton' },
-      data: {
-        version: { increment: 1 }
-      }
-    });
+    // TODO: removed - referenced non-existent Prisma model 'statusListState'
+    log('info', `[GraphCascader] Setting StatusList2021 revocation bit at index: ${index} (model unavailable, skipped)`);
   }
 }
 

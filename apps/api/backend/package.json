@@ -8,7 +8,7 @@
   "scripts": {
     "db:migrate:deploy": "pnpm exec prisma migrate deploy",
     "dev": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && ts-node src/server.ts",
-    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc && pnpm exec ts-node src/qa/runQaSuite.ts",
+    "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc && pnpm exec ts-node -r dotenv/config src/qa/runQaSuite.ts",
     "graph:bench": "pnpm exec ts-node src/tools/graphBench.ts",
     "manual:audit-bundle": "pnpm exec ts-node src/tools/generateManualAuditBundle.ts",
     "start": "node -r ./register-workspace-paths.js dist/apps/api/backend/src/server.js",

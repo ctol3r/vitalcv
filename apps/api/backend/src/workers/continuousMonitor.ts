@@ -30,7 +30,6 @@ import { randomUUID } from 'node:crypto';
 import cron from 'node-cron';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
-import { setRevoked } from '../services/ledger/statusListManager';
 import { propagateCredentialLifecycleChange } from '../services/revocation/propagationEngine';
 import { emitMonitoringAlert, type MonitoringAlertKind } from '../services/alerts/trustAlerts';
 import { checkExclusion, type ExclusionResult } from '../services/psv/oigLeieChecker';
@@ -43,6 +42,11 @@ import {
   type CredentialFactBatch,
   type CredentialFactEvent,
 } from '@vitalcv/psv-adapters';
+
+/** Stub: statusListManager was removed. setRevoked is a no-op. */
+async function setRevoked(_artifactId: string): Promise<void> {
+  // W3C Bitstring Status List manager removed — no-op.
+}
 
 // ── Configuration ───────────────��──────────────────────────────────────────
 

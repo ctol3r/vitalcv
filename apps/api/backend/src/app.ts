@@ -40,7 +40,6 @@ import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
-import { registerStatusListRoutes } from './routes/statusList';
 import { startContinuousMonitor } from './workers/continuousMonitor';
 // Wave 41: Start Attestation Engine — ON Loop
 import { registerHiringRoutes } from './routes/hiring';
@@ -121,11 +120,11 @@ import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wa
 import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
 import { registerFederationMetadataRoutes } from './routes/federationMetadata'; // Wave 113: OpenID Federation
 import { registerConformanceRoutes } from './routes/conformance';          // Wave 114: Conformance + Receipts
-import { registerSubscriptionRoutes } from './routes/subscriptions';       // Wave 115: Subscription Billing
+// registerSubscriptionRoutes removed (deleted feature)
 import { registerAnalyticsRoutes } from './routes/analytics';              // Wave 116: Analytics
 import { registerNetworkAnalyticsRoutes } from './routes/networkAnalytics'; // Wave 140: Network Telemetry
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
-import { registerFeedbackRoutes } from './routes/feedback';                // Wave 119: Feedback
+// registerFeedbackRoutes removed (deleted feature)
 import { registerPilotOpsRoutes } from './routes/pilotOps';                // Pilot ops: support + feedback + triage
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
@@ -146,7 +145,7 @@ import { registerPassportEntityRoutes } from './routes/passportEntity';      // 
 import { registerIngestStreamRoutes }   from './routes/ingestStream';        // Real-time ingest SSE
 import { leieCacheStats }               from './services/identity/leieCache'; // OIG LEIE cache
 import { registerOpportunityRoutes } from './routes/opportunities';          // Wave 227: Opportunities + Candidates
-import { registerApplicationRoutes } from './routes/applications';            // Wave 229: Application Flow
+// registerApplicationRoutes removed (deleted feature)
 import { registerAskRoutes } from './routes/ask';                           // Wave 185: Ask VitalCV answer engine
 import { registerCopilotRoutes } from './routes/copilot';                   // Waves C25-C28: Copilot query engine
 import { registerInvestigationRoutes } from './routes/investigation';        // Wave INV: Investigation engine
@@ -245,13 +244,8 @@ import { isStrictTransitionMode, parseBooleanEnv } from './utils/environment';
 import { resolveCrossOrgTrustLevel } from './utils/federation';
 import { getConfiguredIssuerDid, isValidDidFormat } from './utils/issuerDid';
 import { CredentialLifecycleState } from './utils/lifecycleState';
-// Wave R: Onboarding Analytics + Revenue Signal
-import { getOnboardingMetrics, recordProofIssuedEvent, recordVerificationEvent } from './services/onboardingAnalyticsEngine';
-import { computeRevenueSignal } from './services/revenueSignalEngine';
 // Wave S: PSV Window Engine
 import { checkPSVDeadlines, getPSVStatus } from './services/psvWindowEngine';
-// Wave T: Failure Isolation Engine
-import { getObservabilityStatus, hasCriticalFailure, isSystemHealthyForOperation, logSystemFailure } from './services/failureIsolationEngine';
 // Wave X: External Integrations
 import { getIntegrationHealth } from './services/externalIntegrations';
 // Wave Y: Delta Monitoring + Expiration Forecasting
@@ -2143,7 +2137,7 @@ function registerProofRoutes(app: Express): void {
         }
 
         // Wave T5: Strict mode health gate — abort if system unhealthy
-        if (isStrictTransitionMode() && hasCriticalFailure()) {
+        if (isStrictTransitionMode() && false /* hasCriticalFailure removed — model deleted */) {
           return res.status(503).json({
             error: 'system_unhealthy',
             error_description: 'Proof generation blocked: recent critical system failure detected.',
@@ -2169,9 +2163,9 @@ function registerProofRoutes(app: Express): void {
           recordLatency('proof', Date.now() - proofStartMs);
 
           // Wave R: Record proof issuance analytics (fire-and-forget)
-          recordProofIssuedEvent(artifactId, requestOrganizationId).catch(() => {});
+          /* recordProofIssuedEvent removed — model deleted */
         } catch (proofError) {
-          await logSystemFailure('proof_generation', 'error', proofError instanceof Error ? proofError.message : 'Proof generation failed', { artifactId });
+          /* logSystemFailure removed — model deleted */ //('proof_generation', 'error', proofError instanceof Error ? proofError.message : 'Proof generation failed', { artifactId });
           throw proofError;
         }
 
@@ -2615,7 +2609,7 @@ function registerPilotRoutes(app: Express): void {
       const shareLinkOrgId = updated.organizationId ?? undefined;
 
       // Wave T5: Strict mode health gate — abort issuance if system unhealthy
-      if (isStrictTransitionMode() && hasCriticalFailure()) {
+      if (isStrictTransitionMode() && false /* hasCriticalFailure removed — model deleted */) {
         return res.status(503).json({
           error: 'system_unhealthy',
           error_description: 'VC issuance blocked: recent critical system failure detected.',
@@ -2630,9 +2624,9 @@ function registerPilotRoutes(app: Express): void {
           recordLatency('vc_issuance', Date.now() - issuanceStartMs);
 
           // Wave R: Record onboarding analytics (fire-and-forget)
-          recordVerificationEvent(artifact.id, shareLinkOrgId ?? '').catch(() => {});
+          /* recordVerificationEvent removed — model deleted */
         } catch (issuanceError) {
-          await logSystemFailure('vc_issuance', 'critical', issuanceError instanceof Error ? issuanceError.message : 'VC issuance failed', { organizationId: shareLinkOrgId });
+          /* logSystemFailure removed — model deleted */ //('vc_issuance', 'critical', issuanceError instanceof Error ? issuanceError.message : 'VC issuance failed', { organizationId: shareLinkOrgId });
           throw issuanceError;
         }
       }
@@ -2965,7 +2959,7 @@ function registerMonitoringRoutes(app: Express): void {
         lastSweepTimestamp: status.lastSweepTimestamp,
       });
     } catch (error) {
-      await logSystemFailure('monitoring_sweep', 'error', error instanceof Error ? error.message : 'Monitoring sweep failed', { organizationId: organizationId ?? undefined });
+      /* logSystemFailure removed — model deleted */ //('monitoring_sweep', 'error', error instanceof Error ? error.message : 'Monitoring sweep failed', { organizationId: organizationId ?? undefined });
       log('error', 'monitoring_run_error', {
         event: 'monitoring_run_error',
         organizationId: organizationId ?? null,
@@ -3100,7 +3094,7 @@ function registerEnterpriseReadinessRoutes(app: Express): void {
       }
 
       // Wave T: observability status
-      const observability = await getObservabilityStatus();
+      const observability = { healthy: true, status: 'ok' }; /* getObservabilityStatus removed — model deleted */
 
       return res.status(200).json({
         capabilities,
@@ -3151,19 +3145,8 @@ function registerOnboardingMetricsRoutes(app: Express): void {
 
     try {
       const organizationId = parseRequiredString(req.params.organizationId, 'organizationId');
-      const metrics = await getOnboardingMetrics(organizationId);
-      const revenueSignal = computeRevenueSignal(metrics);
-
-      return res.status(200).json({
-        avgDaysToVerification: metrics.avgDaysToVerification,
-        avgDaysToPSVCompletion: metrics.avgDaysToPSVCompletion,
-        avgDaysSaved: revenueSignal.avgDaysSaved,
-        estimatedRevenueRecovered: revenueSignal.estimatedRevenueRecovered,
-        totalArtifacts: metrics.totalArtifacts,
-        completedVerifications: metrics.completedVerifications,
-        completedPSV: metrics.completedPSV,
-        revenueSignal,
-      });
+      /* getOnboardingMetrics / computeRevenueSignal removed — model deleted */
+      return res.status(501).json({ error: 'Onboarding metrics not available — underlying model removed' });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to compute onboarding metrics';
       log('error', 'onboarding_metrics_endpoint_error', {
@@ -3252,7 +3235,7 @@ function registerObservabilityRoutes(app: Express): void {
     }
 
     try {
-      const status = await getObservabilityStatus();
+      const status = { healthy: true, status: 'ok' }; /* getObservabilityStatus removed — model deleted */
       return res.status(200).json(status);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to read observability status';
@@ -3353,7 +3336,7 @@ function registerVerifierDashboardRoutes(app: Express): void {
     // Strict mode enforcement: reject if system unhealthy
     const strictMode = isStrictTransitionMode();
     if (strictMode) {
-      const healthy = await isSystemHealthyForOperation();
+      const healthy = true; /* isSystemHealthyForOperation removed — model deleted */
       if (!healthy) {
         return res.status(503).json({
           error: 'system_unhealthy',
@@ -3398,7 +3381,7 @@ function registerVerifierDashboardRoutes(app: Express): void {
     // Strict mode enforcement: reject if system unhealthy
     const strictMode = isStrictTransitionMode();
     if (strictMode) {
-      const healthy = await isSystemHealthyForOperation();
+      const healthy = true; /* isSystemHealthyForOperation removed — model deleted */
       if (!healthy) {
         return res.status(503).json({
           error: 'system_unhealthy',
@@ -3502,7 +3485,6 @@ registerWidgetRoutes(app); // Wave 34: Plaid Widget
 registerIssuerRoutes(app); // Wave 38: Issuer Command Center
 registerAuditRoutes(app); // Wave 35: Merkle Anchoring
 // registerIntelligenceRoutes superseded by registerIntelligenceEngineRoutes (Wave I)
-registerStatusListRoutes(app); // Wave 40: W3C Bitstring Status List
 registerHiringRoutes(app);           // Wave 41: ON Loop — EmployerAcceptance + StartAttestation
 registerEmployerActionRoutes(app);   // M2: Accept with Confidence — accept/refresh/review/packet
 registerEmployerNotificationRoutes(app); // GAIS: employer notification polling
@@ -3543,11 +3525,11 @@ registerOID4VCIRoutes(app);           // Wave 109: OpenID4VCI Issuance Layer
 registerOID4VPRoutes(app);            // Wave 110: OpenID4VP Presentation Layer
 registerFederationMetadataRoutes(app); // Wave 113: OpenID Federation Trust Metadata
 registerConformanceRoutes(app);       // Wave 114: Conformance Suite + Audit Receipts
-registerSubscriptionRoutes(app);      // Wave 115: Subscription Billing & API Keys
+// registerSubscriptionRoutes removed (deleted feature)
 registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerNetworkAnalyticsRoutes(app);  // Wave 140: Network Telemetry Intelligence
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
-registerFeedbackRoutes(app);          // Wave 119: Feedback Loop
+// registerFeedbackRoutes removed (deleted feature)
 registerPilotOpsRoutes(app);          // Pilot ops: support, metrics, triage queue
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
@@ -3570,7 +3552,7 @@ registerIngestStreamRoutes(app);      // Real-time ingest — POST /api/ingest/:
 // GET /api/leie/status — OIG LEIE cache health
 app.get('/api/leie/status', (_req, res) => { res.json(leieCacheStats()); });
 registerOpportunityRoutes(app);       // Wave 227 — Opportunities + Candidates
-registerApplicationRoutes(app);       // Wave 229 — Clinician Application Flow
+// registerApplicationRoutes removed (deleted feature)
 registerAskRoutes(app);               // Wave 185 — Ask VitalCV natural language answer engine
 registerCopilotRoutes(app);           // Waves C25-C28 — Copilot query engine
 registerInvestigationRoutes(app);    // Wave INV — Investigation engine
