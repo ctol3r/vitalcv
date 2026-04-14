@@ -108,20 +108,67 @@ export function registerActionLogRoutes(app: Express): void {
       });
     }
 
-    try {
-      const actions = await prisma.actionLog.findMany({
+    // Read both surfaces in parallel. Acceptance rows are the structured
+    // graph-node view; ActionLog rows are the lightweight log of
+    // non-accept actions. Both are keyed by npi (Acceptance.subjectId ≡ npi
+    // per Wave 13 simplification).
+    const [actionsResult, acceptanceResult] = await Promise.allSettled([
+      prisma.actionLog.findMany({
         where: { npi },
         orderBy: { createdAt: 'desc' },
         take: 10,
-      });
-      return res.status(200).json({ actions });
-    } catch (error) {
+      }),
+      prisma.acceptance.findMany({
+        where: { subjectId: npi },
+        orderBy: { acceptedAt: 'desc' },
+        take: 10,
+        select: {
+          acceptanceId: true,
+          subjectId: true,
+          employerId: true,
+          facilityId: true,
+          acceptedAt: true,
+          eventHash: true,
+          decisionState: true,
+          trustSignalsSnapshot: true,
+          role: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    if (actionsResult.status === 'rejected' && acceptanceResult.status === 'rejected') {
       log('error', 'employer_action_read_failed', {
         npi_prefix: npi.slice(0, 4) + '····',
-        message: error instanceof Error ? error.message : 'Unknown read error',
+        actions_error:
+          actionsResult.reason instanceof Error ? actionsResult.reason.message : 'unknown',
+        acceptance_error:
+          acceptanceResult.reason instanceof Error ? acceptanceResult.reason.message : 'unknown',
       });
-      // Always return a usable shape — empty list rather than partial/undefined.
-      return res.status(200).json({ actions: [], error: 'read_failed' });
+      return res
+        .status(200)
+        .json({ actions: [], acceptances: [], error: 'read_failed' });
     }
+
+    const actions =
+      actionsResult.status === 'fulfilled' ? actionsResult.value : [];
+    const acceptances =
+      acceptanceResult.status === 'fulfilled'
+        ? acceptanceResult.value.map((row) => ({
+            kind: 'acceptance' as const,
+            acceptanceId: row.acceptanceId,
+            subjectId: row.subjectId,
+            employerId: row.employerId,
+            facilityId: row.facilityId,
+            acceptedAt: row.acceptedAt.toISOString(),
+            eventHash: row.eventHash,
+            decisionState: row.decisionState,
+            trustSignalsSnapshot: row.trustSignalsSnapshot,
+            role: row.role,
+            createdAt: row.createdAt.toISOString(),
+          }))
+        : [];
+
+    return res.status(200).json({ actions, acceptances });
   });
 }

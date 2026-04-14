@@ -47,18 +47,22 @@ model Recognition {
 }
 
 model Acceptance {
-  id            String      @id @default(uuid()) @db.Uuid
-  acceptanceId  String      @unique
-  recognitionId String
-  subjectId     String
-  employerId    String
-  facilityId    String
-  acceptedAt    DateTime
-  psvReportId   String
-  eventHash     String
-  createdAt     DateTime    @default(now())
-  recognition   Recognition @relation(fields: [recognitionId], references: [recognitionId])
-  starts        Start[]
+  id                   String      @id @default(uuid()) @db.Uuid
+  acceptanceId         String      @unique
+  recognitionId        String
+  subjectId            String
+  employerId           String
+  facilityId           String
+  acceptedAt           DateTime
+  psvReportId          String
+  eventHash            String
+  createdAt            DateTime    @default(now())
+  // Graph-node extensions — all optional to preserve existing callers.
+  decisionState        String?
+  trustSignalsSnapshot Json?       @map("trust_signals_snapshot")
+  role                 String?
+  recognition          Recognition @relation(fields: [recognitionId], references: [recognitionId])
+  starts               Start[]
 
   @@index([subjectId])
   @@index([employerId])
