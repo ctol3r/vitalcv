@@ -33,6 +33,22 @@ export interface OmegaRecentAction {
   createdAt: string;
 }
 
+export interface OmegaAcceptanceEvent {
+  kind: 'acceptance' | 'snapshot';
+  id: string;
+  occurredAt: string;
+  decisionState: string | null;
+  role: string | null;
+  employerId: string | null;
+  trustSignalsSnapshot: unknown;
+  acceptanceId: string | null;
+}
+
+export interface OmegaAcceptance {
+  latest: OmegaAcceptanceEvent;
+  history: OmegaAcceptanceEvent[];
+}
+
 export type OmegaStatus = 'ok' | 'not_found' | 'partial';
 
 export interface OmegaResponse {
@@ -44,6 +60,7 @@ export interface OmegaResponse {
   claims: PassportDataContract['truth'] | null;
   reuse_signal: ReuseSignal | null;
   recent_actions: OmegaRecentAction[];
+  acceptance: OmegaAcceptance | null;
   generatedAt: string;
 }
 
@@ -88,23 +105,46 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       claims: null,
       reuse_signal: null,
       recent_actions: [],
+      acceptance: null,
       generatedAt,
     };
   }
 
-  const [passportResult, reuseResult, actionResult] = await Promise.allSettled([
-    buildPassportDataByNpi(npi),
-    computeReuseSignal(npi),
-    prisma.actionLog.findMany({
-      where: { npi },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
-  ]);
+  const [passportResult, reuseResult, actionResult, acceptanceResult, snapshotResult] =
+    await Promise.allSettled([
+      buildPassportDataByNpi(npi),
+      computeReuseSignal(npi),
+      prisma.actionLog.findMany({
+        where: { npi },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      prisma.acceptance.findMany({
+        where: { subjectId: npi },
+        orderBy: { acceptedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          acceptanceId: true,
+          employerId: true,
+          acceptedAt: true,
+          decisionState: true,
+          trustSignalsSnapshot: true,
+          role: true,
+        },
+      }),
+      prisma.acceptanceSnapshot.findMany({
+        where: { clinicianNpi: npi },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
 
   const passport = passportResult.status === 'fulfilled' ? passportResult.value : null;
   const reuseFailed = reuseResult.status === 'rejected';
   const actionsFailed = actionResult.status === 'rejected';
+  const acceptanceFailed = acceptanceResult.status === 'rejected';
+  const snapshotFailed = snapshotResult.status === 'rejected';
 
   if (reuseFailed) {
     log('warn', 'omega_reuse_signal_failed', {
@@ -120,6 +160,25 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
         actionResult.reason instanceof Error ? actionResult.reason.message : 'unknown',
     });
   }
+  if (acceptanceFailed) {
+    log('warn', 'omega_acceptance_read_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      message:
+        acceptanceResult.reason instanceof Error ? acceptanceResult.reason.message : 'unknown',
+    });
+  }
+  if (snapshotFailed) {
+    log('warn', 'omega_acceptance_snapshot_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      message:
+        snapshotResult.reason instanceof Error ? snapshotResult.reason.message : 'unknown',
+    });
+  }
+
+  const acceptance: OmegaAcceptance | null = buildAcceptanceView(
+    acceptanceResult.status === 'fulfilled' ? acceptanceResult.value : [],
+    snapshotResult.status === 'fulfilled' ? snapshotResult.value : [],
+  );
 
   if (!passport) {
     return {
@@ -139,6 +198,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
               createdAt: entry.createdAt.toISOString(),
             }))
           : [],
+      acceptance,
       generatedAt,
     };
   }
@@ -155,7 +215,8 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       : [];
 
   return {
-    status: reuseFailed || actionsFailed ? 'partial' : 'ok',
+    status:
+      reuseFailed || actionsFailed || acceptanceFailed || snapshotFailed ? 'partial' : 'ok',
     subject: { npi },
     context,
     decision: passport.decision,
@@ -163,6 +224,66 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     claims: passport.truth,
     reuse_signal,
     recent_actions,
+    acceptance,
     generatedAt,
+  };
+}
+
+type AcceptanceRow = {
+  id: string;
+  acceptanceId: string;
+  employerId: string;
+  acceptedAt: Date;
+  decisionState: string | null;
+  trustSignalsSnapshot: unknown;
+  role: string | null;
+};
+
+type SnapshotRow = {
+  id: string;
+  clinicianNpi: string;
+  decisionState: string;
+  trustSignalsSnapshot: unknown;
+  role: string | null;
+  createdAt: Date;
+  acceptanceId: string | null;
+};
+
+function buildAcceptanceView(
+  acceptances: AcceptanceRow[],
+  snapshots: SnapshotRow[],
+): OmegaAcceptance | null {
+  if (acceptances.length === 0 && snapshots.length === 0) {
+    return null;
+  }
+
+  const events: OmegaAcceptanceEvent[] = [
+    ...acceptances.map<OmegaAcceptanceEvent>((row) => ({
+      kind: 'acceptance',
+      id: row.id,
+      occurredAt: row.acceptedAt.toISOString(),
+      decisionState: row.decisionState,
+      role: row.role,
+      employerId: row.employerId,
+      trustSignalsSnapshot: row.trustSignalsSnapshot,
+      acceptanceId: row.acceptanceId,
+    })),
+    ...snapshots.map<OmegaAcceptanceEvent>((row) => ({
+      kind: 'snapshot',
+      id: row.id,
+      occurredAt: row.createdAt.toISOString(),
+      decisionState: row.decisionState,
+      role: row.role,
+      employerId: null,
+      trustSignalsSnapshot: row.trustSignalsSnapshot,
+      acceptanceId: row.acceptanceId,
+    })),
+  ];
+
+  events.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));
+
+  return {
+    latest: events[0]!,
+    history: events,
   };
 }

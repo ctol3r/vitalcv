@@ -11,7 +11,18 @@ jest.mock('../../graphql/prisma_client', () => ({
     acceptance: {
       findMany: jest.fn(),
     },
+    acceptanceSnapshot: {
+      create: jest.fn(),
+    },
   },
+}));
+
+jest.mock('../../services/passport/npiPassportContract', () => ({
+  buildPassportDataByNpi: jest.fn(),
+}));
+
+jest.mock('../../services/actions/reuseSignal', () => ({
+  computeReuseSignal: jest.fn(),
 }));
 
 jest.mock('../../obs/logger', () => ({
@@ -21,6 +32,9 @@ jest.mock('../../obs/logger', () => ({
 import prisma from '../../graphql/prisma_client';
 import { registerActionLogRoutes } from '../actionLog';
 
+import { buildPassportDataByNpi } from '../../services/passport/npiPassportContract';
+import { computeReuseSignal } from '../../services/actions/reuseSignal';
+
 const prismaMock = prisma as unknown as {
   actionLog: {
     create: jest.Mock;
@@ -29,7 +43,13 @@ const prismaMock = prisma as unknown as {
   acceptance: {
     findMany: jest.Mock;
   };
+  acceptanceSnapshot: {
+    create: jest.Mock;
+  };
 };
+
+const passportMock = buildPassportDataByNpi as jest.MockedFunction<typeof buildPassportDataByNpi>;
+const reuseMock = computeReuseSignal as jest.MockedFunction<typeof computeReuseSignal>;
 
 function createApp() {
   const app = express();
@@ -44,6 +64,10 @@ describe('employer action endpoint', () => {
     prismaMock.actionLog.findMany.mockReset();
     prismaMock.acceptance.findMany.mockReset();
     prismaMock.acceptance.findMany.mockResolvedValue([]);
+    prismaMock.acceptanceSnapshot.create.mockReset();
+    prismaMock.acceptanceSnapshot.create.mockResolvedValue({});
+    passportMock.mockReset();
+    reuseMock.mockReset();
   });
 
   it('persists a request_data action to the ActionLog', async () => {
@@ -88,7 +112,18 @@ describe('employer action endpoint', () => {
     });
   });
 
-  it('routes accept to the Acceptance system without writing to ActionLog', async () => {
+  it('routes accept to the Acceptance system without writing to ActionLog and captures a snapshot', async () => {
+    passportMock.mockResolvedValue({
+      decision: { decision: 'PROCEED', confidence: 90, rationale: [], blockers: [], next_actions: [] },
+    } as never);
+    reuseMock.mockResolvedValue({
+      accepted_count: 1,
+      flagged_count: 0,
+      request_data_count: 0,
+      last_action: 'accept',
+      last_action_at: '2026-04-14T08:00:00.000Z',
+    });
+
     const response = await request(createApp())
       .post('/api/employer-actions')
       .send({ npi: '1234567890', action: 'accept', rationale: 'all clear' })
@@ -99,6 +134,39 @@ describe('employer action endpoint', () => {
       routed: 'acceptance_system',
     });
     expect(prismaMock.actionLog.create).not.toHaveBeenCalled();
+    expect(prismaMock.acceptanceSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          clinicianNpi: '1234567890',
+          decisionState: 'PROCEED',
+          trustSignalsSnapshot: expect.objectContaining({
+            reuse: expect.objectContaining({ accepted_count: 1 }),
+            captured_at: expect.any(String),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('accept still succeeds when the snapshot write fails (best-effort)', async () => {
+    passportMock.mockResolvedValue({
+      decision: { decision: 'PROCEED', confidence: 90, rationale: [], blockers: [], next_actions: [] },
+    } as never);
+    reuseMock.mockResolvedValue({
+      accepted_count: 0,
+      flagged_count: 0,
+      request_data_count: 0,
+      last_action: null,
+      last_action_at: null,
+    });
+    prismaMock.acceptanceSnapshot.create.mockRejectedValue(new Error('db down'));
+
+    const response = await request(createApp())
+      .post('/api/employer-actions')
+      .send({ npi: '1234567890', action: 'accept' })
+      .expect(200);
+
+    expect(response.body).toEqual({ success: true, routed: 'acceptance_system' });
   });
 
   it('rejects invalid NPI', async () => {

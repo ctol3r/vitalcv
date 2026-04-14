@@ -13,6 +13,8 @@
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
+import { computeReuseSignal } from '../services/actions/reuseSignal';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_ACTIONS = new Set(['accept', 'request_data', 'flag'] as const);
@@ -52,8 +54,49 @@ export function registerActionLogRoutes(app: Express): void {
       });
     }
 
-    // Accept is owned by the existing Acceptance system — do not duplicate.
+    // Accept is owned by the existing Acceptance audit system — we do NOT
+    // write to Acceptance here. We DO record a sidecar AcceptanceSnapshot
+    // capturing decision + reuse state at the moment of action, so the
+    // system has replayable memory of what the operator saw when they
+    // clicked accept. Snapshot failure must not block the action.
     if (action === 'accept') {
+      try {
+        const [passportData, reuseSignal] = await Promise.allSettled([
+          buildPassportDataByNpi(npi),
+          computeReuseSignal(npi),
+        ]);
+
+        const decisionState =
+          passportData.status === 'fulfilled' && passportData.value
+            ? passportData.value.decision.decision
+            : 'UNKNOWN';
+        // Serialize to plain JSON-compatible shape for Prisma's Json field.
+        const trustSignalsSnapshot = JSON.parse(
+          JSON.stringify({
+            reuse:
+              reuseSignal.status === 'fulfilled'
+                ? reuseSignal.value
+                : null,
+            captured_at: new Date().toISOString(),
+          }),
+        );
+
+        await prisma.acceptanceSnapshot.create({
+          data: {
+            clinicianNpi: npi,
+            decisionState,
+            trustSignalsSnapshot,
+            role: null,
+          },
+        });
+      } catch (error) {
+        // Snapshot is best-effort — do not fail the action.
+        log('warn', 'acceptance_snapshot_write_failed', {
+          npi_prefix: npi.slice(0, 4) + '····',
+          message: error instanceof Error ? error.message : 'unknown',
+        });
+      }
+
       log('info', 'employer_action_routed', {
         npi_prefix: npi.slice(0, 4) + '····',
         action,

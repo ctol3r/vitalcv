@@ -1760,6 +1760,26 @@ model ActionLog {
   @@map("action_log")
 }
 
+/// Sidecar snapshot of decision + trust state at the moment an accept
+/// action was recorded. NOT a replacement for Acceptance and NOT an
+/// audit record — a system-memory snapshot for replayability. Kept
+/// independent so Acceptance audit chains remain pristine.
+model AcceptanceSnapshot {
+  id                   String   @id @default(uuid()) @db.Uuid
+  clinicianNpi         String   @map("clinician_npi")
+  decisionState        String   @map("decision_state")
+  trustSignalsSnapshot Json     @map("trust_signals_snapshot")
+  role                 String?
+  createdAt            DateTime @default(now()) @map("created_at")
+  // Optional future linkage to a realized Acceptance row.
+  acceptanceId         String?  @map("acceptance_id")
+
+  @@index([clinicianNpi])
+  @@index([createdAt])
+  @@index([acceptanceId])
+  @@map("acceptance_snapshot")
+}
+
 /// Generic graph node representing any entity in the AKG.
 /// entityType discriminates the kind (CLINICIAN, ISSUER, CREDENTIAL, POLICY, FACILITY).
 /// entityId references the primary key in the source-of-truth table.
