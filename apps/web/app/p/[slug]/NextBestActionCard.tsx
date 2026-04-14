@@ -33,41 +33,41 @@ interface ActionMeta {
 
 const META: Record<NextBestActionKind, ActionMeta> = {
   PROCEED: {
-    headline: 'Ready to proceed',
-    cta: 'Proceed',
-    pending: 'Recording…',
-    done: 'Saved',
+    headline: 'Approve this candidate',
+    cta: 'Approve Candidate',
+    pending: 'Approving…',
+    done: 'Approved',
     tone: 'border-green-600 bg-green-600 text-white hover:bg-green-700',
     cardTone: 'border-green-500/40 bg-green-500/10 text-green-800',
     backendAction: 'accept',
-    successToast: 'Proceed action recorded',
+    successToast: 'You have approved this candidate',
   },
   REVERIFY: {
-    headline: 'Refresh verification',
-    cta: 'Request refresh',
-    pending: 'Sending…',
+    headline: 'Run fresh verification',
+    cta: 'Run Fresh Verification',
+    pending: 'Sending request…',
     done: 'Request sent',
     tone: 'border-amber-600 bg-amber-600 text-white hover:bg-amber-700',
     cardTone: 'border-amber-500/40 bg-amber-500/10 text-amber-800',
     backendAction: 'request_data',
-    successToast: 'Verification request sent',
+    successToast: 'You have requested fresh verification',
   },
   ESCALATE: {
-    headline: 'Escalate for review',
-    cta: 'Escalate',
-    pending: 'Escalating…',
-    done: 'Escalated',
+    headline: 'Reject this candidate',
+    cta: 'Reject Candidate',
+    pending: 'Rejecting…',
+    done: 'Rejected',
     tone: 'border-red-600 bg-red-600 text-white hover:bg-red-700',
     cardTone: 'border-red-500/40 bg-red-500/10 text-red-800',
     backendAction: 'flag',
-    successToast: 'Issue escalated',
+    successToast: 'You have rejected this candidate',
   },
   REVIEW_MANUALLY: {
-    headline: 'Manual review needed',
-    cta: 'Open review',
+    headline: 'Processing — no action available yet',
+    cta: 'Processing (No Action Available)',
     pending: '…',
     done: '…',
-    tone: 'border-foreground bg-foreground text-background hover:opacity-90',
+    tone: 'border-slate-400 bg-slate-100 text-slate-600 cursor-not-allowed',
     cardTone: 'border-slate-500/40 bg-slate-500/10 text-slate-800',
     backendAction: null,
     successToast: 'Recorded',
@@ -204,7 +204,7 @@ export function NextBestActionCard({
       <button
         type="button"
         onClick={handleClick}
-        disabled={isDoing || isDone}
+        disabled={isDoing || isDone || !meta.backendAction}
         aria-busy={isDoing}
         className={`mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border-2 px-6 py-3 text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.99] sm:w-auto ${meta.tone}`}
       >
