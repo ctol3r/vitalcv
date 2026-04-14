@@ -16,6 +16,8 @@
 import React from 'react';
 import { AnimatedTimeline, type TimelineEvent } from '@/components/ui/AnimatedTimeline';
 import { EmployerReviewActions } from '@/components/review/EmployerReviewActions';
+import { ReuseSignalBadge } from '@/components/trust/ReuseSignalBadge';
+import { CopyLinkButton } from '@/components/ui/CopyLinkButton';
 import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -288,46 +290,6 @@ function CredentialPills({ creds }: { creds: string[] }) {
 
 
 
-function ReuseSignalBadge({ npi }: { npi: string }) {
-  const [signal, setSignal] = React.useState<any>(null);
-  React.useEffect(() => {
-    fetch(`/api/pilot/reuse-signal/${npi}`)
-      .then(r => r.json())
-      .then(setSignal)
-      .catch(() => {});
-  }, [npi]);
-
-  if (!signal || signal.total_actions === 0) return null;
-
-  const recentLabel = signal.recent_accepts_7d > 0
-    ? ` (${signal.recent_accepts_7d} this week)`
-    : '';
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4 mt-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Prior Employer Decisions</p>
-      <div className="flex flex-wrap gap-4 text-sm text-foreground">
-        {signal.accepted_count > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="text-green-600">✓</span> {signal.accepted_count} accepted{recentLabel}
-          </span>
-        )}
-        {signal.request_data_count > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="text-amber-500">⏳</span> {signal.request_data_count} requested data
-            {signal.recent_data_requests_7d > 0 && <span className="text-xs text-muted-foreground"> ({signal.recent_data_requests_7d} this week)</span>}
-          </span>
-        )}
-        {signal.flagged_count > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="text-red-500">⚠</span> {signal.flagged_count} flagged
-            {signal.recent_flags_7d > 0 && <span className="text-xs text-muted-foreground"> ({signal.recent_flags_7d} this week)</span>}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function LimitationsCard({ missing }: { missing?: any[] }) {
   if (!missing || missing.length === 0) return null;
@@ -800,16 +762,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               <section className="mb-8 flex justify-center">
                 <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => {
-                    const url = window.location.href;
-                    navigator.clipboard.writeText(url);
-                    const btn = document.getElementById('copy-link-btn');
-                    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000); }
-                  }}
-                  id="copy-link-btn"
-                  className="rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-border"
-                >Copy Link</button>
+                <CopyLinkButton />
                 <ApplyWithVitalCV npi={profile.npi} label="Apply with VitalCV" />
               </div>
               </section>
