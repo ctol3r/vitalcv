@@ -265,6 +265,7 @@ model Organization {
   slug      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  opportunities Opportunity[]
 }
 
 model Opportunity {
@@ -281,6 +282,8 @@ model Opportunity {
   status           String   @default("ACTIVE")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  applications     Application[]
+  organization     Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
@@ -1600,6 +1603,7 @@ model Application {
   reviewedBy    String?           @map("reviewed_by")
   reviewedAt    DateTime?         @map("reviewed_at")
   reviewNote    String?           @map("review_note")
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -1630,7 +1634,7 @@ model EmployerAcceptance {
 
 model StartAttestation {
   id          String   @id @default(uuid()) @db.Uuid
-  entityId    String   @map("entity_id") @db.Uuid
+  acceptanceId String   @map("acceptance_id") @db.Uuid
   startedAt   DateTime @map("started_at")
   actualStart DateTime? @map("actual_start")
   role        String?
@@ -1639,8 +1643,9 @@ model StartAttestation {
   attestedAt  DateTime? @map("attested_at")
   metadata    Json?
   createdAt   DateTime @default(now())
+  entity      VcvEntity? @relation("start_attestation_entity", fields: [acceptanceId], references: [id])
 
-  @@index([entityId])
+  @@index([acceptanceId])
   @@index([startedAt])
   @@map("start_attestations")
 }
@@ -2841,6 +2846,9 @@ model VcvEntity {
   // SEAL training back-relations
   advisoryOutcomeEvents   AdvisoryOutcomeEvent[]   @relation("advisory_outcome_entity")
   blockerResolutionEvents BlockerResolutionEvent[] @relation("blocker_resolution_entity")
+  issuedCredentials        VcvCredential[]         @relation("CredentialIssuer")
+  startAttestations        StartAttestation[]       @relation("start_attestation_entity")
+  organizationContexts     VcvOrganizationContext[] @relation("org_context_requestor")
   employerDecisionEvents  EmployerDecisionEvent[]  @relation("employer_decision_entity")
   startOutcomeEvents      StartOutcomeEvent[]      @relation("start_outcome_entity")
 
@@ -2968,6 +2976,7 @@ model VcvCredential {
   confidence               Float?
   supersededByCredentialId String?              @map("superseded_by_credential_id") @db.Uuid
   supersedesCredentialId   String?              @map("supersedes_credential_id") @db.Uuid
+  issuer                  VcvEntity?           @relation("CredentialIssuer", fields: [issuerId], references: [id])
 
   @@index([expiresAt], map: "vcv_cred_expires_idx")
   @@index([credentialFamilyKey], map: "vcv_cred_family_idx")
@@ -3047,6 +3056,7 @@ model VcvOrganizationContext {
   /// Org-level external reference ID (for correlation with requester's systems)
   externalRefId   String?             @map("external_ref_id")
   metadata        Json                @default("{}")
+  requestor       VcvEntity           @relation("org_context_requestor", fields: [requestorId], references: [id])
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

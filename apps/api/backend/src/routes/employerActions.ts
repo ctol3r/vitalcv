@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * employerActions.ts — M2: Accept with Confidence
  *
@@ -780,7 +779,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         acceptanceId:   acceptance.id,
         entityId,
         employerId,
-        npi_prefix:     acceptance.clinicianNpi.slice(0, 4) + '····',
+        npi_prefix:     (acceptance.clinicianNpi ?? '0000000000').slice(0, 4) + '····',
         startedAt:      startDate.toISOString(),
       });
 

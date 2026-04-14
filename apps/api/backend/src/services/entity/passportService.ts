@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * passportService.ts — The Trust Passport
  *
@@ -1889,7 +1888,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       degreeOrTitle:    r.degreeOrTitle ?? undefined,
       specialty:        r.specialty    ?? undefined,
       programName:      r.programName  ?? undefined,
-      institutionName:  r.institution?.displayName,
+      institutionName:  r.institution?.canonicalName,
       endYear:          r.endYear      ?? undefined,
       completed:        r.completed,
       verificationLevel: r.verificationLevel,
