@@ -1742,6 +1742,20 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
+/// Lightweight log of non-accept employer actions (request_data, flag) keyed
+/// by NPI. Accept actions continue to use the richer Acceptance model.
+model ActionLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  npi       String
+  action    String // request_data | flag
+  rationale String?
+  createdAt DateTime @default(now())
+
+  @@index([npi])
+  @@index([createdAt])
+  @@map("action_log")
+}
+
 /// Generic graph node representing any entity in the AKG.
 /// entityType discriminates the kind (CLINICIAN, ISSUER, CREDENTIAL, POLICY, FACILITY).
 /// entityId references the primary key in the source-of-truth table.
