@@ -26,10 +26,19 @@ import {
   DECISION_NEXT_STEP_HEADING,
   DECISION_RATIONALE_HEADING,
   formatRecentActionLabel,
+  getArtifactExplanation,
+  getCoverageSectionExplanation,
+  getIssuerProvenanceExplanation,
   getLimitationEmptyMessage,
+  getMonitoringCoverageExplanation,
   getPublicDecisionHeadline,
   getPublicDecisionNextStep,
+  getReadinessSnapshotExplanation,
   getRecentActionEmptyMessage,
+  getRecentActionExplanation,
+  getRecentActionReasonFallback,
+  getReuseSignalExplanation,
+  getTrustBandExplanation,
 } from '@/lib/trust/decision-copy';
 import { DecisionActions } from './DecisionActions';
 import { CopyShareLink } from './CopyShareLink';
@@ -164,6 +173,273 @@ const BACKEND = (
   'http://localhost:3001'
 ).replace(/\/$/, '');
 
+const DEFAULT_FETCH_TIMEOUT_MS = 8000;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter(isString) : [];
+}
+
+function toNullableString(value: unknown): string | null {
+  return isString(value) ? value : null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  return isNumber(value) ? value : fallback;
+}
+
+function logPublicProfileError(message: string, details: Record<string, unknown>): void {
+  console.error(`[PublicTrustProfilePage] ${message}`, details);
+}
+
+function isClearedStatus(value: unknown): value is ClearedStatus {
+  return value === 'CLEARED' || value === 'PENDING';
+}
+
+function isL3Status(value: unknown): value is L3Status {
+  return value === 'L0' || value === 'L1' || value === 'L2' || value === 'L3';
+}
+
+function isTrustStateLabel(value: unknown): value is TrustStateLabel {
+  return value === 'verified'
+    || value === 'verified_monitoring'
+    || value === 'expiring_soon'
+    || value === 'needs_review'
+    || value === 'expired';
+}
+
+function isCrsBand(value: unknown): value is CrsBand {
+  return value === 'GREEN' || value === 'YELLOW' || value === 'RED';
+}
+
+function normalizeAuditEvents(value: unknown): AuditEvent[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry, index): AuditEvent | null => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      return {
+        type: isString(entry.type) ? entry.type : 'SYSTEM_EVENT',
+        hash: isString(entry.hash) ? entry.hash : `event-${index}`,
+        createdAt: isString(entry.createdAt) ? entry.createdAt : '',
+      };
+    })
+    .filter((entry): entry is AuditEvent => entry !== null);
+}
+
+function normalizeNpiDecision(value: unknown): NpiProfile['decision'] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const decision = value.decision;
+  if (
+    decision !== 'PROCEED'
+    && decision !== 'PROCEED_WITH_CAUTION'
+    && decision !== 'DO_NOT_PROCEED'
+    && decision !== 'INSUFFICIENT_DATA'
+  ) {
+    return undefined;
+  }
+
+  return {
+    decision,
+    confidence: toNumber(value.confidence, 0),
+    rationale: toStringArray(value.rationale),
+    blockers: toStringArray(value.blockers),
+    next_actions: toStringArray(value.next_actions),
+  };
+}
+
+function normalizeNpiLimitations(value: unknown): NpiProfile['limitations'] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    blockers: toStringArray(value.blockers),
+    gaps: toStringArray(value.gaps),
+  };
+}
+
+function normalizeRecentActions(value: unknown): NonNullable<NpiProfile['actions']>['recent'] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry, index) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      return {
+        id: isString(entry.id) ? entry.id : `action-${index}`,
+        npi: isString(entry.npi) ? entry.npi : '',
+        action: isString(entry.action) ? entry.action : 'review',
+        rationale: toNullableString(entry.rationale),
+        createdAt: isString(entry.createdAt) ? entry.createdAt : '',
+      };
+    })
+    .filter((entry): entry is NonNullable<NpiProfile['actions']>['recent'][number] => entry !== null);
+}
+
+function normalizeReuseSignal(value: unknown): NpiProfile['reuse_signal'] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const lastAction = value.last_action;
+  return {
+    accepted_count: toNumber(value.accepted_count, 0),
+    flagged_count: toNumber(value.flagged_count, 0),
+    request_data_count: toNumber(value.request_data_count, 0),
+    last_action:
+      lastAction === 'accept' || lastAction === 'request_data' || lastAction === 'flag'
+        ? lastAction
+        : null,
+    last_action_at: toNullableString(value.last_action_at),
+  };
+}
+
+function normalizeNpiProfile(value: unknown, slug: string): NpiProfile | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const readinessValue = isRecord(value.readiness) ? value.readiness : {};
+  const monitoringSummaryValue = isRecord(value.monitoringSummary) ? value.monitoringSummary : {};
+  const proofValue = isRecord(value.proof) ? value.proof : {};
+
+  return {
+    mode: 'npi',
+    npi: isString(value.npi) ? value.npi : slug,
+    status: isClearedStatus(value.status) ? value.status : 'PENDING',
+    trustBand: isL3Status(value.trustBand) ? value.trustBand : 'L0',
+    readinessScore: toNumber(value.readinessScore, 0),
+    lastAnchored: toNullableString(value.lastAnchored),
+    activeCredentials: toStringArray(value.activeCredentials),
+    readiness: {
+      evaluated: isBoolean(readinessValue.evaluated) ? readinessValue.evaluated : false,
+      isEligible:
+        typeof readinessValue.isEligible === 'boolean' ? readinessValue.isEligible : null,
+      missingRequirements: toStringArray(readinessValue.missingRequirements),
+      traceCount: toNumber(readinessValue.traceCount, 0),
+    },
+    artifactSummaries: Array.isArray(value.artifactSummaries)
+      ? value.artifactSummaries
+        .map((artifact, index) => {
+          if (!isRecord(artifact)) {
+            return null;
+          }
+
+          const selectiveDisclosure = isRecord(artifact.selectiveDisclosure)
+            && artifact.selectiveDisclosure.algorithm === 'SD-JWT'
+            && artifact.selectiveDisclosure.hashAlgorithm === 'sha-256'
+            ? {
+                algorithm: 'SD-JWT' as const,
+                hashAlgorithm: 'sha-256' as const,
+                claimCount: toNumber(artifact.selectiveDisclosure.claimCount, 0),
+              }
+            : null;
+
+          return {
+            artifactId: isString(artifact.artifactId) ? artifact.artifactId : `artifact-${index}`,
+            issuer: isString(artifact.issuer) ? artifact.issuer : 'Unknown issuer',
+            status: isString(artifact.status) ? artifact.status : 'UNKNOWN',
+            lifecycleState: isString(artifact.lifecycleState) ? artifact.lifecycleState : 'unknown',
+            verifiedAt: isString(artifact.verifiedAt) ? artifact.verifiedAt : '',
+            expiresAt: toNullableString(artifact.expiresAt),
+            monitoring: isBoolean(artifact.monitoring) ? artifact.monitoring : false,
+            checksum: isString(artifact.checksum) ? artifact.checksum : '',
+            claimCount: toNumber(artifact.claimCount, 0),
+            claimHashes: toStringArray(artifact.claimHashes),
+            selectiveDisclosure,
+          };
+        })
+        .filter((artifact): artifact is NpiProfile['artifactSummaries'][number] => artifact !== null)
+      : [],
+    issuerProvenance: Array.isArray(value.issuerProvenance)
+      ? value.issuerProvenance
+        .map((issuer, index) => {
+          if (!isRecord(issuer)) {
+            return null;
+          }
+
+          return {
+            issuer: isString(issuer.issuer) ? issuer.issuer : `Issuer ${index + 1}`,
+            artifactCount: toNumber(issuer.artifactCount, 0),
+            latestVerifiedAt: isString(issuer.latestVerifiedAt) ? issuer.latestVerifiedAt : '',
+            monitored: isBoolean(issuer.monitored) ? issuer.monitored : false,
+            statuses: toStringArray(issuer.statuses),
+          };
+        })
+        .filter((issuer): issuer is NpiProfile['issuerProvenance'][number] => issuer !== null)
+      : [],
+    monitoringSummary: {
+      monitoredArtifactCount: toNumber(monitoringSummaryValue.monitoredArtifactCount, 0),
+      totalArtifactCount: toNumber(monitoringSummaryValue.totalArtifactCount, 0),
+      coverageRate: toNumber(monitoringSummaryValue.coverageRate, 0),
+      activeAlertCount: toNumber(monitoringSummaryValue.activeAlertCount, 0),
+      latestAlertAt: toNullableString(monitoringSummaryValue.latestAlertAt),
+    },
+    proof: {
+      jsonUrl: isString(proofValue.jsonUrl) ? proofValue.jsonUrl : '',
+      pdfUrl: isString(proofValue.pdfUrl) ? proofValue.pdfUrl : '',
+      auditBundleJson: isString(proofValue.auditBundleJson) ? proofValue.auditBundleJson : '',
+      auditBundleDownload: isString(proofValue.auditBundleDownload) ? proofValue.auditBundleDownload : '',
+    },
+    events: normalizeAuditEvents(value.events),
+    generatedAt: isString(value.generatedAt) ? value.generatedAt : '',
+    decision: normalizeNpiDecision(value.decision),
+    limitations: normalizeNpiLimitations(value.limitations),
+    actions: { recent: normalizeRecentActions(isRecord(value.actions) ? value.actions.recent : undefined) },
+    reuse_signal: normalizeReuseSignal(value.reuse_signal),
+  };
+}
+
+function normalizeSlugProfile(value: unknown, slug: string): SlugProfile | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    mode: 'slug',
+    slug: isString(value.slug) ? value.slug : slug,
+    name: isString(value.name) ? value.name : 'Shared clinician',
+    specialty: isString(value.specialty) ? value.specialty : '',
+    l3Status: isL3Status(value.l3Status) ? value.l3Status : 'L0',
+    trustState: isTrustStateLabel(value.trustState) ? value.trustState : 'needs_review',
+    crsScore: toNumber(value.crsScore, 0),
+    crsBand: isCrsBand(value.crsBand) ? value.crsBand : 'RED',
+    publicAuditHashes: toStringArray(value.publicAuditHashes),
+    verifiedAt: toNullableString(value.verifiedAt),
+    generatedAt: isString(value.generatedAt) ? value.generatedAt : '',
+  };
+}
+
 // ── Data fetching ─────────────────────────────────────────────────────────
 
 const NPI_RE = /^\d{10}$/;
@@ -173,23 +449,57 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
     if (NPI_RE.test(slug)) {
       const res = await fetch(
         `${BACKEND}/api/public/profile/npi/${encodeURIComponent(slug)}`,
-        { next: { revalidate: 60 } },
+        {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+        },
       );
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`API ${res.status}`);
-      const data = await res.json() as Omit<NpiProfile, 'mode'>;
-      return { mode: 'npi', ...data };
+      const payload = await res.json().catch((error) => {
+        logPublicProfileError('Failed to parse NPI profile payload', {
+          slug,
+          status: res.status,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
+      });
+      const normalized = normalizeNpiProfile(payload, slug);
+      if (!normalized) {
+        logPublicProfileError('Received invalid NPI profile payload', { slug, status: res.status });
+        return null;
+      }
+      return normalized;
     }
 
     const res = await fetch(
       `${BACKEND}/api/public/profile/${encodeURIComponent(slug)}`,
-      { next: { revalidate: 60 } },
+      {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+      },
     );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json() as Omit<SlugProfile, 'mode'>;
-    return { mode: 'slug', ...data };
-  } catch {
+    const payload = await res.json().catch((error) => {
+      logPublicProfileError('Failed to parse share profile payload', {
+        slug,
+        status: res.status,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    });
+    const normalized = normalizeSlugProfile(payload, slug);
+    if (!normalized) {
+      logPublicProfileError('Received invalid share profile payload', { slug, status: res.status });
+      return null;
+    }
+    return normalized;
+  } catch (error) {
+    logPublicProfileError('Failed to load public profile', {
+      slug,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -214,6 +524,18 @@ function formatTime(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function formatStatusLabel(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return 'Unknown';
+  }
+
+  return trimmed
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 // ── generateMetadata ──────────────────────────────────────────────────────
@@ -307,17 +629,22 @@ function ClearedBadge({ status }: { status: ClearedStatus }) {
 
 function CredentialPills({ creds }: { creds: string[] }) {
   if (creds.length === 0) return (
-    <p className="text-xs text-muted-foreground text-center">No source-backed records on file.</p>
+    <p className="text-xs text-muted-foreground text-center">{getCoverageSectionExplanation(0)}</p>
   );
   return (
-    <div className="flex flex-wrap justify-center gap-2">
-      {creds.map((c) => (
-        <span key={c}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-sm text-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
-          {c}
-        </span>
-      ))}
+    <div className="space-y-3">
+      <div className="flex flex-wrap justify-center gap-2">
+        {creds.map((c) => (
+          <span key={c}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-sm text-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
+            {c}
+          </span>
+        ))}
+      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        {getCoverageSectionExplanation(creds.length)}
+      </p>
     </div>
   );
 }
@@ -348,7 +675,7 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
 
   return (
     <div className="w-full rounded-lg border border-border bg-card p-5">
-      <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+      <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <svg className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12zm1-7H9V7h2v2zm0 4H9v-2h2v2z" />
@@ -378,7 +705,7 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
 function TrustBandCard({ trustBand, readinessScore }: { trustBand: L3Status; readinessScore: number }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Clinician Trust Band</p>
           <p className="mt-1 text-sm text-muted-foreground">Current trust-state snapshot from the VitalCV trust engine</p>
@@ -386,13 +713,16 @@ function TrustBandCard({ trustBand, readinessScore }: { trustBand: L3Status; rea
         <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">{trustBand}</span>
       </div>
       <div className="rounded-lg border border-border bg-muted p-4">
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="mb-2 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>Credential Readiness Score</span>
           <span className="font-semibold text-foreground">{readinessScore}/100</span>
         </div>
         <div className="h-2 rounded-full bg-border">
           <div className="h-2 rounded-full bg-green-500" style={{ width: `${Math.max(0, Math.min(100, readinessScore))}%` }} />
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {getTrustBandExplanation(readinessScore)}
+        </p>
       </div>
     </div>
   );
@@ -413,25 +743,28 @@ function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'
               <p className="mt-1 text-xs text-muted-foreground">Checked {formatDate(artifact.verifiedAt)}</p>
             </div>
             <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {artifact.status}
+              {formatStatusLabel(artifact.status)}
             </span>
           </div>
           <dl className="space-y-2 text-xs text-muted-foreground">
-            <div className="flex items-center justify-between gap-4">
-              <dt>Monitoring</dt>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <dt>Monitoring signal</dt>
               <dd className={artifact.monitoring ? 'text-green-600' : 'text-muted-foreground'}>
-                {artifact.monitoring ? 'Active' : 'Off'}
+                {artifact.monitoring ? 'Active follow-up checks' : 'Last completed check only'}
               </dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt>Lifecycle</dt>
-              <dd className="text-foreground">{artifact.lifecycleState}</dd>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <dt>Current artifact state</dt>
+              <dd className="text-foreground">{formatStatusLabel(artifact.lifecycleState)}</dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt>Records on file</dt>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <dt>Source-backed claims</dt>
               <dd className="text-foreground">{artifact.claimCount}</dd>
             </div>
           </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {getArtifactExplanation(artifact.claimCount, artifact.monitoring)}
+          </p>
         </article>
       ))}
     </div>
@@ -439,11 +772,19 @@ function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'
 }
 
 function IssuerProvenanceList({ provenance }: { provenance: NpiProfile['issuerProvenance'] }) {
+  if (provenance.length === 0) {
+    return (
+      <p className="rounded-lg border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+        Issuer provenance will appear here after a source contributes checked claims to the profile.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {provenance.map((issuer) => (
         <div key={issuer.issuer} className="rounded-lg border border-border bg-card px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
               <p className="text-sm font-semibold text-foreground">{issuer.issuer}</p>
               <p className="mt-1 text-xs text-muted-foreground">Last checked {formatDate(issuer.latestVerifiedAt)}</p>
@@ -453,7 +794,10 @@ function IssuerProvenanceList({ provenance }: { provenance: NpiProfile['issuerPr
             </span>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Statuses: {issuer.statuses.join(', ')} {issuer.monitored ? '· monitoring active' : ''}
+            Source findings: {issuer.statuses.length > 0 ? issuer.statuses.map(formatStatusLabel).join(', ') : 'No status recorded yet'}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {getIssuerProvenanceExplanation(issuer.monitored, issuer.statuses.length)}
           </p>
         </div>
       ))}
@@ -484,23 +828,27 @@ const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], {
 
 function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision']> }) {
   const meta = DECISION_LABELS[decision.decision];
-  const rationale = decision.rationale.length > 0
-    ? decision.rationale
+  const blockers = Array.isArray(decision.blockers) ? decision.blockers : [];
+  const rationaleSource = Array.isArray(decision.rationale) ? decision.rationale : [];
+  const nextActionSource = Array.isArray(decision.next_actions) ? decision.next_actions : [];
+  const confidence = Number.isFinite(decision.confidence) ? decision.confidence : null;
+  const rationale = rationaleSource.length > 0
+    ? rationaleSource
     : ['VitalCV could not load a detailed explanation for this result yet.'];
-  const nextActions = decision.next_actions.length > 0
-    ? decision.next_actions
+  const nextActions = nextActionSource.length > 0
+    ? nextActionSource
     : [getPublicDecisionNextStep(decision.decision)];
 
   return (
     <div className={`rounded-xl border-2 ${meta.tone} p-6`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Decision</p>
-          <h1 className="mt-1 text-4xl font-bold tracking-tight md:text-5xl">{meta.label}</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{meta.label}</h1>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Confidence</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">{decision.confidence}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums sm:text-3xl">{confidence ?? '—'}</p>
         </div>
       </div>
       <p className="mt-2 text-sm font-medium opacity-90">{getPublicDecisionHeadline(decision.decision)}</p>
@@ -508,9 +856,9 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
         This result uses the verified information currently attached to this profile.
       </p>
 
-      {decision.blockers.length > 0 && (
+      {blockers.length > 0 && (
         <p className="mt-3 text-sm font-semibold">
-          Main blocker: {decision.blockers[0]}
+          Main blocker: {blockers[0]}
         </p>
       )}
 
@@ -523,11 +871,11 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
         </ul>
       </div>
 
-      {decision.blockers.length > 1 && (
+      {blockers.length > 1 && (
         <div className="mt-5">
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Additional blockers</p>
           <ul className="mt-2 space-y-1 text-sm font-medium">
-            {decision.blockers.slice(1).map((blocker, idx) => (
+            {blockers.slice(1).map((blocker, idx) => (
               <li key={`${idx}-${blocker}`}>· {blocker}</li>
             ))}
           </ul>
@@ -547,9 +895,11 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
 }
 
 function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile['limitations']> }) {
+  const blockers = Array.isArray(limitations.blockers) ? limitations.blockers : [];
+  const gaps = Array.isArray(limitations.gaps) ? limitations.gaps : [];
   const items = [
-    ...limitations.blockers.map((b) => ({ kind: 'blocker' as const, text: b })),
-    ...limitations.gaps.map((g) => ({ kind: 'gap' as const, text: g })),
+    ...blockers.map((b) => ({ kind: 'blocker' as const, text: b })),
+    ...gaps.map((g) => ({ kind: 'gap' as const, text: g })),
   ];
   if (items.length === 0) {
     return (
@@ -559,10 +909,19 @@ function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile
     );
   }
   return (
-    <div className="rounded-lg border-2 border-amber-500/40 bg-amber-500/5 px-5 py-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
-        {DECISION_LIMITATION_HEADING}
-      </p>
+    <details
+      open
+      className="group rounded-lg border-2 border-amber-500/40 bg-amber-500/5 px-5 py-4 [&[open]>summary>.chev]:rotate-90"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 md:cursor-default">
+        <span className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+          {DECISION_LIMITATION_HEADING}
+          <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] tabular-nums text-amber-800">
+            {items.length}
+          </span>
+        </span>
+        <span className="chev text-amber-700 transition-transform md:hidden" aria-hidden>▸</span>
+      </summary>
       <ul className="mt-3 space-y-2 text-sm text-foreground">
         {items.map((item, idx) => (
           <li key={`${item.kind}-${idx}`} className="flex items-baseline gap-2">
@@ -573,33 +932,60 @@ function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile
           </li>
         ))}
       </ul>
-    </div>
+    </details>
   );
 }
 
-function ReuseSignalRow({ signal }: { signal: NonNullable<NpiProfile['reuse_signal']> }) {
+function ReuseSignalRow({ signal }: { signal: NpiProfile['reuse_signal'] | null | undefined }) {
+  if (!signal) {
+    return (
+      <div className="space-y-2 text-center">
+        <p className="text-xs text-muted-foreground">
+          {getRecentActionEmptyMessage()}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {getReuseSignalExplanation({ acceptedCount: 0, requestDataCount: 0, flaggedCount: 0 })}
+        </p>
+      </div>
+    );
+  }
+
   const hasAny = signal.accepted_count + signal.flagged_count + signal.request_data_count > 0;
   if (!hasAny) {
     return (
-      <p className="text-center text-xs text-muted-foreground">
-        No prior employer actions recorded for this NPI.
-      </p>
+      <div className="space-y-2 text-center">
+        <p className="text-xs text-muted-foreground">
+          {getRecentActionEmptyMessage()}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {getReuseSignalExplanation({ acceptedCount: 0, requestDataCount: 0, flaggedCount: 0 })}
+        </p>
+      </div>
     );
   }
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
-        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.accepted_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Accepted</p>
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+          <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.accepted_count}</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Accepted</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+          <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.request_data_count}</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Update requests</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+          <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.flagged_count}</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Review flags</p>
+        </div>
       </div>
-      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
-        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.request_data_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Update requests</p>
-      </div>
-      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
-        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.flagged_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Review flags</p>
-      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        {getReuseSignalExplanation({
+          acceptedCount: signal.accepted_count,
+          requestDataCount: signal.request_data_count,
+          flaggedCount: signal.flagged_count,
+        })}
+      </p>
     </div>
   );
 }
@@ -611,31 +997,52 @@ function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions
     );
   }
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-      {recent.map((entry) => (
-        <li key={entry.id} className="flex items-baseline justify-between gap-3 px-4 py-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {formatRecentActionLabel(entry.action)}
+    <div className="space-y-3">
+      <p className="text-center text-xs text-muted-foreground">
+        {getRecentActionExplanation()}
+      </p>
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+        {recent.map((entry) => (
+          <li key={entry.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {formatRecentActionLabel(entry.action)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {entry.rationale ?? getRecentActionReasonFallback()}
+              </p>
+            </div>
+            <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              {formatTime(entry.createdAt)}
             </p>
-            {entry.rationale && (
-              <p className="mt-1 text-xs text-muted-foreground">{entry.rationale}</p>
-            )}
-          </div>
-          <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {formatTime(entry.createdAt)}
-          </p>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
+}
+
+function buildDecisionActionsRefreshKey(profile: NpiProfile): string {
+  const latestActionId = profile.actions?.recent[0]?.id ?? 'none';
+  const lastActionAt = profile.reuse_signal?.last_action_at ?? 'none';
+  const acceptedCount = profile.reuse_signal?.accepted_count ?? 0;
+  const requestDataCount = profile.reuse_signal?.request_data_count ?? 0;
+  const flaggedCount = profile.reuse_signal?.flagged_count ?? 0;
+
+  return [
+    latestActionId,
+    lastActionAt,
+    acceptedCount,
+    requestDataCount,
+    flaggedCount,
+  ].join(':');
 }
 
 function MonitoringSummaryCard({ summary }: { summary: NpiProfile['monitoringSummary'] }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Monitoring Status</p>
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-muted p-4">
           <p className="text-xl font-semibold text-foreground">{summary.monitoredArtifactCount}/{summary.totalArtifactCount}</p>
           <p className="mt-1 text-xs text-muted-foreground">Artifacts under monitoring</p>
@@ -648,6 +1055,9 @@ function MonitoringSummaryCard({ summary }: { summary: NpiProfile['monitoringSum
       <p className="mt-4 text-xs text-muted-foreground">
         {summary.activeAlertCount} alerts on record
         {summary.latestAlertAt ? ` · latest ${formatDate(summary.latestAlertAt)}` : ''}
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {getMonitoringCoverageExplanation(summary)}
       </p>
     </div>
   );
@@ -713,7 +1123,7 @@ function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
   const href = `/verifier/signup?intent=${encodeURIComponent(npi)}&action=accept_start&ref=trust-profile`;
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
+      <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">
             {cleared ? 'Open the employer review flow?' : 'Request more source coverage for this NPI?'}
@@ -726,7 +1136,7 @@ function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
         </div>
         <a
           href={href}
-          className="shrink-0 rounded-md px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-foreground text-background hover:bg-foreground/90"
+          className="w-full shrink-0 rounded-md px-5 py-3 text-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-foreground text-background hover:bg-foreground/90 sm:w-auto"
         >
           {cleared ? 'Open Review →' : 'Request Coverage →'}
         </a>
@@ -781,7 +1191,7 @@ const LEVEL_LABELS: Record<(typeof LEVELS)[number], string> = {
 function TrustBadges({ l3Status }: { l3Status: L3Status }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         {LEVELS.map((level) => {
           const active = level === l3Status;
           return (
@@ -839,13 +1249,13 @@ function AuditHashes({ hashes }: { hashes: string[] }) {
 function SlugEmployerHook({ slug, name }: { slug: string; name: string }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
+      <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">Hiring {name.split(' ')[0]}?</p>
+          <p className="text-sm font-medium text-foreground">Hiring {name.split(' ')[0]}?</p>
           <p className="text-xs text-muted-foreground">Request the full credential bundle</p>
         </div>
         <a href={`/verifier/signup?intent=${encodeURIComponent(slug)}&ref=golden-link`}
-          className="shrink-0 rounded-md bg-green-600 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+          className="w-full rounded-md bg-green-600 px-5 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 sm:w-auto">
           Request Full Bundle →
         </a>
       </div>
@@ -905,7 +1315,10 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 <p className="mb-3 text-center text-sm font-semibold text-foreground">
                   What would you like to do next?
                 </p>
-                <DecisionActions npi={profile.npi} />
+                <DecisionActions
+                  npi={profile.npi}
+                  refreshKey={buildDecisionActionsRefreshKey(profile)}
+                />
               </section>
 
               {profile.limitations && (
@@ -925,23 +1338,19 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </p>
               </section>
 
-              {profile.reuse_signal && (
-                <section className="mb-8">
-                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    How other employers have handled this clinician
-                  </p>
-                  <ReuseSignalRow signal={profile.reuse_signal} />
-                </section>
-              )}
+              <section className="mb-8">
+                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  How other employers have handled this clinician
+                </p>
+                <ReuseSignalRow signal={profile.reuse_signal} />
+              </section>
 
-              {profile.actions && profile.actions.recent.length > 0 && (
-                <section className="mb-8">
-                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Recent employer actions
-                  </p>
-                  <RecentActionsList recent={profile.actions.recent} />
-                </section>
-              )}
+              <section className="mb-8">
+                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Recent employer actions
+                </p>
+                <RecentActionsList recent={profile.actions?.recent ?? []} />
+              </section>
 
               <section className="mb-10 flex justify-center">
                 <ClearedBadge status={profile.status} />
@@ -965,7 +1374,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               </section>
 
               {profile.readiness.evaluated && (
-                <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
+              <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Readiness Snapshot
                   </p>
@@ -987,6 +1396,9 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                       )}
                     </div>
                   )}
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {getReadinessSnapshotExplanation(profile.readiness)}
+                  </p>
                 </section>
               )}
 
