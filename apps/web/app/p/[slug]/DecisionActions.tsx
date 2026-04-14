@@ -6,6 +6,17 @@ import { toast } from 'sonner';
 import { getEmployerActionLabel } from '@/lib/trust/decision-copy';
 import { safeFetch, SafeFetchError } from '@/lib/safe-fetch';
 
+function formatActionTimestamp(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 type ActionKind = 'accept' | 'request_data' | 'flag';
 type ActionState = 'idle' | 'submitting' | 'done' | 'error';
 
@@ -58,6 +69,7 @@ export function DecisionActions({
   const [, startTransition] = useTransition();
   const [state, setState] = useState<ActionState>('idle');
   const [active, setActive] = useState<ActionKind | null>(null);
+  const [lastRecordedAt, setLastRecordedAt] = useState<string | null>(null);
   const resetTimerRef = useRef<number | null>(null);
   const refreshKeyRef = useRef(refreshKey);
 
@@ -113,8 +125,10 @@ export function DecisionActions({
         cache: 'no-store',
         signal: AbortSignal.timeout(8000),
       });
+      const recordedAt = new Date().toISOString();
       setState('done');
-      toast.success(ACTION_LABELS[action].successToast);
+      setLastRecordedAt(recordedAt);
+      toast.success(`${ACTION_LABELS[action].successToast} · ${formatActionTimestamp(recordedAt)}`);
       // Re-fetch server component — refreshes RecentActionsList + reuse_signal.
       startTransition(() => {
         router.refresh();
@@ -173,6 +187,20 @@ export function DecisionActions({
           );
         })}
       </div>
+      {state === 'done' && active && lastRecordedAt && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-800"
+        >
+          <p className="font-semibold">
+            Action recorded · {ACTION_LABELS[active].label} · {formatActionTimestamp(lastRecordedAt)}
+          </p>
+          <p className="mt-1 text-xs text-green-900/80">
+            This action has been recorded and will be reflected in future evaluations.
+          </p>
+        </div>
+      )}
       <p className="text-center text-xs text-muted-foreground">
         Your action will be recorded and reflected immediately.
       </p>
