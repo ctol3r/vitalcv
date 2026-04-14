@@ -19,6 +19,7 @@ export interface EvidenceCoverage {
 
 interface EvidenceRowSpec {
   label: string;
+  source: string; // human-readable source authority
   matches: string[];
   presentLabel: string;
   absentLabel: string;
@@ -28,21 +29,24 @@ interface EvidenceRowSpec {
 const ROWS: EvidenceRowSpec[] = [
   {
     label: 'OIG Exclusion',
+    source: 'OIG LEIE',
     matches: ['OIG_LEIE', 'OIG'],
-    presentLabel: 'Clear',
+    presentLabel: 'No exclusions found',
     absentLabel: 'Not yet checked',
-    flaggedLabel: 'Flagged',
+    flaggedLabel: 'Possible match — review required',
   },
   {
     label: 'License Status',
+    source: 'State medical board',
     matches: ['STATE_BOARD'],
     presentLabel: 'Active',
     absentLabel: 'Unknown',
   },
   {
     label: 'Identity',
+    source: 'NPPES Registry',
     matches: ['NPPES_API', 'NPPES'],
-    presentLabel: 'Verified',
+    presentLabel: 'Verified match',
     absentLabel: 'Missing',
   },
 ];
@@ -74,6 +78,23 @@ const STATUS_DOT: Record<Status, string> = {
   unknown: 'bg-amber-400',
 };
 
+function formatVerifiedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const ts = Date.parse(iso);
+  if (!Number.isFinite(ts)) return null;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(ts));
+  } catch {
+    return null;
+  }
+}
+
 export function EvidencePanel({ coverage }: { coverage: EvidenceCoverage | undefined | null }) {
   const checks = coverage?.checks ?? [];
   const findCheck = (matches: string[]): CoverageCheck | undefined =>
@@ -88,13 +109,24 @@ export function EvidencePanel({ coverage }: { coverage: EvidenceCoverage | undef
         {ROWS.map((spec) => {
           const check = findCheck(spec.matches);
           const { status, label } = classify(check, spec);
+          const verifiedAt = formatVerifiedAt(check?.checkedAt);
           return (
             <li
               key={spec.label}
-              className="flex items-baseline justify-between gap-3 py-2.5"
+              className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
             >
-              <span className="text-sm font-medium text-foreground">{spec.label}</span>
-              <span className={`flex items-center gap-2 text-sm font-semibold ${STATUS_TONE[status]}`}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {spec.label}
+                  <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                    · {spec.source}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {verifiedAt ? `Verified at: ${verifiedAt}` : 'Verification pending'}
+                </p>
+              </div>
+              <span className={`flex shrink-0 items-center gap-2 text-sm font-semibold ${STATUS_TONE[status]}`}>
                 <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`} aria-hidden />
                 {label}
               </span>
@@ -102,6 +134,9 @@ export function EvidencePanel({ coverage }: { coverage: EvidenceCoverage | undef
           );
         })}
       </ul>
+      <p className="mt-4 text-[11px] italic text-muted-foreground">
+        All checks performed against primary sources.
+      </p>
     </div>
   );
 }
