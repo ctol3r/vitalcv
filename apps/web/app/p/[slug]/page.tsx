@@ -251,34 +251,6 @@ function ShieldIcon() {
 
 // ── CLEARED / PENDING badge with CSS pulse ───────────────────────────────
 
-function ClearedBadge({ status }: { status: ClearedStatus }) {
-  const cleared = status === 'CLEARED';
-  const toneClasses = cleared
-    ? 'bg-green-50 ring-2 ring-green-200 text-green-700'
-    : 'bg-amber-50 ring-2 ring-amber-200 text-amber-700';
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className={['relative flex h-28 w-28 items-center justify-center rounded-full', toneClasses].join(' ')}>
-        <span className={[
-          'absolute inset-0 rounded-full animate-ping opacity-20',
-          cleared ? 'bg-green-400' : 'bg-amber-400',
-        ].join(' ')} style={{ animationDuration: '2.5s' }} aria-hidden="true" />
-        <div className="relative flex flex-col items-center">
-          <span className={['text-xl font-black tracking-widest', cleared ? 'text-green-700' : 'text-amber-700'].join(' ')}>
-            {cleared ? 'ON' : '···'}
-          </span>
-          <span className={['mt-0.5 text-[9px] font-bold uppercase tracking-widest', cleared ? 'text-green-600' : 'text-amber-600'].join(' ')}>
-            {cleared ? 'Checked' : 'Pending'}
-          </span>
-        </div>
-      </div>
-      <p className="text-xs uppercase tracking-widest text-muted-foreground">
-        Profile status
-      </p>
-    </div>
-  );
-}
-
 // ── Active credentials pills ────────────────────────────────────────────
 
 function CredentialPills({ creds }: { creds: string[] }) {
@@ -325,51 +297,6 @@ function LimitationsCard({ missing }: { missing?: any[] }) {
             </li>
           ))}
         </ul>
-      </div>
-    </div>
-  );
-}
-
-function DecisionPostureCard({ decision }: { decision?: any }) {
-  if (!decision) return null;
-
-  const headerColor = 
-    decision.status === 'DECISION_GRADE' ? 'bg-green-100 text-green-800 border-green-200' :
-    decision.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-    decision.status === 'BLOCKED' ? 'bg-red-100 text-red-800 border-red-200' :
-    'bg-gray-100 text-gray-800 border-gray-200';
-
-  const label = 
-    decision.status === 'DECISION_GRADE' ? 'CLEARED TO HIRE' :
-    decision.status === 'PARTIAL' ? 'PARTIAL DATA (RISK PRESENT)' :
-    decision.status === 'BLOCKED' ? 'BLOCKER DETECTED (DO NOT HIRE)' : 'INSUFFICIENT DATA';
-
-  return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className={`px-5 py-4 border-b font-bold tracking-wider ${headerColor}`}>
-        {label}
-      </div>
-      <div className="p-5 space-y-4">
-        <div>
-          <p className="text-sm font-semibold uppercase text-muted-foreground mb-1">Decision Rationale</p>
-          <p className="text-foreground">{decision.headline || 'No decision rationale available.'}</p>
-        </div>
-        
-        {decision.blockers && decision.blockers.length > 0 && (
-          <div>
-            <p className="text-sm font-semibold uppercase text-red-600 mb-1">Blockers</p>
-            <ul className="list-disc pl-5 text-sm text-foreground">
-              {decision.blockers.map((b: string) => <li key={b}>{b}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {decision.nextAction && (
-          <div>
-            <p className="text-sm font-semibold uppercase text-blue-600 mb-1">Next Actions</p>
-            <p className="text-sm text-foreground">{decision.nextAction}</p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -685,9 +612,16 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </p>
               </section>
 
-              <section className="mb-10 flex justify-center">
-                <ClearedBadge status={profile.status} />
+              <section className="mb-8">
+                <EmployerReviewActions 
+                  npi={profile.npi}
+                  nbaPayload={omegaState?.nextBestAction || null}
+                />
+                <LimitationsCard missing={(profile as any).decision?.missing || []} />
+                <ReuseSignalBadge npi={profile.npi} />
               </section>
+
+              <div className="mb-8 h-px bg-border" />
 
               <section className="mb-8">
                 <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -697,18 +631,6 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               </section>
 
               <div className="mb-8 h-px bg-border" />
-
-              
-              <section className="mb-8">
-                <EmployerReviewActions 
-                  npi={profile.npi}
-                  nbaPayload={omegaState?.nextBestAction || null}
-                />
-                <DecisionPostureCard decision={(profile as any).decision} />
-                <LimitationsCard missing={(profile as any).decision?.missing || []} />
-                <ReuseSignalBadge npi={profile.npi} />
-              </section>
-
 
               <section className="mb-8">
                 <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
@@ -807,7 +729,6 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
               
               <section className="mb-10">
-                <DecisionPostureCard decision={(profile as any).decision} />
                 <LimitationsCard missing={(profile as any).decision?.missing || []} />
               </section>
 
