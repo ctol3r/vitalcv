@@ -290,7 +290,7 @@ function CredentialPills({ creds }: { creds: string[] }) {
 function ReuseSignalBadge({ npi }: { npi: string }) {
   const [signal, setSignal] = React.useState<any>(null);
   React.useEffect(() => {
-    fetch(\`/api/pilot/reuse-signal/\${npi}\`)
+    fetch(`/api/pilot/reuse-signal/${npi}`)
       .then(r => r.json())
       .then(setSignal)
       .catch(() => {});
@@ -571,8 +571,8 @@ function ProofCard({
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shareable Proof Bundle</p>
       <p className="mt-2 text-sm text-muted-foreground">
         {hasDownloadableProof
-          ? 'Download a verified PDF summary of this clinician's credentialing checks and source data.'
-          : 'Verified PDF downloads will be available once the primary source checks are complete.'}
+          ? "Download a verified PDF summary of this clinician's credentialing checks and source data."
+          : "Verified PDF downloads will be available once the primary source checks are complete."}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {hasDownloadableProof ? (
@@ -712,7 +712,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
   // Server-side: log page view (fire-and-forget)
   if (profile.mode === 'npi') {
-    fetch(\`http://\${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/pilot/telemetry\`, {
+    fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/pilot/telemetry`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ npi: profile.npi, actionTaken: 'view' }),
