@@ -1778,6 +1778,30 @@ model Notification {
   @@map("notification")
 }
 
+/// Sidecar attestation of an employer action — captures the decision
+/// state and the supporting evidence/trust snapshot at the moment the
+/// action was recorded. NOT a replacement for Acceptance and NOT an
+/// audit chain — a system-of-record that an action was taken with this
+/// view of the world. Best-effort write; failures must not block the
+/// action route.
+model DecisionAttestation {
+  id                String   @id @default(uuid()) @db.Uuid
+  clinicianNpi      String   @map("clinician_npi")
+  actionTaken       String   @map("action_taken")
+  decisionState     String   @map("decision_state")
+  decisionTimestamp DateTime @default(now()) @map("decision_timestamp")
+  snapshot          Json
+  // sha256 hex digest over the canonicalized attestation envelope.
+  // Tamper-evident: clients can recompute and compare.
+  hash              String
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([clinicianNpi])
+  @@index([decisionTimestamp])
+  @@index([hash])
+  @@map("decision_attestation")
+}
+
 /// Sidecar activation record for the Start graph.
 /// NOT a replacement for Start (which is the audit-grade attestation
 /// event) and NOT FK-linked to Acceptance. acceptanceRef is a plain

@@ -7,8 +7,13 @@
  */
 
 import type { Express, Request, Response } from 'express';
+import prisma from '../graphql/prisma_client';
 import { orchestrateOmega } from '../orchestrator/vcv-omega';
 import { log } from '../obs/logger';
+import {
+  extractCapsuleDecisionAttestations,
+  type DecisionAttestationRecord,
+} from '../services/audit/replayEngine';
 
 const NPI_RE = /^\d{10}$/;
 const SYSTEM_VERSION = process.env.GIT_SHA ?? 'pilot';
@@ -31,6 +36,12 @@ interface ExportArtifact {
   activation: unknown;
   recentActions: unknown;
   nextBestAction: unknown;
+  decisionAttestations: Array<DecisionAttestationRecord & {
+    capsuleId: string;
+    decisionTimestamp: string;
+    decisionType: string;
+    status: string;
+  }>;
 }
 
 function pickCheck(
@@ -77,6 +88,31 @@ export function registerDecisionExportRoutes(app: Express): void {
           reason: typeof c.reason === 'string' ? c.reason : null,
           checkedAt: typeof c.checkedAt === 'string' ? c.checkedAt : null,
         })) ?? [];
+      const capsules = await prisma.decisionCapsule.findMany({
+        where: { subjectNpi: npi },
+        orderBy: { decisionTimestamp: 'desc' },
+        take: 25,
+        select: {
+          id: true,
+          subjectDid: true,
+          subjectNpi: true,
+          decisionType: true,
+          decisionTimestamp: true,
+          status: true,
+          methodology: true,
+          artifactHash: true,
+          metadata: true,
+        },
+      });
+      const decisionAttestations = capsules.flatMap((capsule) => (
+        extractCapsuleDecisionAttestations(capsule).map((attestation) => ({
+          ...attestation,
+          capsuleId: capsule.id,
+          decisionTimestamp: capsule.decisionTimestamp.toISOString(),
+          decisionType: capsule.decisionType,
+          status: capsule.status,
+        }))
+      ));
 
       const artifact: ExportArtifact = {
         schemaVersion: '1.0',
@@ -96,6 +132,7 @@ export function registerDecisionExportRoutes(app: Express): void {
         activation: omega.activation,
         recentActions: omega.recent_actions,
         nextBestAction: omega.nextBestAction,
+        decisionAttestations,
       };
 
       const wantsDownload = req.query.download === '1' || req.query.download === 'true';

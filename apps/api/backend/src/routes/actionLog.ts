@@ -15,6 +15,7 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
 import { computeReuseSignal } from '../services/actions/reuseSignal';
+import { hashAttestation } from '../services/attestation/canonicalize';
 
 const NPI_RE = /^\d{10}$/;
 const VALID_ACTIONS = new Set(['accept', 'request_data', 'flag'] as const);
@@ -28,6 +29,62 @@ interface ActionRequestBody {
 
 function isActionKind(value: unknown): value is ActionKind {
   return typeof value === 'string' && VALID_ACTIONS.has(value as ActionKind);
+}
+
+/**
+ * Best-effort tamper-evident attestation write. NEVER throws back to
+ * the caller — attestation failures must not block the action route.
+ */
+async function recordDecisionAttestation(
+  npi: string,
+  action: ActionKind,
+): Promise<void> {
+  try {
+    const [passportResult, reuseResult] = await Promise.allSettled([
+      buildPassportDataByNpi(npi),
+      computeReuseSignal(npi),
+    ]);
+    const passport = passportResult.status === 'fulfilled' ? passportResult.value : null;
+    const reuse = reuseResult.status === 'fulfilled' ? reuseResult.value : null;
+    const decisionState = passport?.decision.decision ?? 'UNKNOWN';
+
+    const decisionTimestamp = new Date();
+    const snapshot = {
+      evidence: passport?.sourceCoverage ?? null,
+      coverage: passport?.sourceCoverage ?? null,
+      trustSignals: { reuse },
+      nextBestAction: null, // surfaced via /api/omega; not duplicated in attestation snapshot
+      capturedAt: decisionTimestamp.toISOString(),
+    };
+
+    // Hash envelope is deterministic over (subject, action, decision,
+    // timestamp, canonicalized snapshot). Anyone with the row can
+    // recompute and verify integrity.
+    const hash = hashAttestation({
+      clinicianNpi: npi,
+      actionTaken: action,
+      decisionState,
+      decisionTimestamp: decisionTimestamp.toISOString(),
+      snapshot,
+    });
+
+    await prisma.decisionAttestation.create({
+      data: {
+        clinicianNpi: npi,
+        actionTaken: action,
+        decisionState,
+        decisionTimestamp,
+        snapshot: snapshot as never,
+        hash,
+      },
+    });
+  } catch (error) {
+    log('warn', 'decision_attestation_write_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      action,
+      message: error instanceof Error ? error.message : 'unknown',
+    });
+  }
 }
 
 export function registerActionLogRoutes(app: Express): void {
@@ -97,6 +154,9 @@ export function registerActionLogRoutes(app: Express): void {
         });
       }
 
+      // Tamper-evident attestation — best-effort, never blocks.
+      await recordDecisionAttestation(npi, action);
+
       log('info', 'employer_action_routed', {
         npi_prefix: npi.slice(0, 4) + '····',
         action,
@@ -128,6 +188,9 @@ export function registerActionLogRoutes(app: Express): void {
         error_description: 'Could not record employer action.',
       });
     }
+
+    // Tamper-evident attestation — best-effort, never blocks.
+    await recordDecisionAttestation(npi, action);
 
     log('info', 'employer_action_recorded', {
       npi_prefix: npi.slice(0, 4) + '····',
