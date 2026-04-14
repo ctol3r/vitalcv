@@ -1,9 +1,10 @@
 /**
- * publicProfile.ts — Wave 251
+ * publicProfile.ts — Wave 251 (re-shimmed via strangler pattern)
  *
- * Public, redacted clinician passport profile keyed by NPI.
- * Returns trust band, readiness score, artifact provenance, monitoring
- * summary, audit events, and trust-proof links without exposing raw claims.
+ * Public, redacted clinician passport profile keyed by NPI. Trust-state
+ * internals are now sourced from the canonical pipeline
+ * (buildPassportDataByNpi). Legacy response shape is preserved; canonical
+ * fields (decision, coverage, claims, limitations) are added additively.
  */
 
 import type { Express, Request, Response } from 'express';
@@ -14,7 +15,9 @@ import { ReadinessEvaluator } from '../services/intelligence/graphRagEvaluator';
 import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisclosurePlaceholder } from '../services/auditBundleClaims';
 import type { PredictionSummaryContract } from '../services/predictions/contracts';
 import { getPredictionSummaryForEntity } from '../services/predictions/predictionEngineService';
-import { computeClinicianTrustState, type ClinicianTrustState } from '../services/trust/trustStateEngine';
+import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
+import type { Decision } from '../services/entity/passportService';
+import type { CanonicalSourceCoverageReport, CanonicalTruthSet } from '@vitalcv/trust-state';
 
 const NPI_RE = /^\d{10}$/;
 const evaluator = new ReadinessEvaluator();
@@ -80,10 +83,14 @@ export interface NpiProfileResponse {
     createdAt: string;
   }>;
   generatedAt: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+  // Canonical additive fields — new employer-facing pipeline
+  decision: Decision;
+  coverage: CanonicalSourceCoverageReport;
+  claims: CanonicalTruthSet;
+  limitations: {
+    blockers: string[];
+    gaps: string[];
+  };
 }
 
 function inferStateFromSource(source: string): string | null {
@@ -98,49 +105,8 @@ function safeRate(numerator: number, denominator: number): number {
   return Number((numerator / denominator).toFixed(4));
 }
 
-function parseStoredTrustState(rawPayload: unknown): ClinicianTrustState | null {
-  if (!isRecord(rawPayload)) {
-    return null;
-  }
-
-  const trustBandValue = rawPayload.readiness_level ?? rawPayload.trustBand;
-  const readinessScoreValue = rawPayload.readiness_score ?? rawPayload.trustScore;
-  const computedAtValue = rawPayload.computed_at ?? rawPayload.computedAt;
-  const trustBand = trustBandValue === 'L0' || trustBandValue === 'L1' || trustBandValue === 'L2' || trustBandValue === 'L3'
-    ? trustBandValue
-    : 'L0';
-  const readinessScore = typeof readinessScoreValue === 'number' ? readinessScoreValue : 0;
-  const computedAt = typeof computedAtValue === 'string' ? computedAtValue : new Date(0).toISOString();
-
-  return {
-    npi: typeof rawPayload.npi === 'string' ? rawPayload.npi : '',
-    identityVerified: rawPayload.identityVerified === true,
-    licensureStatus: rawPayload.licensureStatus === 'verified'
-      || rawPayload.licensureStatus === 'pending'
-      || rawPayload.licensureStatus === 'expired'
-      || rawPayload.licensureStatus === 'unknown'
-      ? rawPayload.licensureStatus
-      : 'unknown',
-    exclusionClear: rawPayload.exclusionClear === true,
-    credentialCount: typeof rawPayload.credentialCount === 'number' ? rawPayload.credentialCount : 0,
-    readiness_level: trustBand,
-    readiness_status: typeof rawPayload.readiness_status === 'string' ? rawPayload.readiness_status : '',
-    readiness_score: readinessScore,
-    gap_summary: Array.isArray(rawPayload.gap_summary)
-      ? rawPayload.gap_summary.filter((value): value is string => typeof value === 'string')
-      : [],
-    methodology_version: typeof rawPayload.methodology_version === 'string'
-      ? rawPayload.methodology_version
-      : 'unknown',
-    computed_at: computedAt,
-    trustBand,
-    trustScore: readinessScore,
-    facts: [],
-    gaps: Array.isArray(rawPayload.gaps)
-      ? rawPayload.gaps.filter((value): value is string => typeof value === 'string')
-      : [],
-    computedAt,
-  };
+function deriveTrustBand(level: string): TrustBand {
+  return level === 'L0' || level === 'L1' || level === 'L2' || level === 'L3' ? level : 'L0';
 }
 
 export function registerPublicProfileRoutes(app: Express): void {
@@ -159,12 +125,8 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const generatedAt = new Date().toISOString();
 
-      const [trustSnapshot, artifacts, anchoredEvents, alertSummary, predictionSummary] = await Promise.all([
-        prisma.verificationArtifact.findFirst({
-          where: { npi, source: 'TRUST_STATE_ENGINE' },
-          select: { rawPayload: true },
-          orderBy: { verifiedAt: 'desc' },
-        }),
+      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary] = await Promise.all([
+        buildPassportDataByNpi(npi),
         prisma.verificationArtifact.findMany({
           where: {
             npi,
@@ -201,8 +163,15 @@ export function registerPublicProfileRoutes(app: Express): void {
         getPredictionSummaryForEntity('provider', npi),
       ]);
 
-      const trustState = parseStoredTrustState(trustSnapshot?.rawPayload)
-        ?? await computeClinicianTrustState(npi);
+      if (!passportData) {
+        return res.status(404).json({
+          error: 'passport_not_found',
+          error_description: 'No passport data available for the provided NPI.',
+        });
+      }
+
+      const trustBand = deriveTrustBand(passportData.readiness.level);
+      const readinessScore = passportData.readiness.score;
 
       const activeCredentials: string[] = [];
       for (const artifact of artifacts) {
@@ -304,8 +273,10 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const hasActiveCredentials = activeCredentials.length > 0;
       const evaluatorPass = !readiness.evaluated || readiness.isEligible !== false;
-      const trustPass = trustState.readiness_level === 'L2' || trustState.readiness_level === 'L3';
-      const status: 'CLEARED' | 'PENDING' = hasActiveCredentials && evaluatorPass && trustPass
+      // Canonical: CLEARED is the projection of decision === 'PROCEED' constrained
+      // by presence of active credentials and (when evaluated) eligibility pass.
+      const decisionPass = passportData.decision.decision === 'PROCEED';
+      const status: 'CLEARED' | 'PENDING' = hasActiveCredentials && evaluatorPass && decisionPass
         ? 'CLEARED'
         : 'PENDING';
 
@@ -320,8 +291,8 @@ export function registerPublicProfileRoutes(app: Express): void {
       const body: NpiProfileResponse = {
         npi,
         status,
-        trustBand: trustState.readiness_level,
-        readinessScore: trustState.readiness_score,
+        trustBand,
+        readinessScore,
         lastAnchored: anchoredEvents[0]?.createdAt.toISOString() ?? null,
         activeCredentials,
         readiness,
@@ -343,13 +314,22 @@ export function registerPublicProfileRoutes(app: Express): void {
         predictionSummary,
         events,
         generatedAt,
+        // Canonical additive fields
+        decision: passportData.decision,
+        coverage: passportData.sourceCoverage,
+        claims: passportData.truth,
+        limitations: {
+          blockers: passportData.readiness.blockers,
+          gaps: passportData.readiness.gaps,
+        },
       };
 
       log('info', 'public_profile_npi_served', {
         npi_prefix: npi.slice(0, 4) + '····',
         status,
-        trustBand: trustState.readiness_level,
-        readinessScore: trustState.readiness_score,
+        trustBand,
+        readinessScore,
+        decision: passportData.decision.decision,
         artifactCount: artifactSummaries.length,
       });
 

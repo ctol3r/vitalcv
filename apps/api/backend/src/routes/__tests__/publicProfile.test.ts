@@ -31,25 +31,8 @@ jest.mock('../../services/intelligence/graphRagEvaluator', () => ({
   })),
 }));
 
-jest.mock('../../services/trust/trustStateEngine', () => ({
-  computeClinicianTrustState: jest.fn().mockResolvedValue({
-    npi: '1234567890',
-    identityVerified: true,
-    licensureStatus: 'verified',
-    exclusionClear: true,
-    credentialCount: 1,
-    readiness_level: 'L2',
-    readiness_status: 'ready',
-    readiness_score: 76,
-    gap_summary: [],
-    methodology_version: '243.1',
-    computed_at: '2026-03-01T00:00:00.000Z',
-    trustBand: 'L2',
-    trustScore: 76,
-    facts: [],
-    gaps: [],
-    computedAt: '2026-03-01T00:00:00.000Z',
-  }),
+jest.mock('../../services/passport/npiPassportContract', () => ({
+  buildPassportDataByNpi: jest.fn(),
 }));
 
 jest.mock('../../services/predictions/predictionEngineService', () => ({
@@ -113,6 +96,7 @@ jest.mock('../../obs/logger', () => ({
 
 import prisma from '../../graphql/prisma_client';
 import { registerPublicProfileRoutes } from '../publicProfile';
+import { buildPassportDataByNpi } from '../../services/passport/npiPassportContract';
 
 const prismaMock = prisma as unknown as {
   verificationArtifact: {
@@ -127,6 +111,89 @@ const prismaMock = prisma as unknown as {
   };
 };
 
+const buildPassportDataByNpiMock = buildPassportDataByNpi as jest.MockedFunction<typeof buildPassportDataByNpi>;
+
+function fakePassportData(): Awaited<ReturnType<typeof buildPassportDataByNpi>> {
+  return {
+    entityId: '1234567890',
+    npi: '1234567890',
+    credentials: [],
+    identity: {
+      entityId: '1234567890',
+      displayName: 'Clinician 1234567890',
+      npi: '1234567890',
+      specialty: 'Cardiology',
+      entityType: 'PERSON',
+      status: 'ACTIVE',
+    },
+    authority: { credentials: [], summary: { active: 0, expired: 0, stale: 0, missing: [] } },
+    training: { records: [], hasDegree: false, degreeVerified: false, hasResidency: false, fellowshipCount: 0 },
+    standing: {
+      exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      exclusionCheckedAt: '2026-03-01T00:00:00.000Z',
+      exclusionConfidenceLabel: 'HIGH',
+      licensureStatus: 'verified',
+      deaStatus: 'unknown',
+      pecosStatus: 'enrolled',
+      pecosEnrollmentStatus: 'ENROLLED',
+      enrollmentSourceLabel: 'CMS PECOS (public)',
+      enrollmentDataFreshness: 'Quarterly',
+      enrollmentSourceLatency: 'Quarterly snapshot',
+      enrollmentNote: '',
+      enrollmentObservedAt: '2026-03-01T00:00:00.000Z',
+      enrollmentDataVersion: '',
+      enrollmentStatusLabel: 'Enrolled',
+      enrollmentFreshnessLabel: 'Current',
+      enrollmentConfidenceLabel: 'HIGH',
+      negativeFindings: [],
+    },
+    readiness: {
+      status: 'READY',
+      score: 88,
+      readiness_score: 88,
+      level: 'L3',
+      blockers: [],
+      gaps: [],
+      nextActions: [],
+      estimatedStartDays: 3,
+    },
+    sources: { checked: [], lastFetch: {} },
+    sourceCoverage: { checks: [], summary: { checked: 0, pending: 0, reviewRequired: 0, stale: 0 } as never },
+    truth: { identity: [], authority: [], standing: [], eligibility: [] } as never,
+    trustPosture: {
+      level: 'L3',
+      label: 'Verified',
+      summary: 'Verified across all dimensions.',
+      dimensions: [],
+      freshness: { state: 'current', label: 'Current', items: [] },
+      safeToRelyOnNow: [],
+      missingItems: [],
+      gatedItems: [],
+      reviewRequiredItems: [],
+      staleItems: [],
+      blockers: [],
+    },
+    decisionPosture: {
+      status: 'READY',
+      headline: 'All decision-grade sources checked.',
+      proven: [],
+      missing: [],
+      blockers: [],
+      freshness: { state: 'current', label: 'Current', items: [] },
+      nextAction: 'Accept as head start.',
+    },
+    decision: {
+      decision: 'PROCEED',
+      confidence: 88,
+      rationale: ['All decision-grade sources checked.'],
+      blockers: [],
+      next_actions: ['Accept as head start.'],
+    },
+    lastCheckedAt: '2026-03-01T00:00:00.000Z',
+  } as never;
+}
+
 function createApp() {
   const app = express();
   app.use(express.json());
@@ -140,18 +207,11 @@ describe('public profile routes', () => {
     prismaMock.verificationArtifact.findMany.mockReset();
     prismaMock.auditEvent.findMany.mockReset();
     prismaMock.trustAlertRecord.aggregate.mockReset();
+    buildPassportDataByNpiMock.mockReset();
+    buildPassportDataByNpiMock.mockResolvedValue(fakePassportData());
   });
 
   it('returns a redacted public NPI profile with trust band, provenance, monitoring, and proof links', async () => {
-    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
-      rawPayload: {
-        npi: '1234567890',
-        readiness_level: 'L3',
-        readiness_score: 88,
-        methodology_version: '243.1',
-        computed_at: '2026-03-01T00:00:00.000Z',
-      },
-    });
     prismaMock.verificationArtifact.findMany.mockResolvedValue([
       {
         id: 'artifact-1',
@@ -219,6 +279,24 @@ describe('public profile routes', () => {
     expect(response.body).not.toHaveProperty('wallet');
     expect(JSON.stringify(response.body)).not.toContain('licenseNumber');
     expect(JSON.stringify(response.body)).not.toContain('A12345');
+
+    // Canonical additive fields sourced from buildPassportDataByNpi
+    expect(response.body.decision).toEqual(expect.objectContaining({
+      decision: 'PROCEED',
+      confidence: 88,
+      blockers: [],
+    }));
+    expect(response.body).toHaveProperty('coverage');
+    expect(response.body).toHaveProperty('claims');
+    expect(response.body.limitations).toEqual({ blockers: [], gaps: [] });
+  });
+
+  it('returns 404 when passport data is unavailable', async () => {
+    buildPassportDataByNpiMock.mockResolvedValue(null);
+    const response = await request(createApp())
+      .get('/api/public/profile/npi/1234567890')
+      .expect(404);
+    expect(response.body.error).toBe('passport_not_found');
   });
 
   it('rejects invalid NPIs', async () => {
