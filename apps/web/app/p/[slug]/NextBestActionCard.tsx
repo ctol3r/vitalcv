@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { safeFetch, SafeFetchError } from '@/lib/safe-fetch';
@@ -85,8 +86,37 @@ export function NextBestActionCard({
   const [, startTransition] = useTransition();
   const [state, setState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
 
+  // Pilot tracking: NBA visibility on mount. Fire-and-forget.
+  useEffect(() => {
+    void trackPilotEvent({
+      eventType: 'readiness_revealed',
+      oncePerSession: false,
+      details: {
+        surface: 'public_review_next_best_action',
+        npi,
+        recommendedAction: nba.action,
+        confidence: nba.confidence,
+        evidenceCount: nba.evidenceCount,
+      },
+    });
+    // Only fire on (npi, action) change — not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [npi, nba.action]);
+
   const handleClick = async () => {
     if (state === 'submitting' || state === 'done') return;
+
+    void trackPilotEvent({
+      eventType: 'employer_action_clicked',
+      oncePerSession: false,
+      details: {
+        surface: 'public_review_next_best_action',
+        npi,
+        recommendedAction: nba.action,
+        backendAction: meta.backendAction,
+      },
+    });
+
     if (!meta.backendAction) {
       // Informational only — no server action.
       toast.message('Open this clinician’s full review to take action.');
@@ -102,16 +132,48 @@ export function NextBestActionCard({
         signal: AbortSignal.timeout(8000),
       });
       setState('done');
+      void trackPilotEvent({
+        eventType: 'employer_action_taken',
+        oncePerSession: false,
+        details: {
+          surface: 'public_review_next_best_action',
+          npi,
+          recommendedAction: nba.action,
+          backendAction: meta.backendAction,
+        },
+      });
       toast.success(meta.successToast);
       startTransition(() => router.refresh());
     } catch (err) {
       const layer = err instanceof SafeFetchError ? err.layer : 'unknown';
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[NextBestActionCard] Failed to record action', {
         npi,
         action: nba.action,
         backendAction: meta.backendAction,
         layer,
-        error: err instanceof Error ? err.message : String(err),
+        error: message,
+      });
+      void trackPilotEvent({
+        eventType: 'route_failure',
+        oncePerSession: false,
+        severity: 'high',
+        message: 'Public review next best action failed to persist.',
+        details: {
+          surface: 'public_review_next_best_action',
+          npi,
+          recommendedAction: nba.action,
+          backendAction: meta.backendAction,
+          layer,
+          error: message,
+        },
+        queueItem: {
+          source: 'route_failure',
+          title: 'Employer action failed to persist',
+          message: 'The public review surface could not save the selected action.',
+          severity: 'high',
+          blocking: false,
+        },
       });
       setState('error');
       toast.error(
@@ -121,14 +183,9 @@ export function NextBestActionCard({
     }
   };
 
+  const confidencePct = Math.round(nba.confidence * 100);
   const isDoing = state === 'submitting';
   const isDone = state === 'done';
-  const confidenceLabel =
-    nba.confidence >= 0.85
-      ? 'High confidence'
-      : nba.confidence >= 0.6
-        ? 'Medium confidence'
-        : 'Low confidence';
 
   return (
     <div className={`rounded-2xl border-2 ${meta.cardTone} p-6 sm:p-8`}>
@@ -142,7 +199,7 @@ export function NextBestActionCard({
         {nba.reason}
       </p>
 
-      <p className="mt-4 text-sm font-semibold opacity-80">{confidenceLabel}</p>
+      <p className="mt-4 text-sm font-semibold opacity-80">{confidencePct}% confidence</p>
 
       <button
         type="button"
