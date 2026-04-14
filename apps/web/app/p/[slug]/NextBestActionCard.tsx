@@ -74,14 +74,77 @@ const META: Record<NextBestActionKind, ActionMeta> = {
   },
 };
 
+interface CoverageInput {
+  checks?: Array<{ sourceId: string; state?: string }>;
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  NPPES_API: 'NPPES',
+  NPPES: 'NPPES',
+  OIG_LEIE: 'OIG',
+  OIG: 'OIG',
+  STATE_BOARD: 'State medical board',
+  PECOS_PUBLIC: 'PECOS',
+  PECOS: 'PECOS',
+};
+
+function deriveEvidenceSummary(coverage?: CoverageInput | null): {
+  reason: string;
+  sources: string[];
+} {
+  const checks = coverage?.checks ?? [];
+  const verified = checks.filter((c) => c.state?.toLowerCase() === 'checked');
+  if (verified.length === 0) {
+    return { reason: '', sources: [] };
+  }
+  const fragments: string[] = [];
+  const sources: string[] = [];
+  for (const c of verified) {
+    const label = SOURCE_LABELS[c.sourceId];
+    if (!label || sources.includes(label)) continue;
+    sources.push(label);
+    if (c.sourceId === 'OIG_LEIE' || c.sourceId === 'OIG') fragments.push('OIG clear');
+    else if (c.sourceId === 'STATE_BOARD') fragments.push('license active');
+    else if (c.sourceId === 'NPPES_API' || c.sourceId === 'NPPES') fragments.push('identity verified');
+    else if (c.sourceId === 'PECOS_PUBLIC' || c.sourceId === 'PECOS') fragments.push('PECOS enrolled');
+  }
+  return { reason: fragments.join(', '), sources };
+}
+
+function buildEvidenceLine(input: {
+  evidenceCount: number;
+  checkedSourceCount: number;
+}): string {
+  if (input.checkedSourceCount > 0) {
+    return `${input.checkedSourceCount} checked source${input.checkedSourceCount === 1 ? '' : 's'} on file`;
+  }
+
+  if (input.evidenceCount > 0) {
+    return `${input.evidenceCount} source-backed record${input.evidenceCount === 1 ? '' : 's'} reviewed`;
+  }
+
+  return 'Verified source review still in progress';
+}
+
+const CONSEQUENCE_COPY: Record<NextBestActionKind, string | null> = {
+  PROCEED: 'Approving will mark this candidate as ready for hiring within your system.',
+  REVERIFY: 'A fresh verification request will be queued against the source authority.',
+  ESCALATE: 'Rejecting will mark this candidate as high risk and notify your reviewers.',
+  REVIEW_MANUALLY: null,
+};
+
 export function NextBestActionCard({
   npi,
   nba,
+  coverage,
 }: {
   npi: string;
   nba: NextBestActionPayload;
+  coverage?: CoverageInput | null;
 }) {
   const meta = META[nba.action];
+  const evidence = deriveEvidenceSummary(coverage);
+  const consequence = CONSEQUENCE_COPY[nba.action];
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [state, setState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
@@ -183,9 +246,16 @@ export function NextBestActionCard({
     }
   };
 
-  const confidencePct = Math.round(nba.confidence * 100);
   const isDoing = state === 'submitting';
   const isDone = state === 'done';
+  // Prefer evidence-derived reason over backend-supplied reason when we
+  // have any verified sources to point to. Falls back to nba.reason
+  // (and finally to a safe default) so the surface is never blank.
+  const displayReason = evidence.reason || nba.reason || 'Based on the verified information currently attached to this profile.';
+  const evidenceLine = buildEvidenceLine({
+    evidenceCount: nba.evidenceCount,
+    checkedSourceCount: evidence.sources.length,
+  });
 
   return (
     <div className={`rounded-2xl border-2 ${meta.cardTone} p-6 sm:p-8`}>
@@ -196,10 +266,19 @@ export function NextBestActionCard({
         {meta.headline}
       </h1>
       <p className="mt-3 break-words text-base font-medium opacity-90 md:text-lg">
-        {nba.reason}
+        {displayReason}
       </p>
 
-      <p className="mt-4 text-sm font-semibold opacity-80">{confidencePct}% confidence</p>
+      <p className="mt-4 text-sm font-semibold opacity-80">
+        {evidenceLine}
+      </p>
+
+      {evidence.sources.length > 0 && (
+        <p className="mt-3 text-xs opacity-75">
+          Based on:{' '}
+          <span className="font-semibold">{evidence.sources.join(', ')}</span>
+        </p>
+      )}
 
       <button
         type="button"
@@ -210,6 +289,10 @@ export function NextBestActionCard({
       >
         {isDoing ? meta.pending : isDone ? meta.done : meta.cta}
       </button>
+
+      {consequence && (
+        <p className="mt-3 text-xs opacity-75">{consequence}</p>
+      )}
     </div>
   );
 }

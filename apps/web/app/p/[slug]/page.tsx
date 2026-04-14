@@ -44,6 +44,7 @@ import {
 import { formatRelativeTime } from '@/lib/relative-time';
 import { CopyShareLink } from './CopyShareLink';
 import { NextBestActionCard, type NextBestActionPayload } from './NextBestActionCard';
+import { EvidencePanel } from './EvidencePanel';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -158,6 +159,14 @@ interface NpiProfile {
     request_data_count: number;
     last_action: 'accept' | 'request_data' | 'flag' | null;
     last_action_at: string | null;
+  };
+  coverage?: {
+    checks: Array<{
+      sourceId: string;
+      state: string;
+      reason?: string;
+      checkedAt?: string | null;
+    }>;
   };
 }
 
@@ -769,7 +778,7 @@ function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'
           </div>
           <dl className="space-y-2 text-xs text-muted-foreground">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <dt>Monitoring signal</dt>
+              <dt>Ongoing checks</dt>
               <dd className={artifact.monitoring ? 'text-green-600' : 'text-muted-foreground'}>
                 {artifact.monitoring ? 'Active follow-up checks' : 'Last completed check only'}
               </dd>
@@ -847,18 +856,47 @@ const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], {
   },
 };
 
-function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision']> }) {
+function buildDecisionEvidenceSummary(profile: NpiProfile): {
+  checkedSourceCount: number;
+  claimCount: number;
+} {
+  const checkedSourceCount = profile.coverage?.checks.filter(
+    (check) => check.state.toLowerCase() === 'checked',
+  ).length ?? 0;
+  const claimCount = profile.artifactSummaries.reduce(
+    (total, artifact) => total + artifact.claimCount,
+    0,
+  );
+
+  return { checkedSourceCount, claimCount };
+}
+
+function DecisionCard({
+  decision,
+  evidenceSummary,
+}: {
+  decision: NonNullable<NpiProfile['decision']>;
+  evidenceSummary: {
+    checkedSourceCount: number;
+    claimCount: number;
+  };
+}) {
   const meta = DECISION_LABELS[decision.decision];
   const blockers = Array.isArray(decision.blockers) ? decision.blockers : [];
   const rationaleSource = Array.isArray(decision.rationale) ? decision.rationale : [];
   const nextActionSource = Array.isArray(decision.next_actions) ? decision.next_actions : [];
-  const confidence = Number.isFinite(decision.confidence) ? decision.confidence : null;
   const rationale = rationaleSource.length > 0
     ? rationaleSource
     : ['VitalCV could not load a detailed explanation for this result yet.'];
   const nextActions = nextActionSource.length > 0
     ? nextActionSource
     : [getPublicDecisionNextStep(decision.decision)];
+  const evidenceLabel = evidenceSummary.checkedSourceCount > 0
+    ? `${evidenceSummary.checkedSourceCount} checked source${evidenceSummary.checkedSourceCount === 1 ? '' : 's'}`
+    : 'No checked sources yet';
+  const claimLabel = evidenceSummary.claimCount > 0
+    ? `${evidenceSummary.claimCount} source-backed claim${evidenceSummary.claimCount === 1 ? '' : 's'} on file`
+    : 'No source-backed claims attached yet';
 
   return (
     <div className={`rounded-xl border-2 ${meta.tone} p-6`}>
@@ -868,13 +906,14 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
           <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">{meta.label}</h1>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Confidence</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums sm:text-3xl">{confidence ?? '—'}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Evidence on file</p>
+          <p className="mt-1 text-sm font-semibold sm:text-base">{evidenceLabel}</p>
+          <p className="mt-1 text-xs opacity-75">{claimLabel}</p>
         </div>
       </div>
       <p className="mt-2 text-sm font-medium opacity-90">{getPublicDecisionHeadline(decision.decision)}</p>
       <p className="mt-1 text-xs opacity-75">
-        This result uses the verified information currently attached to this profile.
+        This result only uses the verified records and source checks attached to this profile.
       </p>
 
       {blockers.length > 0 && (
@@ -1358,6 +1397,8 @@ export default async function PublicTrustProfilePage({ params }: Props) {
   // page degrades gracefully to the existing DecisionCard fallback.
   const nextBestAction =
     profile.mode === 'npi' ? await fetchNextBestAction(profile.npi) : null;
+  const decisionEvidenceSummary =
+    profile.mode === 'npi' ? buildDecisionEvidenceSummary(profile) : null;
 
   return (
     <main className="min-h-screen bg-background pb-28">
@@ -1377,10 +1418,20 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
+              {/* Compliance evidence — rendered first so the decision is
+                  always justified by visible facts before the NBA appears. */}
+              <section className="mb-6">
+                <EvidencePanel coverage={profile.coverage} />
+              </section>
+
               {/* Primary action surface — NBA is the only place to act. */}
               {nextBestAction && (
                 <section className="mb-6">
-                  <NextBestActionCard npi={profile.npi} nba={nextBestAction} />
+                  <NextBestActionCard
+                    npi={profile.npi}
+                    nba={nextBestAction}
+                    coverage={profile.coverage}
+                  />
                 </section>
               )}
 
@@ -1402,7 +1453,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {/* Hierarchy per Wave: decision → actions → limitations → everything else */}
               {profile.decision && (
                 <section className="mb-6">
-                  <DecisionCard decision={profile.decision} />
+                  <DecisionCard decision={profile.decision} evidenceSummary={decisionEvidenceSummary ?? { checkedSourceCount: 0, claimCount: 0 }} />
                 </section>
               )}
 
@@ -1601,6 +1652,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       <EmployerTracker 
         npi={profile.mode === 'npi' ? profile.npi : undefined} 
         slug={profile.mode === 'slug' ? profile.slug : undefined} 
+        hasNextBestAction={profile.mode === 'npi' ? Boolean(nextBestAction) : undefined}
       />
     </main>
   );
