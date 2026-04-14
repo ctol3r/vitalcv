@@ -21,6 +21,16 @@ import { notFound } from 'next/navigation';
 import PassportShareActions from '@/components/passport/PassportShareActions';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
 import { EmployerTracker } from '@/components/telemetry/EmployerTracker';
+import {
+  DECISION_LIMITATION_HEADING,
+  DECISION_NEXT_STEP_HEADING,
+  DECISION_RATIONALE_HEADING,
+  formatRecentActionLabel,
+  getLimitationEmptyMessage,
+  getPublicDecisionHeadline,
+  getPublicDecisionNextStep,
+  getRecentActionEmptyMessage,
+} from '@/lib/trust/decision-copy';
 import { DecisionActions } from './DecisionActions';
 
 // ── Shared types ──────────────────────────────────────────────────────────
@@ -452,31 +462,34 @@ function IssuerProvenanceList({ provenance }: { provenance: NpiProfile['issuerPr
 
 // ── Canonical decision surface ────────────────────────────────────────────
 
-const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], { label: string; tone: string; reinforcement: string }> = {
+const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], { label: string; tone: string }> = {
   PROCEED: {
-    label: 'Safe to proceed',
+    label: 'Proceed',
     tone: 'border-green-500/40 bg-green-500/10 text-green-700',
-    reinforcement: 'Based on verified sources and no exclusion findings.',
   },
   PROCEED_WITH_CAUTION: {
     label: 'Proceed with caution',
     tone: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
-    reinforcement: 'Based on partial verification — additional checks recommended.',
   },
   DO_NOT_PROCEED: {
     label: 'Do not proceed',
     tone: 'border-red-500/40 bg-red-500/10 text-red-700',
-    reinforcement: 'Critical blockers prevent a safe hire decision.',
   },
   INSUFFICIENT_DATA: {
-    label: 'Not enough information',
+    label: 'Not enough verified information',
     tone: 'border-slate-500/40 bg-slate-500/10 text-slate-700',
-    reinforcement: 'No decision-grade sources have been checked yet.',
   },
 };
 
 function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision']> }) {
   const meta = DECISION_LABELS[decision.decision];
+  const rationale = decision.rationale.length > 0
+    ? decision.rationale
+    : ['VitalCV could not load a detailed explanation for this result yet.'];
+  const nextActions = decision.next_actions.length > 0
+    ? decision.next_actions
+    : [getPublicDecisionNextStep(decision.decision)];
+
   return (
     <div className={`rounded-xl border-2 ${meta.tone} p-6`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -489,24 +502,25 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
           <p className="mt-1 text-3xl font-semibold tabular-nums">{decision.confidence}</p>
         </div>
       </div>
-      <p className="mt-2 text-sm font-medium opacity-90">{meta.reinforcement}</p>
+      <p className="mt-2 text-sm font-medium opacity-90">{getPublicDecisionHeadline(decision.decision)}</p>
+      <p className="mt-1 text-xs opacity-75">
+        This result uses the verified information currently attached to this profile.
+      </p>
 
       {decision.blockers.length > 0 && (
         <p className="mt-3 text-sm font-semibold">
-          Primary risk: {decision.blockers[0]}
+          Main blocker: {decision.blockers[0]}
         </p>
       )}
 
-      {decision.rationale.length > 0 && (
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Why</p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {decision.rationale.map((reason, idx) => (
-              <li key={`${idx}-${reason}`}>· {reason}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-5">
+        <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{DECISION_RATIONALE_HEADING}</p>
+        <ul className="mt-2 space-y-1 text-sm">
+          {rationale.map((reason, idx) => (
+            <li key={`${idx}-${reason}`}>· {reason}</li>
+          ))}
+        </ul>
+      </div>
 
       {decision.blockers.length > 1 && (
         <div className="mt-5">
@@ -519,16 +533,14 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
         </div>
       )}
 
-      {decision.next_actions.length > 0 && (
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Next actions</p>
-          <ol className="mt-2 space-y-1 text-sm">
-            {decision.next_actions.map((action, idx) => (
-              <li key={`${idx}-${action}`}>{idx + 1}. {action}</li>
-            ))}
-          </ol>
-        </div>
-      )}
+      <div className="mt-5">
+        <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{DECISION_NEXT_STEP_HEADING}</p>
+        <ol className="mt-2 space-y-1 text-sm">
+          {nextActions.map((action, idx) => (
+            <li key={`${idx}-${action}`}>{idx + 1}. {action}</li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
@@ -541,14 +553,14 @@ function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
-        All decision-grade sources have been checked.
+        {getLimitationEmptyMessage()}
       </div>
     );
   }
   return (
     <div className="rounded-lg border-2 border-amber-500/40 bg-amber-500/5 px-5 py-4">
       <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
-        What we did NOT verify
+        {DECISION_LIMITATION_HEADING}
       </p>
       <ul className="mt-3 space-y-2 text-sm text-foreground">
         {items.map((item, idx) => (
@@ -577,15 +589,15 @@ function ReuseSignalRow({ signal }: { signal: NonNullable<NpiProfile['reuse_sign
     <div className="grid grid-cols-3 gap-3">
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
         <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.accepted_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Accepted by</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Accepted</p>
       </div>
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
         <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.request_data_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Data requests</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Update requests</p>
       </div>
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
         <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.flagged_count}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Flags</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Review flags</p>
       </div>
     </div>
   );
@@ -594,7 +606,7 @@ function ReuseSignalRow({ signal }: { signal: NonNullable<NpiProfile['reuse_sign
 function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions']>['recent'] }) {
   if (recent.length === 0) {
     return (
-      <p className="text-center text-xs text-muted-foreground">No recent actions.</p>
+      <p className="text-center text-xs text-muted-foreground">{getRecentActionEmptyMessage()}</p>
     );
   }
   return (
@@ -602,8 +614,8 @@ function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions
       {recent.map((entry) => (
         <li key={entry.id} className="flex items-baseline justify-between gap-3 px-4 py-3">
           <div>
-            <p className="text-sm font-medium capitalize text-foreground">
-              {entry.action.replace(/_/g, ' ')}
+            <p className="text-sm font-medium text-foreground">
+              {formatRecentActionLabel(entry.action)}
             </p>
             {entry.rationale && (
               <p className="mt-1 text-xs text-muted-foreground">{entry.rationale}</p>
@@ -866,6 +878,16 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
+              {/* Zero-context onboarding header */}
+              <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-center">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Credential readiness snapshot
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  This is a credential readiness snapshot for a clinician, built from verified public sources.
+                </p>
+              </section>
+
               {/* Hierarchy per Wave: decision → actions → limitations → everything else */}
               {profile.decision && (
                 <section className="mb-6">
