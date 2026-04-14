@@ -601,7 +601,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
-              <section className="mb-10 text-center">
+              <section className="mb-8 text-center">
                 <h1 className="text-2xl font-bold text-foreground md:text-3xl">
                   NPI <span className="font-mono text-green-600">{profile.npi}</span>
                 </h1>
@@ -612,11 +612,14 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </p>
               </section>
 
+              <section className="mb-6">
+                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Connected Sources
+                </p>
+                <CredentialPills creds={profile.activeCredentials} />
+              </section>
+
               <section className="mb-8">
-                <EmployerReviewActions 
-                  npi={profile.npi}
-                  nbaPayload={omegaState?.nextBestAction || null}
-                />
                 <LimitationsCard missing={(profile as any).decision?.missing || []} />
                 <ReuseSignalBadge npi={profile.npi} />
               </section>
@@ -624,10 +627,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               <div className="mb-8 h-px bg-border" />
 
               <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Connected Sources
-                </p>
-                <CredentialPills creds={profile.activeCredentials} />
+                <EmployerReviewActions 
+                  npi={profile.npi}
+                  nbaPayload={omegaState?.nextBestAction || null}
+                  sourceCoverage={omegaState?.recognition?.sourceCoverage || null}
+                />
               </section>
 
               <div className="mb-8 h-px bg-border" />
