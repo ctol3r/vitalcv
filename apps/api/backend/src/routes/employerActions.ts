@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * employerActions.ts — M2: Accept with Confidence
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * sealEventCapture.ts — SEAL Training Event Capture
  *

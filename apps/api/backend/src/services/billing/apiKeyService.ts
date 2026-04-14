@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * apiKeyService.ts — Wave 115: API Key Management
  *

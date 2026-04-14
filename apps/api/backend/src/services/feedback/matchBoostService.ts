@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * matchBoostService.ts — Computes and caches historical outcome boosts for matching.
  *

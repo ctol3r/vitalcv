@@ -19,7 +19,7 @@ model User {
   updatedAt      DateTime   @updatedAt
 
   @@index([clerkUserId])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([role])
   @@index([status])
 }
@@ -255,7 +255,7 @@ model ShareLink {
   organizationId String?   @db.Uuid
 
   @@index([npi])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([createdAt])
 }
 
@@ -269,7 +269,7 @@ model Organization {
 
 model Opportunity {
   id               String   @id @default(uuid()) @db.Uuid
-  employerId     String   @map("employer_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
   title            String
   specialty        String
   hiringType       String   @map("hiring_type")
@@ -282,7 +282,7 @@ model Opportunity {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  @@index([employerId])
+  @@index([organizationId])
   @@index([specialty, state])
   @@index([status])
 }
@@ -307,7 +307,7 @@ model PersonProfile {
   providerLocations ProviderLocation[]
 
   @@index([npi])
-  @@index([status])
+  @@index([userId])
   @@map("person_profiles")
 }
 
@@ -342,7 +342,7 @@ model OrganizationProfile {
   institution           Institution?
 
   @@index([npi])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([hiringStatus])
   @@index([trustScore])
   @@map("organization_profiles")
@@ -539,10 +539,10 @@ model CrossCheckBundle {
 
 model VerifierAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
-  employerName   String?
+  organization String
   acceptedAt   DateTime @default(now())
 
-  @@index([employerId])
+  @@index([organization])
   @@index([acceptedAt])
 }
 
@@ -565,7 +565,7 @@ model PilotPlan {
   active         Boolean   @default(true)
   bundleCount    Int       @default(0)
 
-  @@index([employerId])
+  @@index([organizationId])
   @@index([active])
   @@index([startDate])
 }
@@ -665,7 +665,7 @@ model VerificationArtifact {
   @@index([supersededByArtifactId])
   @@index([supersedesArtifactId])
   @@index([monitoring])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([lifecycleState])
   @@index([revokedAt])
   @@index([suspendedAt])
@@ -712,7 +712,7 @@ model IngestRun {
   id          String    @id @default(uuid()) @db.Uuid
   npi         String
   status      String    @default("PENDING")
-  employerId   String?  @map("employer_id") @db.Uuid
+  entityId    String?   @map("entity_id") @db.Uuid
   lastError   String?   @map("last_error")
   startedAt   DateTime  @default(now()) @map("started_at")
   completedAt DateTime? @map("completed_at")
@@ -1084,7 +1084,7 @@ model TrustedIssuer {
   federatedAt          DateTime?
   registryMetadata     Json?
 
-  @@index([employerId])
+  @@index([organizationId])
   @@index([status])
   @@index([trustLevel])
   @@index([active])
@@ -1151,7 +1151,7 @@ model CredentialTransparencyLog {
 
   @@index([artifactId])
   @@index([fingerprint])
-  @@index([employerId])
+  @@index([organizationId])
 }
 
 model TrustAlertRecord {
@@ -1453,7 +1453,7 @@ model TrustLedgerEntry {
   createdAt      DateTime @default(now())
 
   @@index([npi])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([createdAt])
   @@index([artifactId])
 }
@@ -1484,7 +1484,7 @@ model AuditEvent {
   @@index([type, createdAt])
   @@index([clinicianId])
   @@index([referenceId])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([anchored])
   @@index([merkleRoot])
 }
@@ -1494,8 +1494,8 @@ model AuditEvent {
 
 model AdvisoryOutcomeEvent {
   id                     String     @id @default(uuid()) @db.Uuid
-  entityId     String?  @map("entity_id") @db.Uuid
-  entity                 VcvEntity? @relation("advisory_outcome_entity", fields: [acceptanceId], references: [id], onDelete: Cascade)
+  entityId               String     @map("entity_id") @db.Uuid
+  entity                 VcvEntity? @relation("advisory_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
   organizationContextId  String?    @map("organization_context_id") @db.Uuid
   organizationContext    VcvOrganizationContext? @relation("advisory_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
   advisoryVersion        String     @map("advisory_version")
@@ -1506,7 +1506,7 @@ model AdvisoryOutcomeEvent {
   metadata               Json
   createdAt              DateTime   @default(now())
 
-  @@index([acceptanceId])
+  @@index([entityId])
   @@index([organizationContextId])
   @@index([eventTimestamp])
   @@map("advisory_outcome_events")
@@ -1514,8 +1514,8 @@ model AdvisoryOutcomeEvent {
 
 model EmployerDecisionEvent {
   id                     String     @id @default(uuid()) @db.Uuid
-  acceptanceId String   @map("acceptance_id") @db.Uuid
-  entity                 VcvEntity? @relation("employer_decision_entity", fields: [acceptanceId], references: [id], onDelete: Cascade)
+  entityId               String     @map("entity_id") @db.Uuid
+  entity                 VcvEntity? @relation("employer_decision_entity", fields: [entityId], references: [id], onDelete: Cascade)
   organizationContextId  String?    @map("organization_context_id") @db.Uuid
   organizationContext    VcvOrganizationContext? @relation("employer_decision_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
   decision               String
@@ -1525,7 +1525,7 @@ model EmployerDecisionEvent {
   metadata               Json
   createdAt              DateTime   @default(now())
 
-  @@index([acceptanceId])
+  @@index([entityId])
   @@index([organizationContextId])
   @@index([decidedAt])
   @@map("employer_decision_events")
@@ -1534,7 +1534,7 @@ model EmployerDecisionEvent {
 model BlockerResolutionEvent {
   id               String     @id @default(uuid()) @db.Uuid
   entityId         String     @map("entity_id") @db.Uuid
-  entity           VcvEntity? @relation("blocker_resolution_entity", fields: [acceptanceId], references: [id], onDelete: Cascade)
+  entity           VcvEntity? @relation("blocker_resolution_entity", fields: [entityId], references: [id], onDelete: Cascade)
   blockerCode      String     @map("blocker_code")
   openedAt         DateTime   @map("opened_at")
   resolvedAt       DateTime?  @map("resolved_at")
@@ -1544,7 +1544,7 @@ model BlockerResolutionEvent {
   metadata         Json
   createdAt        DateTime   @default(now())
 
-  @@index([acceptanceId])
+  @@index([entityId])
   @@index([blockerCode])
   @@index([resolvedAt])
   @@map("blocker_resolution_events")
@@ -1553,7 +1553,7 @@ model BlockerResolutionEvent {
 model StartOutcomeEvent {
   id                    String     @id @default(uuid()) @db.Uuid
   entityId              String     @map("entity_id") @db.Uuid
-  entity                VcvEntity? @relation("start_outcome_entity", fields: [acceptanceId], references: [id], onDelete: Cascade)
+  entity                VcvEntity? @relation("start_outcome_entity", fields: [entityId], references: [id], onDelete: Cascade)
   organizationContextId String?    @map("organization_context_id") @db.Uuid
   organizationContext    VcvOrganizationContext? @relation("start_outcome_org_ctx", fields: [organizationContextId], references: [id], onDelete: Cascade)
   startedAt             DateTime   @map("started_at")
@@ -1565,7 +1565,7 @@ model StartOutcomeEvent {
   metadata              Json
   createdAt             DateTime   @default(now())
 
-  @@index([acceptanceId])
+  @@index([entityId])
   @@index([organizationContextId])
   @@index([startedAt])
   @@map("start_outcome_events")
@@ -1613,8 +1613,8 @@ model EmployerAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
   entityId     String   @map("entity_id") @db.Uuid
   organization String
-  employerId   String   @map("employer_id")
-  clinicianNpi String   @map("clinician_npi")
+  employerId   String?  @map("employer_id")
+  clinicianNpi String?  @map("clinician_npi")
   artifactId   String?  @map("artifact_id")
   status       String?  @default("ACCEPTED")
   acceptedAt   DateTime @map("accepted_at")
@@ -1622,8 +1622,8 @@ model EmployerAcceptance {
   metadata     Json?
   createdAt    DateTime @default(now())
 
-  @@index([acceptanceId])
   @@index([employerId])
+  @@index([clinicianNpi])
   @@index([acceptedAt])
   @@map("employer_acceptances")
 }
@@ -1640,7 +1640,7 @@ model StartAttestation {
   metadata    Json?
   createdAt   DateTime @default(now())
 
-  @@index([acceptanceId])
+  @@index([entityId])
   @@index([startedAt])
   @@map("start_attestations")
 }
@@ -1651,15 +1651,15 @@ model BillingEvent {
   amount      Decimal @db.Decimal(10, 2)
   currency    String   @default("USD")
   entityId    String?  @map("entity_id")
-  status       String?
-  stripeInvoiceItemId String? @map("stripe_invoice_item_id")
+  userId      String?  @map("user_id")
+  referenceId String?  @map("reference_id")
   metadata    Json?
   occurredAt  DateTime @map("occurred_at")
   createdAt   DateTime @default(now())
 
   @@index([eventType])
-  @@index([acceptanceId])
-  @@index([status])
+  @@index([entityId])
+  @@index([userId])
   @@index([occurredAt])
   @@map("billing_events")
 }
@@ -1680,15 +1680,14 @@ model SubscriptionApiKey {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@index([employerId])
+  @@index([organizationId])
   @@index([apiKey])
   @@map("subscription_api_keys")
 }
 
 model EmployerWebhookConfig {
   id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  organization   String?
+  employerId     String   @map("employer_id") @db.Uuid
   title          String?
   webhookUrl     String   @map("webhook_url")
   secret         String?
@@ -1716,7 +1715,7 @@ model Feedback {
   createdAt    DateTime @default(now())
 
   @@index([entityType, entityId])
-  @@index([status])
+  @@index([userId])
   @@index([feedbackType])
   @@map("feedback")
 }
@@ -1725,9 +1724,9 @@ model Feedback {
 
 model ResidencyProgram {
   id                String   @id @default(uuid()) @db.Uuid
-  programName       String?  @map("program_name")
+  programName       String   @map("program_name")
   name              String   // alias for programName
-  institution       String?
+  institution       String
   acgmeCode         String?  @map("acgme_code")
   hospitalAffiliation String? @map("hospital_affiliation")
   state             String?
@@ -1785,7 +1784,7 @@ model MonitoringEvent {
   organizationId String?  @db.Uuid
 
   @@index([npi])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([source])
   @@index([detectedAt])
 }
@@ -1798,7 +1797,7 @@ model CredentialMonitoringEvent {
   createdAt      DateTime @default(now())
 
   @@index([artifactId])
-  @@index([employerId])
+  @@index([organizationId])
 }
 
 model MissionOpsOnboardingFlow {
@@ -1813,7 +1812,7 @@ model MissionOpsOnboardingFlow {
 
   @@unique([role, entityId])
   @@index([role, lastUpdated])
-  @@index([acceptanceId])
+  @@index([entityId])
 }
 
 model AuditReceiptRecord {
@@ -1965,7 +1964,7 @@ model BundleShareEvent {
 
   @@index([npi, sharedAt])
   @@index([bundleId])
-  @@index([employerId])
+  @@index([organizationId])
   @@index([deliveryStatus, sharedAt])
   @@index([sharedByClerkUserId])
   @@index([revokedAt])
@@ -2033,7 +2032,7 @@ model KnowledgeNode {
 
   @@unique([entityType, entityId])
   @@index([entityType])
-  @@index([acceptanceId])
+  @@index([entityId])
 }
 
 /// Directed edge in the AKG representing an authority relationship.
@@ -3158,7 +3157,7 @@ model EventLog {
 
   @@index([eventType])
   @@index([npi])
-  @@index([employerId])
+  @@index([organizationId])
 }
 
 enum UserRole {

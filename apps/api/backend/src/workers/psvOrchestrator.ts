@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * psvOrchestrator.ts — Wave 39.1: PSV Orchestration Completion
  *

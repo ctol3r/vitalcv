@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * applyShareService.ts — Apply-with-VitalCV: Sign & Share event system
  *

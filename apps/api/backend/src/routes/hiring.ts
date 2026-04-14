@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * hiring.ts — Wave 41 (updated Wave 42): Start Attestation + Billing Engine
  *

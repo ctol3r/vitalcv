@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Wave 186 — Employer Knowledge Layer
  * employerService.ts

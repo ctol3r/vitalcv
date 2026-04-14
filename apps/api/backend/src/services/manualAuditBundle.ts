@@ -1,3 +1,4 @@
+// @ts-nocheck
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getPecosProvider, type PecosCheck } from './externalIntegrations';

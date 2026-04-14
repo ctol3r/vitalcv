@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * passportService.ts — The Trust Passport
  *

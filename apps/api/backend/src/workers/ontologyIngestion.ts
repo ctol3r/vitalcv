@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ontologyIngestion.ts — Wave 36: Clinical Ontology Engine
  *

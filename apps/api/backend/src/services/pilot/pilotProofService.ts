@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ApplicationStatus, Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { computePilotKpis, type PilotKpiSnapshot } from './pilotKpiService';

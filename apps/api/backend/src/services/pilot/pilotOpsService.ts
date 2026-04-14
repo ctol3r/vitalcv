@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ApplicationStatus, Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';

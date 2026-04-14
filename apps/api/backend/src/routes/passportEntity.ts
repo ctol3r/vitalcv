@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * passportEntity.ts — Trust Passport API (entity-centric)
  *

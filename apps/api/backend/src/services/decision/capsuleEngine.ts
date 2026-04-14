@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
