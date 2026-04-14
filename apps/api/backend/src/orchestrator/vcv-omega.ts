@@ -1,0 +1,168 @@
+/**
+ * vcv-omega.ts — Omega Orchestrator (minimal scaffold).
+ *
+ * Wraps existing VitalCV modules into a single entry point. This file
+ * MUST NOT reimplement any trust, decision, coverage, claim, or reuse
+ * logic — it only orchestrates calls to the services that already own
+ * those responsibilities and assembles the result.
+ *
+ * Owned by the services this delegates to:
+ *   - decision / coverage / claims → buildPassportDataByNpi
+ *   - reuse_signal                → computeReuseSignal
+ *   - recent actions              → prisma.actionLog (read-only)
+ */
+
+import prisma from '../graphql/prisma_client';
+import { buildPassportDataByNpi, type PassportDataContract } from '../services/passport/npiPassportContract';
+import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
+import { log } from '../obs/logger';
+
+export interface OmegaRequest {
+  subject: { npi: string };
+  context?: {
+    orgId?: string;
+    role?: string;
+    persist?: boolean;
+  };
+}
+
+export interface OmegaRecentAction {
+  id: string;
+  action: string;
+  rationale: string | null;
+  createdAt: string;
+}
+
+export type OmegaStatus = 'ok' | 'not_found' | 'partial';
+
+export interface OmegaResponse {
+  status: OmegaStatus;
+  subject: { npi: string };
+  context: Required<NonNullable<OmegaRequest['context']>>;
+  decision: PassportDataContract['decision'] | null;
+  coverage: PassportDataContract['sourceCoverage'] | null;
+  claims: PassportDataContract['truth'] | null;
+  reuse_signal: ReuseSignal | null;
+  recent_actions: OmegaRecentAction[];
+  generatedAt: string;
+}
+
+const NPI_RE = /^\d{10}$/;
+const EMPTY_REUSE_SIGNAL: ReuseSignal = {
+  accepted_count: 0,
+  flagged_count: 0,
+  request_data_count: 0,
+  last_action: null,
+  last_action_at: null,
+};
+
+function resolveContext(context: OmegaRequest['context']): Required<NonNullable<OmegaRequest['context']>> {
+  return {
+    orgId: context?.orgId ?? '',
+    role: context?.role ?? 'viewer',
+    persist: context?.persist ?? false,
+  };
+}
+
+function isValidNpi(npi: string): boolean {
+  return NPI_RE.test(npi);
+}
+
+/**
+ * Orchestrate a single Omega request. Fans out to existing services in
+ * parallel; tolerates reuse/action-layer failures without collapsing the
+ * core response — status is downgraded to "partial" instead.
+ */
+export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResponse> {
+  const npi = request.subject?.npi ?? '';
+  const context = resolveContext(request.context);
+  const generatedAt = new Date().toISOString();
+
+  if (!isValidNpi(npi)) {
+    return {
+      status: 'not_found',
+      subject: { npi },
+      context,
+      decision: null,
+      coverage: null,
+      claims: null,
+      reuse_signal: null,
+      recent_actions: [],
+      generatedAt,
+    };
+  }
+
+  const [passportResult, reuseResult, actionResult] = await Promise.allSettled([
+    buildPassportDataByNpi(npi),
+    computeReuseSignal(npi),
+    prisma.actionLog.findMany({
+      where: { npi },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+  ]);
+
+  const passport = passportResult.status === 'fulfilled' ? passportResult.value : null;
+  const reuseFailed = reuseResult.status === 'rejected';
+  const actionsFailed = actionResult.status === 'rejected';
+
+  if (reuseFailed) {
+    log('warn', 'omega_reuse_signal_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      message:
+        reuseResult.reason instanceof Error ? reuseResult.reason.message : 'unknown',
+    });
+  }
+  if (actionsFailed) {
+    log('warn', 'omega_action_log_failed', {
+      npi_prefix: npi.slice(0, 4) + '····',
+      message:
+        actionResult.reason instanceof Error ? actionResult.reason.message : 'unknown',
+    });
+  }
+
+  if (!passport) {
+    return {
+      status: 'not_found',
+      subject: { npi },
+      context,
+      decision: null,
+      coverage: null,
+      claims: null,
+      reuse_signal: reuseResult.status === 'fulfilled' ? reuseResult.value : EMPTY_REUSE_SIGNAL,
+      recent_actions:
+        actionResult.status === 'fulfilled'
+          ? actionResult.value.map((entry) => ({
+              id: entry.id,
+              action: entry.action,
+              rationale: entry.rationale,
+              createdAt: entry.createdAt.toISOString(),
+            }))
+          : [],
+      generatedAt,
+    };
+  }
+
+  const reuse_signal = reuseResult.status === 'fulfilled' ? reuseResult.value : EMPTY_REUSE_SIGNAL;
+  const recent_actions: OmegaRecentAction[] =
+    actionResult.status === 'fulfilled'
+      ? actionResult.value.map((entry) => ({
+          id: entry.id,
+          action: entry.action,
+          rationale: entry.rationale,
+          createdAt: entry.createdAt.toISOString(),
+        }))
+      : [];
+
+  return {
+    status: reuseFailed || actionsFailed ? 'partial' : 'ok',
+    subject: { npi },
+    context,
+    decision: passport.decision,
+    coverage: passport.sourceCoverage,
+    claims: passport.truth,
+    reuse_signal,
+    recent_actions,
+    generatedAt,
+  };
+}
