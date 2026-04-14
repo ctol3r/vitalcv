@@ -65,13 +65,26 @@ export function registerActionLogRoutes(app: Express): void {
       });
     }
 
-    await prisma.actionLog.create({
-      data: {
-        npi,
+    try {
+      await prisma.actionLog.create({
+        data: {
+          npi,
+          action,
+          rationale: rationale ?? null,
+        },
+      });
+    } catch (error) {
+      log('error', 'employer_action_persist_failed', {
+        npi_prefix: npi.slice(0, 4) + '····',
         action,
-        rationale: rationale ?? null,
-      },
-    });
+        message: error instanceof Error ? error.message : 'Unknown persistence error',
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'persist_failed',
+        error_description: 'Could not record employer action.',
+      });
+    }
 
     log('info', 'employer_action_recorded', {
       npi_prefix: npi.slice(0, 4) + '····',
@@ -95,12 +108,20 @@ export function registerActionLogRoutes(app: Express): void {
       });
     }
 
-    const actions = await prisma.actionLog.findMany({
-      where: { npi },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
-    return res.status(200).json({ actions });
+    try {
+      const actions = await prisma.actionLog.findMany({
+        where: { npi },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+      return res.status(200).json({ actions });
+    } catch (error) {
+      log('error', 'employer_action_read_failed', {
+        npi_prefix: npi.slice(0, 4) + '····',
+        message: error instanceof Error ? error.message : 'Unknown read error',
+      });
+      // Always return a usable shape — empty list rather than partial/undefined.
+      return res.status(200).json({ actions: [], error: 'read_failed' });
+    }
   });
 }

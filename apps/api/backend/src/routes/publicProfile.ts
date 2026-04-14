@@ -172,12 +172,30 @@ export function registerPublicProfileRoutes(app: Express): void {
           _max: { createdAt: true },
         }),
         getPredictionSummaryForEntity('provider', npi),
-        prisma.actionLog.findMany({
-          where: { npi },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
+        // Action-layer reads are isolated — a failure here must not 500 the
+        // core passport response. Fall back to empty defaults and log.
+        prisma.actionLog
+          .findMany({ where: { npi }, orderBy: { createdAt: 'desc' }, take: 10 })
+          .catch((error: unknown) => {
+            log('warn', 'public_profile_action_log_read_failed', {
+              npi_prefix: npi.slice(0, 4) + '····',
+              message: error instanceof Error ? error.message : 'unknown',
+            });
+            return [] as Awaited<ReturnType<typeof prisma.actionLog.findMany>>;
+          }),
+        computeReuseSignal(npi).catch((error: unknown) => {
+          log('warn', 'public_profile_reuse_signal_failed', {
+            npi_prefix: npi.slice(0, 4) + '····',
+            message: error instanceof Error ? error.message : 'unknown',
+          });
+          return {
+            accepted_count: 0,
+            flagged_count: 0,
+            request_data_count: 0,
+            last_action: null,
+            last_action_at: null,
+          };
         }),
-        computeReuseSignal(npi),
       ]);
 
       if (!passportData) {
