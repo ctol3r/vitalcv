@@ -157,6 +157,19 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
   }
 }
 
+async function fetchOmega(npi: string): Promise<any | null> {
+  try {
+    const res = await fetch(
+      `${BACKEND}/api/omega/${encodeURIComponent(npi)}`,
+      { next: { revalidate: 0 } }, // Never cache Omega, it dictates actionable state
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return 'Pending';
   try {
@@ -624,7 +637,12 @@ function AuditHashes({ hashes }: { hashes: string[] }) {
 
 export default async function PublicTrustProfilePage({ params }: Props) {
   const { slug } = await params;
-  const profile = await fetchProfile(slug);
+  
+  // Parallel fetch: Profile for UI context, Omega for deterministic actions
+  const [profile, omegaState] = await Promise.all([
+    fetchProfile(slug),
+    NPI_RE.test(slug) ? fetchOmega(slug) : Promise.resolve(null)
+  ]);
 
   if (!profile) notFound();
 
@@ -684,12 +702,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               <section className="mb-8">
                 <EmployerReviewActions 
                   npi={profile.npi}
-                  nbaPayload={{
-                    action: 'PROCEED',
-                    reason: 'Clear to proceed. Verified by empirical 92% success rate across similar profiles.',
-                    confidence: 0.92,
-                    derivedFromLearning: true
-                  }} 
+                  nbaPayload={omegaState?.nextBestAction || null}
                 />
                 <DecisionPostureCard decision={(profile as any).decision} />
                 <LimitationsCard missing={(profile as any).decision?.missing || []} />

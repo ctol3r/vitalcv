@@ -30,6 +30,8 @@ import {
  *     → Generates HumanNotification
  */
 
+import { NextBestActionEngine, NextBestActionOutput } from './nbaEngine';
+
 /** Structured Acceptance Node — a graph node, not a flat log entry */
 export interface AcceptanceGraphNode {
   id: string;
@@ -61,6 +63,7 @@ export interface OmegaOutput {
   activations: StartActivationNode[];
   startCreated: boolean;
   learningEvent: DecisionLearningEvent | null;
+  nextBestAction: NextBestActionOutput;
 }
 
 export class OmegaOrchestrator {
@@ -190,6 +193,14 @@ export class OmegaOrchestrator {
       activatedAt: a.activatedAt?.toISOString() || null,
     }));
 
+    const nextBestAction = NextBestActionEngine.determineNextAction({
+      decisionState: decisionState as any,
+      activationState: (activations[0]?.activationState as any) || 'NOT_STARTABLE',
+      hasHardDrift: false, // Pulled from drift engine in the future
+      hasSoftDrift: false,
+      learningConfidenceFactor: 1.0,
+    });
+
     return {
       recognition: recognition
         ? { npi, decisionPosture: recognition.decisionPosture ?? null, sourceCoverage: recognition.sourceCoverage ?? null }
@@ -198,6 +209,7 @@ export class OmegaOrchestrator {
       activations,
       startCreated,
       learningEvent,
+      nextBestAction,
     };
   }
 
@@ -247,6 +259,18 @@ export class OmegaOrchestrator {
       activatedAt: a.activatedAt?.toISOString() || null,
     }));
 
+    const decisionState = recognition?.decisionPosture
+      ? String(((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN')
+      : 'UNKNOWN';
+
+    const nextBestAction = NextBestActionEngine.determineNextAction({
+      decisionState: decisionState as any,
+      activationState: (activations[0]?.activationState as any) || 'NOT_STARTABLE',
+      hasHardDrift: false, // Pulled from drift engine in the future
+      hasSoftDrift: false,
+      learningConfidenceFactor: 1.0,
+    });
+
     return {
       recognition: recognition
         ? { npi, decisionPosture: recognition.decisionPosture ?? null, sourceCoverage: recognition.sourceCoverage ?? null }
@@ -255,6 +279,7 @@ export class OmegaOrchestrator {
       activations,
       startCreated: false,
       learningEvent: null,
+      nextBestAction,
     };
   }
 }
