@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getEmployerActionLabel } from '@/lib/trust/decision-copy';
+import { safeFetch, SafeFetchError } from '@/lib/safe-fetch';
 
 type ActionKind = 'accept' | 'request_data' | 'flag';
 type ActionState = 'idle' | 'submitting' | 'done' | 'error';
@@ -103,19 +104,15 @@ export function DecisionActions({
     clearResetTimer();
 
     try {
-      const res = await fetch('/api/employer-actions', {
+      // safeFetch enforces all three success conditions: HTTP ok,
+      // application success, and server-confirmed persistence.
+      await safeFetch('/api/employer-actions', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ npi, action }),
         cache: 'no-store',
         signal: AbortSignal.timeout(8000),
       });
-      const payload = (await res.json().catch(() => null)) as
-        | { success?: boolean; error?: string }
-        | null;
-      if (!res.ok || !payload?.success) {
-        throw new Error(payload?.error ?? `HTTP ${res.status}`);
-      }
       setState('done');
       toast.success(ACTION_LABELS[action].successToast);
       // Re-fetch server component — refreshes RecentActionsList + reuse_signal.
@@ -124,9 +121,11 @@ export function DecisionActions({
       });
       scheduleReset(2500);
     } catch (err) {
+      const layer = err instanceof SafeFetchError ? err.layer : 'unknown';
       console.error('[DecisionActions] Failed to record employer action', {
         npi,
         action,
+        layer,
         error: err instanceof Error ? err.message : String(err),
       });
       setState('error');
