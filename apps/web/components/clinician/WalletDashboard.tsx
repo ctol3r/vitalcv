@@ -10,15 +10,18 @@
  *  - VitaTokenDashboard sidebar
  */
 
-import { useState, useCallback } from 'react';
-import Link from 'next/link';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { BentoGrid, BentoItem } from '@/components/ui/bento-grid';
-import { Button } from '@/components/ui/button';
 import { CRSRing } from '@/components/ui/crs-ring';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { TrustBandIndicator } from '@/components/ui/trust-band-indicator';
 import type { TrustBand } from '@/components/trust-state/types';
-import { ArrowRight, Building2, Share2, Shield } from 'lucide-react';
+import {
+  buildNextBestActionApiFailure,
+  type NormalizedNextBestAction,
+  normalizeNextBestAction,
+} from '@/lib/next-best-action';
+import { Shield } from 'lucide-react';
 import { CredentialCard, type CredentialCardData } from './CredentialCard';
 import { FocusModeOverlay } from './FocusModeOverlay';
 import { NextBestAction, type NextBestActionData } from './NextBestAction';
@@ -123,43 +126,85 @@ const DEMO_VITA_EVENTS: VitaEvent[] = [
   { id: 'v6', kind: 'CREDENTIAL_SHARED',   label: 'Credentials shared with employer',      tokens: 25, timestamp: new Date(Date.now() - 7 * 86_400_000).toISOString()    },
 ];
 
-function getNextBestAction(credentials: CredentialCardData[]): NextBestActionData | null {
-  const unverified = credentials.filter((c) => c.claimLevel === 'L0' || c.claimLevel === 'L1');
-  if (unverified.length > 0) {
-    return {
-      title: 'Upgrade your credentials',
-      description: `${unverified.length} credential${unverified.length > 1 ? 's' : ''} can be electronically verified to improve your CRS score.`,
-      action: 'Start source check',
-    };
-  }
-  const expiringSoon = credentials.filter((c) => {
-    if (!c.expirationDate) return false;
-    const days = (new Date(c.expirationDate).getTime() - Date.now()) / 86_400_000;
-    return days > 0 && days < 90;
-  });
-  if (expiringSoon.length > 0) {
-    return {
-      title: 'Credentials expiring soon',
-      description: `${expiringSoon[0].name} expires in less than 90 days. Renew early to maintain your readiness.`,
-      action: 'View details',
-    };
-  }
-  return null;
-}
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function WalletDashboard() {
   const [shareOpen, setShareOpen]   = useState(false);
   const [focusCred, setFocusCred]   = useState<CredentialCardData | null>(null);
+  const [nextAction, setNextAction] = useState<NextBestActionData | null>(null);
+  const [nextActionFailed, setNextActionFailed] = useState(false);
 
   const credentials  = DEMO_CREDENTIALS;
   const trustBand    = DEMO_TRUST.band;
   const trustScore   = DEMO_TRUST.score;
-  const nextAction   = getNextBestAction(credentials);
 
   const openFocusMode = useCallback((cred: CredentialCardData) => setFocusCred(cred), []);
   const closeFocusMode = useCallback(() => setFocusCred(null), []);
+  const loadNextBestAction = useCallback(async (signal?: AbortSignal) => {
+    setNextAction(null);
+    setNextActionFailed(false);
+
+    try {
+      const response = await fetch('/api/omega', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ npi: DEMO_NPI }),
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`omega_request_failed:${response.status}`);
+      }
+
+      const payload = await response.json() as {
+        nextBestAction?: import('@/lib/next-best-action').NextBestActionPayload | null;
+      };
+      setNextAction(normalizeNextBestAction(payload.nextBestAction ?? null));
+    } catch (error) {
+      if (signal?.aborted) {
+        return;
+      }
+      setNextAction(null);
+      setNextActionFailed(true);
+    }
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadNextBestAction(controller.signal);
+    return () => controller.abort();
+  }, [loadNextBestAction]);
+
+  const resolvedNextAction = useMemo<NextBestActionData | null>(() => {
+    const source = nextActionFailed ? buildNextBestActionApiFailure() : nextAction;
+    if (!source) {
+      return null;
+    }
+
+    switch (source.kind) {
+      case 'PROCEED':
+        return {
+          ...source,
+          actionLabel: 'Share credentials',
+          onClick: () => setShareOpen(true),
+        };
+      case 'REVERIFY':
+        return {
+          ...source,
+          actionLabel: 'Open passport',
+          href: '/passport',
+        };
+      case 'ESCALATE':
+      case 'REVIEW_MANUALLY':
+      default:
+        return {
+          ...source,
+          actionLabel: 'Review passport',
+          href: '/passport',
+        };
+    }
+  }, [nextAction, nextActionFailed]);
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-16 space-y-14">
@@ -167,11 +212,10 @@ export function WalletDashboard() {
       {/* ── Demo data banner ──────────────────────────────── */}
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
         <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-          Demo preview — illustrative data only
+          Preview profile
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          This wallet shows sample credentials. Connect your NPI to see your real
-          verification status.
+          This is a sample profile. Connect your NPI to see your current status.
         </p>
       </div>
 
@@ -180,14 +224,11 @@ export function WalletDashboard() {
         <div className="space-y-2">
           <h1 className="font-heading text-4xl font-bold tracking-tight">Credential Wallet</h1>
           <p className="text-lg text-muted-foreground">
-            Demo Provider · Sample credentials, readiness score, and next steps.
+            Readiness, verified records, and the next step.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <VitaTokenBalance balance={DEMO_VITA_BALANCE} />
-          <Button variant="outline" size="default" onClick={() => setShareOpen(true)}>
-            <Share2 className="h-4 w-4 mr-2" />Share
-          </Button>
         </div>
       </header>
 
@@ -224,27 +265,7 @@ export function WalletDashboard() {
                   </GlassCard>
                 ))}
               </div>
-              {nextAction && <NextBestAction action={nextAction} />}
-
-              {/* ── Second Employer Demo CTA (Wave 29) ── */}
-              <GlassCard>
-                <GlassCardContent className="py-5 px-6">
-                  <p className="text-sm font-semibold text-foreground mb-1">
-                    Applying to a second employer?
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Your verified credentials are already on file. No forms. No uploads.
-                    The heavy lifting is completely bypassed.
-                  </p>
-                  <Button asChild size="sm" className="w-full gap-2">
-                    <Link href={`/verifier/pas/${DEMO_NPI}`}>
-                      <Building2 className="h-4 w-4" />
-                      Simulate Second Employer Application
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </GlassCardContent>
-              </GlassCard>
+              {resolvedNextAction ? <NextBestAction action={resolvedNextAction} /> : null}
             </div>
           </div>
 
@@ -256,7 +277,7 @@ export function WalletDashboard() {
                 Your Credentials
               </h2>
               <p className="ml-auto text-sm text-muted-foreground">
-                Tap <strong>Focus Mode</strong> to display at a front desk
+                Use <strong>Focus Mode</strong> at check-in
               </p>
             </div>
 

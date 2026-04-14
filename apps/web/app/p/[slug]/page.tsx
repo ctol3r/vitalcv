@@ -25,6 +25,7 @@ import {
   DECISION_LIMITATION_HEADING,
   DECISION_NEXT_STEP_HEADING,
   DECISION_RATIONALE_HEADING,
+  formatActionTimestamp,
   formatRecentActionLabel,
   getArtifactExplanation,
   getCoverageSectionExplanation,
@@ -41,8 +42,8 @@ import {
   getTrustBandExplanation,
 } from '@/lib/trust/decision-copy';
 import { formatRelativeTime } from '@/lib/relative-time';
-import { DecisionActions } from './DecisionActions';
 import { CopyShareLink } from './CopyShareLink';
+import { NextBestActionCard, type NextBestActionPayload } from './NextBestActionCard';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -304,7 +305,14 @@ function normalizeRecentActions(value: unknown): NonNullable<NpiProfile['actions
         createdAt: isString(entry.createdAt) ? entry.createdAt : '',
       };
     })
-    .filter((entry): entry is NonNullable<NpiProfile['actions']>['recent'][number] => entry !== null);
+    .filter((entry): entry is NonNullable<NpiProfile['actions']>['recent'][number] => entry !== null)
+    .sort((left, right) => {
+      const leftTime = Date.parse(left.createdAt);
+      const rightTime = Date.parse(right.createdAt);
+      const safeLeft = Number.isNaN(leftTime) ? 0 : leftTime;
+      const safeRight = Number.isNaN(rightTime) ? 0 : rightTime;
+      return safeRight - safeLeft;
+    });
 }
 
 function normalizeReuseSignal(value: unknown): NpiProfile['reuse_signal'] | undefined {
@@ -445,6 +453,25 @@ function normalizeSlugProfile(value: unknown, slug: string): SlugProfile | null 
 
 const NPI_RE = /^\d{10}$/;
 
+async function fetchNextBestAction(npi: string): Promise<NextBestActionPayload | null> {
+  try {
+    const res = await fetch(`${BACKEND}/api/omega`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ npi }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const payload = (await res.json().catch(() => null)) as
+      | { nextBestAction?: NextBestActionPayload }
+      | null;
+    return payload?.nextBestAction ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
   try {
     if (NPI_RE.test(slug)) {
@@ -517,14 +544,7 @@ function formatDate(iso: string | null): string {
 }
 
 function formatTime(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short', day: 'numeric',
-      hour: 'numeric', minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
+  return formatActionTimestamp(iso, 'short') ?? iso;
 }
 
 function formatStatusLabel(value: string): string {
@@ -980,6 +1000,12 @@ function ReuseSignalRow({ signal }: { signal: NpiProfile['reuse_signal'] | null 
           <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Review flags</p>
         </div>
       </div>
+      {signal.last_action ? (
+        <p className="text-center text-xs text-muted-foreground">
+          Latest confirmed action: {formatRecentActionLabel(signal.last_action)}
+          {signal.last_action_at ? ` · ${formatActionTimestamp(signal.last_action_at, 'full') ?? signal.last_action_at}` : ''}
+        </p>
+      ) : null}
       <p className="text-center text-xs text-muted-foreground">
         {getReuseSignalExplanation({
           acceptedCount: signal.accepted_count,
@@ -1018,7 +1044,7 @@ function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions
               </p>
             </div>
             <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
-              {formatTime(entry.createdAt)}
+              {formatActionTimestamp(entry.createdAt, 'full') ?? 'Time unavailable'}
             </p>
           </li>
         ))}
@@ -1027,20 +1053,72 @@ function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions
   );
 }
 
-function buildDecisionActionsRefreshKey(profile: NpiProfile): string {
-  const latestActionId = profile.actions?.recent[0]?.id ?? 'none';
-  const lastActionAt = profile.reuse_signal?.last_action_at ?? 'none';
-  const acceptedCount = profile.reuse_signal?.accepted_count ?? 0;
-  const requestDataCount = profile.reuse_signal?.request_data_count ?? 0;
-  const flaggedCount = profile.reuse_signal?.flagged_count ?? 0;
+function resolveConfirmedAction(profile: NpiProfile): {
+  label: string;
+  timestamp: string | null;
+  rationale: string | null;
+} | null {
+  const recent = profile.actions?.recent[0] ?? null;
+  const reuseAction = profile.reuse_signal?.last_action ?? null;
+  const reuseTimestamp = profile.reuse_signal?.last_action_at ?? null;
 
-  return [
-    latestActionId,
-    lastActionAt,
-    acceptedCount,
-    requestDataCount,
-    flaggedCount,
-  ].join(':');
+  const recentTime = recent ? Date.parse(recent.createdAt) : Number.NaN;
+  const reuseTime = reuseTimestamp ? Date.parse(reuseTimestamp) : Number.NaN;
+
+  if (
+    recent
+    && (
+      !reuseAction
+      || (Number.isFinite(recentTime) && (!Number.isFinite(reuseTime) || recentTime >= reuseTime))
+    )
+  ) {
+    return {
+      label: formatRecentActionLabel(recent.action),
+      timestamp: recent.createdAt,
+      rationale: recent.rationale,
+    };
+  }
+
+  if (reuseAction) {
+    return {
+      label: formatRecentActionLabel(reuseAction),
+      timestamp: reuseTimestamp,
+      rationale: null,
+    };
+  }
+
+  return null;
+}
+
+function ConfirmedActionCard({
+  action,
+}: {
+  action: {
+    label: string;
+    timestamp: string | null;
+    rationale: string | null;
+  } | null;
+}) {
+  if (!action) {
+    return null;
+  }
+
+  const confirmedAt = formatActionTimestamp(action.timestamp, 'full');
+
+  return (
+    <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-widest text-green-800">
+        Latest confirmed action
+      </p>
+      <p className="mt-2 text-sm font-medium text-foreground">{action.label}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {confirmedAt ? `Confirmed ${confirmedAt}.` : 'Confirmed in the latest saved history.'}
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {action.rationale ?? getRecentActionReasonFallback()}
+      </p>
+    </div>
+  );
 }
 
 function MonitoringSummaryCard({ summary }: { summary: NpiProfile['monitoringSummary'] }) {
@@ -1276,6 +1354,11 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
+  // Real Omega NBA fetch (NPI mode only). Null when unavailable — the
+  // page degrades gracefully to the existing DecisionCard fallback.
+  const nextBestAction =
+    profile.mode === 'npi' ? await fetchNextBestAction(profile.npi) : null;
+
   return (
     <main className="min-h-screen bg-background pb-28">
       <div className="relative mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
@@ -1294,6 +1377,13 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
+              {/* Primary action surface — NBA is the only place to act. */}
+              {nextBestAction && (
+                <section className="mb-6">
+                  <NextBestActionCard npi={profile.npi} nba={nextBestAction} />
+                </section>
+              )}
+
               {/* Zero-context onboarding header */}
               <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
@@ -1316,15 +1406,19 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </section>
               )}
 
-              <section className="mb-8">
-                <p className="mb-3 text-center text-sm font-semibold text-foreground">
-                  What would you like to do next?
-                </p>
-                <DecisionActions
-                  npi={profile.npi}
-                  refreshKey={buildDecisionActionsRefreshKey(profile)}
-                />
-              </section>
+              {/* Informational state only — actions remain routed through NBA. */}
+              {!nextBestAction && (
+                <section className="mb-8">
+                  <div className="rounded-lg border border-border bg-muted/40 px-5 py-4 text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      No recommendation is available yet. Continue reviewing the credential snapshot below.
+                    </p>
+                  </div>
+                  <div className="mt-4">
+                    <ConfirmedActionCard action={resolveConfirmedAction(profile)} />
+                  </div>
+                </section>
+              )}
 
               {profile.limitations && (
                 <section className="mb-8">
