@@ -51,6 +51,81 @@ export interface SystemDriftEvent {
   detectedAt: Date;
 }
 
+export enum NotificationUrgency {
+  LOG_ONLY = 'LOG_ONLY',
+  LOW = 'LOW',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL',
+}
+
+export interface HumanNotification {
+  id: string;
+  clinicianNpi: string;
+  eventType: DriftEventType;
+  severity: DriftSeverity;
+  urgency: NotificationUrgency;
+  message: string;
+  createdAt: Date;
+}
+
+export enum HumanAction {
+  ACKNOWLEDGE = 'ACKNOWLEDGE',
+  RERUN_VERIFICATION = 'RERUN_VERIFICATION',
+  REVIEW_PROFILE = 'REVIEW_PROFILE',
+}
+
+export class NotificationEngine {
+  /**
+   * Translates a raw system event into a human-readable notification structure.
+   */
+  static generateNotification(event: SystemDriftEvent): HumanNotification {
+    let urgency = NotificationUrgency.LOG_ONLY;
+    let message = `System drift detected for NPI ${event.clinicianNpi}.`;
+
+    switch (event.eventType) {
+      case DriftEventType.DRIFT_DETECTED:
+        urgency = NotificationUrgency.LOG_ONLY;
+        message = `Drift observation logged for ${event.clinicianNpi}.`;
+        break;
+      case DriftEventType.SOFT_DRIFT_TRIGGERED:
+        urgency = NotificationUrgency.LOW;
+        message = `Data for NPI ${event.clinicianNpi} is stale (${event.source}). A background refresh is scheduled.`;
+        break;
+      case DriftEventType.HARD_DRIFT_TRIGGERED:
+        urgency = NotificationUrgency.HIGH;
+        message = `Critical anomaly detected for NPI ${event.clinicianNpi} from ${event.source}. Profile flagged.`;
+        break;
+      case DriftEventType.ACTIVATION_INVALIDATED:
+        urgency = NotificationUrgency.CRITICAL;
+        message = `URGENT: Start Activation invalidated for NPI ${event.clinicianNpi} due to Hard Drift. Immediate review required.`;
+        break;
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      clinicianNpi: event.clinicianNpi,
+      eventType: event.eventType,
+      severity: event.severity,
+      urgency,
+      message,
+      createdAt: new Date(),
+    };
+  }
+
+  /**
+   * Routes the notification to configured delivery channels (UI Panel, In-App Alert).
+   */
+  static async deliver(notification: HumanNotification): Promise<void> {
+    if (notification.urgency === NotificationUrgency.LOG_ONLY) {
+      console.log(`[Notification Engine - LOG] ${notification.message}`);
+      return;
+    }
+    
+    // TODO: Persist to UI Notification Panel DB table
+    console.log(`[Notification Engine - ${notification.urgency}] ${notification.message}`);
+  }
+}
+
 export class DriftReactionHandler {
   /**
    * Routes a verified drift event to the appropriate system reaction.
@@ -62,6 +137,10 @@ export class DriftReactionHandler {
     } else {
       await this.handleSoftDrift(event);
     }
+
+    // Translate to Human Notification
+    const notification = NotificationEngine.generateNotification(event);
+    await NotificationEngine.deliver(notification);
   }
 
   private static async handleHardDrift(event: SystemDriftEvent): Promise<void> {

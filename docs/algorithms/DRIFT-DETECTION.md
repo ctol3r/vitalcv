@@ -54,3 +54,23 @@ Drift detection is an active process. When drift is detected, it is immediately 
 - **SOFT_DRIFT**:
   - Mark data as stale.
   - Schedule background refresh of Recognition data.
+
+## 5. Human-in-the-Loop Notifications & Actions
+System events are meaningless if they do not reach a human when required. The translation of a drift event into a human notification is based on urgency.
+
+### Event Classification
+- `DRIFT_DETECTED`: **Log Only** (No user interruption).
+- `SOFT_DRIFT_TRIGGERED`: **Low Urgency Notify** (Informational, background refresh pending).
+- `HARD_DRIFT_TRIGGERED`: **High Urgency Notify** (Profile flagged, requires attention).
+- `ACTIVATION_INVALIDATED`: **Critical Notify** (Immediate stop-work condition).
+
+### Delivery Channels
+- **In-App Alert**: Urgent toasts/banners within the Employer Dashboard.
+- **UI Notification Panel**: Persistent inbox for Low/High urgency items.
+- *(Note: External channels like SMS/Email are deferred pending pilot validation).*
+
+### Human Actions
+For every notification presented to a human, specific responses must be available:
+1. **Acknowledge**: Clear the notification (applicable to soft drift or informational alerts).
+2. **Re-run Verification**: Force an immediate Recognition refresh bypassing the background schedule.
+3. **Review Profile**: Navigate directly to the clinician's Passport (`/p/[npi]`) to assess the anomaly and perform a new Acceptance decision.
