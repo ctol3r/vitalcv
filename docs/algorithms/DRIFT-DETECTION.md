@@ -34,4 +34,23 @@ Every clinician in an `ACTIVE` or `READY_TO_START` state must have an associated
 ```
 - **Sources to Watch**: The specific registry hooks required for this clinician's role.
 - **Refresh Cadence**: How often `SOFT_DRIFT` is triggered if no background refresh occurs.
-- **Risk Level**: Dictates whether `SOFT_DRIFT` degrades gracefully or immediately alerts the employer.
+## 4. Event Flow & Reactions
+
+Drift detection is an active process. When drift is detected, it is immediately converted into an actionable system event.
+
+**Flow:** `driftEngine` → `event` → `handler` → `system update`
+
+### Event Types
+- `DRIFT_DETECTED`: Initial observation of state divergence.
+- `HARD_DRIFT_TRIGGERED`: Confirmed severe violation.
+- `SOFT_DRIFT_TRIGGERED`: Confirmed staleness or minor drift.
+- `ACTIVATION_INVALIDATED`: Emitted when a Start Activation is forcefully revoked due to Hard Drift.
+
+### Reaction Map
+- **HARD_DRIFT**:
+  - Invalidate `ACTIVE` Start state (transitions to `NOT_STARTABLE`).
+  - Flag clinician profile.
+  - Require explicit re-verification and new Employer Acceptance.
+- **SOFT_DRIFT**:
+  - Mark data as stale.
+  - Schedule background refresh of Recognition data.

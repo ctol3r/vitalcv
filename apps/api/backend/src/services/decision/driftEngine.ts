@@ -36,6 +36,50 @@ export interface MonitoringPlan {
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
+export enum DriftEventType {
+  DRIFT_DETECTED = 'DRIFT_DETECTED',
+  HARD_DRIFT_TRIGGERED = 'HARD_DRIFT_TRIGGERED',
+  SOFT_DRIFT_TRIGGERED = 'SOFT_DRIFT_TRIGGERED',
+  ACTIVATION_INVALIDATED = 'ACTIVATION_INVALIDATED',
+}
+
+export interface SystemDriftEvent {
+  clinicianNpi: string;
+  eventType: DriftEventType;
+  severity: DriftSeverity;
+  source: DriftSourceType;
+  detectedAt: Date;
+}
+
+export class DriftReactionHandler {
+  /**
+   * Routes a verified drift event to the appropriate system reaction.
+   * FLOW: driftEngine -> event -> handler -> system update
+   */
+  static async handleEvent(event: SystemDriftEvent): Promise<void> {
+    if (event.severity === DriftSeverity.HARD_DRIFT) {
+      await this.handleHardDrift(event);
+    } else {
+      await this.handleSoftDrift(event);
+    }
+  }
+
+  private static async handleHardDrift(event: SystemDriftEvent): Promise<void> {
+    // REACTION:
+    // 1. Invalidate ACTIVE StartActivation -> NOT_STARTABLE
+    // 2. Flag clinician profile (EmployerAcceptance status update or anomaly record)
+    // 3. Require re-verification (emit ACTIVATION_INVALIDATED)
+    console.log(`[Drift Handler] HARD DRIFT for ${event.clinicianNpi} from ${event.source}. Invalidating activation.`);
+  }
+
+  private static async handleSoftDrift(event: SystemDriftEvent): Promise<void> {
+    // REACTION:
+    // 1. Mark as stale (tag Recognition cache)
+    // 2. Schedule background refresh
+    console.log(`[Drift Handler] SOFT DRIFT for ${event.clinicianNpi}. Scheduling refresh.`);
+  }
+}
+
 export class DriftEngine {
   /**
    * Generates a default monitoring plan for a clinician based on their role and organization.
