@@ -11,9 +11,11 @@ export interface NextBestActionPayload {
 
 export function EmployerNextBestAction({
   nba,
+  sourceCoverage,
   onActionClick,
 }: {
   nba: NextBestActionPayload | null;
+  sourceCoverage?: Record<string, any> | null;
   onActionClick?: (actionType: string) => void;
 }) {
   if (!nba) return null;
@@ -73,16 +75,26 @@ export function EmployerNextBestAction({
           </h3>
           <p className="mt-1 text-sm text-slate-700">{nba.reason}</p>
 
-          <div className="mt-3 flex items-center gap-3 text-xs text-slate-500">
-            <span
-              className="flex items-center gap-1"
-              title="System Confidence Score"
-            >
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              {Math.round(nba.confidence * 100)}% Certainty
-            </span>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            {sourceCoverage && (
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(sourceCoverage).map(source => {
+                  const state = sourceCoverage[source]?.state;
+                  let dotColor = 'bg-slate-400';
+                  if (state === 'checked') dotColor = 'bg-green-500';
+                  if (state === 'missing') dotColor = 'bg-amber-500';
+                  if (state === 'blocked') dotColor = 'bg-red-500';
+                  
+                  return (
+                    <span key={source} className="flex items-center gap-1 rounded-full border bg-white/50 px-2 py-0.5 shadow-sm">
+                      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
+                      {source.replace(/_/g, ' ')}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
             {nba.derivedFromLearning && (
               <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-700">
                 <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
