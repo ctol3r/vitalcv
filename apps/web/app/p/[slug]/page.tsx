@@ -452,26 +452,26 @@ function IssuerProvenanceList({ provenance }: { provenance: NpiProfile['issuerPr
 
 // ── Canonical decision surface ────────────────────────────────────────────
 
-const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], { label: string; tone: string; headline: string }> = {
+const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], { label: string; tone: string; reinforcement: string }> = {
   PROCEED: {
-    label: 'Proceed',
+    label: 'Safe to proceed',
     tone: 'border-green-500/40 bg-green-500/10 text-green-700',
-    headline: 'Safe to proceed with source-backed review.',
+    reinforcement: 'Based on verified sources and no exclusion findings.',
   },
   PROCEED_WITH_CAUTION: {
     label: 'Proceed with caution',
     tone: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
-    headline: 'Some checks are still pending — review before acting.',
+    reinforcement: 'Based on partial verification — additional checks recommended.',
   },
   DO_NOT_PROCEED: {
     label: 'Do not proceed',
     tone: 'border-red-500/40 bg-red-500/10 text-red-700',
-    headline: 'Critical blockers present.',
+    reinforcement: 'Critical blockers prevent a safe hire decision.',
   },
   INSUFFICIENT_DATA: {
-    label: 'Insufficient data',
+    label: 'Not enough information',
     tone: 'border-slate-500/40 bg-slate-500/10 text-slate-700',
-    headline: 'No decision-grade sources have been checked yet.',
+    reinforcement: 'No decision-grade sources have been checked yet.',
   },
 };
 
@@ -489,7 +489,13 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
           <p className="mt-1 text-3xl font-semibold tabular-nums">{decision.confidence}</p>
         </div>
       </div>
-      <p className="mt-2 text-sm opacity-90">{meta.headline}</p>
+      <p className="mt-2 text-sm font-medium opacity-90">{meta.reinforcement}</p>
+
+      {decision.blockers.length > 0 && (
+        <p className="mt-3 text-sm font-semibold">
+          Primary risk: {decision.blockers[0]}
+        </p>
+      )}
 
       {decision.rationale.length > 0 && (
         <div className="mt-5">
@@ -502,11 +508,11 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
         </div>
       )}
 
-      {decision.blockers.length > 0 && (
+      {decision.blockers.length > 1 && (
         <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Blockers</p>
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Additional blockers</p>
           <ul className="mt-2 space-y-1 text-sm font-medium">
-            {decision.blockers.map((blocker, idx) => (
+            {decision.blockers.slice(1).map((blocker, idx) => (
               <li key={`${idx}-${blocker}`}>· {blocker}</li>
             ))}
           </ul>
@@ -868,6 +874,9 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               )}
 
               <section className="mb-8">
+                <p className="mb-3 text-center text-sm font-semibold text-foreground">
+                  What would you like to do next?
+                </p>
                 <DecisionActions npi={profile.npi} />
               </section>
 
