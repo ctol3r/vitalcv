@@ -21,6 +21,7 @@ import { notFound } from 'next/navigation';
 import PassportShareActions from '@/components/passport/PassportShareActions';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
 import { EmployerTracker } from '@/components/telemetry/EmployerTracker';
+import { DecisionActions } from './DecisionActions';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -416,24 +417,10 @@ function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'
               <dd className="text-foreground">{artifact.lifecycleState}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt>Redacted claims</dt>
+              <dt>Records on file</dt>
               <dd className="text-foreground">{artifact.claimCount}</dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt>Artifact hash</dt>
-              <dd className="font-mono text-foreground">{artifact.checksum.slice(0, 12)}…</dd>
-            </div>
           </dl>
-          {artifact.selectiveDisclosure ? (
-            <div className="mt-4 rounded-lg border border-border bg-muted px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground">
-                Selective disclosure available
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {artifact.selectiveDisclosure.algorithm} compatible · {artifact.selectiveDisclosure.claimCount} hashed claim descriptors
-              </p>
-            </div>
-          ) : null}
         </article>
       ))}
     </div>
@@ -495,11 +482,11 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Decision</p>
-          <h2 className="mt-1 text-3xl font-bold tracking-tight">{meta.label}</h2>
+          <h1 className="mt-1 text-4xl font-bold tracking-tight md:text-5xl">{meta.label}</h1>
         </div>
         <div className="text-right">
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Confidence</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{decision.confidence}</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">{decision.confidence}</p>
         </div>
       </div>
       <p className="mt-2 text-sm opacity-90">{meta.headline}</p>
@@ -536,6 +523,37 @@ function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision
           </ol>
         </div>
       )}
+    </div>
+  );
+}
+
+function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile['limitations']> }) {
+  const items = [
+    ...limitations.blockers.map((b) => ({ kind: 'blocker' as const, text: b })),
+    ...limitations.gaps.map((g) => ({ kind: 'gap' as const, text: g })),
+  ];
+  if (items.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+        All decision-grade sources have been checked.
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border-2 border-amber-500/40 bg-amber-500/5 px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+        What we did NOT verify
+      </p>
+      <ul className="mt-3 space-y-2 text-sm text-foreground">
+        {items.map((item, idx) => (
+          <li key={`${item.kind}-${idx}`} className="flex items-baseline gap-2">
+            <span className={item.kind === 'blocker' ? 'text-red-600' : 'text-amber-600'} aria-hidden>
+              {item.kind === 'blocker' ? '!' : '·'}
+            </span>
+            <span>{item.text}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -842,28 +860,38 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
-              <section className="mb-10 text-center">
-                <h1 className="text-2xl font-bold text-foreground md:text-3xl">
-                  NPI <span className="font-mono text-green-600">{profile.npi}</span>
-                </h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {profile.activeCredentials.length > 0
-                    ? `${profile.activeCredentials.length} source-backed credential record${profile.activeCredentials.length !== 1 ? 's' : ''}`
-                    : 'Source checks still in progress'}
-                </p>
-              </section>
-
-              {/* Canonical decision — rendered first per Wave: decision-first UI */}
+              {/* Hierarchy per Wave: decision → actions → limitations → everything else */}
               {profile.decision && (
-                <section className="mb-8">
+                <section className="mb-6">
                   <DecisionCard decision={profile.decision} />
                 </section>
               )}
 
+              <section className="mb-8">
+                <DecisionActions npi={profile.npi} />
+              </section>
+
+              {profile.limitations && (
+                <section className="mb-8">
+                  <LimitationsPanel limitations={profile.limitations} />
+                </section>
+              )}
+
+              <section className="mb-8 text-center">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                  NPI <span className="font-mono">{profile.npi}</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {profile.activeCredentials.length > 0
+                    ? `${profile.activeCredentials.length} source-backed record${profile.activeCredentials.length !== 1 ? 's' : ''} on file`
+                    : 'Source checks still in progress'}
+                </p>
+              </section>
+
               {profile.reuse_signal && (
                 <section className="mb-8">
                   <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Prior employer signals
+                    How other employers have handled this clinician
                   </p>
                   <ReuseSignalRow signal={profile.reuse_signal} />
                 </section>
@@ -872,7 +900,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {profile.actions && profile.actions.recent.length > 0 && (
                 <section className="mb-8">
                   <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Recent actions
+                    Recent employer actions
                   </p>
                   <RecentActionsList recent={profile.actions.recent} />
                 </section>
