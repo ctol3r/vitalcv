@@ -108,6 +108,34 @@ interface NpiProfile {
   };
   events:      AuditEvent[];
   generatedAt: string;
+  // ── Canonical additive fields (optional for back-compat) ──────────────
+  decision?: {
+    decision: 'PROCEED' | 'PROCEED_WITH_CAUTION' | 'DO_NOT_PROCEED' | 'INSUFFICIENT_DATA';
+    confidence: number;
+    rationale: string[];
+    blockers: string[];
+    next_actions: string[];
+  };
+  limitations?: {
+    blockers: string[];
+    gaps: string[];
+  };
+  actions?: {
+    recent: Array<{
+      id: string;
+      npi: string;
+      action: string;
+      rationale: string | null;
+      createdAt: string;
+    }>;
+  };
+  reuse_signal?: {
+    accepted_count: number;
+    flagged_count: number;
+    request_data_count: number;
+    last_action: 'accept' | 'request_data' | 'flag' | null;
+    last_action_at: string | null;
+  };
 }
 
 type DisplayProfile = SlugProfile | NpiProfile;
@@ -435,6 +463,137 @@ function IssuerProvenanceList({ provenance }: { provenance: NpiProfile['issuerPr
   );
 }
 
+// ── Canonical decision surface ────────────────────────────────────────────
+
+const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], { label: string; tone: string; headline: string }> = {
+  PROCEED: {
+    label: 'Proceed',
+    tone: 'border-green-500/40 bg-green-500/10 text-green-700',
+    headline: 'Safe to proceed with source-backed review.',
+  },
+  PROCEED_WITH_CAUTION: {
+    label: 'Proceed with caution',
+    tone: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
+    headline: 'Some checks are still pending — review before acting.',
+  },
+  DO_NOT_PROCEED: {
+    label: 'Do not proceed',
+    tone: 'border-red-500/40 bg-red-500/10 text-red-700',
+    headline: 'Critical blockers present.',
+  },
+  INSUFFICIENT_DATA: {
+    label: 'Insufficient data',
+    tone: 'border-slate-500/40 bg-slate-500/10 text-slate-700',
+    headline: 'No decision-grade sources have been checked yet.',
+  },
+};
+
+function DecisionCard({ decision }: { decision: NonNullable<NpiProfile['decision']> }) {
+  const meta = DECISION_LABELS[decision.decision];
+  return (
+    <div className={`rounded-xl border-2 ${meta.tone} p-6`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Decision</p>
+          <h2 className="mt-1 text-3xl font-bold tracking-tight">{meta.label}</h2>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Confidence</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{decision.confidence}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-sm opacity-90">{meta.headline}</p>
+
+      {decision.rationale.length > 0 && (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Why</p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {decision.rationale.map((reason, idx) => (
+              <li key={`${idx}-${reason}`}>· {reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {decision.blockers.length > 0 && (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Blockers</p>
+          <ul className="mt-2 space-y-1 text-sm font-medium">
+            {decision.blockers.map((blocker, idx) => (
+              <li key={`${idx}-${blocker}`}>· {blocker}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {decision.next_actions.length > 0 && (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Next actions</p>
+          <ol className="mt-2 space-y-1 text-sm">
+            {decision.next_actions.map((action, idx) => (
+              <li key={`${idx}-${action}`}>{idx + 1}. {action}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReuseSignalRow({ signal }: { signal: NonNullable<NpiProfile['reuse_signal']> }) {
+  const hasAny = signal.accepted_count + signal.flagged_count + signal.request_data_count > 0;
+  if (!hasAny) {
+    return (
+      <p className="text-center text-xs text-muted-foreground">
+        No prior employer actions recorded for this NPI.
+      </p>
+    );
+  }
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.accepted_count}</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Accepted by</p>
+      </div>
+      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.request_data_count}</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Data requests</p>
+      </div>
+      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+        <p className="text-2xl font-semibold text-foreground tabular-nums">{signal.flagged_count}</p>
+        <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Flags</p>
+      </div>
+    </div>
+  );
+}
+
+function RecentActionsList({ recent }: { recent: NonNullable<NpiProfile['actions']>['recent'] }) {
+  if (recent.length === 0) {
+    return (
+      <p className="text-center text-xs text-muted-foreground">No recent actions.</p>
+    );
+  }
+  return (
+    <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+      {recent.map((entry) => (
+        <li key={entry.id} className="flex items-baseline justify-between gap-3 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium capitalize text-foreground">
+              {entry.action.replace(/_/g, ' ')}
+            </p>
+            {entry.rationale && (
+              <p className="mt-1 text-xs text-muted-foreground">{entry.rationale}</p>
+            )}
+          </div>
+          <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {formatTime(entry.createdAt)}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function MonitoringSummaryCard({ summary }: { summary: NpiProfile['monitoringSummary'] }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -693,6 +852,31 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                     : 'Source checks still in progress'}
                 </p>
               </section>
+
+              {/* Canonical decision — rendered first per Wave: decision-first UI */}
+              {profile.decision && (
+                <section className="mb-8">
+                  <DecisionCard decision={profile.decision} />
+                </section>
+              )}
+
+              {profile.reuse_signal && (
+                <section className="mb-8">
+                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Prior employer signals
+                  </p>
+                  <ReuseSignalRow signal={profile.reuse_signal} />
+                </section>
+              )}
+
+              {profile.actions && profile.actions.recent.length > 0 && (
+                <section className="mb-8">
+                  <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Recent actions
+                  </p>
+                  <RecentActionsList recent={profile.actions.recent} />
+                </section>
+              )}
 
               <section className="mb-10 flex justify-center">
                 <ClearedBadge status={profile.status} />
