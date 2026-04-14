@@ -121,9 +121,14 @@ export function NextBestActionCard({
     }
   };
 
-  const confidencePct = Math.round(nba.confidence * 100);
   const isDoing = state === 'submitting';
   const isDone = state === 'done';
+  const confidenceLabel =
+    nba.confidence >= 0.85
+      ? 'High confidence'
+      : nba.confidence >= 0.6
+        ? 'Medium confidence'
+        : 'Low confidence';
 
   return (
     <div className={`rounded-2xl border-2 ${meta.cardTone} p-6 sm:p-8`}>
@@ -137,17 +142,7 @@ export function NextBestActionCard({
         {nba.reason}
       </p>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs opacity-80">
-        <span>
-          <span className="font-semibold tabular-nums">{confidencePct}%</span>{' '}
-          confidence
-        </span>
-        <span>
-          based on{' '}
-          <span className="font-semibold tabular-nums">{nba.evidenceCount}</span>{' '}
-          recent signal{nba.evidenceCount === 1 ? '' : 's'}
-        </span>
-      </div>
+      <p className="mt-4 text-sm font-semibold opacity-80">{confidenceLabel}</p>
 
       <button
         type="button"
