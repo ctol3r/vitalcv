@@ -16,6 +16,7 @@ import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisc
 import type { PredictionSummaryContract } from '../services/predictions/contracts';
 import { getPredictionSummaryForEntity } from '../services/predictions/predictionEngineService';
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
+import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
 import type { Decision } from '../services/entity/passportService';
 import type { CanonicalSourceCoverageReport, CanonicalTruthSet } from '@vitalcv/trust-state';
 
@@ -100,6 +101,7 @@ export interface NpiProfileResponse {
       createdAt: string;
     }>;
   };
+  reuse_signal: ReuseSignal;
 }
 
 function inferStateFromSource(source: string): string | null {
@@ -134,7 +136,7 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const generatedAt = new Date().toISOString();
 
-      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary, recentActionLog] = await Promise.all([
+      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary, recentActionLog, reuseSignal] = await Promise.all([
         buildPassportDataByNpi(npi),
         prisma.verificationArtifact.findMany({
           where: {
@@ -175,6 +177,7 @@ export function registerPublicProfileRoutes(app: Express): void {
           orderBy: { createdAt: 'desc' },
           take: 10,
         }),
+        computeReuseSignal(npi),
       ]);
 
       if (!passportData) {
@@ -345,6 +348,7 @@ export function registerPublicProfileRoutes(app: Express): void {
             createdAt: entry.createdAt.toISOString(),
           })),
         },
+        reuse_signal: reuseSignal,
       };
 
       log('info', 'public_profile_npi_served', {
