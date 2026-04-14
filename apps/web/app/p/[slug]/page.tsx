@@ -304,7 +304,7 @@ function ReuseSignalBadge({ npi }: { npi: string }) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 mt-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Employer Activity</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Prior Employer Decisions</p>
       <div className="flex flex-wrap gap-4 text-sm text-foreground">
         {signal.accepted_count > 0 && (
           <span className="flex items-center gap-1">
@@ -333,11 +333,11 @@ function LimitationsCard({ missing }: { missing?: any[] }) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden mt-8">
       <div className="px-5 py-4 border-b font-semibold bg-gray-50 text-gray-700">
-        What We Did NOT Verify
+        Verification Gaps (Unverified Risk)
       </div>
       <div className="p-5">
         <p className="text-sm text-muted-foreground mb-3">
-          The following sources are excluded from this trust snapshot:
+          The following required sources have NOT been verified yet:
         </p>
         <ul className="space-y-2">
           {missing.map((m: any, i: number) => (
@@ -364,9 +364,9 @@ function DecisionPostureCard({ decision }: { decision?: any }) {
     'bg-gray-100 text-gray-800 border-gray-200';
 
   const label = 
-    decision.status === 'DECISION_GRADE' ? 'PROCEED' :
-    decision.status === 'PARTIAL' ? 'PROCEED WITH CAUTION' :
-    decision.status === 'BLOCKED' ? 'DO NOT PROCEED' : 'INSUFFICIENT DATA';
+    decision.status === 'DECISION_GRADE' ? 'CLEARED TO HIRE' :
+    decision.status === 'PARTIAL' ? 'PARTIAL DATA (RISK PRESENT)' :
+    decision.status === 'BLOCKED' ? 'BLOCKER DETECTED (DO NOT HIRE)' : 'INSUFFICIENT DATA';
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -375,7 +375,7 @@ function DecisionPostureCard({ decision }: { decision?: any }) {
       </div>
       <div className="p-5 space-y-4">
         <div>
-          <p className="text-sm font-semibold uppercase text-muted-foreground mb-1">Rationale</p>
+          <p className="text-sm font-semibold uppercase text-muted-foreground mb-1">Decision Rationale</p>
           <p className="text-foreground">{decision.headline || 'No decision rationale available.'}</p>
         </div>
         
@@ -717,9 +717,9 @@ function EmployerActionHooks({ npi }: { npi: string }) {
         <div className="flex items-center justify-end gap-3">
           <button
             disabled={loading}
-            onClick={() => handleAction('flag', 'Issue flagged for review.')}
+            onClick={() => handleAction('flag', 'Candidate rejected. Reason logged.')}
             className="rounded-md border border-red-200 bg-red-50 text-red-600 px-4 py-2 text-sm font-medium transition-colors hover:bg-red-100 disabled:opacity-50"
-          >Flag Issue</button>
+          >Reject Candidate</button>
           <button
             disabled={loading}
             onClick={() => handleAction('request_data', 'Request sent to clinician.')}
@@ -727,9 +727,9 @@ function EmployerActionHooks({ npi }: { npi: string }) {
           >Request More Data</button>
           <button
             disabled={loading}
-            onClick={() => handleAction('accept', 'Candidate accepted.')}
+            onClick={() => handleAction('accept', 'Candidate approved for hire.')}
             className="rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-          >Accept Candidate</button>
+          >Hire Candidate</button>
         </div>
       </div>
     </div>
