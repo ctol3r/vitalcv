@@ -3,7 +3,8 @@
  *
  * Pulls source-coverage state for OIG, License, and Identity from the
  * publicProfile coverage payload and renders a 3-row plain-language
- * status. Pure presentation; no hooks, no interactivity.
+ * status. The Export Decision link triggers a downloadable JSON
+ * artifact assembled by the backend export route.
  */
 
 interface CoverageCheck {
@@ -95,7 +96,13 @@ function formatVerifiedAt(iso: string | null | undefined): string | null {
   }
 }
 
-export function EvidencePanel({ coverage }: { coverage: EvidenceCoverage | undefined | null }) {
+export function EvidencePanel({
+  coverage,
+  npi,
+}: {
+  coverage: EvidenceCoverage | undefined | null;
+  npi?: string;
+}) {
   const checks = coverage?.checks ?? [];
   const findCheck = (matches: string[]): CoverageCheck | undefined =>
     checks.find((c) => matches.includes(c.sourceId));
@@ -137,6 +144,17 @@ export function EvidencePanel({ coverage }: { coverage: EvidenceCoverage | undef
       <p className="mt-4 text-[11px] italic text-muted-foreground">
         All checks performed against primary sources.
       </p>
+      {npi && (
+        <div className="mt-4 flex justify-end">
+          <a
+            href={`/api/export/${encodeURIComponent(npi)}?download=1`}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted"
+            download
+          >
+            <span aria-hidden>↓</span> Export Decision
+          </a>
+        </div>
+      )}
     </div>
   );
 }

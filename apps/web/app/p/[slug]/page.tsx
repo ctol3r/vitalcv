@@ -1421,7 +1421,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {/* Compliance evidence — rendered first so the decision is
                   always justified by visible facts before the NBA appears. */}
               <section className="mb-6">
-                <EvidencePanel coverage={profile.coverage} />
+                <EvidencePanel coverage={profile.coverage} npi={profile.npi} />
               </section>
 
               {/* Primary action surface — NBA is the only place to act. */}
