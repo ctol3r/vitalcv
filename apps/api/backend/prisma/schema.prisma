@@ -3554,3 +3554,31 @@ enum VcvOrgContextStatus {
   EXPIRED
   REVOKED
 }
+
+model PilotMetric {
+  id               String   @id @default(uuid())
+  npi              String
+  employerId       String?
+  actionTaken      String
+  timeToDecisionMs Int?
+  decisionStatus   String?
+  createdAt        DateTime @default(now())
+
+  @@index([npi])
+  @@index([employerId])
+  @@index([createdAt])
+}
+
+model FrictionLog {
+  id           String   @id @default(uuid())
+  npi          String?
+  employerId   String?
+  contextPhase String?
+  userComment  String?
+  resolved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([npi])
+  @@index([resolved])
+  @@index([createdAt])
+}

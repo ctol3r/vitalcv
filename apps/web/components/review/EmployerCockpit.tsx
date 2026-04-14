@@ -89,7 +89,7 @@ function resolveDecisionPosture(passport: PassportData): DecisionPosture {
   return {
     status,
     headline:
-      status === 'READY' ? 'All decision-grade sources checked. Safe to proceed.'
+      status === 'DECISION_GRADE' ? 'All decision-grade sources checked. Safe to proceed.'
         : status === 'BLOCKED' ? 'Critical blockers present. Do not proceed.'
           : 'Some sources pending or incomplete. Proceed with caution.',
     proven: [],
@@ -97,7 +97,7 @@ function resolveDecisionPosture(passport: PassportData): DecisionPosture {
     blockers: passport.readiness.blockers,
     freshness: passport.trustPosture.freshness,
     nextAction:
-      status === 'READY' ? 'Accept as head start and move to privileging.'
+      status === 'DECISION_GRADE' ? 'Accept as head start and move to privileging.'
         : status === 'BLOCKED' ? 'Do not hire until blockers are resolved.'
           : 'Route to credentialing team for gap resolution.',
   };

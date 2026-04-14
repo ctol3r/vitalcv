@@ -306,7 +306,7 @@ function resolveDecisionCardPosture(passport: PassportData): {
   return {
     status,
     headline:
-      status === 'READY'
+      status === 'DECISION_GRADE'
         ? 'All attached decision-grade sources support employer review.'
         : status === 'BLOCKED'
           ? 'Blocking gaps remain attached to this review.'
@@ -314,7 +314,7 @@ function resolveDecisionCardPosture(passport: PassportData): {
     nextAction:
       passport.readiness.nextActions[0]?.detail
       ?? (
-        status === 'READY'
+        status === 'DECISION_GRADE'
           ? 'Accept as head start.'
           : status === 'BLOCKED'
             ? 'Route to review or request refresh before start.'
@@ -360,14 +360,16 @@ function BinaryDecisionCard({
   );
 
   const DECISION_COLORS: Record<DecisionPostureStatus, string> = {
-    READY:   'border-emerald-500/30 bg-emerald-500/[0.06]',
-    PARTIAL: 'border-amber-500/30 bg-amber-500/[0.05]',
-    BLOCKED: 'border-rose-500/25 bg-rose-500/[0.05]',
+    DECISION_GRADE: 'border-emerald-500/30 bg-emerald-500/[0.06]',
+    CHECKING:       'border-sky-500/30 bg-sky-500/[0.05]',
+    PARTIAL:        'border-amber-500/30 bg-amber-500/[0.05]',
+    BLOCKED:        'border-rose-500/25 bg-rose-500/[0.05]',
   };
   const DECISION_TEXT: Record<DecisionPostureStatus, string> = {
-    READY:   'text-emerald-400',
-    PARTIAL: 'text-amber-400',
-    BLOCKED: 'text-rose-400',
+    DECISION_GRADE: 'text-emerald-400',
+    CHECKING:       'text-sky-400',
+    PARTIAL:        'text-amber-400',
+    BLOCKED:        'text-rose-400',
   };
 
   // Enrollment status

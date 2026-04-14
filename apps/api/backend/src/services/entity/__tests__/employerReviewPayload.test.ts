@@ -123,7 +123,7 @@ describe('employerReviewPayload', () => {
         negativeFindings: [],
       },
       readiness: {
-        status: 'READY',
+        status: 'DECISION_GRADE',
         score: 100,
         readiness_score: 100,
         level: 'L3',
@@ -182,7 +182,7 @@ describe('employerReviewPayload', () => {
         blockers: [],
       },
       decisionPosture: {
-        status: 'READY' as const,
+        status: 'DECISION_GRADE' as const,
         headline: 'All decision-grade sources checked. Safe to proceed.',
         proven: [],
         missing: [],

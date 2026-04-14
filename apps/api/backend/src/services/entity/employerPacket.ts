@@ -513,19 +513,23 @@ function buildDecisionPosture(
 ): EmployerEvidencePacketDecisionPostureV1 {
   const nextAction = passport.readiness.nextActions[0]?.detail
     ?? (
-      passport.readiness.status === 'READY'
+      passport.readiness.status === 'DECISION_GRADE'
         ? 'Accept as head start or export this packet for employer review.'
         : passport.readiness.status === 'PARTIAL'
           ? 'Request refresh or route to review before relying on missing lanes.'
-          : 'Route to review or request refresh before start.'
+          : passport.readiness.status === 'CHECKING'
+            ? 'Verification in progress — data is being gathered.'
+            : 'Route to review or request refresh before start.'
     );
 
   const headline = (
-    passport.readiness.status === 'READY'
-      ? 'Current source-backed checks support employer review now.'
+    passport.readiness.status === 'DECISION_GRADE'
+      ? 'All launch-spine sources checked. Decision-grade data available.'
       : passport.readiness.status === 'PARTIAL'
         ? 'Some decision-grade checks are still missing, gated, stale, or under review.'
-        : 'Blocking gaps remain attached to this packet.'
+        : passport.readiness.status === 'CHECKING'
+          ? 'Verification in progress — gathering source data.'
+          : 'Blocking gaps remain attached to this packet.'
   );
 
   return {

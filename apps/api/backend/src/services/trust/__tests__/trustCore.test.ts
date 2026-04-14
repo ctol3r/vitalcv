@@ -43,6 +43,7 @@ describe('trust core readiness', () => {
     });
 
     expect(readiness.overallStatus).toBe('CLEAR_TO_START');
+    expect(readiness.readinessState).toBe('DECISION_GRADE');
     expect(readiness.readinessScore).toBe(96);
     expect(readiness.blockers).toEqual([]);
     expect(readiness.gaps).toEqual([]);
@@ -78,6 +79,7 @@ describe('trust core readiness', () => {
     });
 
     expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
+    expect(readiness.readinessState).toBe('PARTIAL');
     expect(readiness.readinessScore).toBe(67);
     expect(readiness.blockers).toEqual([]);
     expect(readiness.gaps).toContain('licensure stale');
@@ -114,6 +116,7 @@ describe('trust core readiness', () => {
     });
 
     expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
+    expect(readiness.readinessState).toBe('PARTIAL');
     expect(readiness.readinessScore).toBe(48);
     expect(readiness.nextActions).toContain('Refresh licensure proof');
     expect(readiness.sourceCoverage).toEqual(

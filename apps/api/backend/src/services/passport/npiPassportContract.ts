@@ -1,6 +1,7 @@
 import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
+  deriveReadinessState,
   type CanonicalSourceCoverageReport,
 } from '@vitalcv/trust-state';
 import {
@@ -341,26 +342,6 @@ function buildStanding(
   };
 }
 
-function mapTrustReadinessStatus(
-  trustState: LoadedPassportData['trustState'],
-  standing: PassportStanding,
-): PassportReadiness['status'] {
-  if (standing.exclusionStatus === 'EXCLUDED' || standing.licensureStatus === 'expired') {
-    return 'BLOCKED';
-  }
-
-  const blockers = trustState.blockers ?? [];
-  if (blockers.length > 0 || trustState.readiness_score < 60) {
-    return 'BLOCKED';
-  }
-
-  if (trustState.readiness_score >= 80) {
-    return 'READY';
-  }
-
-  return 'PARTIAL';
-}
-
 function buildNextActions(
   trustState: LoadedPassportData['trustState'],
   gaps: readonly string[],
@@ -387,26 +368,28 @@ function buildNextActions(
 function buildReadiness(
   legacy: LoadedPassportData,
   standing: PassportStanding,
+  sourceCoverage: CanonicalSourceCoverageReport,
 ): PassportReadiness {
   const blockers = dedupeStrings([
-    ...(legacy.trustState.blockers ?? []),
-    ...(standing.negativeFindings.filter((finding) => /expired|exclusion/i.test(finding))),
+    ...(standing.exclusionStatus === 'EXCLUDED' ? ['OIG LEIE exclusion confirmed'] : []),
+    ...(standing.licensureStatus === 'expired' ? ['Licensure expired'] : [])
   ]);
   const gaps = dedupeStrings([
     ...(legacy.trustState.gaps ?? []),
     ...(legacy.trustState.gap_summary ?? []),
   ]);
-  const status = mapTrustReadinessStatus(legacy.trustState, standing);
+  
+  const status = deriveReadinessState(sourceCoverage.checks);
 
   return {
     status,
-    score: legacy.trustState.readiness_score,
-    readiness_score: legacy.trustState.readiness_score,
-    level: legacy.trustState.readiness_level,
+    score: 0,
+    readiness_score: 0,
+    level: 'L0',
     blockers,
     gaps,
     nextActions: buildNextActions(legacy.trustState, gaps, blockers),
-    estimatedStartDays: status === 'READY' ? 3 : status === 'PARTIAL' ? 14 : null,
+    estimatedStartDays: status === 'DECISION_GRADE' ? 3 : status === 'PARTIAL' ? 14 : null,
   };
 }
 
@@ -635,7 +618,7 @@ export async function buildPassportDataByNpi(
   );
   const standing = buildStanding(authority, legacy);
   const sourceCoverage = buildSourceCoverage(legacy, identity, authority, standing);
-  const readiness = buildReadiness(legacy, standing);
+  const readiness = buildReadiness(legacy, standing, sourceCoverage);
   const truth = buildPassportTruth({
     identity,
     authority,

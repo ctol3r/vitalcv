@@ -655,19 +655,19 @@ function PassportPageContent({
                   <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
                   <TrustStatusBadge
                     status={resolveLivePathReadinessStatus(
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                      state.readiness.status === 'DECISION_GRADE' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL' || state.readiness.status === 'CHECKING'
                         ? state.readiness.status
                         : state.readiness.score >= 70
-                          ? 'READY'
+                          ? 'DECISION_GRADE'
                           : state.readiness.score >= 40
                             ? 'PARTIAL'
                             : 'BLOCKED',
                     )}
                     label={
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                      state.readiness.status === 'DECISION_GRADE' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL' || state.readiness.status === 'CHECKING'
                         ? state.readiness.status
                         : state.readiness.score >= 70
-                          ? 'READY'
+                          ? 'DECISION_GRADE'
                           : state.readiness.score >= 40
                             ? 'PARTIAL'
                             : 'BLOCKED'

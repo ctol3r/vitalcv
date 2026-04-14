@@ -17,7 +17,7 @@ export interface DemoProfile {
   npi: string;
   name: string;
   specialty: string;
-  readiness: 'READY' | 'PARTIAL' | 'BLOCKED';
+  readiness: 'DECISION_GRADE' | 'PARTIAL' | 'CHECKING' | 'BLOCKED';
   readinessScore: number;
   verifiedItems: string[];
   missingItems: string[];
@@ -38,7 +38,7 @@ export const DEMO_PROFILES: Record<string, DemoProfile> = {
     npi: '1003000126',
     name: 'Sarah Chen, MD',
     specialty: 'Internal Medicine',
-    readiness: 'READY',
+    readiness: 'DECISION_GRADE',
     readinessScore: 87,
     verifiedItems: ['NPI identity checked', 'OIG / LEIE checked', 'Medicare enrolled'],
     missingItems: [],

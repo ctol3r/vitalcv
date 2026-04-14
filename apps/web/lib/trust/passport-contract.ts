@@ -1,7 +1,9 @@
 import {
   CANONICAL_TRUTH_STATUSES,
+  READINESS_STATES,
   summarizeCanonicalSourceCoverage,
   type CanonicalTruthSet,
+  type ReadinessState,
 } from '@vitalcv/trust-state';
 import {
   normalizePassportSourceCoverageChecks,
@@ -9,7 +11,7 @@ import {
 } from '@/lib/trust/source-coverage';
 import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
 
-export type ReadinessStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+export type ReadinessStatus = ReadinessState;
 export type PassportTrustPostureState =
   | 'current'
   | 'stale'
@@ -61,7 +63,7 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
-export type DecisionPostureStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+export type DecisionPostureStatus = ReadinessState;
 
 export interface DecisionPostureSource {
   sourceId: string;
@@ -273,7 +275,7 @@ function isUnknownRecordMap(value: unknown): value is Record<string, string> {
 }
 
 function isReadinessStatus(value: unknown): value is ReadinessStatus {
-  return value === 'READY' || value === 'PARTIAL' || value === 'BLOCKED';
+  return (READINESS_STATES as readonly string[]).includes(value as string);
 }
 
 function isDecisionPostureStatus(value: unknown): value is DecisionPostureStatus {

@@ -17,7 +17,7 @@ export function registerReadinessRoutes(app: Express): void {
     try {
       const { artifacts } = await orchestrateVerification(req.params.npi);
       const report = computeReadiness(req.params.npi, state, profession, artifacts);
-      res.json({ clearToStart: report.overallStatus === 'CLEAR_TO_START', daysEstimate: report.endorsement_timeline.estimatedDays, report });
+      res.json({ clearToStart: report.readinessState === 'DECISION_GRADE', daysEstimate: report.endorsement_timeline.estimatedDays, report });
     } catch (err) {
       log('error', 'readiness_clear_to_start_failed', { npi: req.params.npi, error: String(err) });
       res.status(500).json({ error: 'Readiness check failed' });

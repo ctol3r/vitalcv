@@ -81,7 +81,7 @@ describe('ingestStreamState', () => {
         identityStatus: 'ACTIVE',
         readinessScore: 91,
         readinessLevel: 'L3',
-        readinessStatus: 'READY',
+        readinessStatus: 'DECISION_GRADE',
         exclusionChecked: true,
         exclusionClear: true,
         exclusionStatus: 'CLEAR',
