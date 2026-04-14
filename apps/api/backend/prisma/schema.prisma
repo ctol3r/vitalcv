@@ -1760,6 +1760,24 @@ model ActionLog {
   @@map("action_log")
 }
 
+/// Lightweight operator-facing notification. Written by drift reaction
+/// handlers and (future) other reaction paths. Not an audit record; pure
+/// UI surface. acknowledged is flipped manually by operators.
+model Notification {
+  id           String   @id @default(uuid()) @db.Uuid
+  clinicianNpi String   @map("clinician_npi")
+  eventType    String   @map("event_type")
+  severity     String
+  message      String
+  acknowledged Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([clinicianNpi])
+  @@index([acknowledged])
+  @@index([createdAt])
+  @@map("notification")
+}
+
 /// Sidecar activation record for the Start graph.
 /// NOT a replacement for Start (which is the audit-grade attestation
 /// event) and NOT FK-linked to Acceptance. acceptanceRef is a plain

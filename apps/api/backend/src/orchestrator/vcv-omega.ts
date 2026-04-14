@@ -16,6 +16,8 @@ import prisma from '../graphql/prisma_client';
 import { buildPassportDataByNpi, type PassportDataContract } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
 import { computeDriftSignal, type DriftSignal } from './drift';
+import { emit } from '../services/events/eventBus';
+import { HARD_DRIFT_EVENT, SOFT_DRIFT_EVENT } from '../services/events/driftReactionHandler';
 import { log } from '../obs/logger';
 
 export interface OmegaRequest {
@@ -222,6 +224,20 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     passport: passportResult.status === 'fulfilled' ? passportResult.value : null,
     reuseSignal: reuseResult.status === 'fulfilled' ? reuseResult.value : null,
   });
+
+  // Emit drift events on the in-process bus. The bus swallows handler
+  // failures so the decision path is protected. Fire-and-forget with
+  // await so the handler has a chance to run before response is sent.
+  if (drift.state === 'HARD_DRIFT' || drift.state === 'SOFT_DRIFT') {
+    await emit({
+      type: drift.state === 'HARD_DRIFT' ? HARD_DRIFT_EVENT : SOFT_DRIFT_EVENT,
+      clinicianNpi: npi,
+      source: 'omega',
+      severity: drift.state,
+      timestamp: drift.lastChecked,
+      payload: { reasons: drift.reasons },
+    });
+  }
 
   if (!passport) {
     return {

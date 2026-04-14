@@ -52,6 +52,7 @@ import { registerReportRoutes }         from './routes/report';            // Cr
 import { registerPublicProfileRoutes } from './routes/publicProfile';
 import { registerActionLogRoutes } from './routes/actionLog';
 import { registerOmegaRoutes } from './routes/omega';
+import { registerDriftReactionHandlers } from './services/events/driftReactionHandler';
 // Wave 47: Human-in-the-Loop review queue
 import { registerHitlRoutes } from './routes/hitl';
 // Wave 82: Trust Graph Intelligence
@@ -3496,6 +3497,7 @@ registerReportRoutes(app);           // Credential Intelligence Report: POST /ap
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 registerActionLogRoutes(app);     // Employer action endpoint: POST/GET /api/employer-actions
 registerOmegaRoutes(app);         // Omega Orchestrator: POST /api/omega
+registerDriftReactionHandlers();  // Drift events → Notification writes
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence
 registerDecisionInsightsRoutes(app); // Wave 83: Decision Intelligence
