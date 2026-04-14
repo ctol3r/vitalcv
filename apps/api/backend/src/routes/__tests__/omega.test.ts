@@ -10,7 +10,7 @@ jest.mock('../../obs/logger', () => ({
 }));
 
 import { orchestrateOmega } from '../../orchestrator/vcv-omega';
-import { registerOmegaRoutes } from '../omega';
+import { registerOmegaRoutes, __resetOmegaRateLimiterForTests } from '../omega';
 
 const orchestrateMock = orchestrateOmega as jest.MockedFunction<typeof orchestrateOmega>;
 
@@ -50,6 +50,7 @@ function fakeOkResponse(npi: string) {
 describe('POST /api/omega', () => {
   beforeEach(() => {
     orchestrateMock.mockReset();
+    __resetOmegaRateLimiterForTests();
   });
 
   it('delegates to orchestrateOmega and returns 200 on ok status', async () => {
@@ -113,5 +114,60 @@ describe('POST /api/omega', () => {
       .expect(500);
 
     expect(response.body.error).toBe('omega_failed');
+  });
+
+  it('trims surrounding whitespace from npi before validating format', async () => {
+    orchestrateMock.mockResolvedValue(fakeOkResponse('1234567890'));
+
+    await request(createApp())
+      .post('/api/omega')
+      .send({ npi: '  1234567890  ' })
+      .expect(200);
+
+    expect(orchestrateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: { npi: '1234567890' } }),
+    );
+  });
+
+  it('returns 429 when the per-IP rate limit is exceeded', async () => {
+    orchestrateMock.mockResolvedValue(fakeOkResponse('1234567890'));
+    const app = createApp();
+
+    // 20 allowed, 21st must be blocked.
+    for (let i = 0; i < 20; i += 1) {
+      await request(app)
+        .post('/api/omega')
+        .send({ npi: '1234567890' })
+        .expect(200);
+    }
+
+    const blocked = await request(app)
+      .post('/api/omega')
+      .send({ npi: '1234567890' })
+      .expect(429);
+
+    expect(blocked.body).toEqual({
+      error: 'rate_limited',
+      error_description: 'Too many requests',
+    });
+    // Rate limiter must short-circuit BEFORE the orchestrator is invoked
+    // for the blocked request — call count stays at 20.
+    expect(orchestrateMock).toHaveBeenCalledTimes(20);
+  });
+
+  it('keeps the response shape stable — does not inject timing or meta fields', async () => {
+    const ok = fakeOkResponse('1234567890');
+    orchestrateMock.mockResolvedValue(ok);
+
+    const response = await request(createApp())
+      .post('/api/omega')
+      .send({ npi: '1234567890' })
+      .expect(200);
+
+    // Response body MUST match orchestrator output verbatim — no duration_ms,
+    // no rate_limit_remaining, no wrapper envelope.
+    expect(response.body).toEqual(ok);
+    expect(response.body.duration_ms).toBeUndefined();
+    expect(response.body.rate_limit_remaining).toBeUndefined();
   });
 });
