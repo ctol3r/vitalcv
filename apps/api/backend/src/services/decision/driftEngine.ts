@@ -5,6 +5,12 @@
  * previously valid state (Recognition, Acceptance, or Start).
  */
 
+import prisma from '../../graphql/prisma_client';
+import {
+  LearningEngine,
+  RealWorldOutcome,
+} from './learningEngine';
+
 export enum DriftSeverity {
   /** Trust Broken: OIG Exclusion, License Revoked, NPI Deactivated */
   HARD_DRIFT = 'HARD_DRIFT',
@@ -144,18 +150,35 @@ export class DriftReactionHandler {
   }
 
   private static async handleHardDrift(event: SystemDriftEvent): Promise<void> {
-    // REACTION:
-    // 1. Invalidate ACTIVE StartActivation -> NOT_STARTABLE
-    // 2. Flag clinician profile (EmployerAcceptance status update or anomaly record)
-    // 3. Require re-verification (emit ACTIVATION_INVALIDATED)
-    console.log(`[Drift Handler] HARD DRIFT for ${event.clinicianNpi} from ${event.source}. Invalidating activation.`);
+    // REACTION 1: Invalidate ACTIVE StartActivations -> NOT_STARTABLE
+    await prisma.startActivation.updateMany({
+      where: {
+        clinicianNpi: event.clinicianNpi,
+        activationState: 'ACTIVE',
+      },
+      data: {
+        activationState: 'NOT_STARTABLE',
+        metadata: { drift: event.source, invalidatedAt: new Date().toISOString() },
+      },
+    });
+
+    // REACTION 2: Emit learning record with real outcome
+    const learningRecord = LearningEngine.evaluateDecisionCycle(
+      event.clinicianNpi,
+      'DRIFT_INVALIDATED',
+      'HARD_DRIFT',
+      RealWorldOutcome.DRIFT_OCCURRED,
+    );
+    console.log(
+      `[Drift Handler] HARD DRIFT for ${event.clinicianNpi}. Learning: mismatch=${learningRecord.mismatchDetected}, reason=${learningRecord.mismatchReason}`
+    );
   }
 
   private static async handleSoftDrift(event: SystemDriftEvent): Promise<void> {
-    // REACTION:
-    // 1. Mark as stale (tag Recognition cache)
-    // 2. Schedule background refresh
-    console.log(`[Drift Handler] SOFT DRIFT for ${event.clinicianNpi}. Scheduling refresh.`);
+    // REACTION: Mark READY_TO_START activations as stale
+    // (Do NOT invalidate — soft drift is recoverable)
+    console.log(`[Drift Handler] SOFT DRIFT for ${event.clinicianNpi} from ${event.source}. Scheduling refresh.`);
+    // TODO: Queue background Recognition refresh for this NPI
   }
 }
 

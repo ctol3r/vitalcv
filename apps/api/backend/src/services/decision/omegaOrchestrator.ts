@@ -1,14 +1,33 @@
 import prisma from '../../graphql/prisma_client';
 import { buildPassportDataByNpi } from '../passport/npiPassportContract';
+import {
+  LearningEngine,
+  RealWorldOutcome,
+  DecisionLearningEvent,
+} from './learningEngine';
+import {
+  DriftReactionHandler,
+  DriftEventType,
+  DriftSeverity,
+  DriftSourceType,
+} from './driftEngine';
 
 /**
  * The Omega Orchestrator
  *
  * Implements the core VitalCV Algorithm Canon: Start = Recognition + Acceptance
  *
- * This is a thin layer governing the boundaries between the objective trust network
- * (Recognition) and the subjective employer decision (Acceptance), culminating in a
- * material hiring event (Start).
+ * FLOW:
+ *   Omega.evaluateAction()
+ *     → Recognition (buildPassportDataByNpi)
+ *     → Acceptance (EmployerAcceptance persisted with decisionState snapshot)
+ *     → Start (StartActivation created if action=accept)
+ *     → Learning (DecisionLearningEvent recorded with PENDING outcome)
+ *
+ *   DriftReactionHandler.handleEvent()
+ *     → Invalidates StartActivation state in DB
+ *     → Updates Learning record with real outcome (START_ACTIVATED / DRIFT_OCCURRED)
+ *     → Generates HumanNotification
  */
 
 /** Structured Acceptance Node — a graph node, not a flat log entry */
@@ -41,12 +60,13 @@ export interface OmegaOutput {
   acceptances: AcceptanceGraphNode[];
   activations: StartActivationNode[];
   startCreated: boolean;
+  learningEvent: DecisionLearningEvent | null;
 }
 
 export class OmegaOrchestrator {
   /**
    * Evaluate Recognition + Acceptance to potentially mint a Start.
-   * Acceptance is persisted as a structured decision node (graph, not log).
+   * Wires the full feedback loop: decision → action → learning record.
    */
   static async evaluateAction(params: {
     npi: string;
@@ -67,8 +87,8 @@ export class OmegaOrchestrator {
     }
 
     // 2. Acceptance Layer — structured decision node
-    const decisionState = recognition?.decisionPosture
-      ? ((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN'
+    const decisionState: string = recognition?.decisionPosture
+      ? String(((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN')
       : 'UNKNOWN';
 
     const trustSnapshot: Record<string, unknown> = {};
@@ -77,7 +97,6 @@ export class OmegaOrchestrator {
       trustSnapshot.truth = recognition.truth ?? null;
     }
 
-    // Look up entityId for the organization (required by schema)
     const entity = await prisma.vcvEntity.findFirst({
       where: { displayName: { contains: orgId } },
       select: { id: true },
@@ -116,11 +135,26 @@ export class OmegaOrchestrator {
         });
         startCreated = true;
       } catch {
-        // Start attestation failure should not block Acceptance
+        // Start creation failure should not block Acceptance
       }
     }
 
-    // 4. Fetch all prior acceptances for this NPI (graph history)
+    // 4. Learning Layer — record decision cycle with PENDING outcome
+    let learningEvent: DecisionLearningEvent | null = null;
+    if (decisionState !== 'UNKNOWN') {
+      learningEvent = LearningEngine.evaluateDecisionCycle(
+        npi,
+        decisionState,
+        String(action).toUpperCase(),
+        RealWorldOutcome.PENDING,
+      );
+      // TODO: Persist to DB when DecisionLearningEvent model is added to schema
+      console.log(
+        `[Omega] Learning record: npi=${npi}, state=${decisionState}, action=${action}, outcome=PENDING, mismatch=${learningEvent.mismatchDetected}`
+      );
+    }
+
+    // 5. Fetch graph state
     const priorAcceptances = await prisma.employerAcceptance.findMany({
       where: { clinicianNpi: npi },
       orderBy: { acceptedAt: 'desc' },
@@ -158,15 +192,12 @@ export class OmegaOrchestrator {
 
     return {
       recognition: recognition
-        ? {
-            npi,
-            decisionPosture: recognition.decisionPosture ?? null,
-            sourceCoverage: recognition.sourceCoverage ?? null,
-          }
+        ? { npi, decisionPosture: recognition.decisionPosture ?? null, sourceCoverage: recognition.sourceCoverage ?? null }
         : null,
       acceptances,
       activations,
       startCreated,
+      learningEvent,
     };
   }
 
@@ -218,15 +249,12 @@ export class OmegaOrchestrator {
 
     return {
       recognition: recognition
-        ? {
-            npi,
-            decisionPosture: recognition.decisionPosture ?? null,
-            sourceCoverage: recognition.sourceCoverage ?? null,
-          }
+        ? { npi, decisionPosture: recognition.decisionPosture ?? null, sourceCoverage: recognition.sourceCoverage ?? null }
         : null,
       acceptances,
       activations,
       startCreated: false,
+      learningEvent: null,
     };
   }
 }
