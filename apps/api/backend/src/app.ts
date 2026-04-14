@@ -50,6 +50,7 @@ import { registerPilotKpiRoutes }       from './routes/pilotKpi';         // Pil
 import { registerReportRoutes }         from './routes/report';            // Credential Intelligence Report
 // Wave 43: Public Trust Profile — NPI-keyed
 import { registerPublicProfileRoutes } from './routes/publicProfile';
+import { registerActionLogRoutes } from './routes/actionLog';
 // Wave 47: Human-in-the-Loop review queue
 import { registerHitlRoutes } from './routes/hitl';
 // Wave 82: Trust Graph Intelligence
@@ -3492,6 +3493,7 @@ registerSealTrainingRoutes(app);     // SEAL: training event capture + dataset e
 registerPilotKpiRoutes(app);         // Pilot KPI loop: 7 velocity KPIs + CSV export
 registerReportRoutes(app);           // Credential Intelligence Report: POST /api/report
 registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
+registerActionLogRoutes(app);     // Employer action endpoint: POST/GET /api/employer-actions
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence
 registerDecisionInsightsRoutes(app); // Wave 83: Decision Intelligence

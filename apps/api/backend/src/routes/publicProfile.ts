@@ -91,6 +91,15 @@ export interface NpiProfileResponse {
     blockers: string[];
     gaps: string[];
   };
+  actions: {
+    recent: Array<{
+      id: string;
+      npi: string;
+      action: string;
+      rationale: string | null;
+      createdAt: string;
+    }>;
+  };
 }
 
 function inferStateFromSource(source: string): string | null {
@@ -125,7 +134,7 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const generatedAt = new Date().toISOString();
 
-      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary] = await Promise.all([
+      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary, recentActionLog] = await Promise.all([
         buildPassportDataByNpi(npi),
         prisma.verificationArtifact.findMany({
           where: {
@@ -161,6 +170,11 @@ export function registerPublicProfileRoutes(app: Express): void {
           _max: { createdAt: true },
         }),
         getPredictionSummaryForEntity('provider', npi),
+        prisma.actionLog.findMany({
+          where: { npi },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
       ]);
 
       if (!passportData) {
@@ -321,6 +335,15 @@ export function registerPublicProfileRoutes(app: Express): void {
         limitations: {
           blockers: passportData.readiness.blockers,
           gaps: passportData.readiness.gaps,
+        },
+        actions: {
+          recent: recentActionLog.map((entry) => ({
+            id: entry.id,
+            npi: entry.npi,
+            action: entry.action,
+            rationale: entry.rationale,
+            createdAt: entry.createdAt.toISOString(),
+          })),
         },
       };
 

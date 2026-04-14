@@ -14,6 +14,9 @@ jest.mock('../../graphql/prisma_client', () => ({
     trustAlertRecord: {
       aggregate: jest.fn(),
     },
+    actionLog: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -108,6 +111,9 @@ const prismaMock = prisma as unknown as {
   };
   trustAlertRecord: {
     aggregate: jest.Mock;
+  };
+  actionLog: {
+    findMany: jest.Mock;
   };
 };
 
@@ -207,6 +213,8 @@ describe('public profile routes', () => {
     prismaMock.verificationArtifact.findMany.mockReset();
     prismaMock.auditEvent.findMany.mockReset();
     prismaMock.trustAlertRecord.aggregate.mockReset();
+    prismaMock.actionLog.findMany.mockReset();
+    prismaMock.actionLog.findMany.mockResolvedValue([]);
     buildPassportDataByNpiMock.mockReset();
     buildPassportDataByNpiMock.mockResolvedValue(fakePassportData());
   });
@@ -289,6 +297,7 @@ describe('public profile routes', () => {
     expect(response.body).toHaveProperty('coverage');
     expect(response.body).toHaveProperty('claims');
     expect(response.body.limitations).toEqual({ blockers: [], gaps: [] });
+    expect(response.body.actions).toEqual({ recent: [] });
   });
 
   it('returns 404 when passport data is unavailable', async () => {
