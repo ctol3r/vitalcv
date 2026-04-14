@@ -1778,6 +1778,44 @@ model Notification {
   @@map("notification")
 }
 
+/// Persistent ingest-time record of source-state drift. Written when a
+/// new sourceCheck for an (npi, source) pair carries a different value
+/// than the previous one. Append-only — old artifacts and old
+/// attestations are NEVER mutated; this table records WHAT changed and
+/// WHEN, so historical decisions remain replayable against the data
+/// that informed them.
+model DriftEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  subjectNpi    String   @map("subject_npi")
+  source        String
+  previousValue Json?    @map("previous_value")
+  newValue      Json     @map("new_value")
+  /// Free-form descriptor (e.g. 'value_changed', 'status_flipped',
+  /// 'verification_lost'). Lets reaction code subscribe by kind.
+  driftType     String   @map("drift_type")
+  detectedAt    DateTime @default(now()) @map("detected_at")
+
+  @@index([subjectNpi])
+  @@index([source])
+  @@index([detectedAt])
+  @@index([driftType])
+  @@map("drift_event")
+}
+
+model DriftAlert {
+  alertId    String   @id @default(uuid()) @db.Uuid @map("alert_id")
+  subjectNpi String   @map("subject_npi")
+  driftId    String   @unique @map("drift_id")
+  severity   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  resolvedAt DateTime? @map("resolved_at")
+
+  @@index([subjectNpi, createdAt])
+  @@index([subjectNpi, resolvedAt])
+  @@index([severity])
+  @@map("drift_alert")
+}
+
 /// Sidecar attestation of an employer action — captures the decision
 /// state and the supporting evidence/trust snapshot at the moment the
 /// action was recorded. NOT a replacement for Acceptance and NOT an
