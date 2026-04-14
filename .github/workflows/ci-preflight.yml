@@ -117,4 +117,4 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
           STRICT_TRANSITION_MODE: "true"
-        run: pnpm test --filter=!zk-sample --filter=!contracts
+        run: pnpm test
