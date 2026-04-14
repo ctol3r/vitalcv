@@ -22,6 +22,16 @@ export interface AcceptanceGraphNode {
   createdAt: string;
 }
 
+export interface StartActivationNode {
+  id: string;
+  acceptanceId: string | null;
+  orgId: string;
+  role: string;
+  activationState: string;
+  createdAt: string;
+  activatedAt: string | null;
+}
+
 export interface OmegaOutput {
   recognition: {
     npi: string;
@@ -29,6 +39,7 @@ export interface OmegaOutput {
     sourceCoverage: Record<string, unknown> | null;
   } | null;
   acceptances: AcceptanceGraphNode[];
+  activations: StartActivationNode[];
   startCreated: boolean;
 }
 
@@ -129,6 +140,22 @@ export class OmegaOrchestrator {
       };
     });
 
+    const priorActivations = await prisma.startActivation.findMany({
+      where: { clinicianNpi: npi },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const activations: StartActivationNode[] = priorActivations.map((a) => ({
+      id: a.id,
+      acceptanceId: a.acceptanceId,
+      orgId: a.orgId,
+      role: a.role || 'UNKNOWN',
+      activationState: a.activationState,
+      createdAt: a.createdAt.toISOString(),
+      activatedAt: a.activatedAt?.toISOString() || null,
+    }));
+
     return {
       recognition: recognition
         ? {
@@ -138,6 +165,7 @@ export class OmegaOrchestrator {
           }
         : null,
       acceptances,
+      activations,
       startCreated,
     };
   }
@@ -172,6 +200,22 @@ export class OmegaOrchestrator {
       };
     });
 
+    const priorActivations = await prisma.startActivation.findMany({
+      where: { clinicianNpi: npi },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const activations: StartActivationNode[] = priorActivations.map((a) => ({
+      id: a.id,
+      acceptanceId: a.acceptanceId,
+      orgId: a.orgId,
+      role: a.role || 'UNKNOWN',
+      activationState: a.activationState,
+      createdAt: a.createdAt.toISOString(),
+      activatedAt: a.activatedAt?.toISOString() || null,
+    }));
+
     return {
       recognition: recognition
         ? {
@@ -181,6 +225,7 @@ export class OmegaOrchestrator {
           }
         : null,
       acceptances,
+      activations,
       startCreated: false,
     };
   }
