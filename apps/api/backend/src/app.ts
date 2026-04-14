@@ -3553,6 +3553,10 @@ import { registerPilotTelemetryRoutes } from './routes/pilotTelemetry';
 registerPilotTelemetryRoutes(app);      // Pilot telemetry: metrics, friction, dashboard
 import { registerReuseSignalRoutes } from './routes/reuseSignal';
 registerReuseSignalRoutes(app);          // Trust reuse: employer action signals
+
+// ── Omega Orchestrator: Recognition → Acceptance → Start ──
+import omegaRoutes from './routes/omega';
+app.use('/api/omega', omegaRoutes);
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
 registerDecisionRoutes(app);             // Wave FE19-A: Decision recommendations + state model

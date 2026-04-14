@@ -10,51 +10,176 @@ import { buildPassportDataByNpi } from '../passport/npiPassportContract';
  * (Recognition) and the subjective employer decision (Acceptance), culminating in a
  * material hiring event (Start).
  */
+
+/** Structured Acceptance Node — a graph node, not a flat log entry */
+export interface AcceptanceGraphNode {
+  id: string;
+  clinicianNpi: string;
+  orgId: string;
+  role: string;
+  decisionState: string;
+  trustSignals: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface OmegaOutput {
+  recognition: {
+    npi: string;
+    decisionPosture: unknown | null;
+    sourceCoverage: Record<string, unknown> | null;
+  } | null;
+  acceptances: AcceptanceGraphNode[];
+  startCreated: boolean;
+}
+
 export class OmegaOrchestrator {
   /**
-   * Evaluates Recognition (Trust Engine snapshot) + Acceptance (Employer Action)
-   * to potentially mint a new Start.
+   * Evaluate Recognition + Acceptance to potentially mint a Start.
+   * Acceptance is persisted as a structured decision node (graph, not log).
    */
-  static async evaluateAction(
-    npi: string,
-    employerId: string,
-    action: 'accept' | 'request_data' | 'flag',
-    comment?: string,
-  ) {
-    // 1. The Recognition Layer: Retrieve the objective state of the network.
-    const recognition = await buildPassportDataByNpi(npi);
-    if (!recognition) throw new Error('Recognition layer failed: Passport missing');
+  static async evaluateAction(params: {
+    npi: string;
+    employerId: string;
+    orgId: string;
+    role?: string;
+    action: 'accept' | 'request_data' | 'flag';
+    comment?: string;
+  }): Promise<OmegaOutput> {
+    const { npi, employerId, orgId, role = 'CLINICIAN', action, comment } = params;
 
-    // 2. The Acceptance Layer: Materialize the subjective employer action.
+    // 1. Recognition Layer
+    let recognition: Awaited<ReturnType<typeof buildPassportDataByNpi>> | null = null;
+    try {
+      recognition = await buildPassportDataByNpi(npi);
+    } catch {
+      // Recognition failure should not block Acceptance recording
+    }
+
+    // 2. Acceptance Layer — structured decision node
+    const decisionState = recognition?.decisionPosture
+      ? (recognition.decisionPosture as Record<string, unknown>).status || 'UNKNOWN'
+      : 'UNKNOWN';
+
+    const trustSnapshot: Record<string, unknown> = {};
+    if (recognition) {
+      trustSnapshot.sourceCoverage = recognition.sourceCoverage ?? null;
+      trustSnapshot.truth = recognition.truth ?? null;
+    }
+
+    // Look up entityId for the organization (required by schema)
+    const entity = await prisma.vcvEntity.findFirst({
+      where: { canonicalName: { contains: orgId } },
+      select: { id: true },
+    });
+
     const acceptance = await prisma.employerAcceptance.create({
       data: {
+        entityId: entity?.id || '00000000-0000-0000-0000-000000000000',
+        organization: orgId,
         employerId,
         clinicianNpi: npi,
         status: action.toUpperCase(),
         acceptedAt: new Date(),
         metadata: {
-          decisionPosture: recognition.decisionPosture,
+          decisionState,
+          trustSnapshot,
           comment: comment || null,
+          role,
         },
       },
     });
 
-    // 3. The Start Layer: Mint a formal start attestation if accepted.
+    // 3. Start Layer — only if action is 'accept'
+    let startCreated = false;
     if (action === 'accept') {
-      await prisma.startAttestation.create({
-        data: {
-          acceptanceId: acceptance.id,
-          startedAt: new Date(),
-          role: 'CLINICIAN', // Replace with actual context later
-          metadata: {
-            recognitionSnapshot: recognition.truth,
+      try {
+        await prisma.startAttestation.create({
+          data: {
+            acceptanceId: entity?.id || acceptance.id,
+            startedAt: new Date(),
+            role,
+            metadata: { decisionState, trustSnapshot },
           },
-        },
-      });
-
-      return { startCreated: true, acceptanceId: acceptance.id };
+        });
+        startCreated = true;
+      } catch {
+        // Start attestation failure should not block Acceptance
+      }
     }
 
-    return { startCreated: false, acceptanceId: acceptance.id };
+    // 4. Fetch all prior acceptances for this NPI (graph history)
+    const priorAcceptances = await prisma.employerAcceptance.findMany({
+      where: { clinicianNpi: npi },
+      orderBy: { acceptedAt: 'desc' },
+      take: 50,
+    });
+
+    const acceptances: AcceptanceGraphNode[] = priorAcceptances.map((a) => {
+      const meta = (a.metadata as Record<string, unknown>) || {};
+      return {
+        id: a.id,
+        clinicianNpi: a.clinicianNpi || '',
+        orgId: a.organization,
+        role: (meta.role as string) || 'UNKNOWN',
+        decisionState: (meta.decisionState as string) || 'UNKNOWN',
+        trustSignals: (meta.trustSnapshot as Record<string, unknown>) || {},
+        createdAt: a.acceptedAt.toISOString(),
+      };
+    });
+
+    return {
+      recognition: recognition
+        ? {
+            npi,
+            decisionPosture: recognition.decisionPosture ?? null,
+            sourceCoverage: recognition.sourceCoverage ?? null,
+          }
+        : null,
+      acceptances,
+      startCreated,
+    };
+  }
+
+  /**
+   * Read-only: Get the full Omega state for an NPI without creating any records.
+   */
+  static async readState(npi: string): Promise<OmegaOutput> {
+    let recognition: Awaited<ReturnType<typeof buildPassportDataByNpi>> | null = null;
+    try {
+      recognition = await buildPassportDataByNpi(npi);
+    } catch {
+      // no-op
+    }
+
+    const priorAcceptances = await prisma.employerAcceptance.findMany({
+      where: { clinicianNpi: npi },
+      orderBy: { acceptedAt: 'desc' },
+      take: 50,
+    });
+
+    const acceptances: AcceptanceGraphNode[] = priorAcceptances.map((a) => {
+      const meta = (a.metadata as Record<string, unknown>) || {};
+      return {
+        id: a.id,
+        clinicianNpi: a.clinicianNpi || '',
+        orgId: a.organization,
+        role: (meta.role as string) || 'UNKNOWN',
+        decisionState: (meta.decisionState as string) || 'UNKNOWN',
+        trustSignals: (meta.trustSnapshot as Record<string, unknown>) || {},
+        createdAt: a.acceptedAt.toISOString(),
+      };
+    });
+
+    return {
+      recognition: recognition
+        ? {
+            npi,
+            decisionPosture: recognition.decisionPosture ?? null,
+            sourceCoverage: recognition.sourceCoverage ?? null,
+          }
+        : null,
+      acceptances,
+      startCreated: false,
+    };
   }
 }
