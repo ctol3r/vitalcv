@@ -23,22 +23,41 @@ export function EmployerNextBestAction({
   let textColor = 'text-slate-800';
   let icon = 'ℹ️';
 
+  let actionLabel = 'Execute Action';
+  let btnClasses = 'bg-white text-slate-800 ring-slate-300 hover:bg-slate-50';
+
   switch (nba.action) {
     case 'PROCEED':
       bgColor = 'bg-green-100/50 border-green-200';
       textColor = 'text-green-800';
       icon = '✅';
+      actionLabel = 'Approve Candidate';
+      btnClasses = 'bg-green-600 text-white ring-green-600 hover:bg-green-700';
       break;
     case 'ESCALATE':
       bgColor = 'bg-red-100/50 border-red-200';
       textColor = 'text-red-800';
       icon = '🚨';
+      actionLabel = 'Reject Candidate';
+      btnClasses = 'bg-red-600 text-white ring-red-600 hover:bg-red-700';
       break;
     case 'REQUEST_DATA':
-    case 'REVERIFY':
       bgColor = 'bg-amber-100/50 border-amber-200';
       textColor = 'text-amber-800';
       icon = '⚠️';
+      actionLabel = 'Request More Data';
+      break;
+    case 'REVERIFY':
+      bgColor = 'bg-amber-100/50 border-amber-200';
+      textColor = 'text-amber-800';
+      icon = '🔄';
+      actionLabel = 'Run Fresh Sync';
+      break;
+    case 'HOLD':
+      bgColor = 'bg-slate-100/50 border-slate-200';
+      textColor = 'text-slate-800';
+      icon = '⏳';
+      actionLabel = 'Hold (Processing)';
       break;
   }
 
@@ -78,9 +97,10 @@ export function EmployerNextBestAction({
         {onActionClick && (
           <button
             onClick={() => onActionClick(nba.action)}
-            className="shrink-0 rounded-md bg-white px-4 py-2 text-sm font-semibold shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+            disabled={nba.action === 'HOLD'}
+            className={`shrink-0 rounded-md px-5 py-2.5 text-sm font-semibold shadow-sm ring-1 ring-inset transition-colors disabled:opacity-50 ${btnClasses}`}
           >
-            Execute Action
+            {actionLabel}
           </button>
         )}
       </div>
