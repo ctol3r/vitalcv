@@ -14,6 +14,7 @@ import {
 } from '../identity/pecosContract';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
+  buildDecision,
   buildDecisionPosture,
   buildPassportTrustPosture,
   buildPassportTruth,
@@ -661,6 +662,13 @@ export async function buildPassportDataByNpi(
     trustPosture,
   });
 
+  const decision = buildDecision({
+    readiness,
+    decisionPosture,
+    standing,
+    identity,
+  });
+
   // Wave 245: Build monitoring status
   const monitoring = await buildMonitoringStatus(npi);
 
@@ -678,6 +686,7 @@ export async function buildPassportDataByNpi(
     truth,
     trustPosture,
     decisionPosture,
+    decision,
     lastCheckedAt: computedLastCheckedAt,
     monitoring,
   };

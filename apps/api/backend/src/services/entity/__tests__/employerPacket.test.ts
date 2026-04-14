@@ -328,6 +328,13 @@ function buildPassport(): TrustPassport {
       },
       nextAction: 'Request a source-backed state licensure check before start.',
     },
+    decision: {
+      decision: 'PROCEED_WITH_CAUTION',
+      confidence: 55,
+      rationale: ['Partial decision posture'],
+      blockers: [],
+      next_actions: ['Request a source-backed state licensure check before start.'],
+    },
     lastCheckedAt: '2026-03-23T12:00:00.000Z',
   };
 }

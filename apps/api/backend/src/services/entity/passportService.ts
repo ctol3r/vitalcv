@@ -267,6 +267,26 @@ export interface DecisionPosture {
   nextAction: string;
 }
 
+/**
+ * Canonical employer-facing decision.
+ *
+ * Projection of DecisionPosture + Readiness into a single actionable verdict.
+ * Employers act on `decision`; `decisionPosture` remains the richer diagnostic surface.
+ */
+export type DecisionKind =
+  | 'PROCEED'
+  | 'PROCEED_WITH_CAUTION'
+  | 'DO_NOT_PROCEED'
+  | 'INSUFFICIENT_DATA';
+
+export interface Decision {
+  decision: DecisionKind;
+  confidence: number;
+  rationale: string[];
+  blockers: string[];
+  next_actions: string[];
+}
+
 /** Wave 245: Monitoring status for passport UI */
 export interface PassportMonitoringStatus {
   active: boolean;
@@ -311,6 +331,7 @@ export interface TrustPassport {
   truth:          CanonicalTruthSet;
   trustPosture:   PassportTrustPosture;
   decisionPosture: DecisionPosture;
+  decision:       Decision;
   lastCheckedAt:  string;
   divergence?:    PassportDivergence;
   /** Wave 245: Continuous monitoring status */
@@ -1604,6 +1625,55 @@ const DECISION_POSTURE_NEXT_ACTIONS: Record<DecisionPostureStatus, string> = {
   BLOCKED: 'Do not hire until blockers are resolved.',
 };
 
+/**
+ * Project DecisionPosture + Readiness into the canonical employer-facing Decision.
+ *
+ * INSUFFICIENT_DATA takes precedence when no decision-grade source has been
+ * checked — prevents "BLOCKED" from conflating "verified bad" with "nothing yet seen".
+ */
+export function buildDecision(input: {
+  readiness: PassportReadiness;
+  decisionPosture: DecisionPosture;
+  standing: PassportStanding;
+  identity: PassportIdentity;
+}): Decision {
+  const { readiness, decisionPosture, standing, identity } = input;
+  const provenCount = decisionPosture.proven.length;
+  const hasIdentity = identity.status === 'ACTIVE';
+
+  const kind: DecisionKind = (() => {
+    if (provenCount === 0 && !hasIdentity) return 'INSUFFICIENT_DATA';
+    if (readiness.status === 'BLOCKED') return 'DO_NOT_PROCEED';
+    if (readiness.status === 'READY') return 'PROCEED';
+    return 'PROCEED_WITH_CAUTION';
+  })();
+
+  const confidence = (() => {
+    if (kind === 'INSUFFICIENT_DATA') return 0;
+    if (kind === 'DO_NOT_PROCEED') return Math.max(0, Math.min(readiness.score, 40));
+    if (kind === 'PROCEED') return Math.max(80, Math.min(readiness.score, 100));
+    return Math.max(40, Math.min(readiness.score, 79));
+  })();
+
+  const rationale = dedupeStrings([
+    decisionPosture.headline,
+    ...decisionPosture.proven.map((p) => p.reason),
+    ...standing.negativeFindings,
+  ]);
+
+  const next_actions = readiness.nextActions.length > 0
+    ? readiness.nextActions.map((a) => a.title)
+    : [decisionPosture.nextAction];
+
+  return {
+    decision: kind,
+    confidence,
+    rationale,
+    blockers: readiness.blockers,
+    next_actions,
+  };
+}
+
 export function buildDecisionPosture(input: {
   readiness: PassportReadiness;
   sourceCoverage: CanonicalSourceCoverageReport;
@@ -2301,6 +2371,13 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     trustPosture,
   });
 
+  const decision = buildDecision({
+    readiness,
+    decisionPosture,
+    standing,
+    identity,
+  });
+
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
     decisionPosture: decisionPosture.status,
@@ -2320,6 +2397,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     truth,
     trustPosture,
     decisionPosture,
+    decision,
     lastCheckedAt,
     divergence,
   };

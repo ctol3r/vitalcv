@@ -190,6 +190,13 @@ describe('employerReviewPayload', () => {
         freshness: { state: 'current' as const, label: 'Current attached checks', items: [] },
         nextAction: 'Accept as head start and move to privileging.',
       },
+      decision: {
+        decision: 'PROCEED' as const,
+        confidence: 90,
+        rationale: ['All decision-grade sources checked. Safe to proceed.'],
+        blockers: [],
+        next_actions: ['Accept as head start and move to privileging.'],
+      },
       lastCheckedAt: '2026-03-20T12:30:00.000Z',
     };
 
