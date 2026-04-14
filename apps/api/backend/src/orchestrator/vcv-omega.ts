@@ -16,6 +16,7 @@ import prisma from '../graphql/prisma_client';
 import { buildPassportDataByNpi, type PassportDataContract } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
 import { computeDriftSignal, type DriftSignal } from './drift';
+import { deriveNextBestAction, type NextBestAction } from '../services/intelligence/nextBestAction';
 import { emit } from '../services/events/eventBus';
 import { HARD_DRIFT_EVENT, SOFT_DRIFT_EVENT } from '../services/events/driftReactionHandler';
 import { log } from '../obs/logger';
@@ -76,6 +77,7 @@ export interface OmegaResponse {
   acceptance: OmegaAcceptance | null;
   activation: OmegaActivation | null;
   drift: DriftSignal;
+  nextBestAction: NextBestAction;
   generatedAt: string;
 }
 
@@ -123,6 +125,12 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       acceptance: null,
       activation: null,
       drift: computeDriftSignal({ passport: null, reuseSignal: null }),
+      nextBestAction: {
+        action: 'REVIEW_MANUALLY',
+        reason: 'Invalid NPI — no learning data to evaluate.',
+        confidence: 0,
+        evidenceCount: 0,
+      },
       generatedAt,
     };
   }
@@ -239,6 +247,9 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     });
   }
 
+  // Data-driven NBA — derived from learning history, never from rules.
+  const nextBestAction = await deriveNextBestAction(npi);
+
   if (!passport) {
     return {
       status: 'not_found',
@@ -260,6 +271,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       acceptance,
       activation,
       drift,
+      nextBestAction,
       generatedAt,
     };
   }
@@ -290,6 +302,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
     acceptance,
     activation,
     drift,
+    nextBestAction,
     generatedAt,
   };
 }

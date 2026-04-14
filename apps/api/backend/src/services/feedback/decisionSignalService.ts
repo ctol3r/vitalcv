@@ -101,3 +101,92 @@ export async function captureDecisionSignal(input: DecisionSignalInput): Promise
     });
   }
 }
+
+/**
+ * Attach a terminal outcome to the most recent pending decision signal
+ * for the given subject. Best-effort: never throws back to the caller,
+ * returns silently when no pending record exists.
+ *
+ * Outcome values are free-form strings (e.g. 'START_ACTIVATED',
+ * 'DRIFT_OCCURRED', 'SUCCESS', 'FAILURE') stored on the LearningEvent
+ * metadata. Pending records are those whose metadata.outcome is null,
+ * 'PENDING', or absent.
+ */
+export interface ResolveOutcomeInput {
+  /** subjectId on the LearningEvent — typically the clinician NPI or entityId. */
+  clinicianNpi: string;
+  outcome: string;
+}
+
+const DECISION_EVENT_TYPES = [
+  'EMPLOYER_ACCEPTED',
+  'EMPLOYER_REJECTED',
+  'EMPLOYER_REQUESTED_INFO',
+];
+
+export async function resolveOutcome(input: ResolveOutcomeInput): Promise<void> {
+  if (!input.clinicianNpi || !input.outcome) {
+    log('warn', 'decision_signal_resolve_invalid_input', {
+      has_npi: Boolean(input.clinicianNpi),
+      has_outcome: Boolean(input.outcome),
+    });
+    return;
+  }
+
+  try {
+    const pending = await prisma.learningEvent.findFirst({
+      where: {
+        subjectId: input.clinicianNpi,
+        eventType: { in: DECISION_EVENT_TYPES },
+        loopType: 'USAGE_TRACKING',
+      },
+      orderBy: { occurredAt: 'desc' },
+      select: { id: true, metadata: true },
+    });
+
+    if (!pending) {
+      log('info', 'decision_signal_resolve_no_pending', {
+        subjectId: input.clinicianNpi,
+        outcome: input.outcome,
+      });
+      return;
+    }
+
+    const currentMeta =
+      pending.metadata && typeof pending.metadata === 'object' && !Array.isArray(pending.metadata)
+        ? (pending.metadata as Record<string, unknown>)
+        : {};
+    const currentOutcome = currentMeta.outcome;
+    if (typeof currentOutcome === 'string' && currentOutcome !== 'PENDING') {
+      // Already resolved — do not overwrite a terminal outcome.
+      log('info', 'decision_signal_resolve_already_resolved', {
+        subjectId: input.clinicianNpi,
+        existing: currentOutcome,
+        attempted: input.outcome,
+      });
+      return;
+    }
+
+    await prisma.learningEvent.update({
+      where: { id: pending.id },
+      data: {
+        metadata: {
+          ...currentMeta,
+          outcome: input.outcome,
+          resolvedAt: new Date().toISOString(),
+        } as never,
+      },
+    });
+
+    log('info', 'decision_signal_resolved', {
+      subjectId: input.clinicianNpi,
+      outcome: input.outcome,
+    });
+  } catch (error) {
+    log('warn', 'decision_signal_resolve_failed', {
+      subjectId: input.clinicianNpi,
+      outcome: input.outcome,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
