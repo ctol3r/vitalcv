@@ -37,5 +37,17 @@ To guarantee audit defensibility, a Decision Attestation must adhere to three st
 2. **Immutable:** Once written to the database (or exported), the `systemSnapshot` cannot be updated, even if the underlying `Recognition` state drifts 5 minutes later.
 3. **Exportable:** The `ProofCard` download links MUST embed this Attestation payload at the top of the PDF/JSON bundle, proving *why* the employer acted, not just *what* the sources said.
 
-## 3. Storage
-Attestations are stored in the `EmployerAcceptance.metadata.attestation` JSONB column (or a future dedicated `DecisionAttestation` table) to guarantee the human action and the evidence snapshot are never severed in the database.
+## 4. Cryptographic Hashing Strategy
+To ensure an exported attestation is tamper-evident, the system generates a deterministic SHA-256 hash at the moment of creation.
+
+**Algorithm:**
+1. The JSON payload (excluding the `cryptographicHash` field) is recursively sorted by key name (Canonical JSON).
+2. The canonicalized string is hashed using SHA-256.
+3. The resulting hex digest is appended to the root object.
+
+**Verification:**
+Any third-party auditor can verify an exported `Decision Attestation` by:
+1. Stripping the `cryptographicHash` field.
+2. Re-running Canonical JSON serialization.
+3. Re-computing SHA-256.
+4. Comparing the result to the attached hash. If it matches, the snapshot and the human decision have not been altered since the moment of hiring.
