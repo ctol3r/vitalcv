@@ -554,7 +554,7 @@ export function registerAKGRoutes(app: Express): void {
 
       try {
         const rules = await prisma.stateComplianceRule.findMany({
-          where:   specialty ? { state_code: stateCode, specialty } : { state_code: stateCode },
+          where:   specialty ? { state: stateCode, specialty } : { state: stateCode },
           orderBy: { specialty: 'asc' },
         });
 
@@ -566,8 +566,8 @@ export function registerAKGRoutes(app: Express): void {
           count:      rules.length,
           rules:      rules.map((r) => ({
             specialty:                 r.specialty,
-            required_credential_types: r.required_credential_types,
-            renewal_window_days:       r.renewal_window_days,
+            required_credential_types: r.requiredCredentialTypes,
+            renewal_window_days:       r.renewalWindowDays,
             as_of:                     r.updatedAt.toISOString(),
           })),
         });
@@ -638,17 +638,17 @@ export function registerAKGRoutes(app: Express): void {
           confidence,
           declared_taxonomy_code: declaredTaxonomyCode,
           taxonomy_match:         taxonomyMatch
-            ? { code: taxonomyMatch.code, description: taxonomyMatch.description, board_name: taxonomyMatch.board_name }
+            ? { code: taxonomyMatch.code, description: taxonomyMatch.description, board_name: taxonomyMatch.boardName }
             : null,
           acgme_programs: acgmePrograms.map((p) => ({
             name:                p.name,
-            acgme_code:          p.acgme_code,
+            acgme_code:          p.acgmeCode,
             specialty:           p.specialty,
-            hospital_affiliation: p.hospital_affiliation,
+            hospital_affiliation: p.hospitalAffiliation,
           })),
           reasoning: validated
             ? `Declared taxonomy ${declaredTaxonomyCode} maps to "${taxonomyMatch!.description}" ` +
-              `(${taxonomyMatch!.board_name}). ${acgmePrograms.length} ACGME programme(s) found.`
+              `(${taxonomyMatch!.boardName}). ${acgmePrograms.length} ACGME programme(s) found.`
             : `No taxonomy code found in verification record for NPI ${npi}. Training path cannot be validated.`,
         });
       } catch (err) {

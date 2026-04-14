@@ -352,6 +352,7 @@ model Institution {
   id                    String               @id @default(uuid()) @db.Uuid
   vcvEntityId           String?              @unique @map("vcv_entity_id") @db.Uuid
   organizationProfileId String?              @unique @map("organization_profile_id") @db.Uuid
+  educationRecords      VcvEducationRecord[] @relation("EducationInstitution")
   canonicalName         String               @map("canonical_name")
   slug                  String               @unique
   rorId                 String?              @unique @map("ror_id")
@@ -2987,6 +2988,7 @@ model VcvEducationRecord {
   id                String               @id @default(uuid()) @db.Uuid
   subjectId         String               @map("subject_id") @db.Uuid
   institutionId     String?              @map("institution_id") @db.Uuid
+  institution       Institution?         @relation("EducationInstitution", fields: [institutionId], references: [id])
   /// The verified credential this education record supports (optional)
   credentialId      String?              @map("credential_id") @db.Uuid
   recordType        String               @map("record_type")

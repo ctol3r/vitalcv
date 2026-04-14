@@ -28,8 +28,8 @@ async function deleteResidencyProgramsIfAvailable(): Promise<void> {
 async function createResidencyProgramIfAvailable(data: {
   name: string;
   specialty: string;
-  acgme_code: string;
-  hospital_affiliation: string;
+  acgmeCode: string;
+  hospitalAffiliation: string;
 }): Promise<void> {
   try {
     await prisma.residencyProgram.create({ data });

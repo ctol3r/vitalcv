@@ -267,7 +267,7 @@ async function evaluateCompliance(
   verifiedTypes:    CredentialType[],
 ): Promise<ComplianceCheckResult> {
   const rule = await prisma.stateComplianceRule.findFirst({
-    where: { state_code: state, specialty },
+    where: { state_ruleType: { state, ruleType: specialty } },
   });
 
   if (!rule) {
@@ -283,7 +283,7 @@ async function evaluateCompliance(
     };
   }
 
-  const required  = rule.required_credential_types as string[];
+  const required  = rule.requiredCredentialTypes as string[];
   const missing   = required.filter(r => !(verifiedTypes as string[]).includes(r));
 
   return {
