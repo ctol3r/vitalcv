@@ -1627,6 +1627,7 @@ model EmployerAcceptance {
   acceptedBy   String?  @map("accepted_by")
   metadata     Json?
   createdAt    DateTime @default(now())
+  starts       StartAttestation[] @relation("start_acceptance")
 
   @@index([employerId])
   @@index([clinicianNpi])
@@ -1635,19 +1636,26 @@ model EmployerAcceptance {
 }
 
 model StartAttestation {
-  id          String   @id @default(uuid()) @db.Uuid
-  acceptanceId String   @map("acceptance_id") @db.Uuid
-  startedAt   DateTime @map("started_at")
-  actualStart DateTime? @map("actual_start")
-  role        String?
-  facility    String?
-  attestedBy  String?  @map("attested_by")
-  attestedAt  DateTime? @map("attested_at")
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  entity      VcvEntity? @relation("start_attestation_entity", fields: [acceptanceId], references: [id])
+  id              String   @id @default(uuid()) @db.Uuid
+  acceptanceId    String   @map("acceptance_id") @db.Uuid
+  clinicianNpi    String   @map("clinician_npi")
+  orgId           String   @map("org_id")
+  role            String?
+  activationState String   @default("NOT_STARTABLE") @map("activation_state")
+  startedAt       DateTime @map("started_at")
+  activatedAt     DateTime? @map("activated_at")
+  actualStart     DateTime? @map("actual_start")
+  facility        String?
+  attestedBy      String?  @map("attested_by")
+  attestedAt      DateTime? @map("attested_at")
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  acceptance      EmployerAcceptance @relation("start_acceptance", fields: [acceptanceId], references: [id])
 
   @@index([acceptanceId])
+  @@index([clinicianNpi])
+  @@index([orgId])
+  @@index([activationState])
   @@index([startedAt])
   @@map("start_attestations")
 }
@@ -2849,9 +2857,8 @@ model VcvEntity {
   advisoryOutcomeEvents   AdvisoryOutcomeEvent[]   @relation("advisory_outcome_entity")
   blockerResolutionEvents BlockerResolutionEvent[] @relation("blocker_resolution_entity")
   issuedCredentials        VcvCredential[]         @relation("CredentialIssuer")
-  startAttestations        StartAttestation[]       @relation("start_attestation_entity")
-  organizationContexts     VcvOrganizationContext[] @relation("org_context_requestor")
   employerDecisionEvents  EmployerDecisionEvent[]  @relation("employer_decision_entity")
+  organizationContexts     VcvOrganizationContext[] @relation("org_context_requestor")
   startOutcomeEvents      StartOutcomeEvent[]      @relation("start_outcome_entity")
 
   @@index([npi])

@@ -57,7 +57,7 @@ export class OmegaOrchestrator {
 
     // 2. Acceptance Layer — structured decision node
     const decisionState = recognition?.decisionPosture
-      ? (recognition.decisionPosture as Record<string, unknown>).status || 'UNKNOWN'
+      ? ((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN'
       : 'UNKNOWN';
 
     const trustSnapshot: Record<string, unknown> = {};
@@ -68,7 +68,7 @@ export class OmegaOrchestrator {
 
     // Look up entityId for the organization (required by schema)
     const entity = await prisma.vcvEntity.findFirst({
-      where: { canonicalName: { contains: orgId } },
+      where: { displayName: { contains: orgId } },
       select: { id: true },
     });
 
@@ -80,12 +80,12 @@ export class OmegaOrchestrator {
         clinicianNpi: npi,
         status: action.toUpperCase(),
         acceptedAt: new Date(),
-        metadata: {
+        metadata: JSON.parse(JSON.stringify({
           decisionState,
           trustSnapshot,
           comment: comment || null,
           role,
-        },
+        })),
       },
     });
 
@@ -95,10 +95,13 @@ export class OmegaOrchestrator {
       try {
         await prisma.startAttestation.create({
           data: {
-            acceptanceId: entity?.id || acceptance.id,
-            startedAt: new Date(),
+            acceptanceId: acceptance.id,
+            clinicianNpi: npi,
+            orgId,
             role,
-            metadata: { decisionState, trustSnapshot },
+            activationState: 'READY_TO_START',
+            startedAt: new Date(),
+            metadata: JSON.parse(JSON.stringify({ decisionState, trustSnapshot })),
           },
         });
         startCreated = true;
