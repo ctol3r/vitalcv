@@ -154,6 +154,22 @@ export function NextBestActionCard({
   const handleClick = async () => {
     if (state === 'submitting' || state === 'done') return;
 
+    // Low-confidence guard: if the signal is limited AND the action is a
+    // non-review mutation (Approve / Reject), require explicit
+    // confirmation before posting. Strong signal or REVIEW-only paths
+    // skip the prompt entirely. Uses the platform confirm() so the
+    // behavior is accessible and doesn't require a custom modal.
+    if (
+      confidenceTier === 'limited'
+      && (nba.action === 'PROCEED' || nba.action === 'ESCALATE')
+      && typeof window !== 'undefined'
+    ) {
+      const ok = window.confirm(
+        `Signal is limited. ${meta.headline} anyway?`,
+      );
+      if (!ok) return;
+    }
+
     void trackPilotEvent({
       eventType: 'employer_action_clicked',
       oncePerSession: false,
@@ -239,6 +255,32 @@ export function NextBestActionCard({
   const displayReason =
     evidence.reason || nba.reason || 'the verified information currently attached to this profile';
 
+  // Plain-language confidence tier. NEVER a percentage — the three
+  // tiers map to concrete signal states the user can reason about.
+  // Derivation combines evidence (sources) + prior outcomes
+  // (evidenceCount) + backend confidence float:
+  //   Strong  — multiple verified sources AND meaningful history
+  //   Limited — some evidence OR history, but not both at strength
+  //   Needs review — no evidence, no history, or REVIEW_MANUALLY
+  const confidenceTier: 'strong' | 'limited' | 'needs_review' =
+    nba.action === 'REVIEW_MANUALLY' || (evidence.sources.length === 0 && nba.evidenceCount === 0)
+      ? 'needs_review'
+      : evidence.sources.length >= 2 && nba.evidenceCount >= 3 && nba.confidence >= 0.7
+        ? 'strong'
+        : 'limited';
+
+  const confidenceLabel: Record<typeof confidenceTier, string> = {
+    strong: 'Strong signal',
+    limited: 'Limited signal',
+    needs_review: 'Needs review',
+  };
+
+  const confidenceTone: Record<typeof confidenceTier, string> = {
+    strong: 'border-green-500/40 bg-green-500/15 text-green-800',
+    limited: 'border-amber-500/40 bg-amber-500/15 text-amber-800',
+    needs_review: 'border-slate-500/40 bg-slate-500/15 text-slate-800',
+  };
+
   return (
     <div className={`rounded-2xl border-2 ${meta.cardTone} p-6 sm:p-8`}>
       <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
@@ -247,6 +289,15 @@ export function NextBestActionCard({
       <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
         {meta.headline}
       </h1>
+
+      <div className="mt-3 flex items-center gap-2">
+        <span
+          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${confidenceTone[confidenceTier]}`}
+        >
+          {confidenceLabel[confidenceTier]}
+        </span>
+      </div>
+
       <p className="mt-3 break-words text-base font-medium opacity-90 md:text-lg">
         <span className="font-semibold">Why:</span> {displayReason}
       </p>
@@ -283,6 +334,17 @@ export function NextBestActionCard({
               : 'similar cases have required additional verification.'}
         </p>
       )}
+
+      <details className="mt-4 text-xs">
+        <summary className="cursor-pointer list-none font-semibold opacity-75 hover:opacity-100">
+          What shapes this signal?
+        </summary>
+        <ul className="mt-2 list-inside list-disc space-y-1 opacity-80">
+          <li>Data completeness — how many decision-grade sources are attached</li>
+          <li>Source freshness — when each source was last verified</li>
+          <li>Prior outcomes — how similar cases have been handled</li>
+        </ul>
+      </details>
 
       <button
         type="button"
