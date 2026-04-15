@@ -18,11 +18,9 @@ import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
 const NAV_ITEMS = [
-  { href: '/passport',    label: 'Check Readiness' },
-  { href: '/explore',     label: 'Explore Roles' },
-  { href: '/employers',   label: 'For Employers' },
+  { href: '/passport',    label: 'Product' },
+  { href: '/employers',   label: 'Employers' },
   { href: '/developers',  label: 'Developers' },
-  { href: '/pilot',       label: 'Pilot' },
 ] as const;
 
 export default function Navbar() {
@@ -82,7 +80,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <ThemeToggle />
           <Link
-            href={pathname && pathname !== '/' ? `/sign-in?redirect_url=${encodeURIComponent(pathname)}` : '/sign-in'}
+            href="/passport"
             className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
           >
             Sign In
@@ -130,7 +128,7 @@ export default function Navbar() {
           </ul>
           <div className="mt-4 flex gap-2 border-t border-border pt-4">
             <Link
-              href={pathname && pathname !== '/' ? `/sign-in?redirect_url=${encodeURIComponent(pathname)}` : '/sign-in'}
+              href="/passport"
               onClick={closeMenu}
               className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-muted-foreground"
             >
