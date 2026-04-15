@@ -90,7 +90,7 @@ export function AuditTrailTimeline({ events }: AuditTrailTimelineProps) {
         </div>
         <div className="flex items-center gap-3">
             <span className="text-[10px] uppercase tracking-widest font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Cryptographically Backed
+                Source-confirmed in this run
             </span>
         </div>
       </CardHeader>

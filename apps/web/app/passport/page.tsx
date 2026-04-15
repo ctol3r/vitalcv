@@ -22,6 +22,7 @@ export const dynamic = 'force-dynamic';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -539,20 +540,31 @@ function PassportPageContent({
                   Sources checked
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {SOURCE_EXPLANATIONS.map(src => (
-                    <div key={src.id} className="flex gap-3 rounded-xl border border-border bg-card p-3.5">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-[10px] font-bold text-muted-foreground">
-                        {src.id === 'nppes' ? 'NP' : src.id === 'oig' ? 'OI' : src.id === 'pecos' ? 'PE' : 'SB'}
-                      </span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground">{src.name}</p>
-                          {src.locked && <span className="rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground flex items-center gap-1"><svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Access Required</span>}
+                  {SOURCE_EXPLANATIONS.map(src => {
+                    const SourceIcon = src.locked ? Lock : ShieldCheck;
+                    return (
+                      <div key={src.id} className="flex gap-3 rounded-xl border border-border bg-card p-3.5">
+                        <span
+                          aria-hidden="true"
+                          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground"
+                        >
+                          <SourceIcon className="h-3 w-3" />
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">{src.name}</p>
+                            {src.locked && (
+                              <span className="rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground flex items-center gap-1">
+                                <Lock aria-hidden="true" className="h-2.5 w-2.5" />
+                                Access Required
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{src.description}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{src.description}</p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -572,15 +584,15 @@ function PassportPageContent({
                   <p className="text-sm text-muted-foreground">[Specialty] · NPI [Your NPI]</p>
                 </div>
                 <div className="space-y-2">
-                  {[
-                    { label: 'NPPES', status: 'Checked', tone: 'text-trust-green' },
-                    { label: 'OIG / LEIE', status: 'Checked', tone: 'text-trust-green' },
-                    { label: 'CMS PECOS', status: 'Enrolled', tone: 'text-trust-green' },
-                    { label: 'State Board', status: 'Access required', tone: 'text-trust-yellow' },
-                  ].map(s => (
+                  {([
+                    { label: 'NPPES', status: 'checked', display: 'Checked' },
+                    { label: 'OIG / LEIE', status: 'checked', display: 'Checked' },
+                    { label: 'CMS PECOS', status: 'enrolled', display: 'Enrolled' },
+                    { label: 'State Board', status: 'access_required', display: 'Access required' },
+                  ] as const).map(s => (
                     <div key={s.label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
                       <span className="text-sm text-muted-foreground">{s.label}</span>
-                      <span className={`text-xs font-medium ${s.tone}`}>{s.status}</span>
+                      <TrustStatusBadge status={s.status} label={s.display} size="sm" />
                     </div>
                   ))}
                 </div>

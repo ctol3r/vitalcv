@@ -46,7 +46,7 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
         <div className="border-t border-border bg-white/[0.02] p-2 px-3 flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
           <span className="text-[10px] text-muted-foreground tracking-widest uppercase font-semibold">
-            Cryptographically Verified
+            Verified against source in this run
           </span>
         </div>
       </div>

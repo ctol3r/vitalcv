@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { PortalSwitcher } from './portal-switcher';
 
 /* ------------------------------------------------------------------ */
@@ -12,10 +13,25 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Global top bar */}
-      <div className="border-b border-[var(--glass-border)] bg-background/80 backdrop-blur-sm">
+      {/* Global top bar — sticky, backdrop-blur on scroll only */}
+      <div
+        className={`sticky top-0 z-40 border-b transition-[backdrop-filter,background-color,border-color] duration-200 ${
+          scrolled
+            ? 'border-[var(--glass-border)] bg-background/80 backdrop-blur-sm'
+            : 'border-transparent bg-background'
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-12">
             {/* Logo */}

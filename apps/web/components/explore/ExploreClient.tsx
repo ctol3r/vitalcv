@@ -193,7 +193,7 @@ export default function ExploreClient() {
   const [startUrgency, setStartUrgency] = useState(() => searchParams.get('startUrgency') ?? '');
   const [readinessStatus, setReadinessStatus] = useState(() => searchParams.get('readinessStatus') ?? '');
   const [missingRequirement, setMissingRequirement] = useState(() => searchParams.get('missingRequirement') ?? '');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [opportunities, setOpportunities] = useState<ApiOpportunity[]>([]);
@@ -516,7 +516,7 @@ export default function ExploreClient() {
             showFilters ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400' : 'bg-muted border border-border text-foreground hover:text-foreground'
           }`}
         >
-          <Filter className="w-4 h-4" /> Filters
+          <Filter className="w-4 h-4" /> More Filters
           {hasFilters && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-foreground text-xs font-bold">!</span>}
         </button>
 
@@ -671,15 +671,15 @@ export default function ExploreClient() {
         </div>
       )}
 
-      {/* Matching CTA */}
+      {/* Matching CTA — primary action */}
       <div className="mt-16 rounded-2xl border border-vt-success/20 bg-vt-success/5 p-8 text-center">
         <ShieldCheck className="mx-auto mb-3 h-6 w-6 text-vt-success" />
-        <h3 className="heading-md text-foreground">Preview your fit in the live flow</h3>
+        <h3 className="heading-md text-foreground">Calculate fit against your readiness</h3>
         <p className="body-sm mx-auto mt-2 max-w-md text-vt-neutral-200">
           Start with your public NPI profile and VitalCV will show which live roles align with your current readiness state before you submit.
         </p>
         <Link href="/passport" className="mt-5 inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-3 text-sm font-semibold text-black hover:bg-vt-success/90 transition-transform active:scale-95">
-          Preview my fit
+          Calculate Fit
         </Link>
       </div>
 

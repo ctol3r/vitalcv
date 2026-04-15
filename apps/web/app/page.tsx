@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import HomePageClient from './HomePageClient';
+import { PassportPreviewCard } from '@/components/passport/PassportPreviewCard';
 
 export const metadata: Metadata = {
   title: { absolute: 'VitalCV — Stop Starting Over. Start Ready.' },
@@ -20,5 +21,18 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomePageClient />;
+  return (
+    <div className="relative">
+      <HomePageClient />
+      {/* Right-side hero passport preview — desktop only, no data side-effects */}
+      <aside
+        aria-label="Sample passport preview"
+        className="pointer-events-none absolute right-6 top-24 hidden w-[360px] xl:block"
+      >
+        <div className="pointer-events-auto">
+          <PassportPreviewCard demo />
+        </div>
+      </aside>
+    </div>
+  );
 }
