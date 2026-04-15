@@ -6,7 +6,8 @@
  * no new readiness computation, no new source states.
  */
 
-import { Eye } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye } from 'lucide-react';
+import Link from 'next/link';
 import { TrustClaim, type TrustClaimKind } from '@/components/trust-state/TrustClaim';
 
 type DemoRow = { label: string; kind: TrustClaimKind };
@@ -17,6 +18,9 @@ const DEMO_ROWS: ReadonlyArray<DemoRow> = [
   { label: 'CMS PECOS', kind: 'verified' },
   { label: 'State Board', kind: 'gated' },
 ];
+
+const DEMO_BLOCKER = 'State board access required before decision-grade readiness';
+const DEMO_ACTION = 'Authorize state board access';
 
 interface PassportPreviewCardProps {
   demo?: boolean;
@@ -62,9 +66,30 @@ export function PassportPreviewCard({ demo = false }: PassportPreviewCardProps) 
         <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
       </div>
 
+      {/* Blocker — explicit, unambiguous, labelled. Not presented as a warning
+          the user can dismiss — this is inspectable state. */}
+      <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-500/80">
+            Blocker
+          </p>
+          <p className="mt-0.5 text-xs text-foreground/80">{DEMO_BLOCKER}</p>
+        </div>
+      </div>
+
+      {/* Single action — the one forward motion to resolve the blocker above. */}
+      <Link
+        href="/passport"
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+      >
+        {DEMO_ACTION}
+        <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+      </Link>
+
       <p className="text-[10px] text-muted-foreground/50 text-center">
         {demo
-          ? 'Demo data for preview only — enter your NPI to see real results'
+          ? 'Demo data — enter your NPI to see your real snapshot'
           : 'Enter your NPI to see real results'}
       </p>
     </div>
