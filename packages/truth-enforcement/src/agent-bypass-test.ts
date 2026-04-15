@@ -1,8 +1,12 @@
-import { validateAgentClaim } from './agent-validation';
+import { validateSemanticAgentClaim, SemanticCapability } from './agent-validation';
 
 let bypassCases: string[] = [];
 
-const actualCapability = "Checked standard HTTP JSON endpoint (no special hashing)";
+const actualCapability: SemanticCapability = {
+  hasCryptography: false,
+  hasBlockchain: false,
+  hasImmutableAudit: false
+};
 
 const testVariants = [
   "Cryptographically verified in this run",
@@ -11,15 +15,23 @@ const testVariants = [
   "securely cryptographically validated",
   "blockchain verified",
   "verified with SHA256 hashing",
-  "cryptographic receipt attached"
+  "cryptographic receipt attached",
+  "We do NOT use cryptography" // <-- Negation should PASS
 ];
 
 for (const variant of testVariants) {
-  const passed = validateAgentClaim(variant, actualCapability);
-  // It SHOULD return false (violation detected).
-  // If it returns true (passed), it bypassed the guard.
-  if (passed === true) {
-    bypassCases.push(variant);
+  const passed = validateSemanticAgentClaim(variant, actualCapability);
+  
+  if (variant === "We do NOT use cryptography") {
+    if (passed === false) {
+      bypassCases.push(variant); // Failing a safe negation is a bug
+    }
+  } else {
+    // Overclaims SHOULD return false (violation detected).
+    // If it returns true (passed), it bypassed the guard.
+    if (passed === true) {
+      bypassCases.push(variant);
+    }
   }
 }
 
