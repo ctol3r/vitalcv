@@ -3594,3 +3594,18 @@ model FrictionLog {
   @@index([resolved])
   @@index([createdAt])
 }
+
+/// ── Validation Baseline (Continuous Trust) ─────────
+model ValidationBaseline {
+  id                  String   @id @default(uuid())
+  npi                 String   @unique
+  expectedIdentity    String?
+  expectedExclusion   String?
+  expectedEnrollment  String?
+  expectedClassification String?
+  lastVerifiedAt      DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([npi])
+}

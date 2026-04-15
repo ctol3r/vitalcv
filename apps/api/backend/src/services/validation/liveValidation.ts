@@ -10,9 +10,14 @@ import { explainArbitration } from '../../../../packages/trust-contract/src/expl
 import { VITALCV_SYSTEM_ISSUER, IssuerType } from '../../../../packages/trust-contract/src/multi-issuer';
 import { SourceStatus, ReadinessPosture } from '../../../../packages/trust-contract/src/index';
 import { generateReceipt } from '../../../../packages/source-adapters/src/utils/hash';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export interface ValidationReport {
   validation_run: string;
+  baseline_established: boolean;
+  drift_detection_active: boolean;
   anomalies: string[];
   drift_detected: string[];
   weakest_case: string;
@@ -30,6 +35,8 @@ const COHORT = [
 export async function runLiveValidation(): Promise<ValidationReport> {
   const report: ValidationReport = {
     validation_run: new Date().toISOString(),
+    baseline_established: true,
+    drift_detection_active: true,
     anomalies: [],
     drift_detected: [],
     weakest_case: 'none',
@@ -77,7 +84,49 @@ export async function runLiveValidation(): Promise<ValidationReport> {
       // 5. Manifest & Decision
       const manifest = await buildManifest(subject.npi, [nppesResult]);
       
-      // 6. Compare Output vs Baseline
+      // 6. DB Baseline Comparison Engine
+      const identityClaim = claims.find(c => c.type === 'identity.name')?.value as string | undefined;
+      const exclusionClaim = claims.find(c => c.type === 'oig.exclusion')?.value as string | undefined;
+      const enrollmentClaim = claims.find(c => c.type === 'pecos.enrollment_status')?.value as string | undefined;
+      const classificationClaim = claims.find(c => c.type === 'identity.taxonomy_classification')?.value as string | undefined;
+
+      let baseline = await prisma.validationBaseline.findUnique({ where: { npi: subject.npi } });
+      
+      if (!baseline) {
+        // Initialize Baseline
+        baseline = await prisma.validationBaseline.create({
+          data: {
+            npi: subject.npi,
+            expectedIdentity: identityClaim ? String(identityClaim) : null,
+            expectedExclusion: exclusionClaim ? String(exclusionClaim) : null,
+            expectedEnrollment: enrollmentClaim ? String(enrollmentClaim) : null,
+            expectedClassification: classificationClaim ? String(classificationClaim) : null,
+            lastVerifiedAt: new Date(),
+          }
+        });
+      } else {
+        // Semantic Drift Detection
+        if (baseline.expectedIdentity !== null && identityClaim !== undefined && baseline.expectedIdentity !== String(identityClaim)) {
+          report.drift_detected.push(`NPI ${subject.npi}: Identity drift detected. Expected ${baseline.expectedIdentity}, got ${identityClaim}`);
+        }
+        if (baseline.expectedExclusion !== null && exclusionClaim !== undefined && baseline.expectedExclusion !== String(exclusionClaim)) {
+          report.drift_detected.push(`NPI ${subject.npi}: Exclusion drift detected. Expected ${baseline.expectedExclusion}, got ${exclusionClaim}`);
+        }
+        if (baseline.expectedEnrollment !== null && enrollmentClaim !== undefined && baseline.expectedEnrollment !== String(enrollmentClaim)) {
+          report.drift_detected.push(`NPI ${subject.npi}: Enrollment drift detected. Expected ${baseline.expectedEnrollment}, got ${enrollmentClaim}`);
+        }
+        if (baseline.expectedClassification !== null && classificationClaim !== undefined && baseline.expectedClassification !== String(classificationClaim)) {
+          report.drift_detected.push(`NPI ${subject.npi}: Classification drift detected. Expected ${baseline.expectedClassification}, got ${classificationClaim}`);
+        }
+        
+        // Update last verified
+        await prisma.validationBaseline.update({
+          where: { npi: subject.npi },
+          data: { lastVerifiedAt: new Date() }
+        });
+      }
+
+      // 7. Posture Comparison vs Hardcoded Baseline
       if (manifest.readinessPosture !== subject.expectedPosture) {
         // If actual posture is worse than expected, it's degradation
         report.drift_detected.push(`NPI ${subject.npi} (${subject.description}): Expected ${subject.expectedPosture}, got ${manifest.readinessPosture}`);
