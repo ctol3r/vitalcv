@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import { TrustClaim } from '@/components/trust-state/TrustClaim';
 import type { IngestStreamState } from '@/hooks/ingestStreamState';
 
 void React;
@@ -308,11 +308,7 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
               className="flex items-center justify-between py-2 border-b border-border last:border-0"
             >
               <span className="text-sm text-muted-foreground">{source.label}</span>
-              <TrustStatusBadge
-                status={source.done ? 'checked' : 'pending'}
-                label={source.done ? 'Checked' : 'Pending'}
-                size="sm"
-              />
+              <TrustClaim kind={source.done ? 'verified' : 'pending'} size="sm" />
             </div>
           ))}
         </div>

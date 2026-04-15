@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import { TrustClaim } from '@/components/trust-state/TrustClaim';
 import type { PassportData, ReadinessStatus } from '@/lib/trust/passport-contract';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
@@ -108,7 +109,7 @@ function PassportFreshnessCard({
 
   return (
     <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Freshness</p>
           <p className="mt-1 text-sm text-foreground/60">{freshness.label}</p>
@@ -118,7 +119,7 @@ function PassportFreshnessCard({
       <div className="space-y-2 border-t border-white/6 pt-3">
         {freshness.items.map((item) => (
           <div key={item.id} className="rounded-xl border border-white/6 bg-muted px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs text-foreground/70">{item.label}</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{item.note}</p>
@@ -130,7 +131,7 @@ function PassportFreshnessCard({
                 className="shrink-0"
               />
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground/30">
+            <div className="mt-2 flex flex-col gap-1 text-[10px] text-muted-foreground/30 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
               <span>{item.source}</span>
               <span>{item.checkedAt ? `Checked ${formatProofDate(item.checkedAt)}` : 'Not yet checked'}</span>
             </div>
@@ -146,11 +147,52 @@ function PassportFreshnessCard({
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
+    <div className="flex flex-col gap-1 border-b border-white/5 py-1.5 text-xs last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground/60">{value}</span>
+      <span className="break-words text-foreground/60 sm:text-right">{value}</span>
     </div>
   );
+}
+
+import type { TrustClaimKind } from '@/components/trust-state/TrustClaim';
+
+function StatusRow({ label, kind }: { label: string; kind: TrustClaimKind }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-white/5 py-1.5 text-xs last:border-0">
+      <span className="text-muted-foreground">{label}</span>
+      <TrustClaim kind={kind} size="sm" />
+    </div>
+  );
+}
+
+function resolveExclusionKind(exclusionStatus: string | undefined): TrustClaimKind {
+  // Map backend exclusion states to the canonical claim vocabulary.
+  // POSSIBLE_MATCH and EXCLUDED are deliberately NOT 'verified' — they represent
+  // findings that require review or block proceeding, so we surface them as
+  // 'unavailable' (not a clear verification) with upstream copy carrying the detail.
+  switch (exclusionStatus) {
+    case 'CLEAR':
+      return 'verified';
+    case 'UNCHECKED':
+      return 'pending';
+    case 'POSSIBLE_MATCH':
+    case 'EXCLUDED':
+    default:
+      return 'unavailable';
+  }
+}
+
+function resolveLicensureKind(licensureStatus: string | undefined): TrustClaimKind {
+  switch (licensureStatus) {
+    case 'verified':
+      return 'verified';
+    case 'pending':
+      return 'pending';
+    case 'expired':
+      return 'unavailable';
+    default:
+      return 'gated';
+  }
 }
 
 // ── Accordion section builders ─────────────────────────────────────────────────
@@ -177,33 +219,31 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
 }
 
 // ── Authority row renderer (MS15) ────────────────────────────────────────────
-// Shared display contract: title · status · source · checkedAt · confidence · freshness
+// Shared display contract: title · status · source · checkedAt · freshness
 
 interface AuthorityRowProps {
   title:       string;
   status:      VdsTrustStatus;
   sourceLabel: string;
   checkedAt?:  string | null;
-  confidence?: string | null;
   freshness?:  string | null;
   note?:       string | null;
 }
 
-function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, freshness, note }: AuthorityRowProps) {
+function AuthorityRow({ title, status, sourceLabel, checkedAt, freshness, note }: AuthorityRowProps) {
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
-      <div className="flex justify-between text-xs">
+      <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <span className="text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
       </div>
-      <div className="flex justify-between text-xs mt-0.5">
+      <div className="mt-0.5 flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <span className="text-muted-foreground/50">Source: {sourceLabel}</span>
         {freshness && <span className="text-muted-foreground/30">{freshness}</span>}
       </div>
-      {(checkedAt || confidence) && (
+      {checkedAt && (
         <div className="text-muted-foreground/40 text-xs mt-0.5 flex gap-2 flex-wrap">
           {checkedAt && <span>Checked {checkedAt}</span>}
-          {confidence && <span>· {confidence}</span>}
         </div>
       )}
       {note && <div className="text-muted-foreground/30 text-xs mt-0.5 leading-relaxed">{note}</div>}
@@ -235,7 +275,6 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
             status={resolveAuthorityVdsStatus(c)}
             sourceLabel={resolveAuthorityMethodLabel(c)}
             checkedAt={c.observedAt ? formatProofDate(c.observedAt) : null}
-            confidence={c.claimConfidenceLabel}
             freshness={c.dataFreshnessLabel}
             note={resolveAuthorityNote(c)}
           />
@@ -255,7 +294,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {authority.summary.missing
           .filter(d => !['IDENTITY', 'EXCLUSION_CHECK'].includes(d))
           .map(d => (
-            <div key={d} className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
+            <div key={d} className="flex flex-col gap-2 border-b border-white/5 py-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 last:border-0">
               <span className="text-xs text-muted-foreground/40">{d.replace(/_/g, ' ').toLowerCase()}</span>
               <TrustStatusBadge status="blocked" size="sm" />
             </div>
@@ -280,9 +319,9 @@ function buildTrainingSection(passport: PassportData): AccordionItem {
         )}
         {training.records.map(r => (
           <div key={r.id} className="py-1.5 border-b border-white/5 last:border-0">
-            <div className="flex justify-between text-xs">
+            <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <span className="text-foreground/60">{r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className="text-muted-foreground">{r.endYear ?? '—'}</span>
+              <span className="text-muted-foreground sm:text-right">{r.endYear ?? '—'}</span>
             </div>
             {(r.institutionName || r.specialty) && (
               <div className="text-muted-foreground/60 text-xs mt-0.5">
@@ -327,10 +366,19 @@ function buildStandingSection(passport: PassportData): AccordionItem {
            : 'pending',
     content: (
       <div className="py-1">
-        <DetailRow label="Exclusion check"   value={exclusionLabel} />
+        <StatusRow
+          label="Exclusion check"
+          kind={resolveExclusionKind(standing.exclusionStatus)}
+        />
+        {/* Preserve the existing text-label rows for supplemental detail (timestamp, source name, human-readable status). */}
+        <DetailRow label="Exclusion status"  value={exclusionLabel} />
         <DetailRow label="Checked"           value={formatProofDate(standing.exclusionCheckedAt)} />
-        <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
-        <DetailRow label="License"           value={licensureLabel} />
+        <DetailRow label="Source"            value="OIG LEIE" />
+        <StatusRow
+          label="License"
+          kind={resolveLicensureKind(standing.licensureStatus)}
+        />
+        <DetailRow label="License status"    value={licensureLabel} />
         {safetyNegative.map((f, i) => (
           <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
             <span className="text-muted-foreground/50 select-none">⚠</span>
@@ -354,28 +402,26 @@ interface EligibilityRowProps {
   checkedAt?:   string | null;
   dataVersion?: string | null;
   freshness?:   string | null;
-  confidence?:  string | null;
   note?:        string | null;
 }
 
 function EligibilityRow({
-  title, status, sourceLabel, checkedAt, dataVersion, freshness, confidence, note,
+  title, status, sourceLabel, checkedAt, dataVersion, freshness, note,
 }: EligibilityRowProps) {
   return (
     <div className="py-1.5 border-b border-white/5 last:border-0">
-      <div className="flex justify-between text-xs gap-2">
+      <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <span className="flex items-center gap-1.5 text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
       </div>
-      <div className="flex justify-between text-xs mt-0.5 pl-4">
+      <div className="mt-0.5 flex flex-col gap-1 pl-4 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <span className="text-muted-foreground/50">Source: {sourceLabel}</span>
         {freshness && <span className="text-muted-foreground/30">{freshness}</span>}
       </div>
-      {(checkedAt || dataVersion || confidence) && (
+      {(checkedAt || dataVersion) && (
         <div className="text-muted-foreground/40 text-xs mt-0.5 pl-4 flex gap-2 flex-wrap">
           {dataVersion && <span>{dataVersion}</span>}
           {checkedAt && <span>· Checked {checkedAt}</span>}
-          {confidence && <span>· {confidence}</span>}
         </div>
       )}
       {note && <div className="text-muted-foreground/30 text-xs mt-0.5 pl-4 leading-relaxed">{note}</div>}
@@ -430,7 +476,6 @@ function buildEligibilitySection(passport: PassportData): AccordionItem {
           checkedAt={standing.enrollmentObservedAt ? formatProofDate(standing.enrollmentObservedAt) : null}
           dataVersion={quarterLabel}
           freshness={standing.enrollmentFreshnessLabel ?? standing.enrollmentDataFreshness ?? 'Quarterly'}
-          confidence={standing.enrollmentConfidenceLabel ?? undefined}
           note={standing.enrollmentNote ?? undefined}
         />
         {rowStatus === 'review_required' && (
@@ -461,6 +506,43 @@ interface PassportWalletLoadingProps {
 
 type Props = PassportWalletLoadedProps | PassportWalletLoadingProps;
 
+type PostHogCaptureClient = {
+  capture: (event: string, properties?: Record<string, unknown>) => void;
+};
+
+function isShareLinkResponse(
+  value: unknown,
+): value is { bundleId?: string; bundleUrl?: string; error?: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    (typeof record.bundleId === 'undefined' || typeof record.bundleId === 'string')
+    && (typeof record.bundleUrl === 'undefined' || typeof record.bundleUrl === 'string')
+    && (typeof record.error === 'undefined' || typeof record.error === 'string')
+  );
+}
+
+function resolvePostHogCaptureClient(): PostHogCaptureClient | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const candidate = (window as Window & { posthog?: unknown }).posthog;
+  if (
+    candidate
+    && typeof candidate === 'object'
+    && 'capture' in candidate
+    && typeof candidate.capture === 'function'
+  ) {
+    return candidate as PostHogCaptureClient;
+  }
+
+  return null;
+}
+
 function PassportWalletLoadingShell() {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-12 sm:pt-16 pb-24">
@@ -474,7 +556,7 @@ function PassportWalletLoadingShell() {
           <Skeleton className="mt-3 h-7 w-40 rounded-full" />
           <Skeleton className="mt-2 h-4 w-28 rounded-full" />
           <div className="mt-4">
-            <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            <TrustClaim kind="pending" size="sm" />
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
             Resolving source-backed passport sections. Nothing is promoted to checked until real source data arrives.
@@ -482,29 +564,29 @@ function PassportWalletLoadingShell() {
         </Card>
 
         <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Summary</p>
               <p className="mt-1 text-sm text-foreground/70">READY / PARTIAL / BLOCKED</p>
             </div>
-            <TrustStatusBadge status="pending" label="Pending" size="sm" />
+            <TrustClaim kind="pending" size="sm" />
           </div>
           <div className="space-y-3 border-t border-white/6 pt-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">NPPES</span>
-              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+              <TrustClaim kind="pending" size="sm" />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">OIG / LEIE</span>
-              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+              <TrustClaim kind="pending" size="sm" />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">CMS PECOS</span>
-              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+              <TrustClaim kind="pending" size="sm" />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-muted-foreground">Configured state board lane</span>
-              <TrustStatusBadge status="pending" label="Pending" size="sm" />
+              <TrustClaim kind="pending" size="sm" />
             </div>
           </div>
         </Card>
@@ -517,7 +599,7 @@ function PassportWalletLoadingShell() {
           </div>
           <div className="space-y-3 border-t border-white/6 pt-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex items-center justify-between gap-3">
+              <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <Skeleton className="h-3 w-28 rounded-full" />
                 <Skeleton className="h-6 w-20 rounded-full" />
               </div>
@@ -533,9 +615,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const trackEvent = useTrackEvent();
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).posthog) {
-      (window as any).posthog.capture('Passport_Viewed', { npi: passport.npi });
-    }
+    resolvePostHogCaptureClient()?.capture('Passport_Viewed', { npi: passport.npi });
     if (passport.npi) {
       trackEvent('PROFILE_VIEWED', { providerId: passport.npi });
     }
@@ -550,10 +630,24 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   useEffect(() => {
     const npi = passport.npi ?? passport.identity?.npi;
     if (!npi || !/^\d{10}$/.test(npi)) return;
-    fetch(`/api/employer-review/npi/${npi}/refresh-requests`)
-      .then((res) => res.ok ? res.json() as Promise<{ count: number }> : Promise.resolve({ count: 0 }))
-      .then((data) => setPendingRefreshCount(data.count))
+
+    const controller = new AbortController();
+
+    fetch(`/api/employer-review/npi/${npi}/refresh-requests`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then((res) => (res.ok ? res.json() : Promise.resolve({ count: 0 })))
+      .then((data) => {
+        if (!controller.signal.aborted && typeof data?.count === 'number' && Number.isFinite(data.count)) {
+          setPendingRefreshCount(data.count);
+        }
+      })
       .catch(() => void 0);
+
+    return () => {
+      controller.abort();
+    };
   }, [passport.npi, passport.identity?.npi]);
 
   // Pre-check auth before showing share UI — prevents click-then-error UX
@@ -609,7 +703,11 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         throw new Error('Could not generate share link. Try again.');
       }
 
-      const data = await res.json() as { bundleId?: string; bundleUrl?: string; error?: string };
+      const payload = await res.json().catch(() => null);
+      if (!isShareLinkResponse(payload)) {
+        throw new Error('Unexpected share link response.');
+      }
+      const data = payload;
       if (!data.bundleId) throw new Error(data.error ?? 'Share link generation failed.');
 
       // Copy bundle URL to clipboard
@@ -631,12 +729,12 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
       <div className="w-full max-w-2xl space-y-6">
 
         {/* ── Header — brutalist minimal ─────────────────────────────────────── */}
-        <div className="flex items-center justify-between border-b border-[var(--vt-border)] pb-4">
+        <div className="flex flex-col gap-3 border-b border-[var(--vt-border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold tracking-tight">V</div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">VitalCV · Clinician Passport</span>
           </div>
-          <Link href="/passport" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-foreground transition-colors">
+          <Link href="/passport" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 transition-colors hover:text-foreground">
             View another NPI
           </Link>
         </div>
@@ -670,9 +768,9 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                 <p className="text-muted-foreground/40 text-xs mt-1 font-mono">NPI {passport.npi}</p>
               )}
             </div>
-            <div className="text-right shrink-0">
+            <div className="shrink-0 text-left sm:text-right">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Readiness</p>
-              <div className="text-5xl font-bold tracking-tighter font-mono text-foreground">
+              <div className="text-4xl font-bold tracking-tighter font-mono text-foreground sm:text-5xl">
                 {showReadinessScore ? readiness.score : 'Withheld'}
                 {showReadinessScore ? <span className="text-2xl text-muted-foreground/40">/100</span> : null}
               </div>
@@ -705,7 +803,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {passport.monitoring?.active && (
           <SectionReveal delay={0.02}>
             <div className="border border-[var(--vt-border)] bg-card px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">
@@ -726,9 +824,9 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
               {passport.monitoring.monitoredSources.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
                   {passport.monitoring.monitoredSources.map((source) => (
-                    <div key={source.sourceId} className="flex items-center justify-between text-[10px]">
+                    <div key={source.sourceId} className="flex flex-col gap-1 text-[10px] sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <span className="text-muted-foreground/60 font-mono">{source.sourceLabel}</span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 sm:justify-end">
                         {source.lastCheckAt && (
                           <span className="text-muted-foreground/30">{formatProofDate(source.lastCheckAt)}</span>
                         )}
