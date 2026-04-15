@@ -36,9 +36,15 @@ function isActionKind(value: unknown): value is ActionKind {
  * Best-effort tamper-evident attestation write. NEVER throws back to
  * the caller — attestation failures must not block the action route.
  */
+interface AttestationActorContext {
+  actorId?: string | null;
+  organizationId?: string | null;
+}
+
 async function recordDecisionAttestation(
   npi: string,
   action: ActionKind,
+  actor: AttestationActorContext = {},
 ): Promise<{ hash: string; decisionState: string } | null> {
   try {
     const [passportResult, reuseResult] = await Promise.allSettled([
@@ -77,6 +83,8 @@ async function recordDecisionAttestation(
         decisionTimestamp,
         snapshot: snapshot as never,
         hash,
+        actorId: actor.actorId ?? null,
+        organizationId: actor.organizationId ?? null,
       },
     });
     return { hash, decisionState };
@@ -98,6 +106,13 @@ const ACTION_AUDIT_EVENT_TYPE: Record<ActionKind, string> = {
 
 export function registerActionLogRoutes(app: Express): void {
   app.post('/api/employer-actions', async (req: Request, res: Response) => {
+    // Pull actor context from the existing apiAuth middleware (req.auth).
+    // Falls back to nulls when the request is unauthenticated — actor
+    // attribution is additive and best-effort, not a gate.
+    const actor = {
+      actorId: req.auth?.keyId ?? req.auth?.clinicianId ?? null,
+      organizationId: null as string | null,
+    };
     const body = (req.body ?? {}) as ActionRequestBody;
     const { npi, action, rationale } = body;
 
@@ -164,12 +179,14 @@ export function registerActionLogRoutes(app: Express): void {
       }
 
       // Tamper-evident attestation — best-effort, never blocks.
-      const attestation = await recordDecisionAttestation(npi, action);
+      const attestation = await recordDecisionAttestation(npi, action, actor);
       // Audit-event chain — fire-and-forget; outputsHash is the
       // attestation digest so external auditors can correlate.
       await logEvent({
         eventType: ACTION_AUDIT_EVENT_TYPE[action],
         subjectNpi: npi,
+        actorId: actor.actorId,
+        organizationId: actor.organizationId,
         outputsHash: attestation?.hash ?? null,
         metadata: {
           action,
@@ -210,7 +227,20 @@ export function registerActionLogRoutes(app: Express): void {
     }
 
     // Tamper-evident attestation — best-effort, never blocks.
-    await recordDecisionAttestation(npi, action);
+    const nonAcceptAttestation = await recordDecisionAttestation(npi, action, actor);
+    // Audit-event chain for non-accept actions — symmetry with the
+    // accept path above.
+    await logEvent({
+      eventType: ACTION_AUDIT_EVENT_TYPE[action],
+      subjectNpi: npi,
+      actorId: actor.actorId,
+      organizationId: actor.organizationId,
+      outputsHash: nonAcceptAttestation?.hash ?? null,
+      metadata: {
+        action,
+        decisionState: nonAcceptAttestation?.decisionState ?? null,
+      },
+    });
 
     log('info', 'employer_action_recorded', {
       npi_prefix: npi.slice(0, 4) + '····',

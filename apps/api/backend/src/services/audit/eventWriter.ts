@@ -27,6 +27,9 @@ export interface AuditEventInput {
   subjectNpi?: string | null;
   referenceId?: string | null;
   organizationId?: string | null;
+  /** Actor id — read from req.auth when available. Optional so unauth'd
+   *  paths (e.g. webhooks, background jobs) can still emit events. */
+  actorId?: string | null;
   timestamp?: Date;
   inputsHash?: string | null;
   outputsHash?: string | null;
@@ -59,6 +62,7 @@ export async function logEvent(input: AuditEventInput): Promise<void> {
         clinicianId: input.subjectNpi ?? null,
         referenceId: input.referenceId ?? null,
         organizationId: input.organizationId ?? null,
+        actorId: input.actorId ?? null,
         metadata: metadata as never,
         ...(input.timestamp ? { createdAt: input.timestamp } : {}),
       },

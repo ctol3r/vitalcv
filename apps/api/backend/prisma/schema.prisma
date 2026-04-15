@@ -1495,6 +1495,9 @@ model AuditEvent {
   metadata       Json?
   createdAt      DateTime @default(now())
   organizationId String?
+  // Actor attribution — populated from req.auth when present. Optional
+  // so existing callers of prisma.auditEvent.create continue to work.
+  actorId        String?
   anchored       Boolean  @default(false)
   merkleRoot     String?
 
@@ -1502,6 +1505,7 @@ model AuditEvent {
   @@index([clinicianId])
   @@index([referenceId])
   @@index([organizationId])
+  @@index([actorId])
   @@index([anchored])
   @@index([merkleRoot])
 }
@@ -1850,11 +1854,17 @@ model DecisionAttestation {
   // sha256 hex digest over the canonicalized attestation envelope.
   // Tamper-evident: clients can recompute and compare.
   hash              String
+  // Actor + tenant attribution — populated when req.auth is present.
+  // Optional so existing callers remain backward-compatible.
+  actorId           String?  @map("actor_id")
+  organizationId    String?  @map("organization_id")
   createdAt         DateTime @default(now()) @map("created_at")
 
   @@index([clinicianNpi])
   @@index([decisionTimestamp])
   @@index([hash])
+  @@index([actorId])
+  @@index([organizationId])
   @@map("decision_attestation")
 }
 
