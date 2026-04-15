@@ -84,7 +84,18 @@ export default function PublicTrustProfileLoading() {
             </div>
           </section>
 
-          <p className="sr-only">Loading trust snapshot…</p>
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-6 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            Checking sources…
+          </p>
+          <p className="sr-only">
+            Loading trust snapshot. If this takes longer than usual the upstream
+            verification sources may be delayed — the page will update as data
+            arrives.
+          </p>
         </article>
       </div>
     </main>

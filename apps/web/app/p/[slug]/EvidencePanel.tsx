@@ -27,7 +27,17 @@ interface EvidenceRowSpec {
   flaggedLabel?: string;
 }
 
+// Ordered: identity → safety → authority. Matches the progressive
+// render order operators expect — establish who the person is first,
+// confirm they aren't excluded second, then layer on the authority lane.
 const ROWS: EvidenceRowSpec[] = [
+  {
+    label: 'Identity',
+    source: 'NPPES Registry',
+    matches: ['NPPES_API', 'NPPES'],
+    presentLabel: 'Verified match',
+    absentLabel: 'Missing',
+  },
   {
     label: 'OIG Exclusion',
     source: 'OIG LEIE',
@@ -42,13 +52,6 @@ const ROWS: EvidenceRowSpec[] = [
     matches: ['STATE_BOARD'],
     presentLabel: 'Active',
     absentLabel: 'Unknown',
-  },
-  {
-    label: 'Identity',
-    source: 'NPPES Registry',
-    matches: ['NPPES_API', 'NPPES'],
-    presentLabel: 'Verified match',
-    absentLabel: 'Missing',
   },
 ];
 
