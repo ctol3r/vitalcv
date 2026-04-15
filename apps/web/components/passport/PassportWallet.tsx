@@ -156,11 +156,23 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 
 import type { TrustClaimKind } from '@/components/trust-state/TrustClaim';
 
-function StatusRow({ label, kind }: { label: string; kind: TrustClaimKind }) {
+function StatusRow({
+  label,
+  kind,
+  source,
+  timestamp,
+}: {
+  label: string;
+  kind: TrustClaimKind;
+  /** Optional source attribution (e.g. "OIG / LEIE", "State board"). */
+  source?: string;
+  /** Optional timestamp of the underlying check. */
+  timestamp?: string | Date;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-white/5 py-1.5 text-xs last:border-0">
       <span className="text-muted-foreground">{label}</span>
-      <TrustClaim kind={kind} size="sm" />
+      <TrustClaim kind={kind} source={source} timestamp={timestamp} size="sm" />
     </div>
   );
 }
@@ -366,17 +378,20 @@ function buildStandingSection(passport: PassportData): AccordionItem {
            : 'pending',
     content: (
       <div className="py-1">
+        {/* Claim rows now carry source attribution + timestamp inline via TrustClaim.
+            We keep the human-readable status text below as supplemental detail,
+            so the claim itself stays terse and the detail rows explain specifics. */}
         <StatusRow
           label="Exclusion check"
           kind={resolveExclusionKind(standing.exclusionStatus)}
+          source="OIG / LEIE"
+          timestamp={standing.exclusionCheckedAt}
         />
-        {/* Preserve the existing text-label rows for supplemental detail (timestamp, source name, human-readable status). */}
         <DetailRow label="Exclusion status"  value={exclusionLabel} />
-        <DetailRow label="Checked"           value={formatProofDate(standing.exclusionCheckedAt)} />
-        <DetailRow label="Source"            value="OIG LEIE" />
         <StatusRow
           label="License"
           kind={resolveLicensureKind(standing.licensureStatus)}
+          source="State board"
         />
         <DetailRow label="License status"    value={licensureLabel} />
         {safetyNegative.map((f, i) => (
