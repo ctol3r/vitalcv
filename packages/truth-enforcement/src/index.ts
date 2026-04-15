@@ -125,8 +125,8 @@ export function guardUiTruthMapping(uiState: { posture: string; backendPosture: 
 // Ensures exported/copied data preserves integrity.
 
 export function guardCopyValidation(copy: { manifestId: string; claimCount: number; receiptCount: number; hasBlockedLanes: boolean; blockedSignalsCount: number }): void {
-  // F1: No "checked" without verified receipt
-  if (copy.claimCount > 0 && copy.receiptCount === 0) {
+  // F1: No "checked" without verified receipt (or partial coverage)
+  if (copy.claimCount > 0 && copy.receiptCount < copy.claimCount) {
     throw new EnforcementViolation('F', 'F1_CHECKED_WITHOUT_RECEIPT',
       `Manifest has ${copy.claimCount} claims but 0 receipts. Copy cannot be trusted.`, 'HIGH');
   }
