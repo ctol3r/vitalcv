@@ -46,6 +46,7 @@ import { CopyShareLink } from './CopyShareLink';
 import { NextBestActionCard, type NextBestActionPayload } from './NextBestActionCard';
 import { EvidencePanel } from './EvidencePanel';
 import { DivergencePanel } from './DivergencePanel';
+import { DriftBanner } from './DriftBanner';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -184,6 +185,12 @@ interface NpiProfile {
       resolution: 'OPEN' | 'RESOLVED';
     }>;
   } | null;
+  drift?: {
+    state: 'STABLE' | 'SOFT_DRIFT' | 'HARD_DRIFT';
+    severity?: string;
+    reasons: string[];
+    lastChecked: string;
+  };
 }
 
 type DisplayProfile = SlugProfile | NpiProfile;
@@ -1446,6 +1453,15 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               {profile.divergence !== undefined && (
                 <section className="mb-6">
                   <DivergencePanel divergence={profile.divergence} />
+                </section>
+              )}
+
+              {/* Drift banner — surfaces system state changes as "Status
+                  changed" + Reason lines, so the user never sees a silent
+                  correction. Renders nothing when drift.state === STABLE. */}
+              {profile.drift && (
+                <section className="mb-6">
+                  <DriftBanner drift={profile.drift} />
                 </section>
               )}
 

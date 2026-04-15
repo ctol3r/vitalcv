@@ -18,6 +18,7 @@ import { getPredictionSummaryForEntity } from '../services/predictions/predictio
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
 import { detectDivergence } from '../services/identity/divergenceEngine';
+import { computeDriftSignal, type DriftSignal } from '../orchestrator/drift';
 import type { Decision } from '../services/entity/passportService';
 import type { CanonicalSourceCoverageReport, CanonicalTruthSet } from '@vitalcv/trust-state';
 
@@ -122,6 +123,11 @@ export interface NpiProfileResponse {
       resolution: 'OPEN' | 'RESOLVED';
     }>;
   } | null;
+  // Drift signal derived from passport + reuse data. Always present
+  // so the UI never renders a silent change — STABLE carries an
+  // empty reasons list, SOFT_DRIFT / HARD_DRIFT carry human-readable
+  // explanations the UI surfaces as "Reason: …".
+  drift: DriftSignal;
 }
 
 function inferStateFromSource(source: string): string | null {
@@ -394,6 +400,10 @@ export function registerPublicProfileRoutes(app: Express): void {
           })),
         },
         reuse_signal: reuseSignal,
+        drift: computeDriftSignal({
+          passport: passportData,
+          reuseSignal,
+        }),
         divergence: divergenceReport
           ? {
               activeCount: divergenceReport.conflicts.filter((c) => c.active).length,
