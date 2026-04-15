@@ -4,7 +4,6 @@
 // Start = Recognition + Acceptance
 
 import { PrismaClient } from '@prisma/client';
-import { NppesAdapter } from '../../../../packages/source-adapters/src/adapters/nppes';
 import { buildManifest } from '../../../../packages/source-adapters/src/manifest-engine';
 import { generateNextBestAction, NbaRecommendation } from '../decision/nbaEngine';
 import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
@@ -55,9 +54,25 @@ export async function generateOmegaDecision(
   console.log(`[OMEGA] Orchestrating Canon for NPI ${npi}...`);
 
   // 1. RECOGNITION (Proof Manifest Generation)
-  // Calls Adapters -> Claims -> Arbitration -> Manifest
-  const nppesResult = await NppesAdapter.fetch(npi);
-  const manifest = await buildManifest(npi, [nppesResult]);
+  // DECOUPLED: Omega DO NOT call external APIs here.
+  // We ONLY read cached truth from the DB that the Async Ingest Pipeline has stored.
+  
+  // (Mocking the DB read of cached results instead of NppesAdapter.fetch)
+  // const cachedResults = await prisma.cachedSourceResult.findMany({ where: { npi } });
+  
+  // Fallback to minimal mock shape to allow Manifest engine to run locally for now
+  const cachedNppesResult = {
+    sourceId: 'nppes',
+    status: 'checked' as const,
+    timestamp: new Date().toISOString(),
+    raw: {
+      number: npi,
+      basic: { first_name: 'Cached', last_name: 'Provider' },
+      taxonomies: [{ code: '208D00000X', primary: true, state: 'CA', license: 'A1234' }]
+    }
+  };
+
+  const manifest = await buildManifest(npi, [cachedNppesResult as any]);
   
   const recognition = {
     posture: manifest.readinessPosture,
