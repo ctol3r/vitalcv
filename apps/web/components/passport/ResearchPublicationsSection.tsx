@@ -1,17 +1,22 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
+import { TrustClaim, type TrustClaimKind } from '@/components/trust-state/TrustClaim';
 import type { PassportResearchData } from '@/lib/trust/research-passport-types';
 import { formatProofDate } from '@/lib/trust/proof-language';
 
 void React;
 
-const ORCID_STATUS_BADGE = {
-  VERIFIED: { status: 'checked' as const, label: 'Verified' },
-  PENDING: { status: 'stale' as const, label: 'Pending' },
-  UNLINKED: { status: 'unavailable' as const, label: 'Not linked' },
-} as const;
+/**
+ * Map the ORCID verification-status enum to the canonical TrustClaim
+ * vocabulary. PENDING now maps to 'pending' (genuinely not-yet-linked),
+ * not 'stale' (which means "checked but aged") — an honest refinement.
+ */
+const ORCID_STATUS_TO_CLAIM: Record<string, { kind: TrustClaimKind; limitation?: string }> = {
+  VERIFIED: { kind: 'verified' },
+  PENDING: { kind: 'pending', limitation: 'ORCID linkage in progress' },
+  UNLINKED: { kind: 'unavailable', limitation: 'ORCID not linked' },
+};
 
 const AUTHOR_POSITION_CLASS: Record<string, string> = {
   first: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
@@ -134,11 +139,20 @@ export function ResearchPublicationsSection({
                   </p>
                 )}
               </div>
-              <TrustStatusBadge
-                status={ORCID_STATUS_BADGE[orcid.verificationStatus]?.status ?? 'unavailable'}
-                label={ORCID_STATUS_BADGE[orcid.verificationStatus]?.label ?? 'Unknown'}
-                size="sm"
-              />
+              {(() => {
+                const claim = ORCID_STATUS_TO_CLAIM[orcid.verificationStatus] ?? {
+                  kind: 'unavailable' as TrustClaimKind,
+                  limitation: 'ORCID status unknown',
+                };
+                return (
+                  <TrustClaim
+                    kind={claim.kind}
+                    source="ORCID"
+                    limitation={claim.limitation}
+                    size="sm"
+                  />
+                );
+              })()}
             </div>
           </div>
         )}
