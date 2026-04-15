@@ -25,6 +25,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
@@ -584,12 +585,29 @@ function PassportPageContent({
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
-                    <span className="text-xs font-semibold text-trust-green">READY</span>
+                <div className="rounded-lg border border-border bg-background p-4 relative overflow-hidden backdrop-blur-md bg-white/5 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Readiness Index</span>
+                    <span className="text-xs font-bold text-trust-green flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> DECISION GRADE</span>
                   </div>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
+                  
+                  <div className="flex items-end gap-3 mt-3">
+                    <div className="relative w-16 h-16">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path className="text-white/10" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path className="text-trust-green" strokeDasharray="82, 100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-lg font-bold tabular-nums">82</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Coverage</span><span className="font-mono text-foreground">3/3</span></div>
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Receipts</span><span className="font-mono text-foreground">3</span></div>
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Adverse</span><span className="font-mono text-emerald-500">0</span></div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground/50 text-center">
                   This is a sample — enter your NPI to see real results
