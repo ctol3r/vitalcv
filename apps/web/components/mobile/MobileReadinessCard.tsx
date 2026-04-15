@@ -155,7 +155,7 @@ export function MobileReadinessCard({
         </p>
         <Link
           href="/onboarding"
-          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
         >
           Finish onboarding
           <ArrowRight className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function MobileReadinessCard({
           type="button"
           onClick={() => void loadTrustState()}
           disabled={loading}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/70 text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-zinc-700 bg-zinc-950/70 text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh readiness"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -195,14 +195,14 @@ export function MobileReadinessCard({
       </div>
 
       {loading ? (
-        <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+        <div className="mt-5 rounded-none border border-zinc-800 bg-zinc-950/70 p-4">
           <div className="flex items-center gap-3 text-sm text-zinc-300">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
             Computing live readiness...
           </div>
         </div>
       ) : error ? (
-        <div className="mt-5 space-y-4 rounded-3xl border border-amber-500/20 bg-amber-500/10 p-4">
+        <div className="mt-5 space-y-4 rounded-none border border-amber-500/20 bg-amber-500/10 p-4">
           <div className="flex items-start gap-3 text-amber-100">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
@@ -212,7 +212,7 @@ export function MobileReadinessCard({
           </div>
           <Link
             href="/holder/readiness"
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950/80 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 active:scale-[0.98]"
+            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none border border-zinc-700 bg-zinc-950/80 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 active:scale-[0.98]"
           >
             Open readiness page
             <ArrowRight className="h-4 w-4" />
@@ -220,7 +220,7 @@ export function MobileReadinessCard({
         </div>
       ) : trustState ? (
         <>
-          <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4 relative overflow-hidden backdrop-blur-md bg-white/5 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+          <div className="mt-5 rounded-none border border-zinc-800 bg-zinc-950/70 p-4 relative overflow-hidden  bg-[var(--vt-surface)] border-[var(--vt-border)] ">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
@@ -258,7 +258,7 @@ export function MobileReadinessCard({
             </div>
           </div>
 
-          <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+          <div className="mt-4 rounded-none border border-zinc-800 bg-zinc-950/70 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
               Pending items
             </p>
@@ -279,7 +279,7 @@ export function MobileReadinessCard({
           </div>
 
           {nextAction ? (
-            <div className="mt-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <div className="mt-4 rounded-none border border-emerald-500/20 bg-emerald-500/10 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
                 Next best action
               </p>
@@ -287,7 +287,7 @@ export function MobileReadinessCard({
               <p className="mt-1 text-sm leading-6 text-emerald-50/80">{nextAction.detail}</p>
               <Link
                 href={nextAction.href}
-                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
               >
                 {nextAction.label}
                 <ArrowRight className="h-4 w-4" />

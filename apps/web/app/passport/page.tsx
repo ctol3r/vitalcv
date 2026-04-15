@@ -467,7 +467,7 @@ function PassportPageContent({
 
         {/* Role context banner */}
         {readinessContext ? (
-          <div className="mb-6 rounded-2xl border border-border bg-card px-4 py-3 max-w-lg">
+          <div className="mb-6 rounded-none border border-border bg-card px-4 py-3 max-w-lg">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Role context
             </p>
@@ -508,7 +508,7 @@ function PassportPageContent({
                       value={npi}
                       onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
                       placeholder="Enter 10-digit NPI"
-                      className="h-14 w-full rounded-xl border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
+                      className="h-14 w-full rounded-none border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
                     />
                     {/* Real-time visual feedback */}
                     {npi.length > 0 && (
@@ -524,7 +524,7 @@ function PassportPageContent({
                   <Button
                     type="submit"
                     disabled={!npiValid}
-                    className="h-14 rounded-xl bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
+                    className="h-14 rounded-none bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
                   >
                     Check readiness
                   </Button>
@@ -541,7 +541,7 @@ function PassportPageContent({
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {SOURCE_EXPLANATIONS.map(src => (
-                    <div key={src.id} className="flex gap-3 rounded-xl border border-border bg-card p-3.5">
+                    <div key={src.id} className="flex gap-3 rounded-none border border-border bg-card p-3.5">
                       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-[10px] font-bold text-muted-foreground">
                         {src.id === 'nppes' ? 'NP' : src.id === 'oig' ? 'OI' : src.id === 'pecos' ? 'PE' : 'SB'}
                       </span>
@@ -564,7 +564,7 @@ function PassportPageContent({
 
             {/* Right column: sample readiness card */}
             <div className="hidden lg:block">
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+              <div className="rounded-none border border-border bg-card p-6 space-y-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Sample readiness snapshot
                 </p>
@@ -585,7 +585,7 @@ function PassportPageContent({
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg border border-border bg-background p-4 relative overflow-hidden backdrop-blur-md bg-white/5 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+                <div className="rounded-none border border-border bg-background p-4 relative overflow-hidden  bg-[var(--vt-surface)] border-[var(--vt-border)] ">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Readiness Index</span>
                     <span className="text-xs font-bold text-trust-green flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> DECISION GRADE</span>
@@ -630,7 +630,7 @@ function PassportPageContent({
 
             {/* Identity block — appears when NPPES resolves */}
             {identity.authoritative && identity.displayName && (
-              <Card className="gap-2 rounded-2xl border-border bg-muted px-5 py-4 shadow-none">
+              <Card className="gap-2 rounded-none border-border bg-muted px-5 py-4 shadow-none">
                 <p className="text-muted-foreground/60 text-xs uppercase tracking-widest mb-1">Provider</p>
                 <h2 className="text-foreground text-xl font-semibold leading-tight">
                   {identity.displayName}
@@ -643,7 +643,7 @@ function PassportPageContent({
             )}
 
           {/* Source status rows */}
-          <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
+          <Card className="animate-panel-enter gap-0 rounded-none border-border bg-card px-4 py-2 shadow-none">
             <SourceRow
                 label="NPPES"
                 state={sources.nppes}
@@ -668,7 +668,7 @@ function PassportPageContent({
 
             {/* Readiness summary — appears when claims update */}
             {state.readiness.score !== undefined && (
-              <Card className="gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none">
+              <Card className="gap-0 rounded-none border-border bg-card px-4 py-3 shadow-none">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
                   <TrustStatusBadge

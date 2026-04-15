@@ -130,7 +130,7 @@ function TrustBandHero({
   return (
     <div className={`rounded-none  ${cfg.bg} ring-1 ${cfg.ring} p-5`}>
       <div className="flex items-start gap-4">
-        <div className={`rounded-2xl bg-black/40 backdrop-blur-md p-3 border border-white/10`}>
+        <div className={`rounded-none bg-[var(--vt-bg)]  p-3 border border-[var(--vt-border)]`}>
           <Icon className={`h-6 w-6 ${cfg.color}`} />
         </div>
         <div className="flex-1 min-w-0">
@@ -160,7 +160,7 @@ function TrustBandHero({
           { label: 'Expiring', val: summary.expiringCredentials, color: summary.expiringCredentials > 0 ? 'text-[var(--vt-severity-high)]' : 'text-[var(--vt-text-muted)]' },
           { label: 'Revoked', val: summary.revokedCredentials, color: summary.revokedCredentials > 0 ? 'text-[var(--vt-severity-critical)]' : 'text-[var(--vt-text-muted)]' },
         ].map(({ label, val, color }) => (
-          <div key={label} className="text-center rounded-2xl bg-white/5 border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] py-2">
+          <div key={label} className="text-center rounded-none bg-[var(--vt-surface)] border border-[var(--vt-border)]  py-2">
             <p className={`text-lg font-bold ${color}`}>{val}</p>
             <p className="text-[9px] text-[var(--vt-text-muted)] uppercase tracking-wide">{label}</p>
           </div>
@@ -176,8 +176,8 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
   const colorClass = TRUST_LEVEL_COLOR[level] ?? TRUST_LEVEL_COLOR.TRUSTED;
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] p-4 flex items-start gap-3">
-      <div className="rounded-2xl bg-white/5 p-2 shrink-0 border border-white/5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+    <div className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-bg)]   p-4 flex items-start gap-3">
+      <div className="rounded-none bg-[var(--vt-surface)] p-2 shrink-0 border border-[var(--vt-border-subtle)] ">
         <FileKey2 className="h-3.5 w-3.5 text-[var(--vt-text-muted)]" />
       </div>
       <div className="flex-1 min-w-0 space-y-1">
@@ -327,7 +327,7 @@ function ShareDrawer({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="rounded-3xl border border-white/10 bg-black/60 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] p-4 space-y-3"
+        className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-surface)]   p-4 space-y-3"
       >
         <div className="flex items-center justify-between mb-1">
           <p className="text-[11px] font-medium text-[var(--vt-text-muted)]">Share source-backed data</p>
@@ -472,7 +472,7 @@ export default function ClinicianPassport({
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] overflow-hidden">
+    <div className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-bg)]   overflow-hidden">
       {/* Trust band hero */}
       <div className="p-4">
         {summary && (

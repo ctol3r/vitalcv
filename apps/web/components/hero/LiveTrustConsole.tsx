@@ -101,12 +101,12 @@ export function LiveTrustConsole({
                     }
                   }}
                   placeholder="Enter 10-digit NPI"
-                  className="h-14 text-lg rounded-xl flex-1 shadow-sm"
+                  className="h-14 text-lg rounded-none flex-1 shadow-sm"
                 />
                 <Button 
                   type="submit" 
                   disabled={phase === 'loading'}
-                  className="h-14 px-8 text-base font-semibold rounded-xl"
+                  className="h-14 px-8 text-base font-semibold rounded-none"
                 >
                   {phase === 'loading' ? 'Evaluating...' : 'Apply with VCV'}
                 </Button>
@@ -123,10 +123,10 @@ export function LiveTrustConsole({
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative mx-auto w-full max-w-md lg:max-w-full"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent rounded-2xl transform rotate-3 scale-105 -z-10" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10  rounded-none transform rotate-3 scale-105 -z-10" />
               
               {phase === 'loading' ? (
-                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[320px]">
+                <div className="bg-zinc-950 border border-zinc-800 rounded-none shadow-xl overflow-hidden flex flex-col h-[320px]">
                   <div className="bg-zinc-900 px-4 py-2 border-b border-zinc-800 flex justify-between items-center">
                     <span className="text-xs font-semibold tracking-widest text-zinc-400 flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-500" /> SYSTEM.EXECUTE
@@ -151,7 +151,7 @@ export function LiveTrustConsole({
                   </div>
                 </div>
               ) : (
-                <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-[320px]">
+                <div className="bg-card border border-border rounded-none shadow-xl overflow-hidden flex flex-col h-[320px]">
                   <div className="bg-muted px-4 py-2 border-b border-border flex justify-between items-center">
                     <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-primary" /> Live Trust Snapshot
@@ -207,8 +207,8 @@ export function LiveTrustConsole({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Step 1: Check */}
-            <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-card border border-border rounded-none p-8 shadow-sm">
+              <div className="w-12 h-12 bg-primary/10 rounded-none flex items-center justify-center mb-6">
                 <Database className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">1. Check</h3>
@@ -219,8 +219,8 @@ export function LiveTrustConsole({
             </div>
 
             {/* Step 2: Prove */}
-            <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-card border border-border rounded-none p-8 shadow-sm">
+              <div className="w-12 h-12 bg-primary/10 rounded-none flex items-center justify-center mb-6">
                 <FileKey className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">2. Prove</h3>
@@ -231,8 +231,8 @@ export function LiveTrustConsole({
             </div>
 
             {/* Step 3: Start */}
-            <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-card border border-border rounded-none p-8 shadow-sm">
+              <div className="w-12 h-12 bg-primary/10 rounded-none flex items-center justify-center mb-6">
                 <Navigation className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">3. Start</h3>
