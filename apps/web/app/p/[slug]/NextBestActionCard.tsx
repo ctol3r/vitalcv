@@ -268,6 +268,21 @@ export function NextBestActionCard({
         </p>
       )}
 
+      {/* Learning hint — only rendered when the NBA engine has non-zero
+          evidenceCount. The hint INFLUENCES prioritization (by surfacing
+          historical pattern) but NEVER overrides the source-grounded
+          decision above it. Rendered in muted secondary type so it never
+          competes visually with the verified-source reason. */}
+      {nba.evidenceCount > 0 && nba.action !== 'REVIEW_MANUALLY' && (
+        <p className="mt-2 text-xs italic opacity-70">
+          {nba.action === 'PROCEED'
+            ? 'Historically successful in similar cases.'
+            : nba.action === 'ESCALATE'
+              ? 'Similar cases have been rejected before.'
+              : 'Similar cases have required additional verification.'}
+        </p>
+      )}
+
       <button
         type="button"
         onClick={handleClick}
