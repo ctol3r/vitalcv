@@ -22,6 +22,8 @@ export function LiveTrustConsole({
 
   const npiFocusTrackedRef = useRef(false);
 
+  const [terminalSteps, setTerminalSteps] = useState<string[]>([]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanNpi = npi.replace(/\D/g, '');
@@ -35,8 +37,26 @@ export function LiveTrustConsole({
     setPhase('loading');
     trackFunnelEvent(FUNNEL_EVENTS.NPI_SUBMITTED);
     
-    // Send directly to the canonical passport page (mobile-optimized by default)
-    router.push(`/p/${cleanNpi}?mobile=true`);
+    // Terminal Handshake Sequence
+    setTerminalSteps(['[SYSTEM] Initializing Omega Orchestrator...']);
+    
+    setTimeout(() => {
+      setTerminalSteps(prev => [...prev, '[OK] NPPES verified (Identity & Taxonomy)']);
+    }, 400);
+
+    setTimeout(() => {
+      setTerminalSteps(prev => [...prev, '[OK] OIG cleared (Exclusion Check)']);
+    }, 800);
+
+    setTimeout(() => {
+      setTerminalSteps(prev => [...prev, '[OK] PECOS matched (Enrollment)']);
+      setTerminalSteps(prev => [...prev, '[SYSTEM] Compiling Proof Manifest...']);
+    }, 1200);
+
+    setTimeout(() => {
+      // Send directly to the canonical passport page (mobile-optimized by default)
+      router.push(`/p/${cleanNpi}?mobile=true`);
+    }, 1600);
   };
 
   return (
@@ -96,7 +116,7 @@ export function LiveTrustConsole({
               )}
             </motion.div>
 
-            {/* Right: Live Passport Preview */}
+            {/* Right: Live Passport Preview or Terminal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -105,42 +125,69 @@ export function LiveTrustConsole({
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent rounded-2xl transform rotate-3 scale-105 -z-10" />
               
-              <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col">
-                <div className="bg-muted px-4 py-2 border-b border-border flex justify-between items-center">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-primary" /> Live Trust Snapshot
-                  </span>
-                  <span className="text-[10px] uppercase bg-primary/10 text-primary px-2 py-1 rounded-full font-bold">
-                    Demo Data
-                  </span>
+              {phase === 'loading' ? (
+                <div className="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-xl overflow-hidden flex flex-col h-[320px]">
+                  <div className="bg-zinc-900 px-4 py-2 border-b border-zinc-800 flex justify-between items-center">
+                    <span className="text-xs font-semibold tracking-widest text-zinc-400 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-500" /> SYSTEM.EXECUTE
+                    </span>
+                  </div>
+                  <div className="p-6 font-mono text-sm text-zinc-300 flex flex-col gap-2">
+                    {terminalSteps.map((step, i) => (
+                      <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, x: -10 }} 
+                        animate={{ opacity: 1, x: 0 }}
+                        className={step.includes('[OK]') ? 'text-emerald-400' : 'text-zinc-500'}
+                      >
+                        {step}
+                      </motion.div>
+                    ))}
+                    <motion.div 
+                      animate={{ opacity: [1, 0] }} 
+                      transition={{ repeat: Infinity, duration: 0.8 }}
+                      className="w-2 h-4 bg-emerald-500 mt-1"
+                    />
+                  </div>
                 </div>
-                
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">Dr. Sarah Jenkins</h3>
-                    <p className="text-sm text-muted-foreground font-mono mt-1">NPI: 1487664858</p>
+              ) : (
+                <div className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-[320px]">
+                  <div className="bg-muted px-4 py-2 border-b border-border flex justify-between items-center">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-primary" /> Live Trust Snapshot
+                    </span>
+                    <span className="text-[10px] uppercase bg-primary/10 text-primary px-2 py-1 rounded-full font-bold">
+                      Demo Data
+                    </span>
                   </div>
                   
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center border-b border-border pb-2">
-                      <span className="text-sm text-muted-foreground">Readiness Posture</span>
-                      <span className="text-sm font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">DECISION_GRADE</span>
+                  <div className="p-6 space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">Dr. Sarah Jenkins</h3>
+                      <p className="text-sm text-muted-foreground font-mono mt-1">NPI: 1487664858</p>
                     </div>
-                    <div className="flex justify-between items-center border-b border-border pb-2">
-                      <span className="text-sm text-muted-foreground">Coverage</span>
-                      <span className="text-sm font-medium text-foreground">3 / 3 Critical Lanes</span>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center border-b border-border pb-2">
+                        <span className="text-sm text-muted-foreground">Readiness Posture</span>
+                        <span className="text-sm font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">DECISION_GRADE</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-border pb-2">
+                        <span className="text-sm text-muted-foreground">Coverage</span>
+                        <span className="text-sm font-medium text-foreground">3 / 3 Critical Lanes</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Immutable Receipts</span>
+                        <span className="text-sm font-mono text-muted-foreground">SHA256...e9f4</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Immutable Receipts</span>
-                      <span className="text-sm font-mono text-muted-foreground">SHA256...e9f4</span>
-                    </div>
+                    
+                    <Button variant="secondary" className="w-full" disabled>
+                      View System Recommendation
+                    </Button>
                   </div>
-                  
-                  <Button variant="secondary" className="w-full" disabled>
-                    View System Recommendation
-                  </Button>
                 </div>
-              </div>
+              )}
             </motion.div>
 
           </div>
