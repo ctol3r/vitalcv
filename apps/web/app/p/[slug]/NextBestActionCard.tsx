@@ -275,11 +275,12 @@ export function NextBestActionCard({
           competes visually with the verified-source reason. */}
       {nba.evidenceCount > 0 && nba.action !== 'REVIEW_MANUALLY' && (
         <p className="mt-2 text-xs italic opacity-70">
+          <span className="font-semibold not-italic">Context:</span>{' '}
           {nba.action === 'PROCEED'
-            ? 'Historically successful in similar cases.'
+            ? 'similar cases succeeded quickly.'
             : nba.action === 'ESCALATE'
-              ? 'Similar cases have been rejected before.'
-              : 'Similar cases have required additional verification.'}
+              ? 'similar cases have been rejected before.'
+              : 'similar cases have required additional verification.'}
         </p>
       )}
 
