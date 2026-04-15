@@ -3,6 +3,13 @@ export interface VitalCVWidgetConfig {
   baseUrl?: string;
   jobId?: string;
   role?: string;
+  /** 10-digit clinician NPI. When supplied, the widget requests the
+   *  matching manifest server-side and renders readiness + claims +
+   *  limitations + a single action button for that clinician. */
+  npi?: string;
+  /** Employer identity used in manifest attribution + audit rows.
+   *  Defaults to clientId when omitted. */
+  employerId?: string;
   creds?: string | string[];
   theme?: string;
   width?: number | string;
@@ -161,6 +168,15 @@ export class VitalCVWidget {
 
     if (this.config.role) {
       url.searchParams.set('role', this.config.role);
+    }
+
+    if (this.config.npi) {
+      url.searchParams.set('npi', this.config.npi);
+    }
+
+    const employerId = this.config.employerId ?? this.config.clientId;
+    if (employerId) {
+      url.searchParams.set('employerId', employerId);
     }
 
     if (creds) {
