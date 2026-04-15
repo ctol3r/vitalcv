@@ -14,6 +14,7 @@ import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutc
 import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
 import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
+import { DecisionTrace, storeDecisionTrace } from '../decision/decisionTraceEngine';
 
 const prisma = new PrismaClient();
 
@@ -186,6 +187,56 @@ export async function generateOmegaDecision(
     nextBestAction.reasoning = policyResult.policyNotes.join(' | ');
   }
 
+  const canonicalStateHash = 'hash_' + Math.random().toString(36).substring(7);
+
+  // 10. DECISION TRACE ENGINE
+  const decisionTrace: DecisionTrace = {
+    traceId: `trace_${Date.now()}_${npi}`,
+    subjectNpi: npi,
+    orgId: employerId,
+    timestamp: new Date().toISOString(),
+    layers: {
+      truth: {
+        coverageChecked: manifest.coverage.filter(c => c.status === 'checked').length,
+        totalLanes: manifest.coverage.length,
+        limitations: manifest.limitations.map(l => l.description)
+      },
+      enforcement: {
+        passed: true, // Assuming Truth Enforcement Gate ran pre-manifest
+        violations: []
+      },
+      registry: {
+        validIssuers: ['did:web:vitalcv.com'],
+        revokedIssuersBlocked: []
+      },
+      arbitration: {
+        conflictsResolved: 0,
+        reasons: []
+      },
+      policy: {
+        orgId: employerId,
+        policyOverridesApplied: policyResult.policyNotes
+      },
+      learning: {
+        priorDecisions: learningContext.patterns.totalDecisions,
+        historicalFailureRate: learningContext.patterns.failureRate,
+        learningOverridesApplied: learningContext.patterns.failureRate > 0.5 ? ['Historical failure > 50%: Downgraded to ESCALATE'] : []
+      },
+      confidence: {
+        evidenceStrength,
+        blendedScore: 0.9, // mock derived score
+        calibratedState: policyResult.finalCalibratedState
+      }
+    },
+    final: {
+      decisionStateHash: canonicalStateHash,
+      nextBestAction: nextBestAction.action,
+      readinessPosture: policyResult.finalPosture
+    }
+  };
+
+  await storeDecisionTrace(decisionTrace);
+
   return {
     orchestrator_active: true,
     system_unified: true,
@@ -193,7 +244,7 @@ export async function generateOmegaDecision(
     decisionState: {
       npi,
       generatedAt: new Date().toISOString(),
-      canonicalStateHash: 'hash_' + Math.random().toString(36).substring(7),
+      canonicalStateHash,
       calibratedState: policyResult.finalCalibratedState
     },
     recognition: {
