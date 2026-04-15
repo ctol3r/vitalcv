@@ -1746,6 +1746,24 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
+model IntegrationWebhookSubscription {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @map("organization_id")
+  url            String
+  signingSecret  String   @map("signing_secret")
+  events         String[]
+  active         Boolean  @default(true)
+  failureCount   Int      @default(0) @map("failure_count")
+  lastDeliveredAt DateTime? @map("last_delivered_at")
+  lastFailureAt  DateTime? @map("last_failure_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId, active], map: "integration_webhook_subscriptions_org_active_idx")
+  @@index([active], map: "integration_webhook_subscriptions_active_idx")
+  @@map("integration_webhook_subscriptions")
+}
+
 /// Lightweight log of non-accept employer actions (request_data, flag) keyed
 /// by NPI. Accept actions continue to use the richer Acceptance model.
 model ActionLog {

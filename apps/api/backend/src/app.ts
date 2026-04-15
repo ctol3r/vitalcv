@@ -27,6 +27,7 @@ import { log } from './obs/logger';
 import { requestLatencyMetrics } from './observability/requestMetrics';
 import openApiSpec from './openapi';
 import { registerImpactRoutes } from './routes/impact';
+import { registerWebhookRoutes } from './routes/webhooks';
 import { registerPublicMetricsRoutes } from './routes/publicMetrics';
 // Wave 26: Golden Link — public read-only profile API
 import { registerPublicRoutes } from './routes/public';
@@ -38,6 +39,7 @@ import { registerAuthorityRoutes } from './routes/authority';
 import { registerAuditRoutes } from './routes/audit';
 import { startAnchorWorker } from './workers/anchorWorker';
 import { startRevocationOutboxWorker } from './workers/revocationOutboxWorker';
+import { startIntegrationWebhookWorker } from './workers/integrationWebhookWorker';
 // Wave 37: Superbrain GraphRAG intelligence endpoint — now superseded by Intelligence Engine
 // Wave 40: Continuous Trust & Revocation Engine
 import { startContinuousMonitor } from './workers/continuousMonitor';
@@ -3461,8 +3463,9 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   registerPublicRoutes(app); // Wave 26: Golden Link
   registerAKGRoutes(app);       // Wave 27: AKG / MCP
   registerAuthorityRoutes(app); // Wave 29: PAS Engine
-  registerImpactRoutes(app);
-  registerIngestRoutes(app);
+registerImpactRoutes(app);
+registerWebhookRoutes(app);
+registerIngestRoutes(app);
   registerLookupRoutes(app);
 
   registerProofRoutes(app);
@@ -3637,6 +3640,7 @@ if (BACKGROUND_JOBS_ENABLED) {
   startAnchorWorker();
   startContinuousMonitor();
   startRevocationOutboxWorker();
+  startIntegrationWebhookWorker();
 }
 
 if (ENTERPRISE_MODE) {

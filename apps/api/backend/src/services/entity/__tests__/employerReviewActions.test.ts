@@ -32,11 +32,16 @@ jest.mock('../../trust/trustScoreV1', () => ({
   computeTrustScoreV1: jest.fn().mockResolvedValue(null),
 }));
 
+jest.mock('../../integration/webhookSystem', () => ({
+  enqueueIntegrationWebhookEvent: jest.fn(),
+}));
+
 jest.mock('../../../obs/logger', () => ({
   log: jest.fn(),
 }));
 
 import prisma from '../../../graphql/prisma_client';
+import { enqueueIntegrationWebhookEvent } from '../../integration/webhookSystem';
 import {
   loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
@@ -65,6 +70,8 @@ const prismaMock = prisma as unknown as {
   };
   $transaction: jest.Mock;
 };
+const enqueueIntegrationWebhookEventMock =
+  enqueueIntegrationWebhookEvent as jest.MockedFunction<typeof enqueueIntegrationWebhookEvent>;
 
 describe('employerReviewActions service', () => {
   beforeEach(() => {
@@ -76,6 +83,7 @@ describe('employerReviewActions service', () => {
     prismaMock.auditEvent.findMany.mockReset();
     prismaMock.outboxEvent.upsert.mockReset();
     prismaMock.$transaction.mockReset();
+    enqueueIntegrationWebhookEventMock.mockReset().mockResolvedValue(0);
 
     prismaMock.vcvOrganizationContext.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) => {
       if (where.id === 'ctx-1') {
@@ -143,7 +151,7 @@ describe('employerReviewActions service', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_ACCEPTED',
-        referenceId: 'accept-1',
+        referenceId: expect.any(String),
         organizationId: 'org-entity-1',
         metadata: expect.objectContaining({
           employerReviewAction: expect.objectContaining({
@@ -162,6 +170,14 @@ describe('employerReviewActions service', () => {
         }),
       }),
     }));
+    expect(enqueueIntegrationWebhookEventMock).toHaveBeenCalledWith({
+      eventType: 'employer.accepted',
+      subjectNpi: '1234567890',
+      manifestId: null,
+      timestamp: '2026-03-23T18:00:00.000Z',
+      organizationId: 'org-entity-1',
+      dedupeKey: 'audit-1',
+    });
   });
 
   it('builds portable acceptance history with anonymized pilot organization labels', async () => {
@@ -320,7 +336,7 @@ describe('employerReviewActions service', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_ACCEPTED',
-        referenceId: 'accept-1',
+        referenceId: expect.any(String),
         organizationId: 'org-entity-1',
         metadata: expect.objectContaining({
           employerReviewAction: expect.objectContaining({

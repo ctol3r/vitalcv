@@ -4,6 +4,7 @@ import prisma from '../../graphql/prisma_client';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { buildPassportByNpi } from './passportService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
+import { enqueueIntegrationWebhookEvent } from '../integration/webhookSystem';
 import { log } from '../../obs/logger';
 import type {
   CanonicalSourceCoverageSummary,
@@ -17,7 +18,7 @@ import {
   resolveEmployerReviewAttribution,
 } from './employerReviewAttribution';
 
-export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
+export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'pause';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
 export type EmployerReviewPersistenceMode = 'durable_record' | 'audit_only';
 export type EmployerReviewPersistenceTarget =
@@ -324,7 +325,8 @@ export interface EmployerReviewSubject {
 type EmployerActionAuditType =
   | 'EMPLOYER_REVIEW_ACCEPTED'
   | 'EMPLOYER_REVIEW_REFRESH_REQUESTED'
-  | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW';
+  | 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW'
+  | 'EMPLOYER_REVIEW_PAUSED';
 
 type OptionalHitlWriter = {
   hITLReviewItem?: {
@@ -458,6 +460,11 @@ function buildActionSummary(
             title: 'Review routing recorded',
             description: 'The routing decision was persisted in the audit trail, but no durable manual review queue item was created in this environment.',
           };
+    case 'pause':
+      return {
+        title: 'Candidate paused',
+        description: 'The employer pause was persisted in the audit trail pending new verification.',
+      };
     default:
       return {
         title: 'Employer action recorded',
@@ -503,7 +510,7 @@ function readMetadata(metadata: unknown): EmployerReviewActionAuditMetadata | nu
 
   const record = candidate as Partial<EmployerReviewActionAuditMetadata>;
   if (
-    (record.action !== 'accept' && record.action !== 'refresh' && record.action !== 'review')
+    (record.action !== 'accept' && record.action !== 'refresh' && record.action !== 'review' && record.action !== 'pause')
     || typeof record.entityId !== 'string'
     || typeof record.clinicianNpi !== 'string'
     || typeof record.employerId !== 'string'
@@ -795,6 +802,21 @@ export async function recordEmployerReviewAcceptance(input: {
     return { auditEvent, metadata };
   });
 
+  void enqueueIntegrationWebhookEvent({
+    eventType: 'employer.accepted',
+    subjectNpi: input.clinicianNpi,
+    manifestId: metadata.attribution.bundleId ?? null,
+    timestamp: auditEvent.createdAt.toISOString(),
+    organizationId: metadata.attribution.organizationId ?? null,
+    dedupeKey: auditEvent.id,
+  }).catch((error) => {
+    log('warn', 'employer_accepted_webhook_enqueue_failed', {
+      entityId: input.entityId,
+      clinicianNpi: input.clinicianNpi,
+      message: error instanceof Error ? error.message : 'unknown',
+    });
+  });
+
   return buildState({
     auditEventId: auditEvent.id,
     timestamp: auditEvent.createdAt.toISOString(),
@@ -1004,6 +1026,78 @@ export async function recordEmployerReviewRouting(input: {
   });
 }
 
+export async function recordEmployerReviewPause(input: {
+  entityId: string;
+  employerId: string;
+  clinicianNpi: string;
+  organizationContextId?: unknown;
+  bundleId?: unknown;
+  reason?: unknown;
+}): Promise<EmployerReviewActionState> {
+  const now = new Date();
+  const requestId = randomUUID();
+  const attribution = await resolveEmployerReviewAttribution({
+    entityId: input.entityId,
+    organizationContextId: input.organizationContextId,
+    bundleId: input.bundleId,
+  });
+  const normalizedReason =
+    sanitizeString(input.reason, 500)
+    ?? 'Employer paused the candidate pending new verification.';
+
+  const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
+
+  const metadata: EmployerReviewActionAuditMetadata = {
+    action: 'pause',
+    employerId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    requestId,
+    persistence: {
+      mode: 'audit_only',
+      target: 'audit_event',
+      acceptanceId: null,
+      reviewItemId: null,
+      outboxEventId: null,
+      reviewItemCreated: false,
+    },
+    summary: buildActionSummary('pause', {
+      mode: 'audit_only',
+      target: 'audit_event',
+      acceptanceId: null,
+      reviewItemId: null,
+      outboxEventId: null,
+      reviewItemCreated: false,
+    }),
+    details: buildEmptyDetails({
+      reason: normalizedReason,
+      priority: 'HIGH',
+    }),
+    context: {
+      role: null,
+      facility: null,
+      notes: null,
+    },
+    attribution,
+    trustSnapshot,
+  };
+
+  const auditEvent = await writeEmployerReviewAuditEvent(
+    prisma as unknown as AuditWriter,
+    {
+      type: 'EMPLOYER_REVIEW_PAUSED',
+      referenceId: input.entityId,
+      metadata,
+    },
+  );
+
+  return buildState({
+    auditEventId: auditEvent.id,
+    timestamp: auditEvent.createdAt.toISOString(),
+    metadata,
+  });
+}
+
 export async function loadEmployerReviewStatus(input: {
   entityId: string;
   employerId: string;
@@ -1024,6 +1118,7 @@ export async function loadEmployerReviewStatus(input: {
           'EMPLOYER_REVIEW_ACCEPTED',
           'EMPLOYER_REVIEW_REFRESH_REQUESTED',
           'EMPLOYER_REVIEW_ROUTED_TO_REVIEW',
+          'EMPLOYER_REVIEW_PAUSED',
         ],
       },
       metadata: {

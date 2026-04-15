@@ -16,6 +16,7 @@ import {
 } from '../services/audit/replayEngine';
 import { logEvent } from '../services/audit/eventWriter';
 import { hashAttestation } from '../services/attestation/canonicalize';
+import { enqueueIntegrationWebhookEvent } from '../services/integration/webhookSystem';
 
 const NPI_RE = /^\d{10}$/;
 const SYSTEM_VERSION = process.env.GIT_SHA ?? 'pilot';
@@ -156,6 +157,18 @@ export function registerDecisionExportRoutes(app: Express): void {
         subjectNpi: npi,
         outputsHash: manifestHash,
         metadata: { schemaVersion: artifact.schemaVersion, systemVersion: SYSTEM_VERSION },
+      });
+      void enqueueIntegrationWebhookEvent({
+        eventType: 'manifest.generated',
+        subjectNpi: npi,
+        manifestId: manifestHash,
+        timestamp: omega.generatedAt,
+        dedupeKey: manifestHash,
+      }).catch((error) => {
+        log('warn', 'manifest_generated_webhook_enqueue_failed', {
+          npi_prefix: npi.slice(0, 4) + '····',
+          message: error instanceof Error ? error.message : 'unknown',
+        });
       });
       if (wantsDownload) {
         void logEvent({
