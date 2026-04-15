@@ -1,24 +1,14 @@
-# VitalCV Gravity Engine (v3)
+# VitalCV Gravity Engine Canon
 
-## Instant Truth Rendering & Guided Attention
-The VitalCV frontend operates under a strict "Gravity Engine" paradigm. The user experience renders the complete, computed truth instantly and uses visual guidance to reduce perceived complexity.
+## Core Paradigm: Guided Attention over Instant Truth
+The Gravity Engine dictates how the VitalCV frontend presents complex compliance data. It enforces absolute truth transparency by rendering all facts instantly, utilizing visual guidance (highlight, motion, emphasis) to sequence user attention without artificial delays.
 
-### 1. Atomic Truth Rule (HARD RULE)
-**ALL data must be computed BEFORE rendering begins.**
-- NO staged fetching.
-- NO staged computation.
-- NO data mutation between UI steps.
-- The Omega Orchestrator must compute the full Manifest and freeze the truth state entirely before the UI receives the payload.
+### 1. The 6-Point Canonical Rule
+1. **Omega Computes Full Manifest Atomically:** The backend must resolve the entire truth state before responding to the client.
+2. **UI Renders Full Truth Immediately:** The frontend must render the complete passport, receipts, and decision state instantly upon receipt.
+3. **UI Sequences Attention via Design:** The system reduces cognitive load using highlight, motion, and emphasis—directing the eye from Identity → Safety → Authority → Decision.
+4. **NO Staged Computation:** The UI must never compute, fetch, or aggregate truth incrementally.
+5. **NO Delayed Truth Rendering:** Withholding data that the backend has already computed to simulate "thinking" or "processing" is strictly forbidden.
+6. **NO Data Mutation After Render:** Once the atomic truth is delivered to the client, the UI cannot alter the underlying facts.
 
-### 2. Flow Structure (Guided Attention Only)
-1. **Omega Computes Full Manifest**: Atomic resolution of all truth layers.
-2. **UI Renders Full State Instantly**: The complete passport and decision state are rendered immediately without artificial staging or delayed reveal timers.
-3. **UI Guides Attention**: The system reduces perceived complexity via:
-   - **Highlight**: Directing the eye to critical facts (Identity, Safety, Authority, Decision).
-   - **Motion**: Subtle visual cues leading to the primary action.
-   - **Emphasis**: Elevating the `NextBestAction` while maintaining full visibility of the evidence.
-
-### Core Rules
-- **UI MUST render full passport immediately**: Never delay already-computed truth.
-- **No artificial staging**: Withholding data that the backend has already computed to simulate "thinking" or "processing" is strictly forbidden.
-- **Guide attention, NOT compute data**: The UI must focus solely on highlighting pre-computed truth. It must never compute new data, fetch incrementally, or manipulate facts.
+*Note: All previous definitions (progressive disclosure, progressive rendering) are deprecated. The UI is a static, instantaneous reflection of the time-locked backend snapshot, guided only by CSS and layout hierarchy.*
