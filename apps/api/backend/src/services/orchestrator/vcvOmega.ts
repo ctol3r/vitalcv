@@ -11,6 +11,7 @@ import { createAuditEvent, AuditEventType } from '../../../../packages/source-ad
 import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
 
 import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
+import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 
 const prisma = new PrismaClient();
 
@@ -32,10 +33,7 @@ export interface OmegaDecisionState {
     cadence: string;
     subscribedLanes: string[];
   };
-  learningContext: {
-    priorDecisions: number;
-    historicOutcomes: DecisionOutcome[];
-  };
+  learningContext: OutcomeMemory;
 }
 
 /**
@@ -125,10 +123,13 @@ export async function generateOmegaDecision(
 
   // 7. LEARNING & OUTCOME CONTEXT
   const historicOutcomes = await fetchOutcomeHistory(npi, employerId);
-  const learningContext = {
-    priorDecisions: historicOutcomes.length,
-    historicOutcomes
-  };
+  const learningContext = buildOutcomeMemory(npi, historicOutcomes, employerId);
+  
+  // Synthesize learning into the NBA (overrides base NBA if learning dictates)
+  if (learningContext.patterns.failureRate > 0.5 && nextBestAction.action === 'PROCEED') {
+    nextBestAction.action = 'ESCALATE';
+    nextBestAction.reasoning = 'Historical failure rate >50% for this provider/org combination. Manual review required despite minimum evidence.';
+  }
   
   // If activated or failed, we would record the outcome here
   if (startReady) {
