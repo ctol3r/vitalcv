@@ -660,9 +660,14 @@ function PassportPageContent({
               />
             </Card>
 
-            {/* Readiness summary — appears when claims update */}
+            {/* Readiness summary — appears when claims update.
+                Presentation: subtle one-shot entrance when the score first appears.
+                No count-up — the score is atomic truth, not progress. */}
             {state.readiness.score !== undefined && (
-              <Card className="gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none">
+              <Card
+                className="animate-trust-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none"
+                style={{ animationDelay: '40ms' }}
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
                   <TrustStatusBadge
@@ -705,9 +710,15 @@ function PassportPageContent({
               </Card>
             )}
 
-            {/* Usable state — passport anchor is available */}
+            {/* Usable state — passport anchor is available.
+                Attention sequencing (authority → decision): this block only renders
+                once canViewPassport is true (i.e. atomic truth has landed), so the
+                stagger cannot stage data — it sequences focus on already-final state. */}
             {canViewPassport && anchorEntityId && (
-              <div className="space-y-3">
+              <div
+                className="animate-trust-panel-enter space-y-3"
+                style={{ animationDelay: '160ms' }}
+              >
                 <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
                   <Link href={buildPassportEntityHref(anchorEntityId)}>
                     View full passport
@@ -734,9 +745,16 @@ function PassportPageContent({
               </div>
             )}
 
-            {/* What's Next — actionable uploads after readiness snapshot */}
+            {/* What's Next — actionable uploads after readiness snapshot.
+                Final sequencing step (decision). Only rendered after canViewPassport,
+                so the delay reinforces attention hierarchy, not progress. */}
             {canViewPassport && (
-              <WhatsNextPanel state={state} />
+              <div
+                className="animate-trust-panel-enter"
+                style={{ animationDelay: '280ms' }}
+              >
+                <WhatsNextPanel state={state} />
+              </div>
             )}
 
             {/* Terminal no-profile state */}
