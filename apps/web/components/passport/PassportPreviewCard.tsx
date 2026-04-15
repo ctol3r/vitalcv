@@ -10,13 +10,22 @@ import { AlertCircle, ArrowRight, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { TrustClaim, type TrustClaimKind } from '@/components/trust-state/TrustClaim';
 
-type DemoRow = { label: string; kind: TrustClaimKind };
+type DemoRow = {
+  label: string;
+  kind: TrustClaimKind;
+  /** Optional qualifier shown subtly under the claim to make it inspectable. */
+  limitation?: string;
+};
 
 const DEMO_ROWS: ReadonlyArray<DemoRow> = [
   { label: 'NPPES', kind: 'verified' },
   { label: 'OIG / LEIE', kind: 'verified' },
   { label: 'CMS PECOS', kind: 'verified' },
-  { label: 'State Board', kind: 'gated' },
+  {
+    label: 'State Board',
+    kind: 'gated',
+    limitation: 'Institutional access required',
+  },
 ];
 
 const DEMO_BLOCKER = 'State board access required before decision-grade readiness';
@@ -50,10 +59,10 @@ export function PassportPreviewCard({ demo = false }: PassportPreviewCardProps) 
         {DEMO_ROWS.map((row) => (
           <div
             key={row.label}
-            className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0"
+            className="flex items-start justify-between py-1.5 border-b border-border/50 last:border-0"
           >
             <span className="text-sm text-muted-foreground">{row.label}</span>
-            <TrustClaim kind={row.kind} size="sm" />
+            <TrustClaim kind={row.kind} limitation={row.limitation} size="sm" />
           </div>
         ))}
       </div>

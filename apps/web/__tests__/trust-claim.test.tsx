@@ -144,6 +144,36 @@ describe('TrustClaim', () => {
       expect(markup).toContain('OIG / LEIE');
       expect(markup).toContain('2026');
     });
+
+    it('renders the limitation when supplied', () => {
+      const markup = renderToStaticMarkup(
+        <TrustClaim
+          kind="gated"
+          source="State board"
+          limitation="Institutional access required"
+        />,
+      );
+      expect(markup).toContain('Institutional access required');
+      expect(markup).toContain('data-trust-claim-limitation');
+    });
+
+    it('ignores whitespace-only limitation strings', () => {
+      const markup = renderToStaticMarkup(
+        <TrustClaim kind="verified" limitation="   " />,
+      );
+      expect(markup).not.toContain('data-trust-claim-limitation');
+    });
+
+    it('includes the limitation in the aria-label for screen readers', () => {
+      const markup = renderToStaticMarkup(
+        <TrustClaim
+          kind="gated"
+          source="State board"
+          limitation="Not decision-grade without L3"
+        />,
+      );
+      expect(markup).toContain('limitation: Not decision-grade without L3');
+    });
   });
 
   describe('compile-time enforcement', () => {

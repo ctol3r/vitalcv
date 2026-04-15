@@ -161,6 +161,7 @@ function StatusRow({
   kind,
   source,
   timestamp,
+  limitation,
 }: {
   label: string;
   kind: TrustClaimKind;
@@ -168,11 +169,19 @@ function StatusRow({
   source?: string;
   /** Optional timestamp of the underlying check. */
   timestamp?: string | Date;
+  /** Optional per-claim qualifier (e.g. "Access required", "Not decision-grade"). */
+  limitation?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-white/5 py-1.5 text-xs last:border-0">
+    <div className="flex items-start justify-between gap-3 border-b border-white/5 py-1.5 text-xs last:border-0">
       <span className="text-muted-foreground">{label}</span>
-      <TrustClaim kind={kind} source={source} timestamp={timestamp} size="sm" />
+      <TrustClaim
+        kind={kind}
+        source={source}
+        timestamp={timestamp}
+        limitation={limitation}
+        size="sm"
+      />
     </div>
   );
 }
@@ -204,6 +213,37 @@ function resolveLicensureKind(licensureStatus: string | undefined): TrustClaimKi
       return 'unavailable';
     default:
       return 'gated';
+  }
+}
+
+function resolveLicensureLimitation(
+  licensureStatus: string | undefined,
+): string | undefined {
+  switch (licensureStatus) {
+    case 'expired':
+      return 'Credential expired — reverification required';
+    case 'verified':
+      return undefined;
+    case 'pending':
+      return 'Source check in progress';
+    default:
+      return 'Direct state board access required';
+  }
+}
+
+function resolveExclusionLimitation(
+  exclusionStatus: string | undefined,
+): string | undefined {
+  switch (exclusionStatus) {
+    case 'POSSIBLE_MATCH':
+      return 'Possible match — manual review required';
+    case 'EXCLUDED':
+      return 'Exclusion finding — proceed blocked';
+    case 'UNCHECKED':
+      return 'Not yet checked in this run';
+    case 'CLEAR':
+    default:
+      return undefined;
   }
 }
 
@@ -386,12 +426,14 @@ function buildStandingSection(passport: PassportData): AccordionItem {
           kind={resolveExclusionKind(standing.exclusionStatus)}
           source="OIG / LEIE"
           timestamp={standing.exclusionCheckedAt}
+          limitation={resolveExclusionLimitation(standing.exclusionStatus)}
         />
         <DetailRow label="Exclusion status"  value={exclusionLabel} />
         <StatusRow
           label="License"
           kind={resolveLicensureKind(standing.licensureStatus)}
           source="State board"
+          limitation={resolveLicensureLimitation(standing.licensureStatus)}
         />
         <DetailRow label="License status"    value={licensureLabel} />
         {safetyNegative.map((f, i) => (

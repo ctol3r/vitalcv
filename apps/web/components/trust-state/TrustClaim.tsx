@@ -66,6 +66,13 @@ export interface TrustClaimProps {
   source?: string;
   /** Timestamp of the verification. Any Date-parseable string or Date. */
   timestamp?: string | Date;
+  /**
+   * Optional per-claim limitation — a short qualifier that narrows or
+   * constrains what the claim means (e.g. "Institutional access required",
+   * "Not decision-grade"). Rendered subtly below the badge row. Populating
+   * this makes the claim inspectable rather than merely labeled.
+   */
+  limitation?: string;
   /** Size passthrough for the underlying badge. */
   size?: 'sm' | 'md';
   /** Optional className for the outer wrapper. */
@@ -80,6 +87,7 @@ export function TrustClaim({
   kind,
   source,
   timestamp,
+  limitation,
   size = 'sm',
   className,
   style,
@@ -92,6 +100,7 @@ export function TrustClaim({
 
   const formatted = formatTimestamp(timestamp);
   const isoTimestamp = toIsoOrUndefined(timestamp);
+  const trimmedLimitation = limitation?.trim() ? limitation.trim() : null;
 
   const computedAriaLabel =
     ariaLabel
@@ -99,31 +108,44 @@ export function TrustClaim({
       label,
       source ? `via ${source}` : null,
       formatted ? formatted : null,
+      trimmedLimitation ? `limitation: ${trimmedLimitation}` : null,
     ]
       .filter(Boolean)
       .join(', ');
 
   return (
     <span
-      className={cn('inline-flex items-center gap-2', className)}
+      className={cn('inline-flex flex-col items-end gap-1', className)}
       style={style}
       aria-label={computedAriaLabel}
       data-trust-claim-kind={safeKind}
     >
-      <TrustStatusBadge status={status} label={label} size={size} />
-      {(source || formatted) && (
-        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
-          {source ? <span className="truncate">{source}</span> : null}
-          {source && formatted ? <span aria-hidden="true">·</span> : null}
-          {formatted
-            ? (
-              <time dateTime={isoTimestamp} className="tabular-nums">
-                {formatted}
-              </time>
-            )
-            : null}
-        </span>
-      )}
+      <span className="inline-flex items-center gap-2">
+        <TrustStatusBadge status={status} label={label} size={size} />
+        {(source || formatted) && (
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+            {source ? <span className="truncate">{source}</span> : null}
+            {source && formatted ? <span aria-hidden="true">·</span> : null}
+            {formatted
+              ? (
+                <time dateTime={isoTimestamp} className="tabular-nums">
+                  {formatted}
+                </time>
+              )
+              : null}
+          </span>
+        )}
+      </span>
+      {trimmedLimitation
+        ? (
+          <span
+            className="text-[10px] italic text-muted-foreground/70"
+            data-trust-claim-limitation=""
+          >
+            {trimmedLimitation}
+          </span>
+        )
+        : null}
     </span>
   );
 }
