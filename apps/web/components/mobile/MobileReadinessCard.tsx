@@ -254,7 +254,7 @@ export function MobileReadinessCard({
 
             <div className="mt-4 flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-              Verified cryptographically {formatUpdatedAt(trustState.computed_at)}
+              Source-confirmed {formatUpdatedAt(trustState.computed_at)}
             </div>
           </div>
 
