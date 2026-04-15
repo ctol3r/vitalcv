@@ -117,6 +117,7 @@ type DisplayProfile = SlugProfile | NpiProfile;
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // ── Backend base URL ──────────────────────────────────────────────────────
@@ -562,8 +563,10 @@ function AuditHashes({ hashes }: { hashes: string[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default async function PublicTrustProfilePage({ params }: Props) {
+export default async function PublicTrustProfilePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const resolvedParams = await searchParams;
+  const isMobile = resolvedParams?.mobile === 'true';
   
   // Parallel fetch: Profile for UI context, Omega for deterministic actions
   const [profile, omegaState] = await Promise.all([
@@ -584,19 +587,19 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
 
   return (
-    <main className="min-h-screen bg-background pb-28">
-      <div className="relative mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
-        <article className="rounded-lg border border-border bg-card p-8 shadow-sm md:p-12">
+    <main className={`min-h-screen bg-background ${isMobile ? 'pb-8' : 'pb-28'}`}>
+      <div className={`relative mx-auto max-w-2xl ${isMobile ? 'px-0 py-0' : 'px-4 py-16 sm:px-6 sm:py-24'}`}>
+        <article className={isMobile ? 'bg-card p-5' : 'rounded-lg border border-border bg-card p-8 shadow-sm md:p-12'}>
 
           {/* Header */}
-          <header className="mb-8 flex flex-col items-center gap-3 text-center">
+          <header className={`${isMobile ? 'mb-6' : 'mb-8'} flex flex-col items-center gap-3 text-center`}>
             <ShieldIcon />
             <p className="text-sm uppercase tracking-widest text-green-600 font-medium">
               VitalCV Trust Network
             </p>
           </header>
 
-          <div className="mb-8 h-px bg-border" />
+          <div className={`${isMobile ? 'mb-6' : 'mb-8'} h-px bg-border`} />
 
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
@@ -634,11 +637,14 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 />
               </section>
 
-              <div className="mb-8 h-px bg-border" />
-
-              <section className="mb-8">
-                <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
-              </section>
+              {!isMobile && (
+                <>
+                  <div className="mb-8 h-px bg-border" />
+                  <section className="mb-8">
+                    <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
+                  </section>
+                </>
+              )}
 
               {profile.readiness.evaluated && (
                 <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
