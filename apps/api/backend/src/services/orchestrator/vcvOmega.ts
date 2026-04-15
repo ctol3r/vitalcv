@@ -144,6 +144,20 @@ export async function generateOmegaDecision(
     });
   }
 
+  // 8. TRUST CALIBRATION
+  // Evaluate the confidence of the system recommendation
+  const evidenceStrength = manifest.coverage.filter(c => c.status === 'checked').length / Math.max(1, manifest.coverage.length);
+  const freshnessScore = 0.9;
+  const issuerTrustLevel = 0.95; 
+
+  const calibration = calibrateTrust(
+    manifest.readinessPosture as any,
+    evidenceStrength,
+    freshnessScore,
+    issuerTrustLevel,
+    learningContext
+  );
+
   return {
     orchestrator_active: true,
     system_unified: true,
@@ -151,14 +165,16 @@ export async function generateOmegaDecision(
     decisionState: {
       npi,
       generatedAt: new Date().toISOString(),
-      canonicalStateHash: 'hash_' + Math.random().toString(36).substring(7)
+      canonicalStateHash: 'hash_' + Math.random().toString(36).substring(7),
+      calibratedState: calibration.calibratedState
     },
     recognition,
     acceptance,
     activation,
     nextBestAction,
     monitoringPlan,
-    learningContext
+    learningContext,
+    calibration
   };
 }
 
