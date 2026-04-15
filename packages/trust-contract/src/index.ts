@@ -290,3 +290,4 @@ export function deriveScore(lanes: SourceLane[]): number {
 export * from './auth-model';
 export * from './trust-registry';
 export * from './multi-issuer';
+export * from './arbitration-engine';
