@@ -1,0 +1,92 @@
+/**
+ * loading.tsx — Next.js App Router streaming fallback for /p/[slug].
+ *
+ * Rendered while the server component awaits fetchProfile +
+ * fetchNextBestAction. Structure mirrors the real page (onboarding
+ * header → drift banner slot → decision surface → evidence → divergence)
+ * so layout doesn't shift when the real content streams in.
+ *
+ * Pure presentation; no hooks; no data fetches.
+ */
+
+function SkeletonBar({ className = 'h-3 w-3/4' }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`animate-pulse rounded bg-muted ${className}`}
+    />
+  );
+}
+
+export default function PublicTrustProfileLoading() {
+  return (
+    <main className="min-h-screen bg-background pb-28" aria-busy="true">
+      <div className="relative mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
+        <article className="rounded-lg border border-border bg-card p-8 shadow-sm md:p-12">
+          <header className="mb-8 flex flex-col items-center gap-3 text-center">
+            <div className="h-10 w-10 animate-pulse rounded-full bg-muted" aria-hidden />
+            <SkeletonBar className="h-3 w-40" />
+          </header>
+
+          <div className="mb-8 h-px bg-border" />
+
+          {/* Onboarding header skeleton */}
+          <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <SkeletonBar className="h-3 w-32" />
+            <SkeletonBar className="mt-2 h-3 w-full max-w-md" />
+          </section>
+
+          {/* Evidence panel skeleton (3 rows) */}
+          <section className="mb-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <SkeletonBar className="h-3 w-40" />
+            <ul className="mt-4 space-y-4">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <SkeletonBar className="h-3 w-40" />
+                    <SkeletonBar className="h-2 w-28" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-muted" aria-hidden />
+                    <SkeletonBar className="h-3 w-20" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* NBA card skeleton */}
+          <section className="mb-6">
+            <div className="rounded-2xl border-2 border-border bg-card p-6 sm:p-8">
+              <SkeletonBar className="h-3 w-40" />
+              <SkeletonBar className="mt-3 h-10 w-3/4" />
+              <SkeletonBar className="mt-4 h-3 w-full max-w-md" />
+              <SkeletonBar className="mt-3 h-3 w-48" />
+              <div className="mt-6 h-[52px] w-full animate-pulse rounded-xl bg-muted" aria-hidden />
+            </div>
+          </section>
+
+          {/* Decision card skeleton */}
+          <section className="mb-6">
+            <div className="rounded-xl border-2 border-border bg-card p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <SkeletonBar className="h-3 w-24" />
+                  <SkeletonBar className="h-10 w-56" />
+                </div>
+                <div className="space-y-2 text-right">
+                  <SkeletonBar className="h-3 w-20" />
+                  <SkeletonBar className="h-6 w-12" />
+                </div>
+              </div>
+              <SkeletonBar className="mt-4 h-3 w-full" />
+              <SkeletonBar className="mt-2 h-3 w-5/6" />
+            </div>
+          </section>
+
+          <p className="sr-only">Loading trust snapshot…</p>
+        </article>
+      </div>
+    </main>
+  );
+}
