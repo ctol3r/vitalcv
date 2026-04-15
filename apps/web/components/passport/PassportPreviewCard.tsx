@@ -24,7 +24,7 @@ interface PassportPreviewCardProps {
 
 export function PassportPreviewCard({ demo = false }: PassportPreviewCardProps) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+    <div className="glass rounded-2xl p-6 space-y-5 transition-transform duration-200 ease-out hover:-translate-y-0.5">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Sample readiness snapshot

@@ -636,8 +636,10 @@ function PassportPageContent({
               </Card>
             )}
 
-          {/* Source status rows */}
-          <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
+          {/* Source status rows — Liquid Glass treatment.
+              glass utility supplies backdrop-blur + translucent bg + 1px border + layered shadow.
+              Subtle hover lift (~2px, 200ms ease-out) — contained, not playful. */}
+          <Card className="animate-panel-enter glass gap-0 rounded-xl px-4 py-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
             <SourceRow
                 label="NPPES"
                 state={sources.nppes}
@@ -665,7 +667,7 @@ function PassportPageContent({
                 No count-up — the score is atomic truth, not progress. */}
             {state.readiness.score !== undefined && (
               <Card
-                className="animate-trust-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none"
+                className="animate-trust-panel-enter glass gap-0 rounded-xl px-4 py-3 transition-transform duration-200 ease-out hover:-translate-y-0.5"
                 style={{ animationDelay: '40ms' }}
               >
                 <div className="flex items-center justify-between">
