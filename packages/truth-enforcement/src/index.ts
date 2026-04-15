@@ -205,3 +205,4 @@ export function enforce(guards: SeamGuardFn[]): EnforcementResult {
 
   return { passed: violations.length === 0, violations };
 }
+export * from './gravity-enforcement';
