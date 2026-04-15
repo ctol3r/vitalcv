@@ -252,7 +252,13 @@ export function NextBestActionCard({
       </p>
 
       <p className="mt-4 text-sm font-semibold opacity-80">
-        Based on verified sources and prior outcomes.
+        {evidence.sources.length > 0 && nba.evidenceCount > 0
+          ? 'Based on verified sources and prior outcomes.'
+          : evidence.sources.length > 0
+            ? 'Based on verified sources — no prior employer outcomes yet.'
+            : nba.evidenceCount > 0
+              ? 'Based on prior outcomes only — no fresh source checks attached.'
+              : 'No verified sources or prior outcomes yet — review manually.'}
       </p>
 
       {evidence.sources.length > 0 && (
