@@ -17,6 +17,8 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { canonicalizeJson } from '../attestation/canonicalize';
+import { hashAttestation } from '../attestation/canonicalize';
+import { logEvent } from '../audit/eventWriter';
 import { log } from '../../obs/logger';
 
 export type DriftType =
@@ -143,6 +145,29 @@ async function persistDriftEvent(input: {
       source: input.source,
       driftType: input.driftType,
     });
+
+    // Audit-chain mirror — closes the "ingest drift has no AuditEvent
+    // correlation" gap. Best-effort: eventWriter swallows its own
+    // errors; we don't re-throw on failure here.
+    const driftHash = hashAttestation({
+      subjectNpi: input.subjectNpi,
+      source: input.source,
+      driftType: input.driftType,
+      previousValue: input.previousValue ?? null,
+      newValue: input.newValue,
+    });
+    void logEvent({
+      eventType: 'drift.detected.ingest',
+      subjectNpi: input.subjectNpi,
+      referenceId: row.id,
+      outputsHash: driftHash,
+      metadata: {
+        source: input.source,
+        driftType: input.driftType,
+        driftEventId: row.id,
+      },
+    });
+
     return { drifted: true, driftType: input.driftType, eventId: row.id };
   } catch (error) {
     log('warn', 'drift_event_write_failed', {
