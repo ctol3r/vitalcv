@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Check, Clock3, Eye, Lock, Minus } from 'lucide-react';
+import { ShieldCheck, Check, Clock3, Eye, Lock, Minus } from 'lucide-react';
 import {
   getStatusDisplayLabel,
   getTrustStatusBadgeClassName,
@@ -47,7 +47,7 @@ const CANONICAL_TRUST_BADGE_STATUSES = new Set<TrustUiStatus>([
 ]);
 
 const TRUST_STATUS_DESCRIPTORS: Record<string, string> = {
-  checked: 'Confirmed in this run from the source',
+  checked: 'Cryptographically verified in this run',
   'access_required': 'This source requires institutional access',
   pending: 'Not yet checked in this session',
   'preview only': 'Example data - not from a live source run',
@@ -67,7 +67,8 @@ function resolveTrustBadgeIcon(status: TrustBadgeStatus) {
     case 'clear':
     case 'checked':
     case 'enrolled':
-      return Check;
+      // Shield Check for cryptography-backed claims
+      return ShieldCheck;
     case 'pending':
     case 'stale':
       return Clock3;
