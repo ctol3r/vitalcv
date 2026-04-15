@@ -522,6 +522,7 @@ export default function ExploreClient() {
 
         {showFilters && (
           <>
+            {/* Row 1 — Role */}
             <select value={specialty} onChange={e => setSpecialty(e.target.value)}
               className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">All Specialties</option>
@@ -537,6 +538,11 @@ export default function ExploreClient() {
               <option value="">All Types</option>
               {HIRING_TYPES.map(t => <option key={t} value={t}>{HIRING_TYPE_LABELS[t]}</option>)}
             </select>
+
+            {/* Row break — forces the next group onto its own line in flex-wrap */}
+            <div className="basis-full" aria-hidden="true" />
+
+            {/* Row 2 — Compensation */}
             <select value={payModel} onChange={e => setPayModel(e.target.value)}
               className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Pay Model</option>
@@ -556,6 +562,11 @@ export default function ExploreClient() {
               placeholder="Pay max"
               className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
             />
+
+            {/* Row break */}
+            <div className="basis-full" aria-hidden="true" />
+
+            {/* Row 3 — Policy & status */}
             <select value={visaSponsorship} onChange={e => setVisaSponsorship(e.target.value)}
               className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
               <option value="">Any Visa Policy</option>
@@ -582,6 +593,8 @@ export default function ExploreClient() {
             </label>
             {comparisonFiltersAvailable ? (
               <>
+                {/* Row break — readiness filters appear only when comparison context is available */}
+                <div className="basis-full" aria-hidden="true" />
                 <select value={readinessStatus} onChange={e => setReadinessStatus(e.target.value)}
                   className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
                   <option value="">Any Readiness Fit</option>
@@ -821,11 +834,9 @@ function OpportunityCard({
         </div>
       </div>
 
-      {/* Tags */}
+      {/* Tags — single neutral tier for metadata, color reserved for meaningful state.
+          Hiring type is already in the meta grid above, so we don't duplicate it here. */}
       <div className="flex flex-wrap gap-1.5">
-        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400">
-          {HIRING_TYPE_LABELS[opp.hiringType] ?? opp.hiringType}
-        </span>
         {opp.remote && (
           <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
             Remote
@@ -837,7 +848,7 @@ function OpportunityCard({
         <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-foreground/70">
           {formatBenefitsStatus(opp.benefitsAvailability)}
         </span>
-        <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-muted-foreground">
+        <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-xs text-foreground/70">
           {opp.specialty}
         </span>
       </div>
