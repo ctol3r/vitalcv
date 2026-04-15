@@ -55,7 +55,7 @@ const ROWS: EvidenceRowSpec[] = [
   },
 ];
 
-type Status = 'pass' | 'flag' | 'unknown';
+type Status = 'pass' | 'flag' | 'stale' | 'unknown';
 
 function classify(check: CoverageCheck | undefined, spec: EvidenceRowSpec): { status: Status; label: string } {
   if (!check) return { status: 'unknown', label: spec.absentLabel };
@@ -66,19 +66,27 @@ function classify(check: CoverageCheck | undefined, spec: EvidenceRowSpec): { st
   if (state === 'checked') {
     return { status: 'pass', label: spec.presentLabel };
   }
-  // pending / stale / unavailable / etc — treat as unknown.
+  // Stale is distinct from pending — the source was checked before but
+  // the result is past its freshness window. Surface it explicitly so
+  // users can make a stale-aware decision with disclosure.
+  if (state === 'stale') {
+    return { status: 'stale', label: 'Stale — refresh needed' };
+  }
+  // pending / unavailable / accessRequired / etc — treat as unknown.
   return { status: 'unknown', label: spec.absentLabel };
 }
 
 const STATUS_TONE: Record<Status, string> = {
   pass: 'text-green-700',
   flag: 'text-red-700',
+  stale: 'text-amber-800',
   unknown: 'text-amber-700',
 };
 
 const STATUS_DOT: Record<Status, string> = {
   pass: 'bg-green-500',
   flag: 'bg-red-500',
+  stale: 'bg-amber-600',
   unknown: 'bg-amber-400',
 };
 
@@ -110,11 +118,24 @@ export function EvidencePanel({
   const findCheck = (matches: string[]): CoverageCheck | undefined =>
     checks.find((c) => matches.includes(c.sourceId));
 
+  const rowStatuses = ROWS.map((spec) => classify(findCheck(spec.matches), spec));
+  const hasStale = rowStatuses.some((r) => r.status === 'stale');
+
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         Compliance evidence
       </p>
+      {hasStale && (
+        <p
+          role="status"
+          className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800"
+        >
+          <span className="font-semibold">Some sources are past their freshness window.</span>{' '}
+          You can proceed with disclosure of the stale lane(s) below, or request a refresh
+          before acting.
+        </p>
+      )}
       <ul className="mt-3 divide-y divide-border">
         {ROWS.map((spec) => {
           const check = findCheck(spec.matches);
