@@ -4,6 +4,9 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node dist/test.js"
