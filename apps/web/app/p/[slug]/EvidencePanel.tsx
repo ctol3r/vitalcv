@@ -107,6 +107,22 @@ function formatVerifiedAt(iso: string | null | undefined): string | null {
   }
 }
 
+/** Fresh / Aging / Stale tier derived from checkedAt age. Only used
+ *  when the backend state is 'checked' — stale is already its own UI
+ *  state above. Aging surfaces between 14 and 30 days since last check. */
+function freshnessTier(iso: string | null | undefined): 'fresh' | 'aging' | null {
+  if (!iso) return null;
+  const ts = Date.parse(iso);
+  if (!Number.isFinite(ts)) return null;
+  const ageDays = (Date.now() - ts) / 86_400_000;
+  if (ageDays < 14) return 'fresh';
+  if (ageDays <= 30) return 'aging';
+  // Older than 30 days but backend still says checked — treat as aging
+  // for UI purposes; backend is expected to flip to 'stale' past its
+  // own freshness window.
+  return 'aging';
+}
+
 export function EvidencePanel({
   coverage,
   npi,
@@ -127,20 +143,32 @@ export function EvidencePanel({
         Compliance evidence
       </p>
       {hasStale && (
-        <p
+        <div
           role="status"
           className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800"
         >
-          <span className="font-semibold">Some sources are past their freshness window.</span>{' '}
-          You can proceed with disclosure of the stale lane(s) below, or request a refresh
-          before acting.
-        </p>
+          <p>
+            <span className="font-semibold">One or more sources are stale.</span>{' '}
+            Impact: the lane may no longer reflect the current status at the issuing
+            authority. Proceeding now relies on the last verified snapshot below.
+          </p>
+          <p className="mt-1">
+            Recommended action: <span className="font-semibold">request a fresh check</span>{' '}
+            (the Run Fresh Verification action above) before acting. If you proceed, the
+            action is recorded against the stale snapshot with explicit disclosure.
+          </p>
+        </div>
       )}
       <ul className="mt-3 divide-y divide-border">
         {ROWS.map((spec) => {
           const check = findCheck(spec.matches);
           const { status, label } = classify(check, spec);
           const verifiedAt = formatVerifiedAt(check?.checkedAt);
+          // Three-tier freshness. 'stale' is already a distinct status
+          // (surfaced by classify); for 'pass', derive Fresh/Aging from
+          // the checkedAt age so the user sees data-age context next to
+          // the status.
+          const tier = status === 'pass' ? freshnessTier(check?.checkedAt) : null;
           return (
             <li
               key={spec.label}
@@ -154,7 +182,16 @@ export function EvidencePanel({
                   </span>
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {verifiedAt ? `Verified at: ${verifiedAt}` : 'Verification pending'}
+                  {verifiedAt ? `Last verified: ${verifiedAt}` : 'Verification pending'}
+                  {tier === 'fresh' && (
+                    <span className="ml-2 font-semibold text-green-700">· Fresh</span>
+                  )}
+                  {tier === 'aging' && (
+                    <span className="ml-2 font-semibold text-amber-700">· Aging</span>
+                  )}
+                  {status === 'stale' && (
+                    <span className="ml-2 font-semibold text-amber-800">· Stale</span>
+                  )}
                 </p>
               </div>
               <span className={`flex shrink-0 items-center gap-2 text-sm font-semibold ${STATUS_TONE[status]}`}>
