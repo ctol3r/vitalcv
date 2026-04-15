@@ -57,6 +57,7 @@ import { registerOmegaRoutes } from './routes/omega';
 import { registerDecisionExportRoutes } from './routes/decisionExport';
 import { registerManifestRoutes } from './routes/manifest';
 import { registerInternalValidationRoutes } from './routes/internalValidation';
+import { registerInternalSnapshotRoutes } from './routes/internalSnapshots';
 import { registerDriftReactionHandlers } from './services/events/driftReactionHandler';
 // Wave 47: Human-in-the-Loop review queue
 import { registerHitlRoutes } from './routes/hitl';
@@ -3506,6 +3507,7 @@ registerOmegaRoutes(app);         // Omega Orchestrator: POST /api/omega
 registerDecisionExportRoutes(app); // Decision export: GET /api/export/:npi
 registerManifestRoutes(app);       // Manifest: GET /api/manifest/:npi (thin over buildEmployerEvidencePacket)
 registerInternalValidationRoutes(app); // Operator: GET /api/internal/validation
+registerInternalSnapshotRoutes(app);   // Operator: GET /api/internal/snapshots/:id
 registerDriftReactionHandlers();  // Drift events → Notification writes
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence

@@ -16,6 +16,7 @@
 
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
+import { deriveLearningSignal, type LearningSignal } from './confidenceScoring';
 
 export type NextBestActionKind =
   | 'PROCEED'
@@ -28,6 +29,10 @@ export interface NextBestAction {
   reason: string;
   confidence: number;
   evidenceCount: number;
+  confidenceBand?: 'HIGH' | 'MEDIUM' | 'LOW';
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+  urgency?: 'LOW' | 'MEDIUM' | 'HIGH';
+  expectedOutcome?: LearningSignal['expectedOutcome'];
 }
 
 const RECENT_LIMIT = 20;
@@ -37,7 +42,61 @@ const SAFE_DEFAULT: NextBestAction = {
   reason: 'Not enough learning data yet — review manually.',
   confidence: 0,
   evidenceCount: 0,
+  confidenceBand: 'LOW',
+  riskLevel: 'HIGH',
+  urgency: 'MEDIUM',
+  expectedOutcome: {
+    successRate: null,
+    failureRate: null,
+    avgTimeToStartDays: null,
+    sampleSize: 0,
+  },
 };
+
+function applyLearningSignal(
+  base: NextBestAction,
+  signal: LearningSignal,
+): NextBestAction {
+  let action = base.action;
+
+  if (signal.confidenceBand === 'LOW') {
+    if (action === 'PROCEED') {
+      action = 'REVIEW_MANUALLY';
+    }
+  } else if (action === 'REVIEW_MANUALLY') {
+    if (signal.recommendedActionBias === 'PROCEED') {
+      action = 'PROCEED';
+    } else if (signal.recommendedActionBias === 'REVERIFY') {
+      action = 'REVERIFY';
+    }
+  } else if (action === 'PROCEED' && signal.riskLevel === 'HIGH') {
+    action = 'REVERIFY';
+  }
+
+  const urgency =
+    action === 'ESCALATE' || signal.riskLevel === 'HIGH'
+      ? 'HIGH'
+      : action === 'REVERIFY' || signal.riskLevel === 'MEDIUM'
+        ? 'MEDIUM'
+        : 'LOW';
+
+  const adjustedConfidence = clamp01((base.confidence * 0.6) + (signal.confidenceScore * 0.4));
+  const reason =
+    signal.confidenceBand === 'LOW'
+      ? `${base.reason} Confidence is low: ${signal.reason}`
+      : `${base.reason} Confidence signal: ${signal.reason}`;
+
+  return {
+    ...base,
+    action,
+    reason,
+    confidence: adjustedConfidence,
+    confidenceBand: signal.confidenceBand,
+    riskLevel: signal.riskLevel,
+    urgency,
+    expectedOutcome: signal.expectedOutcome,
+  };
+}
 
 export async function deriveNextBestAction(
   clinicianNpi: string,
@@ -45,19 +104,23 @@ export async function deriveNextBestAction(
   if (!clinicianNpi) return SAFE_DEFAULT;
 
   let records: Array<{ eventType: string; metadata: unknown }> = [];
+  let learningSignal: LearningSignal | null = null;
   try {
-    records = await prisma.learningEvent.findMany({
-      where: { subjectId: clinicianNpi, loopType: 'USAGE_TRACKING' },
-      orderBy: { occurredAt: 'desc' },
-      take: RECENT_LIMIT,
-      select: { eventType: true, metadata: true },
-    });
+    [records, learningSignal] = await Promise.all([
+      prisma.learningEvent.findMany({
+        where: { subjectId: clinicianNpi, loopType: 'USAGE_TRACKING' },
+        orderBy: { occurredAt: 'desc' },
+        take: RECENT_LIMIT,
+        select: { eventType: true, metadata: true },
+      }),
+      deriveLearningSignal(clinicianNpi),
+    ]);
   } catch (error) {
     log('warn', 'nba_learning_query_failed', {
       subjectId: clinicianNpi,
       message: error instanceof Error ? error.message : 'unknown',
     });
-    return SAFE_DEFAULT;
+    return learningSignal ? applyLearningSignal(SAFE_DEFAULT, learningSignal) : SAFE_DEFAULT;
   }
 
   if (records.length === 0) {
@@ -87,41 +150,45 @@ export async function deriveNextBestAction(
 
   // ESCALATE when drift dominates recent history.
   if (driftOutcomes >= 2 && driftOutcomes > activatedOutcomes) {
-    return {
+    const base: NextBestAction = {
       action: 'ESCALATE',
       reason: `Recent history shows ${driftOutcomes} drift events.`,
       confidence: clamp01(driftOutcomes / records.length),
       evidenceCount: records.length,
     };
+    return learningSignal ? applyLearningSignal(base, learningSignal) : base;
   }
 
   // REVERIFY when employers consistently asked for more data.
   if (infoCount >= 2 && infoCount > acceptCount) {
-    return {
+    const base: NextBestAction = {
       action: 'REVERIFY',
       reason: `Employers requested additional verification ${infoCount} times.`,
       confidence: clamp01(infoCount / records.length),
       evidenceCount: records.length,
     };
+    return learningSignal ? applyLearningSignal(base, learningSignal) : base;
   }
 
   // PROCEED when accepts and successful activations dominate.
   if (acceptCount >= 1 && acceptCount + activatedOutcomes > rejectCount + driftOutcomes) {
-    return {
+    const base: NextBestAction = {
       action: 'PROCEED',
       reason: `Recent learning data supports proceeding (${acceptCount} accept(s), ${activatedOutcomes} activation(s)).`,
       confidence: clamp01((acceptCount + activatedOutcomes) / records.length),
       evidenceCount: records.length,
     };
+    return learningSignal ? applyLearningSignal(base, learningSignal) : base;
   }
 
   // Fallback when the data is mixed / inconclusive.
-  return {
+  const base: NextBestAction = {
     action: 'REVIEW_MANUALLY',
     reason: 'Recent activity is mixed — review manually.',
     confidence: 0.25,
     evidenceCount: records.length,
   };
+  return learningSignal ? applyLearningSignal(base, learningSignal) : base;
 }
 
 function clamp01(value: number): number {
