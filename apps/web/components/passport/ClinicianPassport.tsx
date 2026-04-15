@@ -75,42 +75,42 @@ export interface ClinicianPassportProps {
 const BAND_CONFIG = {
   L3: {
     icon: ShieldCheck,
-    color: 'text-vt-success',
-    bg: 'from-emerald-900/30 to-emerald-950/20',
-    ring: 'ring-vt-success/40',
+    color: 'text-[var(--vt-status-resolved)]',
+    bg: 'bg-[var(--vt-surface)]',
+    ring: 'ring-[var(--vt-status-resolved)]',
     label: 'Authoritative Trust',
     desc: 'Maximum credential authority — all sources source-backed',
   },
   L2: {
     icon: Shield,
-    color: 'text-vt-info',
-    bg: 'from-blue-900/30 to-blue-950/20',
-    ring: 'ring-vt-info/40',
+    color: 'text-[var(--vt-status-new)]',
+    bg: 'bg-[var(--vt-surface)]',
+    ring: 'ring-[var(--vt-status-new)]',
     label: 'Source-backed Trust',
     desc: 'Primary credentials source-backed and monitored',
   },
   L1: {
     icon: ShieldAlert,
-    color: 'text-vt-warning',
-    bg: 'from-amber-900/30 to-amber-950/20',
-    ring: 'ring-vt-warning/40',
+    color: 'text-[var(--vt-severity-high)]',
+    bg: 'bg-[var(--vt-surface)]',
+    ring: 'ring-[var(--vt-severity-high)]',
     label: 'Provisional Trust',
     desc: 'Verification in progress',
   },
   L0: {
     icon: ShieldX,
-    color: 'text-vt-neutral-400',
-    bg: 'from-zinc-900/30 to-zinc-950/20',
-    ring: 'ring-zinc-500/30',
+    color: 'text-[var(--vt-text-muted)]',
+    bg: 'bg-[var(--vt-surface)]',
+    ring: 'ring-[var(--vt-border)]',
     label: 'Unverified',
     desc: 'Credentials not yet checked',
   },
 } as const;
 
 const TRUST_LEVEL_COLOR: Record<string, string> = {
-  AUTHORITATIVE: 'text-vt-success bg-vt-success/10 border-vt-success/20',
-  TRUSTED: 'text-vt-info bg-vt-info/10 border-vt-info/20',
-  UNVERIFIED: 'text-vt-neutral-400 bg-vt-neutral-700/20 border-vt-neutral-700/30',
+  AUTHORITATIVE: 'text-[var(--vt-status-resolved)] bg-vt-success/10 border-vt-success/20',
+  TRUSTED: 'text-[var(--vt-status-new)] bg-vt-info/10 border-vt-info/20',
+  UNVERIFIED: 'text-[var(--vt-text-muted)] bg-vt-neutral-700/20 border-[var(--vt-border-subtle)]/30',
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -128,9 +128,9 @@ function TrustBandHero({
   const Icon = cfg.icon;
 
   return (
-    <div className={`rounded-2xl bg-gradient-to-br ${cfg.bg} ring-1 ${cfg.ring} p-5`}>
+    <div className={`rounded-none  ${cfg.bg} ring-1 ${cfg.ring} p-5`}>
       <div className="flex items-start gap-4">
-        <div className={`rounded-xl bg-black/60 p-3 ring-1 ${cfg.ring}`}>
+        <div className={`rounded-2xl bg-black/40 backdrop-blur-md p-3 border border-white/10`}>
           <Icon className={`h-6 w-6 ${cfg.color}`} />
         </div>
         <div className="flex-1 min-w-0">
@@ -138,8 +138,8 @@ function TrustBandHero({
             <span className={`text-xs font-bold uppercase tracking-wider ${cfg.color}`}>
               {band}
             </span>
-            <span className="text-xs text-vt-neutral-500">·</span>
-            <span className="text-xs text-vt-neutral-400">{cfg.label}</span>
+            <span className="text-xs text-[var(--vt-text-muted)]">·</span>
+            <span className="text-xs text-[var(--vt-text-muted)]">{cfg.label}</span>
             {summary.haipCompliant && (
               <span className="inline-flex items-center gap-1 rounded-full bg-vt-brand-primary/10 border border-vt-brand-primary/20 px-2 py-0.5 text-[10px] font-medium text-vt-brand-primary">
                 <CheckCircle className="h-2.5 w-2.5" />
@@ -147,22 +147,22 @@ function TrustBandHero({
               </span>
             )}
           </div>
-          <p className="text-[10px] text-vt-neutral-600 mt-0.5">{cfg.desc}</p>
-          <p className="text-[10px] font-mono text-vt-neutral-700 mt-1">NPI {npi}</p>
+          <p className="text-[10px] text-[var(--vt-text-muted)] mt-0.5">{cfg.desc}</p>
+          <p className="text-[10px] font-mono text-[var(--vt-text-muted)] mt-1">NPI {npi}</p>
         </div>
       </div>
 
       {/* Credential summary strip */}
       <div className="mt-4 grid grid-cols-4 gap-2">
         {[
-          { label: 'Total', val: summary.totalCredentials, color: 'text-vt-neutral-300' },
-          { label: 'Valid', val: summary.validCredentials, color: 'text-vt-success' },
-          { label: 'Expiring', val: summary.expiringCredentials, color: summary.expiringCredentials > 0 ? 'text-vt-warning' : 'text-vt-neutral-600' },
-          { label: 'Revoked', val: summary.revokedCredentials, color: summary.revokedCredentials > 0 ? 'text-vt-danger' : 'text-vt-neutral-600' },
+          { label: 'Total', val: summary.totalCredentials, color: 'text-[var(--vt-text-secondary)]' },
+          { label: 'Valid', val: summary.validCredentials, color: 'text-[var(--vt-status-resolved)]' },
+          { label: 'Expiring', val: summary.expiringCredentials, color: summary.expiringCredentials > 0 ? 'text-[var(--vt-severity-high)]' : 'text-[var(--vt-text-muted)]' },
+          { label: 'Revoked', val: summary.revokedCredentials, color: summary.revokedCredentials > 0 ? 'text-[var(--vt-severity-critical)]' : 'text-[var(--vt-text-muted)]' },
         ].map(({ label, val, color }) => (
-          <div key={label} className="text-center rounded-lg bg-black/40 py-2">
+          <div key={label} className="text-center rounded-2xl bg-white/5 border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] py-2">
             <p className={`text-lg font-bold ${color}`}>{val}</p>
-            <p className="text-[9px] text-vt-neutral-600 uppercase tracking-wide">{label}</p>
+            <p className="text-[9px] text-[var(--vt-text-muted)] uppercase tracking-wide">{label}</p>
           </div>
         ))}
       </div>
@@ -176,26 +176,26 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
   const colorClass = TRUST_LEVEL_COLOR[level] ?? TRUST_LEVEL_COLOR.TRUSTED;
 
   return (
-    <div className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/60 p-3 flex items-start gap-3">
-      <div className="rounded-lg bg-vt-neutral-800 p-2 shrink-0">
-        <FileKey2 className="h-3.5 w-3.5 text-vt-neutral-400" />
+    <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] p-4 flex items-start gap-3">
+      <div className="rounded-2xl bg-white/5 p-2 shrink-0 border border-white/5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]">
+        <FileKey2 className="h-3.5 w-3.5 text-[var(--vt-text-muted)]" />
       </div>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="label text-vt-neutral-100 truncate">{credential.credentialType}</span>
+          <span className="label text-[var(--vt-text-primary)] truncate">{credential.credentialType}</span>
           <span className={`text-[9px] font-medium border rounded-full px-1.5 py-0.5 shrink-0 ${colorClass}`}>
             {level === 'AUTHORITATIVE' ? 'Auth' : level === 'TRUSTED' ? 'Trust' : 'Unver'}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-[10px] text-vt-neutral-500 truncate">{credential.issuer}</p>
+          <p className="text-[10px] text-[var(--vt-text-muted)] truncate">{credential.issuer}</p>
           {credential.haipCompliant && (
             <span className="text-[9px] text-vt-brand-primary border border-vt-brand-primary/20 rounded px-1 shrink-0">HAIP</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {/* Trust score bar */}
-          <div className="flex-1 h-1 bg-vt-neutral-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-1 bg-[var(--vt-surface-subtle)] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
               style={{
@@ -204,10 +204,10 @@ function IssuerTrustBadge({ credential }: { credential: PassportCredential }) {
               }}
             />
           </div>
-          <span className="text-[9px] font-mono text-vt-neutral-600 shrink-0">{score}</span>
+          <span className="text-[9px] font-mono text-[var(--vt-text-muted)] shrink-0">{score}</span>
           <span className={`text-[9px] mr-2 ${
-            credential.status === 'ACTIVE' ? 'text-vt-success' :
-            credential.status === 'EXPIRED' ? 'text-vt-danger' : 'text-vt-warning'
+            credential.status === 'ACTIVE' ? 'text-[var(--vt-status-resolved)]' :
+            credential.status === 'EXPIRED' ? 'text-[var(--vt-severity-critical)]' : 'text-[var(--vt-severity-high)]'
           }`}>{credential.status}</span>
           <a href={`/proof/${credential.credentialId}`} className="text-[9px] font-medium text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 shrink-0">
             <ShieldCheck className="h-3 w-3" />
@@ -233,7 +233,7 @@ function QRModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--vt-bg)]/70  p-4"
       onClick={onClose}
     >
       <motion.div
@@ -241,22 +241,22 @@ function QRModal({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="rounded-2xl border border-vt-neutral-800 bg-black p-6 w-full max-w-sm space-y-4"
+        className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-bg)] p-6 w-full max-w-sm space-y-4"
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="heading-sm text-vt-neutral-100">Scan to Verify</h3>
-            <p className="text-[10px] text-vt-neutral-600 mt-0.5">NPI {npi}</p>
+            <h3 className="heading-sm text-[var(--vt-text-primary)]">Scan to Verify</h3>
+            <p className="text-[10px] text-[var(--vt-text-muted)] mt-0.5">NPI {npi}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
+          <button type="button" onClick={onClose} className="text-[var(--vt-text-muted)] hover:text-[var(--vt-text-muted)]">
             <X className="h-4 w-4" />
           </button>
         </div>
         {/* QR Code */}
-        <div className="flex justify-center bg-white p-4 rounded-xl">
+        <div className="flex justify-center bg-white p-4 rounded-none">
           <QRCode value={url} size={200} level="M" />
         </div>
-        <p className="text-[10px] text-vt-neutral-600 text-center break-all">{url}</p>
+        <p className="text-[10px] text-[var(--vt-text-muted)] text-center break-all">{url}</p>
       </motion.div>
     </motion.div>
   );
@@ -327,22 +327,22 @@ function ShareDrawer({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="rounded-xl border border-vt-neutral-800 bg-vt-neutral-900/80 p-4 space-y-3"
+        className="rounded-3xl border border-white/10 bg-black/60 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] p-4 space-y-3"
       >
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[11px] font-medium text-vt-neutral-400">Share source-backed data</p>
-          <button type="button" onClick={onClose} className="text-vt-neutral-600 hover:text-vt-neutral-400">
+          <p className="text-[11px] font-medium text-[var(--vt-text-muted)]">Share source-backed data</p>
+          <button type="button" onClick={onClose} className="text-[var(--vt-text-muted)] hover:text-[var(--vt-text-muted)]">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Share URL input */}
-        <div className="flex items-center gap-2 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 px-3 py-1.5">
-          <ExternalLink className="h-3 w-3 text-vt-neutral-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-none border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-3 py-1.5">
+          <ExternalLink className="h-3 w-3 text-[var(--vt-text-muted)] shrink-0" />
           <input
             readOnly
             value={shareUrl}
-            className="flex-1 bg-transparent text-[10px] font-mono text-vt-neutral-400 focus:outline-none min-w-0"
+            className="flex-1 bg-transparent text-[10px] font-mono text-[var(--vt-text-muted)] focus:outline-none min-w-0"
           />
         </div>
 
@@ -351,7 +351,7 @@ function ShareDrawer({
           <button
             type="button"
             onClick={copyLink}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-none border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] py-2.5 px-2 text-[10px] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-vt-neutral-600 transition-colors"
           >
             {copied ? (
               <CheckCircle className="h-4 w-4 text-emerald-400" />
@@ -364,7 +364,7 @@ function ShareDrawer({
           <button
             type="button"
             onClick={() => setShowQR(true)}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
+            className="flex flex-col items-center gap-1.5 rounded-none border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] py-2.5 px-2 text-[10px] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-vt-neutral-600 transition-colors"
           >
             <QrCode className="h-4 w-4" />
             QR code
@@ -374,7 +374,7 @@ function ShareDrawer({
             type="button"
             onClick={downloadBundle}
             disabled={downloading}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/60 py-2.5 px-2 text-[10px] text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors disabled:opacity-50"
+            className="flex flex-col items-center gap-1.5 rounded-none border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] py-2.5 px-2 text-[10px] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-vt-neutral-600 transition-colors disabled:opacity-50"
           >
             {downloading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -385,7 +385,7 @@ function ShareDrawer({
           </button>
         </div>
 
-        <p className="text-[9px] text-vt-neutral-700 text-center">
+        <p className="text-[9px] text-[var(--vt-text-muted)] text-center">
           Share links allow selective disclosure. Bundle is a cryptographic snapshot.
         </p>
       </motion.div>
@@ -463,16 +463,16 @@ export default function ClinicianPassport({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-vt-neutral-800 bg-vt-neutral-900/30 p-6 space-y-3 animate-pulse">
-        <div className="h-24 rounded-xl bg-vt-neutral-800/60" />
-        <div className="h-16 rounded-xl bg-vt-neutral-800/40" />
-        <div className="h-16 rounded-xl bg-vt-neutral-800/40" />
+      <div className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6 space-y-3 animate-pulse">
+        <div className="h-24 rounded-none bg-[var(--vt-surface-subtle)]" />
+        <div className="h-16 rounded-none bg-[var(--vt-surface-subtle)]" />
+        <div className="h-16 rounded-none bg-[var(--vt-surface-subtle)]" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-vt-neutral-800 bg-vt-neutral-900/20 overflow-hidden">
+    <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] overflow-hidden">
       {/* Trust band hero */}
       <div className="p-4">
         {summary && (
@@ -482,9 +482,9 @@ export default function ClinicianPassport({
 
       {/* HAIP compliance indicator */}
       {!compact && haipCount > 0 && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-lg bg-vt-brand-primary/5 border border-vt-brand-primary/20 px-3 py-2">
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-none bg-vt-brand-primary/5 border border-vt-brand-primary/20 px-3 py-2">
           <Award className="h-3.5 w-3.5 text-vt-brand-primary shrink-0" />
-          <p className="text-[11px] text-vt-neutral-300">
+          <p className="text-[11px] text-[var(--vt-text-secondary)]">
             <span className="font-semibold">{haipCount}</span>{' '}
             credential{haipCount !== 1 ? 's' : ''} meet HAIP conformance profile
           </p>
@@ -494,7 +494,7 @@ export default function ClinicianPassport({
       {/* Credential list with issuer trust badges */}
       {credentials.length > 0 && (
         <div className="px-4 pb-4 space-y-2">
-          <p className="text-[10px] font-mono text-vt-neutral-600 uppercase tracking-wider mb-2">
+          <p className="text-[10px] font-mono text-[var(--vt-text-muted)] uppercase tracking-wider mb-2">
             Credentials · {credentials.length}
           </p>
           {visible.map((c) => (
@@ -504,7 +504,7 @@ export default function ClinicianPassport({
             <button
               type="button"
               onClick={() => setShowAll((p) => !p)}
-              className="flex items-center gap-1.5 w-full justify-center text-[10px] text-vt-neutral-600 hover:text-vt-neutral-400 transition-colors py-1"
+              className="flex items-center gap-1.5 w-full justify-center text-[10px] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-muted)] transition-colors py-1"
             >
               {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {showAll ? 'Show less' : `Show ${credentials.length - 3} more`}
@@ -515,17 +515,17 @@ export default function ClinicianPassport({
 
       {credentials.length === 0 && !loading && (
         <div className="px-4 pb-4">
-          <p className="text-[11px] text-vt-neutral-600 text-center py-3">No credentials on file</p>
+          <p className="text-[11px] text-[var(--vt-text-muted)] text-center py-3">No credentials on file</p>
         </div>
       )}
 
       {/* Share actions */}
       {!compact && (
-        <div className="border-t border-vt-neutral-800 px-4 py-3 space-y-3">
+        <div className="border-t border-[var(--vt-border)] px-4 py-3 space-y-3">
           <button
             type="button"
             onClick={() => setShowShare((p) => !p)}
-            className="flex items-center gap-2 w-full justify-center rounded-lg border border-vt-neutral-700 bg-vt-neutral-800/40 py-2 text-xs text-vt-neutral-400 hover:text-vt-neutral-100 hover:border-vt-neutral-600 transition-colors"
+            className="flex items-center gap-2 w-full justify-center rounded-none border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] py-2 text-xs text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-vt-neutral-600 transition-colors"
           >
             <Share2 className="h-3.5 w-3.5" />
             Share source-backed data
