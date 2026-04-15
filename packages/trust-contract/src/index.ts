@@ -293,3 +293,4 @@ export * from './multi-issuer';
 export * from './arbitration-engine';
 export * from './explainability-engine';
 export * from './system-coherence';
+export * from './freshness-engine';

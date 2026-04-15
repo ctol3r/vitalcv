@@ -14,6 +14,7 @@ import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
 import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
 import { DecisionTrace, storeDecisionTrace } from '../decision/decisionTraceEngine';
+import { evaluateFreshness, FreshnessState } from '../../../../packages/trust-contract/src/index';
 
 const prisma = new PrismaClient();
 
@@ -72,10 +73,34 @@ export async function generateOmegaDecision(
     }
   };
 
+  // Evaluate Freshness on cached results
+  const nppesFreshness = evaluateFreshness({
+    verifiedAt: cachedNppesResult.timestamp,
+    ttlMs: 30 * 24 * 60 * 60 * 1000 // 30 days
+  });
+
   const manifest = await buildManifest(npi, [cachedNppesResult as any]);
   
+  let effectivePosture = manifest.readinessPosture;
+  let hasStaleData = false;
+
+  // Freshness Engine Decision Impact
+  if (nppesFreshness.state === FreshnessState.EXPIRED) {
+    effectivePosture = ReadinessPosture.INSUFFICIENT_DATA;
+    manifest.limitations.push({ code: 'DATA_EXPIRED', description: 'Core identity data has expired.' });
+  } else if (nppesFreshness.state === FreshnessState.STALE) {
+    hasStaleData = true;
+    if (effectivePosture === ReadinessPosture.DECISION_GRADE) {
+      effectivePosture = ReadinessPosture.PARTIAL; // Degrade
+    }
+    manifest.limitations.push({ code: 'DATA_STALE', description: 'Some verification data is stale and requires refresh.' });
+  } else if (nppesFreshness.state === FreshnessState.AGING) {
+    // Fire off async refresh in background (conceptual)
+    manifest.limitations.push({ code: 'DATA_AGING', description: 'Data is approaching expiration.' });
+  }
+
   const recognition = {
-    posture: manifest.readinessPosture,
+    posture: effectivePosture,
     coverage: manifest.coverage,
     limitations: manifest.limitations,
     receiptCount: manifest.receipts.length
@@ -97,7 +122,7 @@ export async function generateOmegaDecision(
   // 3. ACTIVATION GRAPH (Start Readiness)
   // Start = Recognition (Decision Grade) + Acceptance (PROCEED)
   let startReady = false;
-  if (manifest.readinessPosture === ReadinessPosture.DECISION_GRADE && historicAcceptance?.action === 'PROCEED') {
+  if (effectivePosture === ReadinessPosture.DECISION_GRADE && historicAcceptance?.action === 'PROCEED') {
     startReady = true;
   }
   
@@ -111,11 +136,11 @@ export async function generateOmegaDecision(
   // 4. NEXT BEST ACTION (NBA)
   // Synthesize everything into the single dominant UI action
   const nextBestAction = generateNextBestAction({
-    readinessPosture: manifest.readinessPosture as any,
+    readinessPosture: effectivePosture as any,
     missingRequirements: manifest.limitations.map(l => l.description),
-    hasAdverseSignals: manifest.readinessPosture === ReadinessPosture.BLOCKED,
+    hasAdverseSignals: effectivePosture === ReadinessPosture.BLOCKED,
     employerAction: historicAcceptance?.action as any || 'NONE',
-    isStale: false,
+    isStale: hasStaleData,
     sourceCoverage: {
       nppes: { status: 'CHECKED', isStale: false },
       oig: { status: 'CHECKED', isStale: false }, // Assumed for NBA context
@@ -184,11 +209,10 @@ export async function generateOmegaDecision(
   // 9. ORGANIZATION POLICY ENFORCEMENT
   const orgPolicy = await fetchOrgPolicy(employerId);
   const presentSignals = manifest.claims.map(c => c.type);
-  const hasStaleData = manifest.coverage.some(c => c.isStale);
 
   const policyResult = applyOrgPolicy(
     orgPolicy,
-    manifest.readinessPosture as any,
+    effectivePosture as any,
     calibration.calibratedState,
     nextBestAction.action,
     presentSignals,
