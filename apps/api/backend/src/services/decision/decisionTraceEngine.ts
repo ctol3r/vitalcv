@@ -3,6 +3,7 @@
 // decision authority stack.
 
 import { CalibratedDecisionState, ConfidenceLevel } from './confidenceEngine';
+import { TruthSnapshot } from '../../../../packages/trust-contract/src/truth-snapshot';
 
 export interface TraceLayerTruth {
   coverageChecked: number;
@@ -44,6 +45,7 @@ export interface TraceLayerConfidence {
 
 export interface DecisionTrace {
   traceId: string;
+  snapshotId: string;
   subjectNpi: string;
   orgId: string;
   timestamp: string;
@@ -65,7 +67,7 @@ export interface DecisionTrace {
   };
 }
 
-export async function storeDecisionTrace(trace: DecisionTrace): Promise<void> {
-  console.log(`[TRACE ENGINE] Stored replayable decision trace ${trace.traceId} for NPI ${trace.subjectNpi}`);
+export async function storeDecisionTrace(trace: DecisionTrace, snapshot: TruthSnapshot): Promise<void> {
+  console.log(`[TRACE ENGINE] Stored replayable decision trace ${trace.traceId} (Snapshot: ${snapshot.snapshotId}) for NPI ${trace.subjectNpi}`);
   // In a real implementation, this persists to an immutable ledger or trace DB
 }

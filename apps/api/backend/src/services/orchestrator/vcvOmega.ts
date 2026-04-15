@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { buildManifest } from '../../../../packages/source-adapters/src/manifest-engine';
 import { generateNextBestAction, NbaRecommendation } from '../decision/nbaEngine';
 import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
-import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
+import { ReadinessPosture, TruthSnapshot, SourceStatus, FreshnessState } from '../../../../packages/trust-contract/src/index';
 
 import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
 import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
@@ -227,10 +227,31 @@ export async function generateOmegaDecision(
   }
 
   const canonicalStateHash = 'hash_' + Math.random().toString(36).substring(7);
+  const snapshotId = `snap_${Date.now()}_${npi}`;
 
-  // 10. DECISION TRACE ENGINE
+  // 10. TIME-LOCKED TRUTH SNAPSHOT
+  const truthSnapshot: TruthSnapshot = {
+    snapshotId,
+    npi,
+    timestamp: new Date().toISOString(),
+    sourceStates: [
+      { sourceId: 'nppes', status: cachedNppesResult.status as any, verifiedAt: cachedNppesResult.timestamp }
+    ],
+    claims: manifest.claims.map(c => ({ claimId: c.id, type: c.type, value: c.value, issuerId: VITALCV_SYSTEM_ISSUER })),
+    receipts: manifest.receipts.map(r => ({ sourceId: 'unknown', receiptHash: r })),
+    freshnessStates: [
+      { sourceId: 'nppes', state: nppesFreshness.state, ageMs: nppesFreshness.ageMs }
+    ],
+    arbitrationResult: {
+      conflictsResolved: 0,
+      finalValues: {}
+    }
+  };
+
+  // 11. DECISION TRACE ENGINE
   const decisionTrace: DecisionTrace = {
     traceId: `trace_${Date.now()}_${npi}`,
+    snapshotId,
     subjectNpi: npi,
     orgId: employerId,
     timestamp: new Date().toISOString(),
@@ -274,7 +295,7 @@ export async function generateOmegaDecision(
     }
   };
 
-  await storeDecisionTrace(decisionTrace);
+  await storeDecisionTrace(decisionTrace, truthSnapshot);
 
   return {
     orchestrator_active: true,
