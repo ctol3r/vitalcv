@@ -40,7 +40,13 @@ export type PilotMetricEventType =
   | 'nav_item_clicked'
   | 'passport_viewed'
   | 'review_requested'
-  | 'review_opened';
+  | 'review_opened'
+  | 'npi_input_focus'
+  | 'time_to_first_value'
+  | 'time_to_decision_view'
+  | 'conversion_to_action'
+  | 'user_scroll_depth'
+  | 'drop_off_point';
 
 export interface PilotEntityContext {
   kind?: string | null;
