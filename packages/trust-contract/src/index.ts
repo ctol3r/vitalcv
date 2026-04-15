@@ -287,3 +287,4 @@ export function deriveScore(lanes: SourceLane[]): number {
 
   return Math.round((checkedCount / lanes.length) * 100);
 }
+export * from './auth-model';
