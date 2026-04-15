@@ -10,11 +10,14 @@ import { generateNextBestAction, NbaRecommendation } from '../decision/nbaEngine
 import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
 import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
 
+import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
+
 const prisma = new PrismaClient();
 
 export interface OmegaDecisionState {
   orchestrator_active: boolean;
   system_unified: boolean;
+  learning_pipeline: boolean;
   decisionState: {
     npi: string;
     generatedAt: string;
@@ -28,6 +31,10 @@ export interface OmegaDecisionState {
     status: 'ACTIVE';
     cadence: string;
     subscribedLanes: string[];
+  };
+  learningContext: {
+    priorDecisions: number;
+    historicOutcomes: DecisionOutcome[];
   };
 }
 
@@ -116,9 +123,30 @@ export async function generateOmegaDecision(
   );
   // (In real system, emit/save auditEvent)
 
+  // 7. LEARNING & OUTCOME CONTEXT
+  const historicOutcomes = await fetchOutcomeHistory(npi, employerId);
+  const learningContext = {
+    priorDecisions: historicOutcomes.length,
+    historicOutcomes
+  };
+  
+  // If activated or failed, we would record the outcome here
+  if (startReady) {
+    await recordDecisionOutcome({
+      npi,
+      orgId: employerId,
+      decisionState: 'hash_' + Math.random().toString(36).substring(7),
+      actionTaken: 'PROCEED',
+      outcome: OutcomeResult.STARTED,
+      timeToStartMs: historicAcceptance?.createdAt ? Date.now() - new Date(historicAcceptance.createdAt).getTime() : 0,
+      timestamp: new Date().toISOString()
+    });
+  }
+
   return {
     orchestrator_active: true,
     system_unified: true,
+    learning_pipeline: true,
     decisionState: {
       npi,
       generatedAt: new Date().toISOString(),
@@ -128,7 +156,8 @@ export async function generateOmegaDecision(
     acceptance,
     activation,
     nextBestAction,
-    monitoringPlan
+    monitoringPlan,
+    learningContext
   };
 }
 
