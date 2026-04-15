@@ -18,6 +18,11 @@ import { evaluateFreshness, FreshnessState } from '../../../../packages/trust-co
 
 const prisma = new PrismaClient();
 
+export interface UserContext {
+  actorType: 'clinician' | 'employer' | 'operator';
+  intent: 'check_readiness' | 'review_candidate' | 'make_decision';
+}
+
 export interface OmegaDecisionState {
   orchestrator_active: boolean;
   system_unified: boolean;
@@ -42,6 +47,7 @@ export interface OmegaDecisionState {
     applied: boolean;
     notes: string[];
   };
+  context: UserContext;
 }
 
 /**
@@ -50,7 +56,8 @@ export interface OmegaDecisionState {
  */
 export async function generateOmegaDecision(
   npi: string,
-  employerId: string
+  employerId: string,
+  context: UserContext = { actorType: 'employer', intent: 'make_decision' }
 ): Promise<OmegaDecisionState> {
   console.log(`[OMEGA] Orchestrating Canon for NPI ${npi}...`);
 
@@ -226,6 +233,17 @@ export async function generateOmegaDecision(
     nextBestAction.reasoning = policyResult.policyNotes.join(' | ');
   }
 
+  // 10. CONTEXTUAL ADAPTATION
+  if (context.actorType === 'clinician') {
+    if (nextBestAction.action === 'PROCEED') {
+      nextBestAction.action = 'READY_TO_APPLY' as any;
+      nextBestAction.reasoning = 'Your profile meets all minimum evidence requirements for deployment.';
+    } else if (nextBestAction.action === 'ESCALATE') {
+      nextBestAction.action = 'FIX_BLOCKERS' as any;
+      nextBestAction.reasoning = 'You have blockers that prevent deployment. Please review them.';
+    }
+  }
+
   const canonicalStateHash = 'hash_' + Math.random().toString(36).substring(7);
   const snapshotId = `snap_${Date.now()}_${npi}`;
 
@@ -320,7 +338,8 @@ export async function generateOmegaDecision(
     orgPolicy: {
       applied: policyResult.policyApplied,
       notes: policyResult.policyNotes
-    }
+    },
+    context
   };
 }
 
