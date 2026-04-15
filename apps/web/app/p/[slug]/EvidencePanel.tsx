@@ -203,7 +203,9 @@ export function EvidencePanel({
         })}
       </ul>
       <p className="mt-4 text-[11px] italic text-muted-foreground">
-        All checks performed against primary sources.
+        All checks performed against primary sources. Updated via background
+        verification — each row reflects the last completed check, not a
+        live query.
       </p>
       {npi && (
         <div className="mt-4 flex flex-wrap justify-end gap-2">
