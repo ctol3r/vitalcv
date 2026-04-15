@@ -21,6 +21,18 @@ import type { BillingTier } from '../services/billing/contracts';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
+/**
+ * Coarse role discriminator for route-level authorization. Intentionally
+ * a small, closed union — this is NOT a permissions system, just a
+ * signal for requireRole() to gate employer-facing routes.
+ */
+export type AuthRole =
+  | 'employer'
+  | 'issuer'
+  | 'holder'
+  | 'verifier'
+  | 'admin';
+
 export interface AuthContext {
   authenticated: boolean;
   method: 'api-key' | 'bearer' | 'none';
@@ -28,6 +40,12 @@ export interface AuthContext {
   tier?: BillingTier;
   clinicianId?: string;
   npi?: string;
+  /** Populated when the auth path resolves a role (e.g. via key metadata
+   *  or session claims). Unauthenticated requests omit it. */
+  role?: AuthRole;
+  /** Populated when the auth path resolves the tenant (org) for the
+   *  actor. Unauthenticated / untenanted requests omit it. */
+  organizationId?: string;
 }
 
 declare global {
@@ -242,5 +260,45 @@ export function requireTier(...tiers: string[]) {
       return;
     }
     next();
+  };
+}
+
+/**
+ * Require one of the supplied auth roles. Intentionally coarse —
+ * matches on AuthContext.role. Unauthenticated requests are rejected
+ * with 401 (not 403) so clients can distinguish missing credentials
+ * from wrong role.
+ */
+export function requireRole(...roles: AuthRole[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.auth?.authenticated) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+    if (!req.auth.role || !roles.includes(req.auth.role)) {
+      res.status(403).json({
+        error: `Requires role: ${roles.join(' or ')}`,
+      });
+      return;
+    }
+    next();
+  };
+}
+
+/**
+ * Lightweight actor + tenant extractor for best-effort attribution.
+ * Does NOT gate access — callers that need a gate use requireAuth or
+ * requireRole. Returns nulls for unauthenticated requests so downstream
+ * writes just carry missing context rather than failing.
+ */
+export function getActorContext(req: Request): {
+  actorId: string | null;
+  organizationId: string | null;
+  role: AuthRole | null;
+} {
+  return {
+    actorId: req.auth?.keyId ?? req.auth?.clinicianId ?? null,
+    organizationId: req.auth?.organizationId ?? null,
+    role: req.auth?.role ?? null,
   };
 }

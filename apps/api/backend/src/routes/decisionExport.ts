@@ -179,11 +179,35 @@ export function registerDecisionExportRoutes(app: Express): void {
         });
       }
 
+      // Public/limited view for unauthenticated callers: strip the
+      // richer evidentiary surfaces that imply an authorized decision
+      // trail. Authenticated employers get the full artifact.
+      // Preserves the manifest hash + schemaVersion so integrity can
+      // still be verified against the canonicalized subset.
+      const isAuthorizedEmployer =
+        req.auth?.authenticated === true && req.auth.role === 'employer';
+      const payload = isAuthorizedEmployer
+        ? artifact
+        : {
+            schemaVersion: artifact.schemaVersion,
+            generatedAt: artifact.generatedAt,
+            systemVersion: artifact.systemVersion,
+            clinicianNpi: artifact.clinicianNpi,
+            decisionState: artifact.decisionState,
+            evidence: artifact.evidence,
+            drift: artifact.drift,
+            // Intentionally stripped from public view:
+            //   trustSignals, acceptance, activation, recentActions,
+            //   nextBestAction, decisionAttestations
+            viewScope: 'public_limited' as const,
+          };
+
       log('info', 'decision_export_served', {
         npi_prefix: npi.slice(0, 4) + '····',
         download: wantsDownload,
+        scope: isAuthorizedEmployer ? 'full' : 'public_limited',
       });
-      return res.status(200).send(JSON.stringify(artifact, null, 2));
+      return res.status(200).send(JSON.stringify(payload, null, 2));
     } catch (error) {
       log('error', 'decision_export_failed', {
         npi_prefix: npi.slice(0, 4) + '····',
