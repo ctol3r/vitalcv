@@ -145,7 +145,15 @@ export function EvidencePanel({
         All checks performed against primary sources.
       </p>
       {npi && (
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <a
+            href={`/api/export/${encodeURIComponent(npi)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted"
+          >
+            <span aria-hidden>↗</span> View full evidence snapshot
+          </a>
           <a
             href={`/api/export/${encodeURIComponent(npi)}?download=1`}
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted"

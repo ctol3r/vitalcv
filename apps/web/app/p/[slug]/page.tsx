@@ -45,6 +45,7 @@ import { formatRelativeTime } from '@/lib/relative-time';
 import { CopyShareLink } from './CopyShareLink';
 import { NextBestActionCard, type NextBestActionPayload } from './NextBestActionCard';
 import { EvidencePanel } from './EvidencePanel';
+import { DivergencePanel } from './DivergencePanel';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -168,6 +169,21 @@ interface NpiProfile {
       checkedAt?: string | null;
     }>;
   };
+  divergence?: {
+    activeCount: number;
+    highCount: number;
+    mediumCount: number;
+    lowCount: number;
+    summary: string;
+    conflicts: Array<{
+      id: string;
+      severity: 'HIGH' | 'MEDIUM' | 'LOW';
+      description: string;
+      sources: string[];
+      active: boolean;
+      resolution: 'OPEN' | 'RESOLVED';
+    }>;
+  } | null;
 }
 
 type DisplayProfile = SlugProfile | NpiProfile;
@@ -1423,6 +1439,15 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               <section className="mb-6">
                 <EvidencePanel coverage={profile.coverage} npi={profile.npi} />
               </section>
+
+              {/* Cross-source divergence — visible when active conflicts
+                  exist, and positively visible ("All sources agree") when
+                  none. Never hidden — keeps UI truth consistent. */}
+              {profile.divergence !== undefined && (
+                <section className="mb-6">
+                  <DivergencePanel divergence={profile.divergence} />
+                </section>
+              )}
 
               {/* Primary action surface — NBA is the only place to act. */}
               {nextBestAction && (

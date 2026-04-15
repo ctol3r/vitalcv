@@ -17,6 +17,7 @@ import type { PredictionSummaryContract } from '../services/predictions/contract
 import { getPredictionSummaryForEntity } from '../services/predictions/predictionEngineService';
 import { buildPassportDataByNpi } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
+import { detectDivergence } from '../services/identity/divergenceEngine';
 import type { Decision } from '../services/entity/passportService';
 import type { CanonicalSourceCoverageReport, CanonicalTruthSet } from '@vitalcv/trust-state';
 
@@ -102,6 +103,25 @@ export interface NpiProfileResponse {
     }>;
   };
   reuse_signal: ReuseSignal;
+  // Cross-source divergence (Wave 14 graph substrate). Null when no
+  // divergence was computed for this subject. activeCount === 0 means
+  // "no current conflicts" — UI should render an "All sources agree"
+  // state rather than hiding the panel.
+  divergence: {
+    activeCount: number;
+    highCount: number;
+    mediumCount: number;
+    lowCount: number;
+    summary: string;
+    conflicts: Array<{
+      id: string;
+      severity: 'HIGH' | 'MEDIUM' | 'LOW';
+      description: string;
+      sources: string[];
+      active: boolean;
+      resolution: 'OPEN' | 'RESOLVED';
+    }>;
+  } | null;
 }
 
 function inferStateFromSource(source: string): string | null {
@@ -136,7 +156,7 @@ export function registerPublicProfileRoutes(app: Express): void {
 
       const generatedAt = new Date().toISOString();
 
-      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary, recentActionLog, reuseSignal] = await Promise.all([
+      const [passportData, artifacts, anchoredEvents, alertSummary, predictionSummary, recentActionLog, reuseSignal, divergenceReport] = await Promise.all([
         buildPassportDataByNpi(npi),
         prisma.verificationArtifact.findMany({
           where: {
@@ -195,6 +215,13 @@ export function registerPublicProfileRoutes(app: Express): void {
             last_action: null,
             last_action_at: null,
           };
+        }),
+        detectDivergence(npi).catch((error: unknown) => {
+          log('warn', 'public_profile_divergence_failed', {
+            npi_prefix: npi.slice(0, 4) + '····',
+            message: error instanceof Error ? error.message : 'unknown',
+          });
+          return null;
         }),
       ]);
 
@@ -367,6 +394,23 @@ export function registerPublicProfileRoutes(app: Express): void {
           })),
         },
         reuse_signal: reuseSignal,
+        divergence: divergenceReport
+          ? {
+              activeCount: divergenceReport.conflicts.filter((c) => c.active).length,
+              highCount: divergenceReport.conflicts.filter((c) => c.severity === 'HIGH').length,
+              mediumCount: divergenceReport.conflicts.filter((c) => c.severity === 'MEDIUM').length,
+              lowCount: divergenceReport.conflicts.filter((c) => c.severity === 'LOW').length,
+              summary: divergenceReport.summary,
+              conflicts: divergenceReport.conflicts.map((c) => ({
+                id: c.id,
+                severity: c.severity,
+                description: c.description,
+                sources: c.sources,
+                active: c.active,
+                resolution: c.resolution,
+              })),
+            }
+          : null,
       };
 
       log('info', 'public_profile_npi_served', {
