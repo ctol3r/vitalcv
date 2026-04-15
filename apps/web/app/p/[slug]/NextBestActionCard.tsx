@@ -346,6 +346,27 @@ export function NextBestActionCard({
         </ul>
       </details>
 
+      {/* Decision priority path — display-only explainer. Orders the
+          inputs from highest authority (sources) to lowest-weight signal
+          (historical outcomes). Does NOT change decision derivation;
+          mirrors what the engine already does deterministically. */}
+      <details open className="mt-3 text-xs">
+        <summary className="cursor-pointer list-none font-semibold opacity-75 hover:opacity-100">
+          Decision priority path
+        </summary>
+        <ol className="mt-2 list-inside list-decimal space-y-1 opacity-80">
+          <li>
+            <span className="font-semibold">Authority evidence</span> — OIG exclusion, license status, identity verification (highest authority)
+          </li>
+          <li>
+            <span className="font-semibold">Organization policy</span> — your organization&rsquo;s decision defaults
+          </li>
+          <li>
+            <span className="font-semibold">Historical outcomes</span> — how similar cases have been handled
+          </li>
+        </ol>
+      </details>
+
       <button
         type="button"
         onClick={handleClick}
