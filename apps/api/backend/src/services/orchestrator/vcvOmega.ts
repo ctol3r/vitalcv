@@ -12,6 +12,8 @@ import { ReadinessPosture } from '../../../../packages/trust-contract/src/index'
 
 import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
 import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
+import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
+import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +36,11 @@ export interface OmegaDecisionState {
     subscribedLanes: string[];
   };
   learningContext: OutcomeMemory;
+  calibration: CalibrationResult;
+  orgPolicy: {
+    applied: boolean;
+    notes: string[];
+  };
 }
 
 /**
@@ -158,6 +165,27 @@ export async function generateOmegaDecision(
     learningContext
   );
 
+  // 9. ORGANIZATION POLICY ENFORCEMENT
+  const orgPolicy = await fetchOrgPolicy(employerId);
+  const presentSignals = manifest.claims.map(c => c.type);
+  const hasStaleData = manifest.coverage.some(c => c.isStale);
+
+  const policyResult = applyOrgPolicy(
+    orgPolicy,
+    manifest.readinessPosture as any,
+    calibration.calibratedState,
+    nextBestAction.action,
+    presentSignals,
+    hasStaleData,
+    learningContext.patterns.failureRate
+  );
+
+  // Apply policy overrides
+  nextBestAction.action = policyResult.finalAction;
+  if (policyResult.policyNotes.length > 0) {
+    nextBestAction.reasoning = policyResult.policyNotes.join(' | ');
+  }
+
   return {
     orchestrator_active: true,
     system_unified: true,
@@ -166,15 +194,22 @@ export async function generateOmegaDecision(
       npi,
       generatedAt: new Date().toISOString(),
       canonicalStateHash: 'hash_' + Math.random().toString(36).substring(7),
-      calibratedState: calibration.calibratedState
+      calibratedState: policyResult.finalCalibratedState
     },
-    recognition,
+    recognition: {
+      ...recognition,
+      posture: policyResult.finalPosture,
+    },
     acceptance,
     activation,
     nextBestAction,
     monitoringPlan,
     learningContext,
-    calibration
+    calibration,
+    orgPolicy: {
+      applied: policyResult.policyApplied,
+      notes: policyResult.policyNotes
+    }
   };
 }
 
