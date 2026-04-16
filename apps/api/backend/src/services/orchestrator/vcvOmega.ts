@@ -5,7 +5,9 @@
 
 import { PrismaClient } from '@prisma/client';
 import { buildManifest } from '../../../../packages/source-adapters/src/manifest-engine';
-import { generateNextBestAction, NbaRecommendation } from '../decision/nbaEngine';
+import { generateNextBestAction, NbaRecommendation, NbaInputContext, RecommendedAction } from '../decision/nbaEngine';
+import { evaluateAcceptanceGraph, OrganizationRequirements } from '../decision/acceptanceGraph';
+import { evaluateActivationGraph } from '../decision/activationGraph';
 import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
 import { ReadinessPosture, TruthSnapshot, SourceStatus, FreshnessState } from '../../../../packages/trust-contract/src/index';
 
@@ -126,34 +128,71 @@ export async function generateOmegaDecision(
     lastActionAt: historicAcceptance?.createdAt || null
   };
 
-  // 3. ACTIVATION GRAPH (Start Readiness)
-  // Start = Recognition (Decision Grade) + Acceptance (PROCEED)
-  let startReady = false;
-  if (effectivePosture === ReadinessPosture.DECISION_GRADE && historicAcceptance?.action === 'PROCEED') {
-    startReady = true;
-  }
+  // 3. ACCEPTANCE GRAPH (Employer Compliance State)
+  // Maps the Manifest claims against strict Org requirements (No ML)
+  const mockOrgRules: OrganizationRequirements = {
+    orgId: employerId,
+    name: 'Mock Org',
+    rules: [
+      { claimType: 'identity.name', requiredFreshnessMs: 30 * 86400000, isCritical: true },
+      { claimType: 'oig.exclusion', requiredFreshnessMs: 30 * 86400000, isCritical: true }
+    ]
+  };
   
-  const activation = {
-    isStartReady: startReady,
-    activationReason: startReady 
-      ? 'Minimum Evidence Met + Employer Accepted'
-      : 'Missing Acceptance or Decision-Grade Evidence'
+  const manifestClaimsForAcceptance = manifest.claims.map(c => ({
+    type: c.type,
+    id: c.id,
+    status: SourceStatus.CHECKED, // Simplified for mock
+    ageMs: Date.now() - new Date(c.extractedAt).getTime()
+  }));
+
+  const acceptanceGraph = evaluateAcceptanceGraph(mockOrgRules, manifestClaimsForAcceptance);
+
+  // Look up historic acceptance records for this NPI by this Employer
+  const historicAcceptance = await prisma.employerAcceptance.findFirst({
+    where: { npi, employerId },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  const acceptance = {
+    hasPriorAcceptance: !!historicAcceptance,
+    lastAction: historicAcceptance?.action || 'NONE',
+    lastActionAt: historicAcceptance?.createdAt || null,
+    graph: acceptanceGraph
   };
 
-  // 4. NEXT BEST ACTION (NBA)
-  // Synthesize everything into the single dominant UI action
-  const nextBestAction = generateNextBestAction({
+  // 4. ACTIVATION GRAPH (Start Readiness)
+  // Translates Acceptance into static Startability timeframes (No ML)
+  const activationGraph = evaluateActivationGraph(acceptanceGraph);
+  
+  // A clinician is formally start-ready only if they are Acceptance-Ready AND an Employer clicked PROCEED
+  const isStartReady = activationGraph.isStartReady && historicAcceptance?.action === 'PROCEED';
+  
+  const activation = {
+    isStartReady,
+    estimatedDaysToStart: activationGraph.estimatedDaysToStart,
+    activationReason: isStartReady 
+      ? 'Minimum Evidence Met + Employer Accepted'
+      : `Missing Acceptance or Requirements. ~${activationGraph.estimatedDaysToStart} days to start.`,
+    graph: activationGraph
+  };
+
+  // 5. NEXT BEST ACTION (NBA)
+  // Synthesize everything into exactly ONE dominant deterministic action
+  const nbaContext: NbaInputContext = {
+    recognitionBlockers: manifest.limitations.filter(l => l.code === 'DATA_EXPIRED').map(l => l.description),
+    recognitionMissing: manifest.limitations.map(l => l.description),
+    acceptanceBlockers: acceptanceGraph.blockers,
+    acceptanceMissing: acceptanceGraph.missingActions,
+    activationBlockers: activationGraph.activationUnits.filter(u => u.status === 'blocked'),
+    activationMissing: activationGraph.activationUnits.filter(u => u.status === 'missing'),
     readinessPosture: effectivePosture as any,
-    missingRequirements: manifest.limitations.map(l => l.description),
     hasAdverseSignals: effectivePosture === ReadinessPosture.BLOCKED,
     employerAction: historicAcceptance?.action as any || 'NONE',
     isStale: hasStaleData,
-    sourceCoverage: {
-      nppes: { status: 'CHECKED', isStale: false },
-      oig: { status: 'CHECKED', isStale: false }, // Assumed for NBA context
-      ca_pa_board: { status: 'PENDING', isStale: false }
-    }
-  });
+  };
+
+  const nextBestAction = generateNextBestAction(nbaContext);
 
   // 5. MONITORING PLAN
   const monitoringPlan = {
@@ -187,7 +226,7 @@ export async function generateOmegaDecision(
   }
   
   // If activated or failed, we would record the outcome here
-  if (startReady) {
+  if (isStartReady) {
     await recordDecisionOutcome({
       npi,
       orgId: employerId,

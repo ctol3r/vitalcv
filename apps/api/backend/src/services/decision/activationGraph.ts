@@ -38,8 +38,8 @@ export function evaluateActivationGraph(
   // 1. Map Blocked Requirements
   for (const block of acceptance.blockers) {
     activationUnits.push({
-      id: \`blocker_\${block.rule.claimType}\`,
-      name: \`\${block.rule.claimType} verification blocked\`,
+      id: `blocker_${block.rule.claimType}`,
+      name: `${block.rule.claimType} verification blocked`,
       status: 'blocked',
       detail: block.detail,
     });
@@ -49,8 +49,8 @@ export function evaluateActivationGraph(
   // 2. Map Missing Requirements
   for (const missing of acceptance.missingActions) {
     activationUnits.push({
-      id: \`missing_\${missing.rule.claimType}\`,
-      name: \`\${missing.rule.claimType} verification required\`,
+      id: `missing_${missing.rule.claimType}`,
+      name: `${missing.rule.claimType} verification required`,
       status: 'missing',
       detail: missing.detail,
     });
@@ -60,8 +60,8 @@ export function evaluateActivationGraph(
   // 3. Map Satisfied Requirements
   for (const satisfied of acceptance.satisfied) {
     activationUnits.push({
-      id: \`satisfied_\${satisfied.rule.claimType}\`,
-      name: \`\${satisfied.rule.claimType} verified\`,
+      id: `satisfied_${satisfied.rule.claimType}`,
+      name: `${satisfied.rule.claimType} verified`,
       status: 'satisfied',
       detail: satisfied.detail,
     });
