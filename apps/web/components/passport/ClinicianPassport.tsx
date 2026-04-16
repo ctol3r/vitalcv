@@ -399,6 +399,59 @@ function ShareDrawer({
   );
 }
 
+// ── Acceptance Block ───────────────────────────────────────────────────────────
+
+function AcceptanceSection({ band }: { band: 'L0'|'L1'|'L2'|'L3' }) {
+  if (band === 'L0') return null;
+
+  const isBlocked = band === 'L1';
+  const isReady = band === 'L3' || band === 'L2';
+
+  return (
+    <div className="px-4 pb-4">
+      <div className={`rounded-sm border p-4 flex flex-col gap-3 ${
+        isBlocked 
+          ? 'bg-[var(--vt-severity-critical)]/10 border-[var(--vt-severity-critical)]/20' 
+          : 'bg-[var(--vt-surface)] border-[var(--vt-border)]'
+      }`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {isBlocked ? (
+              <ShieldAlert className="h-4 w-4 text-[var(--vt-severity-critical)]" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 text-[var(--vt-status-resolved)]" />
+            )}
+            <p className={`text-xs font-bold uppercase tracking-wider ${
+              isBlocked ? 'text-[var(--vt-severity-critical)]' : 'text-[var(--vt-text-primary)]'
+            }`}>
+              {isBlocked ? 'Deployment Blocked' : 'Ready for Org Deployment'}
+            </p>
+          </div>
+          {isReady && (
+            <span className="text-[10px] font-mono text-[var(--vt-status-resolved)] bg-[var(--vt-status-resolved)]/10 px-1.5 py-0.5 rounded border border-[var(--vt-status-resolved)]/20">
+              OK
+            </span>
+          )}
+        </div>
+
+        {isBlocked ? (
+          <div className="text-xs text-[var(--vt-severity-critical)]">
+            <p className="font-semibold mb-1">Missing Requirements (2)</p>
+            <ul className="list-disc pl-4 opacity-80 space-y-0.5">
+              <li>State Medical License verification missing</li>
+              <li>PECOS enrollment status unverified</li>
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-[var(--vt-text-muted)]">
+            This profile meets the baseline freshness and source requirements for deployment.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ClinicianPassport({
@@ -518,6 +571,9 @@ export default function ClinicianPassport({
           <p className="text-[11px] text-[var(--vt-text-muted)] text-center py-3">No credentials on file</p>
         </div>
       )}
+
+      {/* Acceptance Graph Evaluation */}
+      <AcceptanceSection band={band} />
 
       {/* Share actions */}
       {!compact && (
