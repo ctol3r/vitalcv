@@ -525,9 +525,27 @@ export default function ClinicianPassport({
   }
 
   return (
-    <div className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-bg)]   overflow-hidden">
+    <div className="rounded-none border border-[var(--vt-border)] bg-[var(--vt-bg)] overflow-hidden flex flex-col gap-0">
+      
+      {/* Priority 1: Next Best Action / Decision Component (Dominate the UI) */}
+      <div className="bg-[var(--vt-surface)] border-b border-[var(--vt-border)] p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--vt-text-muted)] mb-3">
+          Next Step:
+        </p>
+        <button className={`w-full py-4 px-6 rounded-none font-bold text-sm tracking-wide border transition-colors ${
+          band === 'L3' || band === 'L2' 
+            ? 'bg-[var(--vt-status-resolved)] text-black border-[var(--vt-status-resolved)] hover:bg-[var(--vt-status-resolved)]/90' 
+            : 'bg-[var(--vt-severity-critical)] text-white border-[var(--vt-severity-critical)] hover:bg-[var(--vt-severity-critical)]/90'
+        }`}>
+          {band === 'L3' || band === 'L2' ? 'Approve & Start Deployment' : 'Request Required Missing Data'}
+        </button>
+      </div>
+
+      {/* Acceptance Graph Evaluation */}
+      <AcceptanceSection band={band} />
+
       {/* Trust band hero */}
-      <div className="p-4">
+      <div className="p-4 border-b border-[var(--vt-border)] bg-[var(--vt-bg)]">
         {summary && (
           <TrustBandHero band={band} npi={npi} summary={summary} />
         )}
@@ -535,7 +553,7 @@ export default function ClinicianPassport({
 
       {/* HAIP compliance indicator */}
       {!compact && haipCount > 0 && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-none bg-vt-brand-primary/5 border border-vt-brand-primary/20 px-3 py-2">
+        <div className="mx-4 mt-3 mb-3 flex items-center gap-2 rounded-none bg-vt-brand-primary/5 border border-vt-brand-primary/20 px-3 py-2">
           <Award className="h-3.5 w-3.5 text-vt-brand-primary shrink-0" />
           <p className="text-[11px] text-[var(--vt-text-secondary)]">
             <span className="font-semibold">{haipCount}</span>{' '}
@@ -546,7 +564,7 @@ export default function ClinicianPassport({
 
       {/* Credential list with issuer trust badges */}
       {credentials.length > 0 && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-4 pb-4 pt-4 space-y-2">
           <p className="text-[10px] font-mono text-[var(--vt-text-muted)] uppercase tracking-wider mb-2">
             Credentials · {credentials.length}
           </p>
@@ -567,17 +585,14 @@ export default function ClinicianPassport({
       )}
 
       {credentials.length === 0 && !loading && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 pt-4">
           <p className="text-[11px] text-[var(--vt-text-muted)] text-center py-3">No credentials on file</p>
         </div>
       )}
 
-      {/* Acceptance Graph Evaluation */}
-      <AcceptanceSection band={band} />
-
       {/* Share actions */}
       {!compact && (
-        <div className="border-t border-[var(--vt-border)] px-4 py-3 space-y-3">
+        <div className="border-t border-[var(--vt-border)] px-4 py-3 space-y-3 bg-[var(--vt-surface)]">
           <button
             type="button"
             onClick={() => setShowShare((p) => !p)}
