@@ -1,49 +1,37 @@
 'use client';
 
-import { HTMLMotionProps, motion } from 'framer-motion';
-import * as React from 'react';
+/**
+ * @deprecated — migrating to canonical Card. Import from '@/components/ui/card' instead.
+ */
 
-import { controlHover } from '@/animations/motionVariants';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 type GlassWeight = 'light' | 'heavy';
 type GlassVariant = 'default' | 'elevated' | 'heavy';
 
-interface GlassCardProps extends HTMLMotionProps<'div'> {
+interface GlassCardProps extends React.ComponentProps<'div'> {
   weight?: GlassWeight;
   variant?: GlassVariant;
   interactive?: boolean;
 }
 
-const variantStyles: Record<GlassVariant, string> = {
-  default: 'glass-card-base',
-  elevated: 'glass-card-base shadow-elevated',
-  heavy: 'glass-heavy',
-};
-
 const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ className, weight = 'light', variant, interactive = false, ...props }, ref) => {
-    // variant prop takes precedence; if not set, derive from weight
-    const resolvedVariant = variant ?? (weight === 'heavy' ? 'heavy' : 'default');
-
-    return (
-      <motion.div
-        ref={ref}
-        data-slot="glass-card"
-        variants={interactive ? controlHover : undefined}
-        initial={interactive ? 'rest' : undefined}
-        whileHover={interactive ? 'hover' : undefined}
-        whileTap={interactive ? 'tap' : undefined}
-        className={cn(
-          'rounded-2xl p-6',
-          variantStyles[resolvedVariant],
-          interactive && 'cursor-pointer focus-ring',
-          className
-        )}
-        {...props}
-      />
-    );
-  }
+  ({ className, weight: _w, variant: _v, interactive: _i, ...props }, ref) => (
+    <div
+      ref={ref}
+      data-slot="card"
+      className={cn(
+        'flex flex-col gap-[var(--vt-space-24)]',
+        'rounded-[var(--vt-radius-lg)]',
+        'border border-[var(--vt-border)]',
+        'bg-[var(--vt-surface)] text-[var(--vt-text-primary)]',
+        'p-[var(--vt-space-24)]',
+        className,
+      )}
+      {...props}
+    />
+  ),
 );
 GlassCard.displayName = 'GlassCard';
 
@@ -51,11 +39,11 @@ const GlassCardHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<'d
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      data-slot="glass-card-header"
-      className={cn('flex items-start justify-between gap-4 pb-4', className)}
+      data-slot="card-header"
+      className={cn('flex items-start justify-between gap-[var(--vt-space-16)]', className)}
       {...props}
     />
-  )
+  ),
 );
 GlassCardHeader.displayName = 'GlassCardHeader';
 
@@ -63,11 +51,14 @@ const GlassCardTitle = React.forwardRef<HTMLHeadingElement, React.ComponentProps
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      data-slot="glass-card-title"
-      className={cn('font-heading text-lg font-semibold tracking-tight', className)}
+      data-slot="card-title"
+      className={cn(
+        'text-[length:var(--vt-type-h3-size)] leading-[var(--vt-line-tight)] font-[var(--vt-font-weight-semibold)]',
+        className,
+      )}
       {...props}
     />
-  )
+  ),
 );
 GlassCardTitle.displayName = 'GlassCardTitle';
 
@@ -75,11 +66,11 @@ const GlassCardContent = React.forwardRef<HTMLDivElement, React.ComponentProps<'
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      data-slot="glass-card-content"
-      className={cn('text-sm', className)}
+      data-slot="card-content"
+      className={cn(className)}
       {...props}
     />
-  )
+  ),
 );
 GlassCardContent.displayName = 'GlassCardContent';
 
@@ -87,11 +78,14 @@ const GlassCardFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<'d
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      data-slot="glass-card-footer"
-      className={cn('flex items-center gap-3 pt-4 border-t border-[var(--glass-border)]', className)}
+      data-slot="card-footer"
+      className={cn(
+        'flex items-center gap-[var(--vt-space-12)] border-t border-[var(--vt-border)] pt-[var(--vt-space-16)]',
+        className,
+      )}
       {...props}
     />
-  )
+  ),
 );
 GlassCardFooter.displayName = 'GlassCardFooter';
 

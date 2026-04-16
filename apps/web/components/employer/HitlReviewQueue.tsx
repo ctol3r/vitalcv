@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfidenceScore } from '@/components/ui/confidence-score';
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/glass-card';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { AlertTriangle, CheckCircle2, Clock, Eye } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -80,20 +80,20 @@ export function HitlReviewQueue({ items, onSelectItem }: HitlReviewQueueProps) {
   ).length;
 
   return (
-    <GlassCard>
-      <GlassCardHeader>
+    <Card>
+      <CardHeader>
         <div className="flex items-center gap-2">
           <Eye className="h-5 w-5 text-[var(--accent)]" />
-          <GlassCardTitle>Human Review Queue</GlassCardTitle>
+          <CardTitle>Human Review Queue</CardTitle>
         </div>
         {pendingCount > 0 && (
           <Badge variant="outline" className="text-xs">
             {pendingCount} awaiting review
           </Badge>
         )}
-      </GlassCardHeader>
+      </CardHeader>
 
-      <GlassCardContent>
+      <CardContent>
         {items.length === 0 ? (
           <div className="text-center py-8">
             <CheckCircle2 className="h-8 w-8 text-[var(--trust-green)] mx-auto mb-2" />
@@ -110,7 +110,7 @@ export function HitlReviewQueue({ items, onSelectItem }: HitlReviewQueueProps) {
                   key={item.id}
                   type="button"
                   onClick={() => onSelectItem(item)}
-                  className="w-full text-left rounded-xl border border-[var(--glass-border)] bg-background/50 p-3 hover:border-[var(--accent)]/30 transition-colors group"
+                  className="w-full text-left rounded-xl border border-[var(--vt-border)] bg-background/50 p-3 hover:border-[var(--accent)]/30 transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -142,7 +142,7 @@ export function HitlReviewQueue({ items, onSelectItem }: HitlReviewQueueProps) {
             })}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }

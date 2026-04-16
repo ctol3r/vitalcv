@@ -16,6 +16,8 @@ export interface RetryOptions {
   timeoutMs?: number;
   /** Label for log lines (e.g. 'nppes', 'leie_csv') */
   label?: string;
+  /** Redacted or normalized URL for logs. Defaults to the real request URL. */
+  logUrl?: string;
   /** Custom predicate: should this error trigger a retry? Default: retries on network errors and 5xx/429 */
   shouldRetry?: (error: unknown, attempt: number) => boolean;
 }
@@ -63,6 +65,7 @@ export async function fetchWithRetry(
   const baseDelay = opts?.baseDelayMs ?? 500;
   const timeoutMs = opts?.timeoutMs ?? 10_000;
   const label = opts?.label ?? 'upstream';
+  const logUrl = opts?.logUrl ?? url;
   const shouldRetry = opts?.shouldRetry ?? ((err) => isRetryableByDefault(err));
 
   let lastError: unknown;
@@ -72,7 +75,7 @@ export async function fetchWithRetry(
       // Exponential backoff with jitter: delay = baseDelay * 2^(attempt-1) * (0.5..1.5)
       const jitter = 0.5 + Math.random();
       const delay = Math.min(baseDelay * Math.pow(2, attempt - 1) * jitter, 30_000);
-      log('info', `${label}_retry`, { attempt, delayMs: Math.round(delay), url });
+      log('info', `${label}_retry`, { attempt, delayMs: Math.round(delay), url: logUrl });
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
@@ -120,7 +123,7 @@ export async function fetchWithRetry(
       }
 
       log('error', `${label}_exhausted_retries`, {
-        url,
+        url: logUrl,
         attempts: attempt + 1,
         error: err instanceof Error ? err.message : String(err),
       });

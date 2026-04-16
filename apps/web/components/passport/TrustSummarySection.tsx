@@ -90,7 +90,7 @@ export function TrustSummarySection({
         {posture.safeToRelyOnNow.length > 0 && posture.blockers.length === 0 && (
           <div className="mt-3 border-t border-white/6 pt-3">
             <p className="text-[10px] text-muted-foreground/40">
-              {posture.safeToRelyOnNow.length} source-backed signal{posture.safeToRelyOnNow.length === 1 ? '' : 's'} attached
+              {posture.safeToRelyOnNow.length} source-backed update{posture.safeToRelyOnNow.length === 1 ? '' : 's'} attached
             </p>
           </div>
         )}

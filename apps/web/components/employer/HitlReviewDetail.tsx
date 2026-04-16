@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfidenceScore } from '@/components/ui/confidence-score';
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/glass-card';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { SplitView } from '@/components/ui/split-view';
 import {
   ArrowLeft,
@@ -116,14 +116,14 @@ export function HitlReviewDetail({
 
 function SourceDocPanel() {
   return (
-    <GlassCard className="h-full">
-      <GlassCardHeader>
+    <Card className="h-full">
+      <CardHeader>
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <GlassCardTitle className="text-sm">Source Document</GlassCardTitle>
+          <CardTitle className="text-sm">Source Document</CardTitle>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent className="flex items-center justify-center min-h-[300px]">
+      </CardHeader>
+      <CardContent className="flex items-center justify-center min-h-[300px]">
         <div className="text-center space-y-2">
           <FileText className="h-12 w-12 text-muted-foreground/20 mx-auto" />
           <p className="text-sm text-muted-foreground">
@@ -133,8 +133,8 @@ function SourceDocPanel() {
             PDF / image rendering will be integrated with the document store
           </p>
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -154,14 +154,14 @@ function FieldReviewPanel({
   onReject: (fieldId: string) => void;
 }) {
   return (
-    <GlassCard className="h-full">
-      <GlassCardHeader>
-        <GlassCardTitle className="text-sm">Extracted Fields</GlassCardTitle>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="text-sm">Extracted Fields</CardTitle>
         <Badge variant="outline" className="text-[10px]">
           {fields.filter((f) => f.status !== 'PENDING').length}/{fields.length} reviewed
         </Badge>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-2">
+      </CardHeader>
+      <CardContent className="space-y-2">
         {fields.map((field) => (
           <FieldRow
             key={field.id}
@@ -171,8 +171,8 @@ function FieldReviewPanel({
             onReject={() => onReject(field.id)}
           />
         ))}
-      </GlassCardContent>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -200,7 +200,7 @@ function FieldRow({
       className={`rounded-xl border p-3 space-y-2 transition-colors ${
         isLowConfidence
           ? 'border-[var(--trust-yellow)]/30 bg-[var(--trust-yellow)]/5'
-          : 'border-[var(--glass-border)] bg-background/50'
+          : 'border-[var(--vt-border)] bg-background/50'
       } ${
         field.status === 'APPROVED'
           ? 'opacity-60'
@@ -222,7 +222,7 @@ function FieldRow({
             type="text"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="flex-1 rounded-lg border border-[var(--glass-border)] bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
+            className="flex-1 rounded-lg border border-[var(--vt-border)] bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
             autoFocus
           />
           <Button

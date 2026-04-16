@@ -37,11 +37,13 @@ import { createEmployerEvidencePacketZipStream } from '../services/entity/employ
 import {
   loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
+  recordEmployerReviewPause,
   recordEmployerReviewAcceptance,
   recordEmployerReviewRefreshRequest,
   recordEmployerReviewRouting,
   resolveEmployerReviewSubject,
 } from '../services/entity/employerReviewActions';
+import { listOpenDriftAlerts, resolveOpenDriftAlerts } from '../services/drift/driftAlertService';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -110,6 +112,56 @@ function buildEmployerDecisionMetadata(input: {
   };
 }
 
+async function writeEmployerReviewRefusalAuditEvent(input: {
+  entityId: string;
+  employerId: string;
+  clinicianNpi: string;
+  reasonCode: string;
+  reason: string;
+  blockers: string[];
+  missingSources: string[];
+}): Promise<{ id: string }> {
+  const requestId = randomUUID();
+  const actionHash = sha256ForPayload({
+    action: 'accept_refused',
+    entityId: input.entityId,
+    employerId: input.employerId,
+    clinicianNpi: input.clinicianNpi,
+    reasonCode: input.reasonCode,
+    blockers: input.blockers,
+    missingSources: input.missingSources,
+    requestId,
+  });
+
+  return prisma.auditEvent.create({
+    data: {
+      id: randomUUID(),
+      type: 'EMPLOYER_REVIEW_ACCEPTANCE_REFUSED',
+      hash: actionHash,
+      referenceId: input.entityId,
+      clinicianId: input.clinicianNpi,
+      anchored: false,
+      metadata: toJsonValue({
+        employerReviewAction: {
+          action: 'accept_refused',
+          employerId: input.employerId,
+          entityId: input.entityId,
+          clinicianNpi: input.clinicianNpi,
+          requestId,
+          reasonCode: input.reasonCode,
+          reason: input.reason,
+          blockers: input.blockers,
+          missingSources: input.missingSources,
+        },
+        actionHash,
+      }),
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 // ── Route registration ─────────────────────────────────────────────────────
 
 export function registerEmployerActionRoutes(app: Express): void {
@@ -142,11 +194,30 @@ export function registerEmployerActionRoutes(app: Express): void {
         throw new HttpError(422, 'Cannot accept: passport data is not available for this entity.');
       }
       if (passport.decisionPosture.status === 'BLOCKED') {
-        return void res.status(422).json({
-          error: 'acceptance_blocked',
-          error_description: 'Cannot accept: one or more critical source checks are blocking readiness.',
+        const hasOigExclusion = passport.decisionPosture.blockers.some((blocker) => (
+          /oig|exclusion|excluded/i.test(blocker)
+        ));
+        const reasonCode = hasOigExclusion ? 'oig_excluded' : 'acceptance_blocked';
+        const reason = hasOigExclusion
+          ? 'Cannot accept: OIG/LEIE exclusion blocks readiness.'
+          : 'Cannot accept: one or more critical source checks are blocking readiness.';
+        const missingSources = passport.decisionPosture.missing.map((s) => s.sourceId);
+        const refusalAuditEvent = await writeEmployerReviewRefusalAuditEvent({
+          entityId,
+          employerId,
+          clinicianNpi: subject.clinicianNpi,
+          reasonCode,
+          reason,
           blockers: passport.decisionPosture.blockers,
-          missingSources: passport.decisionPosture.missing.map((s) => s.sourceId),
+          missingSources,
+        });
+
+        return void res.status(422).json({
+          error: reasonCode,
+          error_description: reason,
+          blockers: passport.decisionPosture.blockers,
+          missingSources,
+          auditEventId: refusalAuditEvent.id,
         });
       }
 
@@ -221,9 +292,12 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         decision: 'accept',
+        organizationContextId: state.attribution.organizationContextId,
+        role,
         trustSnapshot: snap ? {
           readinessStatus: snap.readinessStatus,
           readinessScore: snap.readinessScore,
+          readinessLevel: snap.readinessLevel,
           trustBand: snap.trustBand,
           trustScore: snap.trustScore,
           blockerCount: snap.blockerCount,
@@ -232,6 +306,7 @@ export function registerEmployerActionRoutes(app: Express): void {
           verifiedCredentialCount: snap.verifiedCredentialCount,
           staleCredentialCount: snap.staleCredentialCount,
           snapshotHash: snap.snapshotHash,
+          missingDomains: snap.missingDomains,
         } : null,
         bundleId: state.attribution.bundleId,
       });
@@ -274,6 +349,11 @@ export function registerEmployerActionRoutes(app: Express): void {
         staleSources,
         missingDomains,
         message,
+      });
+      await resolveOpenDriftAlerts({
+        subjectNpi: subject.clinicianNpi,
+        action: 'request_refresh',
+        actionAuditEventId: state.auditEventId,
       });
 
       log('info', 'employer_review_refresh_requested', {
@@ -326,9 +406,11 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         decision: 'request_info',
+        organizationContextId: state.attribution.organizationContextId,
         trustSnapshot: snap ? {
           readinessStatus: snap.readinessStatus,
           readinessScore: snap.readinessScore,
+          readinessLevel: snap.readinessLevel,
           trustBand: snap.trustBand,
           trustScore: snap.trustScore,
           blockerCount: snap.blockerCount,
@@ -337,6 +419,10 @@ export function registerEmployerActionRoutes(app: Express): void {
           verifiedCredentialCount: snap.verifiedCredentialCount,
           staleCredentialCount: snap.staleCredentialCount,
           snapshotHash: snap.snapshotHash,
+          missingDomains: [...new Set([
+            ...snap.missingDomains,
+            ...state.details.missingDomains,
+          ])],
         } : null,
         bundleId: state.attribution.bundleId,
       });
@@ -375,6 +461,11 @@ export function registerEmployerActionRoutes(app: Express): void {
         bundleId: req.body?.bundleId,
         reason,
         priority,
+      });
+      await resolveOpenDriftAlerts({
+        subjectNpi: subject.clinicianNpi,
+        action: 'route_to_review',
+        actionAuditEventId: state.auditEventId,
       });
 
       log('info', 'employer_review_routed_to_review', {
@@ -427,9 +518,11 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         decision: 'reject',
+        organizationContextId: state.attribution.organizationContextId,
         trustSnapshot: state.trustSnapshot ? {
           readinessStatus: state.trustSnapshot.readinessStatus,
           readinessScore: state.trustSnapshot.readinessScore,
+          readinessLevel: state.trustSnapshot.readinessLevel,
           trustBand: state.trustSnapshot.trustBand,
           trustScore: state.trustSnapshot.trustScore,
           blockerCount: state.trustSnapshot.blockerCount,
@@ -438,12 +531,67 @@ export function registerEmployerActionRoutes(app: Express): void {
           verifiedCredentialCount: state.trustSnapshot.verifiedCredentialCount,
           staleCredentialCount: state.trustSnapshot.staleCredentialCount,
           snapshotHash: state.trustSnapshot.snapshotHash,
+          missingDomains: state.trustSnapshot.missingDomains,
         } : null,
         bundleId: state.attribution.bundleId,
       });
       // recomputeMatchBoosts removed (matchBoostService deleted)
 
       return void res.status(201).json({ ok: true, state });
+    }),
+  );
+
+  app.post(
+    '/api/employer-review/:entityId/pause-candidate',
+    asyncHandler(async (req, res) => {
+      const employerId = requireClerkUserId(req);
+      const { entityId } = req.params;
+
+      if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
+
+      const subject = await resolveEmployerReviewSubject(entityId);
+      if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
+
+      const state = await recordEmployerReviewPause({
+        entityId,
+        employerId,
+        clinicianNpi: subject.clinicianNpi,
+        organizationContextId: req.body?.organizationContextId,
+        bundleId: req.body?.bundleId,
+        reason: req.body?.reason,
+      });
+      await resolveOpenDriftAlerts({
+        subjectNpi: subject.clinicianNpi,
+        action: 'pause_candidate',
+        actionAuditEventId: state.auditEventId,
+      });
+
+      log('info', 'employer_review_paused', {
+        auditEventId: state.auditEventId,
+        entityId,
+        employerId,
+        npi_prefix: subject.clinicianNpi.slice(0, 4) + '····',
+        reason: state.details.reason,
+      });
+
+      return void res.status(201).json({ ok: true, state });
+    }),
+  );
+
+  app.get(
+    '/api/employer-review/:entityId/drift-alerts',
+    asyncHandler(async (req, res) => {
+      requireClerkUserId(req);
+      const { entityId } = req.params;
+
+      if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
+
+      const subject = await resolveEmployerReviewSubject(entityId);
+      if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
+
+      const alerts = await listOpenDriftAlerts(subject.clinicianNpi);
+
+      return void res.status(200).json({ ok: true, alerts });
     }),
   );
 
@@ -724,6 +872,8 @@ export function registerEmployerActionRoutes(app: Express): void {
       'POST /api/employer-review/:entityId/accept',
       'POST /api/employer-review/:entityId/request-refresh',
       'POST /api/employer-review/:entityId/route-to-review',
+      'POST /api/employer-review/:entityId/pause-candidate',
+      'GET  /api/employer-review/:entityId/drift-alerts',
       'GET  /api/employer-review/:entityId/status',
       'GET  /api/employer-review/:entityId/acceptance-history',
       'GET  /api/employer-review/:entityId/packet',

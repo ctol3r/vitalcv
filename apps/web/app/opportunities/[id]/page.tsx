@@ -650,7 +650,7 @@ function ExplanationCard({
       </div>
       <div className="mt-4 space-y-3 text-sm leading-6 text-foreground/70">
         {items.length === 0 ? (
-          <p>No additional signal is available from the current source data.</p>
+          <p>No additional detail is available from the current source data.</p>
         ) : (
           items.map((item) => <p key={`${title}-${item}`}>{item}</p>)
         )}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DECISION_NEXT_STEP_HEADING, getNoBlockersMessage } from '@/lib/trust/decision-copy';
 import { cn } from '@/lib/utils';
 
 type ReadinessLevel = 'L0' | 'L1' | 'L2' | 'L3';
@@ -270,7 +271,7 @@ export function MobileReadinessCard({
               </ul>
             ) : (
               <p className="mt-3 text-sm leading-6 text-zinc-300">
-                You're clear to start for matched roles.
+                {getNoBlockersMessage('mobile')}
               </p>
             )}
           </div>
@@ -278,7 +279,7 @@ export function MobileReadinessCard({
           {nextAction ? (
             <div className="mt-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
-                Next best action
+                {DECISION_NEXT_STEP_HEADING}
               </p>
               <p className="mt-2 text-sm font-semibold text-white">{nextAction.label}</p>
               <p className="mt-1 text-sm leading-6 text-emerald-50/80">{nextAction.detail}</p>

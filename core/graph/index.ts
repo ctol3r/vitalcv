@@ -2,6 +2,7 @@ export * from './types';
 export * from './utils';
 export * from './identity';
 export * from './ontology';
+export * from './provider';
 export * from './events';
 export * from './network';
 export * from './model';

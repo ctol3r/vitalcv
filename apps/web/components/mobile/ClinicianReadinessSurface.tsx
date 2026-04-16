@@ -18,6 +18,7 @@ import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
+import { getNoBlockersMessage } from '@/lib/trust/decision-copy';
 
 function deltaCopy(deltaScore: number | null): string {
   if (deltaScore === null) {
@@ -192,7 +193,8 @@ export default function ClinicianReadinessSurface() {
           type="button"
           onClick={() => void refreshTrustState()}
           disabled={isRefreshing}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+          aria-busy={isRefreshing}
+          className="inline-flex min-h-12 touch-manipulation items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh readiness
@@ -319,7 +321,7 @@ export default function ClinicianReadinessSurface() {
             <p className="text-sm text-white/70">
               {data.blockers.length > 0
                 ? `${data.blockers.length} item${data.blockers.length === 1 ? '' : 's'} left to clear.`
-                : 'No blockers are holding you up right now.'}
+                : getNoBlockersMessage('mobile')}
             </p>
           </div>
 
@@ -369,7 +371,7 @@ export default function ClinicianReadinessSurface() {
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-white/60">
-              No blockers. You&apos;re ready to keep moving.
+              {getNoBlockersMessage('mobile')}
             </p>
           )}
           <Link
@@ -486,7 +488,7 @@ export default function ClinicianReadinessSurface() {
 
               {entry.reason ? (
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">Reason / linked signal</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">Reason / related detail</p>
                   <p className="mt-2 text-sm text-white/75">{entry.reason}</p>
                 </div>
               ) : null}

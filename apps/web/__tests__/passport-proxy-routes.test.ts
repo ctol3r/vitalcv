@@ -320,4 +320,37 @@ describe('passport proxy routes', () => {
       }),
     }));
   });
+
+  it('drops malformed optional sections instead of rejecting the entire passport payload', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPassportPayload({
+      monitoring: {
+        active: true,
+        lastCheckAt: null,
+        monitoredSources: 'invalid',
+        activeAlertCount: 1,
+      },
+      decisionPosture: {
+        status: 'PARTIAL',
+        headline: 'Decision posture available',
+        proven: [],
+        missing: [],
+        blockers: [],
+        freshness: {
+          state: 'current',
+        },
+        nextAction: 'Collect additional evidence.',
+      },
+    }))));
+
+    const { GET } = await import('../app/api/passport/npi/[npi]/route');
+    const response = await GET(new Request('http://localhost/api/passport/npi/1234567890') as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(expect.not.objectContaining({
+      monitoring: expect.anything(),
+      decisionPosture: expect.anything(),
+    }));
+  });
 });

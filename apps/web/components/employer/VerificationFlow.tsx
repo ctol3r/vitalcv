@@ -3,11 +3,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/glass-card';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Tooltip,
   TooltipContent,
@@ -51,11 +51,11 @@ export function VerificationFlow({
 }: VerificationFlowProps) {
   const isBusy = actionLoading || isUpdating;
   return (
-    <GlassCard>
-      <GlassCardHeader>
-        <GlassCardTitle>Verification &amp; Acceptance Flow</GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-0">
+    <Card>
+      <CardHeader>
+        <CardTitle>Verification &amp; Acceptance Flow</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-0">
         {/* Step 1: Network Recognition */}
         <FlowStep
           stepNumber={1}
@@ -210,8 +210,8 @@ export function VerificationFlow({
             </div>
           )}
         </FlowStep>
-      </GlassCardContent>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }
 

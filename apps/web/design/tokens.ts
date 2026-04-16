@@ -45,19 +45,12 @@ export const durations = {
   pulse: 1.5,
 } as const;
 
-export const shadows = {
-  glass: '0 4px 24px oklch(0.30 0.01 60 / 0.06)',
-  glow: '0 0 40px oklch(0.72 0.15 155 / 0.12)',
-  elevated: '0 8px 32px oklch(0.30 0.01 60 / 0.10)',
-} as const;
-
-export const darkShadows = {
-  glass: '0 4px 24px oklch(0 0 0 / 0.2)',
-  glow: '0 0 40px oklch(0.65 0.14 155 / 0.18)',
-  elevated: '0 8px 32px oklch(0 0 0 / 0.20)',
-} as const;
-
-export const glassBlur = '20px';
+/** @deprecated — depth tokens removed in design system reset */
+export const shadows = { glass: 'none', glow: 'none', elevated: 'none' } as const;
+/** @deprecated — depth tokens removed in design system reset */
+export const darkShadows = { glass: 'none', glow: 'none', elevated: 'none' } as const;
+/** @deprecated — depth tokens removed in design system reset */
+export const glassBlur = '0px';
 
 export const fontSize = themeTokens.typography.size;
 export const lineHeight = themeTokens.typography.lineHeight;
@@ -81,12 +74,8 @@ export const zIndex = {
   toast: 50,
 } as const;
 
-export const blur = {
-  sm: '4px',
-  md: '8px',
-  lg: '16px',
-  xl: '24px',
-} as const;
+/** @deprecated — blur tokens removed in design system reset */
+export const blur = { sm: '0px', md: '0px', lg: '0px', xl: '0px' } as const;
 
 export const borderRadius = {
   none: '0',

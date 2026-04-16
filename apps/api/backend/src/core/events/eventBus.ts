@@ -78,6 +78,8 @@ type EventHandler<TType extends VitalEventType> = (event: EventEnvelope<TType>) 
 
 const subscriptions = new Map<VitalEventType, Set<EventHandler<VitalEventType>>>();
 const replayBuffer: VitalEvent[] = [];
+const recentEventIndex = new Map<string, VitalEvent>();
+const inFlightEventIds = new Set<string>();
 
 let eventCounter = 0;
 
@@ -98,6 +100,50 @@ function sortByTimestampDesc<TEvent extends { id: string; timestamp: string }>(e
   ));
 }
 
+function appendToReplayBuffer(event: VitalEvent): void {
+  replayBuffer.push(event);
+  recentEventIndex.set(event.id, event);
+
+  if (replayBuffer.length > EVENT_BUS_MAX_BUFFER) {
+    const removed = replayBuffer.splice(0, replayBuffer.length - EVENT_BUS_MAX_BUFFER);
+    for (const item of removed) {
+      recentEventIndex.delete(item.id);
+    }
+  }
+}
+
+async function dispatchEvent<TType extends VitalEventType>(event: EventEnvelope<TType>): Promise<void> {
+  if (inFlightEventIds.has(event.id)) {
+    log('warn', 'event_bus_duplicate_ignored', {
+      eventId: event.id,
+      eventType: event.type,
+      reason: 'in_flight',
+    });
+    return;
+  }
+
+  inFlightEventIds.add(event.id);
+
+  try {
+    const handlers = [...(subscriptions.get(event.type) ?? [])] as EventHandler<TType>[];
+    await Promise.all(
+      handlers.map(async (handler) => {
+        try {
+          await Promise.resolve().then(() => handler(event));
+        } catch (error) {
+          log('warn', 'event_bus_handler_failed', {
+            eventId: event.id,
+            eventType: event.type,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }),
+    );
+  } finally {
+    inFlightEventIds.delete(event.id);
+  }
+}
+
 export async function publish<TType extends VitalEventType>(input: {
   type: TType;
   payload: VitalEventPayloadMap[TType];
@@ -111,24 +157,26 @@ export async function publish<TType extends VitalEventType>(input: {
     payload: input.payload,
   };
 
-  replayBuffer.push(event as VitalEvent);
-  if (replayBuffer.length > EVENT_BUS_MAX_BUFFER) {
-    replayBuffer.splice(0, replayBuffer.length - EVENT_BUS_MAX_BUFFER);
+  const existing = recentEventIndex.get(event.id);
+  if (existing) {
+    log('warn', 'event_bus_duplicate_ignored', {
+      eventId: event.id,
+      eventType: event.type,
+      reason: 'duplicate_id',
+    });
+    return existing as EventEnvelope<TType>;
   }
 
-  const handlers = [...(subscriptions.get(event.type) ?? [])] as EventHandler<TType>[];
-  const results = await Promise.allSettled(
-    handlers.map((handler) => Promise.resolve().then(() => handler(event))),
-  );
-
-  for (const result of results) {
-    if (result.status === 'rejected') {
-      log('warn', 'event_bus_handler_failed', {
+  appendToReplayBuffer(event as VitalEvent);
+  queueMicrotask(() => {
+    void dispatchEvent(event).catch((error) => {
+      log('error', 'event_bus_dispatch_failed', {
+        eventId: event.id,
         eventType: event.type,
-        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        error: error instanceof Error ? error.message : String(error),
       });
-    }
-  }
+    });
+  });
 
   return event;
 }
@@ -175,5 +223,7 @@ export function getLatestEventTimestamp(types?: VitalEventType[]): string | null
 export function resetEventBusForTests(): void {
   subscriptions.clear();
   replayBuffer.splice(0, replayBuffer.length);
+  recentEventIndex.clear();
+  inFlightEventIds.clear();
   eventCounter = 0;
 }

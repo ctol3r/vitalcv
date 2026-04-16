@@ -15,21 +15,23 @@ export interface Event {
   type: string;
   timestamp: Date;
   providerId: string;
-  payload: any;
+  payload: Record<string, unknown>;
   jobId?: string;
   employerId?: string;
   sourceId?: string;
   relatedId?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
+  dedupeKey?: string;
 }
 export interface TrackEventInput {
   type: string;
   providerId: string;
-  payload: any;
+  payload: Record<string, unknown>;
   jobId?: string;
   employerId?: string;
   timestamp?: Date;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
+  dedupeKey?: string;
 }
 export interface EventStore {
   append(event: Event): void;
@@ -44,10 +46,15 @@ export interface EventStore {
 const LOOP_TYPE = 'USAGE_TRACKING';
 const SUBJECT_TYPE = 'provider';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function toPrismaData(event: Event) {
   return {
-    id: event.id,
-    dedupeKey: event.id,
+    dedupeKey: event.dedupeKey ?? event.id,
     eventType: event.type,
     loopType: LOOP_TYPE,
     subjectType: SUBJECT_TYPE,
@@ -55,7 +62,7 @@ function toPrismaData(event: Event) {
     sourceId: event.employerId || null,
     relatedId: event.jobId || null,
     status: 'RECORDED',
-    metadata: event.metadata as Record<string, unknown>,
+    metadata: asRecord(event.metadata),
     occurredAt: new Date(event.timestamp),
   };
 }
@@ -96,13 +103,14 @@ export function createPrismaEventStore(): EventStore & {
 } {
   return {
     append(event: Event): void {
+      const prismaData = toPrismaData(event);
       // Fire-and-forget write to database
       void prisma.learningEvent
         .upsert({
-          where: { dedupeKey: event.id },
+          where: { dedupeKey: prismaData.dedupeKey },
           create: {
-            ...toPrismaData(event),
-            metadata: toPrismaData(event).metadata as any,
+            ...prismaData,
+            metadata: prismaData.metadata as any,
           },
           update: {},
         })
@@ -181,14 +189,24 @@ export function emitLearningEvent(input: TrackEventInput): Event {
     providerId: input.providerId,
     jobId: input.jobId,
     employerId: input.employerId,
-    metadata: input.metadata ?? {},
-    payload: input.payload || {},
+    metadata: asRecord(input.metadata),
+    payload: asRecord(input.payload),
+    dedupeKey: typeof input.dedupeKey === 'string' && input.dedupeKey.trim().length > 0
+      ? input.dedupeKey.trim()
+      : undefined,
   };
 
   const event: Event = {
     ...normalized,
     id: buildEventId(normalized),
   };
+
+  log('info', 'learning_event_enqueued', {
+    eventId: event.id,
+    eventType: event.type,
+    providerId: event.providerId,
+    dedupeKey: event.dedupeKey ?? event.id,
+  });
 
   store.append(event);
   return event;

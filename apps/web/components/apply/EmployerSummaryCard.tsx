@@ -90,7 +90,7 @@ export function EmployerSummaryCard({
               </span>
             </div>
             <p className="max-w-2xl text-sm text-[var(--vt-text-2)]">
-              This share is a public readiness snapshot for employer review. Sign in to continue to the full decision report and employer actions.
+              This share is a public readiness snapshot for employer review. Sign in to continue to the full decision report and employer decisions.
             </p>
           </div>
           <div className="min-w-[176px] rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface-2)] p-4">

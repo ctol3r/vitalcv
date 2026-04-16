@@ -20,6 +20,8 @@ describe('computeDriftSignal', () => {
     );
     expect(result).toEqual({
       state: 'STABLE',
+      severity: 'none',
+      readinessPosture: 'stable',
       reasons: [],
       lastChecked: '2026-04-14T12:00:00.000Z',
     });
@@ -37,6 +39,8 @@ describe('computeDriftSignal', () => {
       fixedNow,
     );
     expect(result.state).toBe('HARD_DRIFT');
+    expect(result.severity).toBe('high');
+    expect(result.readinessPosture).toBe('degraded');
     expect(result.reasons).toEqual(
       expect.arrayContaining(['Decision is DO_NOT_PROCEED', expect.stringMatching(/Readiness blockers/)]),
     );
@@ -53,6 +57,8 @@ describe('computeDriftSignal', () => {
       fixedNow,
     );
     expect(result.state).toBe('SOFT_DRIFT');
+    expect(result.severity).toBe('medium');
+    expect(result.readinessPosture).toBe('stable');
     expect(result.reasons).toContain('Decision is PROCEED_WITH_CAUTION');
   });
 
@@ -73,6 +79,8 @@ describe('computeDriftSignal', () => {
       fixedNow,
     );
     expect(result.state).toBe('SOFT_DRIFT');
+    expect(result.severity).toBe('medium');
+    expect(result.readinessPosture).toBe('stable');
     expect(result.reasons).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/Stale source checks/),
@@ -93,6 +101,8 @@ describe('computeDriftSignal', () => {
       fixedNow,
     );
     expect(result.state).toBe('HARD_DRIFT');
+    expect(result.severity).toBe('high');
+    expect(result.readinessPosture).toBe('degraded');
     expect(result.reasons).toContain('OIG/LEIE exclusion detected');
     // SOFT-only reasons must NOT be collected once state is already HARD.
     expect(result.reasons).not.toEqual(
@@ -107,6 +117,8 @@ describe('computeDriftSignal', () => {
     );
     expect(result).toEqual({
       state: 'STABLE',
+      severity: 'none',
+      readinessPosture: 'stable',
       reasons: [],
       lastChecked: '2026-04-14T12:00:00.000Z',
     });

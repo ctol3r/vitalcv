@@ -9,10 +9,74 @@
 import { importSPKI, jwtVerify } from 'jose';
 import { log } from '../../obs/logger';
 import type { VerifiableCredential, VerificationResult } from './credentialModel';
-import { getIssuer, initializeTrustRegistryPersistence } from '../registry/trustRegistry';
+import {
+  initializeTrustRegistryPersistence,
+  validateIssuerForVerification,
+} from '../registry/trustRegistry';
 import { resolveDID } from '../identity/didRegistry';
 import { isRevoked } from '../revocation/revocationRegistry';
 import { checkCredentialHAIP, checkIssuerHAIP, HAIP_HEALTHCARE_POLICY } from '../trust/haipProfile';
+
+const REQUIRED_SIGNING_ALGORITHM = 'ES256';
+
+function sanitizeIdentifier(value: unknown, maxLength = 160): string {
+  if (typeof value !== 'string') {
+    return 'unknown';
+  }
+
+  const trimmed = value.trim().slice(0, maxLength);
+  return trimmed.length > 0 ? trimmed : 'unknown';
+}
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
+function parseProtectedHeader(signature: string): Record<string, unknown> | null {
+  const [headerSegment] = signature.split('.');
+  if (!headerSegment) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(Buffer.from(headerSegment, 'base64url').toString('utf-8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function validateCredentialEnvelope(credential: VerifiableCredential): string[] {
+  const errors: string[] = [];
+
+  if (!sanitizeIdentifier(credential.credentialId) || sanitizeIdentifier(credential.credentialId) === 'unknown') {
+    errors.push('Credential ID is missing');
+  }
+
+  if (!sanitizeIdentifier(credential.issuer) || sanitizeIdentifier(credential.issuer) === 'unknown') {
+    errors.push('Issuer is missing');
+  }
+
+  if (!sanitizeIdentifier(credential.subject) || sanitizeIdentifier(credential.subject) === 'unknown') {
+    errors.push('Subject is missing');
+  }
+
+  if (!isIsoDate(credential.issuedAt)) {
+    errors.push(`Credential issuedAt is invalid: ${String(credential.issuedAt)}`);
+  } else if (Date.parse(credential.issuedAt) > Date.now()) {
+    errors.push(`Credential issuedAt cannot be in the future: ${credential.issuedAt}`);
+  }
+
+  if (credential.expiresAt && !isIsoDate(credential.expiresAt)) {
+    errors.push(`Credential expiresAt is invalid: ${credential.expiresAt}`);
+  }
+
+  const segments = credential.signature.split('.');
+  if (segments.length !== 3 || segments.some((segment) => segment.length === 0)) {
+    errors.push('Credential signature must be a compact JWS');
+  }
+
+  return errors;
+}
 
 // ── Public API ────────────────────────────────────────────────────────
 
@@ -27,36 +91,64 @@ export async function verifyCredential(
     statusActive: false,
     notExpired: false,
   };
+  const envelopeErrors = validateCredentialEnvelope(credential);
+  errors.push(...envelopeErrors);
 
-  // 1. Issuer trusted? (Wave 95: trust registry)
-  const issuerRecord = getIssuer(credential.issuer);
-  if (issuerRecord && issuerRecord.status === 'ACTIVE') {
+  const sanitizedIssuer = sanitizeIdentifier(credential.issuer);
+  const sanitizedCredentialId = sanitizeIdentifier(credential.credentialId);
+  const sanitizedSubject = sanitizeIdentifier(credential.subject);
+
+  // 1. Issuer trusted? Trust MUST be mediated by the registry.
+  const registryValidation = validateIssuerForVerification(
+    credential.issuer,
+    REQUIRED_SIGNING_ALGORITHM,
+  );
+  const issuerRecord = registryValidation.issuer;
+  if (registryValidation.ok) {
     checks.issuerTrusted = true;
-  } else if (!issuerRecord) {
-    // Wave 100: fallback to DID registry if not in trust registry
-    const issuerDID = resolveDID(credential.issuer);
-    if (issuerDID && issuerDID.status === 'ACTIVE') {
-      checks.issuerTrusted = true;
-    } else {
-      errors.push(`Issuer "${credential.issuer}" not found in trust registry or DID registry`);
-    }
   } else {
-    errors.push(`Issuer "${credential.issuer}" status is ${issuerRecord.status}`);
+    const reason = registryValidation.reason ?? 'unknown';
+    log('warn', 'registry.validation.failed', {
+      credentialId: sanitizedCredentialId,
+      issuer: sanitizedIssuer,
+      subject: sanitizedSubject,
+      reason,
+    });
+    if (reason === 'issuer_not_registered') {
+      errors.push(`Issuer "${credential.issuer}" not found in trust registry`);
+    } else if (reason === 'issuer_inactive') {
+      errors.push(`Issuer "${credential.issuer}" status is ${issuerRecord?.status ?? 'UNKNOWN'}`);
+    } else if (reason === 'algorithm_not_allowed') {
+      errors.push(`Issuer "${credential.issuer}" does not allow ${REQUIRED_SIGNING_ALGORITHM} signing`);
+    } else {
+      errors.push(`Issuer "${credential.issuer}" is not trusted`);
+    }
   }
 
-  // 2. Wave 100: Verify issuer DID is active (belt-and-suspenders check)
+  // 2. Verify issuer DID is active when present (belt-and-suspenders only).
   const issuerDIDDoc = resolveDID(credential.issuer);
   if (issuerDIDDoc && issuerDIDDoc.status !== 'ACTIVE') {
     errors.push(`Issuer DID ${credential.issuer} is ${issuerDIDDoc.status} in DID registry`);
     checks.issuerTrusted = false;
   }
 
-  // 3. Signature verification (use trust registry public key if available, else DID doc)
+  // 3. Signature verification (registry is the trust gate; DID may provide key material)
   const signingPublicKey = issuerRecord?.publicKey || issuerDIDDoc?.publicKey || '';
-  if (signingPublicKey) {
+  const header = parseProtectedHeader(credential.signature);
+  if (header?.alg !== REQUIRED_SIGNING_ALGORITHM) {
+    errors.push(`Unsupported JWT alg: ${String(header?.alg ?? 'missing')}`);
+  }
+
+  if (
+    signingPublicKey
+    && checks.issuerTrusted
+    && header?.alg === REQUIRED_SIGNING_ALGORITHM
+    && envelopeErrors.length === 0
+  ) {
     try {
-      const publicKey = await importSPKI(signingPublicKey, 'ES256');
+      const publicKey = await importSPKI(signingPublicKey, REQUIRED_SIGNING_ALGORITHM);
       await jwtVerify(credential.signature, publicKey, {
+        algorithms: [REQUIRED_SIGNING_ALGORITHM],
         issuer: credential.issuer,
         subject: credential.subject,
       });
@@ -65,7 +157,7 @@ export async function verifyCredential(
       const msg = err instanceof Error ? err.message : 'Unknown signature error';
       errors.push(`Signature verification failed: ${msg}`);
     }
-  } else {
+  } else if (!signingPublicKey) {
     errors.push('Cannot verify signature — no public key available for issuer');
   }
 
@@ -110,7 +202,8 @@ export async function verifyCredential(
     checks.notExpired;
 
   log('info', 'credential_verified', {
-    credentialId: credential.credentialId,
+    credentialId: sanitizedCredentialId,
+    issuer: sanitizedIssuer,
     valid,
     haipCompliant: haipResult.compliant,
     errors,

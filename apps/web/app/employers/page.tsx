@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Clock, ShieldCheck, FileText } from 'lucide-react';
 import { fetchLaunchEmployers } from '@/lib/launch/marketplace';
+import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 export const metadata: Metadata = {
   title: 'For Employers',
@@ -83,28 +84,28 @@ export default async function EmployersPage() {
           <FileText className="h-6 w-6 text-[var(--vt-text-3)]" />
           <h3 className="text-base font-semibold text-[var(--vt-text-1)]">Inspectable Packets</h3>
           <p className="text-sm text-[var(--vt-text-2)] leading-relaxed">
-            View clear decision postures (READY, PARTIAL, BLOCKED) and take persisted actions: Accept as head start, Request refresh, or Route to review.
+            View clear decision postures (READY, PARTIAL, BLOCKED) and take persisted actions: Accept as head start, Request updated data, or Flag for review.
           </p>
         </div>
       </div>
 
       <div className="rounded-xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-8 max-w-2xl">
         <h2 className="text-xl font-semibold text-[var(--vt-text-1)] mb-4">
-          See the Employer Review Surface
+          Start a clinician review
         </h2>
         <p className="text-sm text-[var(--vt-text-2)] mb-8">
-          The employer review console is the center of the VitalCV product. Experience the decision flow exactly as your recruiting and credentialing teams would.
+          Start with a clinician NPI, create a review context, and move directly into the employer decision path with one clear next step.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
-            href="/review"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.reviewRequestEntry}
             className="inline-flex justify-center items-center gap-2 rounded-lg bg-[var(--vt-text-1)] px-6 py-3 text-sm font-semibold text-[var(--vt-bg)] transition hover:opacity-90"
           >
-            Open Review Console
+            Request clinician review
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/passport"
+            href={PUBLIC_WEDGE_ROUTE_TARGETS.passportEntry}
             className="inline-flex justify-center items-center gap-2 rounded-lg border border-[var(--vt-border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--vt-text-1)] transition hover:bg-[var(--vt-surface-2)]"
           >
             Start with NPI Lookup

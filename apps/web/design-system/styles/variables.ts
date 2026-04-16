@@ -12,9 +12,9 @@ const radiusTokens = {
 } as const;
 
 const shadowTokens = {
-  card: '0 12px 30px rgb(15 23 42 / 0.08)',
-  panel: '0 18px 44px rgb(15 23 42 / 0.12)',
-  modal: '0 26px 60px rgb(2 6 23 / 0.22)',
+  card: 'none',
+  panel: 'none',
+  modal: 'none',
 } as const;
 
 const legacyThemeKeyMap = {

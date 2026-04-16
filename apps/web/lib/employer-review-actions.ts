@@ -3,8 +3,12 @@ import type {
   CanonicalTruthDimensionId,
   CanonicalTruthStatus,
 } from '@vitalcv/trust-state';
+import {
+  formatActionTimestamp,
+  formatRecentActionLabel,
+} from '@/lib/trust/decision-copy';
 
-export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'reject';
+export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'pause' | 'reject';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
 export type EmployerReviewPersistenceMode = 'durable_record' | 'audit_only';
 export type EmployerReviewPersistenceTarget =
@@ -107,6 +111,23 @@ export interface EmployerReviewStatusResponse {
   state: EmployerReviewActionState | null;
 }
 
+export interface EmployerReviewDriftAlert {
+  alertId: string;
+  subjectNpi: string;
+  driftId: string;
+  severity: 'medium' | 'high';
+  createdAt: string;
+  resolvedAt: string | null;
+  title: string;
+  message: string;
+  reasons: string[];
+}
+
+export interface EmployerReviewDriftAlertResponse {
+  ok: true;
+  alerts: EmployerReviewDriftAlert[];
+}
+
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -134,7 +155,7 @@ function isNullableNumber(value: unknown): value is number | null | undefined {
 }
 
 function isEmployerReviewActionIntent(value: unknown): value is EmployerReviewActionIntent {
-  return value === 'accept' || value === 'refresh' || value === 'review' || value === 'reject';
+  return value === 'accept' || value === 'refresh' || value === 'review' || value === 'pause' || value === 'reject';
 }
 
 function isEmployerReviewPriority(value: unknown): value is EmployerReviewPriority {
@@ -373,33 +394,52 @@ export function normalizeEmployerAcceptanceHistoryResponse(
 export function employerReviewLoadingLabel(intent: EmployerReviewActionIntent): string {
   switch (intent) {
     case 'accept':
-      return 'Recording acceptance...';
+      return 'Saving acceptance...';
     case 'refresh':
-      return 'Recording refresh request...';
+      return 'Saving request for updated data...';
     case 'review':
-      return 'Recording review routing...';
+      return 'Saving review flag...';
+    case 'pause':
+      return 'Saving pause...';
     case 'reject':
-      return 'Recording rejection...';
+      return 'Saving do not proceed decision...';
     default:
-      return 'Recording employer action...';
+      return 'Saving employer action...';
   }
 }
 
-export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionState): string {
-  switch (state.action) {
-    case 'accept':
-      return 'Most recent persisted action: employer acceptance';
-    case 'refresh':
-      return 'Most recent persisted action: refresh request';
-    case 'review':
-      return state.persistence.reviewItemCreated
-        ? 'Most recent persisted action: routed to review queue'
-        : 'Most recent persisted action: review routing';
-    case 'reject':
-      return 'Most recent persisted action: employer rejection';
-    default:
-      return 'Most recent persisted action';
+function isEmployerReviewDriftAlert(value: unknown): value is EmployerReviewDriftAlert {
+  return isRecord(value)
+    && isString(value.alertId)
+    && isString(value.subjectNpi)
+    && isString(value.driftId)
+    && (value.severity === 'medium' || value.severity === 'high')
+    && isString(value.createdAt)
+    && isNullableString(value.resolvedAt)
+    && isString(value.title)
+    && isString(value.message)
+    && isStringArray(value.reasons);
+}
+
+export function normalizeEmployerReviewDriftAlertResponse(
+  value: unknown,
+): EmployerReviewDriftAlertResponse | null {
+  if (!isRecord(value) || value.ok !== true || !Array.isArray(value.alerts)) {
+    return null;
   }
+
+  if (!value.alerts.every(isEmployerReviewDriftAlert)) {
+    return null;
+  }
+
+  return {
+    ok: true,
+    alerts: value.alerts,
+  };
+}
+
+export function formatEmployerReviewPersistedLabel(state: EmployerReviewActionState): string {
+  return `Latest confirmed action: ${formatRecentActionLabel(state.action).toLowerCase()}`;
 }
 
 function formatPersistenceConfirmation(state: EmployerReviewActionState): string | null {
@@ -414,17 +454,20 @@ function formatPersistenceConfirmation(state: EmployerReviewActionState): string
   }
 
   if (state.persistence.mode === 'audit_only') {
-    return 'This environment persisted the audit trail only.';
+    return 'This environment saved the audit trail only.';
   }
 
   return null;
 }
 
 export function formatEmployerReviewPersistedDetail(state: EmployerReviewActionState): string {
+  const confirmedAt = formatActionTimestamp(state.timestamp, 'full');
   const details = [
     state.summary.description,
     formatPersistenceConfirmation(state),
-    `Audit event ${state.auditEventId} was recorded ${new Date(state.timestamp).toLocaleString()}.`,
+    confirmedAt
+      ? `Audit event ${state.auditEventId} was recorded ${confirmedAt}.`
+      : `Audit event ${state.auditEventId} was recorded.`,
     state.trustSnapshot ? `Trust snapshot ${state.trustSnapshot.snapshotHash.slice(0, 12)}... was captured with the decision.` : null,
   ].filter((value): value is string => Boolean(value && value.trim()));
 

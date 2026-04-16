@@ -246,16 +246,16 @@ export function BentoGrid() {
                 key={engine.title}
                 className={[
                   engine.span,
-                  'group relative overflow-hidden rounded-2xl border bg-white/70 backdrop-blur-md p-6 transition-colors duration-300 shadow-sm',
+                  'group relative overflow-hidden rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6 transition-colors duration-300',
                   a.border,
                 ].join(' ')}
                 initial={{ opacity: 0, y: 24 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.1 * i }}
               >
-                {/* Subtle corner glow */}
+                {/* Accent indicator (flat) */}
                 <div
-                  className={`pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${a.glow}`}
+                  className={`pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${a.glow}`}
                   aria-hidden="true"
                 />
 

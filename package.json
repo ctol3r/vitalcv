@@ -8,11 +8,14 @@
     "services/*"
   ],
   "scripts": {
+    "design:guard": "node scripts/design-guard.js",
     "build:web": "pnpm --filter web build",
-    "typecheck": "turbo typecheck",
-    "lint": "turbo lint",
+    "typecheck": "pnpm -r --if-present --workspace-concurrency=1 run typecheck",
+    "lint": "pnpm design:guard && turbo lint",
     "test": "turbo test",
-    "build": "pnpm turbo build",
+    "build": "pnpm design:guard && pnpm turbo build",
+    "load:test": "node scripts/loadTest.js",
+    "profile:load": "node --inspect scripts/loadTest.js",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "test:backend:db": "bash scripts/backend-test-db.sh"
   },

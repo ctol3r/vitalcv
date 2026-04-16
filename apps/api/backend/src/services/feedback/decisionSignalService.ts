@@ -16,9 +16,12 @@ export interface DecisionSignalInput {
   entityId: string;
   employerId: string;
   decision: EmployerDecisionType;
+  organizationContextId?: string | null;
+  role?: string | null;
   trustSnapshot?: {
     readinessStatus?: string;
     readinessScore?: number;
+    readinessLevel?: string;
     trustBand?: string;
     trustScore?: number;
     blockerCount?: number;
@@ -27,6 +30,7 @@ export interface DecisionSignalInput {
     verifiedCredentialCount?: number;
     staleCredentialCount?: number;
     snapshotHash?: string;
+    missingDomains?: string[];
   } | null;
   missingCritical?: string[];
   missingNonCritical?: string[];
@@ -62,6 +66,38 @@ export async function captureDecisionSignal(input: DecisionSignalInput): Promise
     // Compute verified vs inferred breakdown from snapshot
     const verifiedCount = input.trustSnapshot?.verifiedCredentialCount ?? 0;
     const staleCount = input.trustSnapshot?.staleCredentialCount ?? 0;
+    const [entity, context] = await Promise.all([
+      prisma.vcvEntity.findUnique({
+        where: { id: input.entityId },
+        select: { entityType: true, npiType: true, metadata: true },
+      }).catch(() => null),
+      input.organizationContextId
+        ? prisma.vcvOrganizationContext.findUnique({
+          where: { id: input.organizationContextId },
+          select: { contextType: true },
+        }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+    const entityMetadata =
+      entity?.metadata && typeof entity.metadata === 'object' && !Array.isArray(entity.metadata)
+        ? (entity.metadata as Record<string, unknown>)
+        : {};
+    const specialty =
+      typeof entityMetadata.specialty === 'string' && entityMetadata.specialty.trim().length > 0
+        ? entityMetadata.specialty.trim()
+        : 'UNKNOWN';
+    const role =
+      typeof input.role === 'string' && input.role.trim().length > 0
+        ? input.role.trim()
+        : 'UNKNOWN';
+    const orgType = context?.contextType ?? 'UNKNOWN';
+    const missingLanes = [...new Set([
+      ...(input.trustSnapshot?.missingDomains ?? []),
+      ...(input.missingCritical ?? []),
+      ...(input.missingNonCritical ?? []),
+    ])].filter((lane) => typeof lane === 'string' && lane.trim().length > 0)
+      .map((lane) => lane.trim())
+      .sort((left, right) => left.localeCompare(right));
 
     emitLearningEvent({
       type: EVENT_TYPE_MAP[input.decision],
@@ -75,6 +111,7 @@ export async function captureDecisionSignal(input: DecisionSignalInput): Promise
         readinessScore: input.trustSnapshot?.readinessScore ?? null,
         trustBand: input.trustSnapshot?.trustBand ?? null,
         trustScore: input.trustSnapshot?.trustScore ?? null,
+        readinessLevel: input.trustSnapshot?.readinessLevel ?? 'UNKNOWN',
         blockerCount: input.trustSnapshot?.blockerCount ?? 0,
         topBlockers: input.trustSnapshot?.topBlockers ?? [],
         exclusionStatus: input.trustSnapshot?.exclusionStatus ?? null,
@@ -83,6 +120,12 @@ export async function captureDecisionSignal(input: DecisionSignalInput): Promise
         missingCriticalCount: input.missingCritical?.length ?? 0,
         missingCritical: input.missingCritical ?? [],
         missingNonCritical: input.missingNonCritical ?? [],
+        missingLanes,
+        role,
+        orgType,
+        specialty,
+        identityType: entity?.npiType ?? entity?.entityType ?? 'UNKNOWN',
+        outcome: 'PENDING',
         bundleId: input.bundleId ?? null,
       },
     });
@@ -92,6 +135,9 @@ export async function captureDecisionSignal(input: DecisionSignalInput): Promise
       decision: input.decision,
       timeToDecisionMs,
       readinessScore: input.trustSnapshot?.readinessScore,
+      readinessLevel: input.trustSnapshot?.readinessLevel ?? 'UNKNOWN',
+      role,
+      orgType,
     });
   } catch (error) {
     log('warn', 'decision_signal_capture_failed', {
@@ -141,7 +187,7 @@ export async function resolveOutcome(input: ResolveOutcomeInput): Promise<void> 
         loopType: 'USAGE_TRACKING',
       },
       orderBy: { occurredAt: 'desc' },
-      select: { id: true, metadata: true },
+      select: { id: true, metadata: true, occurredAt: true },
     });
 
     if (!pending) {
@@ -167,13 +213,20 @@ export async function resolveOutcome(input: ResolveOutcomeInput): Promise<void> 
       return;
     }
 
+    const resolvedAt = new Date();
+    const timeToStartDays =
+      input.outcome === 'START_ACTIVATED'
+        ? Number(((resolvedAt.getTime() - pending.occurredAt.getTime()) / 86_400_000).toFixed(1))
+        : null;
+
     await prisma.learningEvent.update({
       where: { id: pending.id },
       data: {
         metadata: {
           ...currentMeta,
           outcome: input.outcome,
-          resolvedAt: new Date().toISOString(),
+          resolvedAt: resolvedAt.toISOString(),
+          ...(timeToStartDays !== null ? { timeToStartDays } : {}),
         } as never,
       },
     });

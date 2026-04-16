@@ -30,7 +30,7 @@ export function CredentialPassportLayout({ data }: { data: PassportData }) {
             <span className="font-mono bg-slate-100 dark:bg-vt-neutral-800 px-3 py-1 rounded-md">NPI {data.clinician.npi}</span>
           </div>
         </div>
-        <div className="flex flex-col items-start md:items-end gap-3 bg-white dark:bg-vt-neutral-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-col items-start md:items-end gap-3 bg-white dark:bg-vt-neutral-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-vt-neutral-400">Readiness State</span>
           <VerificationBadge level={data.overallStatus} className="scale-110 origin-left md:origin-right" />
         </div>

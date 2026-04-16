@@ -403,6 +403,18 @@ describe('employer packet truth', () => {
     ]);
     expect(packet.sourceCoverageSummary.checked).toEqual(['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC']);
     expect(packet.sourceCoverageSummary.gated).toEqual(['STATE_BOARD']);
+    expect(packet.readinessPosture).toBe('stable');
+    expect(packet.limitations).toEqual({
+      items: [
+        {
+          sourceId: 'STATE_BOARD',
+          state: 'access_required',
+          reason: 'Institutional access required',
+        },
+      ],
+      blockers: [],
+      gaps: ['Institutional access required'],
+    });
     expect(packet.freshness).toEqual(passport.trustPosture.freshness);
     expect(packet.decisionPosture).toEqual({
       status: 'PARTIAL',
@@ -456,19 +468,19 @@ describe('employer packet truth', () => {
       sourceCoverage: packet.sourceCoverage,
       sourceCoverageSummary: packet.sourceCoverageSummary,
       freshness: packet.freshness,
-      status: {
+      status: expect.objectContaining({
         truth: packet.truth,
         freshness: packet.freshness,
-        readiness: {
+        readiness: expect.objectContaining({
           status: packet.readiness.status,
           score: packet.readiness.score,
           readiness_score: packet.readiness.readiness_score,
           level: packet.readiness.level,
           blockers: packet.readiness.blockers,
-        },
+        }),
         decisionPosture: packet.decisionPosture,
         sourceCoverageSummary: packet.sourceCoverageSummary,
-      },
+      }),
     }));
     expect(packet.manifest.sources).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -574,6 +586,18 @@ describe('employer packet truth', () => {
 
     expect(packet.sourceCoverageSummary.stale).toEqual(['OIG_LEIE']);
     expect(packet.sourceCoverageSummary.checked).toEqual(['NPPES_API', 'PECOS_PUBLIC']);
+    expect(packet.limitations.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sourceId: 'OIG_LEIE',
+        state: 'stale',
+        reason: 'OIG LEIE screening is stale and should be refreshed.',
+      }),
+      expect.objectContaining({
+        sourceId: 'STATE_BOARD',
+        state: 'access_required',
+        reason: 'Institutional access required',
+      }),
+    ]));
     expect(packet.sourceCoverage.checks.find((check) => check.sourceId === 'OIG_LEIE')).toEqual(
       expect.objectContaining({
         state: 'stale',

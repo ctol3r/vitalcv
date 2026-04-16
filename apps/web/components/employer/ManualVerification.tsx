@@ -3,11 +3,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/glass-card';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Shield, Upload, XCircle } from 'lucide-react';
@@ -50,18 +50,18 @@ export function ManualVerification({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <GlassCard>
-      <GlassCardHeader>
-        <GlassCardTitle className="flex items-center gap-2">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-muted-foreground" />
           Manual Verification
-        </GlassCardTitle>
+        </CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
           Upload a document for preview review. This creates a recorded receipt.
         </p>
-      </GlassCardHeader>
+      </CardHeader>
 
-      <GlassCardContent className="space-y-4">
+      <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-sm">Subject</Label>
@@ -82,7 +82,7 @@ export function ManualVerification({
               onChange={(e) =>
                 onAttestorChange(e.target.value as 'Employer' | 'CVO')
               }
-              className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-9 w-full rounded-lg border border-[var(--vt-border)] bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               disabled={disableActions}
             >
               <option value="Employer">Employer</option>
@@ -199,8 +199,8 @@ export function ManualVerification({
             </table>
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }
 

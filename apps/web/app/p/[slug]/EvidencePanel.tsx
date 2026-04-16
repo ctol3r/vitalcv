@@ -1,3 +1,9 @@
+import React from 'react';
+import {
+  type AtomicManifest,
+  assertAtomicRender,
+} from '@/lib/trust/ui-truth-integrity';
+
 /**
  * EvidencePanel — explicit compliance evidence rendered above the NBA.
  *
@@ -35,7 +41,7 @@ const ROWS: EvidenceRowSpec[] = [
     label: 'Identity',
     source: 'NPPES Registry',
     matches: ['NPPES_API', 'NPPES'],
-    presentLabel: 'Verified match',
+    presentLabel: 'Match on file',
     absentLabel: 'Missing',
   },
   {
@@ -124,13 +130,18 @@ function freshnessTier(iso: string | null | undefined): 'fresh' | 'aging' | null
 }
 
 export function EvidencePanel({
-  coverage,
+  manifest,
   npi,
 }: {
-  coverage: EvidenceCoverage | undefined | null;
+  manifest: AtomicManifest;
   npi?: string;
 }) {
-  const checks = coverage?.checks ?? [];
+  assertAtomicRender(
+    manifest,
+    { renderState: 'resolved' },
+  );
+
+  const checks = manifest.coverage.checks ?? [];
   const findCheck = (matches: string[]): CoverageCheck | undefined =>
     checks.find((c) => matches.includes(c.sourceId));
 
@@ -138,7 +149,10 @@ export function EvidencePanel({
   const hasStale = rowStatuses.some((r) => r.status === 'stale');
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <div
+      data-atomic-render-state="resolved"
+      className="rounded-2xl border border-border bg-card p-5 sm:p-6"
+    >
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         Compliance evidence
       </p>
@@ -150,7 +164,7 @@ export function EvidencePanel({
           <p>
             <span className="font-semibold">One or more sources are stale.</span>{' '}
             Impact: the lane may no longer reflect the current status at the issuing
-            authority. Proceeding now relies on the last verified snapshot below.
+            authority. Proceeding now relies on the last checked snapshot below.
           </p>
           <p className="mt-1">
             Recommended action: <span className="font-semibold">request a fresh check</span>{' '}
@@ -182,7 +196,7 @@ export function EvidencePanel({
                   </span>
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {verifiedAt ? `Last verified: ${verifiedAt}` : 'Verification pending'}
+                  {verifiedAt ? `Last checked: ${verifiedAt}` : 'Check pending'}
                   {tier === 'fresh' && (
                     <span className="ml-2 font-semibold text-green-700">· Fresh</span>
                   )}
@@ -204,7 +218,7 @@ export function EvidencePanel({
       </ul>
       <p className="mt-4 text-[11px] italic text-muted-foreground">
         All checks performed against primary sources. Updated via background
-        verification — each row reflects the last completed check, not a
+        checks — each row reflects the last completed check, not a
         live query.
       </p>
       {npi && (

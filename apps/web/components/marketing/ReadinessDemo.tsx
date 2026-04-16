@@ -212,7 +212,7 @@ export function ReadinessDemo() {
                   {profile.blockers.length === 0 ? (
                     <div className="flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <p className="text-sm text-emerald-400/70">No blockers — fully cleared</p>
+                      <p className="text-sm text-emerald-400/70">No blockers are shown right now.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">

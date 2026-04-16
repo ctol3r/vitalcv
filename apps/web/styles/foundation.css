@@ -1,0 +1,448 @@
+/* ──────────────────────────────────────────────────────────────
+   Foundation Tokens — CSS-only tokens not (yet) in TS source.
+   Consolidates: design-tokens.css + tokens.css + vitalTokens.css
+   All shadow, glass, and blur tokens stripped.
+   ────────────────────────────────────────────────────────────── */
+
+/* ══ Typography Scale ════════════════════════════════════════════ */
+
+:root {
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  --font-size-6xl: 3.75rem;
+  --font-size-7xl: 4.5rem;
+  --font-size-8xl: 6rem;
+
+  --leading-none: 1;
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+}
+
+/* ══ Spacing (Tailwind-style naming) ═════════════════════════════ */
+
+:root {
+  --space-px: 1px;
+  --space-0: 0;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+}
+
+/* ══ Z-Index Layers ══════════════════════════════════════════════ */
+
+:root {
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal: 30;
+  --z-overlay: 40;
+  --z-toast: 50;
+}
+
+/* ══ Border Radius ═══════════════════════════════════════════════ */
+
+:root {
+  --radius-none: 0;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+/* ══ Palette Scales (oklch) ══════════════════════════════════════ */
+
+:root {
+  --palette-neutral-50:  oklch(0.985 0 0);
+  --palette-neutral-100: oklch(0.965 0 0);
+  --palette-neutral-200: oklch(0.922 0 0);
+  --palette-neutral-300: oklch(0.870 0 0);
+  --palette-neutral-400: oklch(0.708 0 0);
+  --palette-neutral-500: oklch(0.552 0 0);
+  --palette-neutral-600: oklch(0.442 0 0);
+  --palette-neutral-700: oklch(0.370 0 0);
+  --palette-neutral-800: oklch(0.274 0 0);
+  --palette-neutral-900: oklch(0.210 0 0);
+  --palette-neutral-950: oklch(0.145 0 0);
+
+  --palette-blue-50:  oklch(0.97 0.03 255);
+  --palette-blue-100: oklch(0.93 0.06 255);
+  --palette-blue-200: oklch(0.87 0.10 255);
+  --palette-blue-300: oklch(0.78 0.14 255);
+  --palette-blue-400: oklch(0.66 0.18 255);
+  --palette-blue-500: oklch(0.55 0.20 255);
+  --palette-blue-600: oklch(0.48 0.18 255);
+  --palette-blue-700: oklch(0.40 0.16 255);
+  --palette-blue-800: oklch(0.33 0.13 255);
+  --palette-blue-900: oklch(0.26 0.10 255);
+  --palette-blue-950: oklch(0.18 0.07 255);
+
+  --palette-green-50:  oklch(0.97 0.03 155);
+  --palette-green-100: oklch(0.93 0.07 155);
+  --palette-green-200: oklch(0.87 0.12 155);
+  --palette-green-300: oklch(0.78 0.16 155);
+  --palette-green-400: oklch(0.66 0.18 155);
+  --palette-green-500: oklch(0.55 0.18 155);
+  --palette-green-600: oklch(0.47 0.17 155);
+  --palette-green-700: oklch(0.38 0.14 155);
+  --palette-green-800: oklch(0.30 0.11 155);
+  --palette-green-900: oklch(0.23 0.08 155);
+  --palette-green-950: oklch(0.15 0.05 155);
+
+  --palette-red-50:  oklch(0.97 0.02 25);
+  --palette-red-100: oklch(0.93 0.05 25);
+  --palette-red-200: oklch(0.87 0.10 25);
+  --palette-red-300: oklch(0.78 0.15 25);
+  --palette-red-400: oklch(0.67 0.18 25);
+  --palette-red-500: oklch(0.55 0.20 25);
+  --palette-red-600: oklch(0.48 0.18 25);
+  --palette-red-700: oklch(0.40 0.15 25);
+  --palette-red-800: oklch(0.32 0.12 25);
+  --palette-red-900: oklch(0.24 0.08 25);
+  --palette-red-950: oklch(0.16 0.05 25);
+
+  --palette-amber-50:  oklch(0.98 0.03 80);
+  --palette-amber-100: oklch(0.95 0.07 80);
+  --palette-amber-200: oklch(0.90 0.13 80);
+  --palette-amber-300: oklch(0.84 0.17 80);
+  --palette-amber-400: oklch(0.76 0.18 80);
+  --palette-amber-500: oklch(0.68 0.18 80);
+  --palette-amber-600: oklch(0.58 0.16 80);
+  --palette-amber-700: oklch(0.47 0.13 80);
+  --palette-amber-800: oklch(0.36 0.10 80);
+  --palette-amber-900: oklch(0.26 0.07 80);
+  --palette-amber-950: oklch(0.18 0.04 80);
+
+  --palette-violet-50:  oklch(0.97 0.03 290);
+  --palette-violet-100: oklch(0.93 0.07 290);
+  --palette-violet-200: oklch(0.86 0.12 290);
+  --palette-violet-300: oklch(0.76 0.17 290);
+  --palette-violet-400: oklch(0.64 0.20 290);
+  --palette-violet-500: oklch(0.55 0.18 290);
+  --palette-violet-600: oklch(0.47 0.16 290);
+  --palette-violet-700: oklch(0.38 0.14 290);
+  --palette-violet-800: oklch(0.30 0.11 290);
+  --palette-violet-900: oklch(0.22 0.07 290);
+  --palette-violet-950: oklch(0.15 0.05 290);
+}
+
+/* ══ Outline / Border Tokens ═════════════════════════════════════ */
+
+:root {
+  --outline-width-thin: 1px;
+  --outline-width-normal: 1.5px;
+  --outline-width-thick: 2px;
+  --outline-width-heavy: 3px;
+
+  --outline-subtle:  1px solid var(--palette-neutral-800);
+  --outline-default: 1px solid var(--palette-neutral-700);
+  --outline-strong:  1.5px solid var(--palette-neutral-600);
+  --outline-focus:   2px solid var(--palette-blue-500);
+  --outline-trust:   1.5px solid var(--palette-green-600);
+  --outline-warning: 1.5px solid var(--palette-amber-500);
+  --outline-danger:  1.5px solid var(--palette-red-500);
+
+  --divider-color: oklch(0.28 0.008 255 / 0.6);
+  --divider-color-soft: oklch(0.25 0.008 255 / 0.3);
+}
+
+/* ══ Motion Tokens ═══════════════════════════════════════════════ */
+
+:root {
+  --vt-ease-system: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vt-duration-interact: 320ms;
+
+  --ease-standard: var(--vt-ease-system);
+  --ease-decelerate: var(--vt-ease-system);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: var(--vt-ease-system);
+  --ease-bounce: var(--vt-ease-system);
+
+  --duration-instant: 280ms;
+  --duration-fast: 280ms;
+  --duration-normal: 320ms;
+  --duration-slow: 380ms;
+  --duration-xslow: 420ms;
+  --duration-stagger: 50ms;
+  --duration-snap: 280ms;
+  --duration-respond: 280ms;
+
+  --ease-control: var(--vt-ease-system);
+  --ease-command: var(--vt-ease-system);
+
+  --transition-colors: color var(--duration-fast) var(--vt-ease-system),
+                       background-color var(--duration-fast) var(--vt-ease-system),
+                       border-color var(--duration-fast) var(--vt-ease-system),
+                       opacity var(--duration-fast) var(--vt-ease-system);
+  --transition-transform: transform var(--duration-normal) var(--vt-ease-system);
+  --transition-all: all var(--duration-normal) var(--vt-ease-system);
+  --transition-control: all var(--duration-snap) var(--vt-ease-system);
+}
+
+/* ══ Semantic Surface Tokens ═════════════════════════════════════ */
+
+:root {
+  --vt-bg: #F4F6F5;
+  --vt-surface: #FFFFFF;
+  --vt-surface-subtle: #EDF2F0;
+  --vt-surface-dim: #E3E9E6;
+  --vt-border: #D6DEDA;
+  --vt-border-subtle: rgb(26 34 40 / 0.08);
+  --vt-text-primary: #1A2228;
+  --vt-text-secondary: #38424D;
+  --vt-text-muted: #5A6472;
+  --vt-accent: #0A7B7F;
+  --vt-accent-hover: #095F63;
+  --vt-focus-ring: rgb(10 123 127 / 0.24);
+  --vt-severity-critical: #8C2A2A;
+  --vt-severity-high: #A05C00;
+  --vt-severity-medium: #6B6F75;
+  --vt-severity-low: #6B6F75;
+  --vt-status-new: #0A7B7F;
+  --vt-status-acknowledged: #6B6F75;
+  --vt-status-investigating: #A05C00;
+  --vt-status-resolved: #2E7D45;
+  --vt-status-dismissed: #6B6F75;
+  --vt-risk-low: #2E7D45;
+  --vt-risk-medium: #A05C00;
+  --vt-risk-high: #8C2A2A;
+  --vt-node-provider: #0A7B7F;
+  --vt-node-institution: #5A6472;
+  --vt-node-publication: #8C97A3;
+  --vt-node-trial: #8C97A3;
+  --vt-node-company: #1A2228;
+  --vt-node-alert: #8C2A2A;
+  --vt-overlay: rgb(244 246 245 / 0.88);
+
+  --vt-font-body: 'DM Sans', system-ui, sans-serif;
+  --vt-font-display: 'Instrument Serif', Georgia, serif;
+}
+
+/* ══ Badge Tokens ════════════════════════════════════════════════ */
+
+:root {
+  --vt-badge-checked-bg: #E8F5EE;
+  --vt-badge-checked-text: #2E7D45;
+  --vt-badge-pending-bg: #FEF3E2;
+  --vt-badge-pending-text: #A05C00;
+  --vt-badge-access-bg: #F0F1F3;
+  --vt-badge-access-text: #6B6F75;
+  --vt-badge-unavailable-bg: #F5EDED;
+  --vt-badge-unavailable-text: #8C2A2A;
+  --vt-badge-preview-bg: #E5F4F5;
+  --vt-badge-preview-text: #0A7B7F;
+
+  --vt-badge-success-bg: var(--vt-badge-checked-bg);
+  --vt-badge-success-text: var(--vt-badge-checked-text);
+  --vt-badge-success-border: var(--vt-badge-checked-bg);
+  --vt-badge-warning-bg: var(--vt-badge-pending-bg);
+  --vt-badge-warning-text: var(--vt-badge-pending-text);
+  --vt-badge-warning-border: var(--vt-badge-pending-bg);
+  --vt-badge-neutral-bg: var(--vt-badge-access-bg);
+  --vt-badge-neutral-text: var(--vt-badge-access-text);
+  --vt-badge-neutral-border: var(--vt-badge-access-bg);
+  --vt-badge-critical-bg: var(--vt-badge-unavailable-bg);
+  --vt-badge-critical-text: var(--vt-badge-unavailable-text);
+  --vt-badge-critical-border: var(--vt-badge-unavailable-bg);
+  --vt-badge-info-bg: var(--vt-badge-preview-bg);
+  --vt-badge-info-text: var(--vt-badge-preview-text);
+  --vt-badge-info-border: var(--vt-badge-preview-bg);
+
+  --vt-surface-hero: linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(249 251 250 / 0.92));
+}
+
+/* ══ Operator Surface Tokens ═════════════════════════════════════ */
+
+:root {
+  --ops-bg: oklch(0.08 0.005 255);
+  --ops-surface: oklch(0.12 0.008 255);
+  --ops-surface-alt: oklch(0.15 0.008 255);
+  --ops-border: oklch(0.22 0.010 255);
+  --ops-border-soft: oklch(0.18 0.008 255);
+  --ops-text: oklch(0.88 0.005 255);
+  --ops-text-muted: oklch(0.55 0.008 255);
+  --ops-text-subtle: oklch(0.38 0.006 255);
+
+  --ops-status-ok: oklch(0.68 0.18 155);
+  --ops-status-warn: oklch(0.75 0.17 80);
+  --ops-status-error: oklch(0.65 0.20 25);
+  --ops-status-neutral: oklch(0.50 0.008 255);
+  --ops-status-active: oklch(0.60 0.18 255);
+}
+
+/* ══ Trust State Tokens ══════════════════════════════════════════ */
+
+:root {
+  --trust-l0-fg: oklch(0.55 0.008 255);
+  --trust-l0-bg: oklch(0.20 0.005 255);
+  --trust-l0-ring: oklch(0.35 0.008 255);
+
+  --trust-l1-fg: oklch(0.65 0.18 255);
+  --trust-l1-bg: oklch(0.15 0.08 255);
+  --trust-l1-ring: oklch(0.40 0.15 255);
+
+  --trust-l2-fg: oklch(0.68 0.18 180);
+  --trust-l2-bg: oklch(0.14 0.06 180);
+  --trust-l2-ring: oklch(0.42 0.14 180);
+
+  --trust-l3-fg: oklch(0.68 0.18 155);
+  --trust-l3-bg: oklch(0.14 0.06 155);
+  --trust-l3-ring: oklch(0.42 0.15 155);
+
+  --trust-signal-verified: oklch(0.68 0.18 155);
+  --trust-signal-pending: oklch(0.68 0.18 255);
+  --trust-signal-expired: oklch(0.72 0.17 80);
+  --trust-signal-revoked: oklch(0.62 0.20 25);
+
+  --trust-score-low: oklch(0.62 0.20 25);
+  --trust-score-mid: oklch(0.72 0.17 80);
+  --trust-score-high: oklch(0.68 0.18 155);
+}
+
+/* ══ VitalCV Brand Tokens ════════════════════════════════════════ */
+
+:root {
+  --vt-color-brand-primary: oklch(0.55 0.20 255);
+  --vt-color-brand-secondary: oklch(0.48 0.18 255);
+  --vt-color-neutral-100: oklch(0.965 0 0);
+  --vt-color-neutral-200: oklch(0.922 0 0);
+  --vt-color-neutral-300: oklch(0.870 0 0);
+  --vt-color-neutral-400: oklch(0.700 0 0);
+  --vt-color-neutral-500: oklch(0.550 0 0);
+  --vt-color-neutral-600: oklch(0.400 0 0);
+  --vt-color-neutral-700: oklch(0.320 0 0);
+  --vt-color-neutral-800: oklch(0.274 0 0);
+  --vt-color-neutral-900: oklch(0.210 0 0);
+
+  --vt-color-success: oklch(0.68 0.18 155);
+  --vt-color-warning: oklch(0.75 0.17 80);
+  --vt-color-danger: oklch(0.65 0.20 25);
+  --vt-color-info: oklch(0.60 0.18 255);
+
+  --vt-surface-base: oklch(0.985 0 0);
+  --vt-surface-sunken: oklch(0.965 0 0);
+  --vt-surface-raised: oklch(1 0 0);
+  --vt-surface-overlay: oklch(1 0 0 / 0.8);
+  --vt-surface-brand: oklch(0.97 0.03 255);
+  --vt-surface-ops-base: oklch(0.08 0.005 255);
+  --vt-surface-ops-raised: oklch(0.12 0.008 255);
+
+  --vt-ops-from: oklch(0.05 0.008 255);
+  --vt-ops-via: oklch(0.08 0.006 255);
+  --vt-ops-to: oklch(0.05 0.008 255);
+
+  --vt-passport-from: oklch(0.045 0.004 255);
+  --vt-passport-via: oklch(0.07 0.005 255);
+  --vt-passport-to: oklch(0.075 0.008 255);
+
+  --vt-divider-ops: oklch(0.274 0 0);
+  --vt-divider-light: oklch(0.90 0.008 80);
+
+  --vt-outline-thin: 1px solid var(--vt-color-neutral-200);
+  --vt-outline-default: 1px solid var(--vt-color-neutral-800);
+  --vt-outline-strong: 2px solid var(--vt-color-neutral-900);
+  --vt-outline-focus: 2px solid var(--vt-color-brand-primary);
+
+  --vt-spacing-xs: 0.25rem;
+  --vt-spacing-sm: 0.5rem;
+  --vt-spacing-md: 1rem;
+  --vt-spacing-lg: 1.5rem;
+  --vt-spacing-xl: 2rem;
+  --vt-spacing-2xl: 3rem;
+
+  --control-surface: oklch(0.06 0.005 255);
+  --control-surface-raised: oklch(0.09 0.006 255);
+  --control-text: oklch(0.92 0 0);
+  --control-text-muted: oklch(0.50 0 0);
+  --control-text-subtle: oklch(0.35 0 0);
+  --control-accent: oklch(0.55 0.20 255);
+  --control-accent-muted: oklch(0.40 0.12 255);
+  --control-success: oklch(0.68 0.18 155);
+  --control-border: oklch(0.20 0.008 255);
+  --control-border-hover: oklch(0.30 0.010 255);
+
+  --type-metric-xl-size: clamp(2.5rem, 4vw, 4rem);
+  --type-metric-xl-line: 1.0;
+  --type-metric-xl-weight: 700;
+  --type-metric-xl-tracking: -0.04em;
+  --type-metric-xl-font: var(--font-display);
+
+  --type-metric-lg-size: clamp(1.5rem, 3vw, 2.5rem);
+  --type-metric-lg-line: 1.1;
+  --type-metric-lg-weight: 700;
+  --type-metric-lg-tracking: -0.03em;
+  --type-metric-lg-font: var(--font-display);
+
+  --type-metric-sm-size: clamp(1rem, 2vw, 1.25rem);
+  --type-metric-sm-line: 1.2;
+  --type-metric-sm-weight: 600;
+  --type-metric-sm-tracking: -0.02em;
+  --type-metric-sm-font: var(--font-display);
+}
+
+/* ══ Dark Mode ═══════════════════════════════════════════════════ */
+
+.dark {
+  --vt-color-brand-primary: oklch(0.66 0.18 255);
+  --vt-color-neutral-100: oklch(0.210 0 0);
+  --vt-color-neutral-200: oklch(0.274 0 0);
+  --vt-color-neutral-300: oklch(0.320 0 0);
+  --vt-color-neutral-400: oklch(0.400 0 0);
+  --vt-color-neutral-500: oklch(0.550 0 0);
+  --vt-color-neutral-600: oklch(0.700 0 0);
+  --vt-color-neutral-700: oklch(0.870 0 0);
+  --vt-color-neutral-800: oklch(0.922 0 0);
+  --vt-color-neutral-900: oklch(0.965 0 0);
+
+  --vt-surface-base: oklch(0.12 0.008 255);
+  --vt-surface-sunken: oklch(0.08 0.005 255);
+  --vt-surface-raised: oklch(0.18 0.008 255);
+
+  --vt-outline-thin: 1px solid var(--vt-color-neutral-800);
+  --vt-outline-default: 1px solid var(--vt-color-neutral-200);
+}
+
+/* ══ Utility Classes ═════════════════════════════════════════════ */
+
+.ops-surface { background-color: var(--ops-surface); color: var(--ops-text); border: var(--outline-subtle); }
+.ops-surface-alt { background-color: var(--ops-surface-alt); color: var(--ops-text); }
+.ops-border { border-color: var(--ops-border); }
+.ops-text { color: var(--ops-text); }
+.ops-muted { color: var(--ops-text-muted); }
+.ops-subtle { color: var(--ops-text-subtle); }
+
+.trust-l0 { color: var(--trust-l0-fg); background: var(--trust-l0-bg); }
+.trust-l1 { color: var(--trust-l1-fg); background: var(--trust-l1-bg); }
+.trust-l2 { color: var(--trust-l2-fg); background: var(--trust-l2-bg); }
+.trust-l3 { color: var(--trust-l3-fg); background: var(--trust-l3-bg); }
+
+.vital-ops-theme { color: var(--vital-ops-text-primary); background-color: var(--vital-ops-background); }

@@ -148,6 +148,16 @@ export async function runTrustDecision(
 
   await persistDecision(artifact);
 
+  const conflictTypes = Array.from(new Set(artifact.conflicts.map((conflict) => conflict.claimType)));
+  log('info', 'trust_arbitration_evaluated', {
+    npi,
+    decisionClass: artifact.decisionClass,
+    conflictCount: artifact.conflicts.length,
+    conflictTypes,
+    negativeFindingCount: artifact.negativeFindings.length,
+    methodologyVersion: artifact.methodologyVersion,
+  });
+
   log('info', 'trust_decision_evaluated', {
     npi,
     decisionClass: artifact.decisionClass,

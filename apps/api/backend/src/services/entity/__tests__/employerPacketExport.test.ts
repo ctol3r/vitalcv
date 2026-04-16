@@ -112,6 +112,7 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
     entityId: 'entity-1',
     clinicianNpi: '1234567890',
     displayName: 'Dr. Jane Doe',
+    readinessPosture: 'stable',
     truth: {
       identity: {
         kind: 'verification',
@@ -231,6 +232,11 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
       label: 'Current attached checks',
       items: [],
     },
+    limitations: {
+      items: [],
+      blockers: [],
+      gaps: [],
+    },
     decisionPosture: {
       status: 'READY' as const,
       headline: 'Ready to proceed with source-backed review.',
@@ -278,9 +284,11 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
     readiness: {
       status: 'READY',
       score: 90,
+      readiness_score: 90,
       level: 'L3',
       estimatedStartDays: 3,
       blockers: [],
+      gaps: [],
       nextActions: [],
     },
     sourceCoverage,

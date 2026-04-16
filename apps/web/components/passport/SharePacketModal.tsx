@@ -122,7 +122,7 @@ export function SharePacketModal({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="relative w-full max-w-lg overflow-hidden rounded-lg border border-border bg-background shadow-sm"
+            className="relative w-full max-w-lg overflow-hidden rounded-lg border border-border bg-background"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border p-6">

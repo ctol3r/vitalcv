@@ -4,6 +4,7 @@ import { BACKEND_URL as BACKEND } from '@/lib/backend-url';
 import {
   normalizeEmployerAcceptanceHistoryResponse,
   normalizeEmployerReviewActionResponse,
+  normalizeEmployerReviewDriftAlertResponse,
   normalizeEmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
 import { assertEmployerEvidencePacket } from '@/lib/trust/employer-packet-contract';
@@ -14,11 +15,12 @@ const AUTHENTICATED_MUTATION_ACTIONS = new Set([
   'accept',
   'request-refresh',
   'route-to-review',
+  'pause-candidate',
   'confirm-start',
 ]);
 const PUBLIC_MUTATION_ACTIONS = new Set(['view']);
 const PUBLIC_READ_ACTIONS = new Set(['acceptance-history']);
-const AUTHENTICATED_READ_ACTIONS = new Set(['packet', 'status']);
+const AUTHENTICATED_READ_ACTIONS = new Set(['packet', 'status', 'drift-alerts']);
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -207,6 +209,30 @@ function parseReviewBody(body: unknown): UnknownRecord | null {
   return body;
 }
 
+function parsePauseBody(body: unknown): UnknownRecord | null {
+  if (!isRecord(body)) {
+    return null;
+  }
+
+  if (validateAllowedKeys(body, [
+    'reason',
+    'organizationContextId',
+    'bundleId',
+  ])) {
+    return null;
+  }
+
+  if (
+    !isNullableString(body.reason)
+    || !isNullableString(body.organizationContextId)
+    || !isNullableString(body.bundleId)
+  ) {
+    return null;
+  }
+
+  return body;
+}
+
 function parseConfirmStartBody(body: unknown): UnknownRecord | null {
   if (!isRecord(body)) {
     return null;
@@ -260,6 +286,8 @@ function sanitizeActionBody(
       return parseRefreshBody(body);
     case 'route-to-review':
       return parseReviewBody(body);
+    case 'pause-candidate':
+      return parsePauseBody(body);
     case 'confirm-start':
       return parseConfirmStartBody(body);
     case 'view':
@@ -271,7 +299,7 @@ function sanitizeActionBody(
 
 function expectedActionForMutation(
   action: string,
-): 'accept' | 'refresh' | 'review' | null {
+): 'accept' | 'refresh' | 'review' | 'pause' | null {
   switch (action) {
     case 'accept':
       return 'accept';
@@ -279,6 +307,8 @@ function expectedActionForMutation(
       return 'refresh';
     case 'route-to-review':
       return 'review';
+    case 'pause-candidate':
+      return 'pause';
     default:
       return null;
   }
@@ -452,6 +482,14 @@ export async function GET(
     const normalized = normalizeEmployerReviewStatusResponse(payload);
     if (!normalized) {
       return jsonError(502, 'invalid_upstream_payload', 'Upstream employer review status payload did not match the canonical contract.');
+    }
+    return NextResponse.json(normalized, { status: response.status });
+  }
+
+  if (action === 'drift-alerts') {
+    const normalized = normalizeEmployerReviewDriftAlertResponse(payload);
+    if (!normalized) {
+      return jsonError(502, 'invalid_upstream_payload', 'Upstream employer review drift alerts payload did not match the canonical contract.');
     }
     return NextResponse.json(normalized, { status: response.status });
   }

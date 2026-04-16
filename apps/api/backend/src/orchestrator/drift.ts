@@ -16,9 +16,13 @@ import type { PassportDataContract } from '../services/passport/npiPassportContr
 import type { ReuseSignal } from '../services/actions/reuseSignal';
 
 export type DriftState = 'STABLE' | 'SOFT_DRIFT' | 'HARD_DRIFT';
+export type DriftSeverity = 'none' | 'medium' | 'high';
+export type DriftReadinessPosture = 'stable' | 'degraded';
 
 export interface DriftSignal {
   state: DriftState;
+  severity: DriftSeverity;
+  readinessPosture: DriftReadinessPosture;
   reasons: string[];
   lastChecked: string;
 }
@@ -84,6 +88,13 @@ export function computeDriftSignal(
 
   return {
     state,
+    severity:
+      state === 'HARD_DRIFT'
+        ? 'high'
+        : state === 'SOFT_DRIFT'
+          ? 'medium'
+          : 'none',
+    readinessPosture: state === 'HARD_DRIFT' ? 'degraded' : 'stable',
     reasons,
     lastChecked: now.toISOString(),
   };

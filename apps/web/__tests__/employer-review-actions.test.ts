@@ -59,18 +59,18 @@ function buildState(overrides: Partial<EmployerReviewActionState> = {}): Employe
 
 describe('employer review action helpers', () => {
   it('formats the loading labels with persistence-first copy', () => {
-    expect(employerReviewLoadingLabel('accept')).toBe('Recording acceptance...');
-    expect(employerReviewLoadingLabel('refresh')).toBe('Recording refresh request...');
-    expect(employerReviewLoadingLabel('review')).toBe('Recording review routing...');
+    expect(employerReviewLoadingLabel('accept')).toBe('Saving acceptance...');
+    expect(employerReviewLoadingLabel('refresh')).toBe('Saving request for updated data...');
+    expect(employerReviewLoadingLabel('review')).toBe('Saving review flag...');
   });
 
   it('describes durable accept persistence without implying extra side effects', () => {
     const state = buildState();
 
-    expect(formatEmployerReviewPersistedLabel(state)).toBe('Most recent persisted action: employer acceptance');
+    expect(formatEmployerReviewPersistedLabel(state)).toBe('Latest confirmed action: accepted as head start');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('The employer acceptance was persisted and linked to an audit event.');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('Acceptance record accept-1 was stored.');
-    expect(formatEmployerReviewPersistedDetail(state)).toContain('Audit event audit-1 was recorded');
+    expect(formatEmployerReviewPersistedDetail(state)).toContain('Audit event audit-1 was recorded Mar 23, 2026');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('Trust snapshot snap_hash_12');
   });
 
@@ -90,9 +90,9 @@ describe('employer review action helpers', () => {
       },
     });
 
-    expect(formatEmployerReviewPersistedLabel(state)).toBe('Most recent persisted action: refresh request');
+    expect(formatEmployerReviewPersistedLabel(state)).toBe('Latest confirmed action: requested updated data');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('No clinician notification is persisted here yet.');
-    expect(formatEmployerReviewPersistedDetail(state)).toContain('persisted the audit trail only');
+    expect(formatEmployerReviewPersistedDetail(state)).toContain('saved the audit trail only');
   });
 
   it('describes audit-only review routing without claiming a queue item exists', () => {
@@ -111,7 +111,7 @@ describe('employer review action helpers', () => {
       },
     });
 
-    expect(formatEmployerReviewPersistedLabel(state)).toBe('Most recent persisted action: review routing');
+    expect(formatEmployerReviewPersistedLabel(state)).toBe('Latest confirmed action: flagged for review');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('no durable manual review queue item was created');
   });
 
@@ -131,7 +131,7 @@ describe('employer review action helpers', () => {
       },
     });
 
-    expect(formatEmployerReviewPersistedLabel(state)).toBe('Most recent persisted action: routed to review queue');
+    expect(formatEmployerReviewPersistedLabel(state)).toBe('Latest confirmed action: flagged for review');
     expect(formatEmployerReviewPersistedDetail(state)).toContain('Review queue item review-1 was created.');
   });
 });

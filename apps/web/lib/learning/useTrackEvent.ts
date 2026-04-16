@@ -32,12 +32,14 @@ export function useTrackEvent() {
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
     } else {
-      void fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        keepalive: true,
-      }).catch(() => {});
+      void Promise.resolve()
+        .then(() => fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          keepalive: true,
+        }))
+        .catch(() => {});
     }
   }, []);
 }

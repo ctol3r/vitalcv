@@ -24,6 +24,7 @@
  */
 
 import type { PilotKpiSnapshot } from './pilotKpiService';
+import { validateSystemOutput } from '../system/systemOutputValidator';
 
 // ── Industry baselines ────────────────────────────────────────────────────────
 
@@ -348,7 +349,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     startOutcomeCount: snap.startOutcomes.totalStarts,
   };
 
-  return {
+  return validateSystemOutput({
     reportId: crypto.randomUUID(),
     generatedAt,
     windowDays: snap.windowDays,
@@ -387,7 +388,7 @@ export function generateRoiReport(snap: PilotKpiSnapshot): RoiReport {
     ],
     eventChain: snap.eventChain,
     dataGaps: [...dataGaps],
-  };
+  });
 }
 
 // ── HTML export ───────────────────────────────────────────────────────────────

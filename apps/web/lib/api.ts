@@ -1,3 +1,11 @@
+import {
+  normalizePassportData,
+} from '@/lib/trust/passport-contract';
+import {
+  normalizeEmployerAcceptanceHistoryResponse,
+  normalizeEmployerReviewStatusResponse,
+} from '@/lib/employer-review-actions';
+
 type ApiPath =
   | '/trust-state'
   | '/ingest/npi'
@@ -13,6 +21,7 @@ type ApiPath =
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 export const DEFAULT_PUBLIC_API_BASE = 'https://api.vitalcv.com';
+const DEFAULT_FETCH_TIMEOUT_MS = 8000;
 
 const DEMO_PATHS: Record<
   Extract<ApiPath, '/trust-state' | '/ingest/npi'>,
@@ -34,6 +43,14 @@ function stripProtocol(value: string): string {
 
 function isDemoPath(p: string): p is keyof typeof DEMO_PATHS {
   return p in DEMO_PATHS;
+}
+
+function describeApiError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function logApiError(message: string, details: Record<string, unknown>): void {
+  console.error(`[lib/api] ${message}`, details);
 }
 
 /** Single source of truth for API base URL (empty string if no env var set). */
@@ -85,10 +102,16 @@ export function apiRoute(path: ApiPath): string {
   return base ? `${base}${resolvedPath}` : resolvedPath;
 }
 
-async function readJsonBody<T>(response: Response): Promise<T | null> {
+async function readJsonBody<T>(response: Response, context: string): Promise<T | null> {
   try {
     return await response.json() as T;
-  } catch {
+  } catch (error) {
+    logApiError('Failed to parse JSON response', {
+      context,
+      url: response.url,
+      status: response.status,
+      error: describeApiError(error),
+    });
     return null;
   }
 }
@@ -102,15 +125,28 @@ export async function startPublicIngest(npi: string): Promise<{
   status: number;
   body: Record<string, unknown> | null;
 }> {
-  const response = await fetch(`/api/ingest/${encodeURIComponent(npi)}`, {
-    method: 'POST',
-  });
+  try {
+    const response = await fetch(`/api/ingest/${encodeURIComponent(npi)}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+    });
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    body: await readJsonBody<Record<string, unknown>>(response),
-  };
+    return {
+      ok: response.ok,
+      status: response.status,
+      body: await readJsonBody<Record<string, unknown>>(response, 'startPublicIngest'),
+    };
+  } catch (error) {
+    logApiError('Public ingest request failed', {
+      npi,
+      error: describeApiError(error),
+    });
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+    };
+  }
 }
 
 export async function fetchPassportEntity(
@@ -127,16 +163,39 @@ export async function fetchPassportEntity(
     ? `/api/passport/npi/${encodeURIComponent(entityId)}`
     : `/api/passport/entity/${encodeURIComponent(entityId)}`;
 
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-  });
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+    });
+    const payload = normalizePassportData(await readJsonBody<unknown>(response, 'fetchPassportEntity'));
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    body: await readJsonBody<import('@/lib/trust/passport-contract').PassportData>(response),
-  };
+    if (response.ok && payload === null) {
+      logApiError('Passport entity payload failed normalization', {
+        entityId,
+        url,
+        status: response.status,
+      });
+    }
+
+    return {
+      ok: response.ok && payload !== null,
+      status: response.status,
+      body: payload,
+    };
+  } catch (error) {
+    logApiError('Passport entity request failed', {
+      entityId,
+      url,
+      error: describeApiError(error),
+    });
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+    };
+  }
 }
 
 export async function fetchReviewAcceptanceHistory(
@@ -146,19 +205,42 @@ export async function fetchReviewAcceptanceHistory(
   status: number;
   body: import('@/lib/employer-review-actions').EmployerAcceptanceHistoryResponse | null;
 }> {
-  const response = await fetch(
-    `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
-    {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    },
-  );
+  try {
+    const response = await fetch(
+      `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
+      {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+      },
+    );
+    const payload = normalizeEmployerAcceptanceHistoryResponse(
+      await readJsonBody<unknown>(response, 'fetchReviewAcceptanceHistory'),
+    );
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    body: await readJsonBody<import('@/lib/employer-review-actions').EmployerAcceptanceHistoryResponse>(response),
-  };
+    if (response.ok && payload === null) {
+      logApiError('Acceptance history payload failed normalization', {
+        entityId,
+        status: response.status,
+      });
+    }
+
+    return {
+      ok: response.ok && payload !== null,
+      status: response.status,
+      body: payload,
+    };
+  } catch (error) {
+    logApiError('Acceptance history request failed', {
+      entityId,
+      error: describeApiError(error),
+    });
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+    };
+  }
 }
 
 export async function fetchEmployerReviewStatus(
@@ -181,19 +263,44 @@ export async function fetchEmployerReviewStatus(
   }
 
   const query = params.toString();
-  const response = await fetch(
-    `/api/employer-review/${encodeURIComponent(entityId)}/status${query ? `?${query}` : ''}`,
-    {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    },
-  );
+  try {
+    const response = await fetch(
+      `/api/employer-review/${encodeURIComponent(entityId)}/status${query ? `?${query}` : ''}`,
+      {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+      },
+    );
+    const payload = normalizeEmployerReviewStatusResponse(
+      await readJsonBody<unknown>(response, 'fetchEmployerReviewStatus'),
+    );
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    body: await readJsonBody<import('@/lib/employer-review-actions').EmployerReviewStatusResponse>(response),
-  };
+    if (response.ok && payload === null) {
+      logApiError('Employer review status payload failed normalization', {
+        entityId,
+        status: response.status,
+        query,
+      });
+    }
+
+    return {
+      ok: response.ok && payload !== null,
+      status: response.status,
+      body: payload,
+    };
+  } catch (error) {
+    logApiError('Employer review status request failed', {
+      entityId,
+      query,
+      error: describeApiError(error),
+    });
+    return {
+      ok: false,
+      status: 0,
+      body: null,
+    };
+  }
 }
 
 export async function fireEmployerReviewOpened(

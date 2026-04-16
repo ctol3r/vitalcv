@@ -81,7 +81,7 @@ export function TimeToStartCard({
 
       {estimate.penaltyDays > 0 ? (
         <p className="mt-3 text-[10px] leading-relaxed text-[var(--vt-text-muted)]">
-          Adjusted from the blockers and stale verification signals surfaced in this snapshot.
+          Adjusted from the blockers and stale source checks surfaced in this snapshot.
         </p>
       ) : null}
     </div>

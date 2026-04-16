@@ -44,7 +44,7 @@ export function AdvisoryPanelUI({
       <div className="flex items-center gap-2 text-xs border-t border-white/5 pt-2 mt-2">
         <Compass className="w-3 h-3 text-muted-foreground/50" aria-hidden />
         <span className="text-muted-foreground">
-          {state === 'HIGH_UNCERTAINTY' ? 'Recommendation has limited confidence due to missing source coverage.' : summary}
+          {state === 'HIGH_UNCERTAINTY' ? 'Recommendation is limited because source coverage is still incomplete.' : summary}
         </span>
       </div>
     );
@@ -76,10 +76,10 @@ export function AdvisoryPanelUI({
           {title}
         </p>
         <p className="text-amber-500/60 text-sm font-medium mt-3 leading-relaxed">
-          Recommendation has limited confidence due to missing source coverage.
+          Recommendation is limited because source coverage is still incomplete.
         </p>
         <p className="text-amber-500/30 text-[10px] mt-4 border-t border-amber-500/10 pt-3 leading-relaxed">
-          Based on observed patterns and available source data. Not a source verification.
+          Advisory guidance only. Confirm against the checked sources attached to this profile.
         </p>
       </section>
     );
@@ -133,7 +133,7 @@ export function AdvisoryPanelUI({
 
       <footer className="pt-4 border-t border-white/5 mt-1">
         <p className="text-muted-foreground/40 text-[10px] leading-relaxed">
-          Based on observed patterns and available source data. Not a source verification.
+          Advisory guidance only. Confirm against the checked sources attached to this profile.
         </p>
       </footer>
     </section>

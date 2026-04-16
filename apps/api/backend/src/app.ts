@@ -72,6 +72,7 @@ import { registerMonitoringEventsRoutes } from './routes/monitoringEvents';
 import { registerFeedRoutes } from './routes/feed';
 // Wave 87: Trust Operations
 import { registerTrustOperationsRoutes } from './routes/trustOperations';
+import { registerTrustApiRoutes } from './routes/trustApi';
 // Wave 88: Clinician Passport
 import { registerPassportRoutes } from './routes/passport';
 // Wave 89: Network Telemetry
@@ -3514,6 +3515,7 @@ registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence
 registerDecisionInsightsRoutes(app); // Wave 83: Decision Intelligence
 registerSimulationRoutes(app);       // Wave 84: Trust Simulation
 registerMonitoringEventsRoutes(app); // Wave 85: Monitoring Events
+registerTrustApiRoutes(app);         // Thin trust API: recognition + acceptance + startability + full
 registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
 registerPassportRoutes(app);         // Wave 88: Clinician Passport
 registerTelemetryRoutes(app);        // Wave 89: Network Telemetry

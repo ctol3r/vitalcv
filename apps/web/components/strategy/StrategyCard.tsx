@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Network, TrendingUp, AlertCircle, Target, ArrowRight, Activity, Building, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';

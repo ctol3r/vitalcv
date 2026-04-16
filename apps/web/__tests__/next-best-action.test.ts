@@ -1,5 +1,6 @@
 import {
   buildNextBestActionApiFailure,
+  getNextBestActionEvidenceLabel,
   getNextBestActionConfidenceLabel,
   normalizeNextBestAction,
 } from '@/lib/next-best-action';
@@ -23,6 +24,31 @@ describe('next best action normalization', () => {
       confidence: 0.92,
       confidenceLabel: 'HIGH',
       evidenceCount: 4,
+    });
+  });
+
+  it('preserves actor-specific guidance without changing the action kind', () => {
+    expect(normalizeNextBestAction({
+      action: 'proceed',
+      reason: 'base reason',
+      summary: 'Decision: Proceed. Risk: Low. Next action: Approve candidate.',
+      confidence: 0.81,
+      evidenceCount: 3,
+      actorType: 'employer',
+      highlights: ['State board confirms an active license.'],
+      blockers: ['PECOS confirmation is due for refresh.'],
+      decision: 'PROCEED',
+      nextStep: 'Approve candidate',
+      riskLevel: 'LOW',
+    })).toMatchObject({
+      kind: 'PROCEED',
+      actorType: 'employer',
+      description: 'Decision: Proceed. Risk: Low. Next action: Approve candidate.',
+      highlights: ['State board confirms an active license.'],
+      blockers: ['PECOS confirmation is due for refresh.'],
+      decision: 'PROCEED',
+      nextStep: 'Approve candidate',
+      riskLevel: 'LOW',
     });
   });
 
@@ -51,12 +77,18 @@ describe('next best action normalization', () => {
   it('builds a safe API-failure fallback instead of a mock success state', () => {
     expect(buildNextBestActionApiFailure()).toMatchObject({
       kind: 'REVIEW_MANUALLY',
-      title: 'Next best action unavailable',
+      title: 'Next step unavailable',
       actionLabel: 'Unavailable',
       confidence: 0,
       confidenceLabel: 'LOW',
       isFailure: true,
     });
+  });
+
+  it('formats evidence labels for user-facing badges', () => {
+    expect(getNextBestActionEvidenceLabel(0)).toBe('Verified source review pending');
+    expect(getNextBestActionEvidenceLabel(1)).toBe('1 source-backed record');
+    expect(getNextBestActionEvidenceLabel(4)).toBe('4 source-backed records');
   });
 
   it('maps confidence labels predictably', () => {

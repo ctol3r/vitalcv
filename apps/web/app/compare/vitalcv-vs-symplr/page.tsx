@@ -88,7 +88,7 @@ const FAQS = [
   {
     question: 'Why would a clinician use VitalCV instead of waiting for their employer to credential them?',
     answer:
-      'VitalCV empowers clinicians to proactively verify their own readiness before applying to positions. A clean VitalCV snapshot signals to employers that a candidate is ready to onboard faster.',
+      'VitalCV empowers clinicians to proactively verify their own readiness before applying to positions. A clean VitalCV snapshot shows employers which sources have already been checked, so they can move faster with fewer unknowns.',
   },
   {
     question: 'How does VitalCV pricing compare to Symplr?',

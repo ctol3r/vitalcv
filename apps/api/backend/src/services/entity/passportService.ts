@@ -351,9 +351,16 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
 function derivePassportReadinessLevel(
   score: number,
   status: 'READY' | 'PARTIAL' | 'BLOCKED',
+  guards?: {
+    hasReviewRequired?: boolean;
+    identityStale?: boolean;
+  },
 ): string {
   if (status === 'BLOCKED') {
     return 'L0';
+  }
+  if (guards?.identityStale || guards?.hasReviewRequired) {
+    return score > 0 ? 'L1' : 'L0';
   }
   if (score >= 80 && status === 'READY') {
     return 'L3';
@@ -2272,6 +2279,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   ];
   const normalizedBlockers = dedupeStrings(blockers).filter(isReadinessBlockingFinding);
   const normalizedGaps = dedupeStrings(gaps);
+  const hasReviewRequired =
+    sourceCoverage.summary.reviewRequired.length > 0
+    || normalizedGaps.some((gap) => /review/i.test(gap))
+    || Boolean(divergence?.activeCount);
+  const identityStale = truth.identity.coverage.state === 'stale';
 
   let readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' = 'READY';
   if (normalizedBlockers.length > 0)   readinessStatus = 'BLOCKED';
@@ -2290,7 +2302,11 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       normalizedBlockers.length > 0 ? Math.min(baseScore, 20)
       : normalizedGaps.length > 0 ? Math.min(baseScore, 75)
       : baseScore;
-    return Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
+    const penalizedScore = Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
+    if (identityStale || hasReviewRequired) {
+      return Math.min(penalizedScore, 59);
+    }
+    return penalizedScore;
   })();
   // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
   // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.
@@ -2309,7 +2325,10 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     status:             readinessStatus,
     score:              readinessScore,
     readiness_score:    readinessScore,
-    level:              derivePassportReadinessLevel(readinessScore, readinessStatus),
+    level:              derivePassportReadinessLevel(readinessScore, readinessStatus, {
+      hasReviewRequired,
+      identityStale,
+    }),
     blockers:           normalizedBlockers,
     gaps:               normalizedGaps,
     nextActions,

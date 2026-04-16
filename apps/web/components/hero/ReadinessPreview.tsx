@@ -32,6 +32,7 @@ import { ProofDetailsList } from '@/components/trust/ProofDetailsList';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCompactProofDate } from '@/lib/trust/proof-language';
+import { getNoBlockersMessage } from '@/lib/trust/decision-copy';
 import {
   getTrustStatusLabel,
 } from '@/lib/trust/status-language';
@@ -768,7 +769,7 @@ export function ReadinessPreview({
                 {gaps.length === 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-foreground text-sm leading-none shrink-0">✔</span>
-                    <span className="text-xs text-foreground">No blockers surfaced in this run.</span>
+                    <span className="text-xs text-foreground">{getNoBlockersMessage('live_run')}</span>
                   </div>
                 ) : gaps.slice(0, 3).map(gap => (
                   <div key={gap} className="flex items-start gap-2">
@@ -855,7 +856,7 @@ export function ReadinessPreview({
       blockerCount && blockerCount > 0
         ? [`${blockerCount} blocker${blockerCount === 1 ? '' : 's'} still unresolved in this live run.`]
         : liveScoreKnown
-          ? ['No blockers surfaced yet in this live run.']
+          ? [getNoBlockersMessage('live_run')]
           : ['Waiting for blocker and readiness detail from the live source run.'];
 
     return (

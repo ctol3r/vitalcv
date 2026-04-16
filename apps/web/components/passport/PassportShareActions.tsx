@@ -58,7 +58,7 @@ export default function PassportShareActions({
   const linkedInMarkdown = buildLinkedInMarkdown(clinicianName, shareUrl);
 
   return (
-    <Card className="gap-5 rounded-3xl border-border bg-white/[0.03] p-5 shadow-[0_20px_60px_rgba(8,14,26,0.28)]">
+    <Card className="gap-5 rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-300/80">

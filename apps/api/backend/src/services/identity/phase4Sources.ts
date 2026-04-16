@@ -26,6 +26,7 @@ import {
 } from './evidenceModel';
 import type { ClaimType } from './sourceCatalog';
 import { log } from '../../obs/logger';
+import { fetchJsonSource } from './sourceHttp';
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 
@@ -39,12 +40,6 @@ interface FetchResult {
 
 function checksumOf(payload: unknown): string {
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-}
-
-function headersToObject(h: Headers): Record<string, string> {
-  const obj: Record<string, string> = {};
-  h.forEach((v, k) => { obj[k] = v; });
-  return obj;
 }
 
 function makeClaim(params: {
@@ -95,13 +90,23 @@ export async function fetchOpenAlex(firstName: string, lastName: string): Promis
   const sourceUrl = `https://api.openalex.org/authors?search=${query}&per_page=3&mailto=hello@vitalcv.com`;
 
   try {
-    const resp = await fetch(sourceUrl, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'VitalCV/1.0 (mailto:hello@vitalcv.com)' },
-      signal: AbortSignal.timeout(15000),
+    const { data, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+      label: 'openalex',
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'VitalCV/1.0 (mailto:hello@vitalcv.com)',
+      },
+      cacheKey: `openalex:${firstName}:${lastName}`,
+      timeoutMs: 15_000,
+      maxRetries: 3,
     });
-    if (!resp.ok) throw new Error(`OpenAlex API ${resp.status}`);
-    const data = await resp.json();
-    return { raw: { ...data as object, _searchName: `${firstName} ${lastName}` }, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+    return {
+      raw: { ...data as object, _searchName: `${firstName} ${lastName}` },
+      checksum: checksumOf(data),
+      fetchedAt,
+      sourceUrl,
+      fetchHeaders: headers,
+    };
   } catch (err) {
     log('warn', 'phase4: OpenAlex fetch failed', { firstName, lastName, error: String(err) });
     return { raw: { _apiUnavailable: true, _searchName: `${firstName} ${lastName}` }, checksum: checksumOf({ firstName, lastName, ts: Date.now() }), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {} };
@@ -203,13 +208,20 @@ export async function fetchClinicalTrials(firstName: string, lastName: string): 
   const sourceUrl = `https://clinicaltrials.gov/api/v2/studies?query.term=SEARCH[Location](AREA[LocationContactName]${query})&pageSize=10&format=json`;
 
   try {
-    const resp = await fetch(sourceUrl, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000),
+    const { data, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+      label: 'clinical_trials',
+      headers: { Accept: 'application/json' },
+      cacheKey: `clinical_trials:${firstName}:${lastName}`,
+      timeoutMs: 15_000,
+      maxRetries: 3,
     });
-    if (!resp.ok) throw new Error(`ClinicalTrials.gov API ${resp.status}`);
-    const data = await resp.json();
-    return { raw: { ...data as object, _searchName: `${lastName}, ${firstName}` }, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+    return {
+      raw: { ...data as object, _searchName: `${lastName}, ${firstName}` },
+      checksum: checksumOf(data),
+      fetchedAt,
+      sourceUrl,
+      fetchHeaders: headers,
+    };
   } catch (err) {
     log('warn', 'phase4: ClinicalTrials.gov fetch failed', { firstName, lastName, error: String(err) });
     return { raw: { _apiUnavailable: true, _searchName: `${lastName}, ${firstName}` }, checksum: checksumOf({ firstName, lastName, ts: Date.now() }), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {} };
@@ -293,15 +305,17 @@ export async function fetchPubMed(firstName: string, lastName: string): Promise<
   const sourceUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${query}&retmax=20&retmode=json`;
 
   try {
-    const resp = await fetch(sourceUrl, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000),
+    const { data: searchResult, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+      label: 'pubmed_search',
+      headers: { Accept: 'application/json' },
+      cacheKey: `pubmed_search:${firstName}:${lastName}`,
+      timeoutMs: 15_000,
+      maxRetries: 3,
     });
-    if (!resp.ok) throw new Error(`PubMed API ${resp.status}`);
-    const searchResult = await resp.json() as Record<string, unknown>;
-    const esearchResult = searchResult.esearchresult as Record<string, unknown> | undefined;
-    const idList = (esearchResult?.idlist ?? []) as string[];
-    const totalCount = parseInt(String(esearchResult?.count ?? '0'), 10);
+    const esearchResult = searchResult as Record<string, unknown>;
+    const searchEnvelope = esearchResult.esearchresult as Record<string, unknown> | undefined;
+    const idList = (searchEnvelope?.idlist ?? []) as string[];
+    const totalCount = parseInt(String(searchEnvelope?.count ?? '0'), 10);
 
     // Fetch summaries for first 5 IDs
     let summaries: unknown[] = [];
@@ -309,13 +323,16 @@ export async function fetchPubMed(firstName: string, lastName: string): Promise<
       const ids = idList.slice(0, 5).join(',');
       const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids}&retmode=json`;
       try {
-        const sumResp = await fetch(sumUrl, { signal: AbortSignal.timeout(10000) });
-        if (sumResp.ok) {
-          const sumData = await sumResp.json() as Record<string, unknown>;
-          const result = sumData.result as Record<string, unknown> | undefined;
-          if (result) {
-            summaries = idList.slice(0, 5).map(id => result[id]).filter(Boolean);
-          }
+        const { data: sumData } = await fetchJsonSource(sumUrl, {
+          label: 'pubmed_summary',
+          headers: { Accept: 'application/json' },
+          cacheKey: `pubmed_summary:${ids}`,
+          timeoutMs: 10_000,
+          maxRetries: 2,
+        });
+        const result = (sumData as Record<string, unknown>).result as Record<string, unknown> | undefined;
+        if (result) {
+          summaries = idList.slice(0, 5).map(id => result[id]).filter(Boolean);
         }
       } catch {
         // Summary fetch failed — still have count
@@ -323,7 +340,7 @@ export async function fetchPubMed(firstName: string, lastName: string): Promise<
     }
 
     const combined = { totalCount, idList: idList.slice(0, 20), summaries, _searchName: `${lastName} ${firstName}` };
-    return { raw: combined, checksum: checksumOf(combined), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+    return { raw: combined, checksum: checksumOf(combined), fetchedAt, sourceUrl, fetchHeaders: headers };
   } catch (err) {
     log('warn', 'phase4: PubMed fetch failed', { firstName, lastName, error: String(err) });
     return { raw: { _apiUnavailable: true, _searchName: `${lastName} ${firstName}` }, checksum: checksumOf({ firstName, lastName, ts: Date.now() }), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {} };

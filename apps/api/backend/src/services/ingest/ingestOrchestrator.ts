@@ -15,14 +15,15 @@ import type { PersistedIngestRun, IngestSourceId } from './contracts';
 import {
   appendIngestEvent,
   completeIngestRun,
-  createIngestRun,
-  findOpenIngestRunByNpi,
   getIngestRun as loadIngestRun,
+  getOrCreateIngestRun,
   getIngestSourceRunSummary,
   startIngestRun as markIngestRunStarted,
   updateIngestRun,
   updateIngestSourceRun,
 } from './ingestEventStore';
+
+const DEFAULT_BATCH_INGEST_CONCURRENCY = 4;
 
 function mapPipelineSourceId(source: string): IngestSourceId | null {
   if (source === 'NPPES_API') return 'nppes';
@@ -412,12 +413,10 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
 }
 
 export async function startIngestRun(npi: string): Promise<PersistedIngestRun> {
-  const existing = await findOpenIngestRunByNpi(npi);
-  if (existing) {
-    return existing;
+  const { run: created, created: isNew } = await getOrCreateIngestRun(npi);
+  if (!isNew) {
+    return created;
   }
-
-  const created = await createIngestRun(npi);
 
   // AUDIT: NPI_INGESTED is one of the 5 canonical non-repudiation events.
   // Write to Postgres before triggering the pipeline so the ingest is always
@@ -444,6 +443,37 @@ export async function startIngestRun(npi: string): Promise<PersistedIngestRun> {
     void runPipeline(created.id, npi);
   });
   return created;
+}
+
+export async function startBatchIngestRuns(
+  npis: readonly string[],
+  concurrency = DEFAULT_BATCH_INGEST_CONCURRENCY,
+): Promise<Array<{ npi: string; run: PersistedIngestRun }>> {
+  const queue = [...npis];
+  const results: Array<{ npi: string; run: PersistedIngestRun }> = [];
+  const workerCount = Math.max(1, Math.min(concurrency, queue.length || 1));
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (queue.length > 0) {
+        const nextNpi = queue.shift();
+        if (!nextNpi) {
+          return;
+        }
+
+        const run = await startIngestRun(nextNpi);
+        results.push({ npi: nextNpi, run });
+      }
+    }),
+  );
+
+  log('info', 'ingest_batch_submitted', {
+    requestedCount: npis.length,
+    startedCount: results.length,
+    concurrency: workerCount,
+  });
+
+  return results;
 }
 
 export async function getIngestRun(runId: string): Promise<PersistedIngestRun | null> {

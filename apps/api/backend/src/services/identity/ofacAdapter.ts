@@ -36,6 +36,7 @@ import {
 } from './evidenceModel';
 import { getSource, getSourceFreshnessWindowHours } from './sourceCatalog';
 import { log } from '../../obs/logger';
+import { fetchJsonSource } from './sourceHttp';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -403,42 +404,33 @@ export interface OfacFetchResult {
  * Throws on network/parse failure — caller should handle gracefully.
  */
 export async function fetchOfacSdnList(timeoutMs = 30_000): Promise<OfacFetchResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const { data, fetchedAt } = await fetchJsonSource(OFAC_CONSOLIDATED_URL, {
+    label: 'ofac_sdn',
+    headers: { Accept: 'application/json' },
+    cacheKey: 'ofac_sdn_consolidated',
+    timeoutMs,
+    maxRetries: 3,
+    cacheTtlMs: 60 * 60 * 1000,
+  });
+  const raw = data;
+  const payload = JSON.stringify(raw);
+  const checksum = sha256(payload);
+  const entries = parseSdnResponse(raw);
 
-  try {
-    const resp = await fetch(OFAC_CONSOLIDATED_URL, {
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
+  log('info', 'ofac_sdn_fetched', {
+    event: 'ofac_sdn_fetched',
+    entryCount: entries.length,
+    checksum,
+  });
 
-    if (!resp.ok) {
-      throw new Error(`OFAC SDN fetch failed: HTTP ${resp.status}`);
-    }
-
-    const raw = await resp.json() as unknown;
-    const fetchedAt = new Date().toISOString();
-    const payload = JSON.stringify(raw);
-    const checksum = sha256(payload);
-    const entries = parseSdnResponse(raw);
-
-    log('info', 'ofac_sdn_fetched', {
-      event: 'ofac_sdn_fetched',
-      entryCount: entries.length,
-      checksum,
-    });
-
-    return {
-      entries,
-      checksum,
-      fetchedAt,
-      dataVersion: fetchedAt.slice(0, 10), // YYYY-MM-DD
-      artifactId: randomUUID(),
-      sourceUrl: OFAC_CONSOLIDATED_URL,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+  return {
+    entries,
+    checksum,
+    fetchedAt,
+    dataVersion: fetchedAt.slice(0, 10), // YYYY-MM-DD
+    artifactId: randomUUID(),
+    sourceUrl: OFAC_CONSOLIDATED_URL,
+  };
 }
 
 // ── High-level check (for ingestion pipeline use) ─────────────────────────────

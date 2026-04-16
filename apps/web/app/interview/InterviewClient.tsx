@@ -322,7 +322,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     </span>
                   )) : (
                     <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground/70">
-                      No decision-grade checks attached yet
+                      No verified checks are attached yet
                     </span>
                   )}
                 </div>
@@ -340,7 +340,7 @@ export default function InterviewClient({ entityId, passport, contextId }: Props
                     </span>
                   )) : (
                     <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground/60">
-                      No visible blockers on this passport
+                      No blockers are shown right now
                     </span>
                   )}
                 </div>

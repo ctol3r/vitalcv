@@ -9,18 +9,31 @@ export interface NextBestActionPayload {
   reason?: unknown;
   confidence?: unknown;
   evidenceCount?: unknown;
+  actorType?: unknown;
+  summary?: unknown;
+  highlights?: unknown;
+  blockers?: unknown;
+  decision?: unknown;
+  nextStep?: unknown;
+  riskLevel?: unknown;
 }
 
 export type NextBestActionInput = NextBestActionPayload;
 
 export interface NormalizedNextBestAction {
   kind: NextBestActionKind;
+  actorType?: 'clinician' | 'employer';
   title: string;
   description: string;
   actionLabel: string;
   confidence: number;
   confidenceLabel: 'HIGH' | 'MEDIUM' | 'LOW';
   evidenceCount: number;
+  highlights?: string[];
+  blockers?: string[];
+  decision?: string | null;
+  nextStep?: string | null;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
   href?: string;
   onClick?: () => void;
   isFailure?: boolean;
@@ -108,6 +121,14 @@ function normalizeEvidenceCount(value: unknown): number {
   return Math.round(value);
 }
 
+export function getNextBestActionEvidenceLabel(evidenceCount: number): string {
+  if (evidenceCount <= 0) {
+    return 'Verified source review pending';
+  }
+
+  return `${evidenceCount} source-backed record${evidenceCount === 1 ? '' : 's'}`;
+}
+
 export function getNextBestActionConfidenceLabel(confidence: number): 'HIGH' | 'MEDIUM' | 'LOW' {
   if (confidence >= 0.85) {
     return 'HIGH';
@@ -120,6 +141,38 @@ export function getNextBestActionConfidenceLabel(confidence: number): 'HIGH' | '
 
 export function getNextBestActionKindLabel(kind: NextBestActionKind): string {
   return KIND_LABELS[kind];
+}
+
+function normalizeActorType(value: unknown): 'clinician' | 'employer' | undefined {
+  return value === 'clinician' || value === 'employer' ? value : undefined;
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeDecision(value: unknown): string | null {
+  return normalizeReason(value);
+}
+
+function normalizeNextStep(value: unknown): string | null {
+  return normalizeReason(value);
+}
+
+function normalizeRiskLevel(value: unknown): 'LOW' | 'MEDIUM' | 'HIGH' | undefined {
+  if (value === 'LOW' || value === 'MEDIUM' || value === 'HIGH') {
+    return value;
+  }
+  return undefined;
 }
 
 export function normalizeNextBestAction(
@@ -135,24 +188,30 @@ export function normalizeNextBestAction(
   }
 
   const confidence = normalizeConfidence(payload.confidence);
-  const reason = normalizeReason(payload.reason);
+  const reason = normalizeReason(payload.summary) ?? normalizeReason(payload.reason);
 
   return {
     kind,
+    actorType: normalizeActorType(payload.actorType),
     title: DEFAULT_COPY[kind].title,
-    description: reason ?? 'No rationale was returned with this recommendation.',
+    description: reason ?? 'No source-backed explanation was returned with this next step.',
     actionLabel: DEFAULT_COPY[kind].actionLabel,
     confidence,
     confidenceLabel: getNextBestActionConfidenceLabel(confidence),
     evidenceCount: normalizeEvidenceCount(payload.evidenceCount),
+    highlights: normalizeStringArray(payload.highlights),
+    blockers: normalizeStringArray(payload.blockers),
+    decision: normalizeDecision(payload.decision),
+    nextStep: normalizeNextStep(payload.nextStep),
+    riskLevel: normalizeRiskLevel(payload.riskLevel),
   };
 }
 
 export function buildNextBestActionApiFailure(): NormalizedNextBestAction {
   return {
     kind: 'REVIEW_MANUALLY',
-    title: 'Next best action unavailable',
-    description: 'We could not load a recommendation right now.',
+    title: 'Next step unavailable',
+    description: 'We could not load the checked-source summary right now.',
     actionLabel: 'Unavailable',
     confidence: 0,
     confidenceLabel: 'LOW',

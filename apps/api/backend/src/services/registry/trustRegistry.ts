@@ -41,6 +41,18 @@ export interface TrustedIssuer {
   metadata?: Record<string, unknown>;
 }
 
+export type RegistryValidationReason =
+  | 'issuer_not_registered'
+  | 'issuer_inactive'
+  | 'issuer_untrusted'
+  | 'algorithm_not_allowed';
+
+export interface RegistryValidationResult {
+  ok: boolean;
+  issuer: TrustedIssuer | null;
+  reason: RegistryValidationReason | null;
+}
+
 // ── Seed data ─────────────────────────────────────────────────────────
 
 const SEED_ISSUERS: TrustedIssuer[] = [
@@ -88,6 +100,36 @@ const SEED_ISSUERS: TrustedIssuer[] = [
     algorithmPolicy: ['ES256'],
     haipCompliant: true,
     metadata: { type: 'federal_registry', assuranceLevel: 'IAL3' },
+  },
+  {
+    issuerId: 'did:vitalcv:issuer:oig-leie',
+    issuerName: 'OIG LEIE',
+    publicKey: '',
+    trustLevel: 'AUTHORITATIVE',
+    status: 'ACTIVE',
+    registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 98,
+    verificationCount: 64000,
+    revocationCount: 0,
+    assuranceProfile: 'IAL3',
+    algorithmPolicy: ['ES256'],
+    haipCompliant: true,
+    metadata: { type: 'federal_exclusion_registry', assuranceLevel: 'IAL3' },
+  },
+  {
+    issuerId: 'did:vitalcv:issuer:pecos-public',
+    issuerName: 'CMS PECOS',
+    publicKey: '',
+    trustLevel: 'AUTHORITATIVE',
+    status: 'ACTIVE',
+    registeredAt: '2025-01-15T00:00:00Z',
+    trustScore: 97,
+    verificationCount: 41000,
+    revocationCount: 0,
+    assuranceProfile: 'IAL3',
+    algorithmPolicy: ['ES256'],
+    haipCompliant: true,
+    metadata: { type: 'federal_enrollment_registry', assuranceLevel: 'IAL3' },
   },
   {
     issuerId: 'did:vitalcv:issuer:dea',
@@ -310,6 +352,34 @@ export async function updateIssuerReputation(
 export function isIssuerTrusted(issuerId: string): boolean {
   const issuer = issuerCache.get(issuerId);
   return issuer != null && issuer.status === 'ACTIVE' && issuer.trustLevel !== 'UNTRUSTED';
+}
+
+export function validateIssuerForVerification(
+  issuerId: string,
+  algorithm = 'ES256',
+): RegistryValidationResult {
+  const issuer = getIssuer(issuerId);
+  if (!issuer) {
+    return { ok: false, issuer: null, reason: 'issuer_not_registered' };
+  }
+
+  if (issuer.status !== 'ACTIVE') {
+    return { ok: false, issuer, reason: 'issuer_inactive' };
+  }
+
+  if (issuer.trustLevel === 'UNTRUSTED') {
+    return { ok: false, issuer, reason: 'issuer_untrusted' };
+  }
+
+  if (
+    Array.isArray(issuer.algorithmPolicy)
+    && issuer.algorithmPolicy.length > 0
+    && !issuer.algorithmPolicy.includes(algorithm)
+  ) {
+    return { ok: false, issuer, reason: 'algorithm_not_allowed' };
+  }
+
+  return { ok: true, issuer, reason: null };
 }
 
 export function registrySize(): number {

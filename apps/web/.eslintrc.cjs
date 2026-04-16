@@ -15,6 +15,14 @@ module.exports = {
     '@next/next/no-img-element': 'off',
     'react/no-unescaped-entities': 'off',
     'react-hooks/exhaustive-deps': 'off',
+    'no-restricted-imports': [
+      'warn',
+      {
+        patterns: [
+          { group: ['**/design-system/components/Card'], message: 'Import from @/components/ui/card instead.' },
+        ],
+      },
+    ],
   },
   overrides: [
     {

@@ -1,7 +1,10 @@
 'use client';
 
-import * as React from 'react';
+/**
+ * @deprecated — migrating to canonical flat modal. Strip glass after scoped migration.
+ */
 
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 interface GlassModalProps {
@@ -29,7 +32,7 @@ function GlassModal({ open, onClose, children, className }: GlassModalProps) {
 
   return (
     <div
-      data-slot="glass-modal-backdrop"
+      data-slot="modal-backdrop"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -37,16 +40,15 @@ function GlassModal({ open, onClose, children, className }: GlassModalProps) {
       role="dialog"
       aria-modal="true"
     >
-      {/* Backdrop blur overlay */}
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-glass-fade-in" />
-
-      {/* Modal content */}
+      <div className="absolute inset-0 bg-black/20" />
       <div
-        data-slot="glass-modal"
+        data-slot="modal"
         className={cn(
-          'relative z-10 w-full max-w-lg rounded-2xl p-6',
-          'glass-heavy glass-border',
-          'animate-glass-fade-in',
+          'relative z-10 w-full max-w-lg',
+          'rounded-[var(--vt-radius-lg)]',
+          'border border-[var(--vt-border)]',
+          'bg-[var(--vt-surface)] text-[var(--vt-text-primary)]',
+          'p-[var(--vt-space-24)]',
           className,
         )}
       >
@@ -57,40 +59,31 @@ function GlassModal({ open, onClose, children, className }: GlassModalProps) {
 }
 
 function GlassModalHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="glass-modal-header"
-      className={cn('pb-4', className)}
-      {...props}
-    />
-  );
+  return <div data-slot="modal-header" className={cn('pb-[var(--vt-space-16)]', className)} {...props} />;
 }
 
 function GlassModalTitle({ className, ...props }: React.ComponentProps<'h2'>) {
   return (
     <h2
-      data-slot="glass-modal-title"
-      className={cn('font-heading text-xl font-semibold tracking-tight', className)}
+      data-slot="modal-title"
+      className={cn(
+        'text-[length:var(--vt-type-h2-size)] leading-[var(--vt-line-tight)] font-[var(--vt-font-weight-semibold)]',
+        className,
+      )}
       {...props}
     />
   );
 }
 
 function GlassModalBody({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="glass-modal-body"
-      className={cn('text-sm', className)}
-      {...props}
-    />
-  );
+  return <div data-slot="modal-body" className={cn(className)} {...props} />;
 }
 
 function GlassModalFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      data-slot="glass-modal-footer"
-      className={cn('flex items-center justify-end gap-3 pt-4', className)}
+      data-slot="modal-footer"
+      className={cn('flex items-center justify-end gap-[var(--vt-space-12)] pt-[var(--vt-space-16)]', className)}
       {...props}
     />
   );

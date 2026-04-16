@@ -43,10 +43,20 @@ import {
 } from '@/lib/trust/decision-copy';
 import { formatRelativeTime } from '@/lib/relative-time';
 import { CopyShareLink } from './CopyShareLink';
-import { NextBestActionCard, type NextBestActionPayload } from './NextBestActionCard';
 import { EvidencePanel } from './EvidencePanel';
 import { DivergencePanel } from './DivergencePanel';
 import { DriftBanner } from './DriftBanner';
+import {
+  assertAtomicRender,
+  assertNoProgressiveComputation,
+  resolvePublicDecisionTruthStatus,
+  resolveVisibleLimitations,
+  toAtomicManifest,
+} from '@/lib/trust/ui-truth-integrity';
+import {
+  ALL_CLEAR_ACTION_LABEL,
+  ensureSingleActionArray,
+} from '@/lib/trust/single-action';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -94,6 +104,7 @@ interface NpiProfile {
     isEligible:          boolean | null;
     missingRequirements: string[];
     traceCount:          number;
+    level:               L3Status;
   };
   artifactSummaries: Array<{
     artifactId: string;
@@ -388,6 +399,7 @@ function normalizeNpiProfile(value: unknown, slug: string): NpiProfile | null {
         typeof readinessValue.isEligible === 'boolean' ? readinessValue.isEligible : null,
       missingRequirements: toStringArray(readinessValue.missingRequirements),
       traceCount: toNumber(readinessValue.traceCount, 0),
+      level: isL3Status(readinessValue.level) ? readinessValue.level : 'L0',
     },
     artifactSummaries: Array.isArray(value.artifactSummaries)
       ? value.artifactSummaries
@@ -484,25 +496,6 @@ function normalizeSlugProfile(value: unknown, slug: string): SlugProfile | null 
 // ── Data fetching ─────────────────────────────────────────────────────────
 
 const NPI_RE = /^\d{10}$/;
-
-async function fetchNextBestAction(npi: string): Promise<NextBestActionPayload | null> {
-  try {
-    const res = await fetch(`${BACKEND}/api/omega`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ npi }),
-      cache: 'no-store',
-      signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    const payload = (await res.json().catch(() => null)) as
-      | { nextBestAction?: NextBestActionPayload }
-      | null;
-    return payload?.nextBestAction ?? null;
-  } catch {
-    return null;
-  }
-}
 
 async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
   try {
@@ -609,7 +602,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = cleared
       ? `NPI ${profile.npi} — Checked Profile`
       : `NPI ${profile.npi} — Partial Profile`;
-    const description = `${profile.activeCredentials.length} source-backed record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Coverage varies by source and freshness.`;
+    const description = `${profile.activeCredentials.length} checked record${profile.activeCredentials.length !== 1 ? 's' : ''} on file. Coverage varies by source and freshness.`;
     return {
       title,
       description,
@@ -811,7 +804,7 @@ function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'
               <dd className="text-foreground">{formatStatusLabel(artifact.lifecycleState)}</dd>
             </div>
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <dt>Source-backed claims</dt>
+              <dt>Attached claims</dt>
               <dd className="text-foreground">{artifact.claimCount}</dd>
             </div>
           </dl>
@@ -874,7 +867,7 @@ const DECISION_LABELS: Record<NonNullable<NpiProfile['decision']>['decision'], {
     tone: 'border-red-500/40 bg-red-500/10 text-red-700',
   },
   INSUFFICIENT_DATA: {
-    label: 'Not enough verified information',
+    label: 'Not enough checked information',
     tone: 'border-slate-500/40 bg-slate-500/10 text-slate-700',
   },
 };
@@ -897,29 +890,43 @@ function buildDecisionEvidenceSummary(profile: NpiProfile): {
 function DecisionCard({
   decision,
   evidenceSummary,
+  readinessLevel,
 }: {
   decision: NonNullable<NpiProfile['decision']>;
   evidenceSummary: {
     checkedSourceCount: number;
     claimCount: number;
   };
+  readinessLevel?: string | null;
 }) {
-  const meta = DECISION_LABELS[decision.decision];
+  const effectiveDecision = resolvePublicDecisionTruthStatus({
+    decision: decision.decision,
+    readinessLevel: readinessLevel ?? null,
+  });
+  const truthGuardApplied = effectiveDecision !== decision.decision;
+  const meta = DECISION_LABELS[effectiveDecision];
   const blockers = Array.isArray(decision.blockers) ? decision.blockers : [];
   const rationaleSource = Array.isArray(decision.rationale) ? decision.rationale : [];
   const nextActionSource = Array.isArray(decision.next_actions) ? decision.next_actions : [];
-  const rationale = rationaleSource.length > 0
-    ? rationaleSource
-    : ['VitalCV could not load a detailed explanation for this result yet.'];
-  const nextActions = nextActionSource.length > 0
-    ? nextActionSource
-    : [getPublicDecisionNextStep(decision.decision)];
+  const rationale = truthGuardApplied
+    ? ['Decision-grade proof is not attached yet. Continue reviewing the checked records below.']
+    : rationaleSource.length > 0
+      ? rationaleSource
+      : ['VitalCV could not load a detailed explanation for this result yet.'];
+  const [nextAction] = ensureSingleActionArray(
+    truthGuardApplied
+      ? [getPublicDecisionNextStep('INSUFFICIENT_DATA')]
+      : nextActionSource.length > 0
+        ? nextActionSource
+        : [getPublicDecisionNextStep(effectiveDecision)],
+    ALL_CLEAR_ACTION_LABEL,
+  );
   const evidenceLabel = evidenceSummary.checkedSourceCount > 0
     ? `${evidenceSummary.checkedSourceCount} checked source${evidenceSummary.checkedSourceCount === 1 ? '' : 's'}`
     : 'No checked sources yet';
   const claimLabel = evidenceSummary.claimCount > 0
-    ? `${evidenceSummary.claimCount} source-backed claim${evidenceSummary.claimCount === 1 ? '' : 's'} on file`
-    : 'No source-backed claims attached yet';
+    ? `${evidenceSummary.claimCount} attached claim${evidenceSummary.claimCount === 1 ? '' : 's'} on file`
+    : 'No attached claims yet';
 
   return (
     <div className={`rounded-xl border-2 ${meta.tone} p-6`}>
@@ -934,9 +941,9 @@ function DecisionCard({
           <p className="mt-1 text-xs opacity-75">{claimLabel}</p>
         </div>
       </div>
-      <p className="mt-2 text-sm font-medium opacity-90">{getPublicDecisionHeadline(decision.decision)}</p>
+      <p className="mt-2 text-sm font-medium opacity-90">{getPublicDecisionHeadline(effectiveDecision)}</p>
       <p className="mt-1 text-xs opacity-75">
-        This result only uses the verified records and source checks attached to this profile.
+        This result only uses the checked records and source checks attached to this profile.
       </p>
 
       {blockers.length > 0 && (
@@ -968,9 +975,7 @@ function DecisionCard({
       <div className="mt-5">
         <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{DECISION_NEXT_STEP_HEADING}</p>
         <ol className="mt-2 space-y-1 text-sm">
-          {nextActions.map((action, idx) => (
-            <li key={`${idx}-${action}`}>{idx + 1}. {action}</li>
-          ))}
+          <li>1. {nextAction}</li>
         </ol>
       </div>
     </div>
@@ -978,12 +983,7 @@ function DecisionCard({
 }
 
 function LimitationsPanel({ limitations }: { limitations: NonNullable<NpiProfile['limitations']> }) {
-  const blockers = Array.isArray(limitations.blockers) ? limitations.blockers : [];
-  const gaps = Array.isArray(limitations.gaps) ? limitations.gaps : [];
-  const items = [
-    ...blockers.map((b) => ({ kind: 'blocker' as const, text: b })),
-    ...gaps.map((g) => ({ kind: 'gap' as const, text: g })),
-  ];
+  const items = resolveVisibleLimitations(limitations);
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card px-5 py-4 text-sm text-muted-foreground">
@@ -1229,7 +1229,7 @@ function ProofCard({
       <p className="mt-2 text-sm text-muted-foreground">
         {hasDownloadableProof
           ? 'Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.'
-          : 'No source-backed claims are attached yet, so proof downloads stay disabled until the first checked claim lands.'}
+          : 'No checked claims are attached yet, so proof downloads stay disabled until the first checked claim lands.'}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {hasDownloadableProof ? (
@@ -1259,6 +1259,25 @@ function ProofCard({
         )}
       </div>
     </div>
+  );
+}
+
+function AtomicTruthWaitingCard({ npi }: { npi: string }) {
+  return (
+    <section
+      data-atomic-render-state="waiting"
+      className="mb-8 rounded-lg border border-border bg-card px-5 py-5"
+    >
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        Credential readiness snapshot
+      </p>
+      <p className="mt-2 text-sm font-semibold text-foreground">
+        Verification is still running for NPI {npi}.
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        VitalCV waits for identity, safety, and authority checks to resolve before rendering evidence or decision guidance.
+      </p>
+    </section>
   );
 }
 
@@ -1416,12 +1435,26 @@ export default async function PublicTrustProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
-  // Real Omega NBA fetch (NPI mode only). Null when unavailable — the
-  // page degrades gracefully to the existing DecisionCard fallback.
-  const nextBestAction =
-    profile.mode === 'npi' ? await fetchNextBestAction(profile.npi) : null;
+  assertNoProgressiveComputation({
+    manifestFetchCount: 1,
+    stageFetchCount: 0,
+    conditionalFetchCount: 0,
+  });
+
+  const atomicManifest =
+    profile.mode === 'npi'
+      ? toAtomicManifest({ coverage: profile.coverage })
+      : null;
+  const truthRenderReady = profile.mode !== 'npi' || atomicManifest !== null;
   const decisionEvidenceSummary =
     profile.mode === 'npi' ? buildDecisionEvidenceSummary(profile) : null;
+
+  if (profile.mode === 'npi' && truthRenderReady) {
+    assertAtomicRender(
+      { complete: truthRenderReady },
+      { renderState: 'resolved' },
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background pb-28">
@@ -1441,194 +1474,181 @@ export default async function PublicTrustProfilePage({ params }: Props) {
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
-              {/* Compliance evidence — rendered first so the decision is
-                  always justified by visible facts before the NBA appears. */}
-              <section className="mb-6">
-                <EvidencePanel coverage={profile.coverage} npi={profile.npi} />
-              </section>
+              {truthRenderReady ? (
+                <>
+                  {/* Compliance evidence — rendered first so the decision is
+                      always justified by visible facts before the decision surface appears. */}
+                  <section className="mb-6">
+                    <EvidencePanel manifest={atomicManifest!} npi={profile.npi} />
+                  </section>
 
-              {/* Cross-source divergence — visible when active conflicts
-                  exist, and positively visible ("All sources agree") when
-                  none. Never hidden — keeps UI truth consistent. */}
-              {profile.divergence !== undefined && (
-                <section className="mb-6">
-                  <DivergencePanel divergence={profile.divergence} />
-                </section>
-              )}
-
-              {/* Drift banner — surfaces system state changes as "Status
-                  changed" + Reason lines, so the user never sees a silent
-                  correction. Renders nothing when drift.state === STABLE. */}
-              {profile.drift && (
-                <section className="mb-6">
-                  <DriftBanner drift={profile.drift} />
-                </section>
-              )}
-
-              {/* Primary action surface — NBA is the only place to act. */}
-              {nextBestAction && (
-                <section className="mb-6">
-                  <NextBestActionCard
-                    npi={profile.npi}
-                    nba={nextBestAction}
-                    coverage={profile.coverage}
-                  />
-                </section>
-              )}
-
-              {/* Zero-context onboarding header */}
-              <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Credential readiness snapshot
-                    </p>
-                    <p className="mt-1 text-sm text-foreground">
-                      This is a credential readiness snapshot for a clinician, built from verified public sources.
-                    </p>
-                  </div>
-                  <CopyShareLink npi={profile.npi} />
-                </div>
-              </section>
-
-              {/* Hierarchy per Wave: decision → actions → limitations → everything else */}
-              {profile.decision && (
-                <section className="mb-6">
-                  <DecisionCard decision={profile.decision} evidenceSummary={decisionEvidenceSummary ?? { checkedSourceCount: 0, claimCount: 0 }} />
-                </section>
-              )}
-
-              {/* Informational state only — actions remain routed through NBA. */}
-              {!nextBestAction && (
-                <section className="mb-8">
-                  <div className="rounded-lg border border-border bg-muted/40 px-5 py-4 text-center">
-                    <p className="text-sm font-semibold text-foreground">
-                      No recommendation is available yet. Continue reviewing the credential snapshot below.
-                    </p>
-                  </div>
-                  <div className="mt-4">
-                    <ConfirmedActionCard action={resolveConfirmedAction(profile)} />
-                  </div>
-                </section>
-              )}
-
-              {profile.limitations && (
-                <section className="mb-8">
-                  <LimitationsPanel limitations={profile.limitations} />
-                </section>
-              )}
-
-              <section className="mb-8 text-center">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                  NPI <span className="font-mono">{profile.npi}</span>
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {profile.activeCredentials.length > 0
-                    ? `${profile.activeCredentials.length} source-backed record${profile.activeCredentials.length !== 1 ? 's' : ''} on file`
-                    : 'Source checks still in progress'}
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  How other employers have handled this clinician
-                </p>
-                <ReuseSignalRow signal={profile.reuse_signal} />
-              </section>
-
-              <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Recent employer actions
-                </p>
-                <RecentActionsList recent={profile.actions?.recent ?? []} />
-              </section>
-
-              <section className="mb-10 flex justify-center">
-                <ClearedBadge status={profile.status} />
-              </section>
-
-              <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Connected Sources
-                </p>
-                <CredentialPills creds={profile.activeCredentials} />
-              </section>
-
-              <div className="mb-8 h-px bg-border" />
-
-              <section className="mb-8">
-                <TrustBandCard trustBand={profile.trustBand} readinessScore={profile.readinessScore} />
-              </section>
-
-              <section className="mb-8">
-                <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
-              </section>
-
-              {profile.readiness.evaluated && (
-              <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Readiness Snapshot
-                  </p>
-                  {profile.readiness.isEligible ? (
-                    <p className="text-sm text-foreground font-medium">
-                      Checked — {profile.readiness.traceCount} ontology steps traversed
-                    </p>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-amber-600 font-medium">
-                        Gaps detected
-                      </p>
-                      {profile.readiness.missingRequirements.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {profile.readiness.missingRequirements.map((r) => (
-                            <li key={r} className="text-xs text-muted-foreground">· {r}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+                  {/* Cross-source divergence — visible when active conflicts
+                      exist, and positively visible ("All sources agree") when
+                      none. Never hidden — keeps UI truth consistent. */}
+                  {profile.divergence !== undefined && (
+                    <section className="mb-6">
+                      <DivergencePanel divergence={profile.divergence} />
+                    </section>
                   )}
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {getReadinessSnapshotExplanation(profile.readiness)}
-                  </p>
-                </section>
+
+                  {/* Drift banner — surfaces system state changes as "Status
+                      changed" + Reason lines, so the user never sees a silent
+                      correction. Renders nothing when drift.state === STABLE. */}
+                  {profile.drift && (
+                    <section className="mb-6">
+                      <DriftBanner drift={profile.drift} />
+                    </section>
+                  )}
+
+                  <section className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          Credential readiness snapshot
+                        </p>
+                        <p className="mt-1 text-sm text-foreground">
+                          This is a credential readiness snapshot for a clinician, built from checked public source records.
+                        </p>
+                      </div>
+                      <CopyShareLink npi={profile.npi} />
+                    </div>
+                  </section>
+
+                  {profile.decision && (
+                    <section className="mb-6">
+                      <DecisionCard
+                        decision={profile.decision}
+                        evidenceSummary={decisionEvidenceSummary ?? { checkedSourceCount: 0, claimCount: 0 }}
+                        readinessLevel={profile.readiness.level}
+                      />
+                    </section>
+                  )}
+
+                  <section className="mb-8">
+                    <ConfirmedActionCard action={resolveConfirmedAction(profile)} />
+                  </section>
+
+                  {profile.limitations && (
+                    <section className="mb-8">
+                      <LimitationsPanel limitations={profile.limitations} />
+                    </section>
+                  )}
+
+                  <section className="mb-8 text-center">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      NPI <span className="font-mono">{profile.npi}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {profile.activeCredentials.length > 0
+                        ? `${profile.activeCredentials.length} checked record${profile.activeCredentials.length !== 1 ? 's' : ''} on file`
+                        : 'No checked records attached yet'}
+                    </p>
+                  </section>
+
+                  <section className="mb-8">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      How other employers have handled this clinician
+                    </p>
+                    <ReuseSignalRow signal={profile.reuse_signal} />
+                  </section>
+
+                  <section className="mb-8">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Recent employer actions
+                    </p>
+                    <RecentActionsList recent={profile.actions?.recent ?? []} />
+                  </section>
+
+                  <section className="mb-10 flex justify-center">
+                    <ClearedBadge status={profile.status} />
+                  </section>
+
+                  <section className="mb-8">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Connected Sources
+                    </p>
+                    <CredentialPills creds={profile.activeCredentials} />
+                  </section>
+
+                  <div className="mb-8 h-px bg-border" />
+
+                  <section className="mb-8">
+                    <TrustBandCard trustBand={profile.trustBand} readinessScore={profile.readinessScore} />
+                  </section>
+
+                  <section className="mb-8">
+                    <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
+                  </section>
+
+                  {profile.readiness.evaluated && (
+                  <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        Readiness Snapshot
+                      </p>
+                      {profile.readiness.isEligible ? (
+                        <p className="text-sm text-foreground font-medium">
+                          Checked — {profile.readiness.traceCount} ontology steps traversed
+                        </p>
+                      ) : (
+                        <div>
+                          <p className="text-sm text-amber-600 font-medium">
+                            Gaps detected
+                          </p>
+                          {profile.readiness.missingRequirements.length > 0 && (
+                            <ul className="mt-2 space-y-1">
+                              {profile.readiness.missingRequirements.map((r) => (
+                                <li key={r} className="text-xs text-muted-foreground">· {r}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {getReadinessSnapshotExplanation(profile.readiness)}
+                      </p>
+                    </section>
+                  )}
+
+                  <section className="mb-8">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Credential Artifacts On File
+                    </p>
+                    <ArtifactGrid artifacts={profile.artifactSummaries} />
+                  </section>
+
+                  <section className="mb-8">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Issuer Provenance
+                    </p>
+                    <IssuerProvenanceList provenance={profile.issuerProvenance} />
+                  </section>
+
+                  <section className="mb-8">
+                    <MonitoringSummaryCard summary={profile.monitoringSummary} />
+                  </section>
+
+                  <section className="mb-8">
+                    <PassportShareActions
+                      npi={profile.npi}
+                      credentialCount={profile.activeCredentials.length}
+                      downloadUrl={profile.proof.jsonUrl}
+                    />
+                  </section>
+
+                  <section className="mb-8">
+                    <ProofCard
+                      proof={profile.proof}
+                      hasDownloadableProof={hasDownloadableSourceBackedProof(profile.artifactSummaries)}
+                    />
+                  </section>
+
+                  <section className="mb-8 flex justify-center">
+                    <ApplyWithVitalCV npi={profile.npi} label="Apply with VitalCV" />
+                  </section>
+                </>
+              ) : (
+                <AtomicTruthWaitingCard npi={profile.npi} />
               )}
-
-              <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Credential Artifacts On File
-                </p>
-                <ArtifactGrid artifacts={profile.artifactSummaries} />
-              </section>
-
-              <section className="mb-8">
-                <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Issuer Provenance
-                </p>
-                <IssuerProvenanceList provenance={profile.issuerProvenance} />
-              </section>
-
-              <section className="mb-8">
-                <MonitoringSummaryCard summary={profile.monitoringSummary} />
-              </section>
-
-              <section className="mb-8">
-                <PassportShareActions
-                  npi={profile.npi}
-                  credentialCount={profile.activeCredentials.length}
-                  downloadUrl={profile.proof.jsonUrl}
-                />
-              </section>
-
-              <section className="mb-8">
-                <ProofCard
-                  proof={profile.proof}
-                  hasDownloadableProof={hasDownloadableSourceBackedProof(profile.artifactSummaries)}
-                />
-              </section>
-
-              <section className="mb-8 flex justify-center">
-                <ApplyWithVitalCV npi={profile.npi} label="Apply with VitalCV" />
-              </section>
 
               <footer className="text-center">
                 <p className="text-xs text-muted-foreground">
@@ -1683,7 +1703,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       </div>
 
       {/* Sticky CTA — mode-aware */}
-      {profile.mode === 'npi' && (
+      {profile.mode === 'npi' && truthRenderReady && (
         <AcceptStartCta npi={profile.npi} cleared={profile.status === 'CLEARED'} />
       )}
       {profile.mode === 'slug' && (
@@ -1693,7 +1713,7 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       <EmployerTracker 
         npi={profile.mode === 'npi' ? profile.npi : undefined} 
         slug={profile.mode === 'slug' ? profile.slug : undefined} 
-        hasNextBestAction={profile.mode === 'npi' ? Boolean(nextBestAction) : undefined}
+        hasNextBestAction={profile.mode === 'npi' ? false : undefined}
       />
     </main>
   );

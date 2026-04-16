@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { GlassCard } from '@/components/ui/glass-card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -114,7 +114,7 @@ export function HeroSection() {
                         setError('');
                       }
                     }}
-                    className="bg-white/70 backdrop-blur-md dark:bg-muted border border-white/35"
+                    className="bg-[var(--vt-surface)] dark:bg-muted border border-[var(--vt-border)]"
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? 'hero-npi-error' : undefined}
                   />
@@ -184,7 +184,7 @@ export function HeroSection() {
           {/* ── Right column: NPI Terminal / Clearance State ── */}
           <motion.div
             layout
-            className="rounded-3xl border border-border shadow-[0_8px_32px_rgba(0,0,0,0.08)] bg-muted dark:bg-muted backdrop-blur-xl p-6"
+            className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] dark:bg-muted p-6"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, layout: { type: 'spring', stiffness: 200, damping: 30 } }}
@@ -219,8 +219,8 @@ export function HeroSection() {
                   className="mt-8"
                   role="status"
                 >
-                  <GlassCard
-                    className="border-[var(--trust-green)]/40 ring-1 ring-[var(--trust-green)]/30 shadow-[0_0_32px_rgba(74,222,128,0.18)]"
+                  <Card
+                    className="border-[var(--trust-green)]/40 ring-1 ring-[var(--trust-green)]/30"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-[var(--trust-green)]">
                       <CheckCircle2 className="h-4 w-4" />
@@ -236,15 +236,15 @@ export function HeroSection() {
                         <dd className="font-semibold text-[var(--warm-charcoal)]">Verified</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Trust confidence</dt>
-                        <dd className="font-semibold text-[var(--trust-green)]">99.97%</dd>
+                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Evidence on file</dt>
+                        <dd className="font-semibold text-[var(--trust-green)]">3 checked sources</dd>
                       </div>
                       <div>
                         <dt className="text-xs text-[var(--warm-charcoal)]/50">Time to start</dt>
                         <dd className="font-semibold text-[var(--warm-charcoal)]">2 days</dd>
                       </div>
                     </dl>
-                  </GlassCard>
+                  </Card>
                 </motion.div>
               ) : (
                 <motion.div
@@ -256,7 +256,7 @@ export function HeroSection() {
                   className="mt-8"
                 >
                   {/* Glass identity card preview */}
-                  <div className="rounded-2xl border border-[var(--warm-charcoal)]/10 bg-[var(--warm-charcoal)]/[0.02] p-4 backdrop-blur-sm">
+                  <div className="rounded-2xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-[var(--warm-charcoal)]/8" />
                       <div className="flex-1 space-y-1.5">

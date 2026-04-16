@@ -55,6 +55,143 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function buildPassportPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    entityId: 'entity-1',
+    npi: '1234567890',
+    identity: {
+      displayName: 'Ada Lovelace',
+      specialty: 'Cardiology',
+      entityType: 'PERSON',
+      status: 'ACTIVE',
+      npi: '1234567890',
+    },
+    authority: {
+      credentials: [
+        {
+          id: 'cred-1',
+          domain: 'LICENSURE',
+          type: 'STATE_LICENSE',
+          status: 'ACTIVE',
+          verificationLevel: 'SOURCE_VERIFIED',
+          issuerName: 'California Medical Board',
+          sourceId: 'STATE_BOARD',
+          jurisdiction: 'CA',
+          issuedAt: '2026-03-01T00:00:00.000Z',
+          expiresAt: '2027-03-01T00:00:00.000Z',
+          verifiedAt: '2026-03-23T12:00:00.000Z',
+          observedAt: '2026-03-23T12:00:00.000Z',
+          stale: false,
+          confidenceLabel: 'HIGH',
+          claimConfidenceLabel: 'HIGH',
+          matchConfidence: 'HIGH',
+          sourceLatency: 'Live',
+          dataFreshness: 'Daily',
+          dataFreshnessLabel: 'Daily',
+          dataFreshnessCadence: 'Daily',
+          claimState: 'ACTIVE',
+          statusLabel: 'Active',
+          dataVersion: '2026-03-23',
+          revalidationDue: '2026-03-30T00:00:00.000Z',
+          identityOnly: false,
+          sourceDisclaimer: null,
+          nextReverifyAt: '2026-03-30T00:00:00.000Z',
+          reviewRequired: false,
+          authorityClaimCode: 'PHYSICIAN_LICENSE_ACTIVE',
+          boardOrderSeverity: null,
+          connectorState: 'configured',
+          participationStatus: 'verified_result',
+          sourceScope: 'STATE_BOARD_CA_API',
+        },
+      ],
+      summary: {
+        active: 1,
+        expired: 0,
+        stale: 0,
+        missing: [],
+      },
+    },
+    training: {
+      records: [],
+      hasDegree: true,
+      degreeVerified: true,
+      hasResidency: true,
+      fellowshipCount: 0,
+    },
+    standing: {
+      exclusionClear: true,
+      exclusionStatus: 'CLEAR',
+      exclusionCheckedAt: '2026-03-23T12:00:00.000Z',
+      exclusionConfidenceLabel: 'HIGH',
+      licensureStatus: 'verified',
+      deaStatus: 'unknown',
+      pecosStatus: 'enrolled',
+      pecosEnrollmentStatus: 'ENROLLED',
+      enrollmentSourceLabel: 'CMS PECOS',
+      enrollmentDataFreshness: 'Quarterly',
+      enrollmentSourceLatency: 'Quarterly snapshot',
+      enrollmentNote: 'Current PECOS enrollment found.',
+      enrollmentObservedAt: '2026-03-20T00:00:00.000Z',
+      enrollmentDataVersion: '2026-Q1',
+      enrollmentStatusLabel: 'Enrolled',
+      enrollmentFreshnessLabel: 'Quarterly',
+      enrollmentConfidenceLabel: 'Quarterly release',
+      negativeFindings: [],
+    },
+    readiness: {
+      status: 'PARTIAL',
+      score: 88,
+      level: 'L2',
+      blockers: ['DEA_REGISTRATION'],
+      gaps: [],
+      estimatedStartDays: 10,
+      nextActions: [
+        {
+          id: 'next-1',
+          title: 'Attach DEA evidence',
+          detail: 'Upload DEA registration evidence.',
+          priority: 'HIGH',
+        },
+      ],
+    },
+    sources: {
+      checked: ['NPPES_API', 'OIG_LEIE', 'STATE_BOARD', 'PECOS_PUBLIC'],
+      lastFetch: {
+        NPPES_API: '2026-03-23T12:00:00.000Z',
+      },
+    },
+    sourceCoverage: {
+      checks: [
+        {
+          sourceId: 'NPPES_API',
+          state: 'checked',
+          reason: 'Identity verified in CMS NPPES.',
+          checkedAt: '2026-03-23T12:00:00.000Z',
+        },
+      ],
+    },
+    trustPosture: {
+      band: 'L2',
+      bandLabel: 'Moderate trust',
+      score: 88,
+      dimensions: [],
+      freshness: {
+        state: 'current',
+        label: 'Current source coverage',
+        items: [],
+      },
+      safeToRelyOnNow: ['Identity confirmed'],
+      missingItems: [],
+      gatedItems: [],
+      reviewRequiredItems: [],
+      staleItems: [],
+      blockers: ['DEA_REGISTRATION'],
+    },
+    lastCheckedAt: '2026-03-23T12:00:00.000Z',
+    ...overrides,
+  };
+}
+
 describe('review page contract', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -69,13 +206,7 @@ describe('review page contract', () => {
 
   it('passes explicit context, bundle fallback, and sharer attribution into the review surface', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({
-        entityId: 'entity-1',
-        readiness: {
-          score: 88,
-          blockers: ['DEA_REGISTRATION'],
-        },
-      }))
+      .mockResolvedValueOnce(jsonResponse(buildPassportPayload()))
       .mockResolvedValueOnce(jsonResponse({
         ok: true,
         summary: {
@@ -132,13 +263,17 @@ describe('review page contract', () => {
 
   it('keeps the direct review path unscoped when no review context is present', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({
-        entityId: 'entity-1',
+      .mockResolvedValueOnce(jsonResponse(buildPassportPayload({
         readiness: {
+          status: 'PARTIAL',
           score: 72,
+          level: 'L2',
           blockers: [],
+          gaps: [],
+          estimatedStartDays: 10,
+          nextActions: [],
         },
-      }))
+      })))
       .mockResolvedValueOnce(jsonResponse({
         ok: true,
         summary: {

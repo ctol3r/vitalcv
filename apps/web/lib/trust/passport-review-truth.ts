@@ -27,6 +27,10 @@ import {
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
 } from '@/lib/trust/passport-truth';
+import {
+  buildAllClearTruthAction,
+  ensureSingleActionArray,
+} from '@/lib/trust/single-action';
 
 export type PassportTrustDimensionState =
   | 'checked'
@@ -496,11 +500,14 @@ export function buildPassportReviewTruthModel(
     stale: [],
     needsReview: [],
     missingOrAccessRequired: [],
-    nextActions: passport.readiness.nextActions.map((action) => ({
-      id: action.id,
-      label: action.title,
-      detail: action.detail,
-    })),
+    nextActions: ensureSingleActionArray(
+      passport.readiness.nextActions.map((action) => ({
+        id: action.id,
+        label: action.title,
+        detail: action.detail,
+      })),
+      buildAllClearTruthAction(),
+    ),
   };
   const topLevelTruthBuckets = new Map<string, keyof PassportReviewTruthModel['buckets']>([
     ['identity', bucketForTruth(truth.identity)],

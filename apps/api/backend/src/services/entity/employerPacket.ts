@@ -64,6 +64,7 @@ export interface EmployerEvidencePacketManifestStatusV1 {
   >;
   decisionPosture: EmployerEvidencePacketDecisionPostureV1;
   sourceCoverageSummary: CanonicalSourceCoverageSummary;
+  readinessPosture?: EmployerEvidencePacketReadinessPosture;
 }
 
 export interface EmployerEvidencePacketDecisionPostureV1 {
@@ -72,6 +73,35 @@ export interface EmployerEvidencePacketDecisionPostureV1 {
   blockers: string[];
   nextAction: string;
   freshness: TrustPassport['trustPosture']['freshness'];
+}
+
+export type EmployerEvidencePacketReadinessPosture =
+  | 'stable'
+  | 'degraded'
+  | 'review_required';
+
+export type EmployerEvidencePacketLimitationState =
+  | 'unavailable'
+  | 'access_required'
+  | 'stale'
+  | 'review_required';
+
+export interface EmployerEvidencePacketLimitationV1 {
+  sourceId: string;
+  state: EmployerEvidencePacketLimitationState;
+  reason: string;
+}
+
+export interface EmployerEvidencePacketLimitationsV1 {
+  items: EmployerEvidencePacketLimitationV1[];
+  blockers: string[];
+  gaps: string[];
+  validationIssues?: Array<{
+    code: string;
+    message: string;
+    sourceId?: string;
+    severity: 'warning' | 'critical';
+  }>;
 }
 
 export interface EmployerEvidencePacketManifestV1 {
@@ -98,12 +128,14 @@ export interface EmployerEvidencePacketV1 {
   entityId: string;
   clinicianNpi: string;
   displayName: string;
+  readinessPosture: EmployerEvidencePacketReadinessPosture;
   truth: TrustPassport['truth'];
   manifest: EmployerEvidencePacketManifestV1;
   receiptReferences: EmployerPacketReceiptReference[];
   artifactReferences: EmployerPacketArtifactReference[];
   sourceCoverageSummary: CanonicalSourceCoverageSummary;
   freshness: TrustPassport['trustPosture']['freshness'];
+  limitations: EmployerEvidencePacketLimitationsV1;
   identity: {
     npi: string | null;
     displayName: string;
@@ -160,6 +192,7 @@ export interface EmployerEvidencePacketV1 {
     level: string;
     estimatedStartDays: number | null;
     blockers: string[];
+    gaps: string[];
     nextActions: TrustPassport['readiness']['nextActions'];
   };
   decisionPosture: EmployerEvidencePacketDecisionPostureV1;
@@ -537,6 +570,60 @@ function buildDecisionPosture(
   };
 }
 
+function toLimitationState(
+  state: CanonicalSourceCoverage['state'],
+): EmployerEvidencePacketLimitationState | null {
+  switch (state) {
+    case 'gated':
+      return 'access_required';
+    case 'reviewRequired':
+      return 'review_required';
+    case 'stale':
+      return 'stale';
+    case 'unavailable':
+      return 'unavailable';
+    default:
+      return null;
+  }
+}
+
+function buildPacketLimitations(
+  passport: TrustPassport,
+  manifestSources: readonly EmployerPacketSourceManifestEntry[],
+): EmployerEvidencePacketLimitationsV1 {
+  const items = manifestSources.flatMap((source) => {
+    const normalizedState = toLimitationState(source.state);
+    if (!normalizedState) {
+      return [];
+    }
+
+    return [{
+      sourceId: source.sourceId,
+      state: normalizedState,
+      reason: source.reason,
+    }];
+  });
+
+  const blockers = dedupeSorted([
+    ...passport.readiness.blockers,
+    ...items
+      .filter((item) => item.state === 'review_required' || item.state === 'stale')
+      .map((item) => item.reason),
+  ]);
+  const gaps = dedupeSorted([
+    ...passport.readiness.gaps,
+    ...items
+      .filter((item) => item.state === 'access_required' || item.state === 'unavailable')
+      .map((item) => item.reason),
+  ]);
+
+  return {
+    items,
+    blockers,
+    gaps,
+  };
+}
+
 export function buildEmployerEvidencePacket(input: {
   passport: TrustPassport;
   employerId: string;
@@ -550,6 +637,7 @@ export function buildEmployerEvidencePacket(input: {
   const receiptReferences = buildReceiptReferences(manifestSources);
   const freshness = input.passport.trustPosture.freshness;
   const decisionPosture = buildDecisionPosture(input.passport);
+  const limitations = buildPacketLimitations(input.passport, manifestSources);
 
   const manifest: EmployerEvidencePacketManifestV1 = {
     schema: 'vitalcv.employer.packet-manifest.v1',
@@ -587,12 +675,14 @@ export function buildEmployerEvidencePacket(input: {
     entityId: input.passport.entityId,
     clinicianNpi: input.passport.npi ?? '',
     displayName: input.passport.identity.displayName,
+    readinessPosture: 'stable',
     truth: input.passport.truth,
     manifest,
     receiptReferences,
     artifactReferences,
     sourceCoverageSummary,
     freshness,
+    limitations,
     identity: {
       npi: input.passport.identity.npi ?? null,
       displayName: input.passport.identity.displayName,
@@ -651,6 +741,7 @@ export function buildEmployerEvidencePacket(input: {
       level: input.passport.readiness.level,
       estimatedStartDays: input.passport.readiness.estimatedStartDays,
       blockers: input.passport.readiness.blockers,
+      gaps: input.passport.readiness.gaps,
       nextActions: input.passport.readiness.nextActions,
     },
     decisionPosture,

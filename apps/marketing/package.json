@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm -w run design:guard",
     "dev": "next dev --port 3001",
     "build": "prisma generate && next build",
     "start": "next start",

@@ -61,6 +61,10 @@ import {
 } from '@/lib/trust/source-coverage';
 import type { VdsTrustStatus } from '@/lib/trust/status-language';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
+import {
+  buildAllClearReadinessAction,
+  ensureSingleActionArray,
+} from '@/lib/trust/single-action';
 
 // ── Status configuration ──────────────────────────────────────────────────────
 // NO colour on status. Hierarchy via opacity only.
@@ -721,6 +725,10 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
   const showReadinessScore = sourceCoverageChecks.some((check) => check.state === 'checked');
+  const [nextAction] = ensureSingleActionArray(
+    readiness.nextActions,
+    buildAllClearReadinessAction(),
+  );
 
   // MS16-F: Trust stack order — Identity → Safety → Authority → Eligibility → Readiness
   const accordionItems: AccordionItem[] = [
@@ -950,22 +958,18 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         </SectionReveal>
 
         {/* ── Next actions (from readiness engine) ──────────────────────────── */}
-        {readiness.nextActions.length > 0 && (
-          <SectionReveal delay={0.25}>
-            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-              <p className="text-foreground/70 text-sm font-medium">What should happen next</p>
-              {readiness.nextActions.slice(0, 4).map((action) => (
-                <div key={action.id} className="flex items-start gap-3">
-                  <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
-                  <div>
-                    <p className="text-foreground/70 text-sm">{action.title}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{action.detail}</p>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          </SectionReveal>
-        )}
+        <SectionReveal delay={0.25}>
+          <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
+            <p className="text-foreground/70 text-sm font-medium">What should happen next</p>
+            <div className="flex items-start gap-3">
+              <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
+              <div>
+                <p className="text-foreground/70 text-sm">{nextAction.title}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{nextAction.detail}</p>
+              </div>
+            </div>
+          </Card>
+        </SectionReveal>
 
         {/* ── Explicit missing items ─────────────────────────────────────── */}
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (

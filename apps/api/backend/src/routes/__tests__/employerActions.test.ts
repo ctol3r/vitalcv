@@ -20,6 +20,9 @@ jest.mock('../../graphql/prisma_client', () => ({
     outboxEvent: {
       upsert: jest.fn(),
     },
+    decisionCapsule: {
+      create: jest.fn(),
+    },
     $transaction: jest.fn(),
   },
 }));
@@ -78,6 +81,9 @@ const prismaMock = prisma as unknown as {
   outboxEvent: {
     upsert: jest.Mock;
   };
+  decisionCapsule: {
+    create: jest.Mock;
+  };
   $transaction: jest.Mock;
 };
 
@@ -113,6 +119,9 @@ function wireTransactionClient(options?: { reviewItemId?: string | null }) {
     outboxEvent: {
       upsert: prismaMock.outboxEvent.upsert,
     },
+    decisionCapsule: {
+      create: prismaMock.decisionCapsule.create,
+    },
     hITLReviewItem: options && 'reviewItemId' in options
       ? {
           create: jest.fn().mockResolvedValue(
@@ -135,6 +144,7 @@ function buildPacketFixture() {
     entityId: 'entity-1',
     clinicianNpi: '1234567890',
     displayName: 'Dr. Jane Doe',
+    readinessPosture: 'stable',
     truth: {
       identity: { status: 'VERIFIED' },
       safety: { status: 'CLEAR' },
@@ -272,6 +282,11 @@ function buildPacketFixture() {
       label: 'Current attached checks',
       items: [],
     },
+    limitations: {
+      items: [],
+      blockers: [],
+      gaps: [],
+    },
     identity: {
       npi: '1234567890',
       displayName: 'Dr. Jane Doe',
@@ -312,6 +327,7 @@ function buildPacketFixture() {
       level: 'L3',
       estimatedStartDays: 3,
       blockers: [],
+      gaps: [],
       nextActions: [],
     },
     sourceCoverage: {
@@ -340,6 +356,7 @@ describe('employer action routes', () => {
     prismaMock.auditEvent.findFirst.mockReset();
     prismaMock.auditEvent.findMany.mockReset();
     prismaMock.outboxEvent.upsert.mockReset();
+    prismaMock.decisionCapsule.create.mockReset();
     prismaMock.$transaction.mockReset();
     captureAdvisoryEventMock.mockReset();
     captureEmployerDecisionMock.mockReset();
@@ -365,6 +382,21 @@ describe('employer action routes', () => {
     prismaMock.auditEvent.findMany.mockResolvedValue([]);
     prismaMock.outboxEvent.upsert.mockResolvedValue({
       id: 'outbox-1',
+    });
+    prismaMock.decisionCapsule.create.mockResolvedValue({
+      id: 'capsule-1',
+      subjectNpi: '1234567890',
+      organizationId: null,
+      decisionTimestamp: new Date('2026-03-23T18:00:00.000Z'),
+      metadata: {
+        schema: 'vitalcv.decision-capsule.storage.v1',
+        clinicianId: '1234567890',
+        orgId: null,
+        role: 'Recruiter',
+        blockers: [],
+        outcome: 'ACCEPTED',
+        timestamp: '2026-03-23T18:00:00.000Z',
+      },
     });
 
     wireTransactionClient();
@@ -422,6 +454,25 @@ describe('employer action routes', () => {
               }),
             }),
           }),
+        }),
+      }),
+    }));
+    expect(prismaMock.decisionCapsule.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        subjectNpi: '1234567890',
+        decisionType: 'HIRING',
+        status: 'VALID',
+        methodology: 'decision_capsule_storage.v1',
+        metadata: expect.objectContaining({
+          schema: 'vitalcv.decision-capsule.storage.v1',
+          appendOnly: true,
+          auditFirst: true,
+          sourceReferenceId: 'audit-1',
+          clinicianId: '1234567890',
+          role: 'Recruiter',
+          blockers: [],
+          outcome: 'ACCEPTED',
+          entityId: 'entity-1',
         }),
       }),
     }));
@@ -583,6 +634,7 @@ describe('employer action routes', () => {
       }),
     }));
     expect(captureAdvisoryEventMock).not.toHaveBeenCalled();
+    expect(prismaMock.decisionCapsule.create).not.toHaveBeenCalled();
   });
 
   it('routes to review with both queue persistence and outbox persistence when a review item is created', async () => {

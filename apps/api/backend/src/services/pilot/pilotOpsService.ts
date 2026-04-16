@@ -14,9 +14,15 @@ export const PILOT_METRIC_EVENT_TYPES = [
   'onboarding_started',
   'onboarding_completed',
   'npi_submitted',
+  'npi_submit_attempt',
+  'npi_invalid',
+  'source_check_started',
   'readiness_viewed',
+  'readiness_revealed',
   'blocker_opened',
   'blocker_resolved',
+  'accordion_expanded',
+  'evidence_viewer_opened',
   'opportunity_viewed',
   'apply_started',
   'apply_submitted',
@@ -29,10 +35,18 @@ export const PILOT_METRIC_EVENT_TYPES = [
   'support_triggered',
   'auth_failure',
   'route_failure',
+  'share_cta_clicked',
+  'share_intent',
+  'employer_action_clicked',
+  'interview_blocked_view',
+  'page_load_timing',
+  'dead_end_reached',
+  'nav_item_clicked',
   'employer_action_taken',
   'passport_viewed',
   'review_requested',
   'review_opened',
+  'drift_detected',
 ] as const;
 
 export const PILOT_QUEUE_STATUSES = [
@@ -166,6 +180,7 @@ export interface PilotOpsMetrics {
   supportTriggered: number;
   authFailures: number;
   routeFailures: number;
+  driftEventsCount: number;
   openQueueItems: number;
   criticalQueueItems: number;
 }
@@ -986,6 +1001,7 @@ export async function getPilotOpsSummary(options: {
       supportTriggered: metricEventCount(metricRows, 'support_triggered'),
       authFailures: metricEventCount(metricRows, 'auth_failure'),
       routeFailures: metricEventCount(metricRows, 'route_failure') + failureItems.length,
+      driftEventsCount: metricEventCount(metricRows, 'drift_detected'),
       openQueueItems: queue.filter((item) => item.status !== 'RESOLVED').length,
       criticalQueueItems: queue.filter((item) => item.severity === 'critical').length,
     },

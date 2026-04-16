@@ -597,6 +597,10 @@ describe('live path regression hardening', () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     vi.stubGlobal('React', React);
     vi.stubGlobal('fetch', vi.fn());
+    Object.defineProperty(window.navigator, 'sendBeacon', {
+      configurable: true,
+      value: vi.fn(() => true),
+    });
     window.history.replaceState({}, '', '/');
 
     roleContextValue = {
@@ -1306,7 +1310,7 @@ describe('live path regression hardening', () => {
     const passport = buildPassport();
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_review" />);
 
-    await clickByText(view.container, 'Route to review');
+    await clickByText(view.container, 'Flag for review');
     await flush();
 
     expect(fetchMock).toHaveBeenCalledWith(

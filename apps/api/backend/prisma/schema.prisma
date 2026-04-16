@@ -779,6 +779,44 @@ model IngestEvent {
   @@map("ingest_events")
 }
 
+model SourceCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  subjectNpi     String   @map("subject_npi")
+  sourceId       String   @map("source_id")
+  sourceRecordId String?  @map("source_record_id") @db.Uuid
+  status         String
+  checksum       String?
+  payload        Json
+  fetchedAt      DateTime @map("fetched_at")
+  refreshedAt    DateTime @default(now()) @map("refreshed_at")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([subjectNpi, sourceId], map: "source_cache_subject_source_uq")
+  @@index([subjectNpi, expiresAt], map: "source_cache_subject_expires_idx")
+  @@index([sourceId, refreshedAt], map: "source_cache_source_refreshed_idx")
+  @@map("source_cache")
+}
+
+model ClaimsCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  subjectNpi     String   @unique @map("subject_npi")
+  entityId       String?  @map("entity_id") @db.Uuid
+  status         String   @default("READY")
+  passportPayload Json    @map("passport_payload")
+  claimsPayload   Json    @map("claims_payload")
+  receiptsPayload Json    @map("receipts_payload")
+  refreshedAt    DateTime @default(now()) @map("refreshed_at")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([expiresAt], map: "claims_cache_expires_idx")
+  @@index([entityId, refreshedAt], map: "claims_cache_entity_refreshed_idx")
+  @@map("claims_cache")
+}
+
 model FetchJob {
   id             String          @id @default(uuid()) @db.Uuid
   sourceRunId    String          @map("source_run_id") @db.Uuid

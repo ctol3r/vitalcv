@@ -1,10 +1,7 @@
 'use client';
 
 /**
- * HoverCard — Wave 129: Hey-Inspired Interaction Pattern
- *
- * Hover card for credentials, issuers, and trust nodes.
- * Shows rich metadata on hover with accessible keyboard support.
+ * @deprecated — HoverCard will be replaced with a flat popover. API preserved for compatibility.
  */
 
 import { useState, useRef, useCallback, type ReactNode } from 'react';
@@ -64,16 +61,19 @@ export function HoverCard({
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: side === 'top' ? 4 : -4, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: side === 'top' ? 4 : -4, scale: 0.97 }}
+            initial={{ opacity: 0, y: side === 'top' ? 4 : -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: side === 'top' ? 4 : -4 }}
             transition={{ duration: 0.15, ease: [0.2, 0.8, 0.2, 1] }}
             className={cn(
               'absolute z-50 min-w-[200px] max-w-[340px]',
               sideClass,
               alignClass,
-              'rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-sm shadow-xl p-3',
-              className
+              'rounded-[var(--vt-radius-md)]',
+              'border border-[var(--vt-border)]',
+              'bg-[var(--vt-surface)] text-[var(--vt-text-primary)]',
+              'p-[var(--vt-space-12)]',
+              className,
             )}
             onMouseEnter={handleEnter}
             onMouseLeave={handleLeave}

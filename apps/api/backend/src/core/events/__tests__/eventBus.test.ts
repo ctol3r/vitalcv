@@ -7,6 +7,10 @@ import {
   subscribe,
 } from '../eventBus';
 
+async function flushEventBus(): Promise<void> {
+  await new Promise<void>((resolve) => setImmediate(resolve));
+}
+
 describe('event bus', () => {
   beforeEach(() => {
     resetEventBusForTests();
@@ -92,6 +96,7 @@ describe('event bus', () => {
         operation: 'created',
       },
     });
+    await flushEventBus();
 
     unsubscribe();
 
@@ -107,16 +112,25 @@ describe('event bus', () => {
         operation: 'updated',
       },
     });
+    await flushEventBus();
 
     expect(received).toEqual(['storyline-1']);
   });
 
-  it('isolates subscriber failures from other subscribers', async () => {
+  it('isolates subscriber failures from other subscribers without blocking publish', async () => {
     const successfulHandler = jest.fn();
+    let releaseSlowHandler: (() => void) | undefined;
 
     subscribe('INVESTIGATOR_RUN_COMPLETE', () => {
       throw new Error('boom');
     });
+    subscribe(
+      'INVESTIGATOR_RUN_COMPLETE',
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSlowHandler = resolve;
+        }),
+    );
     subscribe('INVESTIGATOR_RUN_COMPLETE', successfulHandler);
 
     await expect(publish({
@@ -142,6 +156,45 @@ describe('event bus', () => {
       },
     })).resolves.toBeDefined();
 
+    expect(successfulHandler).not.toHaveBeenCalled();
+    await flushEventBus();
     expect(successfulHandler).toHaveBeenCalledTimes(1);
+    if (releaseSlowHandler) {
+      releaseSlowHandler();
+    }
+    await flushEventBus();
+  });
+
+  it('ignores duplicate event ids and suppresses re-entrant loops', async () => {
+    const received: string[] = [];
+
+    subscribe('FINDING_CREATED', async (event) => {
+      received.push(event.id);
+      await publish({
+        id: event.id,
+        type: 'FINDING_CREATED',
+        payload: event.payload,
+      });
+    });
+
+    await publish({
+      id: 'evt-loop-1',
+      type: 'FINDING_CREATED',
+      payload: {
+        runId: 'run-1',
+        findingId: 'finding-1',
+        investigatorId: 'trust_decline',
+        severity: 'medium',
+        status: 'new',
+        entityIds: ['entity-1'],
+        storylineKey: 'storyline-1',
+        operation: 'created',
+      },
+    });
+
+    await flushEventBus();
+
+    expect(received).toEqual(['evt-loop-1']);
+    expect(listRecentEvents({ limit: 10 }).filter((event) => event.id === 'evt-loop-1')).toHaveLength(1);
   });
 });

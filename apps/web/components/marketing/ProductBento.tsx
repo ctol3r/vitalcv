@@ -74,7 +74,7 @@ export function ProductBento() {
             Product grid
           </p>
           <h2 className="mt-4 text-4xl font-semibold tracking-tight font-fraunces text-[var(--warm-charcoal)]">
-            Built for enterprise credential confidence
+            Built for enterprise credential trust
           </h2>
           <p className="mt-3 text-base text-[var(--warm-charcoal)]/70">
             A production-grade orchestration of readiness, progression, and auditable evidence.
@@ -89,9 +89,9 @@ export function ProductBento() {
         >
           {/* Card 1 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             variants={cardVariants}
-            whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
+            whileHover={{ y: -4 }}
           >
             <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-[var(--warm-charcoal)]/75">
               <Orbit className="h-4 w-4 text-[var(--trust-green)]" />
@@ -132,15 +132,15 @@ export function ProductBento() {
               </div>
             </div>
             <p className="mt-4 text-sm text-[var(--warm-charcoal)]/70">
-              Readiness is weighted across source completeness, artifact integrity, and issuer confidence.
+              Readiness is grounded in source completeness, artifact integrity, and issuing-source verification.
             </p>
           </motion.div>
 
           {/* Card 2 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             variants={cardVariants}
-            whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
+            whileHover={{ y: -4 }}
           >
             <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-[var(--warm-charcoal)]/75">
               <FileDigit className="h-4 w-4 text-[var(--trust-green)]" />
@@ -174,9 +174,9 @@ export function ProductBento() {
 
           {/* Card 3 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             variants={cardVariants}
-            whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
+            whileHover={{ y: -4 }}
           >
             <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-[var(--warm-charcoal)]/75">
               <CalendarClock className="h-4 w-4 text-[var(--trust-green)]" />
@@ -207,9 +207,9 @@ export function ProductBento() {
 
           {/* Card 4 */}
           <motion.div
-            className="rounded-3xl border border-white/35 bg-card backdrop-blur-md p-6 shadow-[var(--glass-shadow)] transition-shadow"
+            className="rounded-3xl border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
             variants={cardVariants}
-            whileHover={{ y: -4, boxShadow: 'var(--shadow-elevated)' }}
+            whileHover={{ y: -4 }}
           >
             <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--warm-charcoal)]/75">
               <CheckCircle2 className="h-4 w-4 text-[var(--trust-green)]" />

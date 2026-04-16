@@ -202,6 +202,17 @@ export async function handleDriftEvent(event: VcvEvent): Promise<void> {
         webhookResult.reason instanceof Error ? webhookResult.reason.message : 'unknown',
     });
   }
+
+  log('info', 'drift_event_processed', {
+    type: event.type,
+    clinicianNpi: event.clinicianNpi,
+    severity: event.severity ?? 'medium',
+    driftAuditEventId,
+    notificationPersisted: notificationResult?.status === 'fulfilled',
+    alertPersisted: alertResult?.status === 'fulfilled',
+    metricRecorded: metricResult?.status === 'fulfilled',
+    webhookQueued: webhookResult?.status === 'fulfilled',
+  });
 }
 
 let registered = false;

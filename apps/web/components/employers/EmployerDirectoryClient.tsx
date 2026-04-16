@@ -156,7 +156,7 @@ export default function EmployerDirectoryClient() {
         <select
           value={specialty}
           onChange={e => setSpecialty(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50"
+          className="px-3 py-2 rounded-lg bg-[var(--ops-surface-alt)] border border-[var(--ops-border)] text-sm text-[var(--ops-text)] focus:outline-none focus:border-blue-500/50"
         >
           <option value="">All Specialties</option>
           {ALL_SPECIALTIES.map(s => (
@@ -167,7 +167,7 @@ export default function EmployerDirectoryClient() {
         <select
           value={state}
           onChange={e => setState(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50"
+          className="px-3 py-2 rounded-lg bg-[var(--ops-surface-alt)] border border-[var(--ops-border)] text-sm text-[var(--ops-text)] focus:outline-none focus:border-blue-500/50"
         >
           <option value="">All States</option>
           {ALL_STATES.map(s => (
@@ -178,7 +178,7 @@ export default function EmployerDirectoryClient() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50"
+          className="px-3 py-2 rounded-lg bg-[var(--ops-surface-alt)] border border-[var(--ops-border)] text-sm text-[var(--ops-text)] focus:outline-none focus:border-blue-500/50"
         >
           <option value="">All Statuses</option>
           <option value="HIRING_NOW">Hiring Now</option>
@@ -189,7 +189,7 @@ export default function EmployerDirectoryClient() {
         {(specialty || state || statusFilter) && (
           <button
             onClick={() => { setSpecialty(''); setState(''); setStatusFilter(''); }}
-            className="px-3 py-2 rounded-lg text-sm text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1"
+            className="px-3 py-2 rounded-lg text-sm text-[var(--ops-text)] hover:text-foreground transition-colors flex items-center gap-1"
           >
             <X className="w-3 h-3" /> Clear
           </button>
@@ -260,7 +260,7 @@ function EmployerCard({
     <div className={`relative rounded-xl border p-5 flex flex-col gap-4 transition-all ${
       selected
         ? 'border-blue-500/60 bg-blue-900/20'
-        : 'border-border bg-white/[0.03] hover:border-border hover:bg-white/[0.06]'
+        : 'border-border bg-[var(--ops-surface)] hover:border-border hover:bg-[var(--ops-surface-alt)]'
     }`}>
       {/* Trust badge */}
       {employer.verified && (
@@ -278,7 +278,7 @@ function EmployerCard({
           </div>
           <div>
             <h3 className="font-semibold text-foreground leading-tight">{employer.name}</h3>
-            <p className="text-xs text-foreground/70 mt-0.5">{employer.facilityType}</p>
+            <p className="text-xs text-[var(--ops-text)] mt-0.5">{employer.facilityType}</p>
           </div>
         </div>
         <p className="text-sm text-foreground mt-3 leading-relaxed">{employer.tagline}</p>
@@ -289,10 +289,10 @@ function EmployerCard({
         <span className={`px-2 py-0.5 rounded-full text-xs border ${HIRING_STATUS_COLORS[employer.hiringStatus] ?? 'bg-muted text-muted-foreground'}`}>
           {HIRING_STATUS_LABELS[employer.hiringStatus] ?? employer.hiringStatus}
         </span>
-        <span className="flex items-center gap-1 text-xs text-foreground/70">
+        <span className="flex items-center gap-1 text-xs text-[var(--ops-text)]">
           <Users className="w-3 h-3" /> {employer.openRoles} open
         </span>
-        <span className="flex items-center gap-1 text-xs text-foreground/70">
+        <span className="flex items-center gap-1 text-xs text-[var(--ops-text)]">
           <Clock className="w-3 h-3" /> {employer.timeToStart}
         </span>
       </div>
@@ -319,7 +319,7 @@ function EmployerCard({
       <div className="flex gap-2 mt-auto pt-2 border-t border-white/5">
         <Link
           href={`/employers/${employer.slug}`}
-          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-muted hover:bg-muted text-sm text-foreground/70 hover:text-foreground transition-all"
+          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-muted hover:bg-muted text-sm text-[var(--ops-text)] hover:text-foreground transition-all"
         >
           View Profile <ChevronRight className="w-3 h-3" />
         </Link>
@@ -328,7 +328,7 @@ function EmployerCard({
           className={`px-3 py-2 rounded-lg text-sm transition-all ${
             selected
               ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400'
-              : 'bg-muted hover:bg-muted text-foreground/70 hover:text-foreground/70'
+              : 'bg-muted hover:bg-muted text-[var(--ops-text)] hover:text-[var(--ops-text)]'
           }`}
           title="Add to compare"
         >
@@ -364,7 +364,7 @@ function CompareModal({
       <div className="relative bg-[#0a0f1c] border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
         <div className="sticky top-0 flex items-center justify-between px-6 py-4 border-b border-border bg-[#0a0f1c]">
           <h2 className="font-semibold text-foreground">Compare Employers</h2>
-          <button onClick={onClose} className="text-foreground/70 hover:text-foreground transition-colors">
+          <button onClick={onClose} className="text-[var(--ops-text)] hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -409,7 +409,7 @@ function CompareModal({
                       val = String(e[row.key as keyof EmployerSummary] ?? '—');
                     }
                     return (
-                      <td key={e.slug} className="py-3 px-3 text-foreground/70">{val}</td>
+                      <td key={e.slug} className="py-3 px-3 text-[var(--ops-text)]">{val}</td>
                     );
                   })}
                 </tr>
@@ -422,7 +422,7 @@ function CompareModal({
               <Link
                 key={e.slug}
                 href={`/employers/${e.slug}`}
-                className="flex-1 flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted text-foreground/70 hover:text-foreground transition-all"
+                className="flex-1 flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted text-[var(--ops-text)] hover:text-foreground transition-all"
               >
                 View {e.name.split(' ')[0]} <ChevronRight className="w-4 h-4" />
               </Link>

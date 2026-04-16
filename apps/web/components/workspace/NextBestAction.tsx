@@ -1,8 +1,11 @@
 'use client';
 
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import {
+  getNextBestActionEvidenceLabel,
   getNextBestActionKindLabel,
   normalizeNextBestAction,
 } from '@/lib/next-best-action';
@@ -67,6 +70,18 @@ export default function NextBestAction({ actions, heading = 'Recommended next st
       <h2 className="text-[10px] font-semibold tracking-widest uppercase text-vt-neutral-400 mb-4">{heading}</h2>
       <Link
         href={primaryAction.href}
+        onClick={() => {
+          void trackPilotEvent({
+            eventType: UX_EVENTS.NAV_ITEM_CLICKED,
+            oncePerSession: false,
+            details: {
+              surface: 'workspace_next_best_action',
+              kind: primaryAction.kind,
+              title: primaryAction.title,
+              target: primaryAction.href,
+            },
+          });
+        }}
         className={`flex items-start sm:items-center min-h-[64px] gap-4 rounded-xl border p-4 transition-all hover:bg-black/20 active:scale-[0.98] ${KIND_STYLE[primaryAction.kind]}`}
       >
         <span className={`mt-1.5 sm:mt-0 h-2 w-2 shrink-0 rounded-full ${DOT_STYLE[primaryAction.kind]}`} aria-hidden="true" />
@@ -75,7 +90,7 @@ export default function NextBestAction({ actions, heading = 'Recommended next st
             <p className="text-sm font-semibold text-foreground leading-tight">{primaryAction.title}</p>
             <Badge variant="outline" className="text-[10px]">{getNextBestActionKindLabel(primaryAction.kind)}</Badge>
             <Badge variant="outline" className="text-[10px]">
-              {Math.round(primaryAction.confidence * 100)}% confidence
+              {getNextBestActionEvidenceLabel(primaryAction.evidenceCount)}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-vt-neutral-300 leading-relaxed">{primaryAction.description}</p>

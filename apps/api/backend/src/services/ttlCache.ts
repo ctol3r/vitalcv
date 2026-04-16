@@ -81,3 +81,6 @@ export const openIdMetadataCache = new TtlCache<Record<string, unknown>>(FIVE_MI
 
 /** Enterprise capabilities cache — 1 minute TTL */
 export const enterpriseCapabilitiesCache = new TtlCache<Record<string, unknown>>(ONE_MINUTE_MS);
+
+/** Employer manifest cache — 1 minute TTL */
+export const manifestCache = new TtlCache<string>(ONE_MINUTE_MS);

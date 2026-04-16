@@ -7,10 +7,15 @@ import { getBackendBase } from '@/lib/api';
 import type {
   EmployerAcceptanceHistoryResponse,
 } from '@/lib/employer-review-actions';
-import type { PassportData } from '@/lib/trust/passport-contract';
+import { normalizeEmployerAcceptanceHistoryResponse } from '@/lib/employer-review-actions';
+import { normalizePassportData, type PassportData } from '@/lib/trust/passport-contract';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
 const DEFAULT_REVIEW_ERROR = 'Employer review is unavailable for this packet.';
+
+function logReviewPageError(message: string, details: Record<string, unknown>): void {
+  console.error(`[ReviewPageClient] ${message}`, details);
+}
 
 function buildEmptyAcceptanceHistory(): EmployerAcceptanceHistoryResponse {
   return {
@@ -32,9 +37,9 @@ interface ReviewPageClientProps {
   from?: string;
 }
 
-type JsonFetchResult<T> = {
+type JsonFetchResult = {
   ok: boolean;
-  body: T | null;
+  body: unknown;
   errorDescription: string | null;
 };
 
@@ -54,10 +59,10 @@ function readErrorDescription(value: unknown): string | null {
   return null;
 }
 
-async function fetchBackendJson<T>(
+async function fetchBackendJson(
   path: string,
   init?: RequestInit,
-): Promise<JsonFetchResult<T>> {
+): Promise<JsonFetchResult> {
   try {
     const response = await fetch(`${getBackendBase()}${path}`, {
       ...init,
@@ -66,15 +71,27 @@ async function fetchBackendJson<T>(
         ...(init?.headers ?? {}),
       },
       cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
     });
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch((error) => {
+      logReviewPageError('Failed to parse backend JSON payload', {
+        path,
+        status: response.status,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    });
 
     return {
       ok: response.ok,
-      body: response.ok ? payload as T : null,
+      body: response.ok ? payload : null,
       errorDescription: readErrorDescription(payload),
     };
-  } catch {
+  } catch (error) {
+    logReviewPageError('Backend request failed', {
+      path,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       ok: false,
       body: null,
@@ -105,21 +122,37 @@ export default async function ReviewPageClient({
   from,
 }: ReviewPageClientProps) {
   const [passportResult, historyResult] = await Promise.all([
-    fetchBackendJson<PassportData>(
+    fetchBackendJson(
       /^\d{10}$/.test(entityId)
         ? `/api/passport/npi/${encodeURIComponent(entityId)}`
         : `/api/passport/entity/${encodeURIComponent(entityId)}`,
     ),
-    fetchBackendJson<EmployerAcceptanceHistoryResponse>(
+    fetchBackendJson(
       `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
     ),
   ]);
 
-  const passport = passportResult.ok ? passportResult.body : null;
+  const passport = passportResult.ok ? normalizePassportData(passportResult.body) : null;
   const acceptanceHistory =
-    historyResult.ok && historyResult.body
-      ? historyResult.body
+    historyResult.ok
+      ? (normalizeEmployerAcceptanceHistoryResponse(historyResult.body) ?? buildEmptyAcceptanceHistory())
       : buildEmptyAcceptanceHistory();
+
+  if (passportResult.ok && !passport) {
+    logReviewPageError('Passport payload failed normalization', {
+      entityId,
+    });
+  }
+
+  if (historyResult.ok && acceptanceHistory.history.length === 0 && historyResult.body !== null) {
+    const normalizedHistory = normalizeEmployerAcceptanceHistoryResponse(historyResult.body);
+    if (!normalizedHistory) {
+      logReviewPageError('Acceptance history payload failed normalization', {
+        entityId,
+      });
+    }
+  }
+
   const retryHref = buildRetryHref({
     entityId,
     contextId,
@@ -168,13 +201,20 @@ export default async function ReviewPageClient({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
     body: JSON.stringify({
       organizationContextId: contextId ?? null,
       bundleId: bundleId ?? null,
       readinessScore: passport.readiness.score ?? null,
       blockers: passport.readiness.blockers ?? [],
     }),
-  }).catch(() => null);
+  }).catch((error) => {
+    logReviewPageError('Failed to record employer review view event', {
+      entityId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  });
 
   return (
     <ReviewClient

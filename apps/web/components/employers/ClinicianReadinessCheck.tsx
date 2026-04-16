@@ -79,7 +79,7 @@ export default function ClinicianReadinessCheck({
     ?? `NPI ${npi}`;
 
   return (
-    <div className="rounded-3xl border border-border bg-black/20 p-5">
+    <div className="rounded-3xl border border-[var(--ops-border)] bg-[var(--ops-surface)] p-5">
       <p className="text-[11px] uppercase tracking-[0.18em] text-foreground">
         Check readiness
       </p>
@@ -99,14 +99,14 @@ export default function ClinicianReadinessCheck({
           value={npi}
           onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
           placeholder="NPI (10 digits)"
-          className="h-10 flex-1 rounded-xl border-border bg-muted px-3 text-sm tracking-wider text-foreground placeholder:text-muted-foreground/40"
+          className="h-10 flex-1 rounded-xl border border-[var(--ops-border)] bg-[var(--ops-surface-alt)] px-3 text-sm tracking-wider text-[var(--ops-text)] placeholder:text-[var(--ops-text-subtle)]"
           disabled={phase === 'loading'}
         />
         <Button
           type="submit"
           variant="outline"
           disabled={npi.length !== 10 || phase === 'loading'}
-          className="h-10 rounded-xl border-border bg-white/[0.04] px-3 text-foreground/70"
+          className="h-10 rounded-xl border border-[var(--ops-border)] bg-[var(--ops-surface-alt)] px-3 text-[var(--ops-text)]"
         >
           <Search className="h-4 w-4" />
         </Button>

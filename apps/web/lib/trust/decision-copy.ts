@@ -1,6 +1,6 @@
 import type { ReadinessStatus } from '@/lib/trust/passport-contract';
 
-export type EmployerActionCopyKey = 'accept' | 'refresh' | 'review' | 'reject';
+export type EmployerActionCopyKey = 'accept' | 'refresh' | 'review' | 'pause' | 'reject';
 export type PublicDecisionStatus =
   | 'PROCEED'
   | 'PROCEED_WITH_CAUTION'
@@ -32,10 +32,12 @@ export function getEmployerActionLabel(action: EmployerActionCopyKey): string {
       return 'Request updated data';
     case 'review':
       return 'Flag for review';
+    case 'pause':
+      return 'Pause candidate';
     case 'reject':
       return 'Do not proceed';
     default:
-      return 'Save action';
+      return 'Save choice';
   }
 }
 
@@ -73,7 +75,7 @@ export function getPublicDecisionHeadline(status: PublicDecisionStatus): string 
       return 'A blocker still needs attention before you proceed.';
     case 'INSUFFICIENT_DATA':
     default:
-      return 'We do not have enough verified information yet.';
+      return 'We do not have enough checked information yet.';
   }
 }
 
@@ -116,7 +118,7 @@ export function getReviewSummaryMessage(blockerCount: number): string {
 }
 
 export function getRecentActionEmptyMessage(): string {
-  return 'No employer actions are recorded yet.';
+  return 'No employer decisions are recorded yet.';
 }
 
 export function getLimitationEmptyMessage(): string {
@@ -136,6 +138,9 @@ export function formatRecentActionLabel(action: string): string {
     case 'flagged':
     case 'review':
       return 'Flagged for review';
+    case 'pause':
+    case 'paused':
+      return 'Candidate paused';
     case 'reject':
       return 'Do not proceed';
     default:
@@ -184,10 +189,10 @@ export function formatActionTimestamp(
 
 export function getCoverageSectionExplanation(sourceCount: number): string {
   if (sourceCount <= 0) {
-    return 'No source-backed records explain this profile yet. New checks will appear here as they attach.';
+    return 'No checked records explain this profile yet. New checks will appear here as they attach.';
   }
 
-  return `${sourceCount} source-backed record${sourceCount === 1 ? '' : 's'} currently explain this profile. Anything not shown here is still unverified or unavailable.`;
+  return `${sourceCount} checked record${sourceCount === 1 ? '' : 's'} currently explain this profile. Anything not shown here is still unavailable, stale, or waiting on review.`;
 }
 
 export function getTrustBandExplanation(readinessScore: number): string {
@@ -209,38 +214,38 @@ export function getReuseSignalExplanation(counts: {
 }): string {
   const total = counts.acceptedCount + counts.requestDataCount + counts.flaggedCount;
   if (total <= 0) {
-    return 'Employer actions will appear here after someone reviews this profile.';
+    return 'Employer decisions will appear here after someone reviews this profile.';
   }
 
-  return 'These counts show how other employers acted on this verification snapshot. They do not replace your own review.';
+  return 'These counts show how other employers responded to this verification snapshot. They do not replace your own review.';
 }
 
 export function getRecentActionExplanation(): string {
-  return 'Recent actions show what another employer chose and when they chose it.';
+  return 'Recent decisions show what another employer chose and when they chose it.';
 }
 
 export function getRecentActionReasonFallback(): string {
-  return 'No explanation was recorded with this action.';
+  return 'No explanation was recorded with this decision.';
 }
 
 export function getArtifactExplanation(claimCount: number, monitoring: boolean): string {
   if (claimCount <= 0) {
-    return 'This source is attached, but it is not yet contributing source-backed claims to the profile.';
+    return 'This source is attached, but it is not yet contributing checked claims to the profile.';
   }
 
   if (monitoring) {
-    return 'This artifact is contributing verified claims and is still being monitored for change.';
+    return 'This artifact is contributing checked claims and is still being monitored for change.';
   }
 
-  return 'This artifact is contributing verified claims, but active monitoring is not attached right now.';
+  return 'This artifact is contributing checked claims, but active monitoring is not attached right now.';
 }
 
 export function getIssuerProvenanceExplanation(monitored: boolean, statusCount: number): string {
   if (monitored) {
-    return `This source currently supports the profile and remains under monitoring across ${statusCount} recorded status ${statusCount === 1 ? 'signal' : 'signals'}.`;
+    return `This source currently supports the profile and remains under monitoring across ${statusCount} recorded update${statusCount === 1 ? '' : 's'}.`;
   }
 
-  return `This source currently supports the profile with ${statusCount} recorded status ${statusCount === 1 ? 'signal' : 'signals'}, but monitoring is not active.`;
+  return `This source currently supports the profile with ${statusCount} recorded update${statusCount === 1 ? '' : 's'}, but monitoring is not active.`;
 }
 
 export function getMonitoringCoverageExplanation(counts: {
@@ -249,7 +254,7 @@ export function getMonitoringCoverageExplanation(counts: {
   activeAlertCount: number;
 }): string {
   if (counts.totalArtifactCount <= 0) {
-    return 'Monitoring begins after the first source-backed artifact attaches to the profile.';
+    return 'Monitoring begins after the first checked artifact attaches to the profile.';
   }
 
   if (counts.activeAlertCount > 0) {

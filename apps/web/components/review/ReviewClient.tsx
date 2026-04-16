@@ -22,6 +22,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTrackEvent } from '@/lib/learning/useTrackEvent';
+import { fireCapsule } from '@/lib/capsules';
 import Link from 'next/link';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import { SectionReveal } from '@/components/motion/ScrollMotion';
@@ -41,6 +42,7 @@ import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard'
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
+import { hasDecisionGradeSignals } from '@/lib/trust/ui-truth-integrity';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
@@ -65,8 +67,13 @@ import {
   employerReviewLoadingLabel,
   formatEmployerReviewPersistedDetail,
   formatEmployerReviewPersistedLabel,
+  normalizeEmployerAcceptanceHistoryResponse,
+  normalizeEmployerReviewActionResponse,
+  normalizeEmployerReviewDriftAlertResponse,
+  normalizeEmployerReviewStatusResponse,
   type EmployerReviewActionIntent,
   type EmployerReviewActionResponse,
+  type EmployerReviewDriftAlert,
   type EmployerReviewActionState,
   type EmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
@@ -86,6 +93,21 @@ import {
   employerProofPacketFilename,
 } from '@/lib/export/employer-proof-packet';
 import {
+  DECISION_NEXT_STEP_HEADING,
+  formatActionTimestamp,
+  getDecisionHeadline,
+  getDecisionNextStep,
+  getEmployerActionLabel,
+  getNoBlockersMessage,
+  getReviewSummaryMessage,
+  withFallbackCopy,
+} from '@/lib/trust/decision-copy';
+import {
+  buildAllClearReadinessAction,
+  buildAllClearTruthAction,
+  ensureSingleActionArray,
+} from '@/lib/trust/single-action';
+import {
   resolveAuthorityAccordionStatus,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -94,6 +116,40 @@ import {
 } from '@/lib/trust/passport-truth';
 import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 import type { CanonicalTruthSet } from '@vitalcv/trust-state';
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function logReviewClientError(message: string, details: Record<string, unknown>): void {
+  console.error(`[ReviewClient] ${message}`, details);
+}
+
+function readErrorDetail(value: unknown): string | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (typeof value.error_description === 'string' && value.error_description.trim().length > 0) {
+    return value.error_description;
+  }
+
+  if (typeof value.error === 'string' && value.error.trim().length > 0) {
+    return value.error;
+  }
+
+  return null;
+}
+
+function isConfirmStartResponse(
+  value: unknown,
+): value is { attestationId: string; startedAt: string } {
+  return isRecord(value)
+    && typeof value.attestationId === 'string'
+    && typeof value.startedAt === 'string';
+}
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],
@@ -183,23 +239,22 @@ function buildSafetyRow(passport: PassportData): {
 } {
   const { standing } = passport;
   const truth = resolvePassportTruthSet(passport);
-  // MS16-E: note contract — checkedAt · dataFreshness · confidenceLabel (· action-flag)
+  // MS16-E: note contract — checkedAt · source freshness (· action-flag)
   const checkedNote = formatAsOfDate(standing.exclusionCheckedAt);
-  const confidence  = standing.exclusionConfidenceLabel ?? null;
 
   switch (standing.exclusionStatus) {
     case 'POSSIBLE_MATCH':
       return {
         status: 'review_required',
         label: 'Exclusion check',
-        note: joinNoteParts(['Review required', checkedNote, confidence, 'requires verification']),
+        note: joinNoteParts(['Review required', checkedNote, 'requires verification']),
         explanation: 'A potential OIG match needs manual adjudication before the employer can rely on this safety layer.',
       };
     case 'EXCLUDED':
       return {
         status: 'blocked',
         label: 'Exclusion check',
-        note: joinNoteParts(['Blocked', checkedNote, confidence, 'requires verification']),
+        note: joinNoteParts(['Blocked', checkedNote, 'requires verification']),
         explanation: 'An exclusion record is attached to this provider. Employment should not proceed until it is resolved.',
       };
     case 'CLEAR':
@@ -209,7 +264,7 @@ function buildSafetyRow(passport: PassportData): {
       return buildTruthStatusLabelRow({
         truth: truth.safety,
         label: 'Exclusion check',
-        confirmedNote: joinNoteParts(['Checked', checkedNote, confidence]),
+        confirmedNote: joinNoteParts(['Checked', checkedNote]),
         confirmedExplanation: 'No exclusion entry was found in the current OIG LEIE check.',
         missingExplanation: 'No current OIG exclusion check is attached to this review.',
       });
@@ -226,12 +281,11 @@ function buildAuthorityRow(credential: PassportData['authority']['credentials'][
     resolveAuthorityAccordionStatus(credential),
   );
 
-  // MS16-E: note carries dataFreshness + confidenceLabel (row contract)
+  // MS16-E: note carries freshness + check timing (row contract)
   const note = joinNoteParts([
     resolveAuthorityStatusLead(credential),
     formatAsOfDate(credential.observedAt ?? credential.verifiedAt),
     credential.dataFreshnessLabel ?? null,
-    credential.claimConfidenceLabel ?? null,
     status !== 'checked' ? 'requires verification' : null,
   ]);
 
@@ -252,9 +306,8 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
   const { standing } = passport;
   const truth = resolvePassportTruthSet(passport);
   const quarterNote  = formatAsOfQuarter(standing.enrollmentObservedAt, standing.enrollmentDataVersion);
-  // MS16-E: note contract — dataFreshness · confidenceLabel · checkedAt (· action-flag)
+  // MS16-E: note contract — dataFreshness · checkedAt (· action-flag)
   const freshness    = standing.enrollmentFreshnessLabel ?? standing.enrollmentDataFreshness ?? null;
-  const confidence   = standing.enrollmentConfidenceLabel ?? null;
 
   switch (status) {
     case 'NOT_FOUND':
@@ -262,7 +315,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
         status: 'review_required',
         label: 'Medicare enrollment',
         // MS16-A explicit label: "Not found in CMS enrollment data — may indicate not enrolled or data lag"
-        note: joinNoteParts(['Review required', freshness, confidence, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
+        note: joinNoteParts(['Review required', freshness, quarterNote, 'estimated quarterly publication lag possible', 'requires verification']),
         explanation:
           standing.enrollmentNote
           ?? 'Not finding a record may indicate non-enrollment or a quarterly CMS publication lag. Verify at pecos.cms.hhs.gov before relying on this layer.',
@@ -274,7 +327,7 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
       return buildTruthStatusLabelRow({
         truth: truth.eligibility,
         label: 'Medicare enrollment',
-        confirmedNote: joinNoteParts(['Enrolled', freshness, confidence, quarterNote]),
+        confirmedNote: joinNoteParts(['Enrolled', freshness, quarterNote]),
         confirmedExplanation:
           standing.enrollmentNote ?? 'CMS PECOS (Simulated) returns an enrolled status for preview. Do not rely on this for decisions.',
         missingExplanation: 'No CMS PECOS lookup has been performed yet. Enrollment eligibility is unknown.',
@@ -292,34 +345,49 @@ function resolveDecisionCardPosture(passport: PassportData): {
   nextAction: string;
   freshnessLabel: string;
 } {
+  const decisionGradeReady = hasDecisionGradeSignals(passport.readiness.level);
+
   if (passport.decisionPosture) {
+    const rawStatus = passport.decisionPosture.status;
+    const status =
+      rawStatus === 'READY' && !decisionGradeReady ? 'PARTIAL' : rawStatus;
+    const truthGuardApplied = status !== rawStatus;
+
     return {
-      status: passport.decisionPosture.status,
-      headline: passport.decisionPosture.headline,
-      nextAction: passport.decisionPosture.nextAction,
-      freshnessLabel: passport.decisionPosture.freshness.label,
+      status,
+      headline: truthGuardApplied
+        ? getDecisionHeadline(status)
+        : withFallbackCopy(
+          passport.decisionPosture.headline,
+          getDecisionHeadline(status),
+        ),
+      nextAction: truthGuardApplied
+        ? 'Decision-grade proof is still missing. Request updated data or continue review before accepting.'
+        : withFallbackCopy(
+          passport.decisionPosture.nextAction,
+          getDecisionNextStep(status),
+        ),
+      freshnessLabel: withFallbackCopy(
+        passport.decisionPosture.freshness.label,
+        'Freshness not available yet.',
+      ),
     };
   }
 
-  const status = passport.readiness.status;
+  const rawStatus = passport.readiness.status;
+  const status =
+    rawStatus === 'READY' && !decisionGradeReady ? 'PARTIAL' : rawStatus;
+  const truthGuardApplied = status !== rawStatus;
 
   return {
     status,
-    headline:
-      status === 'READY'
-        ? 'All attached decision-grade sources support employer review.'
-        : status === 'BLOCKED'
-          ? 'Blocking gaps remain attached to this review.'
-          : 'Some decision-grade sources are still missing, gated, or pending.',
-    nextAction:
-      passport.readiness.nextActions[0]?.detail
-      ?? (
-        status === 'READY'
-          ? 'Accept as head start.'
-          : status === 'BLOCKED'
-            ? 'Route to review or request refresh before start.'
-            : 'Request refresh for the missing decision-grade checks.'
-      ),
+    headline: getDecisionHeadline(status),
+    nextAction: truthGuardApplied
+      ? 'Decision-grade proof is still missing. Request updated data or continue review before accepting.'
+      : ensureSingleActionArray(
+        passport.readiness.nextActions,
+        buildAllClearReadinessAction(),
+      )[0].detail || getDecisionNextStep(status),
     freshnessLabel: passport.trustPosture.freshness.label,
   };
 }
@@ -327,11 +395,12 @@ function resolveDecisionCardPosture(passport: PassportData): {
 interface BinaryDecisionCardProps {
   passport: PassportData;
   blocked: string[];
-  safetyRow: { status: TrustStatus };
   identityStatus: TrustStatus;
   authorityCredentials: PassportData['authority']['credentials'];
   acceptanceHistorySummary: EmployerAcceptanceHistoryResponse['summary'];
+  hasOpenDriftAlerts: boolean;
   canPersistActions: boolean;
+  isBusy: boolean;
   previewOnlyMessage: string | null;
   onAccept: () => void;
   onRequestRefresh: () => void;
@@ -341,11 +410,12 @@ interface BinaryDecisionCardProps {
 function BinaryDecisionCard({
   passport,
   blocked,
-  safetyRow,
   identityStatus,
   authorityCredentials,
   acceptanceHistorySummary,
+  hasOpenDriftAlerts,
   canPersistActions,
+  isBusy,
   previewOnlyMessage,
   onAccept,
   onRequestRefresh,
@@ -353,6 +423,7 @@ function BinaryDecisionCard({
 }: BinaryDecisionCardProps) {
   const { identity, standing } = passport;
   const decisionPosture = resolveDecisionCardPosture(passport);
+  const decisionGradeReady = hasDecisionGradeSignals(passport.readiness.level);
 
   // Active license check
   const hasActiveLicense = authorityCredentials.some(
@@ -427,7 +498,7 @@ function BinaryDecisionCard({
   return (
     <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionPosture.status]}>
       {/* Name + decision readiness */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician Under Review</p>
           <h1 className="text-foreground text-3xl font-bold uppercase tracking-tight leading-none">{identity.displayName}</h1>
@@ -436,7 +507,7 @@ function BinaryDecisionCard({
             {decisionPosture.headline}
           </p>
         </div>
-        <div className="text-right shrink-0">
+        <div className="shrink-0 text-left sm:text-right">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-1">Decision Posture</p>
           <p className={"text-2xl font-bold font-mono " + DECISION_TEXT[decisionPosture.status]}>{decisionPosture.status}</p>
         </div>
@@ -469,11 +540,11 @@ function BinaryDecisionCard({
       )}
 
       <div className="mt-4 rounded-2xl border border-border bg-black/15 px-4 py-3">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Portable acceptance</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Previous employer decisions</p>
         <p className="mt-1 text-sm font-medium text-foreground">{acceptanceHistorySummary.headline}</p>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/60">
           {acceptanceHistorySummary.trustCopy
-            ?? 'Any future VitalCV acceptance will appear here with its organization-specific scope.'}
+            ?? 'Saved employer decisions will appear here with their scope.'}
         </p>
       </div>
 
@@ -482,7 +553,7 @@ function BinaryDecisionCard({
         <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Next best action</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">{DECISION_NEXT_STEP_HEADING}</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground">
                 {decisionPosture.nextAction}
               </p>
@@ -500,30 +571,40 @@ function BinaryDecisionCard({
         </div>
         <Button
           onClick={onAccept}
-          disabled={!canPersistActions || decisionPosture.status === 'BLOCKED'}
+          disabled={
+            isBusy
+            || !canPersistActions
+            || decisionPosture.status === 'BLOCKED'
+            || hasOpenDriftAlerts
+            || !decisionGradeReady
+          }
           variant="success"
           className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
         >
-          {decisionPosture.status === 'BLOCKED'
-            ? 'Acceptance blocked — resolve blockers first'
-            : `Accept as head start${blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}`}
+          {hasOpenDriftAlerts
+            ? 'Resolve verification alerts before accepting'
+            : decisionPosture.status === 'BLOCKED'
+            ? 'Cannot accept until blockers are resolved'
+            : !decisionGradeReady
+            ? 'Decision-grade proof required before accepting'
+            : getEmployerActionLabel('accept')}
         </Button>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             onClick={onRequestRefresh}
-            disabled={!canPersistActions}
+            disabled={isBusy || !canPersistActions}
             variant="outline"
             className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
           >
-            Request refresh
+            {getEmployerActionLabel('refresh')}
           </Button>
           <Button
             onClick={onRouteToReview}
-            disabled={!canPersistActions}
+            disabled={isBusy || !canPersistActions}
             variant="outline"
             className="h-11 rounded-none border-red-500/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-red-500/70 hover:bg-red-500 hover:text-white hover:border-red-500"
           >
-            Route to review
+            {getEmployerActionLabel('review')}
           </Button>
         </div>
         {previewOnlyMessage && (
@@ -559,14 +640,14 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
 
   return (
     <Card className="gap-3 rounded-2xl border-[var(--vt-badge-warning-border)] bg-[var(--vt-surface-2)] px-4 py-4 shadow-none">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--vt-badge-warning-text)]">
           Source freshness
         </p>
         <TrustStatusBadge status="stale" label="Refresh recommended" size="sm" />
       </div>
       {entries.map(e => (
-        <div key={e.layer} className="flex items-start justify-between gap-3 rounded-xl border border-white/6 bg-muted px-3 py-2.5">
+        <div key={e.layer} className="flex flex-col gap-2 rounded-xl border border-white/6 bg-muted px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <div className="flex items-center gap-1.5">
             <span className="w-2 shrink-0 text-[10px] text-[var(--vt-text-3)]">
               {e.stale ? '⚠' : e.unchecked ? '○' : '✔'}
@@ -575,14 +656,12 @@ function FreshnessPanel({ entries }: { entries: PassportFreshnessEntry[] }) {
               {e.layer}
             </span>
           </div>
-          <span className="shrink-0 text-right text-[10px] text-[var(--vt-text-3)]">
+          <span className="text-[10px] text-[var(--vt-text-3)] sm:shrink-0 sm:text-right">
             {e.stale
-              ? `stale — ${e.checkedAt ? new Date(e.checkedAt).toLocaleDateString() : 'date unknown'}`
+              ? `stale — ${formatActionTimestamp(e.checkedAt ?? null, 'date') ?? 'date unknown'}`
               : e.unchecked
                 ? e.stateLabel ?? 'Unavailable'
-                : e.checkedAt
-                  ? new Date(e.checkedAt).toLocaleDateString()
-                  : 'unknown'}
+                : formatActionTimestamp(e.checkedAt ?? null, 'date') ?? 'unknown'}
           </span>
         </div>
       ))}
@@ -648,7 +727,12 @@ type ActionState =
   | { phase: 'error'; intent: EmployerReviewActionIntent; message: string }
   | { phase: 'downloading' };
 
-type EmployerActionEndpoint = 'accept' | 'request-refresh' | 'route-to-review' | 'reject';
+type EmployerActionEndpoint =
+  | 'accept'
+  | 'request-refresh'
+  | 'route-to-review'
+  | 'pause-candidate'
+  | 'reject';
 
 class PilotFallbackError extends Error {
   constructor(public readonly pilotMessage: string) {
@@ -686,6 +770,64 @@ function formatAcceptanceScopeLabel(scope: EmployerAcceptanceHistoryEntry['accep
   }
 }
 
+function buildAcceptanceHistoryHeadline(count: number): string {
+  if (count <= 0) return 'No prior acceptances';
+  return `Accepted by ${count} organization${count === 1 ? '' : 's'}`;
+}
+
+function buildAcceptanceHistoryTrustCopy(count: number): string | null {
+  if (count <= 0) {
+    return null;
+  }
+
+  return 'This clinician has already been accepted using VitalCV verification. Each acceptance remains scoped to the organization and scope shown below.';
+}
+
+function applyAcceptedActionToHistory(
+  previous: EmployerAcceptanceHistoryResponse,
+  actionState: EmployerReviewActionState,
+): EmployerAcceptanceHistoryResponse {
+  if (actionState.action !== 'accept' || !actionState.acceptance) {
+    return previous;
+  }
+
+  const nextEntry: EmployerAcceptanceHistoryEntry = {
+    acceptanceId: actionState.persistence.acceptanceId,
+    acceptedByOrgId: actionState.acceptance.acceptedByOrgId,
+    acceptedAt: actionState.acceptance.acceptedAt,
+    acceptanceScope: actionState.acceptance.acceptanceScope,
+    acceptanceReason: actionState.acceptance.acceptanceReason,
+    orgLabel: 'Current employer workspace',
+    isAnonymized: true,
+  };
+
+  const dedupeKey = actionState.persistence.acceptanceId
+    ?? actionState.acceptance.acceptedByOrgId
+    ?? actionState.acceptance.acceptedAt;
+
+  const history = [
+    nextEntry,
+    ...previous.history.filter((entry) => {
+      const entryKey = entry.acceptanceId ?? entry.acceptedByOrgId ?? entry.acceptedAt;
+      return entryKey !== dedupeKey;
+    }),
+  ];
+  const acceptedOrganizationCount = new Set(
+    history.map((entry, index) => entry.acceptedByOrgId ?? `anonymized:${entry.acceptanceId ?? entry.acceptedAt}:${index}`),
+  ).size;
+
+  return {
+    ok: true,
+    summary: {
+      acceptedOrganizationCount,
+      hasPriorAcceptances: acceptedOrganizationCount > 0,
+      headline: buildAcceptanceHistoryHeadline(acceptedOrganizationCount),
+      trustCopy: buildAcceptanceHistoryTrustCopy(acceptedOrganizationCount),
+    },
+    history,
+  };
+}
+
 function buildReviewScopeSearchParams(scope?: {
   contextId?: string;
   bundleId?: string;
@@ -716,6 +858,7 @@ async function postAction(
   const res = await fetch(`${API}/api/employer-review/${entityId}/${endpoint}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(8000),
     body: JSON.stringify({
       ...(body ?? {}),
       ...(scope?.contextId ? { organizationContextId: scope.contextId } : {}),
@@ -723,15 +866,29 @@ async function postAction(
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error_description?: string };
+    const err = await res.json().catch(() => null);
     const status = res.status;
     if (status === 401 || status === 403) {
       if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
       if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision logged for pilot audit trail');
     }
-    throw new Error(err.error_description ?? `Action failed (${status})`);
+    throw new Error(readErrorDetail(err) ?? `Action failed (${status})`);
   }
-  return res.json() as Promise<EmployerReviewActionResponse>;
+  const payload = await res.json().catch(() => null);
+  const normalized = normalizeEmployerReviewActionResponse(
+    payload,
+    endpoint === 'request-refresh'
+      ? 'refresh'
+      : endpoint === 'route-to-review'
+        ? 'review'
+        : 'accept',
+  );
+
+  if (!normalized) {
+    throw new Error('Unexpected action response from employer review API.');
+  }
+
+  return normalized;
 }
 
 async function getPersistedActionState(
@@ -745,27 +902,143 @@ async function getPersistedActionState(
     `${API}/api/employer-review/${entityId}/status${buildReviewScopeSearchParams(scope)}`,
     {
       headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
     },
   );
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error_description?: string };
-    throw new Error(err.error_description ?? `Status lookup failed (${res.status})`);
+    const err = await res.json().catch(() => null);
+    throw new Error(readErrorDetail(err) ?? `Status lookup failed (${res.status})`);
   }
 
-  const payload = await res.json() as EmployerReviewStatusResponse;
-  return payload.state ?? null;
+  const payload = await res.json().catch(() => null);
+  const normalized = normalizeEmployerReviewStatusResponse(payload);
+  if (!normalized) {
+    throw new Error('Unexpected employer review status response.');
+  }
+  return normalized.state ?? null;
+}
+
+async function getDriftAlerts(entityId: string): Promise<EmployerReviewDriftAlert[]> {
+  const res = await fetch(`${API}/api/employer-review/${entityId}/drift-alerts`, {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(readErrorDetail(err) ?? `Drift alerts lookup failed (${res.status})`);
+  }
+
+  const payload = await res.json().catch(() => null);
+  const normalized = normalizeEmployerReviewDriftAlertResponse(payload);
+  if (!normalized) {
+    throw new Error('Unexpected employer review drift alerts response.');
+  }
+  return normalized.alerts;
+}
+
+function DriftAlertPanel({
+  alerts,
+  busy,
+  onRequestRefresh,
+  onRouteToReview,
+  onPauseCandidate,
+}: {
+  alerts: EmployerReviewDriftAlert[];
+  busy: boolean;
+  onRequestRefresh: () => void;
+  onRouteToReview: () => void;
+  onPauseCandidate: () => void;
+}) {
+  if (alerts.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="gap-4 rounded-2xl border-amber-500/30 bg-amber-500/[0.06] px-5 py-5 shadow-none">
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/80">
+          Verification alerts
+        </p>
+        <p className="text-sm font-medium text-foreground">
+          New source-backed changes need follow-up before you rely on this profile.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {alerts.map((alert) => (
+          <div
+            key={alert.alertId}
+            className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3"
+          >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">⚠ {alert.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground/70">
+                  {alert.message}
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Detected</p>
+                <p className="mt-1 text-xs text-foreground/70">
+                  {formatActionTimestamp(alert.createdAt, 'full') ?? 'Time unavailable'}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <Button
+          onClick={onRequestRefresh}
+          disabled={busy}
+          variant="outline"
+          className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
+        >
+          Re-run verification
+        </Button>
+        <Button
+          onClick={onRouteToReview}
+          disabled={busy}
+          variant="outline"
+          className="h-11 rounded-none border-border bg-transparent text-[10px] font-bold uppercase tracking-widest text-foreground/60 hover:bg-foreground hover:text-background"
+        >
+          Route to review
+        </Button>
+        <Button
+          onClick={onPauseCandidate}
+          disabled={busy}
+          variant="outline"
+          className="h-11 rounded-none border-red-500/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-red-500/70 hover:bg-red-500 hover:text-white hover:border-red-500"
+        >
+          Pause candidate
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 async function getAcceptanceHistory(entityId: string): Promise<EmployerAcceptanceHistoryResponse> {
   const res = await fetch(`${API}/api/employer-review/${entityId}/acceptance-history`, {
     headers: { Accept: 'application/json' },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) {
     throw new Error(`Acceptance history lookup failed (${res.status})`);
   }
 
-  return res.json() as Promise<EmployerAcceptanceHistoryResponse>;
+  const payload = await res.json().catch(() => null);
+  const normalized = normalizeEmployerAcceptanceHistoryResponse(payload);
+  if (!normalized) {
+    throw new Error('Unexpected acceptance history response.');
+  }
+  return normalized;
 }
 
 function AcceptanceHistoryPanel({
@@ -827,7 +1100,7 @@ function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
       <div className="w-full max-w-3xl space-y-6">
-        <div className="flex items-center justify-between border-b border-[var(--vt-border)] pb-4">
+        <div className="flex flex-col gap-3 border-b border-[var(--vt-border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold">V</div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">VitalCV</span>
@@ -836,12 +1109,12 @@ function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
         </div>
 
         <Card className="rounded-2xl border border-border bg-card px-5 py-5 shadow-none">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <Skeleton className="h-6 w-44 rounded-full" />
               <Skeleton className="h-4 w-28 rounded-full" />
             </div>
-            <div className="space-y-2 text-right">
+            <div className="space-y-2 text-left sm:text-right">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Decision readiness</p>
               <TrustStatusBadge status="pending" label="Pending" size="sm" />
             </div>
@@ -861,13 +1134,13 @@ function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
 
           <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button disabled variant="success" className="h-12 rounded-xl text-sm font-semibold sm:col-span-3">
-              Proceed (head start)
+              {getEmployerActionLabel('accept')}
             </Button>
             <Button disabled variant="outline" className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70">
-              Request updated data
+              {getEmployerActionLabel('refresh')}
             </Button>
             <Button disabled variant="outline" className="h-11 rounded-xl border-border bg-white/[0.03] text-xs text-foreground/70">
-              Route to review
+              {getEmployerActionLabel('review')}
             </Button>
           </div>
 
@@ -899,6 +1172,7 @@ function ReviewClientLoaded({
   const [acceptanceHistoryState, setAcceptanceHistoryState] = useState<EmployerAcceptanceHistoryResponse>(
     () => acceptanceHistory ?? buildEmptyAcceptanceHistory(),
   );
+  const [driftAlerts, setDriftAlerts] = useState<EmployerReviewDriftAlert[]>([]);
   const { isLoaded, isSignedIn, isEmployer } = useRoleContext();
   const mountedRef = useRef(true);
   const actionInFlightRef = useRef(false);
@@ -918,9 +1192,15 @@ function ReviewClientLoaded({
   const missingDomains    = authority.summary.missing;
   const blocked = Array.from(new Set(readiness.blockers));
   const reviewTruth = buildPassportReviewTruthModel(passport);
+  const reviewNextActions = ensureSingleActionArray(
+    reviewTruth.buckets.nextActions,
+    buildAllClearTruthAction(),
+  );
+  const [reviewNextAction] = reviewNextActions;
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
   const showReadinessScore = proofSummary.decisionGradeCount > 0;
+  const decisionGradeReady = hasDecisionGradeSignals(readiness.level);
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
@@ -984,6 +1264,7 @@ function ReviewClientLoaded({
     if (!canPersistActions) {
       if (mountedRef.current) {
         setPersistedActionState(null);
+        setDriftAlerts([]);
       }
       return;
     }
@@ -992,16 +1273,27 @@ function ReviewClientLoaded({
 
     void (async () => {
       try {
-        const state = await getPersistedActionState(passport.entityId, {
-          contextId,
-          bundleId,
-        });
+        const [state, alerts] = await Promise.all([
+          getPersistedActionState(passport.entityId, {
+            contextId,
+            bundleId,
+          }),
+          getDriftAlerts(passport.entityId),
+        ]);
         if (!cancelled && mountedRef.current) {
           setPersistedActionState(state);
+          setDriftAlerts(alerts);
         }
-      } catch {
+      } catch (error) {
+        logReviewClientError('Failed to load persisted employer action state', {
+          entityId: passport.entityId,
+          contextId: contextId ?? null,
+          bundleId: bundleId ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        });
         if (!cancelled && mountedRef.current) {
           setPersistedActionState(null);
+          setDriftAlerts([]);
         }
       }
     })();
@@ -1051,8 +1343,26 @@ function ReviewClientLoaded({
       if (mountedRef.current) {
         setAcceptanceHistoryState(history);
       }
-    } catch {
+    } catch (error) {
+      console.error('[ReviewClient] Failed to refresh acceptance history', {
+        entityId: passport.entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       // Acceptance history is supplemental. Keep the last known state on failure.
+    }
+  }
+
+  async function refreshDriftAlerts() {
+    try {
+      const alerts = await getDriftAlerts(passport.entityId);
+      if (mountedRef.current) {
+        setDriftAlerts(alerts);
+      }
+    } catch (error) {
+      logReviewClientError('Failed to refresh drift alerts', {
+        entityId: passport.entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -1080,12 +1390,37 @@ function ReviewClientLoaded({
       if (!mountedRef.current) return;
 
       setPersistedActionState(result.state);
+      if (config.intent === 'accept') {
+        setAcceptanceHistoryState((previous) => applyAcceptedActionToHistory(previous, result.state));
+      }
       setActionState({
         phase: 'done',
         state: result.state,
       });
       if (config.intent === 'accept') {
         void refreshAcceptanceHistory();
+      }
+      if (config.intent === 'refresh' || config.intent === 'review' || config.intent === 'pause') {
+        void refreshDriftAlerts();
+      }
+      // Trigger #2 — Employer action: fire capsule on accept/reject only (real decisions)
+      if (config.intent === 'accept' || config.intent === 'reject') {
+        const subjectNpi = passport.identity.npi ?? passport.npi;
+        if (subjectNpi && /^\d{10}$/.test(subjectNpi)) {
+          fireCapsule({
+            subjectNpi,
+            decisionType: 'HIRING',
+            triggerEvent: config.intent === 'accept' ? 'employment_acceptance' : 'verifier_decision',
+            sourceReferenceId: passport.entityId,
+            metadata: {
+              source: 'review-client',
+              intent: config.intent,
+              entityId: passport.entityId,
+              contextId: contextId ?? null,
+              bundleId: bundleId ?? null,
+            },
+          });
+        }
       }
       trackEmployerActionResult(config.intent, 'success', startedAt);
     } catch (error) {
@@ -1095,6 +1430,13 @@ function ReviewClientLoaded({
         trackEmployerActionResult(config.intent, 'success', startedAt);
         return;
       }
+      logReviewClientError('Employer action failed', {
+        entityId: passport.entityId,
+        intent: config.intent,
+        contextId: contextId ?? null,
+        bundleId: bundleId ?? null,
+        error: error instanceof Error ? error.message : String(error),
+      });
       const message = resolveLivePathErrorMessage(error, 'Action failed');
       setActionState({ phase: 'error', intent: config.intent, message });
       trackEmployerActionResult(config.intent, 'error', startedAt, message);
@@ -1143,11 +1485,14 @@ function ReviewClientLoaded({
     e.preventDefault();
     const acceptanceId = persistedActionState?.persistence?.acceptanceId ?? null;
     if (!confirmStartFields.startedAt || !confirmStartFields.role || !confirmStartFields.facility) return;
-    setConfirmStartState({ phase: 'loading' });
+    if (mountedRef.current) {
+      setConfirmStartState({ phase: 'loading' });
+    }
     try {
       const res = await fetch(`${API}/api/employer-review/${passport.entityId}/confirm-start`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
           startedAt:    confirmStartFields.startedAt,
           role:         confirmStartFields.role,
@@ -1156,14 +1501,38 @@ function ReviewClientLoaded({
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? `Confirm start failed (${res.status})`);
+        const err = await res.json().catch(() => null);
+        throw new Error(readErrorDetail(err) ?? `Confirm start failed (${res.status})`);
       }
-      const data = await res.json() as { attestationId: string; startedAt: string };
-      setConfirmStartState({ phase: 'done', attestationId: data.attestationId, startedAt: data.startedAt });
+      const data = await res.json().catch(() => null);
+      if (!isConfirmStartResponse(data)) {
+        throw new Error('Unexpected confirm start response.');
+      }
+      if (mountedRef.current) {
+        setConfirmStartState({ phase: 'done', attestationId: data.attestationId, startedAt: data.startedAt });
+      }
     } catch (err) {
-      setConfirmStartState({ phase: 'error', message: err instanceof Error ? err.message : 'Failed to record start date.' });
+      logReviewClientError('Confirm start failed', {
+        entityId: passport.entityId,
+        acceptanceId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      if (mountedRef.current) {
+        setConfirmStartState({ phase: 'error', message: err instanceof Error ? err.message : 'Failed to record start date.' });
+      }
     }
+  }
+
+  async function handlePauseCandidate() {
+    await runEmployerAction({
+      intent: 'pause',
+      endpoint: 'pause-candidate',
+      body: {
+        reason: driftAlerts.length > 0
+          ? `Paused after drift alert: ${driftAlerts[0]?.title ?? 'Verification changed'}`
+          : 'Employer paused the candidate pending new verification.',
+      },
+    });
   }
 
   async function handleDownloadPacket() {
@@ -1177,12 +1546,13 @@ function ReviewClientLoaded({
         throw new Error('This review does not have a valid NPI for packet export.');
       }
 
-      const res = await fetch(buildEmployerProofPacketDownloadUrl(npi));
+      const res = await fetch(buildEmployerProofPacketDownloadUrl(npi), {
+        signal: AbortSignal.timeout(15000),
+      });
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({})) as { error_description?: string; error?: string };
+        const payload = await res.json().catch(() => null);
         throw new Error(
-          payload.error_description
-          ?? payload.error
+          readErrorDetail(payload)
           ?? `Export failed (${res.status})`,
         );
       }
@@ -1196,6 +1566,10 @@ function ReviewClientLoaded({
       document.body.removeChild(a);
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
+      logReviewClientError('Employer proof packet download failed', {
+        entityId: passport.entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       if (mountedRef.current) {
         setActionState({
           phase: 'error',
@@ -1215,7 +1589,7 @@ function ReviewClientLoaded({
       <div className="w-full max-w-3xl space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-muted-foreground/50 text-xs tracking-widest uppercase">VitalCV</span>
           <span className="text-muted-foreground/50 text-xs">Employer review</span>
         </div>
@@ -1228,11 +1602,12 @@ function ReviewClientLoaded({
           <BinaryDecisionCard
             passport={passport}
             blocked={blocked}
-            safetyRow={safetyRow}
             identityStatus={identityStatus}
             authorityCredentials={authority.credentials}
             acceptanceHistorySummary={acceptanceHistoryState.summary}
+            hasOpenDriftAlerts={driftAlerts.length > 0}
             canPersistActions={canPersistActions}
+            isBusy={actionState.phase === 'downloading'}
             previewOnlyMessage={previewOnlyMessage}
             onAccept={handleAccept}
             onRequestRefresh={handleRequestRefresh}
@@ -1240,42 +1615,52 @@ function ReviewClientLoaded({
           />
         )}
 
+        {(actionState.phase === 'idle' || actionState.phase === 'downloading') && (
+          <DriftAlertPanel
+            alerts={driftAlerts}
+            busy={actionState.phase === 'downloading'}
+            onRequestRefresh={handleRequestRefresh}
+            onRouteToReview={handleRouteToReview}
+            onPauseCandidate={handlePauseCandidate}
+          />
+        )}
+
         {/* ── Review context attribution ────────────────────────────────────── */}
         {(sharedBy || contextId || bundleId) && (
           <Card className="gap-2 rounded-xl border-white/8 bg-white/[0.03] px-4 py-3 shadow-none">
             {sharedBy && (
-              <div className="flex justify-between text-xs">
+              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <span className="text-muted-foreground">Shared by</span>
-                <span className="text-foreground">{sharedBy}</span>
+                <span className="break-words text-foreground sm:text-right">{sharedBy}</span>
               </div>
             )}
-            <div className={`flex justify-between text-xs ${sharedBy ? 'mt-1' : ''}`}>
+            <div className={`flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3 ${sharedBy ? 'mt-1' : ''}`}>
               <span className="text-muted-foreground">Purpose</span>
-              <span className="text-foreground">Employment review</span>
+              <span className="text-foreground sm:text-right">Employment review</span>
             </div>
             {contextId && (
-              <div className="flex justify-between text-xs mt-1">
+              <div className="mt-1 flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <span className="text-muted-foreground">Review context</span>
-                <span className="text-foreground font-mono">{contextId.slice(0, 8)}…</span>
+                <span className="break-all text-foreground font-mono sm:text-right">{contextId.slice(0, 8)}…</span>
               </div>
             )}
             {bundleId && (
-              <div className="flex justify-between text-xs mt-1">
+              <div className="mt-1 flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <span className="text-muted-foreground">Bundle review</span>
-                <span className="text-foreground font-mono">{bundleId.slice(0, 8)}…</span>
+                <span className="break-all text-foreground font-mono sm:text-right">{bundleId.slice(0, 8)}…</span>
               </div>
             )}
-            <div className="flex justify-between text-xs mt-1">
+            <div className="mt-1 flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <span className="text-muted-foreground">Audit trail</span>
-              <span className="text-foreground">Actions tied to this context</span>
+              <span className="text-foreground sm:text-right">Actions tied to this context</span>
             </div>
           </Card>
         )}
         {!sharedBy && !contextId && !bundleId && (
           <Card className="gap-2 rounded-xl border-amber-500/15 bg-amber-500/5 px-4 py-3 shadow-none">
-            <div className="flex justify-between text-xs">
+            <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3">
               <span className="text-muted-foreground">Review context</span>
-              <span className="text-amber-300/70">None — direct view</span>
+              <span className="text-amber-300/70 sm:text-right">None — direct view</span>
             </div>
             <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/40">
               Actions here are not tied to a confirmed employer context.{' '}
@@ -1341,7 +1726,9 @@ function ReviewClientLoaded({
               <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1 space-y-1.5">
                 <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Audit record</p>
                 <p className="text-foreground text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-                <p className="text-muted-foreground/40 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+                <p className="text-muted-foreground/40 text-[10px]">
+                  {formatActionTimestamp(actionState.state.timestamp, 'full') ?? 'Timestamp unavailable'}
+                </p>
               </div>
 
               {/* Record Start Date — only available after an accept action */}
@@ -1363,7 +1750,7 @@ function ReviewClientLoaded({
                         className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div className="space-y-1">
                         <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-role">Role</label>
                         <input
@@ -1409,7 +1796,9 @@ function ReviewClientLoaded({
                     <p className="text-[var(--vt-success)] text-xs font-medium">Start attested</p>
                   </div>
                   <p className="text-muted-foreground/60 text-[10px] font-mono break-all">{confirmStartState.attestationId}</p>
-                  <p className="text-muted-foreground/50 text-[10px]">{new Date(confirmStartState.startedAt).toLocaleDateString()}</p>
+                  <p className="text-muted-foreground/50 text-[10px]">
+                    {formatActionTimestamp(confirmStartState.startedAt, 'date') ?? 'Date unavailable'}
+                  </p>
                 </div>
               )}
             </TrustStateCard>
@@ -1466,7 +1855,7 @@ function ReviewClientLoaded({
               </p>
               {!showReadinessScore ? (
                 <p className="mt-1 text-[11px] text-muted-foreground/60">
-                  Score appears after source-backed claims attach.
+                  Score appears after decision-grade proof attaches.
                 </p>
               ) : null}
             </div>
@@ -1493,11 +1882,9 @@ function ReviewClientLoaded({
           <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Decision snapshot</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">What this review shows</p>
                 <p className="mt-1 text-sm leading-relaxed text-foreground">
-                  {blocked.length > 0
-                    ? `Proceed only as a head start. ${blocked.length} blocker${blocked.length === 1 ? '' : 's'} still need review or refresh.`
-                    : 'No visible blockers are attached to this review right now.'}
+                  {getReviewSummaryMessage(blocked.length)}
                 </p>
               </div>
               <p className="text-xs text-muted-foreground/50">
@@ -1532,7 +1919,7 @@ function ReviewClientLoaded({
             </div>
 
             <div className="border-t border-border pt-4 space-y-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold">Trust stack</h2>
                 <span className="text-muted-foreground/20 text-[11px] uppercase tracking-[0.18em]">Safety · Authority · Eligibility</span>
               </div>
@@ -1606,7 +1993,11 @@ function ReviewClientLoaded({
             <div className="border-t border-border pt-4 space-y-1 text-sm">
               <h2 className="text-muted-foreground/60 text-xs uppercase tracking-widest font-semibold mb-2">Readiness</h2>
               <p className="text-foreground font-medium pb-1">
-                {showReadinessScore ? `${readiness.score}% ready` : 'Readiness score withheld until source-backed claims attach'}
+                {showReadinessScore
+                  ? decisionGradeReady
+                    ? `${readiness.score}% ready`
+                    : `${readiness.score}% complete`
+                  : 'Readiness score withheld until decision-grade proof attaches'}
               </p>
 
               {/* Q5: Blockers */}
@@ -1630,20 +2021,16 @@ function ReviewClientLoaded({
               </p>
 
               {/* Q6: What do I do? — sourced from readiness.nextActions[] */}
-              {reviewTruth.buckets.nextActions.length > 0 && (
-                <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
-                  <p className="text-muted-foreground/50 text-[10px] uppercase tracking-widest">Next actions</p>
-                  {reviewTruth.buckets.nextActions.slice(0, 4).map((action) => (
-                    <div key={action.id} className="flex items-start gap-2">
-                      <span className="text-muted-foreground/30 text-xs w-3 shrink-0 mt-0.5">·</span>
-                      <div>
-                        <p className="text-foreground text-xs font-medium">{action.label}</p>
-                        <p className="text-muted-foreground/60 text-xs mt-0.5 leading-relaxed">{action.detail}</p>
-                      </div>
-                    </div>
-                  ))}
+              <div className="pt-3 mt-1 border-t border-white/8 space-y-2">
+                <p className="text-muted-foreground/50 text-[10px] uppercase tracking-widest">Next actions</p>
+                <div className="flex items-start gap-2">
+                  <span className="text-muted-foreground/30 text-xs w-3 shrink-0 mt-0.5">·</span>
+                  <div>
+                    <p className="text-foreground text-xs font-medium">{reviewNextAction.label}</p>
+                    <p className="text-muted-foreground/60 text-xs mt-0.5 leading-relaxed">{reviewNextAction.detail}</p>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
           </Card>
@@ -1748,7 +2135,9 @@ function ReviewClientLoaded({
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Review warnings</p>
               <p className="mt-1 text-sm text-foreground/60">
-                {blocked.length > 0 ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}` : 'No blockers'}
+                {blocked.length > 0
+                  ? `${blocked.length} blocker${blocked.length === 1 ? '' : 's'}`
+                  : getNoBlockersMessage('review')}
               </p>
             </div>
           </div>
@@ -1770,7 +2159,7 @@ function ReviewClientLoaded({
             </div>
           ) : (
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground/60">
-              Employer actions below are real. VitalCV waits for the backend audit event before it renders success.
+              Actions below confirm only after VitalCV saves them in the audit trail.
             </p>
           )}
         </Card>
@@ -1786,7 +2175,7 @@ function ReviewClientLoaded({
             </p>
 
             <div className="rounded-lg border border-white/6 bg-white/2 px-3 py-2.5">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">
                     Trust posture
@@ -1801,7 +2190,7 @@ function ReviewClientLoaded({
                     {reviewTruth.posture.reliableLabel}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Score</p>
                   <p className="text-lg font-semibold tabular-nums text-foreground/70">
                     {reviewTruth.posture.score}
@@ -1867,11 +2256,11 @@ function ReviewClientLoaded({
 
             <div className="border-t border-white/6 pt-2">
               <ReviewTruthBucket
-                title="Next action"
-                items={reviewTruth.buckets.nextActions}
+                title={DECISION_NEXT_STEP_HEADING}
+                items={reviewNextActions}
                 icon="→"
                 accentClassName="text-muted-foreground/60"
-                emptyLabel="No follow-up action is attached right now."
+                emptyLabel="No next step is attached right now."
               />
             </div>
 
@@ -1881,10 +2270,10 @@ function ReviewClientLoaded({
                 <span className="text-amber-400/70 text-xs mt-0.5">⚠</span>
                 <div>
                   <p className="text-amber-300/80 text-xs font-medium">
-                    {blocked.length} active blocker{blocked.length === 1 ? '' : 's'} — you&apos;re accepting with known gaps
+                    {blocked.length} blocker{blocked.length === 1 ? '' : 's'} still need review
                   </p>
                   <p className="text-amber-400/50 text-[10px] mt-0.5">
-                    "Proceed with Credentialing Head Start" records your decision and these blockers in the audit trail. Primary source verification (PSV) is still pending.
+                    Accepting as a head start saves your decision and the remaining blockers in the audit trail. Primary source verification can still change this result.
                   </p>
                 </div>
               </div>

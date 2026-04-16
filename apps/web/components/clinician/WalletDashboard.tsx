@@ -11,7 +11,9 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { BentoGrid, BentoItem } from '@/components/ui/bento-grid';
+import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { CRSRing } from '@/components/ui/crs-ring';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { TrustBandIndicator } from '@/components/ui/trust-band-indicator';
@@ -140,6 +142,18 @@ export function WalletDashboard() {
 
   const openFocusMode = useCallback((cred: CredentialCardData) => setFocusCred(cred), []);
   const closeFocusMode = useCallback(() => setFocusCred(null), []);
+
+  useEffect(() => {
+    void trackPilotEvent({
+      eventType: 'wallet_viewed',
+      oncePerSession: true,
+      details: {
+        surface: 'clinician_wallet',
+        npi: DEMO_NPI,
+      },
+    });
+  }, []);
+
   const loadNextBestAction = useCallback(async (signal?: AbortSignal) => {
     setNextAction(null);
     setNextActionFailed(false);
@@ -150,7 +164,7 @@ export function WalletDashboard() {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ npi: DEMO_NPI }),
+        body: JSON.stringify({ npi: DEMO_NPI, actorType: 'clinician' }),
         signal,
       });
 
@@ -161,13 +175,52 @@ export function WalletDashboard() {
       const payload = await response.json() as {
         nextBestAction?: import('@/lib/next-best-action').NextBestActionPayload | null;
       };
-      setNextAction(normalizeNextBestAction(payload.nextBestAction ?? null));
+      const normalized = normalizeNextBestAction(payload.nextBestAction ?? null);
+      setNextAction(normalized);
+
+      if (!normalized) {
+        void trackPilotEvent({
+          eventType: UX_EVENTS.DEAD_END_REACHED,
+          oncePerSession: false,
+          severity: 'medium',
+          message: 'Wallet loaded without a next best action recommendation.',
+          details: {
+            surface: 'clinician_wallet',
+            dependency: '/api/omega',
+            npi: DEMO_NPI,
+          },
+        });
+      }
     } catch (error) {
       if (signal?.aborted) {
         return;
       }
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[WalletDashboard] Failed to load next best action', {
+        error: message,
+        npi: DEMO_NPI,
+      });
       setNextAction(null);
       setNextActionFailed(true);
+      void trackPilotEvent({
+        eventType: 'route_failure',
+        oncePerSession: false,
+        severity: 'high',
+        message: 'Wallet next best action failed to load.',
+        details: {
+          surface: 'clinician_wallet',
+          dependency: '/api/omega',
+          npi: DEMO_NPI,
+          error: message,
+        },
+        queueItem: {
+          source: 'route_failure',
+          title: 'Wallet recommendation failed to load',
+          message: 'The clinician wallet could not load the next best action.',
+          severity: 'high',
+          blocking: false,
+        },
+      });
     }
   }, []);
   useEffect(() => {

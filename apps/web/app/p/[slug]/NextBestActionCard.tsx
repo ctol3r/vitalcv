@@ -5,6 +5,7 @@ import { trackPilotEvent } from '@/lib/pilot-ops/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { safeFetch, SafeFetchError } from '@/lib/safe-fetch';
+import { resolvePublicNextBestActionTruthStatus } from '@/lib/trust/ui-truth-integrity';
 
 export type NextBestActionKind =
   | 'PROCEED'
@@ -17,6 +18,12 @@ export interface NextBestActionPayload {
   reason: string;
   confidence: number;
   evidenceCount: number;
+  summary?: string;
+  highlights?: string[];
+  blockers?: string[];
+  decision?: string | null;
+  nextStep?: string | null;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
 interface ActionMeta {
@@ -105,7 +112,7 @@ function deriveEvidenceSummary(coverage?: CoverageInput | null): {
     sources.push(label);
     if (c.sourceId === 'OIG_LEIE' || c.sourceId === 'OIG') fragments.push('OIG clear');
     else if (c.sourceId === 'STATE_BOARD') fragments.push('license active');
-    else if (c.sourceId === 'NPPES_API' || c.sourceId === 'NPPES') fragments.push('identity verified');
+    else if (c.sourceId === 'NPPES_API' || c.sourceId === 'NPPES') fragments.push('identity match on file');
     else if (c.sourceId === 'PECOS_PUBLIC' || c.sourceId === 'PECOS') fragments.push('PECOS enrolled');
   }
   return { reason: fragments.join(', '), sources };
@@ -118,18 +125,53 @@ const CONSEQUENCE_COPY: Record<NextBestActionKind, string | null> = {
   REVIEW_MANUALLY: null,
 };
 
+function formatDecisionLabel(decision?: string | null): string | null {
+  switch (decision) {
+    case 'PROCEED':
+      return 'Proceed';
+    case 'PROCEED_WITH_CAUTION':
+      return 'Proceed with caution';
+    case 'DO_NOT_PROCEED':
+      return 'Do not proceed';
+    case 'INSUFFICIENT_DATA':
+      return 'Insufficient data';
+    default:
+      return null;
+  }
+}
+
+function formatRiskLabel(riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH'): string | null {
+  switch (riskLevel) {
+    case 'LOW':
+      return 'Low risk';
+    case 'MEDIUM':
+      return 'Moderate risk';
+    case 'HIGH':
+      return 'High risk';
+    default:
+      return null;
+  }
+}
+
 export function NextBestActionCard({
   npi,
   nba,
   coverage,
+  readinessLevel,
 }: {
   npi: string;
   nba: NextBestActionPayload;
   coverage?: CoverageInput | null;
+  readinessLevel?: string | null;
 }) {
-  const meta = META[nba.action];
+  const effectiveAction = resolvePublicNextBestActionTruthStatus({
+    action: nba.action,
+    readinessLevel: readinessLevel ?? null,
+  });
+  const truthGuardApplied = effectiveAction !== nba.action;
+  const meta = META[effectiveAction];
   const evidence = deriveEvidenceSummary(coverage);
-  const consequence = CONSEQUENCE_COPY[nba.action];
+  const consequence = CONSEQUENCE_COPY[effectiveAction];
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [state, setState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
@@ -142,14 +184,14 @@ export function NextBestActionCard({
       details: {
         surface: 'public_review_next_best_action',
         npi,
-        recommendedAction: nba.action,
+        recommendedAction: effectiveAction,
         confidence: nba.confidence,
         evidenceCount: nba.evidenceCount,
       },
     });
     // Only fire on (npi, action) change — not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [npi, nba.action]);
+  }, [effectiveAction, npi, nba.action, nba.confidence, nba.evidenceCount]);
 
   const handleClick = async () => {
     if (state === 'submitting' || state === 'done') return;
@@ -165,7 +207,7 @@ export function NextBestActionCard({
       && typeof window !== 'undefined'
     ) {
       const ok = window.confirm(
-        `Signal is limited. ${meta.headline} anyway?`,
+        `Evidence is limited. ${meta.headline} anyway?`,
       );
       if (!ok) return;
     }
@@ -176,7 +218,7 @@ export function NextBestActionCard({
       details: {
         surface: 'public_review_next_best_action',
         npi,
-        recommendedAction: nba.action,
+        recommendedAction: effectiveAction,
         backendAction: meta.backendAction,
       },
     });
@@ -202,7 +244,7 @@ export function NextBestActionCard({
         details: {
           surface: 'public_review_next_best_action',
           npi,
-          recommendedAction: nba.action,
+          recommendedAction: effectiveAction,
           backendAction: meta.backendAction,
         },
       });
@@ -213,7 +255,7 @@ export function NextBestActionCard({
       const message = err instanceof Error ? err.message : String(err);
       console.error('[NextBestActionCard] Failed to record action', {
         npi,
-        action: nba.action,
+        action: effectiveAction,
         backendAction: meta.backendAction,
         layer,
         error: message,
@@ -226,7 +268,7 @@ export function NextBestActionCard({
         details: {
           surface: 'public_review_next_best_action',
           npi,
-          recommendedAction: nba.action,
+          recommendedAction: effectiveAction,
           backendAction: meta.backendAction,
           layer,
           error: message,
@@ -249,11 +291,16 @@ export function NextBestActionCard({
 
   const isDoing = state === 'submitting';
   const isDone = state === 'done';
+  const decisionLabel = formatDecisionLabel(nba.decision);
+  const riskLabel = formatRiskLabel(nba.riskLevel);
+  const nextActionLabel = nba.nextStep || meta.cta;
   // Prefer evidence-derived reason over backend-supplied reason when we
-  // have any verified sources to point to. Falls back to nba.reason
+  // have any checked sources to point to. Falls back to nba.reason
   // (and finally to a safe default) so the surface is never blank.
   const displayReason =
-    evidence.reason || nba.reason || 'the verified information currently attached to this profile';
+    truthGuardApplied
+      ? 'Decision-grade proof is not attached yet. Continue reviewing the checked records below.'
+      : nba.summary || evidence.reason || nba.reason || 'the checked information currently attached to this profile';
 
   // Plain-language confidence tier. NEVER a percentage — the three
   // tiers map to concrete signal states the user can reason about.
@@ -263,15 +310,15 @@ export function NextBestActionCard({
   //   Limited — some evidence OR history, but not both at strength
   //   Needs review — no evidence, no history, or REVIEW_MANUALLY
   const confidenceTier: 'strong' | 'limited' | 'needs_review' =
-    nba.action === 'REVIEW_MANUALLY' || (evidence.sources.length === 0 && nba.evidenceCount === 0)
+    effectiveAction === 'REVIEW_MANUALLY' || (evidence.sources.length === 0 && nba.evidenceCount === 0)
       ? 'needs_review'
       : evidence.sources.length >= 2 && nba.evidenceCount >= 3 && nba.confidence >= 0.7
         ? 'strong'
         : 'limited';
 
   const confidenceLabel: Record<typeof confidenceTier, string> = {
-    strong: 'Strong signal',
-    limited: 'Limited signal',
+    strong: 'Strong evidence',
+    limited: 'Limited evidence',
     needs_review: 'Needs review',
   };
 
@@ -298,18 +345,67 @@ export function NextBestActionCard({
         </span>
       </div>
 
+      {(decisionLabel || riskLabel || nextActionLabel) && (
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {decisionLabel && (
+            <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2.5 py-1 font-semibold">
+              Decision: {decisionLabel}
+            </span>
+          )}
+          {riskLabel && (
+            <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2.5 py-1 font-semibold">
+              Risk: {riskLabel}
+            </span>
+          )}
+          {nextActionLabel && (
+            <span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2.5 py-1 font-semibold">
+              Next: {nextActionLabel}
+            </span>
+          )}
+        </div>
+      )}
+
       <p className="mt-3 break-words text-base font-medium opacity-90 md:text-lg">
         <span className="font-semibold">Why:</span> {displayReason}
       </p>
 
+      {nba.highlights && nba.highlights.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm opacity-85">
+          {nba.highlights.slice(0, 3).map((highlight) => (
+            <li key={highlight} className="flex gap-2">
+              <span>•</span>
+              <span>{highlight}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {nba.blockers && nba.blockers.length > 0 && (
+        <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
+            Current blockers
+          </p>
+          <ul className="mt-2 space-y-1 opacity-85">
+            {nba.blockers.slice(0, 3).map((blocker) => (
+              <li key={blocker} className="flex gap-2">
+                <span>•</span>
+                <span>{blocker}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <p className="mt-4 text-sm font-semibold opacity-80">
-        {evidence.sources.length > 0 && nba.evidenceCount > 0
-          ? 'Based on verified sources and prior outcomes.'
-          : evidence.sources.length > 0
-            ? 'Based on verified sources — no prior employer outcomes yet.'
-            : nba.evidenceCount > 0
-              ? 'Based on prior outcomes only — no fresh source checks attached.'
-              : 'No verified sources or prior outcomes yet — review manually.'}
+        {truthGuardApplied
+          ? 'This guidance stays on review until decision-grade proof is attached.'
+          : evidence.sources.length > 0 && nba.evidenceCount > 0
+            ? 'Based on checked source records and prior outcomes.'
+            : evidence.sources.length > 0
+              ? 'Based on checked source records — no prior employer outcomes yet.'
+              : nba.evidenceCount > 0
+                ? 'Based on prior outcomes only — no current source checks are attached.'
+                : 'No checked source records or prior outcomes yet — review manually.'}
       </p>
 
       {evidence.sources.length > 0 && (
@@ -319,17 +415,17 @@ export function NextBestActionCard({
         </p>
       )}
 
-      {/* Learning hint — only rendered when the NBA engine has non-zero
+      {/* Context hint — only rendered when the NBA engine has non-zero
           evidenceCount. The hint INFLUENCES prioritization (by surfacing
           historical pattern) but NEVER overrides the source-grounded
           decision above it. Rendered in muted secondary type so it never
-          competes visually with the verified-source reason. */}
-      {nba.evidenceCount > 0 && nba.action !== 'REVIEW_MANUALLY' && (
+          competes visually with the checked-record reason. */}
+      {nba.evidenceCount > 0 && effectiveAction !== 'REVIEW_MANUALLY' && (
         <p className="mt-2 text-xs italic opacity-70">
           <span className="font-semibold not-italic">Context:</span>{' '}
-          {nba.action === 'PROCEED'
+          {effectiveAction === 'PROCEED'
             ? 'similar cases succeeded quickly.'
-            : nba.action === 'ESCALATE'
+            : effectiveAction === 'ESCALATE'
               ? 'similar cases have been rejected before.'
               : 'similar cases have required additional verification.'}
         </p>
@@ -337,11 +433,11 @@ export function NextBestActionCard({
 
       <details className="mt-4 text-xs">
         <summary className="cursor-pointer list-none font-semibold opacity-75 hover:opacity-100">
-          What shapes this signal?
+          What shapes this guidance?
         </summary>
         <ul className="mt-2 list-inside list-disc space-y-1 opacity-80">
           <li>Data completeness — how many decision-grade sources are attached</li>
-          <li>Source freshness — when each source was last verified</li>
+          <li>Source freshness — when each source was last checked</li>
           <li>Prior outcomes — how similar cases have been handled</li>
         </ul>
       </details>

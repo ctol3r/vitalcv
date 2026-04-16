@@ -8,6 +8,10 @@ import {
   type PassportSourceCoverageReport,
 } from '@/lib/trust/source-coverage';
 import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
+import {
+  buildAllClearReadinessAction,
+  ensureSingleActionArray,
+} from '@/lib/trust/single-action';
 
 export type ReadinessStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
 export type PassportTrustPostureState =
@@ -366,6 +370,18 @@ function isTrustPostureFreshnessItem(value: unknown): boolean {
     && isString(value.note);
 }
 
+function isTrustPostureFreshness(value: unknown): value is PassportTrustPostureFreshness {
+  return isRecord(value)
+    && (
+      value.state === 'current'
+      || value.state === 'partial'
+      || value.state === 'stale'
+    )
+    && isString(value.label)
+    && Array.isArray(value.items)
+    && value.items.every(isTrustPostureFreshnessItem);
+}
+
 function isTrustPosture(value: unknown): boolean {
   return isRecord(value)
     && isString(value.band)
@@ -373,15 +389,7 @@ function isTrustPosture(value: unknown): boolean {
     && isNumber(value.score)
     && Array.isArray(value.dimensions)
     && value.dimensions.every(isTrustPostureDimension)
-    && isRecord(value.freshness)
-    && (
-      value.freshness.state === 'current'
-      || value.freshness.state === 'partial'
-      || value.freshness.state === 'stale'
-    )
-    && isString(value.freshness.label)
-    && Array.isArray(value.freshness.items)
-    && value.freshness.items.every(isTrustPostureFreshnessItem)
+    && isTrustPostureFreshness(value.freshness)
     && isStringArray(value.safeToRelyOnNow)
     && isStringArray(value.missingItems)
     && isStringArray(value.gatedItems)
@@ -409,8 +417,25 @@ function isDecisionPosture(value: unknown): value is DecisionPosture {
     && Array.isArray(value.missing)
     && value.missing.every(isDecisionPostureSource)
     && isStringArray(value.blockers)
-    && isRecord(value.freshness)
+    && isTrustPostureFreshness(value.freshness)
     && isString(value.nextAction);
+}
+
+function isPassportMonitoredSource(value: unknown): value is PassportMonitoredSource {
+  return isRecord(value)
+    && isString(value.sourceId)
+    && isString(value.sourceLabel)
+    && isNullableString(value.lastCheckAt)
+    && (value.status === 'active' || value.status === 'paused' || value.status === 'error');
+}
+
+function isPassportMonitoringStatus(value: unknown): value is PassportMonitoringStatus {
+  return isRecord(value)
+    && isBoolean(value.active)
+    && isNullableString(value.lastCheckAt)
+    && Array.isArray(value.monitoredSources)
+    && value.monitoredSources.every(isPassportMonitoredSource)
+    && isNumber(value.activeAlertCount);
 }
 
 export function isPassportData(value: unknown): value is PassportData {
@@ -476,7 +501,11 @@ export function isPassportData(value: unknown): value is PassportData {
     && isString(value.lastCheckedAt)
     && isTrustPosture(value.trustPosture)
     && (typeof value.truth === 'undefined' || isRecord(value.truth))
-    && (typeof value.decisionPosture === 'undefined' || isDecisionPosture(value.decisionPosture));
+    && (
+      typeof value.decisionPosture === 'undefined'
+      || value.decisionPosture === null
+      || isRecord(value.decisionPosture)
+    );
 }
 
 export function normalizePassportData(value: unknown): PassportData | null {
@@ -486,11 +515,16 @@ export function normalizePassportData(value: unknown): PassportData | null {
 
   const passport = value as PassportData;
   const normalizedChecks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
+  const normalizedNextActions = ensureSingleActionArray(
+    passport.readiness.nextActions,
+    buildAllClearReadinessAction(),
+  );
   const normalized: PassportData = {
     ...passport,
     readiness: {
       ...passport.readiness,
       status: passport.readiness.status,
+      nextActions: normalizedNextActions,
       readiness_score: isNumber((passport.readiness as UnknownRecord).readiness_score)
         ? (passport.readiness as UnknownRecord).readiness_score as number
         : passport.readiness.score,
@@ -505,6 +539,10 @@ export function normalizePassportData(value: unknown): PassportData | null {
 
   if (!normalized.decisionPosture || !isDecisionPosture(normalized.decisionPosture)) {
     delete normalized.decisionPosture;
+  }
+
+  if (!isPassportMonitoringStatus((normalized as unknown as UnknownRecord).monitoring)) {
+    delete normalized.monitoring;
   }
 
   return normalized;

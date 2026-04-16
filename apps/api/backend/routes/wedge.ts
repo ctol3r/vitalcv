@@ -426,7 +426,11 @@ export function registerWedgeRoutes(app: Express) {
           psvReportId,
         });
 
-        await insertAcceptance(acceptance);
+        await insertAcceptance(acceptance, {
+          decisionState: parseOptionalString(acceptanceInput.decisionState),
+          trustSignalsSnapshot: acceptanceInput.trustSignalsSnapshot,
+          role: parseOptionalString(acceptanceInput.role),
+        });
 
         return res.status(201).json({ acceptanceId: acceptance.acceptanceId });
       } catch (error) {

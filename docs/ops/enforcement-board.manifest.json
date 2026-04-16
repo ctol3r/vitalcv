@@ -1,0 +1,83 @@
+{
+  "$comment": "Hand-curated manifest of failure-matrix rows. Status is NOT stored here — it is derived by scripts/ci/enforcement-board-status.mjs. Edit this file to add/remove rows or refine assertion patterns. assertionPatterns are JS regex source strings (flags: 'i'); a row is EXISTS iff at least one testFile contains at least one pattern match.",
+  "version": 1,
+  "rows": [
+    {
+      "id": "R1",
+      "scenario": "Invalid NPI (format fails)",
+      "severity": "HIGH",
+      "testFiles": ["apps/api/backend/__tests__/intakeService.bootstrapNpi.test.ts"],
+      "assertionPatterns": ["invalid_npi_format", "invalid.*npi.*format"]
+    },
+    {
+      "id": "R2",
+      "scenario": "No-record NPI (valid format, not in NPPES)",
+      "severity": "HIGH",
+      "testFiles": ["apps/api/backend/__tests__/intakeService.bootstrapNpi.test.ts", "apps/api/backend/__tests__/connectors/connectorHealth.test.ts"],
+      "assertionPatterns": ["psv\\.receipt\\.denied", "receipt.*denied", "identity_not_found"]
+    },
+    {
+      "id": "R3",
+      "scenario": "OIG positive match",
+      "severity": "CRITICAL",
+      "testFiles": ["apps/api/backend/__tests__/connectors/oigConnector.test.ts", "apps/api/backend/__tests__/canonical_wedge.test.ts"],
+      "assertionPatterns": ["oig_excluded", "acceptance\\.refused", "EXCLUDED"]
+    },
+    {
+      "id": "R4",
+      "scenario": "OIG unresolved near-match",
+      "severity": "CRITICAL",
+      "testFiles": ["apps/api/backend/__tests__/connectors/oigConnector.test.ts"],
+      "assertionPatterns": ["reviewRequired", "oig_near_match", "review\\.routed"]
+    },
+    {
+      "id": "R5",
+      "scenario": "PECOS NOT_FOUND",
+      "severity": "HIGH",
+      "testFiles": ["apps/api/backend/__tests__/canonical_wedge.test.ts"],
+      "assertionPatterns": ["pecos_not_found", "PECOS.*NOT_FOUND"]
+    },
+    {
+      "id": "R6",
+      "scenario": "Source unavailable",
+      "severity": "CRITICAL",
+      "testFiles": ["apps/api/backend/__tests__/connectors/connectorReliabilityControls.test.ts", "apps/api/backend/__tests__/connectors/connectorHealth.test.ts"],
+      "assertionPatterns": ["CRITICAL", "source\\.health\\.changed", "unavailable"]
+    },
+    {
+      "id": "R7",
+      "scenario": "Stale data",
+      "severity": "HIGH",
+      "testFiles": ["apps/web/__tests__/passport-review-truth.test.ts", "apps/api/backend/__tests__/canonical_wedge.test.ts"],
+      "assertionPatterns": ["stalenessAck", "freshness\\.sla\\.breached", "stale"]
+    },
+    {
+      "id": "R8",
+      "scenario": "Revoked issuer cascade",
+      "severity": "CRITICAL",
+      "testFiles": ["apps/api/backend/repositories/__tests__/decisionCapsules.repo.test.ts", "apps/api/backend/repositories/__tests__/acceptances.repo.test.ts"],
+      "assertionPatterns": ["revocation\\.cascaded", "acceptance\\.invalidated", "revoked"]
+    },
+    {
+      "id": "R9",
+      "scenario": "Conflicting claims divergence",
+      "severity": "CRITICAL",
+      "testFiles": ["apps/api/backend/__tests__/intelligenceCore.test.ts", "apps/api/backend/__tests__/canonical_wedge.test.ts"],
+      "assertionPatterns": ["divergence\\.detected", "cross_source_divergence"]
+    }
+  ],
+  "driftChecks": [
+    {
+      "id": "D1",
+      "description": "NPDB is not integrated per Canon §6; presence of an NPDB connector test implies a stub being treated as live",
+      "forbiddenFilePresent": "apps/api/backend/__tests__/connectors/npdbConnector.test.ts",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "D2",
+      "description": "DEA is not integrated; no live test expected",
+      "forbiddenFilePresent": "apps/api/backend/__tests__/connectors/deaConnector.test.ts",
+      "severity": "MEDIUM"
+    }
+  ]
+}

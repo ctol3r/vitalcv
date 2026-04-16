@@ -8,6 +8,9 @@ export const ONTOLOGY_ENTITY_TYPES = [
   'credential',
   'specialty',
   'board_certification',
+  'taxonomy',
+  'state',
+  'trust_state',
 ] as const;
 
 export type OntologyEntityType = (typeof ONTOLOGY_ENTITY_TYPES)[number];

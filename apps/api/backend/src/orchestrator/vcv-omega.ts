@@ -16,18 +16,32 @@ import prisma from '../graphql/prisma_client';
 import { buildPassportDataByNpi, type PassportDataContract } from '../services/passport/npiPassportContract';
 import { computeReuseSignal, type ReuseSignal } from '../services/actions/reuseSignal';
 import { computeDriftSignal, type DriftSignal } from './drift';
-import { deriveNextBestAction, type NextBestAction } from '../services/intelligence/nextBestAction';
+import {
+  deriveNextBestAction,
+  type NextBestAction,
+  type NextBestActionActorType,
+} from '../services/intelligence/nextBestAction';
 import { emit } from '../services/events/eventBus';
 import { HARD_DRIFT_EVENT, SOFT_DRIFT_EVENT } from '../services/events/driftReactionHandler';
 import { log } from '../obs/logger';
 
+interface OmegaRequestContext {
+  orgId?: string;
+  role?: string;
+  persist?: boolean;
+  actorType?: NextBestActionActorType;
+}
+
+interface ResolvedOmegaContext {
+  orgId: string;
+  role: string;
+  persist: boolean;
+  actorType: NextBestActionActorType;
+}
+
 export interface OmegaRequest {
   subject: { npi: string };
-  context?: {
-    orgId?: string;
-    role?: string;
-    persist?: boolean;
-  };
+  context?: OmegaRequestContext;
 }
 
 export interface OmegaRecentAction {
@@ -65,10 +79,10 @@ export interface OmegaActivation {
 
 export type OmegaStatus = 'ok' | 'not_found' | 'partial';
 
-export interface OmegaResponse {
+export interface OmegaDecisionObject {
   status: OmegaStatus;
   subject: { npi: string };
-  context: Required<NonNullable<OmegaRequest['context']>>;
+  context: Pick<ResolvedOmegaContext, 'orgId' | 'role' | 'persist'>;
   decision: PassportDataContract['decision'] | null;
   coverage: PassportDataContract['sourceCoverage'] | null;
   claims: PassportDataContract['truth'] | null;
@@ -81,6 +95,8 @@ export interface OmegaResponse {
   generatedAt: string;
 }
 
+export type OmegaResponse = OmegaDecisionObject;
+
 const NPI_RE = /^\d{10}$/;
 const EMPTY_REUSE_SIGNAL: ReuseSignal = {
   accepted_count: 0,
@@ -90,11 +106,12 @@ const EMPTY_REUSE_SIGNAL: ReuseSignal = {
   last_action_at: null,
 };
 
-function resolveContext(context: OmegaRequest['context']): Required<NonNullable<OmegaRequest['context']>> {
+function resolveContext(context: OmegaRequest['context']): ResolvedOmegaContext {
   return {
     orgId: context?.orgId ?? '',
     role: context?.role ?? 'viewer',
     persist: context?.persist ?? false,
+    actorType: context?.actorType ?? 'employer',
   };
 }
 
@@ -107,16 +124,21 @@ function isValidNpi(npi: string): boolean {
  * parallel; tolerates reuse/action-layer failures without collapsing the
  * core response — status is downgraded to "partial" instead.
  */
-export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResponse> {
+export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaDecisionObject> {
   const npi = request.subject?.npi ?? '';
   const context = resolveContext(request.context);
+  const responseContext = {
+    orgId: context.orgId,
+    role: context.role,
+    persist: context.persist,
+  };
   const generatedAt = new Date().toISOString();
 
   if (!isValidNpi(npi)) {
     return {
       status: 'not_found',
       subject: { npi },
-      context,
+      context: responseContext,
       decision: null,
       coverage: null,
       claims: null,
@@ -241,20 +263,28 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
       type: drift.state === 'HARD_DRIFT' ? HARD_DRIFT_EVENT : SOFT_DRIFT_EVENT,
       clinicianNpi: npi,
       source: 'omega',
-      severity: drift.state,
+      severity: drift.severity,
       timestamp: drift.lastChecked,
-      payload: { reasons: drift.reasons },
+      payload: {
+        state: drift.state,
+        readinessPosture: drift.readinessPosture,
+        reasons: drift.reasons,
+      },
     });
   }
 
   // Data-driven NBA — derived from learning history, never from rules.
-  const nextBestAction = await deriveNextBestAction(npi);
+  const nextBestAction = await deriveNextBestAction(npi, {
+    actorType: context.actorType,
+    passport,
+    drift,
+  });
 
   if (!passport) {
     return {
       status: 'not_found',
       subject: { npi },
-      context,
+      context: responseContext,
       decision: null,
       coverage: null,
       claims: null,
@@ -293,7 +323,7 @@ export async function orchestrateOmega(request: OmegaRequest): Promise<OmegaResp
         ? 'partial'
         : 'ok',
     subject: { npi },
-    context,
+    context: responseContext,
     decision: passport.decision,
     coverage: passport.sourceCoverage,
     claims: passport.truth,

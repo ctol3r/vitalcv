@@ -10,6 +10,7 @@ import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { orchestrateOmega } from '../orchestrator/vcv-omega';
 import { log } from '../obs/logger';
+import { assertOmegaDecisionObject } from '../services/system/systemOutputValidator';
 import {
   extractCapsuleDecisionAttestations,
   type DecisionAttestationRecord,
@@ -72,10 +73,10 @@ export function registerDecisionExportRoutes(app: Express): void {
     }
 
     try {
-      const omega = await orchestrateOmega({
+      const omega = assertOmegaDecisionObject(await orchestrateOmega({
         subject: { npi },
         context: {},
-      });
+      }));
 
       if (omega.status === 'not_found') {
         return res.status(404).json({

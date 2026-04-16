@@ -5,6 +5,11 @@ import {
   createCanonicalSourceCoverage,
   summarizeCanonicalSourceCoverage,
 } from '@vitalcv/trust-state';
+import {
+  ALL_CLEAR_ACTION_DETAIL,
+  ALL_CLEAR_ACTION_LABEL,
+  MULTIPLE_ACTIONS_FORBIDDEN_MESSAGE,
+} from '../lib/trust/single-action';
 
 function buildPassport(
   overrides: Partial<PassportData> = {},
@@ -452,5 +457,45 @@ describe('passport review truth', () => {
     expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Enrollment / Eligibility');
     expect(truth.posture.dimensions.find((item) => item.label === 'Exclusion check (OIG/LEIE)')?.state).toBe('stale');
     expect(truth.posture.dimensions.find((item) => item.label === 'Medicare enrollment (PECOS)')?.state).toBe('unavailable');
+  });
+
+  it('returns an explicit all-clear action when no next action is attached', () => {
+    const passport = buildPassport({
+      readiness: {
+        ...buildPassport().readiness,
+        nextActions: [],
+      },
+    });
+
+    const truth = buildPassportReviewTruthModel(passport);
+
+    expect(truth.buckets.nextActions).toEqual([
+      {
+        id: 'action:all-clear',
+        label: ALL_CLEAR_ACTION_LABEL,
+        detail: ALL_CLEAR_ACTION_DETAIL,
+      },
+    ]);
+  });
+
+  it('throws when more than one next action is attached', () => {
+    const passport = buildPassport({
+      readiness: {
+        ...buildPassport().readiness,
+        nextActions: [
+          buildPassport().readiness.nextActions[0],
+          {
+            id: 'next-2',
+            title: 'Route to manual review',
+            detail: 'Escalate this packet before proceeding.',
+            priority: 'MEDIUM',
+          },
+        ],
+      },
+    });
+
+    expect(() => buildPassportReviewTruthModel(passport)).toThrow(
+      MULTIPLE_ACTIONS_FORBIDDEN_MESSAGE,
+    );
   });
 });

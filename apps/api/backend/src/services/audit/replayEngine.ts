@@ -15,6 +15,7 @@
  */
 
 import { createHash } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { capsuleEngine } from '../decision/capsuleEngine';
 import { log } from '../../obs/logger';
@@ -80,6 +81,36 @@ export interface IntegrityCheck {
   tamperEvidence: string | null;   // null = clean
 }
 
+export interface DecisionAttestationSnapshot {
+  artifactHash: string;
+  capsuleId: string;
+  decisionAction: string | null;
+  decisionTimestamp: string;
+  decisionType: string;
+  methodologyVersion: string;
+  sourceReferenceId: string;
+  status: string;
+  subjectDid: string;
+  subjectNpi: string;
+  triggerEvent: string;
+  verifierOrgId: string | null;
+}
+
+export interface DecisionAttestationRecord {
+  attesterId: string | null;
+  attesterRole: string | null;
+  statement: string | null;
+  timestamp: string | null;
+  hash: string | null;
+  snapshot: DecisionAttestationSnapshot;
+  verification: {
+    storedHash: string | null;
+    computedHash: string | null;
+    hashMatch: boolean;
+    tamperEvidence: string | null;
+  };
+}
+
 export interface DecisionReplay {
   schema: 'https://vitalcv.com/replay/v1';
   replayVersion: '1.0';
@@ -102,6 +133,8 @@ export interface DecisionReplay {
     notes: string | null;
     deploymentContext: Record<string, unknown> | null;
   };
+
+  attestations: DecisionAttestationRecord[];
 
   // Who decided
   verifierIdentity: VerifierIdentity;
@@ -215,6 +248,451 @@ function sourceConfidence(source: string, status: string): SourceConsulted['conf
   return 'MEDIUM';
 }
 
+const MAX_DECISION_ATTESTATION_BYTES = 32 * 1024;
+const MAX_DECISION_ATTESTATION_METADATA_BYTES = 64 * 1024;
+
+type JsonLike =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonLike[]
+  | { [key: string]: JsonLike };
+
+export class DecisionAttestationError extends Error {
+  constructor(
+    public readonly code:
+      | 'ACTION_NOT_ATTESTABLE'
+      | 'INVALID_ATTESTATION_TIMESTAMP'
+      | 'INVALID_ATTESTATION_PAYLOAD'
+      | 'ATTESTATION_SERIALIZATION_FAILED'
+      | 'ATTESTATION_PAYLOAD_TOO_LARGE',
+    public readonly statusCode: 400 | 409 | 413,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DecisionAttestationError';
+  }
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeJsonLike(value: unknown, seen = new WeakSet<object>()): JsonLike | undefined {
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
+    return undefined;
+  }
+
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : String(value);
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value !== 'object') {
+    return String(value);
+  }
+
+  if (seen.has(value)) {
+    throw new DecisionAttestationError(
+      'ATTESTATION_SERIALIZATION_FAILED',
+      400,
+      'Decision attestation payload contains a circular reference.',
+    );
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const normalizedArray = value.map((entry) => {
+      const normalizedEntry = normalizeJsonLike(entry, seen);
+      return normalizedEntry === undefined ? null : normalizedEntry;
+    });
+    seen.delete(value);
+    return normalizedArray;
+  }
+
+  const normalizedRecord: Record<string, JsonLike> = {};
+  for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+    const normalizedEntry = normalizeJsonLike(
+      (value as Record<string, unknown>)[key],
+      seen,
+    );
+    if (normalizedEntry !== undefined) {
+      normalizedRecord[key] = normalizedEntry;
+    }
+  }
+
+  seen.delete(value);
+  return normalizedRecord;
+}
+
+function toBoundedJsonRecord(input: {
+  capsuleId: string;
+  value: unknown;
+  byteLimit: number;
+  label: string;
+}): Record<string, JsonLike> {
+  let normalized: JsonLike | undefined;
+  let serialized: string;
+
+  try {
+    normalized = normalizeJsonLike(input.value);
+    serialized = JSON.stringify(normalized ?? {});
+  } catch (error) {
+    log('warn', 'decision_attestation_payload_rejected', {
+      capsuleId: input.capsuleId,
+      label: input.label,
+      reason: 'serialization_failed',
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    throw error instanceof DecisionAttestationError
+      ? error
+      : new DecisionAttestationError(
+          'ATTESTATION_SERIALIZATION_FAILED',
+          400,
+          'Decision attestation payload could not be serialized safely.',
+        );
+  }
+
+  const byteLength = Buffer.byteLength(serialized, 'utf8');
+  if (byteLength > input.byteLimit) {
+    log('warn', 'decision_attestation_payload_rejected', {
+      capsuleId: input.capsuleId,
+      label: input.label,
+      reason: 'payload_too_large',
+      byteLength,
+      byteLimit: input.byteLimit,
+    });
+    throw new DecisionAttestationError(
+      'ATTESTATION_PAYLOAD_TOO_LARGE',
+      413,
+      'Decision attestation payload is too large to store safely.',
+    );
+  }
+
+  return JSON.parse(JSON.stringify(normalized ?? {})) as Record<string, JsonLike>;
+}
+
+function stableStringify(value: JsonLike): string {
+  if (value === null) return 'null';
+  if (typeof value === 'boolean' || typeof value === 'number') return JSON.stringify(value);
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key]!)}`).join(',')}}`;
+}
+
+function safeHashJson(input: {
+  capsuleId: string;
+  label: string;
+  value: unknown;
+}): string {
+  const normalized = normalizeJsonLike(input.value);
+  if (normalized === undefined) {
+    log('warn', 'decision_attestation_hash_rejected', {
+      capsuleId: input.capsuleId,
+      label: input.label,
+      reason: 'undefined_payload',
+    });
+    throw new DecisionAttestationError(
+      'INVALID_ATTESTATION_PAYLOAD',
+      400,
+      'Decision attestation payload is incomplete.',
+    );
+  }
+
+  return sha256(stableStringify(normalized));
+}
+
+function resolveAttestationTimestamp(timestamp?: string): string {
+  const normalized = normalizeOptionalString(timestamp);
+  if (!normalized) {
+    return new Date().toISOString();
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new DecisionAttestationError(
+      'INVALID_ATTESTATION_TIMESTAMP',
+      400,
+      'timestamp must be a valid ISO-8601 string.',
+    );
+  }
+
+  return parsed.toISOString();
+}
+
+function resolveVerifierOrgId(meta: Record<string, unknown>): string | null {
+  return normalizeOptionalString(meta.verifierOrgId)
+    ?? normalizeOptionalString(meta.organizationId)
+    ?? normalizeOptionalString(meta.employerId);
+}
+
+type DecisionAttestationCapsuleRow = {
+  id: string;
+  subjectDid: string;
+  subjectNpi: string;
+  decisionType: string;
+  decisionTimestamp: Date;
+  status: string;
+  methodology: string;
+  artifactHash: string;
+  metadata: unknown;
+};
+
+function buildDecisionAttestationSnapshot(
+  capsule: DecisionAttestationCapsuleRow,
+  options: { enforceAttestable?: boolean } = {},
+): DecisionAttestationSnapshot {
+  const meta = typeof capsule.metadata === 'object' && capsule.metadata !== null && !Array.isArray(capsule.metadata)
+    ? capsule.metadata as Record<string, unknown>
+    : {};
+  const triggerEvent = normalizeOptionalString(meta.triggerEvent);
+  const sourceReferenceId = normalizeOptionalString(meta.sourceReferenceId);
+
+  if (options.enforceAttestable !== false && capsule.status === 'INVALID') {
+    throw new DecisionAttestationError(
+      'ACTION_NOT_ATTESTABLE',
+      409,
+      'Cannot attest an invalid decision capsule.',
+    );
+  }
+
+  if (options.enforceAttestable !== false && (!triggerEvent || !sourceReferenceId)) {
+    throw new DecisionAttestationError(
+      'ACTION_NOT_ATTESTABLE',
+      409,
+      'Cannot attest a decision before its source action has been recorded.',
+    );
+  }
+
+  return {
+    artifactHash: capsule.artifactHash,
+    capsuleId: capsule.id,
+    decisionAction: normalizeOptionalString(meta.decisionAction),
+    decisionTimestamp: capsule.decisionTimestamp.toISOString(),
+    decisionType: capsule.decisionType,
+    methodologyVersion: normalizeOptionalString(meta.methodologyVersion) ?? capsule.methodology,
+    sourceReferenceId: sourceReferenceId ?? 'unknown',
+    status: capsule.status,
+    subjectDid: capsule.subjectDid,
+    subjectNpi: capsule.subjectNpi,
+    triggerEvent: triggerEvent ?? 'unknown',
+    verifierOrgId: resolveVerifierOrgId(meta),
+  };
+}
+
+function buildAttestationDedupeKey(input: {
+  attesterId: string | null;
+  attesterRole: string | null;
+  statement: string | null;
+  snapshot: DecisionAttestationSnapshot;
+}): string {
+  return safeHashJson({
+    capsuleId: input.snapshot.capsuleId,
+    label: 'decision_attestation_dedupe',
+    value: {
+    attesterId: input.attesterId,
+    attesterRole: input.attesterRole,
+    statement: input.statement,
+    capsuleId: input.snapshot.capsuleId,
+    sourceReferenceId: input.snapshot.sourceReferenceId,
+    triggerEvent: input.snapshot.triggerEvent,
+    artifactHash: input.snapshot.artifactHash,
+    },
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseStoredAttestation(
+  value: unknown,
+  fallbackSnapshot: DecisionAttestationSnapshot,
+): DecisionAttestationRecord | null {
+  if (!isRecord(value)) return null;
+
+  const rawSnapshot = isRecord(value.snapshot) ? value.snapshot : {};
+  const snapshot = {
+    artifactHash: normalizeOptionalString(rawSnapshot.artifactHash) ?? fallbackSnapshot.artifactHash,
+    capsuleId: normalizeOptionalString(rawSnapshot.capsuleId) ?? fallbackSnapshot.capsuleId,
+    decisionAction: normalizeOptionalString(rawSnapshot.decisionAction) ?? fallbackSnapshot.decisionAction,
+    decisionTimestamp: normalizeOptionalString(rawSnapshot.decisionTimestamp) ?? fallbackSnapshot.decisionTimestamp,
+    decisionType: normalizeOptionalString(rawSnapshot.decisionType) ?? fallbackSnapshot.decisionType,
+    methodologyVersion: normalizeOptionalString(rawSnapshot.methodologyVersion) ?? fallbackSnapshot.methodologyVersion,
+    sourceReferenceId: normalizeOptionalString(rawSnapshot.sourceReferenceId) ?? fallbackSnapshot.sourceReferenceId,
+    status: normalizeOptionalString(rawSnapshot.status) ?? fallbackSnapshot.status,
+    subjectDid: normalizeOptionalString(rawSnapshot.subjectDid) ?? fallbackSnapshot.subjectDid,
+    subjectNpi: normalizeOptionalString(rawSnapshot.subjectNpi) ?? fallbackSnapshot.subjectNpi,
+    triggerEvent: normalizeOptionalString(rawSnapshot.triggerEvent) ?? fallbackSnapshot.triggerEvent,
+    verifierOrgId: normalizeOptionalString(rawSnapshot.verifierOrgId) ?? fallbackSnapshot.verifierOrgId,
+  };
+
+  return {
+    attesterId: normalizeOptionalString(value.attesterId),
+    attesterRole: normalizeOptionalString(value.attesterRole),
+    statement: normalizeOptionalString(value.statement),
+    timestamp: normalizeOptionalString(value.timestamp),
+    hash: normalizeOptionalString(value.hash),
+    snapshot,
+    verification: verifyDecisionAttestation({
+      attesterId: normalizeOptionalString(value.attesterId),
+      attesterRole: normalizeOptionalString(value.attesterRole),
+      statement: normalizeOptionalString(value.statement),
+      timestamp: normalizeOptionalString(value.timestamp),
+      hash: normalizeOptionalString(value.hash),
+      snapshot,
+    }),
+  };
+}
+
+export function extractDecisionAttestations(input: {
+  metadata: unknown;
+  fallbackSnapshot: DecisionAttestationSnapshot;
+}): DecisionAttestationRecord[] {
+  const meta = isRecord(input.metadata) ? input.metadata : {};
+  const attestations = Array.isArray(meta.attestations) ? meta.attestations : [];
+
+  return attestations
+    .map((entry) => parseStoredAttestation(entry, input.fallbackSnapshot))
+    .filter((entry): entry is DecisionAttestationRecord => Boolean(entry));
+}
+
+export function extractCapsuleDecisionAttestations(capsule: DecisionAttestationCapsuleRow): DecisionAttestationRecord[] {
+  return extractDecisionAttestations({
+    metadata: capsule.metadata,
+    fallbackSnapshot: buildDecisionAttestationSnapshot(capsule, { enforceAttestable: false }),
+  });
+}
+
+function buildAttestationHashPayload(input: {
+  attesterId: string | null;
+  attesterRole: string | null;
+  statement: string | null;
+  timestamp: string | null;
+  snapshot: DecisionAttestationSnapshot;
+}): Record<string, unknown> {
+  if (!input.attesterId || !input.attesterRole || !input.statement || !input.timestamp) {
+    throw new DecisionAttestationError(
+      'INVALID_ATTESTATION_PAYLOAD',
+      400,
+      'Decision attestation payload is incomplete.',
+    );
+  }
+
+  if (
+    !input.snapshot.capsuleId
+    || !input.snapshot.sourceReferenceId
+    || !input.snapshot.triggerEvent
+    || !input.snapshot.artifactHash
+    || !input.snapshot.subjectDid
+    || !input.snapshot.subjectNpi
+    || !input.snapshot.decisionType
+    || !input.snapshot.decisionTimestamp
+    || !input.snapshot.methodologyVersion
+    || !input.snapshot.status
+  ) {
+    throw new DecisionAttestationError(
+      'INVALID_ATTESTATION_PAYLOAD',
+      400,
+      'Decision attestation snapshot is incomplete.',
+    );
+  }
+
+  return {
+    attesterId: input.attesterId,
+    attesterRole: input.attesterRole,
+    statement: input.statement,
+    timestamp: input.timestamp,
+    snapshot: {
+      artifactHash: input.snapshot.artifactHash,
+      capsuleId: input.snapshot.capsuleId,
+      decisionAction: input.snapshot.decisionAction,
+      decisionTimestamp: input.snapshot.decisionTimestamp,
+      decisionType: input.snapshot.decisionType,
+      methodologyVersion: input.snapshot.methodologyVersion,
+      sourceReferenceId: input.snapshot.sourceReferenceId,
+      status: input.snapshot.status,
+      subjectDid: input.snapshot.subjectDid,
+      subjectNpi: input.snapshot.subjectNpi,
+      triggerEvent: input.snapshot.triggerEvent,
+      verifierOrgId: input.snapshot.verifierOrgId,
+    },
+  };
+}
+
+function hashDecisionAttestationPayload(input: {
+  capsuleId: string;
+  attesterId: string | null;
+  attesterRole: string | null;
+  statement: string | null;
+  timestamp: string | null;
+  snapshot: DecisionAttestationSnapshot;
+}): string {
+  const payload = buildAttestationHashPayload(input);
+  return safeHashJson({
+    capsuleId: input.capsuleId,
+    label: 'decision_attestation_hash',
+    value: payload,
+  });
+}
+
+export function verifyDecisionAttestation(input: {
+  attesterId: string | null;
+  attesterRole: string | null;
+  statement: string | null;
+  timestamp: string | null;
+  hash: string | null;
+  snapshot: DecisionAttestationSnapshot;
+}): {
+  storedHash: string | null;
+  computedHash: string | null;
+  hashMatch: boolean;
+  tamperEvidence: string | null;
+} {
+  try {
+    const computedHash = hashDecisionAttestationPayload({
+      capsuleId: input.snapshot.capsuleId,
+      attesterId: input.attesterId,
+      attesterRole: input.attesterRole,
+      statement: input.statement,
+      timestamp: input.timestamp,
+      snapshot: input.snapshot,
+    });
+    const storedHash = input.hash;
+
+    return {
+      storedHash,
+      computedHash,
+      hashMatch: Boolean(storedHash) && storedHash === computedHash,
+      tamperEvidence: !storedHash
+        ? 'Stored attestation hash is missing.'
+        : storedHash !== computedHash
+          ? 'Attestation payload no longer matches its stored hash.'
+          : null,
+    };
+  } catch (error) {
+    return {
+      storedHash: input.hash,
+      computedHash: null,
+      hashMatch: false,
+      tamperEvidence: error instanceof Error ? error.message : 'Attestation payload could not be verified.',
+    };
+  }
+}
+
 /** Strip PII fields from rawPayload — keep issuer/dates/status/license numbers */
 function sanitize(payload: Record<string, unknown>): Record<string, unknown> {
   const STRIP = new Set(['ssn', 'dob', 'date_of_birth', 'social_security', 'address', 'street', 'phone', 'email', 'fax']);
@@ -242,6 +720,21 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
 
   const meta = (capsule.metadata ?? {}) as Record<string, unknown>;
   const replayedAt = new Date().toISOString();
+  const attestationSnapshot = buildDecisionAttestationSnapshot({
+    id: capsule.id,
+    subjectDid: capsule.subjectDid,
+    subjectNpi: capsule.subjectNpi,
+    decisionType: capsule.decisionType,
+    decisionTimestamp: new Date(capsule.decisionTimestamp),
+    status: capsule.status,
+    methodology: capsule.methodology,
+    artifactHash: capsule.artifactHash,
+    metadata: capsule.metadata,
+  }, { enforceAttestable: false });
+  const attestations = extractDecisionAttestations({
+    metadata: capsule.metadata,
+    fallbackSnapshot: attestationSnapshot,
+  });
 
   // ── Evidence reconstruction ────────────────────────────────────────────────
   const artifacts = capsule.credentialIds.length > 0
@@ -493,6 +986,7 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
       } : null,
     },
 
+    attestations,
     verifierIdentity,
     evidenceSnapshot: {
       credentialIds:        capsule.credentialIds,
@@ -580,38 +1074,106 @@ export async function addAttestation(
     statement: string;
     timestamp?: string;
   },
-): Promise<{ capsuleId: string; attestationCount: number; attestedAt: string }> {
+): Promise<{ capsuleId: string; attestationCount: number; attestedAt: string; created: boolean }> {
   const capsule = await prisma.decisionCapsule.findUnique({
     where: { id: capsuleId },
-    select: { id: true, metadata: true },
+    select: {
+      id: true,
+      subjectDid: true,
+      subjectNpi: true,
+      decisionType: true,
+      decisionTimestamp: true,
+      status: true,
+      methodology: true,
+      artifactHash: true,
+      metadata: true,
+    },
   });
   if (!capsule) throw new Error(`Capsule not found: ${capsuleId}`);
 
-  const meta  = (capsule.metadata ?? {}) as Record<string, unknown>;
-  const existing = Array.isArray(meta.attestations) ? meta.attestations as unknown[] : [];
+  const meta = typeof capsule.metadata === 'object' && capsule.metadata !== null && !Array.isArray(capsule.metadata)
+    ? capsule.metadata as Record<string, unknown>
+    : {};
+  const existingRaw = Array.isArray(meta.attestations) ? meta.attestations as unknown[] : [];
+  const attestedAt = resolveAttestationTimestamp(attestation.timestamp);
+  const snapshot = buildDecisionAttestationSnapshot(capsule);
+  const existing = extractDecisionAttestations({
+    metadata: meta,
+    fallbackSnapshot: snapshot,
+  });
+  const attesterId = normalizeOptionalString(attestation.attesterId);
+  const attesterRole = normalizeOptionalString(attestation.attesterRole);
+  const statement = normalizeOptionalString(attestation.statement);
+  const dedupeKey = buildAttestationDedupeKey({
+    attesterId,
+    attesterRole,
+    statement,
+    snapshot,
+  });
+  const duplicate = existing.find((entry) => (
+    buildAttestationDedupeKey({
+      attesterId: entry.attesterId,
+      attesterRole: entry.attesterRole,
+      statement: entry.statement,
+      snapshot: entry.snapshot,
+    }) === dedupeKey
+  ));
 
-  const newAttestation = {
-    attesterId:   attestation.attesterId,
-    attesterRole: attestation.attesterRole,
-    statement:    attestation.statement,
-    timestamp:    attestation.timestamp ?? new Date().toISOString(),
-    hash:         sha256(JSON.stringify(attestation)),
-  };
+  if (duplicate) {
+    return {
+      capsuleId,
+      attestationCount: existing.length,
+      attestedAt: duplicate.timestamp ?? attestedAt,
+      created: false,
+    };
+  }
 
-  const updated = {
-    ...meta,
-    attestations: [...existing, newAttestation],
+  const newAttestationInput = {
+    attesterId,
+    attesterRole,
+    statement,
+    timestamp:    attestedAt,
+    snapshot,
   };
+  const attestationHash = hashDecisionAttestationPayload({
+    capsuleId,
+    attesterId,
+    attesterRole,
+    statement,
+    timestamp: attestedAt,
+    snapshot,
+  });
+  const newAttestation = toBoundedJsonRecord({
+    capsuleId,
+    value: {
+      ...newAttestationInput,
+      dedupeKey,
+      hash: attestationHash,
+    },
+    byteLimit: MAX_DECISION_ATTESTATION_BYTES,
+    label: 'decision_attestation',
+  });
+
+  const updated = toBoundedJsonRecord({
+    capsuleId,
+    value: {
+      ...meta,
+      attestations: [...existingRaw, newAttestation],
+    },
+    byteLimit: MAX_DECISION_ATTESTATION_METADATA_BYTES,
+    label: 'decision_attestation_metadata',
+  });
 
   await prisma.decisionCapsule.update({
     where: { id: capsuleId },
-    data: { metadata: JSON.parse(JSON.stringify(updated)) },
+    data: { metadata: updated as Prisma.InputJsonValue },
   });
 
   return {
     capsuleId,
-    attestationCount: updated.attestations.length,
-    attestedAt: newAttestation.timestamp,
+    attestationCount: existing.length + 1,
+    attestedAt,
+    created: true,
   };
 }
 

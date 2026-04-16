@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
  * No polling. No full-page reload. No fake refresh.
  */
 
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Lock, ShieldCheck } from 'lucide-react';
@@ -28,10 +28,15 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
-import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
+import { AcceptanceCard } from '@/components/passport/AcceptanceCard';
+import { AutopilotPanel } from '@/components/passport/AutopilotPanel';
+import { CohortInsights } from '@/components/passport/CohortInsights';
+import { StartabilityCard, deriveBlockers } from '@/components/passport/StartabilityCard';
+import { ActionPanel } from '@/components/passport/ActionPanel';
+import { DecisionLogSummary } from '@/components/passport/DecisionLogSummary';
+import { fireCapsule } from '@/lib/capsules';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
-  buildEmployerReviewHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
   resolvePublicWedgeSurfaceStateFromDisplayLabel,
@@ -343,6 +348,45 @@ function PassportPageContent({
   );
   const { state, startIngest, resumeIngest, reset } = useIngestStream(hydratedRef.current);
 
+  // ── Dynamic loop: user takes action → optimistic hide → re-ingest drives real updates
+  const [resolvingBlocker, setResolvingBlocker] = useState<string | null>(null);
+  const resolvingReadinessBaseline = useRef<number | undefined>(undefined);
+
+  // Clear optimistic state when a fresh readiness score arrives after resolution
+  useEffect(() => {
+    if (!resolvingBlocker) return;
+    const baseline = resolvingReadinessBaseline.current;
+    const current = state.readiness.score;
+    if (current !== undefined && baseline !== undefined && current !== baseline) {
+      setResolvingBlocker(null);
+      resolvingReadinessBaseline.current = undefined;
+    }
+    if (state.phase === 'error') {
+      setResolvingBlocker(null);
+      resolvingReadinessBaseline.current = undefined;
+    }
+  }, [resolvingBlocker, state.readiness.score, state.phase]);
+
+  const handleTakeAction = useCallback((blocker: string) => {
+    const targetNpi = state.npi ?? npi.trim();
+    if (!/^\d{10}$/.test(targetNpi)) return;
+    resolvingReadinessBaseline.current = state.readiness.score;
+    setResolvingBlocker(blocker);
+    // Trigger #1 — NBA execution: record decision capsule for audit trail
+    fireCapsule({
+      subjectNpi: targetNpi,
+      decisionType: 'DEPLOYMENT',
+      triggerEvent: 'start_attestation',
+      metadata: {
+        source: 'passport.action-panel',
+        blocker,
+        readinessScoreBefore: state.readiness.score ?? null,
+      },
+    });
+    reset();
+    setTimeout(() => startIngest(targetNpi), 50);
+  }, [npi, reset, startIngest, state.npi, state.readiness.score]);
+
   useEffect(() => {
     if (autoTriggered.current) {
       return;
@@ -386,6 +430,25 @@ function PassportPageContent({
   const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
   const anchorEntityId = state.anchorEntityId ?? state.identity.entityId;
   const canViewPassport = state.isUsable && Boolean(anchorEntityId);
+
+  // Trigger #3 — Start event: fire capsule once per anchor arrival (ingest complete)
+  const firedStartCapsuleFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!canViewPassport || !anchorEntityId || !state.npi) return;
+    if (firedStartCapsuleFor.current === anchorEntityId) return;
+    firedStartCapsuleFor.current = anchorEntityId;
+    fireCapsule({
+      subjectNpi: state.npi,
+      decisionType: 'DEPLOYMENT',
+      triggerEvent: 'start_attestation',
+      sourceReferenceId: anchorEntityId,
+      metadata: {
+        source: 'passport.start-event',
+        readinessScore: state.readiness.score ?? null,
+        readinessStatus: state.readiness.status ?? null,
+      },
+    });
+  }, [canViewPassport, anchorEntityId, state.npi, state.readiness.score, state.readiness.status]);
   const noProfileYet =
     hasTerminalState
     && !canViewPassport
@@ -636,10 +699,13 @@ function PassportPageContent({
               </Card>
             )}
 
-          {/* Source status rows — Liquid Glass treatment.
-              glass utility supplies backdrop-blur + translucent bg + 1px border + layered shadow.
-              Subtle hover lift (~2px, 200ms ease-out) — contained, not playful. */}
-          <Card className="animate-panel-enter glass gap-0 rounded-xl px-4 py-2 transition-transform duration-200 ease-out hover:-translate-y-0.5">
+            {/* Autopilot — top-section suggestion: closest match + ordered next steps */}
+            {state.readiness.score !== undefined && (
+              <AutopilotPanel steps={deriveBlockers(state).filter((b) => b !== resolvingBlocker)} />
+            )}
+
+          {/* Source status rows */}
+          <Card className="animate-panel-enter gap-0 rounded-xl border border-[var(--vt-border)] px-4 py-2">
             <SourceRow
                 label="NPPES"
                 state={sources.nppes}
@@ -667,7 +733,7 @@ function PassportPageContent({
                 No count-up — the score is atomic truth, not progress. */}
             {state.readiness.score !== undefined && (
               <Card
-                className="animate-trust-panel-enter glass gap-0 rounded-xl px-4 py-3 transition-transform duration-200 ease-out hover:-translate-y-0.5"
+                className="animate-trust-panel-enter gap-0 rounded-xl border border-[var(--vt-border)] px-4 py-3"
                 style={{ animationDelay: '40ms' }}
               >
                 <div className="flex items-center justify-between">
@@ -712,52 +778,57 @@ function PassportPageContent({
               </Card>
             )}
 
-            {/* Usable state — passport anchor is available.
-                Attention sequencing (authority → decision): this block only renders
-                once canViewPassport is true (i.e. atomic truth has landed), so the
-                stagger cannot stage data — it sequences focus on already-final state. */}
-            {canViewPassport && anchorEntityId && (
-              <div
-                className="animate-trust-panel-enter space-y-3"
-                style={{ animationDelay: '160ms' }}
-              >
-                <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
-                  <Link href={buildPassportEntityHref(anchorEntityId)}>
-                    View full passport
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
-                  <Link href={buildEmployerReviewHref(anchorEntityId)}>
-                    View as employer
-                  </Link>
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const retry = state.npi ?? npi.trim();
-                    if (/^\d{10}$/.test(retry)) {
-                      reset();
-                      setTimeout(() => startIngest(retry), 50);
-                    }
-                  }}
-                  className="h-10 w-full rounded-full border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  Re-check sources
-                </button>
-              </div>
+            {/* Acceptance — which orgs have accepted this passport */}
+            {state.readiness.score !== undefined && (
+              <AcceptanceCard state={state} />
             )}
 
-            {/* What's Next — actionable uploads after readiness snapshot.
-                Final sequencing step (decision). Only rendered after canViewPassport,
-                so the delay reinforces attention hierarchy, not progress. */}
-            {canViewPassport && (
-              <div
-                className="animate-trust-panel-enter"
-                style={{ animationDelay: '280ms' }}
-              >
-                <WhatsNextPanel state={state} />
-              </div>
+            {/* Cohort insights — supportive historical context, not authoritative */}
+            {state.readiness.score !== undefined && <CohortInsights />}
+
+            {/* Minimal audit log — decision capsule count */}
+            {state.npi && canViewPassport && <DecisionLogSummary npi={state.npi} />}
+
+            {/* Startability — derived start-ready status + blockers + est. days.
+                Optimistically hides the blocker the user is currently resolving. */}
+            {state.readiness.score !== undefined && (
+              <StartabilityCard state={state} hideBlocker={resolvingBlocker} />
             )}
+
+            {/* Command surface — one next step, one action.
+                Dynamic loop: click → optimistic state → re-ingest → stream drives updates. */}
+            {(state.readiness.score !== undefined || resolvingBlocker) && (() => {
+              const visibleBlockers = deriveBlockers(state).filter((b) => b !== resolvingBlocker);
+              if (resolvingBlocker) {
+                return (
+                  <ActionPanel
+                    nextStep={`Fix ${resolvingBlocker}`}
+                    resolving
+                    progressLabel={PHASE_LABEL[state.phase] || 'Re-checking sources...'}
+                  />
+                );
+              }
+              if (visibleBlockers.length > 0) {
+                const top = visibleBlockers[0];
+                return (
+                  <ActionPanel
+                    nextStep={`Fix ${top}`}
+                    actionLabel="Take Action"
+                    onAction={() => handleTakeAction(top)}
+                  />
+                );
+              }
+              if (canViewPassport && anchorEntityId) {
+                return (
+                  <ActionPanel
+                    nextStep="Your passport is ready"
+                    actionLabel="View full passport"
+                    href={buildPassportEntityHref(anchorEntityId)}
+                  />
+                );
+              }
+              return null;
+            })()}
 
             {/* Terminal no-profile state */}
             {noProfileYet && (

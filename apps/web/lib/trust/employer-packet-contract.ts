@@ -8,6 +8,7 @@ import {
   type CanonicalTruthStatus,
 } from '@vitalcv/trust-state';
 import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
+import { hasReceiptBackedManifest } from '@/lib/trust/ui-truth-integrity';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -250,6 +251,16 @@ export function normalizeEmployerEvidencePacket(
     checks: normalizedManifestCoverageChecks,
     summary: summarizeCanonicalSourceCoverage(normalizedManifestCoverageChecks),
   };
+
+  if (!hasReceiptBackedManifest({
+    manifest: {
+      sources: manifest.sources as EmployerPacketSourceManifestEntry[],
+      receiptReferences: manifest.receiptReferences as Array<{ sourceId: string; receiptId: string }>,
+    },
+    receiptReferences: value.receiptReferences as Array<{ sourceId: string; receiptId: string }>,
+  })) {
+    return null;
+  }
 
   return {
     schema: value.schema as string,

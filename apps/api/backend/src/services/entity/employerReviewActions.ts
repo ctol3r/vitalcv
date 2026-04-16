@@ -17,6 +17,7 @@ import {
   normalizeEmployerReviewAttribution,
   resolveEmployerReviewAttribution,
 } from './employerReviewAttribution';
+import { storeDecisionCapsule } from './decisionCapsuleStorage';
 
 export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review' | 'pause';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -371,6 +372,20 @@ type AcceptanceWriter = {
       acceptedAt: Date;
       status: string;
     } | null>;
+  };
+};
+
+type DecisionCapsuleWriter = {
+  decisionCapsule: {
+    create: (args: {
+      data: Prisma.DecisionCapsuleUncheckedCreateInput;
+    }) => Promise<{
+      id: string;
+      subjectNpi: string;
+      organizationId: string | null;
+      decisionTimestamp: Date;
+      metadata: unknown;
+    }>;
   };
 };
 
@@ -796,6 +811,20 @@ export async function recordEmployerReviewAcceptance(input: {
         type: 'EMPLOYER_REVIEW_ACCEPTED',
         referenceId: acceptanceRow.id,
         metadata,
+      },
+    );
+
+    await storeDecisionCapsule(
+      tx as unknown as DecisionCapsuleWriter,
+      {
+        clinicianId: input.clinicianNpi,
+        orgId: metadata.attribution.organizationId ?? null,
+        role: context.role,
+        blockers: trustSnapshot.topBlockers,
+        outcome: 'ACCEPTED',
+        timestamp: auditEvent.createdAt.toISOString(),
+        auditEventId: auditEvent.id,
+        entityId: input.entityId,
       },
     );
 

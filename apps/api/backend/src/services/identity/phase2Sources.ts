@@ -29,6 +29,7 @@ import {
 } from './evidenceModel';
 import type { ClaimType } from './sourceCatalog';
 import { log } from '../../obs/logger';
+import { fetchJsonSource } from './sourceHttp';
 
 function checksumOf(payload: unknown): string {
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
@@ -85,19 +86,17 @@ interface FetchResult {
   fetchHeaders: Record<string, string>;
 }
 
-function headersToObject(h: Headers): Record<string, string> {
-  const obj: Record<string, string> = {};
-  h.forEach((v, k) => { obj[k] = v; });
-  return obj;
-}
-
 export async function fetchOpenPayments(npi: string): Promise<FetchResult> {
   const sourceUrl = `https://openpaymentsdata.cms.gov/api/1/datastore/query/25f8f4af-3e6e-49e5-8a36-9c2e5467f47c/0?conditions[0][property]=covered_recipient_npi&conditions[0][value]=${npi}&limit=100`;
   try {
-    const resp = await fetch(sourceUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) throw new Error(`Open Payments API ${resp.status}`);
-    const data = await resp.json();
-    return { raw: data, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+    const { data, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+      label: 'open_payments',
+      headers: { Accept: 'application/json' },
+      cacheKey: `open_payments:${npi}`,
+      timeoutMs: 15_000,
+      maxRetries: 3,
+    });
+    return { raw: data, checksum: checksumOf(data), fetchedAt, sourceUrl, fetchHeaders: headers };
   } catch (err) {
     log('warn', 'phase2: Open Payments fetch failed', { npi, error: String(err) });
     return { raw: { _apiUnavailable: true, npi }, checksum: checksumOf({ npi, ts: Date.now() }), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {} };
@@ -176,10 +175,21 @@ export async function fetchSamGov(npi: string, firstName?: string, lastName?: st
     sourceUrl = `https://api.sam.gov/entity-information/v3/exclusions?api_key=REDACTED&q=${encodeURIComponent(firstName + ' ' + lastName)}&limit=10`;
     const realUrl = `https://api.sam.gov/entity-information/v3/exclusions?api_key=${apiKey}&q=${encodeURIComponent(firstName + ' ' + lastName)}&limit=10`;
     try {
-      const resp = await fetch(realUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
-      if (!resp.ok) throw new Error(`SAM.gov API ${resp.status}`);
-      const data = await resp.json();
-      return { raw: { ...data as object, _searchedNpi: npi, _searchedName: `${firstName} ${lastName}` }, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+      const { data, fetchedAt, headers } = await fetchJsonSource(realUrl, {
+        label: 'sam_gov',
+        headers: { Accept: 'application/json' },
+        cacheKey: `sam_gov:${npi}:${firstName}:${lastName}`,
+        logUrl: sourceUrl,
+        timeoutMs: 15_000,
+        maxRetries: 3,
+      });
+      return {
+        raw: { ...data as object, _searchedNpi: npi, _searchedName: `${firstName} ${lastName}` },
+        checksum: checksumOf(data),
+        fetchedAt,
+        sourceUrl,
+        fetchHeaders: headers,
+      };
     } catch (err) {
       log('warn', 'phase2: SAM.gov fetch failed', { npi, error: String(err) });
     }
@@ -282,10 +292,14 @@ export function parseSamGovResult(
 export async function fetchDoctorsAndClinicians(npi: string): Promise<FetchResult> {
   const sourceUrl = `https://data.cms.gov/provider-data/api/1/datastore/query/mj5m-pzi6/0?conditions[0][property]=npi&conditions[0][value]=${npi}&limit=5`;
   try {
-    const resp = await fetch(sourceUrl, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(15000) });
-    if (!resp.ok) throw new Error(`D&C API ${resp.status}`);
-    const data = await resp.json();
-    return { raw: data, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+    const { data, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+      label: 'doctors_clinicians',
+      headers: { Accept: 'application/json' },
+      cacheKey: `doctors_clinicians:${npi}`,
+      timeoutMs: 15_000,
+      maxRetries: 3,
+    });
+    return { raw: data, checksum: checksumOf(data), fetchedAt, sourceUrl, fetchHeaders: headers };
   } catch (err) {
     log('warn', 'phase2: D&C fetch failed', { npi, error: String(err) });
     return { raw: { _apiUnavailable: true, npi }, checksum: checksumOf({ npi, ts: Date.now() }), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: {} };

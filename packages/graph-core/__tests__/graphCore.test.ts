@@ -14,7 +14,9 @@ import {
   createOntologyEntity,
   createOntologyGraph,
   createOntologyRelation,
+  createStructuredProviderGraph,
   createProviderEvent,
+  projectStructuredProviderGraph,
   createWeeklyGraphSnapshot,
   deriveStorylineGraphSignal,
   diffWeeklyGraphSnapshots,
@@ -210,6 +212,89 @@ function run(): void {
 
   assert.equal(intelligenceProjection.nodes.some((node) => node.id === 'provider:ada' && node.layer === 'intelligence'), true);
   assert.equal(intelligenceProjection.edges.some((edge) => edge.relation === 'co_author' && edge.layer === 'intelligence'), true);
+
+  const structuredProviderGraph = createStructuredProviderGraph({
+    providers: [
+      {
+        npi: '1234567893',
+        label: 'Dr. Ada',
+        taxonomies: [{ code: '207RC0000X', label: 'Cardiovascular Disease' }],
+        states: ['ca', 'nv'],
+        trustState: {
+          band: 'GREEN',
+          score: 92,
+          startReady: true,
+          auditRef: 'audit_ada',
+          lastVerifiedAt: '2026-03-15T12:00:00.000Z',
+        },
+      },
+      {
+        npi: '1234567894',
+        label: 'Dr. Ben',
+        taxonomies: [{ code: '207RC0000X', label: 'Cardiovascular Disease' }],
+        states: ['CA'],
+        trustState: {
+          band: 'YELLOW',
+          score: 68,
+          startReady: false,
+          auditRef: 'audit_ben',
+          blockingReasons: ['MISSING_ACCEPTANCE'],
+        },
+      },
+    ],
+  });
+  const providerProjection = projectStructuredProviderGraph({
+    providers: [
+      {
+        npi: '1234567893',
+        label: 'Dr. Ada',
+        taxonomies: [{ code: '207RC0000X', label: 'Cardiovascular Disease' }],
+        states: ['CA'],
+        trustState: {
+          band: 'GREEN',
+          score: 92,
+          startReady: true,
+        },
+      },
+    ],
+  });
+
+  assert.equal(
+    structuredProviderGraph.entities.filter((entity) => entity.entityType === 'trust_state').length,
+    2,
+  );
+  assert.equal(
+    structuredProviderGraph.entities.filter((entity) => entity.entityType === 'taxonomy').length,
+    1,
+  );
+  assert.equal(
+    structuredProviderGraph.relations.some(
+      (relation) =>
+        relation.sourceEntityId === 'provider:npi:1234567893'
+        && relation.targetEntityId === 'trust_state:npi:1234567893'
+        && relation.relationType === 'provider_to_trust_state',
+    ),
+    true,
+  );
+  assert.equal(
+    providerProjection.nodes.some((node) => node.kind === 'trust_state' && node.id === 'trust_state:npi:1234567893'),
+    true,
+  );
+  assert.throws(
+    () =>
+      createStructuredProviderGraph({
+        providers: [
+          {
+            npi: '1234567893',
+            label: 'Dr. Ada',
+            taxonomies: [],
+            states: ['CA'],
+            trustState: undefined as never,
+          },
+        ],
+      }),
+    /trustState is required/,
+  );
 
   const graph = buildWeightedTestGraph();
   const pageRanks = pageRank(graph);

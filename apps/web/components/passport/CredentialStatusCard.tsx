@@ -19,7 +19,7 @@ export function CredentialStatusCard({
   children,
 }: CredentialStatusCardProps) {
   return (
-    <div className="flex flex-col p-8 border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-vt-neutral-900 shadow-sm transition-all hover:shadow-md">
+    <div className="flex flex-col p-8 border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-vt-neutral-900">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-xl font-medium tracking-tight text-slate-900 dark:text-slate-100">{title}</h3>

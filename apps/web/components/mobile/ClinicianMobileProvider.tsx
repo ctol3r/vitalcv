@@ -49,6 +49,7 @@ const READ_NOTIFICATIONS_STORAGE_KEY = 'vitalcv.mobile.read-notifications';
 const LAST_VISIT_STORAGE_KEY = 'vitalcv.mobile.last-visit';
 const RESUME_PATH_STORAGE_KEY = 'vitalcv.mobile.resume-path';
 const REFRESH_THROTTLE_MS = 30_000;
+const TRUST_REFRESH_DEBOUNCE_MS = 1_500;
 
 const ClinicianMobileContext = createContext<ClinicianMobileContextValue | null>(null);
 
@@ -104,7 +105,9 @@ export function ClinicianMobileProvider({
   const [isOffline, setIsOffline] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const refreshPromiseRef = useRef<Promise<void> | null>(null);
+  const trustRefreshPromiseRef = useRef<Promise<void> | null>(null);
   const lastRefreshRequestAtRef = useRef(parseTimestamp(initialData.refreshedAt));
+  const lastTrustRefreshRequestAtRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -283,22 +286,41 @@ export function ClinicianMobileProvider({
       return;
     }
 
-    setRefreshError(null);
-
-    try {
-      const response = await fetch(`/api/trust-state/${encodeURIComponent(npi)}/refresh`, {
-        method: 'POST',
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Trust refresh failed (${response.status}).`);
-      }
-
-      await refresh();
-    } catch (error) {
-      setRefreshError(error instanceof Error ? error.message : 'Unable to refresh trust state.');
+    if (trustRefreshPromiseRef.current) {
+      return trustRefreshPromiseRef.current;
     }
+
+    if (Date.now() - lastTrustRefreshRequestAtRef.current < TRUST_REFRESH_DEBOUNCE_MS) {
+      return Promise.resolve();
+    }
+
+    setRefreshError(null);
+    lastTrustRefreshRequestAtRef.current = Date.now();
+
+    const request = (async () => {
+      setIsRefreshing(true);
+
+      try {
+        const response = await fetch(`/api/trust-state/${encodeURIComponent(npi)}/refresh`, {
+          method: 'POST',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Trust refresh failed (${response.status}).`);
+        }
+
+        await refresh();
+      } catch (error) {
+        setRefreshError(error instanceof Error ? error.message : 'Unable to refresh trust state.');
+      } finally {
+        setIsRefreshing(false);
+        trustRefreshPromiseRef.current = null;
+      }
+    })();
+
+    trustRefreshPromiseRef.current = request;
+    return request;
   };
 
   useEffect(() => {

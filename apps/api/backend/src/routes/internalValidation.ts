@@ -14,6 +14,7 @@
 import type { Express, Request, Response } from 'express';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+import { computeStabilityMetrics } from '../services/system/stabilityMetricsService';
 
 interface ValidationSummaryResponse {
   status: 'ok' | 'degraded';
@@ -145,6 +146,37 @@ export function registerInternalValidationRoutes(app: Express): void {
         status: 'degraded',
         generatedAt,
         error: 'validation_summary_failed',
+      });
+    }
+  });
+
+  app.get('/api/internal/validation/:npi/stability', async (req: Request, res: Response) => {
+    const npi = String(req.params.npi ?? '').trim();
+    if (!/^\d{10}$/.test(npi)) {
+      return res.status(400).json({
+        error: 'invalid_npi',
+        error_description: 'npi must be a valid 10-digit string.',
+      });
+    }
+
+    try {
+      const metrics = await computeStabilityMetrics(npi, prisma);
+      log('info', 'internal_validation_stability_served', {
+        npi,
+        classification: metrics.classification,
+        totalValidations: metrics.totalValidations,
+        anomalies: metrics.anomalies,
+        driftEvents: metrics.driftEvents,
+      });
+      return res.status(200).json(metrics);
+    } catch (error) {
+      log('error', 'internal_validation_stability_failed', {
+        npi,
+        message: error instanceof Error ? error.message : 'unknown',
+      });
+      return res.status(500).json({
+        error: 'stability_metrics_failed',
+        npi,
       });
     }
   });

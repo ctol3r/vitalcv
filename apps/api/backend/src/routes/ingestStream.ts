@@ -3,8 +3,35 @@ import { isValidNpi } from '../domain/entity/npiRouter';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { log } from '../obs/logger';
 import type { PersistedIngestEvent } from '../services/ingest/contracts';
-import { getIngestRun, startIngestRun } from '../services/ingest/ingestOrchestrator';
+import { getIngestRun, startBatchIngestRuns, startIngestRun } from '../services/ingest/ingestOrchestrator';
 import { listIngestEvents } from '../services/ingest/ingestEventStore';
+
+const MAX_BATCH_INGEST_NPIS = 25;
+
+function sanitizeBatchNpis(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const unique = new Set<string>();
+  for (const entry of raw) {
+    if (typeof entry !== 'string') {
+      continue;
+    }
+
+    const trimmed = entry.trim();
+    if (!isValidNpi(trimmed)) {
+      continue;
+    }
+
+    unique.add(trimmed);
+    if (unique.size >= MAX_BATCH_INGEST_NPIS) {
+      break;
+    }
+  }
+
+  return [...unique];
+}
 
 function parseLastEventId(headerValue: string | undefined): number {
   if (!headerValue) {
@@ -24,6 +51,35 @@ function isTerminalRunStatus(status: string): boolean {
 }
 
 export function registerIngestStreamRoutes(app: Express): void {
+  app.post('/api/ingest/batch', async (req: Request, res: Response) => {
+    const npis = sanitizeBatchNpis((req.body as Record<string, unknown> | undefined)?.npis);
+    if (npis.length === 0) {
+      res.status(400).json({
+        error: 'invalid_batch_npis',
+        error_description: `npis must include at least one valid 10-digit NPI (max ${MAX_BATCH_INGEST_NPIS}).`,
+      });
+      return;
+    }
+
+    try {
+      const runs = await startBatchIngestRuns(npis);
+      res.status(202).json({
+        submitted: runs.map(({ npi, run }) => ({
+          npi,
+          runId: run.id,
+          status: run.status.toLowerCase(),
+        })),
+        submittedCount: runs.length,
+      });
+    } catch (error) {
+      log('error', 'ingest_batch_failed_to_start', {
+        npis,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Failed to start ingest batch.' });
+    }
+  });
+
   app.post('/api/ingest/:npi([0-9]{10})', async (req: Request, res: Response) => {
     const { npi } = req.params as { npi: string };
 

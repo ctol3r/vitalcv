@@ -50,10 +50,20 @@ function normalizeEvent(value: unknown): TelemetryEvent | null {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
+  let body: unknown = null;
+
+  try {
+    body = await req.json();
+  } catch (error) {
+    console.error('[ux-telemetry] invalid json payload', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return NextResponse.json({ accepted: 0 }, { status: 400 });
+  }
+
   const candidates = Array.isArray(body)
     ? body
-    : Array.isArray(body?.events)
+    : isRecord(body) && Array.isArray(body.events)
       ? body.events
       : [body];
   const events = (candidates as unknown[])
@@ -61,6 +71,7 @@ export async function POST(req: NextRequest) {
     .filter((event: TelemetryEvent | null): event is TelemetryEvent => Boolean(event));
 
   if (events.length === 0) {
+    console.warn('[ux-telemetry] rejected empty or invalid payload');
     return NextResponse.json({ accepted: 0 }, { status: 400 });
   }
 

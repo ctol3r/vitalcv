@@ -37,6 +37,24 @@ const orchestrateOmegaMock = orchestrateOmega as jest.MockedFunction<typeof orch
 const enqueueIntegrationWebhookEventMock =
   enqueueIntegrationWebhookEvent as jest.MockedFunction<typeof enqueueIntegrationWebhookEvent>;
 
+function buildOmegaDecisionObject(npi: string) {
+  return {
+    status: 'ok',
+    subject: { npi },
+    context: { orgId: '', role: 'viewer', persist: false },
+    decision: { decision: 'READY' },
+    coverage: { checks: [] },
+    claims: {},
+    reuse_signal: null,
+    recent_actions: [],
+    acceptance: null,
+    activation: null,
+    drift: null,
+    nextBestAction: null,
+    generatedAt: '2026-04-14T18:00:00.000Z',
+  } as const;
+}
+
 function buildGetHandler() {
   const get = jest.fn();
   const app = {
@@ -99,18 +117,7 @@ describe('GET /api/export/:npi', () => {
       snapshot,
     });
 
-    orchestrateOmegaMock.mockResolvedValue({
-      status: 'ok',
-      generatedAt: '2026-04-14T18:00:00.000Z',
-      decision: { decision: 'READY' },
-      coverage: { checks: [] },
-      reuse_signal: null,
-      drift: null,
-      acceptance: null,
-      activation: null,
-      recent_actions: [],
-      nextBestAction: null,
-    } as never);
+    orchestrateOmegaMock.mockResolvedValue(buildOmegaDecisionObject('1234567890') as never);
     prismaMock.decisionCapsule.findMany.mockResolvedValue([
       {
         id: 'capsule-1',
@@ -144,6 +151,10 @@ describe('GET /api/export/:npi', () => {
     await handler({
       params: { npi: '1234567890' },
       query: {},
+      auth: {
+        authenticated: true,
+        role: 'employer',
+      },
     } as unknown as Request, res);
 
     expect(res.status).toHaveBeenCalledWith(200);

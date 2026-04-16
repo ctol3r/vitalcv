@@ -46,7 +46,7 @@ export function CommandParamsModal({ commandName, schemaInfo, initialData, onClo
             <span className="text-indigo-400">⚡</span>
             {commandName}
           </h2>
-          <p className="text-sm text-slate-400 mt-1">Please provide missing parameters to execute this action.</p>
+          <p className="text-sm text-slate-400 mt-1">Please fill in the missing details to continue.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -80,7 +80,7 @@ export function CommandParamsModal({ commandName, schemaInfo, initialData, onClo
               type="submit"
               className="px-6 py-2 rounded-lg text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-foreground shadow-lg shadow-indigo-500/20 transition-all hover:shadow-indigo-500/40 active:scale-95"
             >
-              Execute Command
+              Continue
             </button>
           </div>
         </form>

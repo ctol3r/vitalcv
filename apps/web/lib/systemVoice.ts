@@ -1,40 +1,38 @@
 /**
- * systemVoice.ts — Central UI copy constants for operator-grade tone
+ * systemVoice.ts — Central UI copy constants for concise, human-first language
  *
  * All user-facing microcopy should reference these constants.
  * The voice is: precise, authoritative, impersonal.
  *
- * "Signal detected" not "Something happened"
- * "Execute recommendation" not "Submit" or "Click here"
- * "Command resolved" not "Done!" or "Success!"
+ * Keep labels outcome-focused and readable in product surfaces.
  */
 
 export const systemVoice = {
   // ── Signal status ──────────────────────────────────────────
-  signalDetected: 'Signal detected',
+  signalDetected: 'Update found',
   recommendationReady: 'Recommendation ready',
-  actionRequired: 'Action required',
+  actionRequired: 'Review needed',
   standby: 'Standing by',
   monitoring: 'Monitoring',
-  processingSignal: 'Processing signal…',
-  signalResolved: 'Signal resolved',
+  processingSignal: 'Updating…',
+  signalResolved: 'Update reviewed',
 
   // ── Command lifecycle ──────────────────────────────────────
-  executingCommand: 'Executing…',
-  commandResolved: 'Command resolved',
-  systemUpdated: 'System updated',
-  confirmAction: 'Confirm action',
+  executingCommand: 'Saving…',
+  commandResolved: 'Saved',
+  systemUpdated: 'Updated',
+  confirmAction: 'Confirm choice',
 
   // ── Action verbs (replace "Submit", "Click here", etc.) ───
-  execute: 'Execute',
-  executeRecommendation: 'Execute recommendation',
-  deferSignal: 'Defer signal',
-  dismissSignal: 'Dismiss signal',
-  initiateVerification: 'Initiate verification',
+  execute: 'Continue',
+  executeRecommendation: 'Continue',
+  deferSignal: 'Save for later',
+  dismissSignal: 'Dismiss',
+  initiateVerification: 'Start verification',
   confirmIdentity: 'Confirm identity',
-  commitDecision: 'Commit decision',
-  escalateSignal: 'Escalate signal',
-  resolveSignal: 'Resolve signal',
+  commitDecision: 'Save decision',
+  escalateSignal: 'Escalate for review',
+  resolveSignal: 'Mark reviewed',
 
   // ── Credential / Trust states ──────────────────────────────
   credentialLocked: 'Credential locked',
@@ -43,19 +41,19 @@ export const systemVoice = {
   readinessConfirmed: 'Readiness confirmed',
 
   // ── Navigation / UX ────────────────────────────────────────
-  viewSignals: 'View signals',
-  openInvestigation: 'Open investigation',
+  viewSignals: 'View details',
+  openInvestigation: 'Open review',
   reviewEvidence: 'Review evidence',
-  inspectDetails: 'Inspect details',
+  inspectDetails: 'View details',
 
   // ── Toast / Confirmation ───────────────────────────────────
   toast: {
-    commandAccepted: 'Command accepted',
-    commandResolved: 'Command resolved',
-    signalDismissed: 'Signal dismissed',
-    signalDeferred: 'Signal deferred',
-    actionFailed: 'Action failed — retry available',
-    systemSynced: 'System synced',
+    commandAccepted: 'Saved',
+    commandResolved: 'Saved',
+    signalDismissed: 'Dismissed',
+    signalDeferred: 'Saved for later',
+    actionFailed: 'We could not save that choice. Try again.',
+    systemSynced: 'Up to date',
   },
 } as const;
 

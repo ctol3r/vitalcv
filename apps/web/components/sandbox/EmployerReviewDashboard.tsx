@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Shield, CheckCircle2, Clock, AlertCircle, ArrowRight, User, Activity, FileText, RefreshCw, ShieldAlert, Filter, Calendar, Download, Search, ChevronDown, Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -761,4 +763,3 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
 };
 
 export default EmployerReviewDashboard;
-

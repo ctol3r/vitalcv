@@ -15,6 +15,8 @@
 import type { Express, Request, Response } from 'express';
 import { orchestrateOmega } from '../orchestrator/vcv-omega';
 import { log } from '../obs/logger';
+import type { NextBestActionActorType } from '../services/intelligence/nextBestAction';
+import { assertOmegaDecisionObject } from '../services/system/systemOutputValidator';
 
 const NPI_RE = /^\d{10}$/;
 
@@ -62,6 +64,7 @@ interface OmegaRequestBody {
   orgId?: unknown;
   role?: unknown;
   persist?: unknown;
+  actorType?: unknown;
 }
 
 function isOptionalString(value: unknown): value is string | undefined {
@@ -70,6 +73,10 @@ function isOptionalString(value: unknown): value is string | undefined {
 
 function isOptionalBoolean(value: unknown): value is boolean | undefined {
   return value === undefined || typeof value === 'boolean';
+}
+
+function isOptionalActorType(value: unknown): value is NextBestActionActorType | undefined {
+  return value === undefined || value === 'clinician' || value === 'employer';
 }
 
 export function registerOmegaRoutes(app: Express): void {
@@ -88,7 +95,7 @@ export function registerOmegaRoutes(app: Express): void {
     const start = Date.now();
     const body = (req.body ?? {}) as OmegaRequestBody;
     const rawNpi = body.npi;
-    const { orgId, role, persist } = body;
+    const { orgId, role, persist, actorType } = body;
 
     // Input hardening — trim whitespace before validating format.
     const npi = typeof rawNpi === 'string' ? rawNpi.trim() : rawNpi;
@@ -117,6 +124,12 @@ export function registerOmegaRoutes(app: Express): void {
         error_description: 'persist must be a boolean when provided.',
       });
     }
+    if (!isOptionalActorType(actorType)) {
+      return res.status(400).json({
+        error: 'invalid_actorType',
+        error_description: 'actorType must be clinician or employer when provided.',
+      });
+    }
 
     const trimmedOrgId = orgId?.trim();
     const trimmedRole = role?.trim();
@@ -131,10 +144,10 @@ export function registerOmegaRoutes(app: Express): void {
     });
 
     try {
-      const result = await orchestrateOmega({
+      const result = assertOmegaDecisionObject(await orchestrateOmega({
         subject: { npi },
-        context: { orgId: trimmedOrgId, role: trimmedRole, persist },
-      });
+        context: { orgId: trimmedOrgId, role: trimmedRole, persist, actorType },
+      }));
 
       const status = result.status === 'not_found' ? 404 : 200;
       const duration_ms = Date.now() - start;

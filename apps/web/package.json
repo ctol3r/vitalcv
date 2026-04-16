@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm -w run design:guard",
     "build": "next build",
     "build-storybook": "storybook build",
     "dev": "next dev",

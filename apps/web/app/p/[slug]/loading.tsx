@@ -1,10 +1,10 @@
 /**
  * loading.tsx — Next.js App Router streaming fallback for /p/[slug].
  *
- * Rendered while the server component awaits fetchProfile +
- * fetchNextBestAction. Structure mirrors the real page (onboarding
- * header → drift banner slot → decision surface → evidence → divergence)
- * so layout doesn't shift when the real content streams in.
+ * Rendered while the server component awaits the single public profile
+ * fetch. Structure mirrors the real page (onboarding header → evidence
+ * slot → decision surface) so layout doesn't shift when the real content
+ * streams in.
  *
  * Pure presentation; no hooks; no data fetches.
  */
@@ -53,17 +53,6 @@ export default function PublicTrustProfileLoading() {
                 </li>
               ))}
             </ul>
-          </section>
-
-          {/* NBA card skeleton */}
-          <section className="mb-6">
-            <div className="rounded-2xl border-2 border-border bg-card p-6 sm:p-8">
-              <SkeletonBar className="h-3 w-40" />
-              <SkeletonBar className="mt-3 h-10 w-3/4" />
-              <SkeletonBar className="mt-4 h-3 w-full max-w-md" />
-              <SkeletonBar className="mt-3 h-3 w-48" />
-              <div className="mt-6 h-[52px] w-full animate-pulse rounded-xl bg-muted" aria-hidden />
-            </div>
           </section>
 
           {/* Decision card skeleton */}

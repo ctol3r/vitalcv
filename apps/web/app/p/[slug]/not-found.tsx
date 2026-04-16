@@ -25,7 +25,7 @@ export default function PublicTrustProfileNotFound() {
             href="/explore"
             className="rounded-lg border-2 border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90"
           >
-            Browse verified clinicians
+            Browse clinician profiles
           </Link>
         </div>
       </div>

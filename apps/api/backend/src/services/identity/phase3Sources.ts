@@ -26,6 +26,7 @@ import {
 } from './evidenceModel';
 import type { ClaimType } from './sourceCatalog';
 import { log } from '../../obs/logger';
+import { fetchJsonSource } from './sourceHttp';
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
 
@@ -39,12 +40,6 @@ interface FetchResult {
 
 function checksumOf(payload: unknown): string {
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-}
-
-function headersToObject(h: Headers): Record<string, string> {
-  const obj: Record<string, string> = {};
-  h.forEach((v, k) => { obj[k] = v; });
-  return obj;
 }
 
 function makeClaim(params: {
@@ -105,14 +100,14 @@ export async function fetchNursys(npi: string): Promise<FetchResult> {
     // Live Nursys API
     const sourceUrl = `${baseUrl}/api/v1/license-status?npi=${encodeURIComponent(npi)}`;
     try {
-      const resp = await fetch(sourceUrl, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000),
+      const { data, fetchedAt, headers } = await fetchJsonSource(sourceUrl, {
+        label: 'nursys',
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+        cacheKey: `nursys:${npi}`,
+        timeoutMs: 10_000,
+        maxRetries: 3,
       });
-      if (!resp.ok) throw new Error(`Nursys API ${resp.status}`);
-      const data = await resp.json();
-      return { raw: data, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl, fetchHeaders: headersToObject(resp.headers) };
+      return { raw: data, checksum: checksumOf(data), fetchedAt, sourceUrl, fetchHeaders: headers };
     } catch (err) {
       log('warn', 'phase3: Nursys live fetch failed', { npi, error: String(err) });
       return {
@@ -309,14 +304,20 @@ export async function fetchStateBoardLicense(npi: string, state: string, lastNam
   if (fsmb) {
     const fsmbUrl = `https://docinfo-api.fsmb.org/v1/physicians/${npi}`;
     try {
-      const resp = await fetch(fsmbUrl, {
-        headers: { 'Authorization': `Bearer ${fsmb}`, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(15000),
+      const { data, fetchedAt, headers } = await fetchJsonSource(fsmbUrl, {
+        label: 'fsmb_docinfo',
+        headers: { Authorization: `Bearer ${fsmb}`, Accept: 'application/json' },
+        cacheKey: `fsmb:${npi}`,
+        timeoutMs: 15_000,
+        maxRetries: 3,
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        return { raw: { ...data as object, _source: 'FSMB', _state: stateUpper }, checksum: checksumOf(data), fetchedAt: new Date().toISOString(), sourceUrl: fsmbUrl, fetchHeaders: headersToObject(resp.headers) };
-      }
+      return {
+        raw: { ...data as object, _source: 'FSMB', _state: stateUpper },
+        checksum: checksumOf(data),
+        fetchedAt,
+        sourceUrl: fsmbUrl,
+        fetchHeaders: headers,
+      };
     } catch (err) {
       log('warn', 'phase3: FSMB fetch failed', { npi, state, error: String(err) });
     }

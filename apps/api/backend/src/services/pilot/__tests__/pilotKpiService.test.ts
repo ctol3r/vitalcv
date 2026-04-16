@@ -8,6 +8,7 @@ describe('PILOT_METRIC_EVENT_TYPES funnel coverage', () => {
     expect(types).toContain('passport_viewed');
     expect(types).toContain('review_opened');
     expect(types).toContain('employer_action_taken');
+    expect(types).toContain('drift_detected');
   });
 });
 

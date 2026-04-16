@@ -17,6 +17,7 @@ import {
   replayDecision,
   buildAuditBundle,
   addAttestation,
+  DecisionAttestationError,
 } from '../services/audit/replayEngine';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
@@ -277,7 +278,7 @@ export function registerAuditReplayRoutes(app: Express): void {
    *   timestamp?:   string    ISO — defaults to now
    * }
    *
-   * Returns: { capsuleId, attestationCount, attestedAt }
+   * Returns: { capsuleId, attestationCount, attestedAt, created }
    */
   app.post('/api/decisions/:id/attest', async (req: Request, res: Response) => {
     const { id }  = req.params;
@@ -300,13 +301,20 @@ export function registerAuditReplayRoutes(app: Express): void {
       });
 
       log('info', 'auditReplay: attestation added', {
-        capsuleId: id, attesterId, role: attesterRole,
+        capsuleId: id, attesterId, role: attesterRole, created: result.created,
       });
 
-      res.status(201).json(result);
+      res.status(result.created ? 201 : 200).json(result);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('not found')) { res.status(404).json({ error: msg }); return; }
+      if (err instanceof DecisionAttestationError) {
+        res.status(err.statusCode).json({
+          error: err.code.toLowerCase(),
+          error_description: err.message,
+        });
+        return;
+      }
       log('error', 'auditReplay: /attest failed', { id, error: msg });
       res.status(500).json({ error: 'Attestation failed' });
     }

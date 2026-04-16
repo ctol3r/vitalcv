@@ -98,7 +98,7 @@ export default async function ApplyBundlePage({ params }: Props) {
   const result = await fetchBundle(bundleId);
 
   if (!result.ok) {
-    return <BundleErrorView reason={result.reason} />;
+    return <BundleErrorView reason={result.reason} retryHref={`/apply/${bundleId}`} />;
   }
 
   return <ApplyBundleView bundle={result.bundle} />;
@@ -106,7 +106,13 @@ export default async function ApplyBundlePage({ params }: Props) {
 
 // ── Error states ──────────────────────────────────────────────────────────────
 
-function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error' }) {
+function BundleErrorView({
+  reason,
+  retryHref,
+}: {
+  reason: 'expired' | 'not_found' | 'error';
+  retryHref: string;
+}) {
   const messages = {
     expired: {
       emoji: '⏱',
@@ -131,7 +137,7 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
       title: 'Connection interrupted',
       body: 'We could not load this passport right now. Try again in a moment.',
       primaryLabel: 'Try again',
-      primaryHref: null, // reload
+      primaryHref: retryHref,
       secondaryLabel: 'Start a new NPI lookup',
       secondaryHref: '/passport',
     },
@@ -146,21 +152,12 @@ function BundleErrorView({ reason }: { reason: 'expired' | 'not_found' | 'error'
         <h1 className="text-xl font-bold text-foreground">{msg.title}</h1>
         <p className="text-sm text-muted-foreground">{msg.body}</p>
         <div className="flex flex-col gap-2 pt-2">
-          {msg.primaryHref ? (
-            <a
-              href={msg.primaryHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              {msg.primaryLabel}
-            </a>
-          ) : (
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-            >
-              {msg.primaryLabel}
-            </button>
-          )}
+          <a
+            href={msg.primaryHref}
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-muted border border-border px-6 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            {msg.primaryLabel}
+          </a>
           {msg.secondaryHref && (
             <a
               href={msg.secondaryHref}

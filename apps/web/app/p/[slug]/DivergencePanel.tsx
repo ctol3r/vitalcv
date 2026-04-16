@@ -1,3 +1,5 @@
+import React from 'react';
+
 /**
  * DivergencePanel — surfaces cross-source conflicts when present.
  *
@@ -37,7 +39,7 @@ export function DivergencePanel({ divergence }: { divergence: DivergenceInput | 
         <p className="text-xs font-semibold uppercase tracking-widest text-green-700">
           Source agreement
         </p>
-        <p className="mt-1">All verified sources agree — no cross-source divergence.</p>
+        <p className="mt-1">All checked sources agree — no cross-source divergence.</p>
       </div>
     );
   }

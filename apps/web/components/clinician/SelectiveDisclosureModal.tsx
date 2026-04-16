@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ClaimBadge } from '@/components/ui/claim-badge';
 import {
   GlassModal,
   GlassModalBody,
@@ -10,9 +9,10 @@ import {
   GlassModalTitle,
 } from '@/components/ui/glass-modal';
 import { PrivacyToggle } from '@/components/ui/privacy-toggle';
+import { buildSelectiveDisclosureSnapshot } from '@/lib/trust/ui-truth-integrity';
 import type { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 import { CheckCircle, Eye, EyeOff, Loader2, Share2, ShieldCheck, XCircle } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { BiometricPrompt } from './BiometricPrompt';
 import type { CredentialCardData } from './CredentialCard';
 
@@ -26,6 +26,7 @@ interface SelectiveDisclosureModalProps {
   credentials: CredentialCardData[];
   /** Optional: verifier-provided request ID to include in the presentation */
   verifierRequestId?: string;
+  initialDisclosureLevel?: 'full' | 'proof';
 }
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
@@ -76,8 +77,9 @@ export function SelectiveDisclosureModal({
   onClose,
   credentials,
   verifierRequestId,
+  initialDisclosureLevel = 'full',
 }: SelectiveDisclosureModalProps) {
-  const [disclosureLevel, setDisclosureLevel] = useState<'full' | 'proof'>('full');
+  const [disclosureLevel, setDisclosureLevel] = useState<'full' | 'proof'>(initialDisclosureLevel);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(credentials.map((c) => c.id)),
   );
@@ -195,6 +197,7 @@ export function SelectiveDisclosureModal({
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {credentials.map((cred) => {
               const isSelected = selected.has(cred.id);
+              const proofSnapshot = buildSelectiveDisclosureSnapshot(cred, 'proof');
               return (
                 <button
                   key={cred.id}
@@ -217,7 +220,12 @@ export function SelectiveDisclosureModal({
                     <p className="text-sm font-medium truncate">{cred.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{cred.issuer}</p>
                   </div>
-                  <ClaimBadge level={cred.claimLevel} />
+                  <span className={proofSnapshot.receiptBacked
+                    ? 'rounded-full border border-[var(--trust-green)]/20 bg-[var(--trust-green)]/8 px-2.5 py-1 text-[10px] font-semibold text-[var(--trust-green)]'
+                    : 'rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground'}
+                  >
+                    {proofSnapshot.receiptBacked ? 'Receipt-backed L3' : `${cred.claimLevel} attached`}
+                  </span>
                 </button>
               );
             })}
@@ -235,21 +243,62 @@ export function SelectiveDisclosureModal({
                 No credentials selected
               </p>
             ) : (
-              selectedCredentials.map((cred) => (
-                <div key={cred.id} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <ShieldCheck className="h-3.5 w-3.5 text-[var(--trust-green)]" />
-                    {disclosureLevel === 'full'
-                      ? cred.name
-                      : cred.type.replace(/_/g, ' ')}
-                  </span>
-                  {disclosureLevel === 'full' ? (
-                    <span className="text-xs text-muted-foreground">{cred.issuer}</span>
-                  ) : (
-                    <span className="text-xs text-[var(--trust-green)]">Verified</span>
-                  )}
-                </div>
-              ))
+              selectedCredentials.map((cred) => {
+                const snapshot = buildSelectiveDisclosureSnapshot(cred, disclosureLevel);
+                return (
+                  <div key={cred.id} className="rounded-xl border border-border/40 bg-background/40 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2">
+                        <ShieldCheck className="h-3.5 w-3.5 text-[var(--trust-green)]" />
+                        {cred.name}
+                      </span>
+                      <span className={snapshot.receiptBacked ? 'text-xs text-[var(--trust-green)]' : 'text-xs text-amber-600'}>
+                        {snapshot.receiptBacked ? 'Receipt attached' : 'Receipt missing'}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          Visible fields
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {snapshot.visibleFields.map((field) => (
+                            <span
+                              key={field}
+                              className="rounded-full border border-[var(--trust-green)]/20 bg-[var(--trust-green)]/8 px-2.5 py-1 text-xs text-foreground"
+                            >
+                              {field}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                          Locked fields
+                        </p>
+                        {snapshot.lockedFields.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {snapshot.lockedFields.map((field) => (
+                              <span
+                                key={field}
+                                className="rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-xs text-foreground/80 blur-[2px]"
+                              >
+                                {field}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            No fields are locked in full disclosure mode.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
