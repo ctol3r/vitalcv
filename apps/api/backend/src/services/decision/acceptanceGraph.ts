@@ -4,6 +4,7 @@
 // hard-coded compliance requirements.
 
 import { SourceStatus } from '../../../../packages/trust-contract/src/index';
+import { StoredDecisionCapsule } from './decisionCapsuleLearning';
 
 // ── Organization Model ──────────────────────────────────────────
 
@@ -36,19 +37,33 @@ export interface EvaluatedRequirement {
 export interface AcceptanceState {
   orgId: string;
   isReady: boolean;
+  historicalAcceptanceRate: number; // 0.0 to 1.0 based on Decision Capsules
   blockers: EvaluatedRequirement[];
   missingActions: EvaluatedRequirement[];
   satisfied: EvaluatedRequirement[];
 }
 
 /**
- * Deterministically evaluates a ProofManifest against an Organization's requirements.
+ * Deterministically evaluates a ProofManifest against an Organization's requirements,
+ * enriched by historical Decision Capsules.
  */
 export function evaluateAcceptanceGraph(
   org: OrganizationRequirements,
-  manifestClaims: { type: string; id: string; status: SourceStatus; ageMs: number }[]
+  manifestClaims: { type: string; id: string; status: SourceStatus; ageMs: number }[],
+  historicalCapsules: StoredDecisionCapsule[] = []
 ): AcceptanceState {
   const evaluated: EvaluatedRequirement[] = [];
+
+  // --- LEARNING INFLUENCE ZONE ---
+  // Deterministic aggregation of prior outcomes
+  let historicalAcceptanceRate = 1.0;
+  if (historicalCapsules.length > 0) {
+    const acceptedOrStarted = historicalCapsules.filter(c => 
+      c.payload.outcome === 'ACCEPTED' || c.payload.outcome === 'STARTED'
+    ).length;
+    historicalAcceptanceRate = acceptedOrStarted / historicalCapsules.length;
+  }
+  // -------------------------------
 
   for (const rule of org.rules) {
     const claim = manifestClaims.find(c => c.type === rule.claimType);
@@ -98,6 +113,7 @@ export function evaluateAcceptanceGraph(
   return {
     orgId: org.orgId,
     isReady: blockers.length === 0 && missingActions.length === 0,
+    historicalAcceptanceRate,
     blockers,
     missingActions,
     satisfied,

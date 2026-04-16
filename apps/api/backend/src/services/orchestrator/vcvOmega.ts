@@ -12,6 +12,7 @@ import { createAuditEvent, AuditEventType } from '../../../../packages/source-ad
 import { ReadinessPosture, TruthSnapshot, SourceStatus, FreshnessState } from '../../../../packages/trust-contract/src/index';
 
 import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
+import { StoredDecisionCapsule } from '../decision/decisionCapsuleLearning';
 import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
 import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
@@ -146,7 +147,10 @@ export async function generateOmegaDecision(
     ageMs: Date.now() - new Date(c.extractedAt).getTime()
   }));
 
-  const acceptanceGraph = evaluateAcceptanceGraph(mockOrgRules, manifestClaimsForAcceptance);
+  // Fetch historical capsules to influence the graphs
+  const historicalCapsules: StoredDecisionCapsule[] = []; // In real impl: await prisma.decisionCapsuleLearning.findMany({ where: { orgId: employerId } });
+
+  const acceptanceGraph = evaluateAcceptanceGraph(mockOrgRules, manifestClaimsForAcceptance, historicalCapsules);
 
   // Look up historic acceptance records for this NPI by this Employer
   const historicAcceptance = await prisma.employerAcceptance.findFirst({
@@ -162,8 +166,9 @@ export async function generateOmegaDecision(
   };
 
   // 4. ACTIVATION GRAPH (Start Readiness)
-  // Translates Acceptance into static Startability timeframes (No ML)
-  const activationGraph = evaluateActivationGraph(acceptanceGraph);
+  // Translates Acceptance into static Startability timeframes (No ML),
+  // influenced by historical time-to-start averages via Decision Capsules.
+  const activationGraph = evaluateActivationGraph(acceptanceGraph, historicalCapsules);
   
   // A clinician is formally start-ready only if they are Acceptance-Ready AND an Employer clicked PROCEED
   const isStartReady = activationGraph.isStartReady && historicAcceptance?.action === 'PROCEED';
