@@ -3,6 +3,10 @@
 import { Card } from '@/components/ui/card';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import type { IngestStreamState } from '@/hooks/useIngestStream';
+import {
+  resolveBlockerOwnership,
+  resolveStateBoardOwnership,
+} from '@/lib/trust/action-owner';
 
 /**
  * StartabilityCard — passport surface, flat + token-driven.
@@ -20,18 +24,153 @@ interface Startability {
   estimatedDays: number | null;
 }
 
+const FALLBACK_SOURCES: IngestStreamState['sources'] = {
+  nppes: 'pending',
+  oig: 'pending',
+  pecos: 'pending',
+};
+
+const FALLBACK_STANDING: IngestStreamState['standing'] = {
+  exclusionChecked: false,
+  enrollmentChecked: false,
+};
+
 export function deriveBlockers(state: IngestStreamState): string[] {
   const blockers: string[] = [];
-  if (state.sources.oig === 'error') blockers.push('Exclusion check failed');
-  if (state.standing.exclusionClear === false) blockers.push('On OIG exclusion list');
-  if (state.sources.pecos !== 'done') blockers.push('Medicare enrollment unresolved');
-  if (state.standing.enrollmentStatus && state.standing.enrollmentStatus !== 'enrolled') {
+  const sources = state?.sources ?? FALLBACK_SOURCES;
+  const standing = state?.standing ?? FALLBACK_STANDING;
+  const blockerCount = state?.readiness?.blockerCount ?? 0;
+
+  if (sources.oig === 'error') blockers.push('Exclusion check failed');
+  if (standing.exclusionClear === false) blockers.push('On OIG exclusion list');
+  if (sources.pecos !== 'done') blockers.push('Medicare enrollment unresolved');
+  if (standing.enrollmentStatus && standing.enrollmentStatus !== 'enrolled') {
     blockers.push('Not enrolled in Medicare');
   }
-  if ((state.readiness.blockerCount ?? 0) > 0 && blockers.length === 0) {
-    blockers.push(`${state.readiness.blockerCount} unresolved readiness items`);
+  if (blockerCount > 0 && blockers.length === 0) {
+    blockers.push(`${blockerCount} unresolved readiness items`);
   }
   return blockers;
+}
+
+// Map a descriptive blocker into an imperative directive for the Autopilot
+// surface. Blockers answer "what's wrong"; directives answer "what to do".
+// Autopilot is wayfinding, so the copy must read as an order, not a diagnosis.
+export function blockerToDirective(blocker: string): string {
+  switch (blocker) {
+    case 'On OIG exclusion list':
+      return 'Clear OIG exclusion';
+    case 'Exclusion check failed':
+      return 'Rerun OIG check';
+    case 'Medicare enrollment unresolved':
+    case 'Not enrolled in Medicare':
+      return 'Fix PECOS';
+    default:
+      return blocker;
+  }
+}
+
+// Action-in-flight copy shown in the CTA's progress state after click.
+// The rule: the user must feel "I started something real", so generic
+// "Re-checking sources…" isn't enough — the line must name the exact
+// workflow the click kicked off.
+export function blockerToProgressLabel(blocker: string): string {
+  switch (blocker) {
+    case 'Medicare enrollment unresolved':
+    case 'Not enrolled in Medicare':
+      return 'Submitting PECOS enrollment…';
+    case 'On OIG exclusion list':
+    case 'Exclusion check failed':
+      return 'Running OIG verification…';
+    default:
+      return 'Verification in progress…';
+  }
+}
+
+// Completion copy for the transient "✔ done" banner. Mirrors the
+// progress-label mapping so a click that shows "Submitting PECOS
+// enrollment…" concludes with "PECOS enrollment complete". The rule is
+// "user must feel 'I actually progressed'" — the naming symmetry is
+// what makes the completion beat land.
+export function blockerToCompletionLabel(blocker: string): string {
+  switch (blocker) {
+    case 'Medicare enrollment unresolved':
+    case 'Not enrolled in Medicare':
+      return 'PECOS enrollment complete';
+    case 'On OIG exclusion list':
+    case 'Exclusion check failed':
+      return 'OIG check complete';
+    default:
+      return `${blockerToDirective(blocker)} — complete`;
+  }
+}
+
+// Typical resolution windows in days, mirroring autopilotEngine on the API.
+// Kept in sync so client-side estimates match what Omega would return once
+// the passport surface consumes generateAutopilot directly.
+const BLOCKER_DAYS: Record<string, number> = {
+  'On OIG exclusion list': 30,
+  'Exclusion check failed': 3,
+  'Medicare enrollment unresolved': 14,
+  'Not enrolled in Medicare': 14,
+};
+const DEFAULT_BLOCKER_DAYS = 14;
+
+export function deriveAutopilotDays(
+  state: IngestStreamState,
+  hideBlocker?: string | null,
+): number | null {
+  const all = deriveBlockers(state);
+  const blockers = hideBlocker ? all.filter((b) => b !== hideBlocker) : all;
+  if (blockers.length === 0) return 0;
+  const windows = blockers.map((b) => BLOCKER_DAYS[b] ?? DEFAULT_BLOCKER_DAYS);
+  return Math.max(...windows);
+}
+
+// Human-readable outcome label. Never a score — the user should read the
+// line once and know where they stand. Thresholds are intentionally coarse
+// so small state changes don't flicker the label between tiers.
+export function deriveAutopilotOutcome(
+  state: IngestStreamState,
+  hideBlocker?: string | null,
+): string {
+  const all = deriveBlockers(state);
+  const blockers = hideBlocker ? all.filter((b) => b !== hideBlocker) : all;
+  const days = deriveAutopilotDays(state, hideBlocker);
+  const readinessStatus = state?.readiness?.status ?? null;
+  const exclusionClear = state?.standing?.exclusionClear;
+
+  if (exclusionClear === false) return 'Likely rejected';
+  if (blockers.length === 0 && readinessStatus === 'READY') return 'Likely accepted';
+  if (days !== null && days <= 7 && blockers.length <= 1) return 'Likely accepted';
+  if (days !== null && days <= 21) return 'Close to ready';
+  if (blockers.length > 0) return 'Needs work';
+  return 'Gathering signal';
+}
+
+// Autopilot steps read from the actor-ownership contract so each line
+// names the owner, not a bare imperative. "Verify state board" is
+// replaced by the institution-owned prefix ("Your employer or institution
+// covers state-board verification for now") so the clinician does not
+// read an INSTITUTION-owned lane as their own task.
+export function deriveAutopilotSteps(
+  state: IngestStreamState,
+  hideBlocker?: string | null,
+): string[] {
+  const all = deriveBlockers(state);
+  const visible = hideBlocker ? all.filter((b) => b !== hideBlocker) : all;
+
+  const ownedSteps = visible.map((blocker) => resolveBlockerOwnership(blocker).ownerPrefix);
+
+  // State board access is INSTITUTION-owned per the Source Coverage
+  // Matrix. Once the run has completed, render the institution-owned
+  // line so the clinician knows the lane is not on them.
+  const licenseComplete = Boolean(state?.completedAt || state?.readyAt || state?.isUsable);
+  if (licenseComplete) {
+    ownedSteps.push(resolveStateBoardOwnership().ownerPrefix);
+  }
+
+  return Array.from(new Set(ownedSteps));
 }
 
 /**
@@ -58,11 +197,13 @@ function deriveStartability(state: IngestStreamState, hideBlocker?: string | nul
   const allBlockers = deriveBlockers(state);
   const blockers = hideBlocker ? allBlockers.filter((b) => b !== hideBlocker) : allBlockers;
   const estimatedDays = estimateDaysToStartReady(blockers);
+  const readinessStatus = state?.readiness?.status;
+  const exclusionClear = state?.standing?.exclusionClear;
 
-  if (blockers.length === 0 && state.readiness.status === 'READY') {
+  if (blockers.length === 0 && readinessStatus === 'READY') {
     return { status: 'verified', label: 'Start-ready', blockers, estimatedDays };
   }
-  if (state.standing.exclusionClear === false) {
+  if (exclusionClear === false) {
     return { status: 'blocked', label: 'Blocked', blockers, estimatedDays };
   }
   return { status: 'pending', label: 'Needs work', blockers, estimatedDays };

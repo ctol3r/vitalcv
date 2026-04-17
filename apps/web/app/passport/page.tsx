@@ -14,13 +14,12 @@ export const dynamic = 'force-dynamic';
  *    - Sanctions status next (OIG, ~2s)
  *    - Enrollment next (PECOS, ~3s)
  *    - Readiness recalculates on claim_update
- * 4. Done → [View full passport] or [View as employer]
+ * 4. Done → [View full passport]
  *
  * No polling. No full-page reload. No fake refresh.
  */
 
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,20 +30,38 @@ import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-s
 import { AcceptanceCard } from '@/components/passport/AcceptanceCard';
 import { AutopilotPanel } from '@/components/passport/AutopilotPanel';
 import { CohortInsights } from '@/components/passport/CohortInsights';
-import { StartabilityCard, deriveBlockers } from '@/components/passport/StartabilityCard';
+import {
+  blockerToCompletionLabel,
+  deriveAutopilotDays,
+  deriveAutopilotOutcome,
+  deriveAutopilotSteps,
+  deriveBlockers,
+} from '@/components/passport/StartabilityCard';
 import { ActionPanel } from '@/components/passport/ActionPanel';
 import { DecisionLogSummary } from '@/components/passport/DecisionLogSummary';
+import { PassportPreviewCard } from '@/components/passport/PassportPreviewCard';
 import { fireCapsule } from '@/lib/capsules';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
+import { buildPassportEntityHref } from '@/lib/trust/public-wedge-parity';
+import { parseOpportunityPassportHandoff } from '@/lib/launch/opportunity-ui-contract';
 import {
-  buildPassportEntityHref,
-  getPublicWedgeSurfaceBadgeMeta,
-  resolvePublicWedgeSurfaceStateFromDisplayLabel,
-  type PublicWedgeSurfaceState,
-} from '@/lib/trust/public-wedge-parity';
-import { trackPilotEvent } from '@/lib/pilot-ops/client';
+  executePassportAction,
+  shouldReleasePassportAction,
+} from '@/lib/trust/passport-action-execution';
+import {
+  resolveBlockerOwnership,
+  resolveOmegaRecomputeFailureOwnership,
+  resolveStateBoardOwnership,
+} from '@/lib/trust/action-owner';
+import {
+  getLaneLabel,
+  resolvePassportContinuation,
+  resolveRecoveryPath,
+  type SourceLane,
+  type SourceLaneState,
+} from '@/lib/trust/recovery-path';
+import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
-import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 
 // ── NPI Luhn checksum validation (ISO/IEC 7812 with "80840" prefix) ────────────
 function isValidNpiChecksum(npi: string): boolean {
@@ -62,11 +79,18 @@ function isValidNpiChecksum(npi: string): boolean {
   return sum % 10 === 0;
 }
 
+const stateBoardOwnership = resolveStateBoardOwnership();
+
 const SOURCE_EXPLANATIONS = [
   { id: 'nppes', name: 'NPPES', description: 'Identity verification from the National Plan and Provider Enumeration System', locked: false },
   { id: 'oig', name: 'OIG / LEIE', description: 'Exclusion check against the Office of Inspector General\u2019s List of Excluded Individuals', locked: false },
   { id: 'pecos', name: 'CMS PECOS', description: 'Medicare enrollment verification from Provider Enrollment, Chain, and Ownership System', locked: false },
-  { id: 'fsmb', name: 'FSMB / State Board', description: 'State medical board licensure verification via the Federation of State Medical Boards', locked: true },
+  {
+    id: 'fsmb',
+    name: 'State board verification',
+    description: `${stateBoardOwnership.plainLabel}. ${stateBoardOwnership.ownerPrefix}.`,
+    locked: true,
+  },
 ];
 
 // ── Status label helper ────────────────────────────────────────────────────────
@@ -80,8 +104,8 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
   description: string;
 } {
   const degradedCopy = {
-    title: "We couldn't load your readiness snapshot right now.",
-    description: 'Try this NPI again in a moment.',
+    title: 'Verification failed — try again',
+    description: 'Source unavailable — retry',
   } as const;
 
   if (!raw) return degradedCopy;
@@ -106,185 +130,164 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
   return degradedCopy;
 }
 
+// Phase copy must stay honest. It can name the failure state, but it may
+// never imply background progress or simulated motion.
 const PHASE_LABEL: Record<StreamPhase, string> = {
   idle:       '',
-  starting:   'Connecting to primary sources…',
-  nppes:      'Checking primary sources…',
-  sanctions:  'Checking sanctions and exclusions…',
-  enrollment: 'Checking Medicare enrollment…',
+  starting:   'Not yet verified',
+  nppes:      'Not yet verified',
+  sanctions:  'Not yet verified',
+  enrollment: 'Not yet verified',
   done:       'Complete',
-  error:      'Error',
+  error:      'Verification failed — try again',
 };
 
-// ── Source row ─────────────────────────────────────────────────────────────────
+// ── Source row (owner-attributed, recovery-path driven) ───────────────────────
 
 type SourceState = 'pending' | 'checking' | 'done' | 'error';
 
-function resolveSourceBadge(state: SourceState, displayValue: string): {
-  status: TrustBadgeStatus;
-  label: string;
-} {
-  if (state === 'checking') {
-    return { status: 'pending', label: 'Pending' };
+function resolveStateBoardSourceState(state: IngestStreamState): SourceState {
+  return state.isUsable || Boolean(state.completedAt) || Boolean(state.readyAt) || state.phase === 'done'
+    ? 'done'
+    : 'pending';
+}
+
+/** Map the stream's per-source SourceState into a canonical SourceLaneState
+ * that the recovery-path contract understands. Per-lane overrides supply
+ * the structured result (enrolled vs not_found, exclusion flag, etc.). */
+function resolveLaneState(
+  lane: SourceLane,
+  sourceState: SourceState,
+  streamState: IngestStreamState,
+): SourceLaneState {
+  if (sourceState === 'error') return 'unavailable';
+  if (sourceState === 'pending' || sourceState === 'checking') return 'pending';
+
+  // sourceState === 'done'
+  const { identity, standing } = streamState;
+
+  switch (lane) {
+    case 'nppes': {
+      if (identity.sourceResult === 'SKIPPED') return 'no_record';
+      if (identity.authoritative) return 'checked';
+      if (identity.status === 'UNKNOWN') return 'no_record';
+      return 'checked';
+    }
+    case 'oig': {
+      if (standing.exclusionClear === false) return 'review_required';
+      if (standing.exclusionStatus === 'POSSIBLE_MATCH') return 'review_required';
+      if (standing.exclusionStatus === 'EXCLUDED') return 'review_required';
+      return 'checked';
+    }
+    case 'pecos': {
+      // PECOS refreshes quarterly per the Source Coverage Matrix — the
+      // record may be up to 90 days old. `stale` is the honest resting
+      // state when the source returns a value but has quarterly cadence.
+      if (standing.enrollmentStatus === 'ENROLLED') return 'stale';
+      if (standing.enrollmentStatus === 'NOT_FOUND') return 'no_record';
+      if (standing.enrollmentStatus === 'OPTED_OUT') return 'review_required';
+      return 'stale';
+    }
+    case 'state_board':
+      // State boards are ACCESS_REQUIRED at the platform level per the
+      // Source Coverage Matrix. Regardless of how the stream terminates,
+      // the authoritative answer is "institutional coverage needed."
+      return 'access_required';
   }
+}
 
-  if (state === 'pending') {
-    return { status: 'pending', label: 'Pending' };
+function laneStateToBadgeStatus(state: SourceLaneState): TrustBadgeStatus {
+  switch (state) {
+    case 'pending':
+      return 'pending';
+    case 'checked':
+      return 'checked';
+    case 'unavailable':
+      return 'unavailable';
+    case 'access_required':
+      return 'access_required';
+    case 'stale':
+      return 'checked';
+    case 'no_record':
+      return 'unavailable';
+    case 'review_required':
+      return 'review_required';
   }
+}
 
-  if (state === 'error') {
-    const meta = getPublicWedgeSurfaceBadgeMeta('unavailable');
-    return { status: meta.status, label: meta.label };
-  }
-
-  let surfaceState: PublicWedgeSurfaceState = 'checked';
-
-  switch (displayValue) {
-    case 'Flag found':
-    case 'Possible match':
-    case 'Not found':
-    case 'Opted out':
-    case 'Excluded':
-      surfaceState = 'review_required';
-      break;
-    case 'Access required':
-      surfaceState = 'access_required';
-      break;
-    case 'No profile yet':
-      surfaceState = 'unavailable';
-      break;
-    case 'Verified':
-    case 'Clear':
-    case 'Enrolled':
-    case 'Checked':
-    case 'Done':
-    default:
-      surfaceState = 'checked';
-      break;
-  }
-
-  const meta = getPublicWedgeSurfaceBadgeMeta(surfaceState);
+function derivePassportLaneStates(state: IngestStreamState): Record<SourceLane, SourceLaneState> {
   return {
-    status: meta.status,
-    label: meta.label,
+    nppes: resolveLaneState('nppes', state.sources.nppes, state),
+    oig: resolveLaneState('oig', state.sources.oig, state),
+    pecos: resolveLaneState('pecos', state.sources.pecos, state),
+    state_board: resolveLaneState('state_board', resolveStateBoardSourceState(state), state),
   };
 }
 
-function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
-  const displayValue =
-    state === 'checking' ? 'Checking…'
-    : state === 'done' ? (value ?? 'Done')
-    : state === 'error' ? 'Unavailable'
-    : '—';
-  const badge = resolveSourceBadge(state, displayValue);
+function SourceRow({
+  lane,
+  sourceState,
+  streamState,
+  onRetry,
+}: {
+  lane: SourceLane;
+  sourceState: SourceState;
+  streamState: IngestStreamState;
+  onRetry?: () => void;
+}) {
+  const laneState = resolveLaneState(lane, sourceState, streamState);
+  const recovery = resolveRecoveryPath(lane, laneState);
+  const badgeStatus = laneStateToBadgeStatus(laneState);
+
+  const showExplanation =
+    laneState !== 'checked' && laneState !== 'pending';
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <div className="flex items-center gap-2.5">
-        <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
-          style={{
-            backgroundColor:
-              state === 'done'     ? 'rgba(255,255,255,0.45)' :
-              state === 'checking' ? 'rgba(255,255,255,0.20)' :
-              state === 'error'    ? 'rgba(255,255,255,0.15)' :
-                                     'rgba(255,255,255,0.08)',
-          }}
-          aria-hidden
+    <div className="py-2 border-b border-border last:border-0">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{
+              backgroundColor:
+                sourceState === 'done'     ? 'rgba(255,255,255,0.45)' :
+                sourceState === 'checking' ? 'rgba(255,255,255,0.20)' :
+                sourceState === 'error'    ? 'rgba(255,255,255,0.15)' :
+                                             'rgba(255,255,255,0.08)',
+            }}
+            aria-hidden
+          />
+          <span className="text-muted-foreground text-sm truncate">{recovery.laneLabel}</span>
+        </div>
+        <TrustStatusBadge
+          status={badgeStatus}
+          label={recovery.statusLabel}
+          size="sm"
         />
-        <span className="text-muted-foreground text-sm">{label}</span>
       </div>
-      <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
+      {showExplanation && (
+        <div className="mt-1.5 pl-4 text-xs text-muted-foreground leading-relaxed">
+          {recovery.explanation}
+          {recovery.ctaLabel && (
+            <>
+              {' '}
+              {recovery.actionType === 'retry' && onRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="underline underline-offset-2 text-foreground/80 hover:text-foreground"
+                >
+                  {recovery.ctaLabel}
+                </button>
+              ) : (
+                <span className="text-foreground/70">{recovery.nextStep}</span>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
-}
-
-function formatExclusionLabel(
-  checked: boolean,
-  exclusionClear: boolean | undefined,
-  exclusionStatus: string | undefined,
-  state: SourceState,
-): string | undefined {
-  if (state === 'error') {
-    return undefined;
-  }
-
-  if (!checked) {
-    return state === 'done' ? 'Checked' : undefined;
-  }
-
-  if (exclusionClear === true) {
-    return 'Checked';
-  }
-
-  if (exclusionClear === false) {
-    return 'Flag found';
-  }
-
-  if (exclusionStatus === 'POSSIBLE_MATCH') {
-    return 'Possible match';
-  }
-
-  if (exclusionStatus === 'EXCLUDED') {
-    return 'Excluded';
-  }
-
-  return 'Checked';
-}
-
-function formatEnrollmentLabel(
-  checked: boolean,
-  enrollmentStatus: string | undefined,
-  state: SourceState,
-): string | undefined {
-  if (state === 'error') {
-    return undefined;
-  }
-
-  if (!checked) {
-    return state === 'done' ? 'Checked' : undefined;
-  }
-
-  if (enrollmentStatus === 'ENROLLED') {
-    return 'Enrolled';
-  }
-
-  if (enrollmentStatus === 'NOT_FOUND') {
-    return 'Not found';
-  }
-
-  if (enrollmentStatus === 'OPTED_OUT') {
-    return 'Opted out';
-  }
-
-  return enrollmentStatus ?? 'Checked';
-}
-
-function resolveLicenseState(streamState: IngestStreamState): SourceState {
-  if (streamState.phase === 'error' && !streamState.isUsable) {
-    return 'error';
-  }
-
-  if (streamState.completedAt || streamState.readyAt || streamState.isUsable) {
-    return 'done';
-  }
-
-  return streamState.runId ? 'checking' : 'pending';
-}
-
-function formatLicenseLabel(
-  streamState: IngestStreamState,
-  state: SourceState,
-): string | undefined {
-  if (state === 'error') {
-    return undefined;
-  }
-
-  if (state === 'done') {
-    return 'Access required';
-  }
-
-  return state === 'checking' ? 'Pending' : undefined;
 }
 
 function humanizeContextToken(value: string): string {
@@ -300,6 +303,9 @@ type PassportRoleContext = Readonly<{
   roleTitle: string | null;
   employerSlug: string | null;
   employerName: string | null;
+  canonicalOrgId: string | null;
+  canonicalRoleId: string | null;
+  readinessPreviewLink: string | null;
 }>;
 
 // ── SessionStorage handoff ─────────────────────────────────────────────────────
@@ -351,41 +357,119 @@ function PassportPageContent({
   // ── Dynamic loop: user takes action → optimistic hide → re-ingest drives real updates
   const [resolvingBlocker, setResolvingBlocker] = useState<string | null>(null);
   const resolvingReadinessBaseline = useRef<number | undefined>(undefined);
+  const actionExecutionInFlight = useRef(false);
 
-  // Clear optimistic state when a fresh readiness score arrives after resolution
+  // Completion beat — a transient banner ("✔ PECOS enrollment complete")
+  // shown at the moment resolving state clears. The rule is "user must
+  // feel 'I actually progressed'", so we tie the banner copy to the
+  // exact blocker that was resolved. Auto-dismisses after 4.5s so the
+  // surface returns to its steady post-progress state.
+  const [completedBlocker, setCompletedBlocker] = useState<string | null>(null);
+  const completionBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (completionBannerTimer.current) clearTimeout(completionBannerTimer.current);
+    },
+    [],
+  );
+
+  // Omega recompute status. When executePassportAction's Omega POST
+  // fails, we surface an honest "action recorded locally, upstream view
+  // will retry" banner instead of silently swallowing the failure.
+  // Doctrine: "no silent failure" — the user learns when the recompute
+  // didn't land, not only when it did.
+  type OmegaRecomputeStatus = 'idle' | 'ok' | 'failed';
+  const [omegaRecomputeStatus, setOmegaRecomputeStatus] =
+    useState<OmegaRecomputeStatus>('idle');
+  // Clear optimistic state only after authoritative recompute state lands.
   useEffect(() => {
-    if (!resolvingBlocker) return;
-    const baseline = resolvingReadinessBaseline.current;
-    const current = state.readiness.score;
-    if (current !== undefined && baseline !== undefined && current !== baseline) {
-      setResolvingBlocker(null);
-      resolvingReadinessBaseline.current = undefined;
+    if (!shouldReleasePassportAction({
+      resolvingBlocker,
+      baselineReadinessScore: resolvingReadinessBaseline.current,
+      currentReadinessScore: state.readiness.score,
+      phase: state.phase,
+      isUsable: state.isUsable,
+      completedAt: state.completedAt,
+      readyAt: state.readyAt,
+    })) {
+      return;
     }
-    if (state.phase === 'error') {
-      setResolvingBlocker(null);
-      resolvingReadinessBaseline.current = undefined;
-    }
-  }, [resolvingBlocker, state.readiness.score, state.phase]);
 
-  const handleTakeAction = useCallback((blocker: string) => {
+    // Capture which blocker just resolved so the completion beat can
+    // name it specifically. Gate on three conditions simultaneously:
+    //   1. A blocker was being resolved (resolvingBlocker non-null)
+    //   2. The stream did not land in error (phase !== 'error')
+    //   3. The resolved blocker is genuinely gone from the fresh
+    //      blocker set — i.e. external state actually changed.
+    //
+    // Without (3), the banner would fire on every re-ingest even when
+    // the authoritative source came back unchanged. That was the Ω108
+    // truth leak: the user sees "✔ PECOS enrollment complete" when
+    // nothing in PECOS actually changed. Gating on deriveBlockers(state)
+    // not containing the resolved blocker turns the banner from a
+    // click-response beat into a real-progress signal.
+    const authoritativeBlockers = deriveBlockers(state);
+    const blockerActuallyResolved =
+      resolvingBlocker !== null
+      && !authoritativeBlockers.includes(resolvingBlocker);
+
+    if (blockerActuallyResolved && state.phase !== 'error') {
+      setCompletedBlocker(resolvingBlocker);
+      if (completionBannerTimer.current) clearTimeout(completionBannerTimer.current);
+      completionBannerTimer.current = setTimeout(() => {
+        setCompletedBlocker(null);
+        completionBannerTimer.current = null;
+      }, 4500);
+    }
+
+    setResolvingBlocker(null);
+    resolvingReadinessBaseline.current = undefined;
+    setOmegaRecomputeStatus('idle');
+  }, [
+    resolvingBlocker,
+    state.completedAt,
+    state.isUsable,
+    state.phase,
+    state.readiness.score,
+    state.readyAt,
+  ]);
+
+  // executeAction — the CTA is an execution trigger, not advisory UI.
+  // On click we: (1) snapshot the current readiness score so the optimistic
+  // blocker-hide knows when "new state" has arrived, (2) mark the blocker
+  // as resolving so ActionPanel flips to its progress state, (3) append an
+  // intent capsule, (4) re-trigger Omega, and (5) kick a fresh ingest run.
+  // Single-flight is load-bearing here: repeated clicks must not enqueue
+  // duplicate execution loops or produce conflicting optimistic state.
+  const executeAction = useCallback((blocker: string) => {
+    if (actionExecutionInFlight.current) return;
+
     const targetNpi = state.npi ?? npi.trim();
-    if (!/^\d{10}$/.test(targetNpi)) return;
+    const allowedBlockers = deriveBlockers(state);
+    if (!/^\d{10}$/.test(targetNpi) || !allowedBlockers.includes(blocker)) return;
+
+    actionExecutionInFlight.current = true;
     resolvingReadinessBaseline.current = state.readiness.score;
     setResolvingBlocker(blocker);
-    // Trigger #1 — NBA execution: record decision capsule for audit trail
-    fireCapsule({
+
+    void executePassportAction({
+      blocker,
+      allowedBlockers,
       subjectNpi: targetNpi,
-      decisionType: 'DEPLOYMENT',
-      triggerEvent: 'start_attestation',
-      metadata: {
-        source: 'passport.action-panel',
-        blocker,
-        readinessScoreBefore: state.readiness.score ?? null,
-      },
-    });
-    reset();
-    setTimeout(() => startIngest(targetNpi), 50);
-  }, [npi, reset, startIngest, state.npi, state.readiness.score]);
+      readinessScoreBefore: state.readiness.score ?? null,
+      })
+      .then((result) => {
+        setOmegaRecomputeStatus(result.omegaTriggered ? 'ok' : 'failed');
+      })
+      .catch(() => {
+        setOmegaRecomputeStatus('failed');
+      })
+      .finally(() => {
+        actionExecutionInFlight.current = false;
+        reset();
+        void startIngest(targetNpi);
+      });
+  }, [npi, reset, startIngest, state]);
 
   useEffect(() => {
     if (autoTriggered.current) {
@@ -417,19 +501,36 @@ function PassportPageContent({
     }
   }, [initialNpi, resumeIngest, startIngest]);
 
-  useEffect(() => {
-    void trackPilotEvent({
-      eventType: UX_EVENTS.PASSPORT_VIEWED,
-      route: '/passport',
-      oncePerSession: true,
-      message: 'Passport page viewed',
-    });
-  }, []);
-
   const isActive = state.phase !== 'idle';
   const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
   const anchorEntityId = state.anchorEntityId ?? state.identity.entityId;
   const canViewPassport = state.isUsable && Boolean(anchorEntityId);
+
+  useEffect(() => {
+    const passportNpi = typeof state.npi === 'string' && /^\d{10}$/.test(state.npi)
+      ? state.npi
+      : initialNpi ?? null;
+    if (!passportNpi) {
+      return;
+    }
+
+    void trackPilotFunnelEvent({
+      eventType: UX_EVENTS.PASSPORT_VIEWED,
+      npi: passportNpi,
+      route: '/passport',
+      oncePerSession: true,
+      message: 'Passport page viewed',
+      entity: {
+        kind: 'passport',
+        id: anchorEntityId ?? passportNpi,
+        label: passportNpi,
+        objectType: 'passport',
+      },
+      details: {
+        anchorEntityId: anchorEntityId ?? null,
+      },
+    });
+  }, [anchorEntityId, initialNpi, state.npi]);
 
   // Trigger #3 — Start event: fire capsule once per anchor arrival (ingest complete)
   const firedStartCapsuleFor = useRef<string | null>(null);
@@ -499,30 +600,34 @@ function PassportPageContent({
     reset();
   }
 
-  const { identity, standing, sources } = state;
-
-  const exclusionLabel = formatExclusionLabel(
-    standing.exclusionChecked,
-    standing.exclusionClear,
-    standing.exclusionStatus,
-    sources.oig,
-  );
-  const enrollmentLabel = formatEnrollmentLabel(
-    standing.enrollmentChecked,
-    standing.enrollmentStatus,
-    sources.pecos,
-  );
-  const identityLabel =
-    identity.authoritative
-      ? 'Source-backed'
-      : noProfileYet
-        ? 'No profile yet'
-        : state.identity.sourceResult === 'FAILED'
-          ? 'Unavailable'
-          : undefined;
+  const { identity, sources } = state;
 
   const npiValid = npi.length === 10 && !/\D/.test(npi);
   const npiChecksumOk = npiValid && isValidNpiChecksum(npi);
+
+  // Retry hook wired through handleSecondaryAction — used by SourceRow
+  // when a lane renders as unavailable. The button surfaces a concrete
+  // recovery action instead of relabeling failure as motion.
+  const retryCurrentNpi = () => {
+    const target = state.npi ?? npi.trim();
+    if (/^\d{10}$/.test(target)) {
+      void startIngest(target);
+    }
+  };
+
+  const laneStates = derivePassportLaneStates(state);
+  const laneStateList = Object.values(laneStates);
+  const continuation = resolvePassportContinuation({
+    hasAnchor: Boolean(anchorEntityId),
+    allRequiredLanesResolved: !laneStateList.includes('pending'),
+    hasUnresolvedBlockers: deriveBlockers(state).length > 0,
+    anyLanePending: laneStateList.includes('pending'),
+    anyLaneReviewRequired: laneStateList.includes('review_required'),
+    anyLaneAccessRequired: laneStateList.includes('access_required'),
+    anyLaneUnavailable: laneStateList.includes('unavailable'),
+    anyLaneStale: laneStateList.includes('stale'),
+    anyLaneNoRecord: laneStateList.includes('no_record'),
+  });
 
   return (
     <main className="bg-background px-4 pt-16 sm:pt-20 pb-24">
@@ -619,7 +724,7 @@ function PassportPageContent({
                             {src.locked && (
                               <span className="rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground flex items-center gap-1">
                                 <Lock aria-hidden="true" className="h-2.5 w-2.5" />
-                                Access Required
+                                Not Yet Supported
                               </span>
                             )}
                           </div>
@@ -638,38 +743,7 @@ function PassportPageContent({
 
             {/* Right column: sample readiness card */}
             <div className="hidden lg:block">
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Sample readiness snapshot
-                </p>
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold text-foreground">[Your Name]</p>
-                  <p className="text-sm text-muted-foreground">[Specialty] · NPI [Your NPI]</p>
-                </div>
-                <div className="space-y-2">
-                  {([
-                    { label: 'NPPES', status: 'checked', display: 'Checked' },
-                    { label: 'OIG / LEIE', status: 'checked', display: 'Checked' },
-                    { label: 'CMS PECOS', status: 'enrolled', display: 'Enrolled' },
-                    { label: 'State Board', status: 'access_required', display: 'Access required' },
-                  ] as const).map(s => (
-                    <div key={s.label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                      <span className="text-sm text-muted-foreground">{s.label}</span>
-                      <TrustStatusBadge status={s.status} label={s.display} size="sm" />
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
-                    <span className="text-xs font-semibold text-trust-green">READY</span>
-                  </div>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
-                </div>
-                <p className="text-[10px] text-muted-foreground/50 text-center">
-                  This is a sample — enter your NPI to see real results
-                </p>
-              </div>
+              <PassportPreviewCard demo />
             </div>
           </div>
         )}
@@ -685,6 +759,133 @@ function PassportPageContent({
               </p>
             )}
 
+            {/* Autopilot — hero position. Direction, not suggestion:
+                "You are closest to X, to get there do Y". Steps + days
+                share the same state derivation as the ActionPanel below,
+                so the top-of-surface direction stays in lockstep with the
+                Next Best Action the user will actually take. Specialty is
+                forwarded to the top-match endpoint so it can promote the
+                response from fallback ("Closest available opportunity")
+                to primary ("You are closest to") when a real fit exists. */}
+            {/* Completion beat — appears the moment a blocker clears.
+                Transient (auto-dismiss ~4.5s); named to mirror the
+                progress copy so the click-through narrative closes cleanly
+                ("Submitting PECOS enrollment…" → "PECOS enrollment
+                complete"). Placed above the hero so the user sees the
+                celebration paired with the fresh Autopilot state that
+                now reflects the resolved blocker. */}
+            {completedBlocker && (
+              <div
+                role="status"
+                aria-live="polite"
+                data-slot="autopilot-completion"
+                className="
+                  rounded-xl border px-[var(--vt-space-16)] py-3
+                  text-sm font-[var(--vt-font-weight-semibold)]
+                  animate-fade-in-up
+                "
+                style={{
+                  // Theme tokens: readable in both light and dark modes.
+                  // --vt-status-resolved is dark green in light theme and
+                  // light green in dark theme, so the banner always carries
+                  // real contrast against its background.
+                  color: 'var(--vt-status-resolved)',
+                  borderColor: 'color-mix(in oklab, var(--vt-status-resolved) 40%, transparent)',
+                  background: 'color-mix(in oklab, var(--vt-status-resolved) 10%, transparent)',
+                }}
+              >
+                <span className="mr-1.5" aria-hidden>
+                  ✔
+                </span>
+                {blockerToCompletionLabel(completedBlocker)}
+              </div>
+            )}
+
+            {/* Omega recompute failure banner. Owner-attributed via
+                resolveOmegaRecomputeFailureOwnership — the clinician sees
+                who owns the retry ("VitalCV will retry the recompute") and
+                what the ETA is ("automatically on the next navigation"),
+                not an internal-jargon "server-side decision view" line.
+                Persists until authoritative release or navigation; no
+                auto-dismiss timer, because a truth signal with a 10s
+                half-life is a half-truth. */}
+            {omegaRecomputeStatus === 'failed' && !completedBlocker && (() => {
+              const recompute = resolveOmegaRecomputeFailureOwnership();
+              return (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  data-slot="omega-recompute-failed"
+                  className="
+                    rounded-xl border border-amber-500/40 bg-amber-500/10
+                    px-[var(--vt-space-16)] py-3
+                    text-sm text-amber-900 dark:text-amber-200
+                    animate-fade-in-up
+                  "
+                >
+                  <p className="font-semibold">{recompute.ownerPrefix}</p>
+                  <p className="mt-1 text-amber-800/80 dark:text-amber-100/80">
+                    {recompute.rationale}
+                    {recompute.etaOrDependency ? ` ${recompute.etaOrDependency}.` : null}
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Waiting-for-sources placeholder — appears while the stream
+                is live but readiness hasn't computed yet. Shows a scale
+                hint ("— / 100") so the user knows what will arrive rather
+                than staring at nothing. Never renders a fake number. */}
+            {state.readiness.score === undefined && isRunning && (
+              <div
+                data-slot="readiness-placeholder"
+                className="
+                  rounded-xl border border-[var(--vt-border)]
+                  bg-[var(--vt-surface)]
+                  px-[var(--vt-space-16)] py-4
+                "
+                aria-live="polite"
+              >
+                <p className="text-xs uppercase tracking-widest text-[var(--vt-text-muted)]">
+                  Readiness
+                </p>
+                <p className="mt-1 text-2xl font-[var(--vt-font-weight-semibold)] tabular-nums text-[var(--vt-text-primary)]">
+                  — / 100
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--vt-text-muted)]">
+                  Score available after verification
+                </p>
+              </div>
+            )}
+
+            {state.readiness.score !== undefined && (() => {
+              // Pin the Autopilot to the exact role the user arrived
+              // with (Explore CTA, shared opportunity link). When present
+              // this overrides the specialty-based top-match fetch, so
+              // the user sees readiness against the role they came for,
+              // not a generic closest match.
+              const pinnedOpportunity =
+                roleContext.roleId && roleContext.roleTitle
+                  ? {
+                      opportunityId: roleContext.roleId,
+                      employer: roleContext.employerName ?? humanizeContextToken(roleContext.employerSlug ?? ''),
+                      role: roleContext.roleTitle,
+                      organizationSlug: roleContext.employerSlug ?? '',
+                    }
+                  : null;
+
+              return (
+                <AutopilotPanel
+                  steps={deriveAutopilotSteps(state, resolvingBlocker)}
+                  estimatedDays={deriveAutopilotDays(state, resolvingBlocker)}
+                  outcomeLabel={deriveAutopilotOutcome(state, resolvingBlocker)}
+                  specialty={identity.specialty ?? null}
+                  npi={state.npi ?? null}
+                  pinnedOpportunity={pinnedOpportunity}
+                />
+              );
+            })()}
+
             {/* Identity block — appears when NPPES resolves */}
             {identity.authoritative && identity.displayName && (
               <Card className="gap-2 rounded-2xl border-border bg-muted px-5 py-4 shadow-none">
@@ -699,84 +900,41 @@ function PassportPageContent({
               </Card>
             )}
 
-            {/* Autopilot — top-section suggestion: closest match + ordered next steps */}
-            {state.readiness.score !== undefined && (
-              <AutopilotPanel steps={deriveBlockers(state).filter((b) => b !== resolvingBlocker)} />
-            )}
-
-          {/* Source status rows */}
+          {/* Source status rows — every row reads from the recovery-path
+              contract (apps/web/lib/trust/recovery-path.ts). Badges never
+              relabel failure as motion; each non-checked row carries the
+              owner-attributed explanation + recovery action. */}
           <Card className="animate-panel-enter gap-0 rounded-xl border border-[var(--vt-border)] px-4 py-2">
             <SourceRow
-                label="NPPES"
-                state={sources.nppes}
-                value={identityLabel}
-              />
-              <SourceRow
-                label="OIG / LEIE"
-                state={sources.oig}
-                value={exclusionLabel}
-              />
-              <SourceRow
-                label="CMS PECOS"
-                state={sources.pecos}
-                value={enrollmentLabel}
-              />
-              <SourceRow
-                label="Configured state board lane"
-                state={resolveLicenseState(state)}
-                value={formatLicenseLabel(state, resolveLicenseState(state))}
-              />
-            </Card>
+              lane="nppes"
+              sourceState={sources.nppes}
+              streamState={state}
+              onRetry={retryCurrentNpi}
+            />
+            <SourceRow
+              lane="oig"
+              sourceState={sources.oig}
+              streamState={state}
+              onRetry={retryCurrentNpi}
+            />
+            <SourceRow
+              lane="pecos"
+              sourceState={sources.pecos}
+              streamState={state}
+              onRetry={retryCurrentNpi}
+            />
+            <SourceRow
+              lane="state_board"
+              sourceState={resolveStateBoardSourceState(state)}
+              streamState={state}
+            />
+          </Card>
 
-            {/* Readiness summary — appears when claims update.
-                Presentation: subtle one-shot entrance when the score first appears.
-                No count-up — the score is atomic truth, not progress. */}
-            {state.readiness.score !== undefined && (
-              <Card
-                className="animate-trust-panel-enter gap-0 rounded-xl border border-[var(--vt-border)] px-4 py-3"
-                style={{ animationDelay: '40ms' }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
-                  <TrustStatusBadge
-                    status={resolveLivePathReadinessStatus(
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
-                        ? state.readiness.status
-                        : state.readiness.score >= 70
-                          ? 'READY'
-                          : state.readiness.score >= 40
-                            ? 'PARTIAL'
-                            : 'BLOCKED',
-                    )}
-                    label={
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
-                        ? state.readiness.status
-                        : state.readiness.score >= 70
-                          ? 'READY'
-                          : state.readiness.score >= 40
-                            ? 'PARTIAL'
-                            : 'BLOCKED'
-                    }
-                    size="sm"
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-foreground/80 text-sm tabular-nums">
-                    {state.readiness.score}/100
-                  </span>
-                  {state.readiness.level && (
-                    <span className="text-muted-foreground/50 text-xs">
-                      {state.readiness.level}
-                    </span>
-                  )}
-                </div>
-                {state.readiness.status && (
-                  <p className="text-muted-foreground/50 text-xs mt-1">
-                    {state.readiness.status}
-                  </p>
-                )}
-              </Card>
-            )}
+            {/* Readiness summary intentionally removed — its score (N/100)
+                violates the "no raw numbers" rule and the band/status
+                duplicates Autopilot's outcome line. Readiness is still
+                available to callers via the ingest state; re-surface it
+                only if a new, non-duplicative affordance is needed. */}
 
             {/* Acceptance — which orgs have accepted this passport */}
             {state.readiness.score !== undefined && (
@@ -789,42 +947,60 @@ function PassportPageContent({
             {/* Minimal audit log — decision capsule count */}
             {state.npi && canViewPassport && <DecisionLogSummary npi={state.npi} />}
 
-            {/* Startability — derived start-ready status + blockers + est. days.
-                Optimistically hides the blocker the user is currently resolving. */}
-            {state.readiness.score !== undefined && (
-              <StartabilityCard state={state} hideBlocker={resolvingBlocker} />
-            )}
+            {/* Startability intentionally removed — status + blockers +
+                estimated days are now surfaced by the hero Autopilot
+                panel. One source of truth for "what's in the way and how
+                long it takes". StartabilityCard remains exported from
+                its module for other surfaces. */}
 
             {/* Command surface — one next step, one action.
-                Dynamic loop: click → optimistic state → re-ingest → stream drives updates. */}
+                The CTA renders the owner-specific verb from the blocker
+                ownership contract (apps/web/lib/trust/action-owner.ts),
+                never a generic "Take Action". The `nextStep` line carries
+                the owner prefix so the clinician sees "You need to…" vs
+                "VitalCV is retrying…" vs "Your institution covers this"
+                before they click. */}
             {(state.readiness.score !== undefined || resolvingBlocker) && (() => {
               const visibleBlockers = deriveBlockers(state).filter((b) => b !== resolvingBlocker);
               if (resolvingBlocker) {
+                const resolvingOwnership = resolveBlockerOwnership(resolvingBlocker);
                 return (
                   <ActionPanel
-                    nextStep={`Fix ${resolvingBlocker}`}
+                    nextStep={resolvingOwnership.ownerPrefix}
+                    actionLabel={resolvingOwnership.actionLabel}
                     resolving
-                    progressLabel={PHASE_LABEL[state.phase] || 'Re-checking sources...'}
                   />
                 );
               }
               if (visibleBlockers.length > 0) {
                 const top = visibleBlockers[0];
+                const ownership = resolveBlockerOwnership(top);
                 return (
                   <ActionPanel
-                    nextStep={`Fix ${top}`}
-                    actionLabel="Take Action"
-                    onAction={() => handleTakeAction(top)}
+                    nextStep={ownership.ownerPrefix}
+                    actionLabel={ownership.actionLabel}
+                    onAction={() => executeAction(top)}
                   />
                 );
               }
               if (canViewPassport && anchorEntityId) {
                 return (
-                  <ActionPanel
-                    nextStep="Your passport is ready"
-                    actionLabel="View full passport"
-                    href={buildPassportEntityHref(anchorEntityId)}
-                  />
+                  <div className="space-y-2">
+                    {continuation.provisionalNotice && (
+                      <p
+                        role="status"
+                        aria-live="polite"
+                        className="rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-2 text-xs text-[var(--vt-text-muted)] leading-relaxed"
+                      >
+                        {continuation.provisionalNotice}
+                      </p>
+                    )}
+                    <ActionPanel
+                      nextStep={continuation.headline}
+                      actionLabel={continuation.ctaLabel}
+                      href={buildPassportEntityHref(anchorEntityId)}
+                    />
+                  </div>
                 );
               }
               return null;
@@ -842,8 +1018,8 @@ function PassportPageContent({
             {/* Terminal completion without anchor */}
             {runCompletedWithoutAnchor && (
               <TrustStateCard
-                title="Profile resolved, but passport continuation is still provisional."
-                description="Public NPI identity resolved, but no source-backed passport anchor was written for this run. Re-check sources before treating this as a full passport."
+                title={continuation.headline}
+                description={`${continuation.description}${continuation.provisionalNotice ? ` ${continuation.provisionalNotice}` : ''}`}
                 centered
               />
             )}
@@ -892,15 +1068,29 @@ function PassportPageContent({
 
 function PassportPageSearchParams() {
   const searchParams = useSearchParams();
+  const handoff = parseOpportunityPassportHandoff(searchParams);
   return (
     <PassportPageContent
       initialNpi={searchParams?.get('npi') ?? null}
-      roleContext={{
-        roleId: searchParams?.get('role') ?? null,
-        roleTitle: searchParams?.get('roleTitle') ?? null,
-        employerSlug: searchParams?.get('employer') ?? null,
-        employerName: searchParams?.get('employerName') ?? null,
-      }}
+      roleContext={handoff
+        ? {
+            roleId: handoff.roleId,
+            roleTitle: handoff.roleTitle,
+            employerSlug: handoff.employerSlug,
+            employerName: handoff.employerName,
+            canonicalOrgId: handoff.canonicalOrgId,
+            canonicalRoleId: handoff.canonicalRoleId,
+            readinessPreviewLink: handoff.readinessPreviewLink,
+          }
+        : {
+            roleId: null,
+            roleTitle: null,
+            employerSlug: null,
+            employerName: null,
+            canonicalOrgId: null,
+            canonicalRoleId: null,
+            readinessPreviewLink: null,
+          }}
     />
   );
 }
@@ -911,7 +1101,15 @@ export default function PassportPage() {
       fallback={
         <PassportPageContent
           initialNpi={null}
-          roleContext={{ roleId: null, roleTitle: null, employerSlug: null, employerName: null }}
+          roleContext={{
+            roleId: null,
+            roleTitle: null,
+            employerSlug: null,
+            employerName: null,
+            canonicalOrgId: null,
+            canonicalRoleId: null,
+            readinessPreviewLink: null,
+          }}
         />
       }
     >

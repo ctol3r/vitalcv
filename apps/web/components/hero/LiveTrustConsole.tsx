@@ -67,7 +67,7 @@ function resolveLicenseStage(streamState: IngestStreamState): ConsoleStage {
   if (streamState.phase === 'error' && !streamState.isUsable) {
     return {
       id: 'license',
-      label: 'Configured state board lane',
+      label: 'State board verification',
       status: 'unavailable',
       detail: 'Live retry required before authority can be checked.',
     };
@@ -76,7 +76,7 @@ function resolveLicenseStage(streamState: IngestStreamState): ConsoleStage {
   if (streamState.completedAt || streamState.readyAt || streamState.isUsable) {
     return {
       id: 'license',
-      label: 'Configured state board lane',
+      label: 'State board verification',
       status: 'access_required',
       detail: 'Institutional source access is still required for source-backed licensure.',
     };
@@ -84,7 +84,7 @@ function resolveLicenseStage(streamState: IngestStreamState): ConsoleStage {
 
   return {
     id: 'license',
-    label: 'Configured state board lane',
+    label: 'State board verification',
     status: streamState.runId ? 'loading' : 'pending',
     detail: 'Waiting to determine whether source-backed authority is available.',
   };
@@ -190,15 +190,18 @@ function resolveStageBadge(stageStatus: ConsoleStageStatus): {
     case 'checked':
       return { status: 'checked', label: 'Checked' };
     case 'access_required':
+      // Access-required is institutional gating, not product absence.
+      // The owner-attributed explanation renders separately; the badge
+      // itself reads as a state, not as a "we don't do this" verdict.
       return { status: 'access_required', label: 'Access required' };
     case 'unavailable':
-      return { status: 'unavailable', label: 'Unavailable' };
+      return { status: 'unavailable', label: 'Source unavailable' };
     case 'review_required':
       return { status: 'review_required', label: 'Review required' };
     case 'loading':
     case 'pending':
     default:
-      return { status: 'pending', label: 'Pending' };
+      return { status: 'pending', label: 'Not yet verified' };
   }
 }
 
@@ -554,7 +557,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                 className="h-14 w-full shrink-0 rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
               >
                 <span aria-live="polite">
-                  {phase === 'loading' ? 'Checking...' : 'Apply with VCV'}
+                  Apply with VCV
                 </span>
               </Button>
             </form>
@@ -613,8 +616,8 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                     <span className="text-amber-500 font-medium text-xs">⏳ Checking</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-foreground">State License</span>
-                    <span className="text-rose-500 font-medium text-xs">⚠ Missing</span>
+                    <span className="text-foreground">State medical board</span>
+                    <span className="text-muted-foreground font-medium text-xs">Access required</span>
                   </div>
                 </div>
               </div>
@@ -647,11 +650,21 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   <p className="mt-2 text-sm text-muted-foreground">
                     {sourcesCheckedCount} of {stages.length} sources verified
                     {readinessLevel ? ` — ${readinessLevel}` : ''}
-                    {sourcesCheckedCount >= 3
-                      ? ' — Ready to present'
-                      : sourcesCheckedCount >= 1
-                        ? ' — Partially verified'
-                        : ' — Needs attention'}
+                    {/* Content-based, not count-based. Any unavailable or
+                        review-required lane disqualifies a "ready" label —
+                        a partial passport is honest; "Ready to present"
+                        under retry storms or access-gated lanes is not. */}
+                    {(() => {
+                      const anyUnavailable = stages.some((s) => s.status === 'unavailable');
+                      const anyReviewRequired = stages.some((s) => s.status === 'review_required');
+                      const anyAccessRequired = stages.some((s) => s.status === 'access_required');
+                      const allChecked = stages.every((s) => s.status === 'checked');
+                      if (allChecked) return ' — Decision-grade';
+                      if (anyUnavailable || anyReviewRequired) return ' — Partial — not decision-grade';
+                      if (anyAccessRequired) return ' — Partial — institution covers remaining lane';
+                      if (sourcesCheckedCount >= 1) return ' — Partial — some lanes still resolving';
+                      return ' — Not yet verified';
+                    })()}
                   </p>
                 </>
               ) : (
@@ -738,7 +751,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
               })}
             </div>
 
-            {/* Download Proof + Continue */}
+            {/* Decision Packet + Continue */}
             <div
               className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               style={{ animation: 'vcv-stagger-in 350ms ease-out 400ms both' }}
@@ -750,7 +763,7 @@ export function LiveTrustConsole({ onPreviewReady, initialNpi }: LiveTrustConsol
                   disabled={continueDisabled}
                   className="h-12 w-full rounded-xl px-6 text-sm font-semibold min-h-[44px] sm:w-auto"
                 >
-                  {continueDisabled ? 'Checking readiness...' : 'Download Proof'}
+                  {continueDisabled ? 'Checking readiness...' : 'Download Decision Packet'}
                 </Button>
               ) : null}
               <Button
