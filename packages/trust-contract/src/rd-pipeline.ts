@@ -291,3 +291,115 @@ export function closeLoop(
     closedLoop: true,
   };
 }
+
+// ─── Patch Classification (wave-129) ─────────────────────────────
+
+export type PatchType  = 'patch_now' | 'next_wave' | 'ignore';
+export type PatchScope = 'ui' | 'copy' | 'logic' | 'flow';
+
+export interface RDAction {
+  type: PatchType;
+  target: string;        // file or component name
+  priority: number;      // 1 = highest
+  patchScope: PatchScope;
+  description: string;
+  validationQuestion: string; // "Would this objection still happen after patch?"
+}
+
+// Categories that require patch within 24 hours
+const PATCH_NOW_CATEGORIES = new Set<RDCategory>([
+  'employer_trust',
+  'scope_clarity',
+  'data_accuracy',
+  'proof_language',
+]);
+
+const SCOPE_MAP: Partial<Record<RecommendedSystem, PatchScope>> = {
+  'employer-surface': 'ui',
+  'proof-page':       'copy',
+  'onboarding':       'copy',
+  'trust-engine':     'logic',
+  'outreach-messaging': 'copy',
+  'pilot-agreement':  'copy',
+};
+
+const PRIORITY_MAP: Record<ImpactLevel, number> = {
+  high:   1,
+  medium: 2,
+  low:    3,
+};
+
+export function classifyPatch(insight: RDInsight): RDAction {
+  const type: PatchType =
+    PATCH_NOW_CATEGORIES.has(insight.category) && insight.impactLevel === 'high'
+      ? 'patch_now'
+      : insight.impactLevel === 'medium'
+      ? 'next_wave'
+      : 'ignore';
+
+  const scope: PatchScope = SCOPE_MAP[insight.targetSystem] ?? 'copy';
+
+  return {
+    type,
+    target: insight.targetSystem === 'none' ? 'docs/LIVE_OBJECTION_RESPONSE.md' : insight.targetSystem,
+    priority: PRIORITY_MAP[insight.impactLevel],
+    patchScope: scope,
+    description: insight.recommendedAction,
+    validationQuestion: `After this patch, would a buyer still say: "${insight.rawEvidence.slice(0, 60)}..."?`,
+  };
+}
+
+// ─── Patch Record ─────────────────────────────────────────────────
+
+export type PatchStatus = 'patched' | 'deferred' | 'rejected' | 'pending';
+
+export interface PatchRecord {
+  id: string;
+  insightId: string;
+  action: RDAction;
+  originalObjection: string;
+  changeDescription: string;
+  filesChanged: string[];
+  patchedAt: number | null;
+  validationResult: 'objection_resolved' | 'objection_remains' | 'unvalidated';
+  status: PatchStatus;
+  rejectionReason?: string;
+}
+
+export function createPatchRecord(insight: RDInsight): PatchRecord {
+  return {
+    id: `patch-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+    insightId: insight.id,
+    action: classifyPatch(insight),
+    originalObjection: insight.rawEvidence,
+    changeDescription: '',    // filled when patch is applied
+    filesChanged: [],
+    patchedAt: null,
+    validationResult: 'unvalidated',
+    status: 'pending',
+  };
+}
+
+export function recordPatchApplied(
+  record: PatchRecord,
+  changeDescription: string,
+  filesChanged: string[],
+  validationResult: PatchRecord['validationResult']
+): PatchRecord {
+  return {
+    ...record,
+    changeDescription,
+    filesChanged,
+    patchedAt: Date.now(),
+    validationResult,
+    status: validationResult === 'objection_resolved' ? 'patched' : 'pending',
+  };
+}
+
+export function rejectPatch(record: PatchRecord, reason: string): PatchRecord {
+  return { ...record, status: 'rejected', rejectionReason: reason };
+}
+
+export function deferPatch(record: PatchRecord): PatchRecord {
+  return { ...record, status: 'deferred' };
+}
