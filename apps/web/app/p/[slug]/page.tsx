@@ -82,12 +82,13 @@ const PILOTS: Record<string, {
 
 // ─── Page ─────────────────────────────────────────────────────────
 
-export default function PilotProofPage({
+export default async function PilotProofPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const pilot = PILOTS[params.slug];
+  const { slug } = await params;
+  const pilot = PILOTS[slug];
   if (!pilot) notFound();
 
   const { evidence: e } = pilot;
