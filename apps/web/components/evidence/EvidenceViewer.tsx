@@ -322,14 +322,6 @@ export function EvidenceViewer({
               <span className="text-[var(--vt-text-3)]">Quality rating</span>
               <span className="text-[var(--vt-text-2)]">{item.qualityRating}</span>
             </div>
-            <div className="flex gap-2">
-              <button className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[10px] text-[var(--vt-text-3)] transition hover:border-cyan-400/40 hover:text-cyan-400">
-                Pin to storyline
-              </button>
-              <button className="rounded-full border border-[var(--vt-border)] px-2.5 py-1 text-[10px] text-[var(--vt-text-3)] transition hover:border-amber-400/40 hover:text-amber-400">
-                Flag for re-check
-              </button>
-            </div>
           </div>
         ) : null}
       </div>

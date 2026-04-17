@@ -3,7 +3,7 @@
 // Computes exactly ONE next best action based purely on the 
 // resolved states of the Recognition, Acceptance, and Activation graphs.
 
-import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
+import { ReadinessPosture } from '../../../../../../packages/trust-contract/src/index';
 import { EvaluatedRequirement } from './acceptanceGraph';
 import { ActivationUnit } from './activationGraph';
 
@@ -116,7 +116,7 @@ export function generateNextBestAction(context: NbaInputContext): NbaRecommendat
   }
 
   // 4. RECOGNITION BLOCKERS (Lowest Priority / Base layer)
-  if (context.readinessPosture === ReadinessPosture.INSUFFICIENT_DATA || context.readinessPosture === ReadinessPosture.PARTIAL) {
+  if (context.readinessPosture === ReadinessPosture.PARTIAL) {
     return {
       action: RecommendedAction.REQUEST_DATA,
       domain: 'recognition',

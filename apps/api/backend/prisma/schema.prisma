@@ -1602,6 +1602,8 @@ model Application {
   coverNote     String?           @map("cover_note")
   status        ApplicationStatus @default(PENDING)
   price          Decimal?          @db.Decimal(10, 2)
+  artifacts     Json              @default("[]")
+  timeline      Json              @default("[]")
   reviewedBy    String?           @map("reviewed_by")
   reviewedAt    DateTime?         @map("reviewed_at")
   reviewNote    String?           @map("review_note")
@@ -1609,6 +1611,7 @@ model Application {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
+  @@unique([opportunityId, clerkUserId])
   @@index([opportunityId])
   @@index([clerkUserId])
   @@index([status])
@@ -3608,4 +3611,20 @@ model ValidationBaseline {
   updatedAt           DateTime @updatedAt
 
   @@index([npi])
+}
+
+model StartAttestation {
+  id           String    @id @default(uuid()) @db.Uuid
+  acceptanceId String    @map("acceptance_id")
+  role         String
+  facility     String
+  startedAt    DateTime  @map("started_at")
+  anchoredRoot String?   @map("anchored_root")
+  eventHash    String?   @map("event_hash")
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([acceptanceId])
+  @@map("start_attestations")
 }

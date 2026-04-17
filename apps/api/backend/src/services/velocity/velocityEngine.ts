@@ -452,7 +452,7 @@ async function loadDecisionCapsules(cohortNpis: string[]): Promise<CapsuleProjec
 }
 
 async function loadStartDeltaRecords(organizationId?: string): Promise<StartDeltaRecord[]> {
-  const starts = await prisma.startAttestation.findMany({
+  const starts = await prisma.start.findMany({
     where: organizationId
       ? {
           acceptance: {
@@ -461,20 +461,20 @@ async function loadStartDeltaRecords(organizationId?: string): Promise<StartDelt
         }
       : undefined,
     select: {
-      startedAt: true,
+      attestedAt: true,
       acceptance: {
         select: {
           acceptedAt: true,
         },
       },
     },
-    orderBy: { startedAt: 'desc' },
+    orderBy: { attestedAt: 'desc' },
   });
 
   return starts
     .map((start) => ({
       acceptedAt: start.acceptance.acceptedAt,
-      startedAt: start.startedAt,
+      startedAt: start.attestedAt,
     }))
     .filter((record) => record.startedAt.getTime() >= record.acceptedAt.getTime());
 }

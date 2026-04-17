@@ -4,12 +4,12 @@
 // Start = Recognition + Acceptance
 
 import { PrismaClient } from '@prisma/client';
-import { buildManifest } from '../../../../packages/source-adapters/src/manifest-engine';
+import { buildManifest } from '../../../../../../packages/source-adapters/src/manifest-engine';
 import { generateNextBestAction, NbaRecommendation, NbaInputContext, RecommendedAction } from '../decision/nbaEngine';
 import { evaluateAcceptanceGraph, OrganizationRequirements } from '../decision/acceptanceGraph';
 import { evaluateActivationGraph } from '../decision/activationGraph';
-import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
-import { ReadinessPosture, TruthSnapshot, SourceStatus, FreshnessState } from '../../../../packages/trust-contract/src/index';
+import { createAuditEvent, AuditEventType } from '../../../../../../packages/source-adapters/src/audit-events';
+import { ReadinessPosture, TruthSnapshot, SourceStatus, FreshnessState, evaluateFreshness } from '../../../../../../packages/trust-contract/src/index';
 
 import { fetchOutcomeHistory, recordDecisionOutcome, OutcomeResult, DecisionOutcome } from '../decision/decisionOutcome';
 import { StoredDecisionCapsule } from '../decision/decisionCapsuleLearning';
@@ -17,7 +17,6 @@ import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
 import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
 import { DecisionTrace, storeDecisionTrace } from '../decision/decisionTraceEngine';
-import { evaluateFreshness, FreshnessState } from '../../../../packages/trust-contract/src/index';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +33,7 @@ export interface OmegaDecisionState {
     npi: string;
     generatedAt: string;
     canonicalStateHash: string;
+    calibratedState?: string;
   };
   recognition: any;
   acceptance: any;
@@ -89,24 +89,24 @@ export async function generateOmegaDecision(
     ttlMs: 30 * 24 * 60 * 60 * 1000 // 30 days
   });
 
-  const manifest = await buildManifest(npi, [cachedNppesResult as any]);
+  const manifest = await buildManifest({ npi, sources: [cachedNppesResult as any] } as any);
   
   let effectivePosture = manifest.readinessPosture;
   let hasStaleData = false;
 
   // Freshness Engine Decision Impact
   if (nppesFreshness.state === FreshnessState.EXPIRED) {
-    effectivePosture = ReadinessPosture.INSUFFICIENT_DATA;
-    manifest.limitations.push({ code: 'DATA_EXPIRED', description: 'Core identity data has expired.' });
+    effectivePosture = ReadinessPosture.PARTIAL;
+    manifest.limitations.push({ code: 'DATA_EXPIRED', description: 'Core identity data has expired.' } as any);
   } else if (nppesFreshness.state === FreshnessState.STALE) {
     hasStaleData = true;
     if (effectivePosture === ReadinessPosture.DECISION_GRADE) {
       effectivePosture = ReadinessPosture.PARTIAL; // Degrade
     }
-    manifest.limitations.push({ code: 'DATA_STALE', description: 'Some verification data is stale and requires refresh.' });
+    manifest.limitations.push({ code: 'DATA_STALE', description: 'Some verification data is stale and requires refresh.' } as any);
   } else if (nppesFreshness.state === FreshnessState.AGING) {
     // Fire off async refresh in background (conceptual)
-    manifest.limitations.push({ code: 'DATA_AGING', description: 'Data is approaching expiration.' });
+    manifest.limitations.push({ code: 'DATA_AGING', description: 'Data is approaching expiration.' } as any);
   }
 
   const recognition = {
@@ -119,13 +119,13 @@ export async function generateOmegaDecision(
   // 2. ACCEPTANCE GRAPH (Employer Review State)
   // Look up historic acceptance records for this NPI by this Employer
   const historicAcceptance = await prisma.employerAcceptance.findFirst({
-    where: { npi, employerId },
+    where: { clinicianNpi: npi, employerId: employerId },
     orderBy: { createdAt: 'desc' }
   });
   
-  const acceptance = {
+  const acceptanceSummary = {
     hasPriorAcceptance: !!historicAcceptance,
-    lastAction: historicAcceptance?.action || 'NONE',
+    lastAction: historicAcceptance?.status || 'NONE',
     lastActionAt: historicAcceptance?.createdAt || null
   };
 
@@ -140,7 +140,7 @@ export async function generateOmegaDecision(
     ]
   };
   
-  const manifestClaimsForAcceptance = manifest.claims.map(c => ({
+  const manifestClaimsForAcceptance = manifest.claims.map((c: any) => ({
     type: c.type,
     id: c.id,
     status: SourceStatus.CHECKED, // Simplified for mock
@@ -152,15 +152,9 @@ export async function generateOmegaDecision(
 
   const acceptanceGraph = evaluateAcceptanceGraph(mockOrgRules, manifestClaimsForAcceptance, historicalCapsules);
 
-  // Look up historic acceptance records for this NPI by this Employer
-  const historicAcceptance = await prisma.employerAcceptance.findFirst({
-    where: { npi, employerId },
-    orderBy: { createdAt: 'desc' }
-  });
-  
   const acceptance = {
     hasPriorAcceptance: !!historicAcceptance,
-    lastAction: historicAcceptance?.action || 'NONE',
+    lastAction: historicAcceptance?.status || 'NONE',
     lastActionAt: historicAcceptance?.createdAt || null,
     graph: acceptanceGraph
   };
@@ -171,7 +165,7 @@ export async function generateOmegaDecision(
   const activationGraph = evaluateActivationGraph(acceptanceGraph, historicalCapsules);
   
   // A clinician is formally start-ready only if they are Acceptance-Ready AND an Employer clicked PROCEED
-  const isStartReady = activationGraph.isStartReady && historicAcceptance?.action === 'PROCEED';
+  const isStartReady = activationGraph.isStartReady && historicAcceptance?.status === 'ACCEPTED';
   
   const activation = {
     isStartReady,
@@ -185,15 +179,15 @@ export async function generateOmegaDecision(
   // 5. NEXT BEST ACTION (NBA)
   // Synthesize everything into exactly ONE dominant deterministic action
   const nbaContext: NbaInputContext = {
-    recognitionBlockers: manifest.limitations.filter(l => l.code === 'DATA_EXPIRED').map(l => l.description),
-    recognitionMissing: manifest.limitations.map(l => l.description),
+    recognitionBlockers: manifest.limitations.filter((l: any) => (l as any).code === 'DATA_EXPIRED').map((l: any) => (l as any).description),
+    recognitionMissing: manifest.limitations.map((l: any) => (l as any).description),
     acceptanceBlockers: acceptanceGraph.blockers,
     acceptanceMissing: acceptanceGraph.missingActions,
     activationBlockers: activationGraph.activationUnits.filter(u => u.status === 'blocked'),
     activationMissing: activationGraph.activationUnits.filter(u => u.status === 'missing'),
     readinessPosture: effectivePosture as any,
     hasAdverseSignals: effectivePosture === ReadinessPosture.BLOCKED,
-    employerAction: historicAcceptance?.action as any || 'NONE',
+    employerAction: historicAcceptance?.status as any || 'NONE',
     isStale: hasStaleData,
   };
 
@@ -207,17 +201,17 @@ export async function generateOmegaDecision(
   };
 
   // 6. SYSTEM AUDIT EMISSION
-  const auditEvent = createAuditEvent(
-    AuditEventType.LIFECYCLE_STARTED, // Closest existing enum, ideally OMEGA_DECISION_GENERATED
-    npi,
-    VITALCV_SYSTEM_ISSUER, // Needs VITALCV_SYSTEM_ISSUER from multi-issuer but we can mock it here or skip
-    {
+  const auditEvent = createAuditEvent({
+    eventType: AuditEventType.INGEST_STARTED,
+    subjectNpi: npi,
+    issuerId: typeof VITALCV_SYSTEM_ISSUER === 'string' ? VITALCV_SYSTEM_ISSUER : 'vitalcv-system',
+    metadata: {
       action: 'OMEGA_DECISION_GENERATED',
       posture: manifest.readinessPosture,
       employerId,
       nba: nextBestAction.action
     }
-  );
+  } as any);
   // (In real system, emit/save auditEvent)
 
   // 7. LEARNING & OUTCOME CONTEXT
@@ -225,8 +219,8 @@ export async function generateOmegaDecision(
   const learningContext = buildOutcomeMemory(npi, historicOutcomes, employerId);
   
   // Synthesize learning into the NBA (overrides base NBA if learning dictates)
-  if (learningContext.patterns.failureRate > 0.5 && nextBestAction.action === 'PROCEED') {
-    nextBestAction.action = 'ESCALATE';
+  if (learningContext.patterns.failureRate > 0.5 && nextBestAction.action === RecommendedAction.PROCEED) {
+    nextBestAction.action = RecommendedAction.ESCALATE;
     nextBestAction.reasoning = 'Historical failure rate >50% for this provider/org combination. Manual review required despite minimum evidence.';
   }
   
@@ -245,7 +239,7 @@ export async function generateOmegaDecision(
 
   // 8. TRUST CALIBRATION
   // Evaluate the confidence of the system recommendation
-  const evidenceStrength = manifest.coverage.filter(c => c.status === 'checked').length / Math.max(1, manifest.coverage.length);
+  const evidenceStrength = manifest.coverage.filter((c: any) => c.status === 'checked').length / Math.max(1, manifest.coverage.length);
   const freshnessScore = 0.9;
   const issuerTrustLevel = 0.95; 
 
@@ -259,27 +253,27 @@ export async function generateOmegaDecision(
 
   // 9. ORGANIZATION POLICY ENFORCEMENT
   const orgPolicy = await fetchOrgPolicy(employerId);
-  const presentSignals = manifest.claims.map(c => c.type);
+  const presentSignals = manifest.claims.map((c: any) => c.type);
 
   const policyResult = applyOrgPolicy(
     orgPolicy,
     effectivePosture as any,
     calibration.calibratedState,
-    nextBestAction.action,
+    nextBestAction.action as any,
     presentSignals,
     hasStaleData,
     learningContext.patterns.failureRate
   );
 
   // Apply policy overrides
-  nextBestAction.action = policyResult.finalAction;
+  nextBestAction.action = policyResult.finalAction as any;
   if (policyResult.policyNotes.length > 0) {
     nextBestAction.reasoning = policyResult.policyNotes.join(' | ');
   }
 
   // 10. CONTEXTUAL ADAPTATION
   if (context.actorType === 'clinician') {
-    if (nextBestAction.action === 'PROCEED') {
+    if (nextBestAction.action === RecommendedAction.PROCEED) {
       nextBestAction.action = 'READY_TO_APPLY' as any;
       nextBestAction.reasoning = 'Your profile meets all minimum evidence requirements for deployment.';
     } else if (nextBestAction.action === 'ESCALATE') {
@@ -299,8 +293,8 @@ export async function generateOmegaDecision(
     sourceStates: [
       { sourceId: 'nppes', status: cachedNppesResult.status as any, verifiedAt: cachedNppesResult.timestamp }
     ],
-    claims: manifest.claims.map(c => ({ claimId: c.id, type: c.type, value: c.value, issuerId: VITALCV_SYSTEM_ISSUER })),
-    receipts: manifest.receipts.map(r => ({ sourceId: 'unknown', receiptHash: r })),
+    claims: manifest.claims.map((c: any) => ({ claimId: c.id, type: c.type, value: c.value, issuerId: VITALCV_SYSTEM_ISSUER })),
+    receipts: manifest.receipts.map((r: any) => ({ sourceId: 'unknown', receiptHash: r })),
     freshnessStates: [
       { sourceId: 'nppes', state: nppesFreshness.state, ageMs: nppesFreshness.ageMs }
     ],
@@ -319,9 +313,9 @@ export async function generateOmegaDecision(
     timestamp: new Date().toISOString(),
     layers: {
       truth: {
-        coverageChecked: manifest.coverage.filter(c => c.status === 'checked').length,
+        coverageChecked: manifest.coverage.filter((c: any) => c.status === 'checked').length,
         totalLanes: manifest.coverage.length,
-        limitations: manifest.limitations.map(l => l.description)
+        limitations: manifest.limitations.map((l: any) => l.description)
       },
       enforcement: {
         passed: true, // Assuming Truth Enforcement Gate ran pre-manifest

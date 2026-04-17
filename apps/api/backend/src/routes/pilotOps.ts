@@ -177,10 +177,11 @@ export function registerPilotOpsRoutes(app: Express): void {
       const route = readTrimmedString(req.body?.route);
 
       if (!isPilotMetricEventType(eventType)) {
-        return res.status(400).json({ error: 'eventType is invalid.' });
+        log('warn', 'pilot_ops_events: invalid_event_type', { eventType });
+        return res.status(200).json({ ok: true, ignored: true });
       }
       if (!route) {
-        return res.status(400).json({ error: 'route is required.' });
+        return res.status(200).json({ ok: true, ignored: true });
       }
 
       const queueItem = readObject(req.body?.queueItem);

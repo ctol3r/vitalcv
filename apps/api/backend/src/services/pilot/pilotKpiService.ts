@@ -237,6 +237,9 @@ const AUDIT_EVENT_SELECT = {
 type StartOutcomeRow = Prisma.StartOutcomeEventGetPayload<{ select: typeof START_OUTCOME_SELECT }>;
 type AuditEventRow = Prisma.AuditEventGetPayload<{ select: typeof AUDIT_EVENT_SELECT }>;
 type AdvisoryEventRow = Prisma.AdvisoryOutcomeEventGetPayload<{ select: typeof ADVISORY_EVENT_SELECT }>;
+type ShareEventRow = Prisma.BundleShareEventGetPayload<{ select: typeof SHARE_EVENT_SELECT }>;
+type DecisionEventRow = Prisma.EmployerDecisionEventGetPayload<{ select: typeof DECISION_EVENT_SELECT }>;
+type BlockerEventRow = Prisma.BlockerResolutionEventGetPayload<{ select: typeof BLOCKER_EVENT_SELECT }>;
 
 export type PilotProofChainEventName =
   | 'packet_shared'
@@ -797,7 +800,7 @@ export async function computePilotKpis(
     startOutcomeRows,
     proofAuditRows,
     auditCounts,
-  ] = await Promise.all([
+  ] = (await Promise.all([
     prisma.bundleShareEvent.findMany({
       where: {
         sharedAt: { gte: since },
@@ -858,14 +861,22 @@ export async function computePilotKpis(
       prisma.startOutcomeEvent.count({
         where: startOutcomeWhere(since, filter),
       }),
-      prisma.employerAcceptance.count({
+      prisma.acceptance.count({
         where: { acceptedAt: { gte: since } },
       }),
-      prisma.startAttestation.count({
-        where: { startedAt: { gte: since } },
+      prisma.start.count({
+        where: { attestedAt: { gte: since } },
       }),
     ]),
-  ]);
+  ])) as [
+    ShareEventRow[],
+    AdvisoryEventRow[],
+    DecisionEventRow[],
+    BlockerEventRow[],
+    StartOutcomeRow[],
+    AuditEventRow[],
+    [number, number, number, number, number, number, number],
+  ];
 
   const effectiveStartOutcomeRows = collapseCorrectedStartOutcomes(startOutcomeRows);
   const reviewEvents = advisoryEvents.filter(isReviewOpenEvent);
@@ -1051,7 +1062,7 @@ export async function computePilotKpis(
 
   // ── KPI 7: Blocker Categories ─────────────────────────────────────────
   const blockersByCode = groupRowsByKey(blockerEvents, (event) => event.blockerCode);
-  const blockers: BlockerKpi[] = [...blockersByCode.entries()].map(([code, rows]) => {
+  const blockers: BlockerKpi[] = [...blockersByCode.entries()].map(([code, rows]: [string, BlockerEventRow[]]) => {
     const resolvedRows = rows.filter((row) => row.status === 'RESOLVED');
     const resolutionDays = resolvedRows
       .map((row) => row.resolutionDays)
@@ -1166,7 +1177,7 @@ export async function computePilotKpis(
   };
 
   const proofChainEvents = [
-    ...shareEvents.map((event) => ({
+    ...shareEvents.map((event: ShareEventRow) => ({
       eventName: 'packet_shared',
       occurredAt: event.sharedAt.toISOString(),
       entityId: event.subjectEntityId ?? null,
@@ -1181,7 +1192,7 @@ export async function computePilotKpis(
       outcomeStatus: null,
       detail: event.bundleId ?? event.deliveryStatus,
     } satisfies Omit<PilotProofChainEvent, 'caseKey'>)),
-    ...reviewEvents.map((event) => {
+    ...reviewEvents.map((event: AdvisoryEventRow) => {
       const metadata = readJson(event.metadata);
       const scope = readScopeFields(metadata);
       return {
@@ -1200,7 +1211,7 @@ export async function computePilotKpis(
         detail: readString(metadata.bundleId) ?? 'employer_review_opened',
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
-    ...decisionEvents.map((event) => {
+    ...decisionEvents.map((event: DecisionEventRow) => {
       const metadata = readJson(event.metadata);
       const scope = readScopeFields(metadata);
       return {
@@ -1219,7 +1230,7 @@ export async function computePilotKpis(
         detail: event.decision,
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
-    ...readinessChangeAuditRows.map((row) => {
+    ...readinessChangeAuditRows.map((row: AuditEventRow) => {
       const metadata = readJson(row.metadata);
       const scope = readScopeFields(metadata);
       const previousBand = readString(metadata.previousBand);
@@ -1241,7 +1252,7 @@ export async function computePilotKpis(
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
     // blocker_opened — from BlockerResolutionEvent rows (all rows have openedAt)
-    ...blockerEvents.map((row) => {
+    ...blockerEvents.map((row: BlockerEventRow) => {
       const metadata = readJson(row.metadata);
       const scope = readScopeFields(metadata);
       return {
@@ -1261,7 +1272,7 @@ export async function computePilotKpis(
       } satisfies Omit<PilotProofChainEvent, 'caseKey'>;
     }),
     // blocker_resolved — from PilotOps audit events with eventType=blocker_resolved
-    ...blockerResolvedMetricRows.map((row) => {
+    ...blockerResolvedMetricRows.map((row: AuditEventRow) => {
       const metadata = readJson(row.metadata);
       const scope = readScopeFields(metadata);
       const entity = readJson(metadata.entity);

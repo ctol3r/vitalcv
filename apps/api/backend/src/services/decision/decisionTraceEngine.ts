@@ -3,7 +3,7 @@
 // decision authority stack.
 
 import { CalibratedDecisionState, ConfidenceLevel } from './confidenceEngine';
-import { TruthSnapshot } from '../../../../packages/trust-contract/src/truth-snapshot';
+import { TruthSnapshot } from '../../../../../../packages/trust-contract/src/truth-snapshot';
 
 export interface TraceLayerTruth {
   coverageChecked: number;

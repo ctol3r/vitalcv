@@ -62,7 +62,7 @@ export async function validateApiKey(
 
   return {
     valid: true,
-    clinicianId: record.clinicianId,
+    clinicianId: record.clinicianId ?? undefined,
     tier: normalizeBillingTier(record.tier),
     keyId: record.id,
   };
@@ -77,6 +77,7 @@ export async function getApiKeysByClinicianId(
     orderBy: { createdAt: 'desc' },
   }).then((records) => records.map((record) => ({
     ...record,
+    name: record.name ?? 'API Key',
     tier: normalizeBillingTier(record.tier),
   })));
 }
