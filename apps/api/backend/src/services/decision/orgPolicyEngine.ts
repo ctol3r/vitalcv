@@ -2,7 +2,7 @@
 // Applies organization-specific risk tolerances and rules to the
 // Omega Orchestrator's raw outputs.
 
-import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
+import { ReadinessPosture } from '../../../../../../packages/trust-contract/src/index';
 import { CalibratedDecisionState } from './confidenceEngine';
 
 export interface OrgPolicy {
@@ -64,7 +64,7 @@ export function applyOrgPolicy(
   // 1. Required Signals Check
   const missingSignals = policy.requiredSignals.filter(s => !presentSignals.includes(s));
   if (missingSignals.length > 0) {
-    if (finalPosture === ReadinessPosture.DECISION_GRADE || finalPosture === ReadinessPosture.CLEAR) {
+    if (finalPosture === ReadinessPosture.DECISION_GRADE || finalPosture === ReadinessPosture.PARTIAL) {
       finalPosture = ReadinessPosture.PARTIAL;
       finalCalibratedState = 'PENDING';
       finalAction = 'REQUEST_DATA';

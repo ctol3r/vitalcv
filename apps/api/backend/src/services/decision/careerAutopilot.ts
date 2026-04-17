@@ -3,7 +3,7 @@
 // Analyzes the current ProofManifest and market context to generate
 // actionable next steps for the clinician to improve their readiness.
 
-import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
+import { ReadinessPosture } from '../../../../../../packages/trust-contract/src/index';
 
 // ── Market Context ───────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ export function generateCareerAutopilot(
   }
 
   // 2. IMPROVE READINESS
-  if (posture === ReadinessPosture.INSUFFICIENT_DATA || posture === ReadinessPosture.PARTIAL || posture === ReadinessPosture.CHECKING) {
+  if (posture === ReadinessPosture.PARTIAL || posture === ReadinessPosture.DEGRADED || posture === ReadinessPosture.CHECKING) {
     if (limitations.some(l => l.toLowerCase().includes('identity') || l.toLowerCase().includes('nppes'))) {
       suggestions.push({
         id: 'improve_identity',

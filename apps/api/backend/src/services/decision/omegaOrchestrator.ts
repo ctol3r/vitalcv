@@ -30,7 +30,7 @@ import {
  *     → Generates HumanNotification
  */
 
-import { NextBestActionEngine, NextBestActionOutput } from './nbaEngine';
+import { generateNextBestAction as NextBestActionEngine, NbaRecommendation as NextBestActionOutput } from './nbaEngine';
 
 /** Structured Acceptance Node — a graph node, not a flat log entry */
 export interface AcceptanceGraphNode {
@@ -193,13 +193,13 @@ export class OmegaOrchestrator {
       activatedAt: a.activatedAt?.toISOString() || null,
     }));
 
-    const nextBestAction = NextBestActionEngine.determineNextAction({
-      decisionState: decisionState as any,
+    const nextBestAction = NextBestActionEngine({
+      readinessPosture: (decisionState as any)?.readinessPosture,
       activationState: (activations[0]?.activationState as any) || 'NOT_STARTABLE',
       hasHardDrift: false, // Pulled from drift engine in the future
       hasSoftDrift: false,
       learningConfidenceFactor: 1.0,
-    });
+    } as any);
 
     return {
       recognition: recognition
@@ -263,13 +263,13 @@ export class OmegaOrchestrator {
       ? String(((recognition.decisionPosture as unknown) as Record<string, unknown>).status || 'UNKNOWN')
       : 'UNKNOWN';
 
-    const nextBestAction = NextBestActionEngine.determineNextAction({
-      decisionState: decisionState as any,
+    const nextBestAction = NextBestActionEngine({
+      readinessPosture: (decisionState as any)?.readinessPosture,
       activationState: (activations[0]?.activationState as any) || 'NOT_STARTABLE',
       hasHardDrift: false, // Pulled from drift engine in the future
       hasSoftDrift: false,
       learningConfidenceFactor: 1.0,
-    });
+    } as any);
 
     return {
       recognition: recognition

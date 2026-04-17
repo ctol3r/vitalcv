@@ -3,7 +3,7 @@
 // Maps a clinician's raw Proof Manifest against an Organization's
 // hard-coded compliance requirements.
 
-import { SourceStatus } from '../../../../packages/trust-contract/src/index';
+import { SourceStatus } from '../../../../../../packages/trust-contract/src/index';
 import { StoredDecisionCapsule } from './decisionCapsuleLearning';
 
 // ── Organization Model ──────────────────────────────────────────

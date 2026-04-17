@@ -3,7 +3,7 @@
 // evidence strength, freshness, issuer trust, and historical sample size.
 
 import { OutcomeMemory } from './outcomeMemory';
-import { ReadinessPosture } from '../../../../packages/trust-contract/src/index';
+import { ReadinessPosture } from '../../../../../../packages/trust-contract/src/index';
 
 export interface ConfidenceContext {
   /** Percentage of required coverage lanes successfully checked (0.0 - 1.0) */
@@ -72,7 +72,7 @@ export function calibrateTrust(
 
   let calibratedState: CalibratedDecisionState = 'PENDING';
 
-  if (posture === ReadinessPosture.DECISION_GRADE || posture === ReadinessPosture.CLEAR) {
+  if (posture === ReadinessPosture.DECISION_GRADE || posture === ReadinessPosture.PARTIAL) {
     calibratedState = confidenceLevel === 'HIGH' ? 'READY_CONFIDENT' : 'READY_UNCERTAIN';
   } else if (posture === ReadinessPosture.BLOCKED) {
     // If we have strong evidence of a block (e.g. OIG exclusion), we are confident in blocking.

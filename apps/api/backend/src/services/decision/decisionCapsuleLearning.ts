@@ -3,8 +3,8 @@
 // at the exact moment of an outcome (start, rejection, etc.) to feed
 // empirical learning algorithms.
 
-import { createAuditEvent, AuditEventType } from '../../../../packages/source-adapters/src/audit-events';
-import { VITALCV_SYSTEM_ISSUER } from '../../../../packages/trust-contract/src/multi-issuer';
+import { createAuditEvent, AuditEventType } from '../../../../../../packages/source-adapters/src/audit-events';
+import { VITALCV_SYSTEM_ISSUER } from '../../../../../../packages/trust-contract/src/multi-issuer';
 import crypto from 'crypto';
 
 export interface DecisionCapsulePayload {
@@ -51,17 +51,17 @@ export async function storeDecisionCapsule(payload: DecisionCapsulePayload): Pro
   console.log(` -> Capsule Hash: ${hash}`);
 
   // Emit the required Audit Event
-  const auditEvent = createAuditEvent(
-    AuditEventType.VERIFICATION_COMPLETED, // General type covering an outcome
-    payload.clinicianId,
-    VITALCV_SYSTEM_ISSUER.issuerId,
-    {
+  const auditEvent = createAuditEvent({
+    eventType: AuditEventType.SOURCE_CHECKED,
+    subjectNpi: payload.clinicianId,
+    issuerId: typeof VITALCV_SYSTEM_ISSUER === "string" ? VITALCV_SYSTEM_ISSUER : (VITALCV_SYSTEM_ISSUER as any)?.issuerId ?? "vitalcv-system",
+    metadata: {
       capsuleId,
       capsuleHash: hash,
       outcome: payload.outcome,
       orgId: payload.orgId,
     }
-  );
+  } as any);
 
   // In production, we'd insert this into Prisma.
   // await prisma.decisionCapsuleLearning.create({ data: { ... } });
