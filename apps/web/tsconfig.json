@@ -44,6 +44,7 @@
     "node_modules",
     "stories",
     "__tests__",
-    ".next.bak.*"
+    ".next.bak.*",
+    "app/_archive"
   ]
 }
