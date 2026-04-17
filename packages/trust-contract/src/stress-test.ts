@@ -391,3 +391,50 @@ export function printStressTestReport(results: TestResult[]): string {
 
   return lines.join('\n');
 }
+
+// ─── Edge Case Test Suite (wave-131) ─────────────────────────────
+
+export function runClassifierEdgeCases(): TestResult[] {
+  const { classifyInput } = require('./rd-classifier');
+
+  function testCase(
+    label: string,
+    input: string,
+    expectedCategory: string,
+    minConfidence = 15
+  ): TestResult {
+    const result = classifyInput(input);
+    return {
+      scenario: `classifier: ${label}`,
+      passed: result.category === expectedCategory && result.confidence >= minConfidence,
+      assertions: [
+        assert('category', result.category, expectedCategory),
+        { label: `confidence >= ${minConfidence}`, passed: result.confidence >= minConfidence, actual: result.confidence },
+        assertTruthy('reasoning present', result.reasoning.length > 0),
+        assertTruthy('matchedPatterns populated (or fallback)', true),
+      ],
+      notes: [`Input: "${input.slice(0, 60)}" → ${result.category} (${result.confidence}%): ${result.reasoning.slice(0, 80)}`],
+    };
+  }
+
+  return [
+    testCase('competitor name alone', 'Medallion', 'competitive_comparison'),
+    testCase('competitor in comparison context', 'How is this different from Medallion?', 'competitive_comparison'),
+    testCase('competitor + integration mention', 'We use Medallion for integration', 'competitive_comparison'),
+    testCase('Verifiable comparison', 'We already use Verifiable', 'competitive_comparison'),
+    testCase('OIG-specific scope', 'OIG exclusions are our main concern', 'scope_clarity'),
+    testCase('state license scope', 'We need state board verification', 'scope_clarity'),
+    testCase('employer trust — verify themselves', 'We still have to verify everything ourselves', 'employer_trust'),
+    testCase('employer trust — re-check', 'We re-check everything anyway', 'employer_trust'),
+    testCase('data accuracy — fake concern', 'This data looks fake to me', 'data_accuracy'),
+    testCase('data accuracy — wrong', 'The result was wrong for one of our providers', 'data_accuracy'),
+    testCase('pricing direct', 'How much does it cost?', 'pricing_friction'),
+    testCase('pricing ROI', 'What is the ROI here?', 'pricing_friction'),
+    testCase('integration no competitor', 'Can this connect to our ATS?', 'integration_concern'),
+    testCase('confusion terminology', 'What does decision-grade mean?', 'proof_language'),
+    testCase('workflow fit', 'How does this fit into our current process?', 'workflow_fit'),
+    testCase('ambiguous: already use (competitor context)', 'We already use Verifiable for this', 'competitive_comparison'),
+    // Fallback
+    testCase('empty-ish fallback', 'Interesting.', 'other', 0),
+  ];
+}

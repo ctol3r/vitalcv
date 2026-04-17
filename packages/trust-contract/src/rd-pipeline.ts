@@ -93,112 +93,39 @@ export interface RDInsight {
   resolutionNote?: string;
 }
 
-// ─── RD Agent (pattern matching) ──────────────────────────────────
+// ─── RD Agent (uses rd-classifier.ts) ────────────────────────────
+// The old first-match pattern array has been replaced by the scored
+// multi-pattern classifier in rd-classifier.ts (wave-131).
 
-const CATEGORY_PATTERNS: Array<{
-  pattern: RegExp;
-  category: RDCategory;
-  impact: ImpactLevel;
-  system: RecommendedSystem;
-  actionTemplate: string;
-}> = [
-  {
-    pattern: /verify|check|ourselves|still have to|manual|re-check|do it anyway/i,
-    category: 'employer_trust',
-    impact: 'high',
-    system: 'employer-surface',
-    actionTemplate: 'Clarify on employer review page what VitalCV replaces vs what employer still owns',
-  },
-  {
-    pattern: /oig|exclusion|sanction|debarred|excluded/i,
-    category: 'scope_clarity',
-    impact: 'high',
-    system: 'proof-page',
-    actionTemplate: 'Make OIG gap more prominent on proof page — buyers are confusing partial with complete',
-  },
-  {
-    pattern: /license|state board|caqh|credentialing|jcaho|joint commission|ncqa/i,
-    category: 'scope_clarity',
-    impact: 'high',
-    system: 'proof-page',
-    actionTemplate: 'Surface license integration status more prominently — pending vs available',
-  },
-  {
-    pattern: /integrate|connect|api|our system|ats/i,
-    category: 'integration_concern',
-    impact: 'medium',
-    system: 'onboarding',
-    actionTemplate: 'Add clear "no integration required for pilot" statement to pilot agreement',
-  },
-  {
-    pattern: /price|cost|expensive|budget|roi|how much|what does it/i,
-    category: 'pricing_friction',
-    impact: 'medium',
-    system: 'pilot-agreement',
-    actionTemplate: 'Add ROI framing to pilot agreement: cost per clinician vs current ops cost estimate',
-  },
-  {
-    pattern: /real|fake|made up|synthetic|trust the data|accurate|wrong/i,
-    category: 'data_accuracy',
-    impact: 'high',
-    system: 'proof-page',
-    actionTemplate: 'Increase visibility of source citation on proof page — NPPES timestamp and audit link',
-  },
-  {
-    pattern: /workflow|process|how does it fit|our process|our team/i,
-    category: 'workflow_fit',
-    impact: 'medium',
-    system: 'onboarding',
-    actionTemplate: 'Add one-paragraph workflow integration description to pilot offer doc',
-  },
-  {
-    pattern: /confus|unclear|what does|what is|don.t understand|mean/i,
-    category: 'proof_language',
-    impact: 'medium',
-    system: 'proof-page',
-    actionTemplate: 'Simplify terminology on proof page — replace technical terms with buyer-language',
-  },
-  {
-    pattern: /medallion|verifiable|symplr|hireright|verisys|modio/i,
-    category: 'competitive_comparison',
-    impact: 'medium',
-    system: 'outreach-messaging',
-    actionTemplate: 'Add one-line competitive differentiation to objection handling doc',
-  },
-];
+import { classifyInput, type ClassificationResult } from './rd-classifier';
+
+export { classifyInput };  // re-export for consumers
 
 /**
- * RD_AGENT: classifies a validated input and generates an insight.
+ * RD_AGENT: classifies a validated input using scored multi-pattern evaluation.
+ * Returns an RDInsight with category, confidence, and reasoning.
  */
-export function runRDAgent(input: RDValidated): RDInsight | null {
+export function runRDAgent(input: RDValidated): RDInsight & { classification: ClassificationResult } | null {
   if (!input.valid) return null;
 
-  let matchedPattern = CATEGORY_PATTERNS.find(p => p.pattern.test(input.content));
-
-  // Default if no pattern matches
-  if (!matchedPattern) {
-    matchedPattern = {
-      pattern: /.*/,
-      category: 'other',
-      impact: 'low',
-      system: 'none',
-      actionTemplate: 'Review manually — no automated classification available',
-    };
-  }
+  const classification = classifyInput(input.content);
 
   return {
     id: `rdi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     sourceInputId: input.id,
-    category: matchedPattern.category,
-    impactLevel: matchedPattern.impact,
-    summary: `[${matchedPattern.category}] ${input.content.slice(0, 80)}${input.content.length > 80 ? '…' : ''}`,
+    category: classification.category,
+    impactLevel: classification.impactLevel,
+    summary: `[${classification.category}] conf:${classification.confidence}% — ${input.content.slice(0, 60)}${input.content.length > 60 ? '…' : ''}`,
     rawEvidence: input.content,
-    recommendedAction: matchedPattern.actionTemplate,
-    targetSystem: matchedPattern.system,
+    recommendedAction: classification.actionTemplate,
+    targetSystem: classification.targetSystem,
     resolved: false,
     resolution: 'pending',
+    classification,  // full traceability
   };
 }
+
+// ─── RD Router
 
 // ─── RD Router ─────────────────────────────────────────────────────
 
