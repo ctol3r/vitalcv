@@ -20,8 +20,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Linking } from 'react-native';
 import { walletTheme as t } from '../../src/theme';
 import { fetchReadiness, ReadinessResult } from '../../src/services/ReadinessService';
+import { createHandoff } from '../../src/services/HandoffService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -118,6 +120,21 @@ function ReadinessCard({ result, onViewBlockers }: {
   result: ReadinessResult;
   onViewBlockers: () => void;
 }) {
+  const [handoffLoading, setHandoffLoading] = useState(false);
+
+  const handleContinueOnWeb = async () => {
+    setHandoffLoading(true);
+    try {
+      const { webUrl } = await createHandoff(result);
+      await Linking.openURL(webUrl);
+    } catch (err: any) {
+      // Fallback: open passport directly
+      await Linking.openURL(`https://vitalcv.com/passport/${result.npi}`);
+    } finally {
+      setHandoffLoading(false);
+    }
+  };
+
   const postureColor = {
     decision_grade: t.success,
     partial: t.warning,
@@ -153,6 +170,15 @@ function ReadinessCard({ result, onViewBlockers }: {
           </Text>
         </Pressable>
       )}
+      <Pressable
+        style={[s.webButton, handoffLoading && s.buttonDisabled]}
+        onPress={handleContinueOnWeb}
+        disabled={handoffLoading}
+      >
+        <Text style={s.webButtonText}>
+          {handoffLoading ? 'Opening…' : 'Continue on Web →'}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -195,6 +221,8 @@ const s = StyleSheet.create({
   nextStepText:   { fontSize: 14, color: t.text, lineHeight: 20 },
   blockerButton:  { paddingVertical: 10, alignItems: 'flex-start' },
   blockerButtonText: { color: t.accentStrong, fontSize: 14, fontWeight: '600' },
+  webButton:      { backgroundColor: t.panelMuted, borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: t.border },
+  webButtonText:  { color: t.accentStrong, fontSize: 14, fontWeight: '700' },
   whatBlock:      { marginTop: 8 },
   whatTitle:      { fontSize: 12, fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
   laneRow:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.border },
