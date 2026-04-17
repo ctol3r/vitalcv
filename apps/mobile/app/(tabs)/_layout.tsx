@@ -1,66 +1,47 @@
-import { Ionicons } from '@expo/vector-icons';
+/**
+ * Wedge Tab Layout — wave-121
+ * Two tabs only: Home (NPI entry) + Readiness detail.
+ * No wallet. No dashboard. No features.
+ */
 import { Tabs } from 'expo-router';
+import { walletTheme as t } from '../../src/theme';
 
-import { walletTheme } from '../../src/theme';
-
-export default function TabsLayout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
-        sceneStyle: {
-          backgroundColor: walletTheme.background,
-        },
         tabBarStyle: {
-          backgroundColor: walletTheme.panel,
-          borderTopColor: walletTheme.border,
+          backgroundColor: t.panel,
+          borderTopColor: t.border,
         },
-        tabBarActiveTintColor: walletTheme.accent,
-        tabBarInactiveTintColor: walletTheme.textMuted,
+        tabBarActiveTintColor: t.accentStrong,
+        tabBarInactiveTintColor: t.textMuted,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
-        name="wallet"
+        name="index"
         options={{
-          title: 'Wallet',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" color={color} size={size} />
+          title: 'Check NPI',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="⚡" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="present"
+        name="readiness"
         options={{
-          title: 'Present',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="qr-code-outline" color={color} size={size} />
+          title: 'Readiness',
+          tabBarIcon: ({ color }) => (
+            <TabIcon symbol="✓" color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: 'Scan',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="scan-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="credential-detail"
-        options={{
-          href: null,
         }}
       />
     </Tabs>
   );
+}
+
+import { Text } from 'react-native';
+function TabIcon({ symbol, color }: { symbol: string; color: string }) {
+  return <Text style={{ fontSize: 16, color }}>{symbol}</Text>;
 }
