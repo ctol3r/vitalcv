@@ -12,6 +12,7 @@ import {
   Zap, Building2, X, Filter, Loader2,
   Clock, FileCheck2,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useRoleContext } from '@/components/auth/RoleContext';
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
