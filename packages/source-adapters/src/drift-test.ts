@@ -1,6 +1,6 @@
 // ── Drift Engine Tests ───────────────────────────────────────────
 
-import { SourceStatus } from '../../trust-contract/dist/index';
+import { SourceStatus } from '../../trust-contract/src/index';
 import type { SourceCheckResult } from './types';
 import type { CoverageLane } from './manifest-engine';
 import type { Claim } from './claim-engine';

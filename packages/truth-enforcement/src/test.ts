@@ -1,7 +1,7 @@
 // ── Truth Enforcement Tests ───────────────────────────────────────
 // Critical gap coverage: Revocation cascade, Divergence detection, Acceptance HTTP semantics
 
-import { SourceStatus, ReadinessPosture } from '../../trust-contract/dist/index';
+import { SourceStatus, ReadinessPosture } from '../../trust-contract/src/index';
 import {
   guardAdapterResult,
   guardReadinessTransition,

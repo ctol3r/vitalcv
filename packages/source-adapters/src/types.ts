@@ -3,8 +3,8 @@
 // Local adapter implementations are FORBIDDEN — import from here.
 
 // Re-export from trust-contract for convenience
-export { SourceStatus } from '../../trust-contract/dist/index';
-import { SourceStatus } from '../../trust-contract/dist/index';
+export { SourceStatus } from '../../trust-contract/src/index';
+import { SourceStatus } from '../../trust-contract/src/index';
 
 // ── Core Types ───────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 // The canonical trust object. Combines claims, receipts, coverage,
 // and limitations into ONE deterministic, exportable object.
 
-import { SourceStatus, ReadinessPosture, ProofAvailability, derivePosture } from '../../trust-contract/dist/index';
+import { SourceStatus, ReadinessPosture, ProofAvailability, derivePosture } from '../../trust-contract/src/index';
 import type { Claim, ClaimLimitation } from './claim-engine';
 import { getRegistryEntry, getDecisionGradeSources } from './types';
 

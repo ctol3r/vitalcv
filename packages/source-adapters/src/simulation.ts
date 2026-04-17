@@ -1,7 +1,7 @@
 // ── Pilot Simulation Engine ────────────────────────────────────────
 
 import { AuditEventType, createAuditEvent, type AuditEvent } from './audit-events';
-import { ReadinessPosture } from '../../trust-contract/dist/index';
+import { ReadinessPosture } from '../../trust-contract/src/index';
 
 // ── Baseline Config ──────────────────────────────────────────────
 

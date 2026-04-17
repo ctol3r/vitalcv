@@ -1,7 +1,7 @@
 // ── Manifest Engine Tests ────────────────────────────────────────
 
 import { buildManifest } from './manifest-engine';
-import { SourceStatus, ReadinessPosture, ProofAvailability } from '../../trust-contract/dist/index';
+import { SourceStatus, ReadinessPosture, ProofAvailability } from '../../trust-contract/src/index';
 import type { CoverageLane, SourceReceipt } from './manifest-engine';
 
 let passed = 0;
