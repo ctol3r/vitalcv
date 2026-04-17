@@ -48,6 +48,13 @@ export default function PilotPage() {
             Scope stays narrow to what is shipping today: source-backed readiness where available, explicit
             pending coverage where not, and one review workflow.
           </p>
+          {/* Real pilot results anchor */}
+          <div className="inline-flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <Link href="/p/norcal-pa-pilot-1" className="text-sm font-semibold text-green-800 hover:underline">
+              See Pilot #1 results — 1.8 min readiness → action
+            </Link>
+          </div>
         </div>
 
         <section className="grid gap-4 md:grid-cols-2">
