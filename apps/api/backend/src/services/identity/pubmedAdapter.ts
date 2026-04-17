@@ -137,7 +137,7 @@ export class PubMedAdapter {
             doi: parseDoi(article.elocationid),
           });
         })
-        .filter((a): a is PubMedArticle => a !== null);
+        .filter((a) => a !== null) as PubMedArticle[];
 
       return Object.freeze({ clinicianId, npi, query, articles, totalCount, fetchedAt });
     } catch (error) {

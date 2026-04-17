@@ -78,7 +78,7 @@ export async function resolveEnterpriseWebhookTarget(
     employerId: config.employerId,
     acceptanceId,
     webhookUrl: config.webhookUrl,
-    signingSecret: config.signingSecret,
+    signingSecret: config.signingSecret ?? '',
   };
 }
 

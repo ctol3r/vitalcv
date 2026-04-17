@@ -49,13 +49,11 @@ export function generatePSVArtifact(input: {
   };
 }
 
-// Commented out to fix build
-/*
 export async function attachArtifactToApplication(applicationId: string, artifact: PSVArtifact) {
   const app = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
   
-  const currentArtifacts = Array.isArray(app.artifacts) ? app.artifacts : [];
-  currentArtifacts.push(artifact as any);
+  const currentArtifacts = Array.isArray(app.artifacts) ? app.artifacts as unknown as PSVArtifact[] : [];
+  currentArtifacts.push(artifact);
 
   const updated = await prisma.application.update({
     where: { id: applicationId },
@@ -80,7 +78,6 @@ export async function attachArtifactToApplication(applicationId: string, artifac
 
   return updated;
 }
-*/
 
 export function calculateTrustScore(application: any): number {
   let score = 100;

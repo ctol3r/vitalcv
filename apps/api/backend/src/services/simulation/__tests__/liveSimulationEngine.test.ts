@@ -10,11 +10,11 @@ vi.mock('../../audit/auditLedger');
 
 describe('liveSimulationEngine', () => {
   it('should calculate revenue and staffing impact', async () => {
-    vi.mocked(computeClinicianTrustState).mockResolvedValue({
+    (computeClinicianTrustState as ReturnType<typeof vi.fn>).mockResolvedValue({
       readiness_level: 'L3',
       readiness_score: 95
     });
-    vi.mocked(capsuleEngine.getCapsulesByNpi).mockResolvedValue([
+    (capsuleEngine.getCapsulesByNpi as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'cap1', subjectNpi: '1234567890', decisionType: 'PRIVILEGING', metadata: { opportunityId: 'org123' } } as any
     ]);
 

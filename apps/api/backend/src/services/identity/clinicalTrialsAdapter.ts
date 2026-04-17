@@ -188,7 +188,7 @@ export class ClinicalTrialsAdapter {
             completionDate: proto.statusModule?.completionDateStruct?.date,
           });
         })
-        .filter((t): t is ClinicalTrialRecord => t !== null);
+        .filter((t) => t !== null) as ClinicalTrialRecord[];
 
       return Object.freeze({ clinicianId, npi, query, trials, totalCount, fetchedAt });
     } catch (error) {

@@ -172,7 +172,7 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
   const existing = await prisma.application.findUnique({
     where: { opportunityId_clerkUserId: { opportunityId, clerkUserId } },
     ...applicationWithOpportunity,
-  });
+  }) as ApplicationRecord | null;
   if (existing) {
     if (existing.status === 'WITHDRAWN') {
       const reactivated = await prisma.application.update({
@@ -183,7 +183,7 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
           npi: resolvedNpi,
         },
         ...applicationWithOpportunity,
-      });
+      }) as ApplicationRecord;
       return hydrateApplication(reactivated, applicant ?? null);
     }
 

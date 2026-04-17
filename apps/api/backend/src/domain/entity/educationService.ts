@@ -146,7 +146,7 @@ export async function getEducationSummaries(subjectEntityId: string): Promise<Ed
     degreeOrTitle:    r.degreeOrTitle ?? undefined,
     specialty:        r.specialty    ?? undefined,
     programName:      r.programName  ?? undefined,
-    institutionName:  r.institution?.displayName ?? undefined,
+    institutionName:  r.institution?.canonicalName ?? undefined,
     acgmeCode:        r.acgmeCode    ?? undefined,
     startYear:        r.startYear    ?? undefined,
     endYear:          r.endYear      ?? undefined,

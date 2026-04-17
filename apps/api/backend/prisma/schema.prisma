@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id             String     @id @default(uuid()) @db.Uuid
-  clerkUserId    String     @unique
-  email          String     @unique
-  role           UserRole   @default(CLINICIAN)
-  roleVersion    Int        @default(1)
-  status         UserStatus @default(INVITED)
-  organizationId String?    @db.Uuid
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  clerkUserId         String               @unique
+  email               String               @unique
+  role                UserRole             @default(CLINICIAN)
+  roleVersion         Int                  @default(1)
+  status              UserStatus           @default(INVITED)
+  organizationId      String?              @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  personProfile       PersonProfile?
+  workspacePreference WorkspacePreference?
 
   @@index([clerkUserId])
   @@index([organizationId])
@@ -260,31 +262,60 @@ model ShareLink {
 }
 
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  opportunities       Opportunity[]
+  organizationProfile OrganizationProfile?
 }
 
 model Opportunity {
-  id               String   @id @default(uuid()) @db.Uuid
-  organizationId   String   @map("organization_id") @db.Uuid
+  id               String        @id @default(uuid()) @db.Uuid
+  organizationId   String        @map("organization_id") @db.Uuid
   title            String
   specialty        String
-  hiringType       String   @map("hiring_type")
+  hiringType       String        @map("hiring_type")
   state            String
-  payRange         String?  @map("pay_range")
-  requirementLevel String   @default("L1") @map("requirement_level")
+  payRange         String?       @map("pay_range")
+  requirementLevel String        @default("L1") @map("requirement_level")
   description      String?
-  remote           Boolean  @default(false)
-  status           String   @default("ACTIVE")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  remote           Boolean       @default(false)
+  status           String        @default("ACTIVE")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  applications     Application[]
+  organization     Organization  @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([specialty, state])
   @@index([status])
+}
+
+model Application {
+  id            String            @id @default(uuid()) @db.Uuid
+  opportunityId String            @map("opportunity_id") @db.Uuid
+  clerkUserId   String            @map("clerk_user_id")
+  npi           String?
+  coverNote     String?           @map("cover_note")
+  status        ApplicationStatus @default(PENDING)
+  artifacts     Json              @default("[]")
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewedBy    String?           @map("reviewed_by")
+  reviewNote    String?           @map("review_note")
+  timeline      Json              @default("[]")
+  price         Int?
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
+
+  @@unique([opportunityId, clerkUserId])
+  @@index([clerkUserId])
+  @@index([opportunityId])
+  @@index([npi])
+  @@index([status])
+  @@map("applications")
 }
 
 /// Linked profile for an individual clinician (Type 1 NPI)
@@ -304,7 +335,9 @@ model PersonProfile {
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
+  user              User                  @relation(fields: [userId], references: [id])
   providerLocations ProviderLocation[]
+  memberships       WorkspaceMembership[]
 
   @@index([npi])
   @@index([userId])
@@ -340,6 +373,8 @@ model OrganizationProfile {
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   institution           Institution?
+  memberships           WorkspaceMembership[]
+  organization          Organization         @relation(fields: [organizationId], references: [id])
 
   @@index([npi])
   @@index([organizationId])
@@ -378,6 +413,8 @@ model Institution {
   @@index([latitude, longitude])
   @@index([stateCode, postalCode])
   @@index([canonicalName])
+  educationRecords      VcvEducationRecord[]
+
   @@index([geocodeStatus, updatedAt])
   @@map("institutions")
 }
@@ -481,6 +518,9 @@ model WorkspaceMembership {
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at")
 
+  personProfile       PersonProfile       @relation(fields: [personProfileId], references: [id])
+  organizationProfile OrganizationProfile @relation(fields: [organizationProfileId], references: [id])
+
   @@unique([personProfileId, organizationProfileId], map: "workspace_memberships_person_org_key")
   @@index([organizationProfileId], map: "workspace_memberships_org_idx")
   @@index([personProfileId], map: "workspace_memberships_person_idx")
@@ -497,6 +537,7 @@ model WorkspacePreference {
   lastSwitchedAt   DateTime?     @map("last_switched_at")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at")
+  user             User          @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "workspace_preferences_user_idx")
   @@map("workspace_preferences")
@@ -1832,6 +1873,8 @@ model SearchObject {
   freshAt     DateTime?
   active      Boolean          @default(true)
 
+  acl         SearchObjectACL[]
+
   @@index([type])
   @@index([aclLevel])
   @@index([active])
@@ -1841,13 +1884,14 @@ model SearchObject {
 
 /// Fine-grained ACL: which role/org can access which search object
 model SearchObjectACL {
-  id             String   @id @default(uuid()) @db.Uuid
-  searchObjectId String   @db.Uuid
+  id             String       @id @default(uuid()) @db.Uuid
+  searchObjectId String       @db.Uuid
   /// If set, only users with this role can see the object
   roleRequired   String?
   /// If set, only members of this org can see the object
-  orgId          String?  @db.Uuid
-  createdAt      DateTime @default(now())
+  orgId          String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  searchObject   SearchObject @relation(fields: [searchObjectId], references: [id])
 
   @@index([searchObjectId])
   @@index([orgId])
@@ -2549,7 +2593,13 @@ model VcvEntity {
   metadata    Json          @default("{}")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
-  institution Institution?
+  institution              Institution?
+  issuedCredentials        VcvCredential[]
+  requestedContexts        VcvOrganizationContext[]
+  subjectRelationships     VcvEntityRelationship[] @relation("RelationshipSubject")
+  objectRelationships      VcvEntityRelationship[] @relation("RelationshipObject")
+  employerDecisionEvents   EmployerDecisionEvent[]
+  startOutcomeEvents       StartOutcomeEvent[]
 
   @@index([npi])
   @@index([entityType], map: "vcv_entities_type_idx")
@@ -2599,6 +2649,9 @@ model VcvEntityRelationship {
   metadata         Json                @default("{}")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  subject                VcvEntity           @relation("RelationshipSubject", fields: [subjectId], references: [id])
+  object                 VcvEntity           @relation("RelationshipObject", fields: [objectId], references: [id])
 
   @@index([objectId, relationshipType], map: "vcv_rel_object_type_idx")
   @@index([subjectId, objectId], map: "vcv_rel_pair_idx")
@@ -2676,6 +2729,8 @@ model VcvCredential {
   supersededByCredentialId String?              @map("superseded_by_credential_id") @db.Uuid
   supersedesCredentialId   String?              @map("supersedes_credential_id") @db.Uuid
 
+  issuer                 VcvEntity?           @relation(fields: [issuerId], references: [id])
+
   @@index([expiresAt], map: "vcv_cred_expires_idx")
   @@index([credentialFamilyKey], map: "vcv_cred_family_idx")
   @@index([issuerId], map: "vcv_cred_issuer_idx")
@@ -2714,6 +2769,8 @@ model VcvEducationRecord {
   metadata          Json                 @default("{}")
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  institution           Institution?         @relation(fields: [institutionId], references: [id])
 
   @@index([acgmeCode], map: "vcv_edu_acgme_idx")
   @@index([subjectId, completed], map: "vcv_edu_completed_idx")
@@ -2760,8 +2817,13 @@ model VcvOrganizationContext {
   @@index([requestorId, contextType], map: "vcv_org_ctx_requestor_type_idx")
   @@index([status], map: "vcv_org_ctx_status_idx")
   @@index([contextType, status], map: "vcv_org_ctx_type_status_idx")
+  requestor              VcvEntity             @relation(fields: [requestorId], references: [id])
+  subjects               VcvOrgContextSubject[]
+
   @@index([createdByUserId], map: "vcv_org_ctx_user_idx")
   @@map("vcv_organization_contexts")
+  employerDecisionEvents EmployerDecisionEvent[]
+  startOutcomeEvents     StartOutcomeEvent[]
 }
 
 /// A subject (entity + optional credential set) participating in an org context.
@@ -2784,6 +2846,8 @@ model VcvOrgContextSubject {
   metadata         Json      @default("{}")
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  orgContext            VcvOrganizationContext @relation(fields: [contextId], references: [id])
 
   @@unique([contextId, subjectId], map: "vcv_org_ctx_subj_uq")
   @@index([contextId], map: "vcv_org_ctx_subj_ctx_idx")
@@ -3246,4 +3310,306 @@ enum VcvOrgContextStatus {
   COMPLETED
   EXPIRED
   REVOKED
+}
+
+// ─── Missing models added wave-118 ────────────────────────────────────────────
+
+model SpecialtyTaxonomy {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  description String
+  board_name  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("specialty_taxonomies")
+}
+
+model ResidencyProgram {
+  id                   String   @id @default(uuid()) @db.Uuid
+  acgme_code           String   @unique
+  name                 String
+  specialty            String
+  hospital_affiliation String  @default("")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("residency_programs")
+}
+
+model StateComplianceRule {
+  id                        String   @id @default(uuid()) @db.Uuid
+  state_code                String
+  specialty                 String
+  required_credential_types String[]
+  renewal_window_days       Int?
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  @@unique([state_code, specialty], name: "state_code_specialty")
+  @@map("state_compliance_rules")
+}
+
+// ─── Relations added wave-118 ─────────────────────────────────────────────────
+
+model EmployerDecisionEvent {
+  id                        String                @id @default(uuid()) @db.Uuid
+  entityId                  String                @map("entity_id") @db.Uuid
+  organizationContextId     String?               @map("organization_context_id") @db.Uuid
+  decision                  String
+  decidedAt                 DateTime              @map("decided_at")
+  reviewerRole              String                @default("EMPLOYER") @map("reviewer_role")
+  auditEventId              String?               @map("audit_event_id") @db.Uuid
+  trustSnapshotAtDecision   Json                  @default("{}") @map("trust_snapshot_at_decision")
+  blockersAtDecision        Json                  @default("[]") @map("blockers_at_decision")
+  readinessScoreAtDecision  Int?                  @map("readiness_score_at_decision")
+  metadata                  Json                  @default("{}")
+  createdAt                 DateTime              @default(now()) @map("created_at")
+  entity                    VcvEntity             @relation(fields: [entityId], references: [id])
+  organizationContext       VcvOrganizationContext? @relation(fields: [organizationContextId], references: [id])
+
+  @@index([entityId])
+  @@index([decidedAt])
+  @@index([organizationContextId])
+  @@map("employer_decision_events")
+}
+
+model StartOutcomeEvent {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  entityId               String                 @map("entity_id") @db.Uuid
+  organizationContextId  String?                @map("organization_context_id") @db.Uuid
+  startedAt              DateTime               @map("started_at")
+  daysFromFirstReview    Int?                   @map("days_from_first_review")
+  daysFromShare          Int?                   @map("days_from_share")
+  daysFromReady          Int?                   @map("days_from_ready")
+  readinessScoreAtStart  Int?                   @map("readiness_score_at_start")
+  blockersAtStart        String[]               @map("blockers_at_start")
+  sourceCoverageAtStart  Json                   @default("{}") @map("source_coverage_at_start")
+  metadata               Json                   @default("{}")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  entity                 VcvEntity              @relation(fields: [entityId], references: [id])
+  organizationContext    VcvOrganizationContext? @relation(fields: [organizationContextId], references: [id])
+
+  @@index([entityId])
+  @@index([startedAt])
+  @@map("start_outcome_events")
+}
+
+model AdvisoryOutcomeEvent {
+  id                        String    @id @default(uuid()) @db.Uuid
+  entityId                  String    @map("entity_id") @db.Uuid
+  organizationContextId     String?   @map("organization_context_id") @db.Uuid
+  advisoryVersion           String?   @map("advisory_version")
+  advisoryInputSnapshotRef  String?   @map("advisory_input_snapshot_ref")
+  advisoryOutputSnapshotRef String?   @map("advisory_output_snapshot_ref")
+  eventType                 String    @map("event_type")
+  eventTimestamp            DateTime  @map("event_timestamp")
+  blockersAtEvent           Json      @default("[]") @map("blockers_at_event")
+  readinessScoreAtEvent     Int?      @map("readiness_score_at_event")
+  sourceCoverageAtEvent     Json      @default("{}") @map("source_coverage_at_event")
+  metadata                  Json      @default("{}")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+
+  @@index([entityId])
+  @@index([eventTimestamp])
+  @@index([entityId, eventType])
+  @@index([organizationContextId])
+  @@map("advisory_outcome_events")
+}
+
+model BlockerResolutionEvent {
+  id               String    @id @default(uuid()) @db.Uuid
+  entityId         String    @map("entity_id") @db.Uuid
+  blockerCode      String    @map("blocker_code")
+  status           String    @default("OPEN")
+  resolutionDays   Int?      @map("resolution_days")
+  resolutionMethod String?   @map("resolution_method")
+  openedAt         DateTime  @default(now()) @map("opened_at")
+  resolvedAt       DateTime? @map("resolved_at")
+  metadata         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([entityId])
+  @@index([status])
+  @@index([entityId, blockerCode, status])
+  @@map("blocker_resolution_events")
+}
+
+model Feedback {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String
+  score     Int?
+  message   String?
+  email     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@map("feedback")
+}
+
+model SystemFailureEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  component   String
+  severity    String?
+  message     String
+  artifactId  String?   @map("artifact_id") @db.Uuid
+  organizationId String? @map("organization_id") @db.Uuid
+  metadata    Json      @default("{}")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([component])
+  @@index([createdAt])
+  @@map("system_failure_events")
+}
+
+model EmployerAcceptance {
+  id            String    @id @default(uuid()) @db.Uuid
+  employerId    String    @map("employer_id")
+  clinicianNpi  String    @map("clinician_npi")
+  artifactId    String?   @map("artifact_id") @db.Uuid
+  status        String    @default("ACCEPTED")
+  acceptedAt    DateTime  @default(now()) @map("accepted_at")
+  expiresAt     DateTime? @map("expires_at")
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([employerId, clinicianNpi])
+  @@index([employerId])
+  @@index([clinicianNpi])
+  @@index([status])
+  @@map("employer_acceptances")
+}
+
+model OnboardingAnalytics {
+  id                   String    @id @default(uuid()) @db.Uuid
+  artifactId           String?   @unique @map("artifact_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  clinicianNpi         String?   @map("clinician_npi")
+  firstVerifiedAt      DateTime? @map("first_verified_at")
+  firstProofIssuedAt   DateTime? @map("first_proof_issued_at")
+  psvCompletedAt       DateTime? @map("psv_completed_at")
+  daysToVerification   Int?      @map("days_to_verification")
+  daysToPSVCompletion  Int?      @map("days_to_psv_completion")
+  metadata             Json      @default("{}")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([artifactId])
+  @@map("onboarding_analytics")
+}
+
+model StatusListState {
+  id         String   @id
+  encoded    String
+  version    Int      @default(0)
+  sizeBits   Int      @map("size_bits")
+  nextIndex  Int      @default(0) @map("next_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("status_list_state")
+}
+
+model EmployerWebhookConfig {
+  id             String    @id @default(uuid()) @db.Uuid
+  employerId     String    @unique @map("employer_id")
+  webhookUrl     String    @map("webhook_url")
+  signingSecret  String?   @map("signing_secret")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([employerId])
+  @@map("employer_webhook_configs")
+}
+
+model MatchBoost {
+  id          String    @id @default(uuid()) @db.Uuid
+  employerId  String    @map("employer_id")
+  specialty   String
+  acceptRate  Float     @map("accept_rate")
+  sampleSize  Int       @map("sample_size")
+  boostScore  Float     @map("boost_score")
+  computedAt  DateTime  @default(now()) @map("computed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([employerId, specialty], name: "employerId_specialty")
+  @@index([employerId])
+  @@map("match_boosts")
+}
+
+model Subscription {
+  id               String    @id @default(uuid()) @db.Uuid
+  clinicianId      String    @map("clinician_id")
+  tier             String    @default("free")
+  status           String    @default("active")
+  stripeSubId      String?   @map("stripe_sub_id")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  metadata         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([clinicianId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model SubscriptionApiKey {
+  id             String    @id @default(uuid()) @db.Uuid
+  subscriptionId String?   @map("subscription_id") @db.Uuid
+  clinicianId    String?   @map("clinician_id")
+  name           String?   @default("API Key")
+  tier           String    @default("free")
+  keyHash        String    @unique @map("key_hash")
+  requestCount   Int       @default(0) @map("request_count")
+  lastUsedAt     DateTime? @map("last_used_at")
+  revokedAt      DateTime? @map("revoked_at")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([clinicianId])
+  @@index([tier])
+  @@index([active])
+  @@map("subscription_api_keys")
+}
+
+model BillingEvent {
+  id                   String    @id @default(uuid()) @db.Uuid
+  employerId           String    @map("employer_id")
+  startAttestationId   String?   @map("start_attestation_id") @db.Uuid
+  stripeInvoiceItemId  String?   @map("stripe_invoice_item_id")
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  amountCents          Int       @map("amount_cents")
+  currency             String    @default("usd")
+  status               String    @default("PENDING")
+  errorMessage         String?   @map("error_message")
+  metadata             Json      @default("{}")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@index([employerId])
+  @@index([status])
+  @@map("billing_events")
+}
+
+model StartAttestation {
+  id           String    @id @default(uuid()) @db.Uuid
+  acceptanceId String    @map("acceptance_id")
+  role         String
+  facility     String
+  startedAt    DateTime  @map("started_at")
+  anchoredRoot String?   @map("anchored_root")
+  eventHash    String?   @map("event_hash")
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([acceptanceId])
+  @@map("start_attestations")
 }
