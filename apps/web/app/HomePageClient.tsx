@@ -23,6 +23,19 @@ export default function HomePageClient() {
         </SignedIn>
       )}
       <HeroWithAuthPrompt />
+      {/* Credibility anchor — links to real pilot evidence */}
+      <div className="border-t border-slate-100 py-6 px-4">
+        <div className="max-w-lg mx-auto text-center">
+          <Link
+            href="/p/norcal-pa-pilot-1"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors group"
+          >
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            See real pilot results — identity verified in 1.8 min
+            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
