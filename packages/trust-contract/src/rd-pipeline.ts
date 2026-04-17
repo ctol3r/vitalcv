@@ -124,7 +124,7 @@ const CATEGORY_PATTERNS: Array<{
     actionTemplate: 'Surface license integration status more prominently — pending vs available',
   },
   {
-    pattern: /integrate|connect|api|our system|ats|medallion|verifiable|symplr/i,
+    pattern: /integrate|connect|api|our system|ats/i,
     category: 'integration_concern',
     impact: 'medium',
     system: 'onboarding',
