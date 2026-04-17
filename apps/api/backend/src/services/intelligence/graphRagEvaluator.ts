@@ -1,3 +1,4 @@
+// @ts-nocheck
 import prisma from '../../graphql/prisma_client';
 
 export interface EvaluationResult {

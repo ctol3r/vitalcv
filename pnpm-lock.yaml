@@ -21,6 +21,9 @@ importers:
       turbo:
         specifier: ^2.7.0
         version: 2.8.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   apps/admin-api:
     dependencies:
@@ -1070,6 +1073,10 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
+  packages/source-adapters: {}
+
+  packages/trust-contract: {}
+
   packages/trust-state:
     dependencies:
       '@vitalcv/psv':
@@ -1082,6 +1089,16 @@ importers:
       vitest:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@25.2.1)(jsdom@29.0.1(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.46.0)
+
+  packages/truth-enforcement:
+    dependencies:
+      '@vitalcv/trust-contract':
+        specifier: file:../trust-contract
+        version: link:../trust-contract
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/verifier-sdk:
     devDependencies:
@@ -2714,7 +2731,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}

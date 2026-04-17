@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createHash } from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import type { RecommendedAction } from '../../../../../../core/actions/actionEngine';

@@ -19,7 +19,8 @@
   "devDependencies": {
     "@types/node": "^20",
     "next": "15.2.8",
-    "turbo": "^2.7.0"
+    "turbo": "^2.7.0",
+    "typescript": "5.9.3"
   },
   "pnpm": {
     "overrides": {

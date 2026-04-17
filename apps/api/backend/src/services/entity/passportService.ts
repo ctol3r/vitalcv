@@ -52,6 +52,8 @@ import {
   type CanonicalTruthSet,
   LAUNCH_SPINE_SOURCE_IDS,
   type LaunchSpineSourceId,
+  deriveReadinessState,
+  type ReadinessState,
 } from '@vitalcv/trust-state';
 import { getSourceFreshnessWindowHours } from '../identity/sourceCatalog';
 import {
@@ -180,7 +182,7 @@ export interface PassportStanding {
 }
 
 export interface PassportReadiness {
-  status:             'READY' | 'PARTIAL' | 'BLOCKED';
+  status:             ReadinessState;
   score:              number;    // 0–100
   readiness_score:    number;
   level:              string;    // L0–L3
@@ -246,7 +248,7 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
-export type DecisionPostureStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+export type DecisionPostureStatus = ReadinessState;
 
 export interface DecisionPostureSource {
   sourceId: string;
@@ -322,19 +324,20 @@ export interface TrustPassport {
 const BLOCKING_DOMAINS = ['IDENTITY', 'LICENSURE', 'EXCLUSION_CHECK'] as const;
 
 const ESTIMATED_START_DAYS: Record<string, number> = {
-  READY:   3,
-  PARTIAL: 14,
-  BLOCKED: null as unknown as number,
+  DECISION_GRADE: 3,
+  PARTIAL:        14,
+  CHECKING:       30,
+  BLOCKED:        null as unknown as number,
 };
 
 function derivePassportReadinessLevel(
   score: number,
-  status: 'READY' | 'PARTIAL' | 'BLOCKED',
+  status: ReadinessState,
 ): string {
   if (status === 'BLOCKED') {
     return 'L0';
   }
-  if (score >= 80 && status === 'READY') {
+  if (score >= 80 && status === 'DECISION_GRADE') {
     return 'L3';
   }
   if (score >= 60) {
@@ -1593,14 +1596,16 @@ const DIMENSION_SOURCE_MAP: Record<PassportTrustPostureDimensionId, readonly str
 };
 
 const DECISION_POSTURE_HEADLINES: Record<DecisionPostureStatus, string> = {
-  READY: 'All decision-grade sources checked. Safe to proceed.',
+  DECISION_GRADE: 'All decision-grade sources checked. Safe to proceed.',
   PARTIAL: 'Some sources pending or incomplete. Proceed with caution.',
+  CHECKING: 'Verification in progress. Data is being gathered.',
   BLOCKED: 'Critical blockers present. Do not proceed.',
 };
 
 const DECISION_POSTURE_NEXT_ACTIONS: Record<DecisionPostureStatus, string> = {
-  READY: 'Accept as head start and move to privileging.',
+  DECISION_GRADE: 'Accept as head start and move to privileging.',
   PARTIAL: 'Route to credentialing team for gap resolution.',
+  CHECKING: 'Wait for verification to complete before proceeding.',
   BLOCKED: 'Do not hire until blockers are resolved.',
 };
 
@@ -2203,9 +2208,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const normalizedBlockers = dedupeStrings(blockers).filter(isReadinessBlockingFinding);
   const normalizedGaps = dedupeStrings(gaps);
 
-  let readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' = 'READY';
-  if (normalizedBlockers.length > 0)   readinessStatus = 'BLOCKED';
-  else if (normalizedGaps.length > 0)  readinessStatus = 'PARTIAL';
+  // Derive readiness from actual source coverage — not from blocker/gap string lists.
+  const readinessStatus: ReadinessState = deriveReadinessState(sourceCoverage.checks);
   // Derive readiness score from source coverage rather than hardcoding.
   // Each checked launch-spine source contributes 25 points (4 sources × 25 = 100 max).
   // Non-checked sources contribute 0. This ensures the score reflects real source state.

@@ -68,9 +68,10 @@ const STATUS_CONFIG: Record<ReadinessStatus, {
   cardBorder:   string;
   cardBg:       string;
 }> = {
-  READY:   { cardBorder: 'border-border', cardBg: 'bg-muted' },
-  PARTIAL: { cardBorder: 'border-border', cardBg: 'bg-card' },
-  BLOCKED: { cardBorder: 'border-white/8', cardBg: 'bg-card' },
+  DECISION_GRADE: { cardBorder: 'border-border', cardBg: 'bg-muted' },
+  CHECKING:       { cardBorder: 'border-border', cardBg: 'bg-card' },
+  PARTIAL:        { cardBorder: 'border-border', cardBg: 'bg-card' },
+  BLOCKED:        { cardBorder: 'border-white/8', cardBg: 'bg-card' },
 };
 
 const SOURCE_COVERAGE_ORDER: Record<string, number> = {

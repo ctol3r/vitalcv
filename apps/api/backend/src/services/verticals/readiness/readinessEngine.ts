@@ -8,10 +8,12 @@ import {
   resolveSourceCoverageState,
   type TrustSourceCoverage,
 } from '../../trust/trustCore';
+import type { ReadinessState } from '@vitalcv/trust-state';
 
 export interface ReadinessReport {
   npi: string; targetState: string; profession: string;
   overallStatus: 'CLEAR_TO_START' | 'PENDING_VERIFICATION' | 'MISSING_CREDENTIALS' | 'BLOCKED';
+  readinessState: ReadinessState;
   readinessScore: number;
   blockers: string[];
   readiness_score: number;
@@ -258,6 +260,7 @@ export function computeReadiness(npi: string, targetState: string, profession: s
     targetState,
     profession,
     overallStatus: readiness.overallStatus,
+    readinessState: readiness.readinessState,
     readinessScore,
     readiness_score: readinessScore,
     blockers: readiness.blockers,

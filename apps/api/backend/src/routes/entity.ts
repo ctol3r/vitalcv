@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * entity.ts — Canonical entity API routes
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createHmac, randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';

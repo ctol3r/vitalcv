@@ -509,93 +509,60 @@ export default function ExploreClient() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 mb-8">
+        <select value={specialty} onChange={e => setSpecialty(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+          <option value="">All Specialties</option>
+          {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={state} onChange={e => setState(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+          <option value="">All States</option>
+          {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={hiringType} onChange={e => setHiringType(e.target.value)}
+          className="px-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary/50">
+          <option value="">All Types</option>
+          {HIRING_TYPES.map(t => <option key={t} value={t}>{HIRING_TYPE_LABELS[t]}</option>)}
+        </select>
+
         <button
           type="button"
           onClick={() => setShowFilters(f => !f)}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-            showFilters ? 'bg-blue-600/30 border border-blue-500/40 text-blue-400' : 'bg-muted border border-border text-foreground hover:text-foreground'
+            showFilters ? 'bg-primary/20 border border-primary/30 text-primary' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Filter className="w-4 h-4" /> Filters
-          {hasFilters && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-500 text-foreground text-xs font-bold">!</span>}
+          <Filter className="w-4 h-4" /> More Filters
+          {hasFilters && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">!</span>}
         </button>
 
         {showFilters && (
-          <>
-            <select value={specialty} onChange={e => setSpecialty(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">All Specialties</option>
-              {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={state} onChange={e => setState(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">All States</option>
-              {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={hiringType} onChange={e => setHiringType(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">All Types</option>
-              {HIRING_TYPES.map(t => <option key={t} value={t}>{HIRING_TYPE_LABELS[t]}</option>)}
-            </select>
+          <div className="w-full flex flex-wrap gap-3 mt-2 pt-4 border-t border-border/50">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none bg-muted px-3 py-2 rounded-lg border border-border">
+              <input type="checkbox" checked={remoteOnly} onChange={e => setRemoteOnly(e.target.checked)} className="rounded text-primary focus:ring-primary" />
+              Remote only
+            </label>
             <select value={payModel} onChange={e => setPayModel(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
+              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-primary/50">
               <option value="">Any Pay Model</option>
               {PAY_MODELS.map((model) => <option key={model} value={model}>{formatPayModel(model as ApiOpportunity['payModel'])}</option>)}
             </select>
-            <input
-              value={payMin}
-              onChange={e => setPayMin(e.target.value)}
-              inputMode="numeric"
-              placeholder="Pay min"
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
-            />
-            <input
-              value={payMax}
-              onChange={e => setPayMax(e.target.value)}
-              inputMode="numeric"
-              placeholder="Pay max"
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
-            />
-            <select value={visaSponsorship} onChange={e => setVisaSponsorship(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">Any Visa Policy</option>
-              {VISA_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <select value={benefits} onChange={e => setBenefits(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">Any Benefits Visibility</option>
-              {BENEFIT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <select value={employerType} onChange={e => setEmployerType(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">Any Employer Type</option>
-              {EMPLOYER_TYPES.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-            <select value={startUrgency} onChange={e => setStartUrgency(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-              <option value="">Any Start Window</option>
-              {START_URGENCY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
-              <input type="checkbox" checked={remoteOnly} onChange={e => setRemoteOnly(e.target.checked)} className="rounded" />
-              Remote only
-            </label>
-            {comparisonFiltersAvailable ? (
-              <>
-                <select value={readinessStatus} onChange={e => setReadinessStatus(e.target.value)}
-                  className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-blue-500/50">
-                  <option value="">Any Readiness Fit</option>
-                  {READINESS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                <input
-                  value={missingRequirement}
-                  onChange={e => setMissingRequirement(e.target.value)}
-                  placeholder="Missing requirement"
-                  className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 placeholder:text-muted-foreground focus:outline-none focus:border-blue-500/50"
-                />
-              </>
-            ) : null}
-          </>
+            {comparisonFiltersAvailable && (
+              <select value={readinessStatus} onChange={e => setReadinessStatus(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-muted border border-border text-sm text-foreground/80 focus:outline-none focus:border-primary/50">
+                <option value="">Any Readiness Fit</option>
+                {READINESS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              Clear All
+            </Button>
+          </div>
         )}
 
         {organizationSlug && (
@@ -674,12 +641,12 @@ export default function ExploreClient() {
       {/* Matching CTA */}
       <div className="mt-16 rounded-2xl border border-vt-success/20 bg-vt-success/5 p-8 text-center">
         <ShieldCheck className="mx-auto mb-3 h-6 w-6 text-vt-success" />
-        <h3 className="heading-md text-foreground">Preview your fit in the live flow</h3>
+        <h3 className="heading-md text-foreground">Calculate fit in the live flow</h3>
         <p className="body-sm mx-auto mt-2 max-w-md text-vt-neutral-200">
-          Start with your public NPI profile and VitalCV will show which live roles align with your current readiness state before you submit.
+          Start with your public NPI profile and VitalCV will mathematically evaluate which roles align with your current verified state before you submit.
         </p>
         <Link href="/passport" className="mt-5 inline-flex items-center gap-2 rounded-full bg-vt-success px-6 py-3 text-sm font-semibold text-black hover:bg-vt-success/90 transition-transform active:scale-95">
-          Preview my fit
+          Calculate Fit
         </Link>
       </div>
 

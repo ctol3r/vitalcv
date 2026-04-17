@@ -22,4 +22,10 @@ export const UX_EVENTS = {
   NAV_ITEM_CLICKED: 'nav_item_clicked',
   PASSPORT_VIEWED: 'passport_viewed',
   REVIEW_REQUESTED: 'review_requested',
+  NPI_INPUT_FOCUS: 'npi_input_focus',
+  TIME_TO_FIRST_VALUE: 'time_to_first_value',
+  TIME_TO_DECISION_VIEW: 'time_to_decision_view',
+  CONVERSION_TO_ACTION: 'conversion_to_action',
+  USER_SCROLL_DEPTH: 'user_scroll_depth',
+  DROP_OFF_POINT: 'drop_off_point',
 } as const satisfies Record<string, import('@/lib/pilot-ops/client').PilotMetricEventType>;

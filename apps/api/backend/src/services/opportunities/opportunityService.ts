@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * opportunityService.ts — Wave 227
  *

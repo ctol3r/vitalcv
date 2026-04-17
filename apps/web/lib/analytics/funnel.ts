@@ -16,13 +16,16 @@ export const FUNNEL_EVENTS = {
   HOMEPAGE_VIEWED: 'homepage_viewed',
   NPI_INPUT_FOCUSED: 'npi_input_focused',
   NPI_SUBMITTED: 'npi_submitted',
-  RESULTS_DISPLAYED: 'results_displayed',
+  RESULTS_DISPLAYED: 'results_displayed', // Passport Rendered
+  DECISION_VIEWED: 'decision_viewed',
+  ACTION_TAKEN: 'action_taken',
   SIGNUP_PROMPT_SHOWN: 'signup_prompt_shown',
   SIGNUP_PROMPT_DISMISSED: 'signup_prompt_dismissed',
   SIGNUP_CLICKED: 'signup_clicked',
   SIGNUP_COMPLETED: 'signup_completed',
   PACKET_DOWNLOADED: 'packet_downloaded',
   TIME_TO_START_CLICKED: 'time_to_start_clicked',
+  DROPOFF_DETECTED: 'dropoff_detected',
 } as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
@@ -98,12 +101,30 @@ export function trackFunnelEvent(
   try {
     const utm = getStoredUtmParams();
 
-    posthog.capture(event, {
+    // Contextual drop-off / hesitation analysis
+    const trackingProps = {
       ...utm,
       funnel_timestamp: Date.now(),
       ...properties,
-    });
+    };
+
+    posthog.capture(event, trackingProps);
   } catch {
     // Analytics must never interrupt the UI.
   }
+}
+
+/**
+ * Convenience method for tracking structured drop-offs and hesitation points.
+ */
+export function trackDropoff(
+  lastStep: FunnelEventName,
+  timeSpentMs: number,
+  reason: 'exit' | 'hesitation' | 'error'
+) {
+  trackFunnelEvent(FUNNEL_EVENTS.DROPOFF_DETECTED, {
+    last_step: lastStep,
+    time_spent_ms: timeSpentMs,
+    dropoff_reason: reason
+  });
 }

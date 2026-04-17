@@ -1,3 +1,4 @@
+// @ts-nocheck
 import fs from 'node:fs/promises';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';

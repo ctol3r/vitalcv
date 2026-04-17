@@ -121,7 +121,7 @@ describe('wedge smoke flow', () => {
         'npi' | 'readinessStatus' | 'readinessScore' | 'snapshotHash'
       > = {
         npi: SAMPLE_NPI,
-        readinessStatus: 'READY',
+        readinessStatus: 'DECISION_GRADE',
         readinessScore: 85,
         snapshotHash: 'sha256_abc',
       };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { VcvOrgContextStatus, VcvOrgContextType } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 

@@ -109,7 +109,7 @@ export interface CredentialIntelligenceReport {
   methodology: string;
 
   // ── Readiness ─────────────────────────────────────────────────────────────
-  readinessStatus: 'READY' | 'PARTIAL' | 'BLOCKED' | 'UNKNOWN';
+  readinessStatus: 'DECISION_GRADE' | 'PARTIAL' | 'CHECKING' | 'BLOCKED' | 'UNKNOWN';
   readinessScore: number;
   readinessLevel: string;
 
@@ -170,7 +170,7 @@ const PARTIAL_DAYS_ESTIMATE_BASE = 30; // rough baseline when partial
 
 function resolveReadinessStatus(level: string | undefined): CredentialIntelligenceReport['readinessStatus'] {
   const l = (level ?? '').toUpperCase();
-  if (l === 'READY') return 'READY';
+  if (l === 'DECISION_GRADE') return 'DECISION_GRADE';
   if (l === 'PARTIAL' || l === 'CREDENTIALED') return 'PARTIAL';
   if (l === 'BLOCKED') return 'BLOCKED';
   return 'UNKNOWN';
@@ -488,7 +488,7 @@ export async function generateCredentialIntelligenceReport(
     estimatedDays = BLOCKED_DAYS_ESTIMATE;
     ttsBasis = 'Cannot estimate — hard blockers present. Resolve blockers first.';
     ttsConfidence = 'CANNOT_ESTIMATE';
-  } else if (readinessStatus === 'READY') {
+  } else if (readinessStatus === 'DECISION_GRADE') {
     estimatedDays = passportEstimate ?? kpiMedianDays ?? 7;
     ttsBasis = passportEstimate !== null
       ? 'Passport readiness engine (primary-source derived)'

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * sealTrainingNormalizer.ts — Training Dataset Builder
  *

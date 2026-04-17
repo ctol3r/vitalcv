@@ -25,6 +25,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
@@ -466,7 +467,7 @@ function PassportPageContent({
 
         {/* Role context banner */}
         {readinessContext ? (
-          <div className="mb-6 rounded-2xl border border-border bg-card px-4 py-3 max-w-lg">
+          <div className="mb-6 rounded-none border border-border bg-card px-4 py-3 max-w-lg">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Role context
             </p>
@@ -507,7 +508,7 @@ function PassportPageContent({
                       value={npi}
                       onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
                       placeholder="Enter 10-digit NPI"
-                      className="h-14 w-full rounded-xl border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
+                      className="h-14 w-full rounded-none border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
                     />
                     {/* Real-time visual feedback */}
                     {npi.length > 0 && (
@@ -523,7 +524,7 @@ function PassportPageContent({
                   <Button
                     type="submit"
                     disabled={!npiValid}
-                    className="h-14 rounded-xl bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
+                    className="h-14 rounded-none bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
                   >
                     Check readiness
                   </Button>
@@ -540,7 +541,7 @@ function PassportPageContent({
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {SOURCE_EXPLANATIONS.map(src => (
-                    <div key={src.id} className="flex gap-3 rounded-xl border border-border bg-card p-3.5">
+                    <div key={src.id} className="flex gap-3 rounded-none border border-border bg-card p-3.5">
                       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-[10px] font-bold text-muted-foreground">
                         {src.id === 'nppes' ? 'NP' : src.id === 'oig' ? 'OI' : src.id === 'pecos' ? 'PE' : 'SB'}
                       </span>
@@ -563,7 +564,7 @@ function PassportPageContent({
 
             {/* Right column: sample readiness card */}
             <div className="hidden lg:block">
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+              <div className="rounded-none border border-border bg-card p-6 space-y-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Sample readiness snapshot
                 </p>
@@ -584,12 +585,29 @@ function PassportPageContent({
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg border border-border bg-background p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
-                    <span className="text-xs font-semibold text-trust-green">READY</span>
+                <div className="rounded-none border border-border bg-background p-4 relative overflow-hidden  bg-[var(--vt-surface)] border-[var(--vt-border)] ">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Readiness Index</span>
+                    <span className="text-xs font-bold text-trust-green flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> DECISION GRADE</span>
                   </div>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
+                  
+                  <div className="flex items-end gap-3 mt-3">
+                    <div className="relative w-16 h-16">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path className="text-white/10" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path className="text-trust-green" strokeDasharray="82, 100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-lg font-bold tabular-nums">82</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Coverage</span><span className="font-mono text-foreground">3/3</span></div>
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Receipts</span><span className="font-mono text-foreground">3</span></div>
+                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Adverse</span><span className="font-mono text-emerald-500">0</span></div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground/50 text-center">
                   This is a sample — enter your NPI to see real results
@@ -612,7 +630,7 @@ function PassportPageContent({
 
             {/* Identity block — appears when NPPES resolves */}
             {identity.authoritative && identity.displayName && (
-              <Card className="gap-2 rounded-2xl border-border bg-muted px-5 py-4 shadow-none">
+              <Card className="gap-2 rounded-none border-border bg-muted px-5 py-4 shadow-none">
                 <p className="text-muted-foreground/60 text-xs uppercase tracking-widest mb-1">Provider</p>
                 <h2 className="text-foreground text-xl font-semibold leading-tight">
                   {identity.displayName}
@@ -625,7 +643,7 @@ function PassportPageContent({
             )}
 
           {/* Source status rows */}
-          <Card className="animate-panel-enter gap-0 rounded-xl border-border bg-card px-4 py-2 shadow-none">
+          <Card className="animate-panel-enter gap-0 rounded-none border-border bg-card px-4 py-2 shadow-none">
             <SourceRow
                 label="NPPES"
                 state={sources.nppes}
@@ -650,24 +668,24 @@ function PassportPageContent({
 
             {/* Readiness summary — appears when claims update */}
             {state.readiness.score !== undefined && (
-              <Card className="gap-0 rounded-xl border-border bg-card px-4 py-3 shadow-none">
+              <Card className="gap-0 rounded-none border-border bg-card px-4 py-3 shadow-none">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground/60 text-xs uppercase tracking-widest">Readiness</span>
                   <TrustStatusBadge
                     status={resolveLivePathReadinessStatus(
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                      state.readiness.status === 'DECISION_GRADE' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL' || state.readiness.status === 'CHECKING'
                         ? state.readiness.status
                         : state.readiness.score >= 70
-                          ? 'READY'
+                          ? 'DECISION_GRADE'
                           : state.readiness.score >= 40
                             ? 'PARTIAL'
                             : 'BLOCKED',
                     )}
                     label={
-                      state.readiness.status === 'READY' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL'
+                      state.readiness.status === 'DECISION_GRADE' || state.readiness.status === 'BLOCKED' || state.readiness.status === 'PARTIAL' || state.readiness.status === 'CHECKING'
                         ? state.readiness.status
                         : state.readiness.score >= 70
-                          ? 'READY'
+                          ? 'DECISION_GRADE'
                           : state.readiness.score >= 40
                             ? 'PARTIAL'
                             : 'BLOCKED'

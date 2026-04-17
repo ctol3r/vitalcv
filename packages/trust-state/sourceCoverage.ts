@@ -677,6 +677,45 @@ export function isDecisionGradePositiveTrustStatus(
   return status === 'verified' || status === 'clear';
 }
 
+// ── ReadinessState — the single truth enum for pilot readiness ────────────
+
+export const READINESS_STATES = [
+  'CHECKING',
+  'PARTIAL',
+  'DECISION_GRADE',
+  'BLOCKED',
+] as const;
+
+export type ReadinessState = (typeof READINESS_STATES)[number];
+
+/**
+ * Derives ReadinessState strictly from source coverage data.
+ *
+ * Rules (evaluated in order):
+ *  1. If ANY launch-spine source has a hard-block coverage state → BLOCKED
+ *  2. If ALL launch-spine sources are 'checked' → DECISION_GRADE
+ *  3. If at least one launch-spine source is 'checked' → PARTIAL
+ *  4. Otherwise → CHECKING
+ */
+export function deriveReadinessState(
+  checks: readonly Pick<CanonicalSourceCoverage, 'sourceId' | 'state'>[],
+): ReadinessState {
+  const spineChecks = LAUNCH_SPINE_SOURCE_IDS.map((sourceId) => {
+    const match = checks.find((c) => c.sourceId === sourceId);
+    return { sourceId, state: match?.state ?? ('pending' as CanonicalSourceCoverageState) };
+  });
+
+  const hasHardBlock = spineChecks.some(
+    (c) => c.state === 'reviewRequired' || c.state === 'unavailable',
+  );
+  if (hasHardBlock) return 'BLOCKED';
+
+  const checkedCount = spineChecks.filter((c) => c.state === 'checked').length;
+  if (checkedCount === LAUNCH_SPINE_SOURCE_IDS.length) return 'DECISION_GRADE';
+  if (checkedCount > 0) return 'PARTIAL';
+  return 'CHECKING';
+}
+
 export function findPriorityCanonicalSourceCoverage<
   T extends Pick<CanonicalSourceCoverage, 'state'>,
 >(

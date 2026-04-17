@@ -106,8 +106,10 @@ function buildMissingTags(passport: PassportData): string[] {
 
 function readinessProceedNote(passport: PassportData): string {
   switch (passport.readiness.status) {
-    case 'READY':
+    case 'DECISION_GRADE':
       return 'This passport is strong enough for employer review and next-step hiring conversations right now.';
+    case 'CHECKING':
+      return 'Verification is still in progress. Wait for all checks to complete before using this passport for hiring decisions.';
     case 'BLOCKED':
       return 'Use this passport for review context only. Employment decisions still need the blocking items resolved first.';
     case 'PARTIAL':

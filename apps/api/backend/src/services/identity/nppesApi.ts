@@ -140,11 +140,18 @@ function parseRawNpiResponse(rawResponse: unknown): {
       ? (results[0] as Record<string, unknown>)
       : null;
 
+  if (!firstResult) {
+    return {
+      taxonomyCode: 'UNKNOWN',
+      status: 'NOT_FOUND',
+    };
+  }
+
   const basic =
-    firstResult?.basic && typeof firstResult.basic === 'object' && firstResult.basic !== null
+    firstResult.basic && typeof firstResult.basic === 'object' && firstResult.basic !== null
       ? (firstResult.basic as Record<string, unknown>)
       : null;
-  const taxonomies = Array.isArray(firstResult?.taxonomies) ? firstResult.taxonomies : [];
+  const taxonomies = Array.isArray(firstResult.taxonomies) ? firstResult.taxonomies : [];
   const firstTaxonomy =
     taxonomies.length > 0 && typeof taxonomies[0] === 'object' && taxonomies[0] !== null
       ? (taxonomies[0] as Record<string, unknown>)
@@ -152,9 +159,7 @@ function parseRawNpiResponse(rawResponse: unknown): {
 
   const status = basic?.status === 'A'
     ? 'ACTIVE'
-    : results.length > 0
-      ? 'DEACTIVATED'
-      : 'NOT_FOUND';
+    : 'DEACTIVATED';
 
   return {
     taxonomyCode:

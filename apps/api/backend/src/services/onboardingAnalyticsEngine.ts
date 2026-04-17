@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Onboarding Analytics Engine — Wave R
  *

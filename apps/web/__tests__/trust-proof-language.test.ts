@@ -98,7 +98,7 @@ function buildPassport(overrides: Partial<PassportData> = {}): PassportData {
       negativeFindings: [],
     },
     readiness: {
-      status: 'READY',
+      status: 'DECISION_GRADE',
       score: 92,
       level: 'L2',
       blockers: [],

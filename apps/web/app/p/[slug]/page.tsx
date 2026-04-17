@@ -4,17 +4,20 @@
  * Dual-mode page:
  *
  *  NPI MODE — slug matches /^\d{10}$/
- *    → GET /api/public/profile/npi/:npi
+ *    → GET /api/passport/npi/:npi
  *    → Shows CLEARED / PENDING status badge, events timeline,
  *       "Open Review" CTA.
  *
  *  SLUG MODE — slug is a ShareLink UUID
- *    → GET /api/public/profile/:slug
+ *    → GET /api/passport/:slug
  *    → Shows CRS ring, L0–L3 badges, audit hashes, Golden Link CTA.
  */
 
 import React from 'react';
 import { AnimatedTimeline, type TimelineEvent } from '@/components/ui/AnimatedTimeline';
+import { EmployerReviewActions } from '@/components/review/EmployerReviewActions';
+import { ReuseSignalBadge } from '@/components/trust/ReuseSignalBadge';
+import { CopyLinkButton } from '@/components/ui/CopyLinkButton';
 import type { BadgeLevel } from '@/components/ui/BadgeStatus';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -114,6 +117,7 @@ type DisplayProfile = SlugProfile | NpiProfile;
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // ── Backend base URL ──────────────────────────────────────────────────────
@@ -132,7 +136,7 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
   try {
     if (NPI_RE.test(slug)) {
       const res = await fetch(
-        `${BACKEND}/api/public/profile/npi/${encodeURIComponent(slug)}`,
+        `${BACKEND}/api/passport/npi/${encodeURIComponent(slug)}`,
         { next: { revalidate: 60 } },
       );
       if (res.status === 404) return null;
@@ -142,7 +146,7 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
     }
 
     const res = await fetch(
-      `${BACKEND}/api/public/profile/${encodeURIComponent(slug)}`,
+      `${BACKEND}/api/passport/${encodeURIComponent(slug)}`,
       { next: { revalidate: 60 } },
     );
     if (res.status === 404) return null;
@@ -150,6 +154,19 @@ async function fetchProfile(slug: string): Promise<DisplayProfile | null> {
     const data = await res.json() as Omit<SlugProfile, 'mode'>;
     return { mode: 'slug', ...data };
   } catch {
+    return null;
+  }
+}
+
+async function fetchOmega(npi: string): Promise<any | null> {
+  try {
+    const res = await fetch(
+      `${BACKEND}/api/omega/${encodeURIComponent(npi)}`,
+      { next: { revalidate: 0 } }, // Never cache Omega, it dictates actionable state
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
     return null;
   }
 }
@@ -235,34 +252,6 @@ function ShieldIcon() {
 
 // ── CLEARED / PENDING badge with CSS pulse ───────────────────────────────
 
-function ClearedBadge({ status }: { status: ClearedStatus }) {
-  const cleared = status === 'CLEARED';
-  const toneClasses = cleared
-    ? 'bg-green-50 ring-2 ring-green-200 text-green-700'
-    : 'bg-amber-50 ring-2 ring-amber-200 text-amber-700';
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className={['relative flex h-28 w-28 items-center justify-center rounded-full', toneClasses].join(' ')}>
-        <span className={[
-          'absolute inset-0 rounded-full animate-ping opacity-20',
-          cleared ? 'bg-green-400' : 'bg-amber-400',
-        ].join(' ')} style={{ animationDuration: '2.5s' }} aria-hidden="true" />
-        <div className="relative flex flex-col items-center">
-          <span className={['text-xl font-black tracking-widest', cleared ? 'text-green-700' : 'text-amber-700'].join(' ')}>
-            {cleared ? 'ON' : '···'}
-          </span>
-          <span className={['mt-0.5 text-[9px] font-bold uppercase tracking-widest', cleared ? 'text-green-600' : 'text-amber-600'].join(' ')}>
-            {cleared ? 'Checked' : 'Pending'}
-          </span>
-        </div>
-      </div>
-      <p className="text-xs uppercase tracking-widest text-muted-foreground">
-        Profile status
-      </p>
-    </div>
-  );
-}
-
 // ── Active credentials pills ────────────────────────────────────────────
 
 function CredentialPills({ creds }: { creds: string[] }) {
@@ -283,6 +272,36 @@ function CredentialPills({ creds }: { creds: string[] }) {
 }
 
 // ── Merkle-anchored events timeline ──────────────────────────────────────
+
+
+
+
+
+function LimitationsCard({ missing }: { missing?: any[] }) {
+  if (!missing || missing.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden mt-8">
+      <div className="px-5 py-4 border-b font-semibold bg-gray-50 text-gray-700">
+        Verification Gaps (Unverified Risk)
+      </div>
+      <div className="p-5">
+        <p className="text-sm text-muted-foreground mb-3">
+          The following required sources have NOT been verified yet:
+        </p>
+        <ul className="space-y-2">
+          {missing.map((m: any, i: number) => (
+            <li key={i} className="text-sm text-foreground flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">⚠</span>
+              <span>
+                <strong>{m.sourceId || m.dimension || 'Source'}</strong>: {m.reason || 'Not checked'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnchored: string | null }) {
   const EVENT_LABELS: Record<string, { label: string; status: BadgeLevel; statusLabel: string }> = {
@@ -335,28 +354,7 @@ function EventTimeline({ events, lastAnchored }: { events: AuditEvent[]; lastAnc
   );
 }
 
-function TrustBandCard({ trustBand, readinessScore }: { trustBand: L3Status; readinessScore: number }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Clinician Trust Band</p>
-          <p className="mt-1 text-sm text-muted-foreground">Current trust-state snapshot from the VitalCV trust engine</p>
-        </div>
-        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">{trustBand}</span>
-      </div>
-      <div className="rounded-lg border border-border bg-muted p-4">
-        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Credential Readiness Score</span>
-          <span className="font-semibold text-foreground">{readinessScore}/100</span>
-        </div>
-        <div className="h-2 rounded-full bg-border">
-          <div className="h-2 rounded-full bg-green-500" style={{ width: `${Math.max(0, Math.min(100, readinessScore))}%` }} />
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 function ArtifactGrid({ artifacts }: { artifacts: NpiProfile['artifactSummaries'] }) {
   if (artifacts.length === 0) {
@@ -477,8 +475,8 @@ function ProofCard({
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Shareable Proof Bundle</p>
       <p className="mt-2 text-sm text-muted-foreground">
         {hasDownloadableProof
-          ? 'Export the deterministic trust-proof bundle or download a human-readable PDF generated from the same canonical payload.'
-          : 'No source-backed claims are attached yet, so proof downloads stay disabled until the first checked claim lands.'}
+          ? "Download a verified PDF summary of this clinician's credentialing checks and source data."
+          : "Verified PDF downloads will be available once the primary source checks are complete."}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {hasDownloadableProof ? (
@@ -513,103 +511,18 @@ function ProofCard({
 
 // ── Accept & Start CTA ───────────────────────────────────────────────────
 
-function AcceptStartCta({ npi, cleared }: { npi: string; cleared: boolean }) {
-  const href = `/verifier/signup?intent=${encodeURIComponent(npi)}&action=accept_start&ref=trust-profile`;
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">
-            {cleared ? 'Open the employer review flow?' : 'Request more source coverage for this NPI?'}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {cleared
-              ? 'Move this profile into a real review workspace before making a decision.'
-              : 'Start a deeper verification request and gather the missing bundle.'}
-          </p>
-        </div>
-        <a
-          href={href}
-          className="shrink-0 rounded-md px-5 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-foreground text-background hover:bg-foreground/90"
-        >
-          {cleared ? 'Open Review →' : 'Request Coverage →'}
-        </a>
-      </div>
-    </div>
-  );
-}
+
 
 // ── Slug-mode sub-components ─────────────────────────────────────────────
 
-function CrsRing({ score, band }: { score: number; band: CrsBand }) {
-  const radius = 70, strokeWidth = 8;
-  const r = radius - strokeWidth / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - Math.max(0, Math.min(100, score)) / 100);
-  const colors: Record<CrsBand, string> = { GREEN: '#16a34a', YELLOW: '#d97706', RED: '#dc2626' };
-  const c = colors[band];
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative flex items-center justify-center">
-        <svg width={radius * 2} height={radius * 2} viewBox={`0 0 ${radius * 2} ${radius * 2}`}
-          className="absolute opacity-20 blur-md" aria-hidden="true">
-          <circle cx={radius} cy={radius} r={r} fill="none" stroke={c}
-            strokeWidth={strokeWidth + 4} strokeDasharray={`${circ} ${circ}`}
-            strokeDashoffset={offset} strokeLinecap="round"
-            transform={`rotate(-90 ${radius} ${radius})`} />
-        </svg>
-        <svg width={radius * 2} height={radius * 2} viewBox={`0 0 ${radius * 2} ${radius * 2}`}
-          role="img" aria-label={`CRS Score: ${score} out of 100`}>
-          <circle cx={radius} cy={radius} r={r} fill="none" stroke="var(--color-border)" strokeWidth={strokeWidth} />
-          <circle cx={radius} cy={radius} r={r} fill="none" stroke={c} strokeWidth={strokeWidth}
-            strokeLinecap="round" strokeDasharray={`${circ} ${circ}`} strokeDashoffset={circ}
-            transform={`rotate(-90 ${radius} ${radius})`}
-            style={{ animation: `crs-fill 1.4s cubic-bezier(0.4,0,0.2,1) 0.3s forwards` }} />
-          <style>{`@keyframes crs-fill { to { stroke-dashoffset: ${offset}; } }`}</style>
-        </svg>
-        <div className="absolute flex flex-col items-center leading-none">
-          <span className="text-4xl font-bold tabular-nums text-foreground">{score}</span>
-          <span className="mt-0.5 text-xs font-medium text-muted-foreground">/100</span>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">Credential Readiness Score</p>
-    </div>
-  );
-}
+
 
 const LEVELS = ['L0', 'L1', 'L2', 'L3'] as const;
 const LEVEL_LABELS: Record<(typeof LEVELS)[number], string> = {
   L0: 'Incomplete', L1: 'In Progress', L2: 'Checked', L3: 'Monitored',
 };
 
-function TrustBadges({ l3Status }: { l3Status: L3Status }) {
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-2">
-        {LEVELS.map((level) => {
-          const active = level === l3Status;
-          return (
-            <div key={level} title={LEVEL_LABELS[level]}
-              className={[
-                'flex flex-col items-center gap-1 rounded-lg px-3 py-2 border transition-all',
-                active
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-border bg-muted',
-              ].join(' ')}>
-              <span className={['text-sm font-semibold', active ? 'text-green-700' : 'text-muted-foreground'].join(' ')}>
-                {level}
-              </span>
-              <span className={['text-[10px] font-medium', active ? 'text-green-600' : 'text-muted-foreground'].join(' ')}>
-                {LEVEL_LABELS[level]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <p className="text-xs text-muted-foreground">Trust Level</p>
-    </div>
-  );
-}
+
 
 function AuditHashes({ hashes }: { hashes: string[] }) {
   return (
@@ -640,50 +553,58 @@ function AuditHashes({ hashes }: { hashes: string[] }) {
   );
 }
 
-function SlugEmployerHook({ slug, name }: { slug: string; name: string }) {
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-6 py-4">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">Hiring {name.split(' ')[0]}?</p>
-          <p className="text-xs text-muted-foreground">Request the full credential bundle</p>
-        </div>
-        <a href={`/verifier/signup?intent=${encodeURIComponent(slug)}&ref=golden-link`}
-          className="shrink-0 rounded-md bg-green-600 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
-          Request Full Bundle →
-        </a>
-      </div>
-    </div>
-  );
-}
+
+
+
+
+
+
+
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default async function PublicTrustProfilePage({ params }: Props) {
+export default async function PublicTrustProfilePage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const profile = await fetchProfile(slug);
+  const resolvedParams = await searchParams;
+  const isMobile = resolvedParams?.mobile === 'true';
+  
+  // Parallel fetch: Profile for UI context, Omega for deterministic actions
+  const [profile, omegaState] = await Promise.all([
+    fetchProfile(slug),
+    NPI_RE.test(slug) ? fetchOmega(slug) : Promise.resolve(null)
+  ]);
 
   if (!profile) notFound();
 
+  // Server-side: log page view (fire-and-forget)
+  if (profile.mode === 'npi') {
+    fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/pilot/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ npi: profile.npi, actionTaken: 'view' }),
+    }).catch(() => {});
+  }
+
+
   return (
-    <main className="min-h-screen bg-background pb-28">
-      <div className="relative mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24">
-        <article className="rounded-lg border border-border bg-card p-8 shadow-sm md:p-12">
+    <main className={`min-h-screen bg-background ${isMobile ? 'pb-8' : 'pb-28'}`}>
+      <div className={`relative mx-auto max-w-2xl ${isMobile ? 'px-0 py-0' : 'px-4 py-16 sm:px-6 sm:py-24'}`}>
+        <article className={isMobile ? 'bg-card p-5' : 'rounded-lg border border-border bg-card p-8 shadow-sm md:p-12'}>
 
           {/* Header */}
-          <header className="mb-8 flex flex-col items-center gap-3 text-center">
+          <header className={`${isMobile ? 'mb-6' : 'mb-8'} flex flex-col items-center gap-3 text-center`}>
             <ShieldIcon />
             <p className="text-sm uppercase tracking-widest text-green-600 font-medium">
               VitalCV Trust Network
             </p>
           </header>
 
-          <div className="mb-8 h-px bg-border" />
+          <div className={`${isMobile ? 'mb-6' : 'mb-8'} h-px bg-border`} />
 
           {/* ── NPI MODE ──────────────────────────── */}
           {profile.mode === 'npi' && (
             <>
-              <section className="mb-10 text-center">
+              <section className="mb-8 text-center">
                 <h1 className="text-2xl font-bold text-foreground md:text-3xl">
                   NPI <span className="font-mono text-green-600">{profile.npi}</span>
                 </h1>
@@ -694,26 +615,36 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 </p>
               </section>
 
-              <section className="mb-10 flex justify-center">
-                <ClearedBadge status={profile.status} />
-              </section>
-
-              <section className="mb-8">
+              <section className="mb-6">
                 <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Connected Sources
                 </p>
                 <CredentialPills creds={profile.activeCredentials} />
               </section>
 
+              <section className="mb-8">
+                <LimitationsCard missing={(profile as any).decision?.missing || []} />
+                <ReuseSignalBadge npi={profile.npi} />
+              </section>
+
               <div className="mb-8 h-px bg-border" />
 
               <section className="mb-8">
-                <TrustBandCard trustBand={profile.trustBand} readinessScore={profile.readinessScore} />
+                <EmployerReviewActions 
+                  npi={profile.npi}
+                  nbaPayload={omegaState?.nextBestAction || null}
+                  sourceCoverage={omegaState?.recognition?.sourceCoverage || null}
+                />
               </section>
 
-              <section className="mb-8">
-                <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
-              </section>
+              {!isMobile && (
+                <>
+                  <div className="mb-8 h-px bg-border" />
+                  <section className="mb-8">
+                    <EventTimeline events={profile.events} lastAnchored={profile.lastAnchored} />
+                  </section>
+                </>
+              )}
 
               {profile.readiness.evaluated && (
                 <section className="mb-8 rounded-lg border border-border bg-card px-5 py-4">
@@ -775,7 +706,10 @@ export default async function PublicTrustProfilePage({ params }: Props) {
               </section>
 
               <section className="mb-8 flex justify-center">
+                <div className="flex items-center justify-center gap-4">
+                <CopyLinkButton />
                 <ApplyWithVitalCV npi={profile.npi} label="Apply with VitalCV" />
+              </div>
               </section>
 
               <footer className="text-center">
@@ -803,18 +737,20 @@ export default async function PublicTrustProfilePage({ params }: Props) {
                 <p className="mt-2 text-muted-foreground">{profile.specialty}</p>
               </section>
 
-              <section className="mb-10 flex justify-center">
-                <CrsRing score={profile.crsScore} band={profile.crsBand} />
+              
+              <section className="mb-10">
+                <LimitationsCard missing={(profile as any).decision?.missing || []} />
               </section>
 
+
               <section className="mb-10 flex justify-center">
-                <TrustBadges l3Status={profile.l3Status} />
+                
               </section>
 
               <div className="mb-8 h-px bg-border" />
 
               <section className="mb-8">
-                <AuditHashes hashes={profile.publicAuditHashes} />
+                
               </section>
 
               <footer className="text-center">
@@ -831,13 +767,6 @@ export default async function PublicTrustProfilePage({ params }: Props) {
       </div>
 
       {/* Sticky CTA — mode-aware */}
-      {profile.mode === 'npi' && (
-        <AcceptStartCta npi={profile.npi} cleared={profile.status === 'CLEARED'} />
-      )}
-      {profile.mode === 'slug' && (
-        <SlugEmployerHook slug={profile.slug} name={profile.name} />
-      )}
-      
       <EmployerTracker 
         npi={profile.mode === 'npi' ? profile.npi : undefined} 
         slug={profile.mode === 'slug' ? profile.slug : undefined} 

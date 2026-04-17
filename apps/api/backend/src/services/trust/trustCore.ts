@@ -3,10 +3,12 @@ import { SOURCE_GOVERNANCE } from '../identity/sourceGovernance';
 import {
   coverageSatisfiesDecisionGradeTruth,
   createCanonicalSourceCoverage,
+  deriveReadinessState,
   findPriorityCanonicalSourceCoverage,
   resolveCanonicalSourceCoverageState,
   type CanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
+  type ReadinessState,
 } from '@vitalcv/trust-state';
 
 export type SourceCoverageState = CanonicalSourceCoverageState;
@@ -30,6 +32,7 @@ export interface TrustDimensionAssessment {
 
 export interface DeterministicTrustReadiness {
   overallStatus: 'CLEAR_TO_START' | 'PENDING_VERIFICATION' | 'MISSING_CREDENTIALS' | 'BLOCKED';
+  readinessState: ReadinessState;
   readinessScore: number;
   readiness_score: number;
   blockers: string[];
@@ -279,8 +282,11 @@ export function computeDeterministicTrustReadiness(input: {
     gaps,
   }).map((action) => action.title);
 
+  const readinessState = deriveReadinessState(sourceCoverage);
+
   return {
     overallStatus,
+    readinessState,
     readinessScore,
     readiness_score: readinessScore,
     blockers: Array.from(new Set(blockers)),

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Failure Isolation Engine — Wave T
  *

@@ -24,7 +24,7 @@ const stateConfig = {
     bg: 'bg-emerald-400/10',
     border: 'border-emerald-500/20',
     icon: CheckCircle2,
-    label: 'READY',
+    label: 'DECISION_GRADE',
   },
   conditionally_ready: {
     color: 'text-yellow-400',

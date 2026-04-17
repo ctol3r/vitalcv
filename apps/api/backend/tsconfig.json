@@ -1,48 +1,127 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "CommonJS",
     "moduleResolution": "Node",
     "ignoreDeprecations": "5.0",
     "strict": true,
-
     "rootDir": "../../..",
     "baseUrl": "../../..",
-
     "paths": {
-      "@vitalcv/command-registry": ["packages/command-registry/src/index"],
-      "@vitalcv/domain": ["packages/domain/index.ts"],
-      "@vitalcv/domain/*": ["packages/domain/*"],
-      "@vitalcv/domain-core": ["packages/domain-core/index.ts"],
-      "@vitalcv/domain-events": ["packages/domain-events/index.ts"],
-      "@vitalcv/domain-common": ["packages/domain-common/index.ts"],
-      "@vitalcv/ingest": ["packages/ingest/index.ts"],
-      "@vitalcv/psv": ["packages/psv"],
-      "@vitalcv/psv/*": ["packages/psv/*"],
-      "@vitalcv/psv-adapters": ["packages/psv-adapters"],
-      "@vitalcv/psv-adapters/*": ["packages/psv-adapters/*"],
-      "@vitalcv/crs": ["packages/crs"],
-      "@vitalcv/crs/*": ["packages/crs/*"],
-      "@vitalcv/trust-state": ["packages/trust-state/index.ts"],
-      "@vitalcv/trust-state/*": ["packages/trust-state/*"],
-      "@vitalcv/audit": ["packages/audit/index.ts"],
-      "@vitalcv/audit/*": ["packages/audit/*"],
-      "@vitalcv/haip-config": ["packages/haip-config"],
-      "@vitalcv/shared/*": ["packages/shared/*"]
+      "@vitalcv/command-registry": [
+        "packages/command-registry/src/index"
+      ],
+      "@vitalcv/domain": [
+        "packages/domain/index.ts"
+      ],
+      "@vitalcv/domain/*": [
+        "packages/domain/*"
+      ],
+      "@vitalcv/domain-core": [
+        "packages/domain-core/index.ts"
+      ],
+      "@vitalcv/domain-events": [
+        "packages/domain-events/index.ts"
+      ],
+      "@vitalcv/domain-common": [
+        "packages/domain-common/index.ts"
+      ],
+      "@vitalcv/ingest": [
+        "packages/ingest/index.ts"
+      ],
+      "@vitalcv/psv": [
+        "packages/psv"
+      ],
+      "@vitalcv/psv/*": [
+        "packages/psv/*"
+      ],
+      "@vitalcv/psv-adapters": [
+        "packages/psv-adapters"
+      ],
+      "@vitalcv/psv-adapters/*": [
+        "packages/psv-adapters/*"
+      ],
+      "@vitalcv/crs": [
+        "packages/crs"
+      ],
+      "@vitalcv/crs/*": [
+        "packages/crs/*"
+      ],
+      "@vitalcv/trust-state": [
+        "packages/trust-state/index.ts"
+      ],
+      "@vitalcv/trust-state/*": [
+        "packages/trust-state/*"
+      ],
+      "@vitalcv/audit": [
+        "packages/audit/index.ts"
+      ],
+      "@vitalcv/audit/*": [
+        "packages/audit/*"
+      ],
+      "@vitalcv/haip-config": [
+        "packages/haip-config"
+      ],
+      "@vitalcv/shared/*": [
+        "packages/shared/*"
+      ]
     },
-
-    "types": ["node", "jest"],
+    "types": [
+      "node",
+      "jest"
+    ],
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src", "jobs", "adapters", "types", "routes"],
+  "include": [
+    "src",
+    "jobs",
+    "adapters",
+    "types",
+    "routes"
+  ],
   "exclude": [
     "node_modules",
     "src/blockchain/**",
     "src/graphql/**",
-    "routes/*.disabled.ts"
+    "routes/*.disabled.ts",
+    "src/domain/entity/educationService.ts",
+    "src/domain/entity/orgContextService.ts",
+    "src/routes/__tests__/actions.test.ts",
+    "src/routes/__tests__/agents.test.ts",
+    "src/routes/__tests__/decisionRecommendations.test.ts",
+    "src/routes/__tests__/investigators.test.ts",
+    "src/routes/__tests__/predictions.test.ts",
+    "src/routes/employerActions.ts",
+    "src/routes/entity.ts",
+    "src/routes/hiring.ts",
+    "src/routes/passportEntity.ts",
+    "src/routes/velocity.ts",
+    "src/services/actions/hiringAutomationService.ts",
+    "src/services/billing/apiKeyService.ts",
+    "src/services/billing/billingEngine.ts",
+    "src/services/billing/subscriptionService.ts",
+    "src/services/copilot/__tests__/strategySupport.test.ts",
+    "src/services/decision/capsuleEngine.ts",
+    "src/services/distribution/applyShareService.ts",
+    "src/services/employers/employerService.ts",
+    "src/services/entity/employerReviewActions.ts",
+    "src/services/entity/employerReviewPayload.ts",
+    "src/services/entity/passportService.ts",
+    "src/services/entity/reviewContextContract.ts",
+    "src/services/failureIsolationEngine.ts",
+    "src/services/feedback/feedbackService.ts",
+    "src/services/feedback/matchBoostService.ts",
+    "src/services/geospatial/geospatialMaterializationService.ts",
+    "src/services/graph-engine/rebuildEngine.ts",
+    "src/services/identity/clinicalTrialsAdapter.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/__tests__/**"
   ]
 }

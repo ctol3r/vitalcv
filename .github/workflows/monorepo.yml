@@ -77,7 +77,9 @@ jobs:
         run: pnpm turbo run lint
 
       - name: Run tests (non-backend packages)
-        run: pnpm turbo run test --filter=!zk-sample --filter=!contracts --filter=!chai-vc-platform-backend --filter=!@vitalcv/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
+        run: pnpm turbo run test --filter=!@vitalcv/api
 
   deploy-api:
     name: Deploy API

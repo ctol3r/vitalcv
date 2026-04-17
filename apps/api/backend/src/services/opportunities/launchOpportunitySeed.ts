@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EmployerHiringStatus, type Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 

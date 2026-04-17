@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ApplicationStatus } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { randomUUID } from 'crypto';

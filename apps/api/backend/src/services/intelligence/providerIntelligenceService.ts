@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';

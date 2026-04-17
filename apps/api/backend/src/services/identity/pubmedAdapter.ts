@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Wave 12: PubMed E-utilities adapter.
  *

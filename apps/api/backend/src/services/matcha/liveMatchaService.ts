@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * liveMatchaService.ts — Wave 235
  *

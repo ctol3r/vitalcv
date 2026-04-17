@@ -155,7 +155,7 @@ export function MobileReadinessCard({
         </p>
         <Link
           href="/onboarding"
-          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
+          className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400 active:scale-[0.98]"
         >
           Finish onboarding
           <ArrowRight className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function MobileReadinessCard({
           type="button"
           onClick={() => void loadTrustState()}
           disabled={loading}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-950/70 text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-zinc-700 bg-zinc-950/70 text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh readiness"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -195,14 +195,14 @@ export function MobileReadinessCard({
       </div>
 
       {loading ? (
-        <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+        <div className="mt-5 rounded-none border border-zinc-800 bg-zinc-950/70 p-4">
           <div className="flex items-center gap-3 text-sm text-zinc-300">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
             Computing live readiness...
           </div>
         </div>
       ) : error ? (
-        <div className="mt-5 space-y-4 rounded-3xl border border-amber-500/20 bg-amber-500/10 p-4">
+        <div className="mt-5 space-y-4 rounded-none border border-amber-500/20 bg-amber-500/10 p-4">
           <div className="flex items-start gap-3 text-amber-100">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
@@ -212,7 +212,7 @@ export function MobileReadinessCard({
           </div>
           <Link
             href="/holder/readiness"
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-950/80 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 active:scale-[0.98]"
+            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none border border-zinc-700 bg-zinc-950/80 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 active:scale-[0.98]"
           >
             Open readiness page
             <ArrowRight className="h-4 w-4" />
@@ -220,42 +220,45 @@ export function MobileReadinessCard({
         </div>
       ) : trustState ? (
         <>
-          <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+          <div className="mt-5 rounded-none border border-zinc-800 bg-zinc-950/70 p-4 relative overflow-hidden  bg-[var(--vt-surface)] border-[var(--vt-border)] ">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  Live trust state
+                  Readiness Index
                 </p>
-                <p className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                  {trustState.readiness_score}
-                  <span className="ml-1 text-lg text-zinc-500">/100</span>
-                </p>
-                <p className="mt-2 text-sm leading-6 text-zinc-200">
-                  {trustState.readiness_status}
-                </p>
+                <div className="flex items-end gap-3 mt-3">
+                  <div className="relative w-14 h-14">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path className="text-white/10" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path className="text-emerald-400" strokeDasharray={`${Math.max(6, Math.min(100, trustState.readiness_score))}, 100`} strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-sm font-bold tabular-nums text-white">{trustState.readiness_score}</span>
+                    </div>
+                  </div>
+                  <div className="pb-1">
+                    <p className="text-sm font-semibold tracking-tight text-white">
+                      {trustState.readiness_status}
+                    </p>
+                  </div>
+                </div>
               </div>
               <span className={cn(
-                'rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]',
+                'rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] flex items-center gap-1',
                 LEVEL_STYLES[trustState.readiness_level],
               )}>
+                <ShieldCheck className="w-3 h-3" />
                 {trustState.readiness_level}
               </span>
             </div>
 
-            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-800">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all duration-700"
-                style={{ width: `${Math.max(6, Math.min(100, trustState.readiness_score))}%` }}
-              />
-            </div>
-
             <div className="mt-4 flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-              Last updated {formatUpdatedAt(trustState.computed_at)}
+              Source-confirmed {formatUpdatedAt(trustState.computed_at)}
             </div>
           </div>
 
-          <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+          <div className="mt-4 rounded-none border border-zinc-800 bg-zinc-950/70 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
               Pending items
             </p>
@@ -276,7 +279,7 @@ export function MobileReadinessCard({
           </div>
 
           {nextAction ? (
-            <div className="mt-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <div className="mt-4 rounded-none border border-emerald-500/20 bg-emerald-500/10 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
                 Next best action
               </p>
@@ -284,7 +287,7 @@ export function MobileReadinessCard({
               <p className="mt-1 text-sm leading-6 text-emerald-50/80">{nextAction.detail}</p>
               <Link
                 href={nextAction.href}
-                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
+                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none bg-white px-4 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
               >
                 {nextAction.label}
                 <ArrowRight className="h-4 w-4" />

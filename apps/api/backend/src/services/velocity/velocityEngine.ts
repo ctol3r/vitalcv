@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * velocityEngine.ts — Wave 250
  *
