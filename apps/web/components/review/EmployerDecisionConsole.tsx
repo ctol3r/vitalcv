@@ -12,6 +12,7 @@ import {
   StatusBadge, PostureBadge, MetricBadge, ProofTierBadge,
 } from '@/components/proof/TrustLabel';
 import { LiveStateLog } from '@/components/proof/LiveStateLog';
+import { PilotConversionPanel } from '@/components/review/PilotConversionPanel';
 import {
   STATUS_EXPLANATIONS, KNOWN_LANES,
   type SourceStatus, type ReadinessPosture, type LaneSnapshot, type StateLogEntry,
@@ -269,6 +270,18 @@ export function EmployerDecisionConsole({
                 <LiveStateLog entries={actionLog} maxHeight={120} autoScroll />
               </div>
             )}
+
+            {/* Conversion panel */}
+            <PilotConversionPanel
+              entityId={entityId}
+              npi={npi}
+              posture={posture}
+              proofTier={proofTier}
+              score={score}
+              decisionState={cfg.label}
+              blockerCount={blockers.length}
+              lanes={lanes}
+            />
 
             {/* Proof tier context */}
             <div className="mt-auto pt-4 border-t border-slate-200 space-y-1">
