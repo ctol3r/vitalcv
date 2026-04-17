@@ -1,5 +1,14 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import {
+  validateEventChain,
+  validateAllMetrics,
+  generateProofSnapshot,
+  enforceLimitations,
+  detectAnomalies,
+  labelMetric,
+  type ChainEvent,
+} from '../../../../../packages/trust-contract/src/proof-integrity';
 
 // ─── Pilot Registry ───────────────────────────────────────────────
 // Every entry here traces to real events.
@@ -85,12 +94,38 @@ export default function PilotProofPage({
   const readinessToActionSec = Math.round(e.isvReadinessToActionMs / 1000);
   const readinessToActionMin = (e.isvReadinessToActionMs / 60000).toFixed(1);
 
+  // ── Integrity validation ──────────────────────────────────────────
+  const chainEvents: ChainEvent[] = e.isvEvents.map(ev => ({
+    eventType: ev.event as ChainEvent['eventType'],
+    timestamp: e.generatedAt ? new Date(e.generatedAt).getTime() + ev.deltaSec * 1000 : ev.deltaSec * 1000,
+    loopId: e.loopId,
+  }));
+
+  const chainValidation  = validateEventChain(chainEvents);
+  const metricResults    = validateAllMetrics(chainEvents);
+  const snapshot         = generateProofSnapshot(pilot.slug, chainEvents, e.limitations);
+  const limitationCheck  = enforceLimitations(e.limitations);
+  const anomalyReport    = detectAnomalies(chainEvents, metricResults);
+
+  // Time-to-action metric
+  const ttaResult = metricResults.find(r => r.metricName === 'time_to_first_action');
+  const ttaLabel  = ttaResult ? labelMetric('time_to_first_action', ttaResult) : 'Unverified';
+
   return (
     <div className="min-h-screen bg-white">
       {/* Top bar */}
       <div className="bg-slate-900 text-slate-400 text-xs px-6 py-2 flex items-center justify-between">
         <Link href="/" className="text-slate-400 hover:text-white transition-colors">← VitalCV</Link>
-        <span className="font-mono">Pilot Evidence Record · {e.loopId}</span>
+        <div className="flex items-center gap-3">
+            <span className={`font-bold uppercase tracking-widest ${
+              snapshot.validationStatus === 'valid' ? 'text-green-400' :
+              snapshot.validationStatus === 'warning' ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {snapshot.validationStatus === 'valid' ? '✔ Integrity Valid' :
+               snapshot.validationStatus === 'warning' ? '⚠ Warnings' : '✗ Invalid'}
+            </span>
+            <span className="font-mono text-slate-500">v{snapshot.version} · {snapshot.eventChainHash}</span>
+          </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 space-y-12">
@@ -114,12 +149,30 @@ export default function PilotProofPage({
 
         {/* Key Metric */}
         <section className="bg-slate-900 text-white rounded-2xl p-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Key Metric</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Key Metric</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-green-900 text-green-400 px-2 py-0.5 rounded">
+                [{ttaLabel}]
+              </span>
+              <span className="text-[10px] text-slate-500">
+                Based on {chainEvents.length} real events
+              </span>
+            </div>
+          </div>
           <div className="flex items-end gap-3 mb-2">
             <span className="text-6xl font-black text-green-400">{readinessToActionMin}</span>
             <span className="text-xl text-slate-300 mb-2">minutes</span>
           </div>
           <p className="text-slate-300 text-sm">From readiness view to employer head-start action</p>
+          {anomalyReport.hasAnomalies && (
+            <div className="mt-3 bg-yellow-900/30 border border-yellow-600/30 rounded-lg p-3">
+              <p className="text-xs font-bold text-yellow-400 mb-1">⚠ Anomalies detected</p>
+              {anomalyReport.anomalies.map((a, i) => (
+                <p key={i} className="text-xs text-yellow-300">{a.description}</p>
+              ))}
+            </div>
+          )}
           <p className="text-slate-500 text-xs mt-3">
             Compared to self-reported 14-day manual baseline (identity step only) — estimated, not controlled
           </p>
@@ -212,9 +265,36 @@ export default function PilotProofPage({
             Every metric on this page traces to a system event. The event chain above
             maps directly to AuditEvent rows in the VitalCV database, keyed by Loop ID.
           </p>
-          <code className="text-xs font-mono bg-white border border-slate-200 rounded px-3 py-1.5 block text-slate-600">
+          <code className="text-xs font-mono bg-white border border-slate-200 rounded px-3 py-1.5 block text-slate-600 mb-3">
             GET /api/isv-events/{e.loopId}
           </code>
+          {/* Integrity snapshot */}
+          <div className="border border-slate-200 rounded-lg p-3 bg-white text-xs font-mono text-slate-500 space-y-1">
+            <div className="flex justify-between">
+              <span>snapshot.version</span><span>{snapshot.version}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>event_chain_hash</span><span className="text-slate-700">{snapshot.eventChainHash}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>chain_valid</span>
+              <span className={chainValidation.valid ? 'text-green-600' : 'text-red-600'}>
+                {chainValidation.valid ? 'true' : 'false'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>limitations_enforced</span>
+              <span className={limitationCheck.valid ? 'text-green-600' : 'text-yellow-600'}>
+                {limitationCheck.valid ? 'true' : `missing: ${limitationCheck.missing.join(', ')}`}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>anomalies</span>
+              <span className={anomalyReport.hasAnomalies ? 'text-yellow-600' : 'text-green-600'}>
+                {anomalyReport.anomalies.length}
+              </span>
+            </div>
+          </div>
         </section>
 
         {/* CTA */}
