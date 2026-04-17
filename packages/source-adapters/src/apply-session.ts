@@ -2,7 +2,7 @@
 // Turns a static Proof Pack Manifest into an employer action loop.
 // The employer reviews the immutable snapshot and takes a compliance action.
 
-import { ProofAvailability, ReadinessPosture } from '../../trust-contract/dist/index';
+import { ProofAvailability, ReadinessPosture } from '../../trust-contract/src/index';
 import { AuditEventType, createAuditEvent, type AuditEvent } from './audit-events';
 import type { ProofManifest } from './manifest-engine';
 

@@ -3,7 +3,7 @@
 // Compares the last known state (e.g. from the most recent Manifest)
 // against a fresh SourceCheckResult.
 
-import { SourceStatus } from '../../trust-contract/dist/index';
+import { SourceStatus } from '../../trust-contract/src/index';
 import type { SourceCheckResult } from './types';
 import type { CoverageLane } from './manifest-engine';
 import { AuditEventType, createAuditEvent, type AuditEvent } from './audit-events';

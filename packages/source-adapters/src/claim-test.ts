@@ -1,7 +1,7 @@
 // ── Claim Engine Tests ───────────────────────────────────────────
 
 import type { SourceCheckResult } from './types';
-import { SourceStatus } from '../../trust-contract/dist/index';
+import { SourceStatus } from '../../trust-contract/src/index';
 import { extractClaims, hashClaims, type Claim, type ClaimBatch } from './claim-engine';
 
 let passed = 0;

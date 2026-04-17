@@ -2,7 +2,7 @@
 // Converts the failure matrix into enforced system guarantees.
 // Every seam has a guard. Every violation fails CLOSED.
 
-import { SourceStatus, ReadinessPosture } from '../../trust-contract/dist/index';
+import { SourceStatus, ReadinessPosture } from '../../trust-contract/src/index';
 
 // ── Enforcement Error ────────────────────────────────────────────
 

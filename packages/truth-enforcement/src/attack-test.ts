@@ -1,10 +1,10 @@
 // ── Live Failure Attack Scenarios ─────────────────────────────────
 // Simulates real-world attacks against the enforcement layer.
 
-import { SourceStatus, ReadinessPosture } from '../../trust-contract/dist/index';
-import { IssuerType, type NetworkIssuer } from '../../trust-contract/dist/multi-issuer';
-import { verifyNetworkClaim, type SignedClaimPayload } from '../../trust-contract/dist/multi-issuer';
-import { arbitrateConflict, type ClaimConflict, type ConflictingClaim } from '../../trust-contract/dist/arbitration-engine';
+import { SourceStatus, ReadinessPosture } from '../../trust-contract/src/index';
+import { IssuerType, type NetworkIssuer } from '../../trust-contract/src/multi-issuer';
+import { verifyNetworkClaim, type SignedClaimPayload } from '../../trust-contract/src/multi-issuer';
+import { arbitrateConflict, type ClaimConflict, type ConflictingClaim } from '../../trust-contract/src/arbitration-engine';
 import {
   guardAdapterResult,
   guardReadinessTransition,

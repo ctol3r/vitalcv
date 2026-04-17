@@ -1,6 +1,6 @@
 // ── Apply-with-VCV Flow Tests ────────────────────────────────────
 
-import { ProofAvailability, ReadinessPosture } from '../../trust-contract/dist/index';
+import { ProofAvailability, ReadinessPosture } from '../../trust-contract/src/index';
 import { ApplySessionStatus, ApplyActionType, createApplySession, openApplySession, executeApplyAction } from './apply-session';
 import { AuditEventType } from './audit-events';
 import type { ProofManifest } from './manifest-engine';
