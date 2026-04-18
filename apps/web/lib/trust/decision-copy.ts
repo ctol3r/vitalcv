@@ -1,4 +1,8 @@
-import type { ReadinessStatus } from '@/lib/trust/passport-contract';
+import type {
+  DecisionPostureStatus,
+  ReadinessStatus,
+} from '@/lib/trust/passport-contract';
+import { resolveBlockerOwnership } from '@/lib/trust/action-owner';
 
 export type EmployerActionCopyKey = 'accept' | 'refresh' | 'review' | 'pause' | 'reject';
 export type PublicDecisionStatus =
@@ -7,10 +11,31 @@ export type PublicDecisionStatus =
   | 'DO_NOT_PROCEED'
   | 'INSUFFICIENT_DATA';
 export type ActionTimestampStyle = 'short' | 'full' | 'date';
+type DecisionUiStatus = ReadinessStatus | DecisionPostureStatus;
+export type ProofTier = 'draft' | 'partial' | 'decision_grade';
 
 export const DECISION_RATIONALE_HEADING = 'Why this result';
 export const DECISION_NEXT_STEP_HEADING = 'What to do next';
 export const DECISION_LIMITATION_HEADING = 'Still needs verification';
+
+/**
+ * Owner-attributed decision next-step. When a specific top blocker is
+ * known, returns the owner-prefixed line from the actor-ownership
+ * contract so the reviewer sees whose move it is before clicking.
+ * Falls back to the generic per-status copy when no blocker is named.
+ */
+export function getOwnerAttributedNextStep(
+  status: DecisionUiStatus,
+  topBlocker: string | null,
+): string {
+  if (topBlocker) {
+    const ownership = resolveBlockerOwnership(topBlocker);
+    // Use owner prefix + short action label so the reviewer reads a
+    // complete "whose move + what to do" line in one phrase.
+    return `${ownership.ownerPrefix} — ${ownership.actionLabel.toLowerCase()}.`;
+  }
+  return getDecisionNextStep(status);
+}
 
 export function withFallbackCopy(
   value: string | null | undefined,
@@ -24,10 +49,27 @@ export function withFallbackCopy(
   return trimmed.length > 0 ? trimmed : fallback;
 }
 
-export function getEmployerActionLabel(action: EmployerActionCopyKey): string {
+export function getProofTierLabel(tier: ProofTier): string {
+  switch (tier) {
+    case 'draft':
+      return 'Draft snapshot';
+    case 'partial':
+      return 'Partial proof pack';
+    case 'decision_grade':
+    default:
+      return 'Decision-grade proof pack';
+  }
+}
+
+export function getEmployerActionLabel(
+  action: EmployerActionCopyKey,
+  options?: { proofTier?: ProofTier },
+): string {
   switch (action) {
     case 'accept':
-      return 'Accept as head start';
+      return options?.proofTier && options.proofTier !== 'decision_grade'
+        ? 'Accept partial head start'
+        : 'Accept as head start';
     case 'refresh':
       return 'Request updated data';
     case 'review':
@@ -41,52 +83,64 @@ export function getEmployerActionLabel(action: EmployerActionCopyKey): string {
   }
 }
 
-export function getDecisionHeadline(status: ReadinessStatus): string {
+export function getDecisionHeadline(
+  status: DecisionUiStatus,
+  options?: { proofTier?: ProofTier },
+): string {
   switch (status) {
     case 'READY':
-      return 'All required checks are in place.';
+      return 'Decision-grade checks are attached for the covered lanes.';
+    case 'REVIEWABLE':
     case 'PARTIAL':
-      return 'Some checks still need review.';
+      return options?.proofTier === 'draft'
+        ? 'Checked proof is not attached yet.'
+        : 'Covered lanes are checked, but this review remains partial.';
     case 'BLOCKED':
     default:
-      return 'A blocker still needs attention before you proceed.';
+      return 'A blocker is attached to this review.';
   }
 }
 
-export function getDecisionNextStep(status: ReadinessStatus): string {
+export function getDecisionNextStep(
+  status: DecisionUiStatus,
+  options?: { proofTier?: ProofTier },
+): string {
   switch (status) {
     case 'READY':
-      return 'Accept as head start.';
+      return 'Accept as head start for the covered lanes, or continue review if your local policy requires more checks.';
+    case 'REVIEWABLE':
     case 'PARTIAL':
-      return 'Request updated data or flag for review.';
+      return options?.proofTier === 'draft'
+        ? 'Request updated data or wait for checked proof before you rely on this review.'
+        : 'Use this only as a partial head start after you review the remaining gaps.';
     case 'BLOCKED':
     default:
-      return 'Flag for review or request updated data.';
+      return 'Resolve the blocker owner shown below or route this profile for manual review.';
   }
 }
 
 export function getPublicDecisionHeadline(status: PublicDecisionStatus): string {
   switch (status) {
     case 'PROCEED':
-      return 'All required checks are in place.';
+      return 'Decision-grade checks are attached for the covered lanes.';
     case 'PROCEED_WITH_CAUTION':
-      return 'Some checks still need review before you rely on this result.';
+      return 'This snapshot is partial. More verification is still needed before you rely on it.';
     case 'DO_NOT_PROCEED':
-      return 'A blocker still needs attention before you proceed.';
+      return 'A blocker is attached to this snapshot.';
     case 'INSUFFICIENT_DATA':
     default:
-      return 'We do not have enough checked information yet.';
+      return 'Checked proof is not attached yet.';
   }
 }
 
 export function getPublicDecisionNextStep(status: PublicDecisionStatus): string {
   switch (status) {
     case 'PROCEED':
-      return 'Accept as head start if this profile matches your review.';
+      return 'Move this profile into employer review and confirm the scope before you rely on it.';
     case 'PROCEED_WITH_CAUTION':
-      return 'Request updated data or flag for review before relying on this result.';
+      return 'Continue review with the partial proof pack and resolve the remaining gaps before relying on it.';
     case 'DO_NOT_PROCEED':
-      return 'Do not proceed until the blocker is resolved.';
+      return 'Do not proceed until the blocker owner resolves the attached issue.';
     case 'INSUFFICIENT_DATA':
     default:
       return 'Request updated data before relying on this result.';

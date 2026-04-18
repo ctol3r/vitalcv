@@ -6,9 +6,12 @@
  * no new readiness computation, no new source states.
  */
 
+import React from 'react';
 import { AlertCircle, ArrowRight, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { TrustClaim, type TrustClaimKind } from '@/components/trust-state/TrustClaim';
+
+void React;
 
 type DemoRow = {
   label: string;
@@ -22,14 +25,16 @@ const DEMO_ROWS: ReadonlyArray<DemoRow> = [
   { label: 'OIG / LEIE', kind: 'verified' },
   { label: 'CMS PECOS', kind: 'verified' },
   {
-    label: 'State Board',
+    label: 'State medical board',
     kind: 'gated',
-    limitation: 'Institutional access required',
+    limitation:
+      'Access required — institutional gate. Your employer or institution covers state-board verification.',
   },
 ];
 
-const DEMO_BLOCKER = 'State board access required before decision-grade readiness';
-const DEMO_ACTION = 'Authorize state board access';
+const DEMO_BLOCKER =
+  'State-board verification is access-required. Your employer or institution covers this lane; VitalCV does not claim it as decision-grade.';
+const DEMO_ACTION = 'Check your real readiness';
 
 interface PassportPreviewCardProps {
   demo?: boolean;
@@ -68,11 +73,9 @@ export function PassportPreviewCard({ demo = false }: PassportPreviewCardProps) 
       </div>
 
       <div className="rounded-lg border border-border bg-background p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
-          <span className="text-xs font-semibold text-trust-green">READY</span>
-        </div>
-        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">82/100</p>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">Readiness</span>
+        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">— / 100</p>
+        <p className="mt-1 text-xs text-muted-foreground">Score available after verification</p>
       </div>
 
       {/* Blocker — explicit, unambiguous, labelled. Not presented as a warning

@@ -7,7 +7,7 @@
  *
  * Layout (spec-exact):
  *   Header         — VitalCV + "Employer review"
- *   DecisionCard   — Name, specialty, READY/PARTIAL/BLOCKED, start estimate, confidence
+ *   DecisionCard   — Name, specialty, READY/REVIEWABLE/BLOCKED, start estimate, confidence
  *   ReadinessBreak — Identity / Authority / Standing / Enrollment rows
  *   ProofPanel     — accordion: each credential with source + timestamp + status
  *   ActionPanel    — Accept / Request missing / Save
@@ -40,9 +40,20 @@ import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstima
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
-import type { PassportData } from '@/lib/trust/passport-contract';
+import type {
+  DecisionPostureStatus,
+  PassportData,
+} from '@/lib/trust/passport-contract';
+import {
+  resolveEmployerActionConsequence,
+  resolveProofTier,
+  type ProofTier as EmployerProofTier,
+} from '@/lib/trust/employer-action-consequence';
 import { readinessLevelLabel } from '@/lib/trust/status-language';
-import { hasDecisionGradeSignals } from '@/lib/trust/ui-truth-integrity';
+import {
+  getScoreState,
+  hasDecisionGradeSignals,
+} from '@/lib/trust/ui-truth-integrity';
 import { EmployerAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import {
@@ -83,6 +94,7 @@ import {
   resolvePassportTruthSet,
   type PassportTruthListItem,
 } from '@/lib/trust/passport-review-truth';
+import { trackPilotFunnelEvent } from '@/lib/pilot-ops/funnel';
 import {
   buildPassportEntityHref,
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
@@ -99,6 +111,7 @@ import {
   getDecisionNextStep,
   getEmployerActionLabel,
   getNoBlockersMessage,
+  getProofTierLabel,
   getReviewSummaryMessage,
   withFallbackCopy,
 } from '@/lib/trust/decision-copy';
@@ -114,6 +127,12 @@ import {
   resolveAuthorityStatusLead,
   resolveAuthorityTitle,
 } from '@/lib/trust/passport-truth';
+import {
+  describeBlockerOwnershipForEmployer,
+} from '@/lib/trust/action-owner';
+import {
+  resolveRecoveryPath,
+} from '@/lib/trust/recovery-path';
 import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 import type { CanonicalTruthSet } from '@vitalcv/trust-state';
 
@@ -189,22 +208,24 @@ function buildTruthStatusLabelRow(input: {
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Review required', 'requires verification']),
+        note: joinNoteParts(['Review required', 'reviewer follow-up']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
     case 'access_required':
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Access required', 'requires verification']),
-        explanation: input.truth.coverage.reason || input.missingExplanation,
+        note: joinNoteParts(['Access required', 'institution-owned lane']),
+        explanation: input.truth.coverage.reason
+          || 'Institutional access is still required before this lane can become decision-grade proof.',
       };
     case 'unavailable':
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Unavailable', 'requires verification']),
-        explanation: input.truth.coverage.reason || input.missingExplanation,
+        note: joinNoteParts(['Source unavailable — retry', 'VitalCV retrying']),
+        explanation: input.truth.coverage.reason
+          || 'VitalCV could not reach this source this time and will retry automatically.',
       };
     case 'preview_only':
       return {
@@ -217,7 +238,7 @@ function buildTruthStatusLabelRow(input: {
       return {
         status,
         label: input.label,
-        note: joinNoteParts(['Stale', 'requires verification']),
+        note: joinNoteParts(['May be stale', 'refresh recommended']),
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
     case 'pending':
@@ -225,7 +246,7 @@ function buildTruthStatusLabelRow(input: {
       return {
         status: 'pending',
         label: input.label,
-        note: joinNoteParts(['Pending', 'requires verification']),
+        note: 'Not yet verified',
         explanation: input.truth.coverage.reason || input.missingExplanation,
       };
   }
@@ -337,9 +358,10 @@ function buildEligibilityRow(passport: PassportData, status: 'ENROLLED' | 'NOT_F
 
 // ── BinaryDecisionCard ────────────────────────────────────────────────────────
 
-type DecisionPostureStatus = PassportData['readiness']['status'];
-
-function resolveDecisionCardPosture(passport: PassportData): {
+function resolveDecisionCardPosture(
+  passport: PassportData,
+  proofTier: EmployerProofTier,
+): {
   status: DecisionPostureStatus;
   headline: string;
   nextAction: string;
@@ -350,22 +372,46 @@ function resolveDecisionCardPosture(passport: PassportData): {
   if (passport.decisionPosture) {
     const rawStatus = passport.decisionPosture.status;
     const status =
-      rawStatus === 'READY' && !decisionGradeReady ? 'PARTIAL' : rawStatus;
+      rawStatus === 'READY' && !decisionGradeReady ? 'REVIEWABLE' : rawStatus;
     const truthGuardApplied = status !== rawStatus;
 
     return {
       status,
       headline: truthGuardApplied
-        ? getDecisionHeadline(status)
+        ? getDecisionHeadline(status, {
+          proofTier: proofTier === 'decision_grade_proof_pack'
+            ? 'decision_grade'
+            : proofTier === 'partial_proof_pack'
+              ? 'partial'
+              : 'draft',
+        })
         : withFallbackCopy(
           passport.decisionPosture.headline,
-          getDecisionHeadline(status),
+          getDecisionHeadline(status, {
+            proofTier: proofTier === 'decision_grade_proof_pack'
+              ? 'decision_grade'
+              : proofTier === 'partial_proof_pack'
+                ? 'partial'
+                : 'draft',
+          }),
         ),
       nextAction: truthGuardApplied
-        ? 'Decision-grade proof is still missing. Request updated data or continue review before accepting.'
+        ? getDecisionNextStep(status, {
+          proofTier: proofTier === 'decision_grade_proof_pack'
+            ? 'decision_grade'
+            : proofTier === 'partial_proof_pack'
+              ? 'partial'
+              : 'draft',
+        })
         : withFallbackCopy(
           passport.decisionPosture.nextAction,
-          getDecisionNextStep(status),
+          getDecisionNextStep(status, {
+            proofTier: proofTier === 'decision_grade_proof_pack'
+              ? 'decision_grade'
+              : proofTier === 'partial_proof_pack'
+                ? 'partial'
+                : 'draft',
+          }),
         ),
       freshnessLabel: withFallbackCopy(
         passport.decisionPosture.freshness.label,
@@ -375,19 +421,39 @@ function resolveDecisionCardPosture(passport: PassportData): {
   }
 
   const rawStatus = passport.readiness.status;
-  const status =
-    rawStatus === 'READY' && !decisionGradeReady ? 'PARTIAL' : rawStatus;
+  const status: DecisionPostureStatus =
+    rawStatus === 'BLOCKED' ? 'BLOCKED'
+    : rawStatus === 'READY' && decisionGradeReady ? 'READY'
+    : 'REVIEWABLE';
   const truthGuardApplied = status !== rawStatus;
 
   return {
     status,
-    headline: getDecisionHeadline(status),
+    headline: getDecisionHeadline(status, {
+      proofTier: proofTier === 'decision_grade_proof_pack'
+        ? 'decision_grade'
+        : proofTier === 'partial_proof_pack'
+          ? 'partial'
+          : 'draft',
+    }),
     nextAction: truthGuardApplied
-      ? 'Decision-grade proof is still missing. Request updated data or continue review before accepting.'
+      ? getDecisionNextStep(status, {
+        proofTier: proofTier === 'decision_grade_proof_pack'
+          ? 'decision_grade'
+          : proofTier === 'partial_proof_pack'
+            ? 'partial'
+            : 'draft',
+      })
       : ensureSingleActionArray(
         passport.readiness.nextActions,
         buildAllClearReadinessAction(),
-      )[0].detail || getDecisionNextStep(status),
+      )[0].detail || getDecisionNextStep(status, {
+        proofTier: proofTier === 'decision_grade_proof_pack'
+          ? 'decision_grade'
+          : proofTier === 'partial_proof_pack'
+            ? 'partial'
+            : 'draft',
+      }),
     freshnessLabel: passport.trustPosture.freshness.label,
   };
 }
@@ -422,7 +488,6 @@ function BinaryDecisionCard({
   onRouteToReview,
 }: BinaryDecisionCardProps) {
   const { identity, standing } = passport;
-  const decisionPosture = resolveDecisionCardPosture(passport);
   const decisionGradeReady = hasDecisionGradeSignals(passport.readiness.level);
 
   // Active license check
@@ -432,12 +497,12 @@ function BinaryDecisionCard({
 
   const DECISION_COLORS: Record<DecisionPostureStatus, string> = {
     READY:   'border-emerald-500/30 bg-emerald-500/[0.06]',
-    PARTIAL: 'border-amber-500/30 bg-amber-500/[0.05]',
+    REVIEWABLE: 'border-amber-500/30 bg-amber-500/[0.05]',
     BLOCKED: 'border-rose-500/25 bg-rose-500/[0.05]',
   };
   const DECISION_TEXT: Record<DecisionPostureStatus, string> = {
     READY:   'text-emerald-400',
-    PARTIAL: 'text-amber-400',
+    REVIEWABLE: 'text-amber-400',
     BLOCKED: 'text-rose-400',
   };
 
@@ -494,6 +559,20 @@ function BinaryDecisionCard({
           : undefined),
     },
   ];
+  const proofTier = resolveProofTier({
+    hasAnchor: Boolean(passport.entityId),
+    allRequiredLanesResolved: passport.readiness.status === 'READY' && blocked.length === 0,
+    hasUnresolvedBlockers: blocked.length > 0,
+    anyLanePending: bullets.some((bullet) => !bullet.ok && /pending|not yet checked|incomplete/i.test(bullet.reason ?? '')),
+    anyLaneReviewRequired: bullets.some((bullet) => !bullet.ok && /review/i.test(bullet.reason ?? '')),
+    anyLaneAccessRequired: bullets.some((bullet) => !bullet.ok && /access|manual lane/i.test(bullet.reason ?? '')),
+    anyLaneUnavailable: bullets.some((bullet) => !bullet.ok && /unavailable|timed out|not reached/i.test(bullet.reason ?? '')),
+    anyLaneStale: bullets.some((bullet) => /stale|quarterly/i.test(bullet.reason ?? '')),
+    anyLaneNoRecord: bullets.some((bullet) => !bullet.ok && /not found|no record/i.test(bullet.reason ?? '')),
+    hasOpenDriftAlerts,
+  });
+  const blockerDetails = blocked.map((blocker) => describeBlockerOwnershipForEmployer(blocker));
+  const decisionPosture = resolveDecisionCardPosture(passport, proofTier.tier);
 
   return (
     <div className={"border border-[var(--vt-border)] px-6 py-6 " + DECISION_COLORS[decisionPosture.status]}>
@@ -533,9 +612,9 @@ function BinaryDecisionCard({
       </div>
 
       {/* Blockers summary if any */}
-      {blocked.length > 0 && (
+      {blockerDetails.length > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
-          {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
+          {blockerDetails.length} blocker{blockerDetails.length !== 1 ? 's' : ''}: {blockerDetails.slice(0, 3).map((blocker) => blocker.title).join(', ')}{blockerDetails.length > 3 ? '…' : ''}
         </p>
       )}
 
@@ -546,6 +625,38 @@ function BinaryDecisionCard({
           {acceptanceHistorySummary.trustCopy
             ?? 'Saved employer decisions will appear here with their scope.'}
         </p>
+      </div>
+
+      {/* Action row. Proof-tier banner + per-action consequence copy
+          thread the actor-ownership doctrine through the employer
+          review surface: every unresolved item names its owner, every
+          action names what it does / assumes / writes / leaves open.
+          Sourced from lib/trust/employer-action-consequence.ts so the
+          copy stays in lockstep with resolvePassportContinuation on
+          /passport. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className={`mt-4 rounded-2xl border px-4 py-3 ${
+          proofTier.tier === 'decision_grade_proof_pack'
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+            : proofTier.tier === 'partial_proof_pack'
+              ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+              : 'border-rose-500/30 bg-rose-500/10 text-rose-100'
+        }`}
+        data-slot="proof-tier-banner"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
+          Proof tier
+        </p>
+        <p className="mt-1 text-sm font-semibold">{proofTier.label}</p>
+        <p className="mt-1 text-xs leading-relaxed opacity-85">{proofTier.description}</p>
+        {proofTier.acceptBlockedReason && (
+          <p className="mt-2 text-xs leading-relaxed opacity-90">
+            <span className="font-semibold">Accept blocked: </span>
+            {proofTier.acceptBlockedReason}
+          </p>
+        )}
       </div>
 
       {/* Action row */}
@@ -563,9 +674,9 @@ function BinaryDecisionCard({
               <p className="mt-1 text-xs text-foreground/70">{decisionPosture.freshnessLabel}</p>
             </div>
           </div>
-          {blocked.length > 0 && (
+          {blockerDetails.length > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
-              {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
+              {blockerDetails.length} blocker{blockerDetails.length !== 1 ? 's' : ''}: {blockerDetails.slice(0, 3).map((blocker) => blocker.title).join(', ')}{blockerDetails.length > 3 ? '…' : ''}
             </p>
           )}
         </div>
@@ -576,7 +687,7 @@ function BinaryDecisionCard({
             || !canPersistActions
             || decisionPosture.status === 'BLOCKED'
             || hasOpenDriftAlerts
-            || !decisionGradeReady
+            || !proofTier.acceptAllowed
           }
           variant="success"
           className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
@@ -584,10 +695,14 @@ function BinaryDecisionCard({
           {hasOpenDriftAlerts
             ? 'Resolve verification alerts before accepting'
             : decisionPosture.status === 'BLOCKED'
-            ? 'Cannot accept until blockers are resolved'
-            : !decisionGradeReady
-            ? 'Decision-grade proof required before accepting'
-            : getEmployerActionLabel('accept')}
+            ? 'Resolve blockers before accepting'
+            : !proofTier.acceptAllowed
+            ? proofTier.tier === 'partial_proof_pack'
+              ? 'Accept partial head start after remaining checks'
+              : 'Draft proof only — wait for checked records'
+            : getEmployerActionLabel('accept', {
+              proofTier: proofTier.tier === 'decision_grade_proof_pack' ? 'decision_grade' : 'partial',
+            })}
         </Button>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
@@ -607,6 +722,58 @@ function BinaryDecisionCard({
             {getEmployerActionLabel('review')}
           </Button>
         </div>
+
+        {/* Per-action consequence strip. Every button answers "what
+            does it do / what does it assume / what audit lands / what
+            remains / who owns next" before the click. Replaces generic
+            button labels as the source of truth on action effect. */}
+        <details
+          className="mt-3 rounded-2xl border border-white/8 bg-black/10 px-4 py-3 text-xs text-foreground/80"
+          data-slot="action-consequences"
+        >
+          <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/60">
+            What each action does
+          </summary>
+          <div className="mt-3 space-y-4">
+            {(['accept', 'refresh', 'review'] as const).map((actionKey) => {
+              const consequence = resolveEmployerActionConsequence(actionKey);
+              return (
+                <div key={actionKey} className="space-y-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    {getEmployerActionLabel(actionKey, {
+                      proofTier: proofTier.tier === 'decision_grade_proof_pack' ? 'decision_grade' : 'partial',
+                    })}
+                  </p>
+                  <p className="leading-relaxed">
+                    <span className="font-semibold">Does: </span>
+                    {consequence.does}
+                  </p>
+                  <p className="leading-relaxed opacity-85">
+                    <span className="font-semibold">Assumes: </span>
+                    {consequence.assumes}
+                  </p>
+                  <p className="leading-relaxed opacity-85">
+                    <span className="font-semibold">Audit: </span>
+                    <code className="font-mono text-[11px]">{consequence.auditEvent}</code>
+                  </p>
+                  {consequence.remainsAfter && (
+                    <p className="leading-relaxed opacity-85">
+                      <span className="font-semibold">Remains after: </span>
+                      {consequence.remainsAfter}
+                    </p>
+                  )}
+                  {consequence.acceptNotIncluded && (
+                    <p className="leading-relaxed text-amber-200/90">
+                      <span className="font-semibold">NOT included: </span>
+                      {consequence.acceptNotIncluded}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </details>
+
         {previewOnlyMessage && (
           <p className="text-center text-[10px] text-muted-foreground/40 pt-1 font-mono">{previewOnlyMessage}</p>
         )}
@@ -1191,6 +1358,10 @@ function ReviewClientLoaded({
 
   const missingDomains    = authority.summary.missing;
   const blocked = Array.from(new Set(readiness.blockers));
+  // Owner-attributed blocker metadata, rendered in the readiness
+  // section + blockers callout. Threaded from describeBlocker
+  // OwnershipForEmployer so each row carries owner + next-step copy.
+  const blockerDetails = blocked.map((blocker) => describeBlockerOwnershipForEmployer(blocker));
   const reviewTruth = buildPassportReviewTruthModel(passport);
   const reviewNextActions = ensureSingleActionArray(
     reviewTruth.buckets.nextActions,
@@ -1199,8 +1370,17 @@ function ReviewClientLoaded({
   const [reviewNextAction] = reviewNextActions;
   const proofItems = buildPassportProofSections(passport);
   const proofSummary = reviewTruth.proofSummary;
-  const showReadinessScore = proofSummary.decisionGradeCount > 0;
+  const showReadinessScore = getScoreState(
+    reviewTruth.posture.dimensions.map((dimension) => ({ status: dimension.state })),
+  ) !== null;
   const decisionGradeReady = hasDecisionGradeSignals(readiness.level);
+  const reviewProofTierLabel = getProofTierLabel(
+    decisionGradeReady && blocked.length === 0
+      ? 'decision_grade'
+      : proofSummary.total > 0
+        ? 'partial'
+        : 'draft',
+  );
   const identityStatus = resolvePublicWedgeSurfaceStateFromTruth(truth.identity);
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
@@ -1257,8 +1437,36 @@ function ReviewClientLoaded({
     });
 
     trackEvent('EMPLOYER_VIEWED', { providerId: passport.entityId });
+    void trackPilotFunnelEvent({
+      eventType: 'review_opened',
+      npi: passport.npi ?? passport.identity.npi ?? null,
+      entity: {
+        kind: 'review',
+        id: passport.entityId,
+        label: passport.identity.displayName,
+        objectType: 'passport',
+      },
+      dedupeKey: `review-opened:${passport.entityId}:${contextId ?? 'none'}:${bundleId ?? 'none'}`,
+      details: {
+        sharedContext: Boolean(sharedBy || contextId || bundleId),
+        sourceMode: 'live',
+      },
+    });
     reviewOpenedTrackedRef.current = true;
-  }, [authState, blocked.length, bundleId, canPersistActions, contextId, isLoaded, sharedBy, trackEvent, passport.entityId]);
+  }, [
+    authState,
+    blocked.length,
+    bundleId,
+    canPersistActions,
+    contextId,
+    isLoaded,
+    passport.entityId,
+    passport.identity.displayName,
+    passport.identity.npi,
+    passport.npi,
+    sharedBy,
+    trackEvent,
+  ]);
 
   useEffect(() => {
     if (!canPersistActions) {
@@ -1871,7 +2079,7 @@ function ReviewClientLoaded({
             <div className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Proof completeness</p>
               <p className="mt-1 text-sm font-medium text-foreground">
-                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
+                {reviewProofTierLabel} · {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} attached
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground/60">
                 {proofSummary.warningCount > 0 ? `${proofSummary.warningCount} review warning${proofSummary.warningCount === 1 ? '' : 's'}` : 'No review warnings'}
@@ -1962,13 +2170,18 @@ function ReviewClientLoaded({
                       })}
 
                       {!hasAny && (
-                        <TrustLabel
-                          status="access_required"
-                          label="Authority"
-                          source="Configured state board lane"
-                          note="Access required · requires verification"
-                          explanation="No source-backed authority record is attached yet. Authority remains incomplete until a connected state board lane succeeds."
-                        />
+                        (() => {
+                          const authorityRecovery = resolveRecoveryPath('state_board', 'access_required');
+                          return (
+                            <TrustLabel
+                              status="access_required"
+                              label="Authority"
+                              source={authorityRecovery.laneLabel}
+                              note={authorityRecovery.statusLabel}
+                              explanation={authorityRecovery.explanation}
+                            />
+                          );
+                        })()
                       )}
                     </div>
                   );
@@ -2001,12 +2214,12 @@ function ReviewClientLoaded({
               </p>
 
               {/* Q5: Blockers */}
-              {blocked.length > 0 && (
+              {blockerDetails.length > 0 && (
                 <div className="space-y-1 pb-1">
-                  {blocked.slice(0, 4).map((b, i) => (
-                    <div key={i} className="flex items-start gap-2">
+                  {blockerDetails.slice(0, 4).map((blocker) => (
+                    <div key={blocker.title} className="flex items-start gap-2">
                       <span className="text-muted-foreground/40 text-xs w-3 shrink-0 mt-0.5" aria-hidden>·</span>
-                      <span className="text-foreground/70 text-xs">{b.charAt(0).toUpperCase() + b.slice(1)}</span>
+                      <span className="text-foreground/70 text-xs">{blocker.title}</span>
                     </div>
                   ))}
                 </div>
@@ -2058,10 +2271,12 @@ function ReviewClientLoaded({
               <div>
                 <p className="text-white/25 text-[10px] uppercase tracking-widest mb-0.5">Trust statuses</p>
                 <p><span className="text-white/55">Checked</span> — current source coverage is attached now</p>
-                <p><span className="text-white/55">Pending</span> — the source has not completed yet</p>
-                <p><span className="text-white/55">Stale</span> — attached evidence is older than the freshness window</p>
-                <p><span className="text-white/55">Access required / Review required</span> — institutional access or manual follow-up is still needed</p>
-                <p><span className="text-white/55">Unavailable / Preview only</span> — no decision-grade source result is attached yet</p>
+                <p><span className="text-white/55">Not yet verified</span> — the source has not completed yet</p>
+                <p><span className="text-white/55">May be stale</span> — attached evidence is older than the freshness window</p>
+                <p><span className="text-white/55">Access required</span> — your employer or institution covers that lane outside the current proof</p>
+                <p><span className="text-white/55">Review required</span> — a reviewer must examine this finding before you rely on it</p>
+                <p><span className="text-white/55">Source unavailable — retry</span> — VitalCV could not reach the source this time</p>
+                <p><span className="text-white/55">Preview only</span> — contextual only, not decision-grade proof</p>
               </div>
             </div>
             <div className="pt-2 border-t border-white/6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
@@ -2129,7 +2344,7 @@ function ReviewClientLoaded({
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Proof completeness</p>
               <p className="mt-1 text-sm text-foreground/60">
-                {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
+                {reviewProofTierLabel} · {proofSummary.decisionGradeCount + proofSummary.informationalCount}/{proofSummary.total} sections attached
               </p>
             </div>
             <div>
@@ -2265,15 +2480,18 @@ function ReviewClientLoaded({
             </div>
 
             {/* Active blockers callout */}
-            {blocked.length > 0 && (
+            {blockerDetails.length > 0 && (
               <div className="pt-2 border-t border-white/6 flex items-start gap-2 bg-amber-500/6 rounded-xl px-3 py-2">
                 <span className="text-amber-400/70 text-xs mt-0.5">⚠</span>
                 <div>
                   <p className="text-amber-300/80 text-xs font-medium">
-                    {blocked.length} blocker{blocked.length === 1 ? '' : 's'} still need review
+                    {blockerDetails.length} blocker{blockerDetails.length === 1 ? '' : 's'} still need review
                   </p>
                   <p className="text-amber-400/50 text-[10px] mt-0.5">
-                    Accepting as a head start saves your decision and the remaining blockers in the audit trail. Primary source verification can still change this result.
+                    {blockerDetails[0]?.detail}
+                  </p>
+                  <p className="text-amber-400/50 text-[10px] mt-1">
+                    Saving a head-start decision keeps the unresolved blockers visible in the audit trail. It does not turn this review into decision-grade proof, and later verification can still change the result.
                   </p>
                 </div>
               </div>

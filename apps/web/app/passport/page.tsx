@@ -130,14 +130,17 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
   return degradedCopy;
 }
 
-// Phase copy must stay honest. It can name the failure state, but it may
-// never imply background progress or simulated motion.
+// Phase copy names the specific source in flight. Distinguishes pending
+// lanes from one another so the clinician can tell which source is still
+// resolving vs which already returned. "NPPES", "OIG / LEIE", "CMS PECOS"
+// are source names — not motion phrases — so naming them in-flight is
+// describing real system state, not synthetic progress.
 const PHASE_LABEL: Record<StreamPhase, string> = {
   idle:       '',
-  starting:   'Not yet verified',
-  nppes:      'Not yet verified',
-  sanctions:  'Not yet verified',
-  enrollment: 'Not yet verified',
+  starting:   'NPPES: not yet verified',
+  nppes:      'NPPES: not yet verified',
+  sanctions:  'OIG / LEIE: not yet verified',
+  enrollment: 'CMS PECOS: not yet verified',
   done:       'Complete',
   error:      'Verification failed — try again',
 };
@@ -146,6 +149,11 @@ const PHASE_LABEL: Record<StreamPhase, string> = {
 
 type SourceState = 'pending' | 'checking' | 'done' | 'error';
 
+// State-board paint gating. Before the run terminates, the state-board
+// row paints as `pending` → "Not yet verified" (honest — we haven't yet
+// reached the terminal state). Only after terminality does the row
+// flip to access_required. Prevents a first-paint "Access required"
+// verdict popping in before other lanes have resolved.
 function resolveStateBoardSourceState(state: IngestStreamState): SourceState {
   return state.isUsable || Boolean(state.completedAt) || Boolean(state.readyAt) || state.phase === 'done'
     ? 'done'

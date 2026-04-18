@@ -53,27 +53,9 @@ export function deriveBlockers(state: IngestStreamState): string[] {
   return blockers;
 }
 
-// Map a descriptive blocker into an imperative directive for the Autopilot
-// surface. Blockers answer "what's wrong"; directives answer "what to do".
-// Autopilot is wayfinding, so the copy must read as an order, not a diagnosis.
-export function blockerToDirective(blocker: string): string {
-  switch (blocker) {
-    case 'On OIG exclusion list':
-      return 'Clear OIG exclusion';
-    case 'Exclusion check failed':
-      return 'Rerun OIG check';
-    case 'Medicare enrollment unresolved':
-    case 'Not enrolled in Medicare':
-      return 'Fix PECOS';
-    default:
-      return blocker;
-  }
-}
-
-// Action-in-flight copy shown in the CTA's progress state after click.
-// The rule: the user must feel "I started something real", so generic
-// "Re-checking sources…" isn't enough — the line must name the exact
-// workflow the click kicked off.
+// Progress copy shown in the CTA during the authoritative re-check.
+// The line must name the specific workflow the click kicked off so the
+// user feels "I started something real" — not a generic "re-checking."
 export function blockerToProgressLabel(blocker: string): string {
   switch (blocker) {
     case 'Medicare enrollment unresolved':
@@ -87,11 +69,12 @@ export function blockerToProgressLabel(blocker: string): string {
   }
 }
 
-// Completion copy for the transient "✔ done" banner. Mirrors the
-// progress-label mapping so a click that shows "Submitting PECOS
-// enrollment…" concludes with "PECOS enrollment complete". The rule is
-// "user must feel 'I actually progressed'" — the naming symmetry is
-// what makes the completion beat land.
+// Completion copy for the transient "✔ done" banner. Consumed by the
+// /passport completion banner. Blockers that are actually celebrated on
+// completion have named workflows (PECOS enrollment / OIG check);
+// other blockers fall back to a plain "<plain label> — complete" line.
+// Reads through the ownership contract's plainLabel so the banner never
+// drifts from the canonical blocker title.
 export function blockerToCompletionLabel(blocker: string): string {
   switch (blocker) {
     case 'Medicare enrollment unresolved':
@@ -101,7 +84,7 @@ export function blockerToCompletionLabel(blocker: string): string {
     case 'Exclusion check failed':
       return 'OIG check complete';
     default:
-      return `${blockerToDirective(blocker)} — complete`;
+      return `${resolveBlockerOwnership(blocker).plainLabel} — complete`;
   }
 }
 
