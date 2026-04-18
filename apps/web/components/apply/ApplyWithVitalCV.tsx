@@ -14,8 +14,16 @@
  * Mobile: bottom-sheet on small screens, centred modal on sm+.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBiometricConfirmation } from '@/hooks/useBiometricConfirmation';
+import { ApplicationSnapshotCard } from '@/components/apply/ApplicationSnapshotCard';
+import { buildApplicationSnapshotSummary } from '@/lib/apply/application-snapshot';
+import {
+  readinessLevelToProofTier,
+  bucketLanesFromCredentials,
+} from '@/lib/apply/resolve-employer-application-context';
+import { resolveProofTier } from '@/lib/trust/employer-action-consequence';
+import { resolveApplicationProgress } from '@/lib/apply/application-progress';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -303,6 +311,44 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
 
   const levelColor = trustState ? (LEVEL_COLORS[trustState.readiness_level] ?? LEVEL_COLORS.L0) : '';
 
+  // ── WAVE 242A: truthful snapshot summary for the confirmation step ─────────
+  // Builds the clinician-facing view of the packet they just shared:
+  // proof tier, included/omitted lanes, limitation note, and the initial
+  // progress stage (`submitted`). Never upgrades the tier beyond what
+  // trust-state says.
+  const snapshotSummary = useMemo(() => {
+    if (!shareResult || !trustState) return null;
+    const sharedCredentials = credentials.filter((c) => selectedTypes.has(c.type));
+    const bucket = bucketLanesFromCredentials(sharedCredentials);
+    const proofTier = readinessLevelToProofTier(trustState.readiness_level);
+    const proofTierMeta = resolveProofTier({
+      hasAnchor: proofTier !== 'draft_snapshot',
+      allRequiredLanesResolved: bucket.omitted.length === 0,
+      hasUnresolvedBlockers: bucket.blockerKeys.length > 0,
+      anyLanePending: bucket.omitted.some((l) => l.qualifier === 'Pending'),
+      anyLaneReviewRequired: bucket.omitted.some((l) => l.qualifier === 'Review required'),
+      anyLaneAccessRequired: bucket.omitted.some((l) => l.qualifier === 'Access required'),
+      anyLaneUnavailable: bucket.omitted.some((l) => l.qualifier === 'Unavailable'),
+      anyLaneStale: bucket.omitted.some((l) => l.qualifier === 'Stale'),
+      anyLaneNoRecord: false,
+    });
+    const progressStage = resolveApplicationProgress({
+      proofTier,
+      submittedAt: shareResult.sharedAt,
+    });
+    return buildApplicationSnapshotSummary({
+      applicationId: shareResult.bundleId,
+      proofTier,
+      proofTierMeta,
+      includedLanes: bucket.included,
+      omittedLanes: bucket.omitted,
+      blockerKeys: bucket.blockerKeys,
+      progressStage,
+      submittedAt: shareResult.sharedAt,
+      recipientName: shareResult.recipient.name,
+    });
+  }, [shareResult, trustState, credentials, selectedTypes]);
+
   if (!isOpen) {
     return (
       <button
@@ -534,6 +580,14 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   </p>
                 </div>
               </div>
+
+              {/* WAVE 242A — application snapshot summary */}
+              {snapshotSummary ? (
+                <ApplicationSnapshotCard
+                  summary={snapshotSummary}
+                  eyebrow={`Application ID · ${shareResult.bundleId}`}
+                />
+              ) : null}
 
               {/* Bundle URL */}
               <div>
