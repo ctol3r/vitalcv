@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  proofTierToShortKey,
   resolveEmployerActionConsequence,
   resolveProofTier,
   type ProofTier,
 } from '@/lib/trust/employer-action-consequence';
 import { ACTION_OWNER } from '@/lib/trust/action-owner';
-import type { EmployerActionCopyKey } from '@/lib/trust/decision-copy';
+import {
+  getEmployerActionLabel,
+  getOwnerAttributedPublicNextStep,
+  getPublicDecisionNextStep,
+  type EmployerActionCopyKey,
+} from '@/lib/trust/decision-copy';
 
 const EMPLOYER_ACTIONS: EmployerActionCopyKey[] = [
   'accept',
@@ -132,5 +138,54 @@ describe('resolveProofTier', () => {
       'decision_grade_proof_pack',
     ];
     expect(tiers.length).toBe(3);
+  });
+});
+
+// Canonicalization guard. The long-form (narrative) ProofTier and the
+// short-form (action-label selector) vocabulary must stay aligned via
+// `proofTierToShortKey`. Without the mapper, callers re-invent the
+// conversion inline — which is exactly the duplication this helper
+// retires.
+describe('proofTierToShortKey', () => {
+  it('maps each long-form proof tier to the canonical short key', () => {
+    expect(proofTierToShortKey('draft_snapshot')).toBe('draft');
+    expect(proofTierToShortKey('partial_proof_pack')).toBe('partial');
+    expect(proofTierToShortKey('decision_grade_proof_pack')).toBe('decision_grade');
+  });
+
+  it('keeps getEmployerActionLabel in lockstep — partial tiers render partial acceptance copy', () => {
+    const partial = getEmployerActionLabel('accept', {
+      proofTier: proofTierToShortKey('partial_proof_pack'),
+    });
+    expect(partial.toLowerCase()).toContain('partial');
+
+    const decisionGrade = getEmployerActionLabel('accept', {
+      proofTier: proofTierToShortKey('decision_grade_proof_pack'),
+    });
+    expect(decisionGrade.toLowerCase()).not.toContain('partial');
+  });
+});
+
+describe('getOwnerAttributedPublicNextStep', () => {
+  it('falls back to the generic public next step when no blocker is named', () => {
+    const fallback = getOwnerAttributedPublicNextStep('PROCEED_WITH_CAUTION', null);
+    expect(fallback).toBe(getPublicDecisionNextStep('PROCEED_WITH_CAUTION'));
+  });
+
+  it('renders an owner-prefixed line when a known blocker is passed', () => {
+    const withBlocker = getOwnerAttributedPublicNextStep(
+      'DO_NOT_PROCEED',
+      'On OIG exclusion list',
+    );
+    expect(withBlocker.toLowerCase()).toContain('oig');
+    expect(withBlocker).not.toBe(getPublicDecisionNextStep('DO_NOT_PROCEED'));
+  });
+
+  it('never emits the pre-doctrine "Take Action" fallback for a known blocker', () => {
+    const withBlocker = getOwnerAttributedPublicNextStep(
+      'PROCEED_WITH_CAUTION',
+      'Medicare enrollment unresolved',
+    );
+    expect(withBlocker.toLowerCase()).not.toContain('take action');
   });
 });

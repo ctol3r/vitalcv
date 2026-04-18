@@ -32,6 +32,7 @@ import {
   getIssuerProvenanceExplanation,
   getLimitationEmptyMessage,
   getMonitoringCoverageExplanation,
+  getOwnerAttributedPublicNextStep,
   getPublicDecisionHeadline,
   getPublicDecisionNextStep,
   getReadinessSnapshotExplanation,
@@ -913,12 +914,17 @@ function DecisionCard({
     : rationaleSource.length > 0
       ? rationaleSource
       : ['VitalCV could not load a detailed explanation for this result yet.'];
+  // Owner-attribute the fallback next step when a top blocker is known.
+  // Server-authored `next_actions`, when present, still win — the owner-
+  // prefixed line is only used when the fallback chain reaches the
+  // derived copy, so this does not override authored actions.
+  const topBlocker = blockers.length > 0 ? blockers[0] : null;
   const [nextAction] = ensureSingleActionArray(
     truthGuardApplied
-      ? [getPublicDecisionNextStep('INSUFFICIENT_DATA')]
+      ? [getOwnerAttributedPublicNextStep('INSUFFICIENT_DATA', topBlocker)]
       : nextActionSource.length > 0
         ? nextActionSource
-        : [getPublicDecisionNextStep(effectiveDecision)],
+        : [getOwnerAttributedPublicNextStep(effectiveDecision, topBlocker)],
     ALL_CLEAR_ACTION_LABEL,
   );
   const evidenceLabel = evidenceSummary.checkedSourceCount > 0

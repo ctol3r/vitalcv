@@ -37,6 +37,24 @@ export function getOwnerAttributedNextStep(
   return getDecisionNextStep(status);
 }
 
+/**
+ * Owner-attributed next step for the public passport surface.
+ * Mirrors `getOwnerAttributedNextStep` but operates on the
+ * `PublicDecisionStatus` vocabulary carried by `/p/[slug]`. Used when
+ * the public profile renders a fallback next step derived from the
+ * decision status rather than a server-authored action list.
+ */
+export function getOwnerAttributedPublicNextStep(
+  status: PublicDecisionStatus,
+  topBlocker: string | null,
+): string {
+  if (topBlocker) {
+    const ownership = resolveBlockerOwnership(topBlocker);
+    return `${ownership.ownerPrefix} — ${ownership.actionLabel.toLowerCase()}.`;
+  }
+  return getPublicDecisionNextStep(status);
+}
+
 export function withFallbackCopy(
   value: string | null | undefined,
   fallback: string,

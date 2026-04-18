@@ -45,6 +45,7 @@ import type {
   PassportData,
 } from '@/lib/trust/passport-contract';
 import {
+  proofTierToShortKey,
   resolveEmployerActionConsequence,
   resolveProofTier,
   type ProofTier as EmployerProofTier,
@@ -104,6 +105,7 @@ import {
   buildEmployerProofPacketDownloadUrl,
   employerProofPacketFilename,
 } from '@/lib/export/employer-proof-packet';
+import { employerActionErrorCopy } from '@/lib/trust/employer-action-error-copy';
 import {
   DECISION_NEXT_STEP_HEADING,
   formatActionTimestamp,
@@ -160,6 +162,23 @@ function readErrorDetail(value: unknown): string | null {
   }
 
   return null;
+}
+
+function isSafeEmployerActionMessage(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return ![
+    'cannot read properties',
+    'undefined',
+    'unexpected',
+    'typeerror',
+    'referenceerror',
+    'syntaxerror',
+    'failed to fetch',
+  ].some((token) => normalized.includes(token));
 }
 
 function isConfirmStartResponse(
@@ -701,7 +720,7 @@ function BinaryDecisionCard({
               ? 'Accept partial head start after remaining checks'
               : 'Draft proof only — wait for checked records'
             : getEmployerActionLabel('accept', {
-              proofTier: proofTier.tier === 'decision_grade_proof_pack' ? 'decision_grade' : 'partial',
+              proofTier: proofTierToShortKey(proofTier.tier),
             })}
         </Button>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -741,7 +760,7 @@ function BinaryDecisionCard({
                 <div key={actionKey} className="space-y-1.5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
                     {getEmployerActionLabel(actionKey, {
-                      proofTier: proofTier.tier === 'decision_grade_proof_pack' ? 'decision_grade' : 'partial',
+                      proofTier: proofTierToShortKey(proofTier.tier),
                     })}
                   </p>
                   <p className="leading-relaxed">
@@ -1645,7 +1664,10 @@ function ReviewClientLoaded({
         bundleId: bundleId ?? null,
         error: error instanceof Error ? error.message : String(error),
       });
-      const message = resolveLivePathErrorMessage(error, 'Action failed');
+      const rawMessage = resolveLivePathErrorMessage(error, '');
+      const message = isSafeEmployerActionMessage(rawMessage)
+        ? rawMessage
+        : employerActionErrorCopy(error);
       setActionState({ phase: 'error', intent: config.intent, message });
       trackEmployerActionResult(config.intent, 'error', startedAt, message);
     } finally {

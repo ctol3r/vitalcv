@@ -19,7 +19,7 @@
  */
 
 import { ACTION_OWNER, type ActionOwner } from './action-owner';
-import type { EmployerActionCopyKey } from './decision-copy';
+import type { EmployerActionCopyKey, ProofTier as ProofTierShortKey } from './decision-copy';
 
 export interface EmployerActionConsequence {
   /** Which action this describes (mirrors EmployerActionCopyKey). */
@@ -128,8 +128,34 @@ export function resolveEmployerActionConsequence(
  * Mirrors `resolvePassportContinuation` input/output shape so review
  * and passport surfaces agree on when a packet is draft / partial /
  * decision-grade. Never upgrades a packet silently.
+ *
+ * Two proof-tier vocabularies exist in the codebase by design:
+ *   - `ProofTier` (this module, long form) — narrative tier carried
+ *     by the review banner (`resolveProofTier → ProofTierMeta`). Used
+ *     for user-facing labels and acceptance gating.
+ *   - `ProofTierShortKey` (decision-copy.ts) — short key used by
+ *     `getEmployerActionLabel(action, { proofTier })` to pick between
+ *     "Accept as head start" and "Accept partial head start".
+ *
+ * `proofTierToShortKey()` is the canonical bridge. Callers must route
+ * through it rather than hardcoding the mapping inline.
  */
 export type ProofTier = 'draft_snapshot' | 'partial_proof_pack' | 'decision_grade_proof_pack';
+
+export function proofTierToShortKey(tier: ProofTier): ProofTierShortKey {
+  switch (tier) {
+    case 'draft_snapshot':
+      return 'draft';
+    case 'partial_proof_pack':
+      return 'partial';
+    case 'decision_grade_proof_pack':
+      return 'decision_grade';
+    default: {
+      const _exhaustive: never = tier;
+      return _exhaustive;
+    }
+  }
+}
 
 export interface ProofTierMeta {
   tier: ProofTier;
