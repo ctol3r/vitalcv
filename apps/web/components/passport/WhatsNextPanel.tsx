@@ -14,6 +14,11 @@ import {
 import { Card } from '@/components/ui/card';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
 import type { IngestStreamState } from '@/hooks/ingestStreamState';
+import {
+  resolveRecoveryPath,
+  type SourceLane,
+  type SourceLaneState,
+} from '@/lib/trust/recovery-path';
 
 void React;
 
@@ -79,13 +84,45 @@ interface VerifiedSource {
   id: string;
   label: string;
   done: boolean;
+  /** Canonical lane state via the recovery-path contract. Used to render
+   * the badge + explanation so an error state never disguises as motion. */
+  lane: SourceLane;
+  laneState: SourceLaneState;
+}
+
+/** Map an ingest source state into the canonical recovery-path lane
+ * state. Error → unavailable (VitalCV owns the retry), done → checked,
+ * everything else → pending. Prevents error being silently relabeled
+ * as "Pending". */
+function toLaneState(raw: IngestStreamState['sources']['nppes']): SourceLaneState {
+  if (raw === 'error') return 'unavailable';
+  if (raw === 'done') return 'checked';
+  return 'pending';
 }
 
 function resolveVerifiedSources(state: IngestStreamState): VerifiedSource[] {
   return [
-    { id: 'nppes', label: 'NPPES Identity', done: state.sources.nppes === 'done' },
-    { id: 'oig', label: 'OIG / LEIE Exclusion', done: state.sources.oig === 'done' },
-    { id: 'pecos', label: 'CMS PECOS Enrollment', done: state.sources.pecos === 'done' },
+    {
+      id: 'nppes',
+      label: 'NPPES Identity',
+      done: state.sources.nppes === 'done',
+      lane: 'nppes',
+      laneState: toLaneState(state.sources.nppes),
+    },
+    {
+      id: 'oig',
+      label: 'OIG / LEIE Exclusion',
+      done: state.sources.oig === 'done',
+      lane: 'oig',
+      laneState: toLaneState(state.sources.oig),
+    },
+    {
+      id: 'pecos',
+      label: 'CMS PECOS Enrollment',
+      done: state.sources.pecos === 'done',
+      lane: 'pecos',
+      laneState: toLaneState(state.sources.pecos),
+    },
   ];
 }
 
@@ -302,19 +339,37 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
           Automatically checked against federal and state data sources.
         </p>
         <div className="space-y-0">
-          {verifiedSources.map(source => (
-            <div
-              key={source.id}
-              className="flex items-center justify-between py-2 border-b border-border last:border-0"
-            >
-              <span className="text-sm text-muted-foreground">{source.label}</span>
-              <TrustStatusBadge
-                status={source.done ? 'checked' : 'pending'}
-                label={source.done ? 'Checked' : 'Pending'}
-                size="sm"
-              />
-            </div>
-          ))}
+          {verifiedSources.map(source => {
+            // Consume the recovery-path contract so a source in error
+            // state renders as "Source unavailable — retry" (VitalCV-
+            // owned retry) rather than the pre-doctrine "Pending"
+            // label which disguised failure as motion.
+            const recovery = resolveRecoveryPath(source.lane, source.laneState);
+            const badgeStatus =
+              source.laneState === 'unavailable' ? 'unavailable' as const
+              : source.laneState === 'checked' ? 'checked' as const
+              : 'pending' as const;
+            return (
+              <div
+                key={source.id}
+                className="py-2 border-b border-border last:border-0"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{source.label}</span>
+                  <TrustStatusBadge
+                    status={badgeStatus}
+                    label={recovery.statusLabel}
+                    size="sm"
+                  />
+                </div>
+                {source.laneState === 'unavailable' && (
+                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                    {recovery.explanation}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 

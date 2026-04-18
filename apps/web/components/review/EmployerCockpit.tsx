@@ -4,6 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Clock, Database, CheckCircle2 } from 'lucide-react';
 import type { PassportData, DecisionPosture } from '@/lib/trust/passport-contract';
+import { resolveBlockerOwnership } from '@/lib/trust/action-owner';
+import {
+  resolveEmployerActionConsequence,
+  resolveProofTier,
+} from '@/lib/trust/employer-action-consequence';
 
 interface EmployerCockpitProps {
   passport: PassportData;
@@ -122,6 +127,36 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
     ...posture.missing.map((s) => ({ ...s, decisionGrade: false })),
   ];
 
+  // Owner-attributed blocker metadata. Each entry carries the owner,
+  // owner prefix ("You need to…", "VitalCV is retrying…", "Your
+  // institution covers…"), and the short action verb. Replaces the
+  // ownerless blocker strings the cockpit used to surface.
+  const blockerDetails = posture.blockers.map((b) => ({
+    raw: b,
+    ownership: resolveBlockerOwnership(b),
+  }));
+
+  // Proof-tier classification. Drives the banner + accept-button gating.
+  // Content-based, not count-based: any lane that is unavailable, review-
+  // required, access-required, stale, or no-record disqualifies
+  // decision-grade regardless of how many lanes have been checked.
+  const proofTier = resolveProofTier({
+    hasAnchor: Boolean(passport.entityId),
+    allRequiredLanesResolved: posture.status === 'READY',
+    hasUnresolvedBlockers: posture.blockers.length > 0,
+    anyLanePending: posture.missing.some((s) => s.state === 'pending'),
+    anyLaneReviewRequired: posture.missing.some((s) => s.state === 'reviewRequired'),
+    anyLaneAccessRequired: posture.missing.some(
+      (s) => s.state === 'accessRequired' || s.state === 'gated',
+    ),
+    anyLaneUnavailable: posture.missing.some((s) => s.state === 'unavailable'),
+    anyLaneStale: [...posture.proven, ...posture.missing].some((s) => s.state === 'stale'),
+    anyLaneNoRecord: posture.missing.some(
+      (s) => s.state === 'notDecisionGrade' || s.state === 'previewOnly',
+    ),
+    hasOpenDriftAlerts: false,
+  });
+
   return (
     <div className="min-h-screen bg-[var(--vt-bg)] text-[var(--vt-text-primary)] font-sans antialiased pb-24">
       {/* Header */}
@@ -147,6 +182,40 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
           </p>
         </div>
 
+        {/* Proof-tier banner. Content-based classification (not count-
+            based) — any access-required, unavailable, review-required,
+            stale, or no-record lane disqualifies decision-grade. Threads
+            resolveProofTier from employer-action-consequence so review
+            and /passport surfaces agree on tier. */}
+        <div
+          role="status"
+          aria-live="polite"
+          data-slot="proof-tier-banner"
+          className={`border-2 p-4 ${
+            proofTier.tier === 'decision_grade_proof_pack'
+              ? 'border-[var(--vt-status-resolved)] bg-[var(--vt-status-resolved)]/5'
+              : proofTier.tier === 'partial_proof_pack'
+                ? 'border-[var(--vt-severity-high)] bg-[var(--vt-severity-high)]/5'
+                : 'border-[var(--vt-severity-critical)] bg-[var(--vt-severity-critical)]/5'
+          }`}
+        >
+          <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">
+            Proof tier
+          </div>
+          <div className="text-lg font-bold uppercase tracking-tight">
+            {proofTier.label}
+          </div>
+          <p className="text-xs font-mono opacity-75 mt-2 leading-relaxed">
+            {proofTier.description}
+          </p>
+          {proofTier.acceptBlockedReason && (
+            <p className="text-xs font-mono mt-2 leading-relaxed text-[var(--vt-severity-critical)]">
+              <span className="font-bold uppercase tracking-wider">Accept blocked: </span>
+              {proofTier.acceptBlockedReason}
+            </p>
+          )}
+        </div>
+
         {/* Decision Posture Block */}
         <div className="border-2 bg-white/5 p-8 relative" style={{ borderColor: statusColor }}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-8 border-b border-[var(--vt-border-subtle)] gap-6">
@@ -170,13 +239,24 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest opacity-40 mb-4 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Blockers ({posture.blockers.length})
+                <AlertCircle className="w-4 h-4" /> Blockers ({blockerDetails.length})
               </h3>
-              {posture.blockers.length > 0 ? (
-                <ul className="space-y-2 font-mono text-sm">
-                  {posture.blockers.map((b, i) => (
+              {blockerDetails.length > 0 ? (
+                <ul className="space-y-3 font-mono text-sm">
+                  {blockerDetails.map((entry, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-[var(--vt-severity-critical)] mt-0.5">■</span> {b}
+                      <span className="text-[var(--vt-severity-critical)] mt-0.5 shrink-0">■</span>
+                      <div className="space-y-1">
+                        <div className="font-semibold">{entry.ownership.plainLabel}</div>
+                        <div className="text-xs opacity-75 leading-relaxed">
+                          {entry.ownership.ownerPrefix}.
+                        </div>
+                        {entry.ownership.etaOrDependency && (
+                          <div className="text-[10px] opacity-55">
+                            {entry.ownership.etaOrDependency}
+                          </div>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -308,6 +388,62 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
           </div>
         )}
 
+        {/* Per-action consequence strip. Every button answers does /
+            assumes / audit / remains / ownerAfter before the click.
+            Sourced from resolveEmployerActionConsequence so the review
+            surface carries the same ownership doctrine as the rest of
+            the wedge. Accept carries an explicit NOT-included line. */}
+        <details
+          className="border border-[var(--vt-border)] bg-white/5 px-6 py-4"
+          data-slot="action-consequences"
+        >
+          <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.2em] opacity-60">
+            What each action does
+          </summary>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs">
+            {(['review', 'refresh', 'accept'] as const).map((actionKey) => {
+              const consequence = resolveEmployerActionConsequence(actionKey);
+              return (
+                <div key={actionKey} className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-widest">
+                    {actionKey === 'accept'
+                      ? (proofTier.tier === 'decision_grade_proof_pack'
+                          ? 'Accept as Head Start'
+                          : 'Accept partial head start')
+                      : actionKey === 'refresh'
+                        ? 'Request Update'
+                        : 'Route to Credentialing'}
+                  </p>
+                  <p className="opacity-80 leading-relaxed">
+                    <span className="font-bold">Does: </span>
+                    {consequence.does}
+                  </p>
+                  <p className="opacity-70 leading-relaxed">
+                    <span className="font-bold">Assumes: </span>
+                    {consequence.assumes}
+                  </p>
+                  <p className="opacity-70 leading-relaxed">
+                    <span className="font-bold">Audit: </span>
+                    {consequence.auditEvent}
+                  </p>
+                  {consequence.remainsAfter && (
+                    <p className="opacity-70 leading-relaxed">
+                      <span className="font-bold">Remains: </span>
+                      {consequence.remainsAfter}
+                    </p>
+                  )}
+                  {consequence.acceptNotIncluded && (
+                    <p className="text-[var(--vt-severity-high)] leading-relaxed">
+                      <span className="font-bold">NOT included: </span>
+                      {consequence.acceptNotIncluded}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </details>
+
         {/* Action Panel */}
         <div className="border-t-4 border-[var(--vt-border)] pt-12 pb-12 sticky bottom-0 bg-[var(--vt-bg)] z-10 flex flex-col md:flex-row justify-between items-center gap-6 mt-24">
           <div>
@@ -337,10 +473,13 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
                 </button>
                 <button
                   onClick={() => setActionTaken('Accepted Head Start')}
-                  disabled={isBlocked}
+                  disabled={isBlocked || !proofTier.acceptAllowed}
+                  title={proofTier.acceptBlockedReason ?? undefined}
                   className="flex-1 md:flex-none border border-[var(--vt-text-primary)] bg-[var(--vt-text-primary)] text-[var(--vt-bg)] px-8 py-4 text-sm font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                 >
-                  Accept as Head Start
+                  {proofTier.tier === 'decision_grade_proof_pack'
+                    ? 'Accept as Head Start'
+                    : 'Accept partial head start'}
                 </button>
               </>
             )}

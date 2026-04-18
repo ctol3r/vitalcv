@@ -24,6 +24,7 @@ import { notFound } from 'next/navigation';
 import PassportShareActions from '@/components/passport/PassportShareActions';
 import { ApplyWithVitalCV } from '@/components/apply/ApplyWithVitalCV';
 import { EmployerTracker } from '@/components/telemetry/EmployerTracker';
+import { ACTION_OWNER, resolveBlockerOwnership } from '@/lib/trust/action-owner';
 
 // ── Shared types ──────────────────────────────────────────────────────────
 
@@ -661,10 +662,27 @@ export default async function PublicTrustProfilePage({ params, searchParams }: P
                         Gaps detected
                       </p>
                       {profile.readiness.missingRequirements.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {profile.readiness.missingRequirements.map((r) => (
-                            <li key={r} className="text-xs text-muted-foreground">· {r}</li>
-                          ))}
+                        <ul className="mt-2 space-y-2">
+                          {profile.readiness.missingRequirements.map((r) => {
+                            // Owner-attributed line when this string maps
+                            // to a known blocker in the actor-ownership
+                            // contract. Unknown strings render as bare
+                            // requirements — no ownership invented where
+                            // none is classified.
+                            const ownership = resolveBlockerOwnership(r);
+                            const hasKnownOwner =
+                              ownership.owner !== ACTION_OWNER.UNKNOWN;
+                            return (
+                              <li key={r} className="text-xs text-muted-foreground">
+                                <span>· {hasKnownOwner ? ownership.plainLabel : r}</span>
+                                {hasKnownOwner && (
+                                  <span className="block pl-3 mt-0.5 text-[10px] opacity-70">
+                                    {ownership.ownerPrefix}.
+                                  </span>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>

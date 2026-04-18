@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
+import { resolveRecoveryPath, type SourceLane } from '@/lib/trust/recovery-path';
 import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
@@ -165,31 +166,56 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   };
 }
 
-function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
+function SourceRow({
+  label,
+  state,
+  value,
+  lane,
+}: {
+  label: string;
+  state: SourceState;
+  value?: string;
+  /** Canonical lane identifier. When provided, the row surfaces the
+   * recovery-path explanation below the badge when the source is in an
+   * error state — so the user reads "VitalCV will retry" instead of
+   * guessing at an ambiguous "Unavailable" badge. */
+  lane?: SourceLane;
+}) {
   const displayValue =
     state === 'checking' ? 'Checking…'
     : state === 'done' ? (value ?? 'Done')
     : state === 'error' ? 'Unavailable'
     : '—';
   const badge = resolveSourceBadge(state, displayValue);
+  const recoveryExplanation =
+    lane && state === 'error'
+      ? resolveRecoveryPath(lane, 'unavailable').explanation
+      : null;
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <div className="flex items-center gap-2.5">
-        <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
-          style={{
-            backgroundColor:
-              state === 'done'     ? 'rgba(255,255,255,0.45)' :
-              state === 'checking' ? 'rgba(255,255,255,0.20)' :
-              state === 'error'    ? 'rgba(255,255,255,0.15)' :
-                                     'rgba(255,255,255,0.08)',
-          }}
-          aria-hidden
-        />
-        <span className="text-muted-foreground text-sm">{label}</span>
+    <div className="py-2 border-b border-border last:border-0">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{
+              backgroundColor:
+                state === 'done'     ? 'rgba(255,255,255,0.45)' :
+                state === 'checking' ? 'rgba(255,255,255,0.20)' :
+                state === 'error'    ? 'rgba(255,255,255,0.15)' :
+                                       'rgba(255,255,255,0.08)',
+            }}
+            aria-hidden
+          />
+          <span className="text-muted-foreground text-sm">{label}</span>
+        </div>
+        <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
       </div>
-      <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
+      {recoveryExplanation && (
+        <p className="mt-1 pl-4 text-xs text-muted-foreground leading-relaxed">
+          {recoveryExplanation}
+        </p>
+      )}
     </div>
   );
 }
@@ -642,27 +668,36 @@ function PassportPageContent({
               </Card>
             )}
 
-          {/* Source status rows */}
+          {/* Source status rows. Each row carries the `lane` prop so the
+              row renders the recovery-path explanation
+              (lib/trust/recovery-path.ts) underneath the badge when the
+              source is in an error state — preventing "Unavailable" from
+              reading as a silent verdict rather than a retry-in-flight
+              VitalCV-owned state. */}
           <Card className="animate-panel-enter gap-0 rounded-none border-border bg-card px-4 py-2 shadow-none">
             <SourceRow
                 label="NPPES"
                 state={sources.nppes}
                 value={identityLabel}
+                lane="nppes"
               />
               <SourceRow
                 label="OIG / LEIE"
                 state={sources.oig}
                 value={exclusionLabel}
+                lane="oig"
               />
               <SourceRow
                 label="CMS PECOS"
                 state={sources.pecos}
                 value={enrollmentLabel}
+                lane="pecos"
               />
               <SourceRow
-                label="Configured state board lane"
+                label="State medical board"
                 state={resolveLicenseState(state)}
                 value={formatLicenseLabel(state, resolveLicenseState(state))}
+                lane="state_board"
               />
             </Card>
 
