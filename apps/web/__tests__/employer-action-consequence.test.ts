@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  proofTierToShortKey,
   resolveEmployerActionConsequence,
   resolveProofTier,
   type EmployerActionCopyKey,
@@ -134,3 +135,25 @@ describe('resolveProofTier', () => {
     expect(tiers.length).toBe(3);
   });
 });
+
+// Canonicalization guard. The long-form (narrative) ProofTier and the
+// short-form (action-label selector) vocabulary must stay aligned via
+// `proofTierToShortKey`. Without the mapper, callers re-invent the
+// conversion inline — which is exactly the duplication this helper
+// retires.
+describe('proofTierToShortKey', () => {
+  it('maps each long-form proof tier to the canonical short key', () => {
+    expect(proofTierToShortKey('draft_snapshot')).toBe('draft');
+    expect(proofTierToShortKey('partial_proof_pack')).toBe('partial');
+    expect(proofTierToShortKey('decision_grade_proof_pack')).toBe('decision_grade');
+  });
+});
+
+// Note: the original polish commit (cceada8b on the feature branch) also
+// landed tests for `getEmployerActionLabel` tier-awareness and
+// `getOwnerAttributedPublicNextStep`. Both helpers lived in
+// `lib/trust/decision-copy.ts`, which main deleted as part of the
+// post-Liquid-Glass refactor. Those tests are intentionally not ported
+// here — the doctrine they enforce will re-enter the tree through the
+// manual surface-port commit once it targets main's current copy
+// modules rather than the retired ones.
