@@ -209,7 +209,8 @@
       "Bash(rm /tmp/test-write.tsx)",
       "Bash(DATABASE_URL=postgresql://christoler@localhost:5432/vitalcv_dev npx tsc --noEmit)",
       "Bash(gh pr *)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(git worktree *)"
     ],
     "deny": [],
     "ask": []
