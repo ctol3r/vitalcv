@@ -1,11 +1,11 @@
 [build]
-installCommand = "pnpm install --no-frozen-lockfile"
-buildCommand = "pnpm install --no-frozen-lockfile && pnpm turbo build"
+installCommand = "pnpm install --frozen-lockfile"
+buildCommand = "pnpm install --frozen-lockfile && pnpm turbo build"
 
 
 [deploy]
 preDeployCommand = "cd apps/api/backend && npx prisma migrate deploy"
-startCommand = "node -r ./apps/api/backend/register-workspace-paths.js apps/api/backend/dist/apps/api/backend/src/server.js"
+startCommand = "SKIP_STARTUP_MIGRATION=1 node -r ./apps/api/backend/register-workspace-paths.js apps/api/backend/dist/apps/api/backend/src/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
