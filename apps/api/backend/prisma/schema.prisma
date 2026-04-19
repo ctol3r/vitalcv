@@ -2028,6 +2028,39 @@ model DecisionCapsule {
   @@index([subjectNpi, status])
 }
 
+/// Acceptance Graph & Decision Learning — captures the exact passport state
+/// an employer saw at decision time so the network can learn what a
+/// "ready-to-accept" signal looks like. Distinct from `DecisionCapsule`
+/// (which is an immutable cryptographic audit capsule): this one is a
+/// mutable-shape learning record whose schema is expected to evolve.
+model DecisionLearningCapsule {
+  id               String   @id @default(uuid()) @db.Uuid
+  /// Clinician the decision was about
+  clinicianId      String   @db.Uuid
+  /// Employer / verifier org that made the decision
+  employerId       String   @db.Uuid
+  /// Target role (specialty + seniority label, or opportunity id)
+  role             String
+  /// Exact source coverage, freshness, and gaps at decision time.
+  /// Shape: { readinessBand, readinessScore, credentialTypes[], gaps[], state, specialty, … }
+  passportSnapshot Json
+  /// ACCEPTED_HEAD_START | REQUESTED_INFO | ROUTED_MANUAL | REJECTED
+  decisionOutcome  String
+  /// Seconds between the employer opening the packet and pressing the action
+  timeToDecision   Int
+  /// When the decision was actually taken (not necessarily when row was inserted)
+  timestamp        DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([clinicianId])
+  @@index([employerId])
+  @@index([role])
+  @@index([decisionOutcome])
+  @@index([employerId, decisionOutcome])
+  @@index([timestamp])
+  @@map("decision_learning_capsules")
+}
+
 /// Indexed search object — the core retrieval unit
 model SearchObject {
   id          String           @id @default(uuid()) @db.Uuid

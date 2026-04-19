@@ -24,6 +24,7 @@ import {
 } from '@/lib/mobile/dashboard';
 import ApplyModal from './ApplyModal';
 import { AdvisoryPanelUI } from '@/components/advisory/AdvisoryPanel';
+import AcceptancePredictor from '@/components/acceptance/AcceptancePredictor';
 
 /* ── API shape ───────────────────────────────────────────────── */
 
@@ -892,6 +893,21 @@ function OpportunityCard({
              <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
         </div>
+      )}
+
+      {/* Acceptance Predictor — learns from prior decisions at this employer
+          and similar employers in the network. Fails soft when no history. */}
+      {opp.organizationId && (
+        <AcceptancePredictor
+          employerId={opp.organizationId}
+          specialty={opp.specialty}
+          state={opp.state}
+          credentialTypes={
+            (opp.comparison?.satisfied ?? [])
+              .map((s) => s.key ?? s.label)
+              .filter((value): value is string => typeof value === 'string' && value.length > 0)
+          }
+        />
       )}
 
       {/* CTAs */}

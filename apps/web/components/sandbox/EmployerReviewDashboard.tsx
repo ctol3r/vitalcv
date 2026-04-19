@@ -481,7 +481,7 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
           <div className="max-w-5xl mx-auto px-6 py-4">
             <div className="mb-3 flex items-center gap-2">
               <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink/45">
-                // Decision
+                {'// Decision'}
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/60">
                 Primary source defect liability is officially transferred to the VitalCV Trust Warranty under Pilot Terms.
