@@ -45,6 +45,8 @@ import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustSummarySection } from '@/components/passport/TrustSummarySection';
+import { DelegatedAuthorityWidget } from '@/components/passport/DelegatedAuthorityWidget';
+import { buildPreviewClinicalWave } from '@/lib/clinical/privilege-fixtures';
 import { ResearchPublicationsSection } from '@/components/passport/ResearchPublicationsSection';
 import type { PassportResearchData } from '@/lib/trust/research-passport-types';
 import { formatProofDate } from '@/lib/trust/proof-language';
@@ -917,6 +919,17 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             </p>
           </SectionReveal>
         )}
+
+        {/* ── Delegated authority — mid-level providers only ─────────────── */}
+        {(() => {
+          const wave = buildPreviewClinicalWave(passport);
+          if (!wave.supervisor) return null;
+          return (
+            <SectionReveal delay={0.08}>
+              <DelegatedAuthorityWidget supervisor={wave.supervisor} />
+            </SectionReveal>
+          );
+        })()}
 
         {/* ── Freshness ─────────────────────────────────────────────────────── */}
         <SectionReveal delay={0.1}>

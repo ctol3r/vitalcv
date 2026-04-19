@@ -37,6 +37,10 @@ import {
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
+import { RevenueReadyCountdown } from '@/components/trust/RevenueReadyCountdown';
+import { ClinicalPrivilegeDelta } from '@/components/employer/ClinicalPrivilegeDelta';
+import { PayerEnrollmentGrid } from '@/components/employer/PayerEnrollmentGrid';
+import { buildPreviewClinicalWave } from '@/lib/clinical/privilege-fixtures';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
@@ -1404,6 +1408,7 @@ function ReviewClientLoaded({
   const safetyRow = buildSafetyRow(passport);
   const eligibilityRow = buildEligibilityRow(passport, pecosEnrollmentStatus);
   const timeToStartEstimate = buildPassportPilotTimeToStartEstimate(passport);
+  const clinicalWave = buildPreviewClinicalWave(passport);
   const lastSyncedAt =
     passport.lastCheckedAt
     ?? standing.exclusionCheckedAt
@@ -2221,6 +2226,12 @@ function ReviewClientLoaded({
                   note={eligibilityRow.note}
                   explanation={eligibilityRow.explanation}
                 />
+                <PayerEnrollmentGrid
+                  payers={clinicalWave.payers}
+                  description="PECOS confirms Medicare eligibility. Commercial payer enrollment is the trailing constraint on revenue activation."
+                  columns={3}
+                  className="mt-3"
+                />
               </div>
             </div>
 
@@ -2247,7 +2258,8 @@ function ReviewClientLoaded({
                 </div>
               )}
 
-              <div className="pt-3">
+              <div className="space-y-4 pt-3">
+                <RevenueReadyCountdown countdown={clinicalWave.velocity} />
                 <TimeToStartEstimateSummary estimate={timeToStartEstimate} />
               </div>
 
@@ -2352,6 +2364,12 @@ function ReviewClientLoaded({
             />
           </EvidenceDisclosureCard>
         )}
+
+        <ClinicalPrivilegeDelta
+          privileges={clinicalWave.privileges}
+          peerReferenceDisabled={!canPersistActions}
+          peerReferenceDisabledReason={previewOnlyMessage ?? undefined}
+        />
 
         <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] px-4 py-4 shadow-none">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
