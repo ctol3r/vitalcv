@@ -4,6 +4,41 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Shield, CheckCircle2, Clock, AlertCircle, ArrowRight, User, Activity, FileText, RefreshCw, ShieldAlert, Filter, Calendar, Download, Search, ChevronDown, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/components/sandbox/lib/utils";
+import TrustWarrantyShield from "@/components/employer/warranty/TrustWarrantyShield";
+import WarrantyCoverageMatrix from "@/components/employer/warranty/WarrantyCoverageMatrix";
+import ActuarialRiskPanel from "@/components/employer/warranty/ActuarialRiskPanel";
+
+type ReadinessBand = "CLEARED FOR START" | "CONDITIONAL READY" | "REVIEW REQUIRED";
+
+function deriveReadinessBand(
+  sources: { status: string }[] | undefined,
+): ReadinessBand {
+  if (!sources || sources.length === 0) return "CONDITIONAL READY";
+  if (sources.some((s) => s.status === "UNAVAILABLE")) return "REVIEW REQUIRED";
+  if (sources.every((s) => s.status === "CHECKED")) return "CLEARED FOR START";
+  return "CONDITIONAL READY";
+}
+
+const READINESS_TONE: Record<
+  ReadinessBand,
+  { dot: string; text: string; ring: string }
+> = {
+  "CLEARED FOR START": {
+    dot: "bg-emerald-500",
+    text: "text-emerald-600 dark:text-emerald-400",
+    ring: "ring-emerald-500/30",
+  },
+  "CONDITIONAL READY": {
+    dot: "bg-amber-500",
+    text: "text-amber-600 dark:text-amber-400",
+    ring: "ring-amber-500/30",
+  },
+  "REVIEW REQUIRED": {
+    dot: "bg-rose-500",
+    text: "text-rose-600 dark:text-rose-400",
+    ring: "ring-rose-500/30",
+  },
+};
 
 export interface ClinicianPacket {
   clinicianName: string;
@@ -296,17 +331,19 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
   // Render Single Packet View (Legacy)
   if (!isListMode) {
     const { clinicianName, npi, timeToStart, synthesis, sources } = props;
+    const readinessBand = deriveReadinessBand(sources);
+    const readinessTone = READINESS_TONE[readinessBand];
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="max-w-5xl mx-auto w-full space-y-12 pb-32"
+        className="max-w-5xl mx-auto w-full space-y-10 pb-40"
       >
         {/* Top Bar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-line pb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-[10px] font-bold uppercase tracking-widest bg-ink text-bg px-2 py-0.5 rounded-full">
                 Employer Review Mode
               </span>
@@ -314,12 +351,40 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
                 NPI: {npi}
               </span>
             </div>
+
+            {/* Readiness banner + Warranty Shield row */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div
+                aria-label={`Readiness status: ${readinessBand}`}
+                className={cn(
+                  "inline-flex items-center gap-2 border border-line bg-ink/5 px-3 py-1.5",
+                  "font-mono text-[10.5px] uppercase tracking-[0.18em]",
+                  "ring-1 ring-inset",
+                  readinessTone.ring,
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "inline-block h-1.5 w-1.5 rounded-full",
+                    readinessTone.dot,
+                  )}
+                />
+                <span className="text-ink/50">Readiness</span>
+                <span className="text-ink/30" aria-hidden="true">:</span>
+                <span className={cn("font-semibold", readinessTone.text)}>
+                  {readinessBand}
+                </span>
+              </div>
+              <TrustWarrantyShield />
+            </div>
+
             <h2 className="text-5xl font-bold tracking-tighter">{clinicianName}</h2>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 shrink-0">
             <div className="text-right">
               <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">Est. Time-to-Start</div>
-              <div className="text-5xl font-bold tracking-tighter text-green-600 dark:text-green-400">{timeToStart}</div>
+              <div className="text-5xl font-bold tracking-tighter text-green-600 dark:text-green-400 tabular-nums">{timeToStart}</div>
             </div>
             <button
               onClick={() => handleExport(props, npi || 'unknown')}
@@ -356,50 +421,136 @@ const EmployerReviewDashboard: React.FC<EmployerReviewProps> = (props) => {
           </div>
         </div>
 
-        {/* Source Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {sources?.map((source, index) => (
-            <motion.div
-              key={source.name}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 * index, duration: 0.4 }}
-              className="border border-line p-5 bg-white/5 hover:bg-white/10 transition-colors group"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-40">{source.name}</span>
-                {source.status === "CHECKED" ? (
-                  <CheckCircle2 className="w-3 h-3 text-green-500" />
-                ) : source.status === "PENDING" ? (
-                  <Clock className="w-3 h-3 text-amber-500" />
-                ) : (
-                  <AlertCircle className="w-3 h-3 text-red-500" />
-                )}
-              </div>
-              <div className={cn(
-                "font-mono text-xs font-bold mb-2",
-                source.status === "CHECKED" ? "text-green-500" :
-                source.status === "PENDING" ? "text-amber-500" : "text-red-500"
-              )}>
-                {source.status}
-              </div>
-              <p className="text-[10px] opacity-50 leading-tight line-clamp-2">{source.details}</p>
-            </motion.div>
-          ))}
+        {/* Velocity + Actuarial Metrics — the math that underwrites */}
+        <ActuarialRiskPanel
+          estimatedStart={timeToStart || "—"}
+          riskStatus={
+            readinessBand === "REVIEW REQUIRED"
+              ? "OUT OF SCOPE"
+              : "ACCEPTABLE FOR UNDERWRITING"
+          }
+        />
+
+        {/* Evidence Table — source grid */}
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/60">
+              Evidence · Primary Source Verification
+            </h3>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/40">
+              {sources?.length ?? 0} lanes
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {sources?.map((source, index) => (
+              <motion.div
+                key={source.name}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 * index, duration: 0.4 }}
+                className="border border-line p-5 bg-white/5 hover:bg-white/10 transition-colors group"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <span className="text-[9px] font-bold uppercase tracking-widest opacity-40">{source.name}</span>
+                  {source.status === "CHECKED" ? (
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                  ) : source.status === "PENDING" ? (
+                    <Clock className="w-3 h-3 text-amber-500" />
+                  ) : (
+                    <AlertCircle className="w-3 h-3 text-red-500" />
+                  )}
+                </div>
+                <div className={cn(
+                  "font-mono text-xs font-bold mb-2",
+                  source.status === "CHECKED" ? "text-green-500" :
+                  source.status === "PENDING" ? "text-amber-500" : "text-red-500"
+                )}>
+                  {source.status}
+                </div>
+                <p className="text-[10px] opacity-50 leading-tight line-clamp-2">{source.details}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
-        {/* Fixed Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-bg/80 backdrop-blur-md border-t border-line p-6 z-50">
-          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row gap-4">
-            <button className="flex-1 bg-green-600 text-white py-4 font-bold uppercase tracking-widest hover:bg-green-700 transition-colors flex items-center justify-center gap-2 group">
-              Accept as Head Start <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button className="flex-1 bg-ink text-bg py-4 font-bold uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-              Request Refresh <RefreshCw className="w-4 h-4" />
-            </button>
-            <button className="flex-1 border border-red-500/50 text-red-500 py-4 font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
-              Route to Manual Review <ShieldAlert className="w-4 h-4" />
-            </button>
+        {/* Warranty & Indemnity Coverage — collapsible legal ledger */}
+        <WarrantyCoverageMatrix />
+
+        {/* Fixed Action Bar — Accept & Transfer Risk */}
+        <div className="fixed bottom-0 left-0 right-0 bg-bg/90 backdrop-blur-md border-t border-line z-50">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink/45">
+                // Decision
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/60">
+                Primary source defect liability is officially transferred to the VitalCV Trust Warranty under Pilot Terms.
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+              {/* Primary — Accept & Transfer Risk */}
+              <button
+                type="button"
+                className={cn(
+                  "group relative flex flex-col items-start text-left",
+                  "bg-ink text-bg hover:bg-ink/90 transition-colors",
+                  "px-5 py-3 border border-ink",
+                  "ring-offset-2 ring-offset-[var(--color-bg)] focus-visible:ring-2 focus-visible:ring-ink",
+                )}
+              >
+                <div className="flex w-full items-center justify-between gap-3">
+                  <span className="font-semibold uppercase tracking-[0.16em] text-[13px]">
+                    Accept &amp; Transfer Risk
+                  </span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </div>
+                <span className="mt-1 text-[10.5px] leading-snug text-bg/70 font-mono">
+                  Proceed with onboarding. Primary source defect liability is
+                  officially transferred to the VitalCV Trust Warranty under
+                  Pilot Terms.
+                </span>
+              </button>
+
+              {/* Refresh */}
+              <button
+                type="button"
+                className={cn(
+                  "group flex flex-col items-start text-left",
+                  "border border-line bg-transparent text-ink hover:bg-ink/5 transition-colors",
+                  "px-4 py-3",
+                )}
+              >
+                <div className="flex w-full items-center justify-between gap-3">
+                  <span className="font-semibold uppercase tracking-[0.16em] text-[12px]">
+                    Request Refresh
+                  </span>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </div>
+                <span className="mt-1 text-[10px] leading-snug text-ink/55 font-mono">
+                  Re-run stale lanes · no decision recorded.
+                </span>
+              </button>
+
+              {/* Route to Manual Review */}
+              <button
+                type="button"
+                className={cn(
+                  "group flex flex-col items-start text-left",
+                  "border border-rose-500/30 bg-transparent text-rose-500 hover:bg-rose-500/5 transition-colors",
+                  "px-4 py-3",
+                )}
+              >
+                <div className="flex w-full items-center justify-between gap-3">
+                  <span className="font-semibold uppercase tracking-[0.16em] text-[12px]">
+                    Manual Review
+                  </span>
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                </div>
+                <span className="mt-1 text-[10px] leading-snug text-rose-500/70 font-mono">
+                  Escalate to committee · warranty suspended.
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
