@@ -22,7 +22,7 @@
     "web": {
       "routePrefix": "/",
       "framework": "nextjs",
-      "buildCommand": "pnpm install --no-frozen-lockfile && pnpm turbo build && cd apps/api/backend && npx prisma migrate deploy"
+      "buildCommand": "pnpm install --no-frozen-lockfile && pnpm turbo build"
     }
   }
 }
