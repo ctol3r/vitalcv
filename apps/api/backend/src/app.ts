@@ -130,6 +130,8 @@ import { registerPilotOpsRoutes } from './routes/pilotOps';                // Pi
 import { registerWebAuthnRoutes } from './routes/webauthn';                // Wave 122: WebAuthn
 import { registerDecisionCapsuleRoutes } from './routes/decisionCapsules'; // Wave A: Decision Capsules
 import { registerDecisionRoutes } from './routes/decisions'; // Wave FE19-A: Decision Intelligence
+import { registerAuditDecisionRoutes } from './routes/auditDecision'; // Acceptance Graph: /api/audit/decision
+import { registerAcceptanceRoutes } from './routes/acceptance'; // Acceptance Graph: /api/acceptance/predict
 import { registerTrustSubstrateRoutes } from './routes/trustSubstrate';   // Substrate Consolidation: Phase 1
 import { registerAuditStreamRoutes } from './routes/auditStream';          // Substrate Consolidation: Phase 2
 import { registerHealthStartRoutes } from './routes/healthstart';           // Substrate Consolidation: Phase 3
@@ -3560,6 +3562,8 @@ app.use('/api/omega', omegaRoutes);
 registerWebAuthnRoutes(app);          // Wave 122: WebAuthn Biometric Auth
 registerDecisionCapsuleRoutes(app);   // Wave A: Decision Capsules + Blast Radius
 registerDecisionRoutes(app);             // Wave FE19-A: Decision recommendations + state model
+registerAuditDecisionRoutes(app);        // Acceptance Graph: /api/audit/decision + learning capsules
+registerAcceptanceRoutes(app);           // Acceptance Graph: /api/acceptance/predict
 registerTrustSubstrateRoutes(app);    // Substrate Consolidation: Phase 1 — unified trust substrate
 registerAuditStreamRoutes(app);       // Substrate Consolidation: Phase 2 — audit OS, cursor export, SIEM stream
 registerHealthStartRoutes(app);       // Substrate Consolidation: Phase 3 — HealthStart deployment profiles + evidence
