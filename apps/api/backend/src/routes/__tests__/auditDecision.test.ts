@@ -3,6 +3,11 @@ import express from 'express';
 import { registerAuditDecisionRoutes } from '../auditDecision';
 import prisma from '../../graphql/prisma_client';
 
+// $transaction([...]) is faked by awaiting each entry — the mocks for
+// auditEvent.create and decisionLearningCapsule.create already return
+// promises, so this faithfully models the all-or-nothing semantics
+// the route relies on (a reject inside either entry propagates via
+// Promise.all and prevents both side-effects from committing).
 jest.mock('../../graphql/prisma_client', () => ({
   __esModule: true,
   default: {
@@ -12,6 +17,9 @@ jest.mock('../../graphql/prisma_client', () => ({
     decisionLearningCapsule: {
       create: jest.fn(),
     },
+    $transaction: jest.fn(async (operations: Array<Promise<unknown>>) => {
+      return Promise.all(operations);
+    }),
   },
 }));
 
