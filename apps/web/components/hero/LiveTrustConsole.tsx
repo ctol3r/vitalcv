@@ -75,11 +75,11 @@ export function LiveTrustConsole({
             >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-foreground">
                 Stop starting over.
-                <span className="block text-muted-foreground mt-2">Start ready.</span>
+                <span className="block text-emerald-600 mt-2">Start ready.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Enter your NPI to instantly generate a time-locked Trust Manifest. 
-                We check federal sources, generate cryptographic receipts, and evaluate your Readiness Posture.
+                The credential readiness infrastructure for healthcare. 
+                Enter your NPI to instantly check federal sources, generate cryptographic receipts, and evaluate your Readiness Posture.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0">
