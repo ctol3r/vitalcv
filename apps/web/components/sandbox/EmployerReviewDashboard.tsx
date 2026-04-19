@@ -14,7 +14,18 @@ function deriveReadinessBand(
   sources: { status: string }[] | undefined,
 ): ReadinessBand {
   if (!sources || sources.length === 0) return "CONDITIONAL READY";
-  if (sources.some((s) => s.status === "UNAVAILABLE")) return "REVIEW REQUIRED";
+  // A lane explicitly flagged for human review must escalate the banner
+  // — keeping it at CONDITIONAL READY would let the action rail show
+  // "Accept & Transfer Risk" copy on a packet that still requires
+  // manual judgment. UNAVAILABLE escalates for the same reason: the
+  // source could not be reached, so the lane is unverified.
+  if (
+    sources.some(
+      (s) => s.status === "UNAVAILABLE" || s.status === "REVIEW REQUIRED",
+    )
+  ) {
+    return "REVIEW REQUIRED";
+  }
   if (sources.every((s) => s.status === "CHECKED")) return "CLEARED FOR START";
   return "CONDITIONAL READY";
 }
