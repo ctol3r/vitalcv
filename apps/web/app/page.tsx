@@ -20,5 +20,10 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomePageClient />;
+  return (
+    <>
+      <div>DEPLOY TEST — 2026-04-19T19:52:00Z</div>
+      <HomePageClient />
+    </>
+  );
 }
