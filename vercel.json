@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm turbo run build --filter=@vitalcv/web",
   "outputDirectory": "apps/web/.next",
   "git": {
