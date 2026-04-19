@@ -71,6 +71,15 @@ export interface UiTruthSnapshot {
   visibleLimitations: Array<{ kind: 'blocker' | 'gap'; text: string }>;
 }
 
+export type TruthRuntimeLane = {
+  status: string | null | undefined;
+  adverse_evidence?: boolean | null;
+};
+
+type TruthRuntimeLaneInput = TruthRuntimeLane | null | undefined;
+
+export type ProofAvailability = 'none' | 'partial' | 'decision-grade';
+
 export const FLOW_STAGES = [
   'identity',
   'safety',
@@ -107,6 +116,8 @@ const FLOW_STAGE_SOURCE_IDS: Record<Exclude<FlowStage, 'decision'>, string[]> = 
   authority: ['STATE_BOARD'],
 };
 
+export const DECISION_GRADE_RECEIPT_THRESHOLD = 3;
+
 const RESOLVED_FLOW_SOURCE_STATES = new Set([
   'checked',
   'stale',
@@ -133,6 +144,110 @@ export function hasDecisionGradeSignals(
   return normalizeReadinessLevel(readinessLevel) === 'L3';
 }
 
+function isVerifiedLaneStatus(status: string | null | undefined): boolean {
+  const normalized = normalizeCoverageState(status);
+  return normalized === 'checked'
+    || normalized === 'verified'
+    || normalized === 'clear'
+    || normalized === 'enrolled';
+}
+
+function normalizeTruthRuntimeLanes(
+  lanes: readonly TruthRuntimeLaneInput[] | null | undefined,
+): TruthRuntimeLane[] {
+  if (!Array.isArray(lanes)) {
+    return [];
+  }
+
+  return lanes.flatMap((lane) => {
+    if (!lane || typeof lane !== 'object') {
+      return [];
+    }
+
+    return [{
+      status: typeof lane.status === 'string' ? lane.status : null,
+      adverse_evidence: lane.adverse_evidence === true,
+    }];
+  });
+}
+
+export function getScoreState(
+  lanes: readonly TruthRuntimeLaneInput[] | null | undefined,
+): 'available' | null {
+  const verifiedLanes = normalizeTruthRuntimeLanes(lanes)
+    .filter((lane) => isVerifiedLaneStatus(lane.status))
+    .length;
+  return verifiedLanes === 0 ? null : 'available';
+}
+
+export function getProofAvailability(
+  receipts: number,
+  threshold = DECISION_GRADE_RECEIPT_THRESHOLD,
+): ProofAvailability {
+  const receiptCount = Number.isFinite(receipts) ? Math.max(0, Math.floor(receipts)) : 0;
+  const minimumDecisionGradeReceipts = Number.isFinite(threshold)
+    ? Math.max(1, Math.floor(threshold))
+    : DECISION_GRADE_RECEIPT_THRESHOLD;
+
+  if (receiptCount === 0) {
+    return 'none';
+  }
+
+  if (receiptCount < minimumDecisionGradeReceipts) {
+    return 'partial';
+  }
+
+  return 'decision-grade';
+}
+
+export function validateBlocker(lane: TruthRuntimeLane | null | undefined): boolean {
+  const normalizedStatus = normalizeCoverageState(lane?.status);
+  if (
+    normalizedStatus === 'pending'
+    || normalizedStatus === 'unavailable'
+    || normalizedStatus === 'accessrequired'
+  ) {
+    return false;
+  }
+
+  return lane?.adverse_evidence === true;
+}
+
+export function assertTruthRuntimeContract(input: {
+  lanes: readonly TruthRuntimeLaneInput[] | null | undefined;
+  score?: number | null;
+  receiptCount?: number | null;
+  proofAvailability?: ProofAvailability | null;
+  blocked?: boolean;
+  blockerLane?: TruthRuntimeLane | null;
+}): void {
+  const normalizedLanes = normalizeTruthRuntimeLanes(input.lanes);
+  const scoreState = getScoreState(normalizedLanes);
+  if (typeof input.score === 'number' && Number.isFinite(input.score) && scoreState === null) {
+    throw new Error('Score shown without verified lanes');
+  }
+
+  if (typeof input.receiptCount === 'number') {
+    const computedProofAvailability = getProofAvailability(input.receiptCount);
+
+    if (
+      input.proofAvailability
+      && input.proofAvailability !== computedProofAvailability
+      && computedProofAvailability === 'none'
+    ) {
+      throw new Error('Proof shown without receipts');
+    }
+
+    if (scoreState === null && computedProofAvailability === 'decision-grade') {
+      throw new Error('Mixed contradictory states');
+    }
+  }
+
+  if (input.blocked && !validateBlocker(input.blockerLane ?? { status: null, adverse_evidence: false })) {
+    throw new Error('Blocked without adverse evidence');
+  }
+}
+
 function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
@@ -148,11 +263,12 @@ function isFlowStageChecked(
   stage: Exclude<FlowStage, 'decision'>,
 ): boolean {
   const matches = FLOW_STAGE_SOURCE_IDS[stage];
+  const checks = Array.isArray(coverage?.checks) ? coverage.checks : [];
 
-  return coverage?.checks.some((check) => (
-    matches.includes(check.sourceId)
-    && normalizeCoverageState(check.state) === 'checked'
-  )) ?? false;
+  return checks.some((check) => (
+    matches.includes(check?.sourceId ?? '')
+    && normalizeCoverageState(check?.state) === 'checked'
+  ));
 }
 
 function isFlowStageResolved(
@@ -160,11 +276,12 @@ function isFlowStageResolved(
   stage: Exclude<FlowStage, 'decision'>,
 ): boolean {
   const matches = FLOW_STAGE_SOURCE_IDS[stage];
+  const checks = Array.isArray(coverage?.checks) ? coverage.checks : [];
 
-  return coverage?.checks.some((check) => (
-    matches.includes(check.sourceId)
-    && RESOLVED_FLOW_SOURCE_STATES.has(normalizeCoverageState(check.state))
-  )) ?? false;
+  return checks.some((check) => (
+    matches.includes(check?.sourceId ?? '')
+    && RESOLVED_FLOW_SOURCE_STATES.has(normalizeCoverageState(check?.state))
+  ));
 }
 
 export function buildFlowStages(input: {
@@ -410,7 +527,7 @@ export function buildUiTruthSnapshot(input: {
   decision: PublicDecisionStatus;
   limitations?: UiLimitationsShape | null;
 }): UiTruthSnapshot {
-  return {
+  const snapshot: UiTruthSnapshot = {
     receiptBackedManifest: hasReceiptBackedManifest(input.manifest),
     decisionGradeReady: hasDecisionGradeSignals(input.readinessLevel),
     decisionStatus: resolvePublicDecisionTruthStatus({
@@ -419,4 +536,46 @@ export function buildUiTruthSnapshot(input: {
     }),
     visibleLimitations: resolveVisibleLimitations(input.limitations),
   };
+
+  assertUiTruthSnapshotContract({
+    snapshot,
+    limitations: input.limitations,
+  });
+
+  return snapshot;
+}
+
+export function assertUiTruthSnapshotContract(input: {
+  snapshot: UiTruthSnapshot;
+  limitations?: UiLimitationsShape | null;
+}): void {
+  const hasRawLimitations = Boolean(
+    input.limitations
+    && (
+      (input.limitations.blockers?.length ?? 0) > 0
+      || (input.limitations.gaps?.length ?? 0) > 0
+    ),
+  );
+
+  if (
+    !input.snapshot.receiptBackedManifest
+    && (
+      input.snapshot.decisionStatus === 'PROCEED'
+      || input.snapshot.decisionStatus === 'PROCEED_WITH_CAUTION'
+      || input.snapshot.decisionGradeReady
+    )
+  ) {
+    throw new Error('UI shows certainty without proof');
+  }
+
+  if (hasRawLimitations && input.snapshot.visibleLimitations.length === 0) {
+    throw new Error('UI hides limitations');
+  }
+
+  if (
+    input.snapshot.decisionGradeReady
+    && input.snapshot.decisionStatus === 'INSUFFICIENT_DATA'
+  ) {
+    throw new Error('UI simplifies state incorrectly');
+  }
 }

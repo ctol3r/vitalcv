@@ -65,7 +65,7 @@ export interface PassportTrustPosture {
   blockers: string[];
 }
 
-export type DecisionPostureStatus = 'READY' | 'PARTIAL' | 'BLOCKED';
+export type DecisionPostureStatus = 'READY' | 'REVIEWABLE' | 'BLOCKED';
 
 export interface DecisionPostureSource {
   sourceId: string;
@@ -281,7 +281,7 @@ function isReadinessStatus(value: unknown): value is ReadinessStatus {
 }
 
 function isDecisionPostureStatus(value: unknown): value is DecisionPostureStatus {
-  return isReadinessStatus(value);
+  return value === 'READY' || value === 'REVIEWABLE' || value === 'BLOCKED';
 }
 
 function isPriority(value: unknown): value is 'HIGH' | 'MEDIUM' | 'LOW' {

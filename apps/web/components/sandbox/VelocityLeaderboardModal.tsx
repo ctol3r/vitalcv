@@ -127,7 +127,7 @@ export default function VelocityLeaderboardModal({
                           <td className="px-4 py-4 font-mono text-xs">{req.role}</td>
                           <td className="px-4 py-4 font-mono text-xs opacity-80">
                             {req.requiredDelta === "None" ? (
-                              <span className="opacity-40">// none</span>
+                              <span className="opacity-40">{'// none'}</span>
                             ) : (
                               req.requiredDelta
                             )}

@@ -86,3 +86,6 @@ node_modules/
 dist/
 .cache/
 
+# Parallel agent worktrees (git worktree add --path)
+.worktrees/
+

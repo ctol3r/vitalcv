@@ -59,6 +59,12 @@ export interface BlockerOwnership {
   canProceed: boolean;
 }
 
+export interface EmployerFacingOwnershipCopy {
+  ownerLabel: string;
+  title: string;
+  detail: string;
+}
+
 const UNKNOWN_OWNERSHIP: BlockerOwnership = {
   owner: ACTION_OWNER.UNKNOWN,
   rationale: 'Ownership of this gap has not been classified yet.',
@@ -186,4 +192,58 @@ export function resolveOmegaRecomputeFailureOwnership(): BlockerOwnership {
     etaOrDependency: 'Retries automatically on the next navigation',
     canProceed: true,
   };
+}
+
+export function describeBlockerOwnershipForEmployer(
+  blockerOrOwnership: string | BlockerOwnership,
+): EmployerFacingOwnershipCopy {
+  const ownership = typeof blockerOrOwnership === 'string'
+    ? resolveBlockerOwnership(blockerOrOwnership)
+    : blockerOrOwnership;
+
+  switch (ownership.owner) {
+    case ACTION_OWNER.USER:
+      return {
+        ownerLabel: 'Clinician-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. The clinician must resolve this before you can rely on it.`,
+      };
+    case ACTION_OWNER.VITALCV:
+      return {
+        ownerLabel: 'VitalCV-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. VitalCV is retrying this source check and will update the review when it completes.`,
+      };
+    case ACTION_OWNER.SOURCE:
+      return {
+        ownerLabel: 'Source-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. The source system must refresh before this lane becomes current again.`,
+      };
+    case ACTION_OWNER.EMPLOYER:
+      return {
+        ownerLabel: 'Employer-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. Your employer owns the next step on this lane.`,
+      };
+    case ACTION_OWNER.INSTITUTION:
+      return {
+        ownerLabel: 'Institution-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. Your employer or institution covers this lane outside the current VitalCV proof.`,
+      };
+    case ACTION_OWNER.REVIEWER:
+      return {
+        ownerLabel: 'Reviewer-owned',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. A reviewer must examine this finding before you rely on it.`,
+      };
+    case ACTION_OWNER.UNKNOWN:
+    default:
+      return {
+        ownerLabel: 'Ownership pending',
+        title: ownership.plainLabel,
+        detail: `${ownership.plainLabel}. Ownership detail is not attached yet. Review the full passport before relying on it.`,
+      };
+  }
 }

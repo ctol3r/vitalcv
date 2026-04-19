@@ -1,10 +1,24 @@
+import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  PILOT_REQUEST_METRIC_NOTICE,
+  PILOT_REQUEST_NEXT_STEP,
+  PILOT_REQUEST_OWNER,
+  PILOT_REQUEST_SUCCESS_CRITERIA,
+} from '@/lib/pilot/pilotRequestContract';
 
 export const metadata: Metadata = {
   title: 'Start a Pilot',
   description: 'Start a focused employer pilot for NPI-to-review credential readiness decisions.',
+};
+
+type PilotPageProps = {
+  searchParams?: Promise<{
+    requested?: string;
+    requestError?: string;
+  }>;
 };
 
 const PILOT_STEPS = [
@@ -32,7 +46,11 @@ const SCOPE_GUARDS = [
   'We do not replace your credentialing committee — VitalCV provides a verified head start, not a final credentialing decision',
 ];
 
-export default function PilotPage() {
+export default async function PilotPage({ searchParams }: PilotPageProps) {
+  const params = await searchParams;
+  const requestRecorded = params?.requested === '1';
+  const requestError = params?.requestError ?? null;
+
   return (
     <main className="bg-background px-6 py-16 text-foreground">
       <div className="mx-auto max-w-4xl space-y-10">
@@ -49,6 +67,38 @@ export default function PilotPage() {
             pending coverage where not, and one review workflow.
           </p>
         </div>
+
+        {requestRecorded ? (
+          <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">Pilot handoff recorded</p>
+            <h2 className="mt-2 text-2xl font-semibold">Pilot Success now owns the next step.</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Owner: <span className="font-medium text-foreground">{PILOT_REQUEST_OWNER}</span>.
+              {' '}
+              {PILOT_REQUEST_NEXT_STEP}
+            </p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {PILOT_REQUEST_METRIC_NOTICE}
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {PILOT_REQUEST_SUCCESS_CRITERIA.map((criterion) => (
+                <li key={criterion}>{criterion}</li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {requestError ? (
+          <section className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">Pilot handoff failed</p>
+            <h2 className="mt-2 text-2xl font-semibold">The request was not recorded.</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {requestError === 'missing_fields'
+                ? 'Organization, contact name, and work email are required before the handoff can be recorded.'
+                : 'Pilot intake is temporarily unavailable. Email pilot@vitalcv.com so the request is attributable and triaged manually.'}
+            </p>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-2">
           {PILOT_STEPS.map((step) => (
@@ -168,6 +218,9 @@ export default function PilotPage() {
             >
               Submit request
             </button>
+            <p className="text-xs text-muted-foreground">
+              {PILOT_REQUEST_METRIC_NOTICE}
+            </p>
           </form>
           <p className="mt-3 text-xs text-muted-foreground">
             Or reach us directly at{' '}

@@ -198,7 +198,18 @@
       "Bash(awk:*)",
       "Bash(DATABASE_URL=\"postgresql://test:test@localhost:5432/test\" NODE_ENV=test ENCRYPTION_KEY=\"test-key-test-key-test-key-test!\" JWT_SECRET=\"test-secret-test-secret-test-secret-000\" node_modules/.bin/jest src/services/drift/__tests__/driftDetector.test.ts --no-coverage --forceExit)",
       "Bash(npx tsx *)",
-      "Bash(SKIP_DESIGN_GUARD=1 pnpm next build)"
+      "Bash(SKIP_DESIGN_GUARD=1 pnpm next build)",
+      "Bash(git ls-tree *)",
+      "Bash(git show *)",
+      "Bash(npx prisma *)",
+      "Bash(git -C /Users/christoler/vitalcv log --oneline -5 apps/web/components/sandbox/EmployerReviewDashboard.tsx)",
+      "Bash(DATABASE_URL=postgresql://christoler@localhost:5432/vitalcv_dev NODE_ENV=test YC_DEMO_MODE=false npx jest src/routes/__tests__/auditDecision.test.ts src/services/intelligence/__tests__/acceptanceGraph.test.ts --runInBand --forceExit)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(rm /tmp/test-write.tsx)",
+      "Bash(DATABASE_URL=postgresql://christoler@localhost:5432/vitalcv_dev npx tsc --noEmit)",
+      "Bash(gh pr *)",
+      "Bash(git fetch *)"
     ],
     "deny": [],
     "ask": []

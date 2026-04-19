@@ -687,7 +687,7 @@ describe('post-release truth cleanup', () => {
   it('keeps pilot entry copy narrow with one clear buyer action', async () => {
     const { default: PilotPage } = await import('../app/pilot/page');
 
-    const pilotMarkup = renderToStaticMarkup(<PilotPage />);
+    const pilotMarkup = renderToStaticMarkup(await PilotPage({}));
 
     expect(pilotMarkup).toContain('Start a focused pilot: NPI to readiness, passport, and review.');
     expect(pilotMarkup).toContain('One next step');
