@@ -18,9 +18,7 @@ import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
 const NAV_ITEMS = [
-  { href: '/passport',    label: 'Product' },
-  { href: '/employers',   label: 'Employers' },
-  { href: '/developers',  label: 'Developers' },
+  { href: '/employers',   label: 'For Employers' },
 ] as const;
 
 export default function Navbar() {
