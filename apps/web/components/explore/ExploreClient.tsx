@@ -853,17 +853,22 @@ function OpportunityCard({
       )}
 
       {/* Acceptance Predictor — learns from prior decisions at this employer
-          and similar employers in the network. Fails soft when no history. */}
-      {opp.organizationId && (
+          and similar employers in the network. Fails soft when no history.
+          Gate: only render when we actually know the clinician's credential
+          state. A missing `comparison` object means "we haven't compared
+          against this opportunity yet", which is distinct from "compared
+          and found no credentials". Previously an empty credential list
+          was forwarded to the predictor, which treats empty as "mandatory
+          credential missing" → BLOCKER, so cards misleadingly read
+          "Missing requirement" when we actually had no data at all. */}
+      {opp.organizationId && opp.comparison && (
         <AcceptancePredictor
           employerId={opp.organizationId}
           specialty={opp.specialty}
           state={opp.state}
-          credentialTypes={
-            (opp.comparison?.satisfied ?? [])
-              .map((s) => s.key ?? s.label)
-              .filter((value): value is string => typeof value === 'string' && value.length > 0)
-          }
+          credentialTypes={opp.comparison.satisfied
+            .map((s) => s.key ?? s.label)
+            .filter((value): value is string => typeof value === 'string' && value.length > 0)}
         />
       )}
 

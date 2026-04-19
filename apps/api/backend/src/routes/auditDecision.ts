@@ -34,9 +34,29 @@ function isDecisionOutcome(v: unknown): v is DecisionOutcome {
   return typeof v === 'string' && (VALID_OUTCOMES as readonly string[]).includes(v);
 }
 
+/**
+ * Canonical JSON — stable string form that sorts object keys at every
+ * depth. Arrays preserve order. Required so the SHA-256 snapshot hash is
+ * invariant under key reordering and faithfully reflects the *entire*
+ * nested payload. (A previous implementation passed a top-level key list
+ * as `JSON.stringify`'s replacer, which silently stripped nested fields
+ * and caused distinct snapshots to collide on the same hash.)
+ */
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(canonicalize).join(',') + ']';
+  }
+  const entries = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map((k) => JSON.stringify(k) + ':' + canonicalize((value as Record<string, unknown>)[k]));
+  return '{' + entries.join(',') + '}';
+}
+
 function sha256OfJson(value: unknown): string {
-  const canonical = JSON.stringify(value, Object.keys(value as Record<string, unknown>).sort());
-  return createHash('sha256').update(canonical).digest('hex');
+  return createHash('sha256').update(canonicalize(value)).digest('hex');
 }
 
 export function registerAuditDecisionRoutes(app: Express): void {
@@ -84,29 +104,48 @@ export function registerAuditDecisionRoutes(app: Express): void {
     const snapshotHash = sha256OfJson(passportSnapshot);
 
     try {
-      // 1. Durable AuditEvent row — the "standard AuditLog" per spec.
+      // Both DB side-effects must land atomically. A prior version created
+      // them sequentially, so a failure on the capsule insert could leave
+      // the endpoint returning 500 with a persisted audit row — violating
+      // the "both succeed" contract and producing duplicate / contradictory
+      // history on client retries. `$transaction` guarantees all-or-nothing.
+      //
       // AuditEvent has no dedicated actor column; organizationId already
       // carries the employer id, and the actor is additionally mirrored
       // into metadata.actorId so downstream consumers can read it without
       // inferring actor === organization.
-      const auditEvent = await prisma.auditEvent.create({
-        data: {
-          type: 'DECISION_TAKEN',
-          hash: snapshotHash,
-          referenceId: clinicianId,
-          clinicianId,
-          organizationId: employerId,
-          metadata: {
-            actorId: employerId,
+      const [auditEvent, capsule] = await prisma.$transaction([
+        prisma.auditEvent.create({
+          data: {
+            type: 'DECISION_TAKEN',
+            hash: snapshotHash,
+            referenceId: clinicianId,
+            clinicianId,
+            organizationId: employerId,
+            metadata: {
+              actorId: employerId,
+              role,
+              decisionOutcome,
+              timeToDecision,
+              source: 'employer_review_dashboard',
+            },
+          },
+        }),
+        prisma.decisionLearningCapsule.create({
+          data: {
+            clinicianId,
+            employerId,
             role,
+            passportSnapshot: passportSnapshot as object,
             decisionOutcome,
             timeToDecision,
-            source: 'employer_review_dashboard',
           },
-        },
-      });
+        }),
+      ]);
 
-      // 2. In-memory SIEM ledger (best-effort, in-process only)
+      // In-memory SIEM ledger — best-effort, in-process only. Fires AFTER
+      // the transaction commits so the ledger never reflects a decision
+      // that was rolled back.
       appendAuditEvent({
         category: 'DECISION',
         actor: employerId,
@@ -114,18 +153,6 @@ export function registerAuditDecisionRoutes(app: Express): void {
         requestFields: { role, decisionOutcome, timeToDecision },
         resultFields: { passportSnapshotHash: snapshotHash, auditEventId: auditEvent.id },
         severity: 'INFO',
-      });
-
-      // 3. Persist the learning capsule — the training signal
-      const capsule = await prisma.decisionLearningCapsule.create({
-        data: {
-          clinicianId,
-          employerId,
-          role,
-          passportSnapshot: passportSnapshot as object,
-          decisionOutcome,
-          timeToDecision,
-        },
       });
 
       log('info', 'audit_decision: capsule_recorded', {
