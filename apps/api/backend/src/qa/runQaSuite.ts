@@ -6,6 +6,22 @@ function writeJson(stream: NodeJS.WriteStream, payload: Record<string, unknown>)
 }
 
 async function main(): Promise<number> {
+  // The QA sweep boots the full app against a real database to exercise
+  // route contracts — meaningful in CI (ephemeral test DB) but inappropriate
+  // on Vercel: with no DATABASE_URL the env validator crashes the build,
+  // and with a shared DATABASE_URL the sweep would risk write pollution on
+  // every preview deploy. Degrade honestly in either case.
+  if (process.env.VERCEL === '1' || !process.env.DATABASE_URL) {
+    writeJson(process.stdout, {
+      trigger: 'build',
+      skipped: true,
+      reason: process.env.VERCEL === '1'
+        ? 'Vercel build — QA sweep is CI-only and is skipped on Vercel.'
+        : 'DATABASE_URL not set — QA sweep requires a database; skipping gracefully.',
+    });
+    return 0;
+  }
+
   const { loadEnv } = await import('../config/env');
   loadEnv();
   const { default: app } = await import('../app');
