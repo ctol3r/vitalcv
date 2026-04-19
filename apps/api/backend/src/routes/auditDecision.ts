@@ -84,7 +84,11 @@ export function registerAuditDecisionRoutes(app: Express): void {
     const snapshotHash = sha256OfJson(passportSnapshot);
 
     try {
-      // 1. Durable AuditEvent row — the "standard AuditLog" per spec
+      // 1. Durable AuditEvent row — the "standard AuditLog" per spec.
+      // AuditEvent has no dedicated actor column; organizationId already
+      // carries the employer id, and the actor is additionally mirrored
+      // into metadata.actorId so downstream consumers can read it without
+      // inferring actor === organization.
       const auditEvent = await prisma.auditEvent.create({
         data: {
           type: 'DECISION_TAKEN',
@@ -92,8 +96,8 @@ export function registerAuditDecisionRoutes(app: Express): void {
           referenceId: clinicianId,
           clinicianId,
           organizationId: employerId,
-          actorId: employerId,
           metadata: {
+            actorId: employerId,
             role,
             decisionOutcome,
             timeToDecision,
