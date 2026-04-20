@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm -w --filter \"@vitalcv/web^...\" build",
     "build": "next build",
     "build-storybook": "storybook build",
     "dev": "next dev",
