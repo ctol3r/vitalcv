@@ -39,6 +39,14 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      # Vitest resolves workspace deps (e.g. @vitalcv/trust-state,
+      # @vitalcv/shared/pricing) via their package.json "main"/"exports"
+      # which point at dist/*. Build the upstream workspace packages
+      # before running tests so those dist outputs exist. Excluding
+      # @vitalcv/web keeps this step cheap — the full next build happens
+      # later, and turbo caches both.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
       - name: Lint web app
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
@@ -47,4 +55,3 @@ jobs:
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
         run: bash scripts/launch-gate.sh
-
