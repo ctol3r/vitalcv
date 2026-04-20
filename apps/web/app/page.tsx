@@ -1,3 +1,3 @@
 export default function Page() {
-  return <div>{/* deploy trigger */}ROOT OK</div>;
+  return <div>ROOT LIVE</div>;
 }
