@@ -1,7 +1,6 @@
 {
   "framework": "nextjs",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm turbo run build --filter=@vitalcv/web",
+  "buildCommand": "pnpm --filter @vitalcv/web build",
   "outputDirectory": "apps/web/.next",
   "git": {
     "deploymentEnabled": {
@@ -23,7 +22,7 @@
     "web": {
       "routePrefix": "/",
       "framework": "nextjs",
-      "buildCommand": "pnpm install --no-frozen-lockfile && pnpm turbo build && cd apps/api/backend && npx prisma migrate deploy"
+      "buildCommand": "pnpm --filter @vitalcv/web build"
     }
   }
 }
