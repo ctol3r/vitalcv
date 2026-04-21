@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm --filter @vitalcv/web build",
+  "buildCommand": "pnpm turbo run build --filter=@vitalcv/web",
   "outputDirectory": "apps/web/.next",
   "git": {
     "deploymentEnabled": {
@@ -22,7 +22,7 @@
     "web": {
       "routePrefix": "/",
       "framework": "nextjs",
-      "buildCommand": "pnpm --filter @vitalcv/web build"
+      "buildCommand": "pnpm turbo run build --filter=@vitalcv/web"
     }
   }
 }
