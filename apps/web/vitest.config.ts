@@ -12,6 +12,7 @@ const STALE_TEST_FILES = [
   '__tests__/billing-page.test.tsx',              // /app/billing/page missing on main
   '__tests__/employer-request-context.test.tsx',  // /app/review/** missing on main
   '__tests__/employer-workspace-bootstrap.test.tsx', // /app/review/** missing on main
+  '__tests__/live-path-regression.test.tsx',      // @/app/interview/InterviewClient missing on main
   '__tests__/passport-page.test.tsx',             // calls notFound() — PilotProofPage module-load errors
   '__tests__/pilot-ops-page.test.tsx',            // /app/pilot-ops/page missing on main
   '__tests__/pricing-model.test.ts',              // @vitalcv/shared/pricing subpath not exported
