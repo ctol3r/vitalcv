@@ -78,8 +78,7 @@ export function LiveTrustConsole({
                 <span className="block text-emerald-600 mt-2">Start ready.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                The credential readiness infrastructure for healthcare. 
-                Enter your NPI to instantly check federal sources, generate cryptographic receipts, and evaluate your Readiness Posture.
+                Enter your NPI to check your credentialing status across federal sources in seconds. See what&rsquo;s verified, what&rsquo;s missing, and what could delay your next start.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0">
@@ -108,7 +107,7 @@ export function LiveTrustConsole({
                   disabled={phase === 'loading'}
                   className="h-14 px-8 text-base font-semibold rounded-none"
                 >
-                  {phase === 'loading' ? 'Evaluating...' : 'Apply with VCV'}
+                  {phase === 'loading' ? 'Checking…' : 'Check readiness'}
                 </Button>
               </form>
               {formMessage && (
