@@ -17,6 +17,7 @@ const STALE_TEST_FILES = [
   '__tests__/pilot-ops-page.test.tsx',            // /app/pilot-ops/page missing on main
   '__tests__/pricing-model.test.ts',              // @vitalcv/shared/pricing subpath not exported
   '__tests__/public-docs-route-contract.test.tsx', // /app/docs/page + /app/developers/page missing on main
+  '__tests__/postrelease-truth-cleanup.test.tsx', // imports /app/explore/page, /app/interview/page, /app/developers/page + asserts on legacy nav "Explore Roles" copy
 ];
 
 export default defineConfig({
