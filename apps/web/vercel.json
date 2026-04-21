@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install -g pnpm@10.6.1 && pnpm install --frozen-lockfile --ignore-scripts",
-  "buildCommand": "pnpm turbo build --filter=@vitalcv/web"
+  "buildCommand": "pnpm turbo run build --filter=@vitalcv/web",
+  "outputDirectory": ".next"
 }
