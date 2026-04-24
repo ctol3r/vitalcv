@@ -1,12 +1,12 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24
-Source: Wave OPS-1 (Normalized)
+Last Updated: 2026-04-24 (post Wave LIVE-100 repo-truth audit)
+Source: Wave LIVE-100
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
 * "Complete" means hardened, tested, and actively solving the buyer problem in the wedge context.
 * It does *not* mean "we wrote a ticket for it" or "the mock exists."
-* **Note on Pilot-Ready Completion:** This score was artificially inflated to 100% in Wave 6A due to a math error in delta tracking. It has been normalized back down to 88% because real pilot launch requires deploy truth and operations funnel testing.
+* **Wave LIVE-100 note:** The repo-truth half of the mission (canonical app, build health, deploy-path documentation) is validated — see `docs/ops/deploy-canonicality.md`. The live-truth half (vitalcv.com loads, domain maps to `vcv-web`, mobile audit) can only be signed off by the Claude Browser agent role and is **not** claimed as validated here.
 
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
@@ -43,12 +43,21 @@ This board tracks the functional reality of VitalCV.
 | :--- | :--- | :--- | :--- |
 | Issuer / Trust Object | 74% | 0% | Trust container hides implementation details effectively. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
-| Deploy / Production Truth | 50% | 0% | Vercel pipeline builds, but cross-project routing is brittle. |
+| Deploy / Production Truth | 62% | +12% | Root `.vercel/project.json` → `vcv-web` confirmed canonical with filter build to `@vitalcv/web`. Apps/web `tsc`, `vitest` (85 suites / 408 tests), and `next build` all green. Dual Vercel link + legacy `apps/marketing` project still need Browser/CLI sign-off to call this green end-to-end. See `docs/ops/deploy-canonicality.md`. |
 
 ## OVERALL
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Launch Wedge Completion | 73% | 0% | The core Identity -> Review wedge is demonstrable. |
-| Pilot-Ready Completion | 88% | -12% | Normalized from inflated 100%. Needs operations funnel / deployment truth. |
+| Launch Wedge Completion | 76% | +3% | Canonical app homepage with NPI entry, /pilot, /passport/[id], /review/[entityId], /apply/[bundleId], /p/norcal-pa-pilot-1 all build clean; verifier TrustContainerPanel + honest pilot evidence page wired. |
+| Pilot-Ready Completion | 90% | +2% | Sales kit externally safe, /pilot page honest, build green. Remaining 10% is live-site Browser sign-off + first booked pilot conversation. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **55%** | **-2%** | Corrected math based on normalized Pilot-Ready score. |
+| **Overall VitalCV Completion** | **57%** | **+2%** | Deploy-truth documented, build + test green, repo-side canonicality proved. Live-URL / mobile / domain sign-off still pending (Claude Browser). |
+
+## Wave LIVE-100 canonical-app evidence
+* Canonical repo root: `/Users/christoler/vitalcv`
+* Canonical app: `apps/web` (`@vitalcv/web`)
+* Root Vercel project: `vcv-web` (`prj_TFcurSwwzG2TCvR9INCVcZlGPiDZ`), buildCommand `pnpm turbo run build --filter=@vitalcv/web`
+* Legacy / non-canonical Vercel project: `vitalcv-marketing` (`prj_Rsi0LSCEbf9QUzVnxEz1uCqmvgXo`) — apps/marketing carry-over, not the canonical domain target
+* Build: `next build` green, all wedge routes present
+* Tests: 85 suites / 408 tests pass
+* Deploy-path doc: `docs/ops/deploy-canonicality.md`
