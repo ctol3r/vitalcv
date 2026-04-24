@@ -32,6 +32,10 @@ jest.mock('../../services/seal/sealEventCapture', () => ({
   captureEmployerDecision: jest.fn(),
 }));
 
+jest.mock('../../services/feedback/prismaEventStore', () => ({
+  emitLearningEvent: jest.fn(),
+}));
+
 jest.mock('../../services/entity/passportService', () => ({
   buildPassport: jest.fn(),
   buildPassportByNpi: jest.fn().mockResolvedValue(null),

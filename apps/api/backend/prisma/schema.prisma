@@ -308,7 +308,8 @@ model PersonProfile {
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
-  providerLocations ProviderLocation[]
+  providerLocations    ProviderLocation[]
+  workspaceMemberships WorkspaceMembership[]
 
   @@index([npi])
   @@index([userId])
@@ -344,7 +345,8 @@ model OrganizationProfile {
   verified              Boolean              @default(false)
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
-  institution           Institution?
+  institution          Institution?
+  workspaceMemberships WorkspaceMembership[]
 
   @@index([npi])
   @@index([organizationId])
@@ -480,12 +482,14 @@ model WorkspaceMembership {
   id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   personProfileId       String         @map("person_profile_id") @db.Uuid
   organizationProfileId String         @map("organization_profile_id") @db.Uuid
-  role                  MembershipRole @default(VERIFIER)
-  active                Boolean        @default(true)
-  invitedAt             DateTime?      @map("invited_at")
-  acceptedAt            DateTime?      @map("accepted_at")
-  createdAt             DateTime       @default(now()) @map("created_at")
-  updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at")
+  role                  MembershipRole      @default(VERIFIER)
+  active                Boolean             @default(true)
+  invitedAt             DateTime?           @map("invited_at")
+  acceptedAt            DateTime?           @map("accepted_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at")
+  personProfile         PersonProfile       @relation(fields: [personProfileId], references: [id])
+  organizationProfile   OrganizationProfile @relation(fields: [organizationProfileId], references: [id])
 
   @@unique([personProfileId, organizationProfileId], map: "workspace_memberships_person_org_key")
   @@index([organizationProfileId], map: "workspace_memberships_org_idx")
