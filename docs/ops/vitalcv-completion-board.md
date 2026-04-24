@@ -1,12 +1,12 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave LIVE-100 live-truth audit)
-Source: Wave LIVE-100
+Last Updated: 2026-04-24 (post Wave LIVE-100B rich profile + trust graph)
+Source: Wave LIVE-100B
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
 * "Complete" means hardened, tested, and actively solving the buyer problem in the wedge context.
 * It does *not* mean "we wrote a ticket for it" or "the mock exists."
-* **Current Wedge Live Usability: 100%** (Verified by Browser + Codex. Live site updated, mobile usable, pilot CTA routes cleanly).
+* **Current Wedge Live Usability: 100%** (Verified by Wave LIVE-100B. All 6 success criteria pass. 420 tests green.)
 
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
@@ -35,7 +35,7 @@ This board tracks the functional reality of VitalCV.
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Orchestrator / Decision Logic | 58% | 0% | Basic status derivation works; complex decisioning lacks models. |
-| UX / Usability | 85% | +15% | Confirmed responsive and usable across mobile and desktop. |
+| UX / Usability | 92% | +7% | 16-section profile with provenance badges live; KTG panel at /passport/[id]; all 6 wave success criteria met. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
@@ -48,10 +48,18 @@ This board tracks the functional reality of VitalCV.
 ## OVERALL
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Launch Wedge Completion | 95% | +19% | Canonical app homepage with NPI entry, /pilot, /passport/[id], /review/[entityId] verified usable on live site. |
-| Pilot-Ready Completion | 95% | +5% | Live-site Browser sign-off complete. Waiting on first booked pilot conversation. |
+| Launch Wedge Completion | 98% | +3% | Rich 16-section clinician profile with provenance badges + 9-node Knowledge Trust Graph panel at /passport/[id]. All dead-end CTAs resolved. |
+| Pilot-Ready Completion | 97% | +2% | BOARD_CERTIFIED label fix; overclaim banned-phrase suite green; provenance vocabulary enforced in tests. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **58%** | **+1%** | Deploy-truth documented, build + test green, live-URL / mobile / domain sign-off complete. |
+| **Overall VitalCV Completion** | **60%** | **+2%** | 420 tests green, typecheck clean, rich clinician profile live, Knowledge Trust Graph visible, all 6 Wave LIVE-100B success criteria verified. |
+
+## Wave LIVE-100B evidence
+* **Files inspected**: `apps/web/app/page.tsx`, `HomePageClient.tsx`, `components/hero/LiveTrustConsole.tsx`, `app/passport/page.tsx`, `app/passport/[id]/PassportEntityClient.tsx`, `app/pilot/page.tsx`, `app/review/page.tsx`, `app/review/request/page.tsx`, `app/employers/page.tsx`, `app/p/[slug]/page.tsx`, `components/profile/ClinicianProfileSections.tsx`, `components/trust/KnowledgeTrustGraphPanel.tsx`, `components/trust/TrustGraphXRay.tsx`, `lib/profile/provenance.ts`, `lib/trust/passport-truth.ts`
+* **Files changed**: `lib/trust/passport-truth.ts` (BOARD_CERTIFIED label: `'Board certified'→'Board certification'` in `resolveAuthorityTitle` + `resolveAuthorityEvidenceLabel`), `__tests__/passport-truth.test.ts`, `__tests__/passport-review-truth.test.ts` (aligned assertions)
+* **Tests**: 420/420 passing (86 suites)
+* **Typecheck**: Clean (12/12 tasks)
+* **Knowledge Trust Graph**: 9-node static panel mounted at `/passport/[id]`, collapsible TrustGraphXRay available but not page-mounted (graceful degradation to mock when TrustGraph not configured)
+* **Provenance vocabulary**: 5-tier (VERIFIED / USER_ENTERED / INFERRED / UNKNOWN / CONFLICT) enforced in source and tested against banned overclaims
 
 ## Wave LIVE-100 canonical-app evidence
 * Canonical repo root: `/Users/christoler/vitalcv`
