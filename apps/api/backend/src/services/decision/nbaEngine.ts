@@ -138,6 +138,16 @@ export function generateNextBestAction(context: NbaInputContext): NbaRecommendat
     };
   }
 
+  if (context.readinessPosture === ReadinessPosture.DEGRADED) {
+    return {
+      action: RecommendedAction.REVERIFY,
+      domain: 'recognition',
+      reasoning: 'Readiness posture has degraded and must be refreshed before proceeding.',
+      effortEstimate: 'MEDIUM',
+      impactEstimate: 'HIGH'
+    };
+  }
+
   // 5. ALL CLEAR
   return {
     action: RecommendedAction.PROCEED,

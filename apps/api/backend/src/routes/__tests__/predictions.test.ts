@@ -27,12 +27,21 @@ async function deleteResidencyProgramsIfAvailable(): Promise<void> {
 
 async function createResidencyProgramIfAvailable(data: {
   name: string;
-  specialty: string;
-  acgmeCode: string;
-  hospitalAffiliation: string;
+  specialty?: string;
+  acgmeCode?: string;
+  hospitalAffiliation?: string;
 }): Promise<void> {
   try {
-    await prisma.residencyProgram.create({ data });
+    await prisma.residencyProgram.create({
+      data: {
+        name: data.name,
+        programName: data.name,
+        institution: data.hospitalAffiliation ?? data.name,
+        specialty: data.specialty,
+        acgmeCode: data.acgmeCode,
+        hospitalAffiliation: data.hospitalAffiliation,
+      },
+    });
   } catch (error) {
     if (!isMissingTableError(error)) {
       throw error;
@@ -161,8 +170,8 @@ async function seedPredictionFixture(): Promise<void> {
   await createResidencyProgramIfAvailable({
     name: 'Mayo Clinic Cardiology Fellowship',
     specialty: 'Cardiology',
-    acgme_code: '1402100046',
-    hospital_affiliation: 'Mayo Clinic',
+    acgmeCode: '1402100046',
+    hospitalAffiliation: 'Mayo Clinic',
   });
 
   await prisma.graphNode.createMany({

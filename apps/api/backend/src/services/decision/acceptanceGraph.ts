@@ -37,33 +37,47 @@ export interface EvaluatedRequirement {
 export interface AcceptanceState {
   orgId: string;
   isReady: boolean;
-  historicalAcceptanceRate: number; // 0.0 to 1.0 based on Decision Capsules
+  historicalAcceptanceRate: number; // 0.0 to 1.0 based on org-matched Decision Capsules
+  historicalCapsuleCount: number;  // number of capsules matched to this org
   blockers: EvaluatedRequirement[];
   missingActions: EvaluatedRequirement[];
   satisfied: EvaluatedRequirement[];
+}
+
+export interface AcceptancePrediction {
+  score: number;
+  band: 'UNLIKELY_TO_ACCEPT' | 'LIKELY_TO_ACCEPT';
+  explanation: string;
+  missingRequirementCount: number;
 }
 
 /**
  * Deterministically evaluates a ProofManifest against an Organization's requirements,
  * enriched by historical Decision Capsules.
  */
+type ClaimInput = { type: string; id: string; status: SourceStatus; ageMs: number; hardBlockReason?: string };
+
+const HARD_BLOCK_MESSAGES: Record<string, string> = {
+  EXPIRED_DEA: 'DEA registration is expired and must be renewed before placement.',
+  EXPIRED_LICENSE: 'State license is expired and must be renewed before placement.',
+};
+
 export function evaluateAcceptanceGraph(
   org: OrganizationRequirements,
-  manifestClaims: { type: string; id: string; status: SourceStatus; ageMs: number }[],
+  manifestClaims: ClaimInput[],
   historicalCapsules: StoredDecisionCapsule[] = []
 ): AcceptanceState {
   const evaluated: EvaluatedRequirement[] = [];
 
-  // --- LEARNING INFLUENCE ZONE ---
-  // Deterministic aggregation of prior outcomes
+  const orgCapsules = historicalCapsules.filter(c => c.payload.orgId === org.orgId);
+  const historicalCapsuleCount = orgCapsules.length;
   let historicalAcceptanceRate = 1.0;
-  if (historicalCapsules.length > 0) {
-    const acceptedOrStarted = historicalCapsules.filter(c => 
+  if (historicalCapsuleCount > 0) {
+    const acceptedOrStarted = orgCapsules.filter(c =>
       c.payload.outcome === 'ACCEPTED' || c.payload.outcome === 'STARTED'
     ).length;
-    historicalAcceptanceRate = acceptedOrStarted / historicalCapsules.length;
+    historicalAcceptanceRate = acceptedOrStarted / historicalCapsuleCount;
   }
-  // -------------------------------
 
   for (const rule of org.rules) {
     const claim = manifestClaims.find(c => c.type === rule.claimType);
@@ -73,6 +87,16 @@ export function evaluateAcceptanceGraph(
         rule,
         status: 'missing',
         detail: `Required claim type ${rule.claimType} is entirely missing from the manifest.`,
+      });
+      continue;
+    }
+
+    if (claim.hardBlockReason) {
+      evaluated.push({
+        rule,
+        status: 'blocked',
+        evidenceId: claim.id,
+        detail: HARD_BLOCK_MESSAGES[claim.hardBlockReason] ?? `Hard block: ${claim.hardBlockReason}`,
       });
       continue;
     }
@@ -97,7 +121,6 @@ export function evaluateAcceptanceGraph(
       continue;
     }
 
-    // Passed all gates
     evaluated.push({
       rule,
       status: 'satisfied',
@@ -114,8 +137,34 @@ export function evaluateAcceptanceGraph(
     orgId: org.orgId,
     isReady: blockers.length === 0 && missingActions.length === 0,
     historicalAcceptanceRate,
+    historicalCapsuleCount,
     blockers,
     missingActions,
     satisfied,
+  };
+}
+
+export function predictAcceptance(state: AcceptanceState): AcceptancePrediction {
+  if (state.blockers.length > 0) {
+    return {
+      score: 0,
+      band: 'UNLIKELY_TO_ACCEPT',
+      explanation: `Blocked by adverse signal: ${state.blockers.map(b => b.detail).join('; ')}`,
+      missingRequirementCount: state.missingActions.length,
+    };
+  }
+
+  const missingCount = state.missingActions.length;
+  const score = missingCount > 0
+    ? Math.min(state.historicalAcceptanceRate, 0.8)
+    : state.historicalAcceptanceRate;
+
+  return {
+    score,
+    band: 'LIKELY_TO_ACCEPT',
+    explanation: missingCount > 0
+      ? `${missingCount} requirement(s) still missing; score capped at 0.8`
+      : `All requirements satisfied; historical acceptance rate ${(state.historicalAcceptanceRate * 100).toFixed(0)}%`,
+    missingRequirementCount: missingCount,
   };
 }

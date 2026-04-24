@@ -4,6 +4,7 @@ import React from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
+  FileText,
   FileUp,
   Shield,
   ShieldCheck,
@@ -225,10 +226,10 @@ function PilotReadinessBar({ percent }: { percent: number }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          Profile completeness
+          Credentialing file completeness
         </span>
         <span className="text-sm font-semibold tabular-nums text-foreground">
-          {percent}% Pilot-Ready
+          {percent}% Complete
         </span>
       </div>
       <div className="h-2 w-full rounded-full bg-border/40 overflow-hidden">
@@ -284,7 +285,24 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
   }
 
   return (
-    <div className="space-y-4 animate-fade-in-up">
+    <div id="credentialing-file" className="space-y-4 animate-fade-in-up scroll-mt-24">
+      <Card className="gap-0 rounded-xl border-border bg-card px-4 py-4 shadow-none">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Credentialing mode
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-foreground">
+              Full Credentialing File
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              VitalCV keeps the source-backed checks already completed, then shows what still needs to be provided before the file is complete.
+            </p>
+          </div>
+          <FileText className="mt-1 h-5 w-5 shrink-0 text-muted-foreground/50" />
+        </div>
+      </Card>
+
       {/* Progress indicator */}
       <Card className="gap-0 rounded-xl border-border bg-card px-4 py-4 shadow-none">
         <PilotReadinessBar percent={percent} />
@@ -295,11 +313,11 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
         <div className="flex items-center gap-2 mb-3">
           <ShieldCheck className="h-4 w-4 text-muted-foreground/50" />
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            System verified
+            Already verified
           </p>
         </div>
         <p className="text-xs text-muted-foreground/60 mb-3">
-          Automatically checked against federal and state data sources.
+          These checks were completed automatically from public source data.
         </p>
         <div className="space-y-0">
           {verifiedSources.map(source => (
@@ -323,7 +341,7 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
         <div className="flex items-center gap-2 mb-3">
           <User className="h-4 w-4 text-muted-foreground/50" />
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Missing requirements
+            Still needed for the file
           </p>
           {uploadedIds.size > 0 && (
             <span className="ml-auto text-xs tabular-nums text-muted-foreground/50">
@@ -332,7 +350,7 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
           )}
         </div>
         <p className="text-xs text-muted-foreground/60 mb-3">
-          These documents cannot be verified from public sources. Upload each to complete your profile.
+          These items cannot be completed from public sources alone. Add them here to finish the credentialing file.
         </p>
         <div className="space-y-2">
           {MISSING_REQUIREMENTS.map(req => (
@@ -355,7 +373,7 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
             <div>
               <p className="text-sm font-semibold text-foreground">Profile complete</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                All system checks and required documents are in place. You are Pilot-Ready.
+                All system checks and required documents are in place. The credentialing file is complete.
               </p>
             </div>
           </div>

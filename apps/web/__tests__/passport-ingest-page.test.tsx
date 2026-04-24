@@ -126,10 +126,15 @@ describe('/passport ingest page', () => {
       },
     }));
 
-    expect(markup).toContain('View full passport');
+    expect(markup).toContain('Quick Check');
+    expect(markup).toContain('Open Quick Check');
     expect(markup).toContain(buildPassportEntityHref('entity-1'));
-    expect(markup).toContain('View as employer');
+    expect(markup).toContain('Full Credentialing File');
+    expect(markup).toContain('Continue to Full Credentialing File');
+    expect(markup).toContain('Open employer review');
     expect(markup).toContain(buildEmployerReviewHref('entity-1'));
+    expect(markup).toContain('Already verified');
+    expect(markup).toContain('Still needed for the file');
   });
 
   it('renders an honest no-profile state when NPPES did not return an authoritative record', () => {

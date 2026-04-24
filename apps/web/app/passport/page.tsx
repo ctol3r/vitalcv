@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  *    - Sanctions status next (OIG, ~2s)
  *    - Enrollment next (PECOS, ~3s)
  *    - Readiness recalculates on claim_update
- * 4. Done → [View full passport] or [View as employer]
+ * 4. Done → show Quick Check + Full Credentialing File on one result surface
  *
  * No polling. No full-page reload. No fake refresh.
  */
@@ -25,7 +25,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck } from 'lucide-react';
+import { ArrowRight, FileText, ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
@@ -288,6 +288,57 @@ function humanizeContextToken(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function UnifiedModeCard({
+  eyebrow,
+  title,
+  description,
+  href,
+  cta,
+  icon,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  href?: string;
+  cta: string;
+  icon: React.ReactNode;
+}) {
+  const content = (
+    <Card className="gap-0 rounded-none border-border bg-card px-5 py-5 shadow-none">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {eyebrow}
+          </p>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          </div>
+        </div>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-border bg-background text-muted-foreground">
+          {icon}
+        </span>
+      </div>
+      <div className="mt-5 flex items-center gap-2 text-sm font-medium text-foreground">
+        <span>{cta}</span>
+        <ArrowRight className="h-4 w-4" />
+      </div>
+    </Card>
+  );
+
+  if (!href) {
+    return content;
+  }
+
+  return (
+    <Link href={href} className="block transition-opacity hover:opacity-95">
+      {content}
+    </Link>
+  );
 }
 
 type PassportRoleContext = Readonly<{
@@ -714,14 +765,32 @@ function PassportPageContent({
             {/* Usable state — passport anchor is available */}
             {canViewPassport && anchorEntityId && (
               <div className="space-y-3">
-                <Button asChild variant="success" className="h-14 w-full rounded-full text-sm font-medium">
-                  <Link href={buildPassportEntityHref(anchorEntityId)}>
-                    View full passport
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
+                <div className="space-y-2">
+                  <p className="text-muted-foreground/60 text-xs uppercase tracking-widest">
+                    Choose the next step
+                  </p>
+                  <div className="grid gap-3">
+                    <UnifiedModeCard
+                      eyebrow="Trust mode"
+                      title="Quick Check"
+                      description="Use the trust passport for the fast answer: can I start, what is blocking me, and what should happen next."
+                      href={buildPassportEntityHref(anchorEntityId)}
+                      cta="Open Quick Check"
+                      icon={<ShieldCheck className="h-5 w-5" />}
+                    />
+                    <UnifiedModeCard
+                      eyebrow="Credentialing mode"
+                      title="Full Credentialing File"
+                      description="Continue building the complete file for employer or compliance review. VitalCV keeps the verified checks and shows exactly what still needs to be added."
+                      href="#credentialing-file"
+                      cta="Continue to Full Credentialing File"
+                      icon={<FileText className="h-5 w-5" />}
+                    />
+                  </div>
+                </div>
+                <Button asChild variant="outline" className="h-11 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
                   <Link href={buildEmployerReviewHref(anchorEntityId)}>
-                    View as employer
+                    Open employer review
                   </Link>
                 </Button>
                 <button

@@ -176,7 +176,9 @@
       "Bash(npx --yes turbo run typecheck --filter=@vitalcv/web)",
       "Bash(/usr/local/bin/node --version)",
       "Bash(/usr/local/bin/node apps/web/node_modules/typescript/bin/tsc --version)",
-      "Bash(/usr/local/bin/node /Users/christoler/vitalcv/apps/web/node_modules/typescript/bin/tsc --noEmit --project /Users/christoler/vitalcv/apps/web/tsconfig.json)"
+      "Bash(/usr/local/bin/node /Users/christoler/vitalcv/apps/web/node_modules/typescript/bin/tsc --noEmit --project /Users/christoler/vitalcv/apps/web/tsconfig.json)",
+      "Bash(DATABASE_URL=\"postgresql://test:test@localhost:5432/test\" npx jest src/services/distribution/__tests__/applyBundle.test.ts)",
+      "Bash(DATABASE_URL=\"postgresql://localhost:5432/vitalcv_test\" DATABASE_URL=\"postgresql://localhost:5432/vitalcv_test\" npx jest --testPathPattern=\"employerActions\" --no-coverage)"
     ],
     "deny": [],
     "ask": []
