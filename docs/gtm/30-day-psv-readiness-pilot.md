@@ -4,23 +4,24 @@
 Healthcare staffing and credentialing leaders lose revenue, candidates, and operational capacity while applications wait in a black box. Today, an application sits for 10-40 days before missing information is identified, causing delayed start dates, lost placements, and burned-out credentialing coordinators.
 
 ## The Pilot Promise
-Measure your true "time-to-action" baseline. VitalCV runs alongside your existing workflow to automatically capture NPI identity, federal exclusion, PECOS enrollment, and basic authority signals. We package these into a verifiable Evidence Artifact on day zero, showing you exactly how many "days at risk" you can eliminate before your credentialing committee ever opens the file.
+Measure your true "time-to-action" baseline. VitalCV runs alongside your existing workflow to capture NPI identity from NPPES, federal exclusion posture from OIG LEIE, Medicare FFS public enrollment posture from PECOS, and one configured state licensure lane. We package the result into a deterministic proof pack with an audit event per export, so you can see — against your own baseline — how much "days at risk" time gets surfaced before your credentialing committee opens the file. We do not replace PSV; we show you what is decision-grade, what is partial, and what still needs PSV on day zero.
 
 ## Pilot Scope
 * **Target Volume:** 10–30 clinician applications.
 * **Duration:** 30 days.
-* **Cost:** Free during the pilot phase.
+* **Cost:** Small no-charge structured pilot. No invoice during the 30-day window. Commercial terms are only discussed after the KPI wrap-up, and only if both sides want to continue.
 
 ## Included Sources (What is Live)
-* **Identity Spine:** NPPES Registry matching and validation.
-* **Safety & Exclusions:** OIG LEIE federal exclusion check.
-* **Eligibility:** CMS PECOS public data enrollment check.
-* **Authority:** One selected state licensure lane (where publicly available).
+* **Identity spine:** NPPES confirms NPI identity and public registry fields (name, specialty taxonomy, enumeration date). NPPES does **not** validate license status; licensure remains a state-board lane.
+* **Federal exclusions:** OIG LEIE federal exclusion check against the latest available source release. Not a real-time OIG feed — we record the source-release date used for each check.
+* **Public Medicare posture:** PECOS public enrollment posture / Medicare FFS public enrollment data. Not the real-time PECOS portal — we record the public-release date.
+* **Authority:** One selected state licensure lane where institutional access or a public board API is available.
 
 ## Excluded / Partial Areas (What is Not Live)
 * We **do not** replace Primary Source Verification (PSV).
 * We **do not** replace your credentialing committee's final privileging decision.
-* We **do not** check NPDB, DEA registration, ABMS board certification, CAQH, or SAM.gov.
+* **SAM.gov is not integrated yet; OIG LEIE is included.** We also do **not** check NPDB, DEA registration, ABMS board certification, or CAQH.
+* **NPDB self-query evidence expires after 45 days** and is a future lane — it is not covered by the current pilot scope.
 * We **do not** claim real-time Nursys or FSMB access without an explicit institutional agreement.
 * We **do not** issue production DIDs or Verifiable Credentials (the trust container operates in Mock/Dev mode for this pilot).
 
