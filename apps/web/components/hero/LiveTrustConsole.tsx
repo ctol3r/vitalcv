@@ -91,7 +91,7 @@ export function LiveTrustConsole({
                 <span className="block text-emerald-600 mt-2">Start ready.</span>
               </h1>
               <p
-                className="mt-4 text-base sm:text-lg font-medium leading-relaxed text-foreground/80 max-w-xl mx-auto lg:mx-0"
+                className="mt-4 text-base sm:text-lg font-medium leading-relaxed text-foreground/80 max-w-xl mx-auto lg:mx-0 text-wrap break-words"
                 data-testid="hero-one-line-promise"
               >
                 VitalCV turns an NPI into a source-backed readiness snapshot and proof packet for clinician onboarding.
@@ -100,7 +100,10 @@ export function LiveTrustConsole({
                 Enter your NPI to check credentialing posture across federal sources. See what&rsquo;s checked, what&rsquo;s partial, and what still needs primary source verification.
               </p>
 
-              <form onSubmit={handleSubmit} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0">
+              <form
+                onSubmit={handleSubmit}
+                className="mt-8 flex w-full flex-col sm:flex-row flex-wrap gap-3 max-w-md mx-auto lg:mx-0 min-w-0"
+              >
                 <Input
                   type="text"
                   inputMode="numeric"
@@ -119,12 +122,12 @@ export function LiveTrustConsole({
                     }
                   }}
                   placeholder="Enter 10-digit NPI"
-                  className="h-14 text-lg rounded-none flex-1 shadow-sm"
+                  className="h-14 w-full min-w-0 flex-1 text-lg rounded-none shadow-sm"
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={phase === 'loading'}
-                  className="h-14 px-8 text-base font-semibold rounded-none"
+                  className="h-14 w-full sm:w-auto px-6 sm:px-8 text-base font-semibold rounded-none whitespace-nowrap"
                 >
                   {phase === 'loading' ? 'Checking…' : 'Check readiness'}
                 </Button>
@@ -135,7 +138,7 @@ export function LiveTrustConsole({
 
               {/* Employer pilot CTA — second wedge, same hero */}
               <div
-                className="mt-5 flex flex-col sm:flex-row items-center gap-3 text-sm text-muted-foreground max-w-md mx-auto lg:mx-0"
+                className="mt-5 flex flex-col sm:flex-row flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground max-w-md mx-auto lg:mx-0 min-w-0"
                 data-testid="hero-employer-cta"
               >
                 <span className="hidden sm:inline-block h-px w-10 bg-border" aria-hidden />
@@ -339,6 +342,39 @@ export function LiveTrustConsole({
               Not the real-time PECOS portal. Partial evidence stays partial.
             </li>
           </ul>
+        </div>
+      </section>
+
+      {/* ── Source / Partial Explainer (Wave LIVE-100C P1) ──────────── */}
+      <section
+        className="border-b border-border bg-background py-8 sm:py-10"
+        aria-label="Source and partial explainer"
+        data-testid="homepage-source-explainer"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            What the lane states mean
+          </p>
+          <dl className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div className="rounded-none border border-border bg-card px-4 py-3">
+              <dt className="font-semibold text-foreground">Source-backed</dt>
+              <dd className="mt-1 text-muted-foreground">
+                VitalCV has a receipt or a direct public-source response for this lane.
+              </dd>
+            </div>
+            <div className="rounded-none border border-border bg-card px-4 py-3">
+              <dt className="font-semibold text-foreground">Partial</dt>
+              <dd className="mt-1 text-muted-foreground">
+                Some lanes are pending, gated, stale, or unavailable. Partial evidence stays partial.
+              </dd>
+            </div>
+            <div className="rounded-none border border-border bg-card px-4 py-3">
+              <dt className="font-semibold text-foreground">Access required</dt>
+              <dd className="mt-1 text-muted-foreground">
+                The source needs institutional access (e.g., Nursys, FSMB). It is not a clinician defect.
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
