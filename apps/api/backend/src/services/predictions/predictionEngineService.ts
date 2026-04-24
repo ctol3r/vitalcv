@@ -187,7 +187,7 @@ async function loadResidencyProgramsByInstitution(
 ): Promise<ResidencyProgramInstitutionBucket[]> {
   try {
     const rows = await prismaClient.residencyProgram.groupBy({
-      by: ['hospital_affiliation'],
+      by: ['hospitalAffiliation'],
       _count: { _all: true },
     });
     return rows as ResidencyProgramInstitutionBucket[];
