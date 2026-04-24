@@ -34,10 +34,10 @@ jest.mock('../../../graphql/prisma_client', () => ({
       findMany: jest.fn(),
       count: jest.fn(),
     },
-    employerAcceptance: {
+    acceptance: {
       count: jest.fn(),
     },
-    startAttestation: {
+    start: {
       count: jest.fn(),
     },
     auditEvent: {
@@ -79,10 +79,10 @@ const prismaMock = prisma as unknown as {
     findMany: jest.Mock;
     count: jest.Mock;
   };
-  employerAcceptance: {
+  acceptance: {
     count: jest.Mock;
   };
-  startAttestation: {
+  start: {
     count: jest.Mock;
   };
   auditEvent: {
@@ -104,8 +104,8 @@ describe('pilotKpiService', () => {
     prismaMock.blockerResolutionEvent.count.mockReset().mockResolvedValue(0);
     prismaMock.startOutcomeEvent.findMany.mockReset().mockResolvedValue([]);
     prismaMock.startOutcomeEvent.count.mockReset().mockResolvedValue(0);
-    prismaMock.employerAcceptance.count.mockReset().mockResolvedValue(0);
-    prismaMock.startAttestation.count.mockReset().mockResolvedValue(0);
+    prismaMock.acceptance.count.mockReset().mockResolvedValue(0);
+    prismaMock.start.count.mockReset().mockResolvedValue(0);
     prismaMock.auditEvent.findMany.mockReset().mockResolvedValue([]);
   });
 
@@ -218,8 +218,8 @@ describe('pilotKpiService', () => {
     prismaMock.employerDecisionEvent.count.mockResolvedValue(1);
     prismaMock.blockerResolutionEvent.count.mockResolvedValue(1);
     prismaMock.startOutcomeEvent.count.mockResolvedValue(2);
-    prismaMock.employerAcceptance.count.mockResolvedValue(1);
-    prismaMock.startAttestation.count.mockResolvedValue(1);
+    prismaMock.acceptance.count.mockResolvedValue(1);
+    prismaMock.start.count.mockResolvedValue(1);
 
     const snapshot = await computePilotKpis({
       windowDays: 30,
@@ -299,6 +299,92 @@ describe('pilotKpiService', () => {
       ]),
     });
     expect(blockerWhere).not.toHaveProperty('organizationContextId');
+  });
+
+  it('uses conservative elapsed-day math for partial review-to-decision intervals', async () => {
+    prismaMock.bundleShareEvent.findMany.mockResolvedValue([
+      {
+        id: 'share-1',
+        subjectEntityId: 'entity-1',
+        organizationContextId: 'org-1',
+        organizationId: 'employer-1',
+        deliveryStatus: 'DELIVERED',
+        sharedAt: new Date('2026-03-01T00:00:00.000Z'),
+        npi: '1111111111',
+      },
+    ]);
+
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-02T08:00:00.000Z'),
+        readinessScoreAtEvent: 40,
+        blockersAtEvent: [],
+        metadata: {},
+      },
+    ]);
+
+    prismaMock.employerDecisionEvent.findMany.mockResolvedValue([
+      {
+        id: 'decision-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        decision: 'PROCEED',
+        decidedAt: new Date('2026-03-02T20:00:00.000Z'),
+        readinessScoreAtDecision: 70,
+        blockersAtDecision: [],
+        metadata: {},
+      },
+    ]);
+
+    prismaMock.bundleShareEvent.count.mockResolvedValue(1);
+    prismaMock.advisoryOutcomeEvent.count.mockResolvedValue(1);
+    prismaMock.employerDecisionEvent.count.mockResolvedValue(1);
+    prismaMock.blockerResolutionEvent.count.mockResolvedValue(0);
+    prismaMock.startOutcomeEvent.count.mockResolvedValue(0);
+    prismaMock.acceptance.count.mockResolvedValue(0);
+    prismaMock.start.count.mockResolvedValue(0);
+
+    const snapshot = await computePilotKpis({ windowDays: 30 });
+
+    expect(snapshot.velocity.medianDaysFirstReviewToDecision).toBe(1);
+    expect(snapshot.velocity.sampleSizes.reviewToDecision).toBe(1);
+  });
+
+  it('drops invalid review-to-decision durations when event order is wrong', async () => {
+    prismaMock.advisoryOutcomeEvent.findMany.mockResolvedValue([
+      {
+        id: 'review-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        eventType: 'EMPLOYER_REVIEW',
+        eventTimestamp: new Date('2026-03-03T08:00:00.000Z'),
+        readinessScoreAtEvent: 40,
+        blockersAtEvent: [],
+        metadata: {},
+      },
+    ]);
+
+    prismaMock.employerDecisionEvent.findMany.mockResolvedValue([
+      {
+        id: 'decision-1',
+        entityId: 'entity-1',
+        organizationContextId: 'org-1',
+        decision: 'PROCEED',
+        decidedAt: new Date('2026-03-02T20:00:00.000Z'),
+        readinessScoreAtDecision: 70,
+        blockersAtDecision: [],
+        metadata: {},
+      },
+    ]);
+
+    const snapshot = await computePilotKpis({ windowDays: 30 });
+
+    expect(snapshot.velocity.medianDaysFirstReviewToDecision).toBeNull();
+    expect(snapshot.velocity.sampleSizes.reviewToDecision).toBe(0);
   });
 
   it('does not collapse repeated clinician activity across verifier org contexts into one velocity sample', async () => {
@@ -710,7 +796,7 @@ describe('pilotKpiService', () => {
   });
 
   it('does not invent filtered start counts from unscoped canonical starts', async () => {
-    prismaMock.startAttestation.count.mockResolvedValue(2);
+    prismaMock.start.count.mockResolvedValue(2);
 
     const snapshot = await computePilotKpis({
       windowDays: 30,

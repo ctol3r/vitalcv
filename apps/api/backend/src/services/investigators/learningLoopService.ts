@@ -123,6 +123,7 @@ export async function recordOutcome(
     missedSignals?: string[];
     analystNote?: string;
     resolvedBy?: string;
+    resolvedAt?: string;
   },
 ): Promise<OutcomeRecord | null> {
   // Try DB-backed finding first, then in-memory
@@ -150,6 +151,54 @@ export async function recordOutcome(
     }
   }
 
+  const resolvedAt = (() => {
+    const candidate = options?.resolvedAt?.trim();
+    if (!candidate) {
+      return new Date().toISOString();
+    }
+
+    const parsed = new Date(candidate);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error('resolvedAt must be a valid ISO timestamp when provided');
+    }
+
+    return parsed.toISOString();
+  })();
+
+  const existingIndex = outcomes.findIndex((record) => record.findingId === findingId);
+  if (existingIndex >= 0) {
+    const existing = outcomes[existingIndex]!;
+    const nextMissedSignals = options?.missedSignals ?? existing.missedSignals;
+    const samePayload =
+      existing.outcome === outcome &&
+      existing.evidenceQuality === evidenceQuality &&
+      existing.falsePositiveReason === options?.falsePositiveReason &&
+      existing.analystNote === options?.analystNote &&
+      existing.resolvedBy === options?.resolvedBy &&
+      JSON.stringify(existing.missedSignals ?? []) === JSON.stringify(nextMissedSignals ?? []);
+
+    if (samePayload && !options?.resolvedAt) {
+      return existing;
+    }
+
+    const updated: OutcomeRecord = {
+      ...existing,
+      outcome,
+      evidenceQuality,
+      falsePositiveReason: options?.falsePositiveReason,
+      missedSignals: nextMissedSignals,
+      analystNote: options?.analystNote,
+      resolvedAt,
+      resolvedBy: options?.resolvedBy,
+    };
+
+    outcomes.splice(existingIndex, 1);
+    outcomes.unshift(updated);
+
+    log('info', `[LearningLoop] Outcome updated: ${outcome} for finding ${findingId} (${investigatorId})`);
+    return updated;
+  }
+
   const record: OutcomeRecord = {
     outcomeId: makeOutcomeId(),
     findingId,
@@ -161,7 +210,7 @@ export async function recordOutcome(
     falsePositiveReason: options?.falsePositiveReason,
     missedSignals: options?.missedSignals,
     analystNote: options?.analystNote,
-    resolvedAt: new Date().toISOString(),
+    resolvedAt,
     resolvedBy: options?.resolvedBy,
   };
 
@@ -173,8 +222,6 @@ export async function recordOutcome(
 }
 
 export function getCalibrationStats(investigatorId?: string): InvestigatorCalibrationStats[] {
-  const now = new Date().toISOString();
-
   // Group outcomes by investigatorId
   const groups = new Map<string, OutcomeRecord[]>();
   for (const record of outcomes) {
@@ -184,58 +231,65 @@ export function getCalibrationStats(investigatorId?: string): InvestigatorCalibr
     groups.set(record.investigatorId, group);
   }
 
-  return [...groups.entries()].map(([id, records]) => {
-    const total = records.length;
-    const tpCount = records.filter(r => r.outcome === 'RESOLVED_TRUE_POSITIVE').length;
-    const fpCount = records.filter(r => r.outcome === 'RESOLVED_FALSE_POSITIVE').length;
-    const escalatedCount = records.filter(r => r.outcome === 'ESCALATED').length;
-    const inconclusiveCount = records.filter(r => r.outcome === 'RESOLVED_INCONCLUSIVE').length;
-    const tpRate = total > 0 ? tpCount / total : 0;
-    const fpRate = total > 0 ? fpCount / total : 0;
-    const avgEvidence = records.reduce((s, r) => s + evidenceQualityScore(r.evidenceQuality), 0) / Math.max(total, 1);
+  return [...groups.entries()]
+    .sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
+    .map(([id, records]) => {
+      const total = records.length;
+      const tpCount = records.filter(r => r.outcome === 'RESOLVED_TRUE_POSITIVE').length;
+      const escalatedCount = records.filter(r => r.outcome === 'ESCALATED').length;
+      const fpCount = records.filter(r => r.outcome === 'RESOLVED_FALSE_POSITIVE').length;
+      const inconclusiveCount = records.filter(r => r.outcome === 'RESOLVED_INCONCLUSIVE').length;
+      const positiveSignalCount = tpCount + escalatedCount;
+      const tpRate = total > 0 ? positiveSignalCount / total : 0;
+      const fpRate = total > 0 ? fpCount / total : 0;
+      const avgEvidence = records.reduce((s, r) => s + evidenceQualityScore(r.evidenceQuality), 0) / Math.max(total, 1);
 
-    // FP reason aggregation
-    const fpReasons = new Map<string, number>();
-    for (const r of records) {
-      if (r.outcome === 'RESOLVED_FALSE_POSITIVE' && r.falsePositiveReason) {
-        fpReasons.set(r.falsePositiveReason, (fpReasons.get(r.falsePositiveReason) ?? 0) + 1);
+      // FP reason aggregation
+      const fpReasons = new Map<string, number>();
+      for (const r of records) {
+        if (r.outcome === 'RESOLVED_FALSE_POSITIVE' && r.falsePositiveReason) {
+          fpReasons.set(r.falsePositiveReason, (fpReasons.get(r.falsePositiveReason) ?? 0) + 1);
+        }
       }
-    }
-    const topFpReasons = [...fpReasons.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([reason, count]) => ({ reason, count }));
+      const topFpReasons = [...fpReasons.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 5)
+        .map(([reason, count]) => ({ reason, count }));
 
-    // Calibration score: rewards TP, penalizes FP, factors evidence quality
-    const calibrationScore = Math.round(
-      Math.max(0, Math.min(100,
-        (tpRate * 65) + (avgEvidence * 25) + ((1 - fpRate) * 10),
-      )),
-    );
+      const lastUpdatedAt = records.reduce<string>((latest, record) => {
+        return latest.localeCompare(record.resolvedAt) >= 0 ? latest : record.resolvedAt;
+      }, records[0]?.resolvedAt ?? new Date(0).toISOString());
 
-    // Feedback bias: suppression offset for FeedStore
-    // Positive = boost score, Negative = suppress score
-    const feedbackBias = total >= 5
-      ? Math.round(((tpRate - fpRate) * 20) - ((1 - avgEvidence) * 10))
-      : 0; // No bias until we have enough data
+      // Calibration score: rewards TP, penalizes FP, factors evidence quality
+      const calibrationScore = Math.round(
+        Math.max(0, Math.min(100,
+          (tpRate * 65) + (avgEvidence * 25) + ((1 - fpRate) * 10),
+        )),
+      );
 
-    return {
-      investigatorId: id,
-      totalResolved: total,
-      truePositiveCount: tpCount,
-      falsePositiveCount: fpCount,
-      escalatedCount,
-      inconclusiveCount,
-      truePositiveRate: tpRate,
-      falsePositiveRate: fpRate,
-      inconclusiveRate: total > 0 ? inconclusiveCount / total : 0,
-      averageEvidenceQuality: avgEvidence,
-      topFalsePositiveReasons: topFpReasons,
-      calibrationScore,
-      feedbackBias,
-      lastUpdatedAt: now,
-    };
-  });
+      // Feedback bias: suppression offset for FeedStore
+      // Positive = boost score, Negative = suppress score
+      const feedbackBias = total >= 5
+        ? Math.round(((tpRate - fpRate) * 20) - ((1 - avgEvidence) * 10))
+        : 0; // No bias until we have enough data
+
+      return {
+        investigatorId: id,
+        totalResolved: total,
+        truePositiveCount: tpCount,
+        falsePositiveCount: fpCount,
+        escalatedCount,
+        inconclusiveCount,
+        truePositiveRate: tpRate,
+        falsePositiveRate: fpRate,
+        inconclusiveRate: total > 0 ? inconclusiveCount / total : 0,
+        averageEvidenceQuality: avgEvidence,
+        topFalsePositiveReasons: topFpReasons,
+        calibrationScore,
+        feedbackBias,
+        lastUpdatedAt,
+      };
+    });
 }
 
 export function getLearningLoopStats(): LearningLoopStats {
@@ -246,18 +300,20 @@ export function getLearningLoopStats(): LearningLoopStats {
   const allStats = getCalibrationStats();
   const withEnoughData = allStats.filter(s => s.totalResolved >= 3);
 
-  const worstPerforming = withEnoughData
-    .sort((a, b) => a.calibrationScore - b.calibrationScore)
+  const worstPerforming = [...withEnoughData]
+    .sort((a, b) => a.calibrationScore - b.calibrationScore || a.investigatorId.localeCompare(b.investigatorId))
     .slice(0, 3)
     .map(s => s.investigatorId);
 
-  const bestPerforming = withEnoughData
-    .sort((a, b) => b.calibrationScore - a.calibrationScore)
+  const bestPerforming = [...withEnoughData]
+    .sort((a, b) => b.calibrationScore - a.calibrationScore || a.investigatorId.localeCompare(b.investigatorId))
     .slice(0, 3)
     .map(s => s.investigatorId);
 
   const total = outcomes.length;
-  const tpTotal = outcomes.filter(o => o.outcome === 'RESOLVED_TRUE_POSITIVE').length;
+  const tpTotal = outcomes.filter(
+    o => o.outcome === 'RESOLVED_TRUE_POSITIVE' || o.outcome === 'ESCALATED',
+  ).length;
   const fpTotal = outcomes.filter(o => o.outcome === 'RESOLVED_FALSE_POSITIVE').length;
 
   return {
@@ -278,7 +334,9 @@ export function getOutcomeHistory(
   const filtered = investigatorId
     ? outcomes.filter(o => o.investigatorId === investigatorId)
     : outcomes;
-  return filtered.slice(0, limit);
+  return [...filtered]
+    .sort((a, b) => b.resolvedAt.localeCompare(a.resolvedAt) || a.outcomeId.localeCompare(b.outcomeId))
+    .slice(0, limit);
 }
 
 // Validation helpers for route handlers
@@ -303,4 +361,9 @@ export function isValidOutcome(v: unknown): v is ResolutionOutcome {
 
 export function isValidEvidenceQuality(v: unknown): v is EvidenceQuality {
   return typeof v === 'string' && (VALID_EVIDENCE_QUALITIES as string[]).includes(v);
+}
+
+export function resetLearningLoopForTests(): void {
+  outcomes.length = 0;
+  outcomeCounter = 0;
 }

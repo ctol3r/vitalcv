@@ -24,6 +24,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
+import { calculateDeterministicElapsedDays } from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { mergeScope, type PilotScope } from './pilotScope';
@@ -88,9 +89,7 @@ function isUuid(value: string): boolean {
 }
 
 function daysFrom(earlier: Date | null | undefined, later: Date): number | null {
-  if (!earlier) return null;
-  const ms = later.getTime() - earlier.getTime();
-  return Math.max(0, Math.ceil(ms / 86_400_000));
+  return calculateDeterministicElapsedDays(earlier, later);
 }
 
 async function resolveStartOutcomeEntityId(entityRef: string): Promise<string | null> {

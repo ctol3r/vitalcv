@@ -14,11 +14,15 @@
 import { createHash, randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { appendAuditEvent } from '../audit/auditLedger';
-import { buildEmployerReviewPayload } from '../entity/employerReviewPayload';
+import { buildEmployerReviewPayload, type EmployerReviewPayloadV1 } from '../entity/employerReviewPayload';
 import { log } from '../../obs/logger';
 import { emitLearningEvent } from '../feedback/prismaEventStore';
+import { computeAcceptanceAnalysis, type AcceptanceAnalysis } from './acceptanceEngine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+export type ApplyBundleStatus = 'unknown' | 'partial' | 'ready' | 'blocked';
+export type ApplyBundleProofTier = 'none' | 'snapshot' | 'partial' | 'decision';
 
 export interface BundleCredential {
   type: string;
@@ -34,8 +38,17 @@ export interface IssuerProvenance {
   trustScore: number;
 }
 
+export interface ApplyBundleCompleteness {
+  verifiedSources: number;
+  totalSources: number;
+  includedClaims: number;
+  missingSources: number;
+}
+
 export interface ApplyBundle {
   bundleId: string;
+  applicationId?: string;
+  entityId?: string | null;
   npi: string;
   clinicianName: string;
   trustState: {
@@ -44,6 +57,35 @@ export interface ApplyBundle {
     readiness_status: string;
     computed_at: string;
   };
+  status: ApplyBundleStatus;
+  proofTier: ApplyBundleProofTier;
+  snapshotHash: string;
+  completeness: ApplyBundleCompleteness;
+  blockers: string[];
+  nextAction: { id?: string; title: string; detail: string; priority?: string } | null;
+  snapshot: {
+    sourceCoverage: {
+      checks: Array<{ sourceId: string; state: string; reason: string; checkedAt?: string | null }>;
+      summary: Record<string, string[]>;
+    };
+    claims: Array<{
+      claimId?: string;
+      domain?: string;
+      credentialType: string;
+      status: string;
+      issuer: string;
+      observedAt?: string | null;
+      expiresAt?: string | null;
+    }>;
+    freshness: { state: 'current' | 'partial' | 'stale'; label: string; checkedAt: string | null };
+    limitations: Array<{
+      id?: string;
+      state: 'pending' | 'stale' | 'access_required' | 'unavailable' | 'review_required' | 'expired';
+      label: string;
+      detail: string;
+    }>;
+    observedAt: string;
+  };
   credentials: BundleCredential[];
   issuerProvenance: IssuerProvenance[];
   monitoringStatus: 'active' | 'inactive' | 'partial';
@@ -51,6 +93,7 @@ export interface ApplyBundle {
   generatedAt: string;
   expiresAt: string;
   signature: string;
+  acceptanceAnalysis: AcceptanceAnalysis | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -58,6 +101,132 @@ export interface ApplyBundle {
 function buildSignature(bundle: Omit<ApplyBundle, 'signature'>): string {
   const canonical = JSON.stringify(bundle, Object.keys(bundle).sort());
   return createHash('sha256').update(canonical).digest('hex');
+}
+
+// Map CanonicalSourceCoverageState → limitation state
+const COVERAGE_TO_LIMITATION: Record<string, ApplyBundle['snapshot']['limitations'][number]['state'] | null> = {
+  checked: null,
+  stale: 'stale',
+  pending: 'pending',
+  gated: 'unavailable',
+  unavailable: 'unavailable',
+  accessRequired: 'access_required',
+  reviewRequired: 'review_required',
+  notDecisionGrade: 'unavailable',
+  previewOnly: 'unavailable',
+};
+
+function deriveStatus(payload: EmployerReviewPayloadV1): ApplyBundleStatus {
+  // Only explicit adverse evidence triggers 'blocked' — resolvable gaps are 'partial'
+  const exclusionStatus = payload.authorityStanding?.exclusionStatus;
+  const hasAdverseEvidence =
+    exclusionStatus === 'EXCLUDED' ||
+    (payload.authorityStanding?.negativeFindings?.length ?? 0) > 0;
+  if (hasAdverseEvidence) return 'blocked';
+
+  const checked = payload.sourceCoverage.summary.checked?.length ?? 0;
+  if (checked === 0) return 'unknown';
+
+  const unresolved = Object.entries(payload.sourceCoverage.summary)
+    .filter(([k]) => k !== 'checked')
+    .reduce((sum, [, ids]) => sum + ((ids as string[])?.length ?? 0), 0);
+  return unresolved === 0 && payload.readinessSummary.gaps.length === 0 ? 'ready' : 'partial';
+}
+
+function deriveProofTier(status: ApplyBundleStatus, level: string, checkedCount: number, claimCount: number): ApplyBundleProofTier {
+  if (claimCount === 0) return 'none';
+  if (checkedCount === 0) return 'snapshot';
+  if (status === 'ready' && level === 'L3') return 'decision';
+  return 'partial';
+}
+
+function buildSnapshot(payload: EmployerReviewPayloadV1): ApplyBundle['snapshot'] & { rawHash: string } {
+  const checks = (payload.sourceCoverage.checks as Array<{ sourceId: string; state: string; reason: string; checkedAt?: string | null }>);
+  const summary = payload.sourceCoverage.summary as unknown as Record<string, string[]>;
+
+  const claims = Object.freeze(payload.credentialsIncluded.map((c) => Object.freeze({
+    claimId: c.credentialId,
+    domain: c.domain,
+    credentialType: c.credentialType,
+    status: c.status,
+    issuer: c.issuerName ?? 'VitalCV Authority',
+    observedAt: c.observedAt ?? null,
+    expiresAt: c.expiresAt ?? null,
+  })));
+
+  const limitations = Object.freeze(checks
+    .filter((check) => check.state !== 'checked')
+    .map((check) => Object.freeze({
+      id: check.sourceId,
+      state: COVERAGE_TO_LIMITATION[check.state] ?? 'unavailable',
+      label: check.sourceId.replace(/_/g, ' ').toLowerCase(),
+      detail: check.reason,
+    })));
+
+  const checkedAt = checks.find((c) => c.state === 'checked')?.checkedAt ?? null;
+  const staleCount = summary['stale']?.length ?? 0;
+  const freshnessState: 'current' | 'partial' | 'stale' =
+    staleCount > 0 ? 'stale' : (checkedAt ? 'current' : 'partial');
+  const freshnessLabel = freshnessState === 'stale'
+    ? 'Some sources are stale'
+    : freshnessState === 'current'
+      ? 'All sources current'
+      : 'Partially checked';
+
+  const rawHash = createHash('sha256')
+    .update(JSON.stringify({ sourceCoverage: { checks, summary }, claims, observedAt: payload.checkedAt }))
+    .digest('hex');
+
+  return Object.freeze({
+    sourceCoverage: Object.freeze({ checks, summary }),
+    claims,
+    freshness: Object.freeze({ state: freshnessState, label: freshnessLabel, checkedAt }),
+    limitations,
+    observedAt: payload.checkedAt,
+    rawHash,
+  });
+}
+
+export interface ApplyBundleContract {
+  status: ApplyBundleStatus;
+  proofTier: ApplyBundleProofTier;
+  readinessScore: number | null;
+  readinessStatus: string;
+  snapshotHash: string;
+  completeness: ApplyBundleCompleteness;
+  blockers: string[];
+  nextAction: ApplyBundle['nextAction'];
+  snapshot: ApplyBundle['snapshot'] & { rawHash: string };
+  acceptanceAnalysis: AcceptanceAnalysis;
+}
+
+export function deriveApplyBundleContract(payload: EmployerReviewPayloadV1): ApplyBundleContract {
+  const status = deriveStatus(payload);
+  const checkedCount = (payload.sourceCoverage.summary.checked as string[] | undefined)?.length ?? 0;
+  const totalSources = (payload.sourceCoverage.sources ?? []).length;
+  const completeness: ApplyBundleCompleteness = {
+    verifiedSources: checkedCount,
+    totalSources,
+    includedClaims: payload.credentialsIncluded.length,
+    missingSources: Math.max(0, totalSources - checkedCount),
+  };
+  const proofTier = deriveProofTier(status, payload.readinessSummary.level, checkedCount, payload.credentialsIncluded.length);
+  const snapshot = buildSnapshot(payload);
+  const snapshotHash = createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+  const acceptanceAnalysis = computeAcceptanceAnalysis({ status, proofTier, blockers: payload.blockers, completeness });
+
+  return {
+    status,
+    proofTier,
+    readinessScore: checkedCount === 0 ? null : payload.readinessSummary.readiness_score,
+    readinessStatus: checkedCount === 0 ? 'Not yet scored' : payload.readinessSummary.status,
+    snapshotHash,
+    completeness,
+    blockers: payload.blockers,
+    nextAction: payload.nextActions[0] ?? null,
+    snapshot,
+    acceptanceAnalysis,
+  };
 }
 
 async function resolveClinicianName(npi: string): Promise<string> {
@@ -144,8 +313,12 @@ export async function generateApplyBundle(
   const generatedAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+  const contract = deriveApplyBundleContract(reviewPayload);
+  const { status, proofTier, snapshotHash, completeness, snapshot, acceptanceAnalysis } = contract;
+
   const bundleWithoutSig: Omit<ApplyBundle, 'signature'> = {
     bundleId,
+    entityId: subjectEntity.id,
     npi,
     clinicianName,
     trustState: {
@@ -154,12 +327,20 @@ export async function generateApplyBundle(
       readiness_status: reviewPayload.readinessSummary.status,
       computed_at: reviewPayload.checkedAt,
     },
+    status,
+    proofTier,
+    snapshotHash,
+    completeness,
+    blockers: reviewPayload.blockers,
+    nextAction: reviewPayload.nextActions[0] ?? null,
+    snapshot,
     credentials: allCredentials,
     issuerProvenance,
     monitoringStatus,
     profileUrl: `https://vitalcv.com/p/${npi}`,
     generatedAt,
     expiresAt,
+    acceptanceAnalysis,
   };
 
   const signature = buildSignature(bundleWithoutSig);

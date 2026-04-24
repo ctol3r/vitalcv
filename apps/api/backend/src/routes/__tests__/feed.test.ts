@@ -307,4 +307,56 @@ describe('feed routes', () => {
     expect(fallback.body.degradedReason).toBe('backend_failure');
     expect(fallback.body.events[0].payload.findingId).toBe('finding-1');
   });
+
+  it('rebuilds projections from persisted rows after an in-memory crash reset', async () => {
+    const app = buildApp();
+
+    await publish({
+      type: 'PROVIDER_UPDATED',
+      timestamp: '2026-03-17T09:59:00.000Z',
+      payload: {
+        providerId: 'provider-1',
+        npi: '1234567890',
+        providerLabel: 'Ada Lovelace',
+        operation: 'updated',
+      },
+    });
+
+    const warm = await request(app)
+      .get('/api/feed/live')
+      .expect(200);
+
+    expect(warm.body.total).toBe(1);
+    expect(warm.body.events[0]).toMatchObject({
+      type: 'PROVIDER_UPDATED',
+      source: 'event_bus',
+    });
+
+    resetEventBusForTests();
+    resetLiveFeedStateForTests();
+
+    prismaMock.provider.findMany.mockResolvedValue([
+      {
+        npi: '1234567890',
+        fullName: 'Ada Lovelace',
+        createdAt: new Date('2026-03-17T09:00:00.000Z'),
+        updatedAt: new Date('2026-03-17T09:59:00.000Z'),
+      },
+    ]);
+
+    const rebuilt = await request(app)
+      .get('/api/feed/live')
+      .expect(200);
+
+    expect(rebuilt.body.cached).toBe(false);
+    expect(rebuilt.body.degradedReason).toBe(null);
+    expect(rebuilt.body.events[0]).toMatchObject({
+      type: 'PROVIDER_UPDATED',
+      source: 'db_backfill',
+      payload: {
+        npi: '1234567890',
+        providerLabel: 'Ada Lovelace',
+      },
+    });
+  });
 });

@@ -12,7 +12,7 @@ type ApiPath =
   | '/metrics/public';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-export const DEFAULT_PUBLIC_API_BASE = 'https://api.vitalcv.com';
+export const DEFAULT_PUBLIC_API_BASE = 'https://delightful-essence-production.up.railway.app';
 
 const DEMO_PATHS: Record<
   Extract<ApiPath, '/trust-state' | '/ingest/npi'>,
@@ -53,7 +53,7 @@ export function getBackendBase(): string {
   if (base) return base;
   // Match the shared resolver: fall back to Railway on Vercel, localhost otherwise
   return process.env.VERCEL
-    ? 'https://api.vitalcv.com'
+    ? 'https://delightful-essence-production.up.railway.app'
     : 'http://localhost:4000';
 }
 

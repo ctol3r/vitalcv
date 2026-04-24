@@ -321,7 +321,6 @@ export async function GET(req: NextRequest) {
       ...pilotOps24h.queue
         .filter((item) => item.source === 'runtime' || item.source === 'route_failure' || item.source === 'system_failure')
         .map((item) => routeForItem(item)),
-      ...runtimeIssues.map((issue) => issue.route),
     ]),
     topConfusingSurfaces: groupTopCounts(
       pilotOps24h.queue

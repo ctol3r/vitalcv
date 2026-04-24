@@ -77,6 +77,49 @@ describe('predictAcceptance', () => {
     expect(result.basedOn.networkNeighborsCount).toBe(6);
   });
 
+  it('ignores unresolved REQUESTED_INFO decisions when computing acceptance history', async () => {
+    (prisma.decisionLearningCapsule.findMany as jest.Mock).mockImplementation((args) => {
+      if (args?.where?.employerId === EMPLOYER) {
+        return Promise.resolve([
+          { passportSnapshot: basePassport, decisionOutcome: 'ACCEPTED_HEAD_START' },
+          { passportSnapshot: basePassport, decisionOutcome: 'REQUESTED_INFO' },
+          { passportSnapshot: basePassport, decisionOutcome: 'ACCEPTED_HEAD_START' },
+          { passportSnapshot: basePassport, decisionOutcome: 'ROUTED_MANUAL' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const result = await predictAcceptance(basePassport, EMPLOYER);
+    expect(result.confidence).toBe('LOW');
+    expect(result.acceptanceRate).toBeCloseTo(2 / 3, 2);
+    expect(result.basedOn.employerHistoryCount).toBe(3);
+    expect(result.reasons[0]).toMatch(/accepted 2\/3/i);
+  });
+
+  it('returns the same prediction regardless of historical row order', async () => {
+    const employerHistory = [
+      { passportSnapshot: basePassport, decisionOutcome: 'ACCEPTED_HEAD_START' },
+      { passportSnapshot: basePassport, decisionOutcome: 'ROUTED_MANUAL' },
+      { passportSnapshot: basePassport, decisionOutcome: 'ACCEPTED_HEAD_START' },
+      { passportSnapshot: basePassport, decisionOutcome: 'REQUESTED_INFO' },
+    ];
+    let employerRequestCount = 0;
+
+    (prisma.decisionLearningCapsule.findMany as jest.Mock).mockImplementation((args) => {
+      if (args?.where?.employerId === EMPLOYER) {
+        employerRequestCount += 1;
+        return Promise.resolve(employerRequestCount === 1 ? employerHistory : [...employerHistory].reverse());
+      }
+      return Promise.resolve([]);
+    });
+
+    const first = await predictAcceptance(basePassport, EMPLOYER);
+    const second = await predictAcceptance(basePassport, EMPLOYER);
+
+    expect(second).toEqual(first);
+  });
+
   it('emits LOW with null rate when there is no history anywhere', async () => {
     (prisma.decisionLearningCapsule.findMany as jest.Mock).mockResolvedValue([]);
     const result = await predictAcceptance(basePassport, EMPLOYER);
@@ -126,5 +169,12 @@ describe('signatureOf (internal)', () => {
   it('treats null/undefined safely', () => {
     expect(__testing__.signatureOf(null)).toBe('EMPTY');
     expect(__testing__.signatureOf(undefined)).toBe('EMPTY');
+  });
+
+  it('treats only terminal decision outcomes as resolved learning history', () => {
+    expect(__testing__.isResolvedLearningOutcome('ACCEPTED_HEAD_START')).toBe(true);
+    expect(__testing__.isResolvedLearningOutcome('ROUTED_MANUAL')).toBe(true);
+    expect(__testing__.isResolvedLearningOutcome('REJECTED')).toBe(true);
+    expect(__testing__.isResolvedLearningOutcome('REQUESTED_INFO')).toBe(false);
   });
 });

@@ -1,52 +1,65 @@
 'use client';
 
-/**
- * ApplyWithVitalCV.tsx — Wave 88: Apply Button
- *
- * Generates a credential bundle link for employer ATS integration.
- */
-
-import { motion } from 'framer-motion';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 interface ApplyWithVitalCVProps {
   npi: string;
-  shareUrl?: string;
   className?: string;
 }
 
-export function ApplyWithVitalCV({ npi, shareUrl, className = '' }: ApplyWithVitalCVProps) {
-  const [copied, setCopied] = useState(false);
-  const url = shareUrl ?? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${npi}`;
+export function ApplyWithVitalCV({ npi, className = '' }: ApplyWithVitalCVProps) {
+  const { userId } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [url]);
+  async function handleApply() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/apply/bundle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-clerk-user-id': userId ?? '',
+        },
+        body: JSON.stringify({ npi }),
+      });
+      const data = await res.json() as { bundleId?: string; error?: string };
+      if (!res.ok || !data.bundleId) {
+        throw new Error(data.error ?? 'Failed to create employer review bundle.');
+      }
+      router.push(`/apply/${data.bundleId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        <p className="text-sm font-semibold text-foreground">Preparing employer review…</p>
+        <p className="text-xs text-muted-foreground">
+          Creating a fixed employer review link from this passport and opening the employer decision view.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+      <button
         className="w-full py-3 bg-vt-success hover:bg-vt-success/90 rounded-xl text-sm font-semibold text-foreground transition-colors"
-        onClick={handleCopy}
+        onClick={handleApply}
       >
-        {copied ? 'Link Copied!' : 'Apply with VitalCV'}
-      </motion.button>
-      <div className="flex gap-2">
-        <button onClick={handleCopy} className="flex-1 py-2 bg-vt-neutral-800 hover:bg-vt-neutral-700 rounded-lg text-[11px] text-vt-neutral-400 transition-colors">
-          {copied ? 'Copied' : 'Copy Link'}
-        </button>
-        <a href={`mailto:?subject=VitalCV%20Trust%20Profile&body=${encodeURIComponent(url)}`}
-          className="flex-1 py-2 bg-vt-neutral-800 hover:bg-vt-neutral-700 rounded-lg text-[11px] text-vt-neutral-400 text-center transition-colors">
-          Email
-        </a>
-      </div>
-      <p className="text-[9px] text-vt-neutral-600 text-center">
-        Share your verified credential profile with employers
-      </p>
+        Apply with VitalCV
+      </button>
+      {error ? (
+        <p className="text-xs text-[var(--vt-critical)]">{error}</p>
+      ) : null}
     </div>
   );
 }

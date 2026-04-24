@@ -212,6 +212,38 @@ describe('captureStartOutcome', () => {
     expect(shareInitiatedCalls).toHaveLength(1);
   });
 
+  it('keeps start timing reproducible for partial-day review intervals', async () => {
+    prismaMock.advisoryOutcomeEvent.findFirst.mockImplementation(async ({
+      where,
+    }: {
+      where: { eventType?: string; readinessScoreAtEvent?: { gte: number } };
+    }) => {
+      if (where.eventType === 'EMPLOYER_REVIEW') {
+        return { eventTimestamp: new Date('2026-03-02T12:00:00.000Z') };
+      }
+      if (where.readinessScoreAtEvent?.gte === 60) {
+        return { eventTimestamp: new Date('2026-03-02T18:00:00.000Z') };
+      }
+      return null;
+    });
+
+    await captureStartOutcome({
+      entityId: '00000000-0000-0000-0000-000000000444',
+      organizationContextId: null,
+      startedAt: new Date('2026-03-03T00:00:00.000Z'),
+      readinessScoreAtStart: 80,
+      blockersAtStart: [],
+      sourceCoverageAtStart: EMPTY_COVERAGE,
+    });
+
+    expect(prismaMock.startOutcomeEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        daysFromFirstReview: 1,
+        daysFromReady: 1,
+      }),
+    }));
+  });
+
   it('derives scoped timings from pilot metadata and avoids unscoped bundle-share lookups', async () => {
     prismaMock.advisoryOutcomeEvent.findFirst.mockImplementation(async ({
       where,

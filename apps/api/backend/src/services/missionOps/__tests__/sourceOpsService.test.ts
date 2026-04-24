@@ -174,6 +174,32 @@ describe('sourceOpsService', () => {
     );
   });
 
+  it('does not mark lagging-but-fresh sources stale before the freshness window is exceeded', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date(Date.now() - 167 * 60 * 60 * 1000).toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
+
+    expect(nppes?.coverageState).toBe('checked');
+    expect(nppes?.operatorStatus).toBe('HEALTHY');
+    expect(report.spineStatus).toBe('HEALTHY');
+    expect(
+      report.alerts.some((alert) => (
+        alert.includes('STALE:') && alert.includes('CMS NPI Registry API')
+      )),
+    ).toBe(false);
+  });
+
   it('treats unreachable spine sources as unavailable without duplicating stale alerts', () => {
     (getConnectorHealth as jest.Mock).mockReturnValue({
       connectors: [
@@ -203,6 +229,53 @@ describe('sourceOpsService', () => {
         alert.includes('STALE:') && alert.includes('CMS NPI Registry API')
       )),
     ).toBe(false);
+  });
+
+  it('does not trigger a failure alert before the consecutive failure threshold is met', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'DEGRADED',
+          lastSuccessAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          lastErrorAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          consecutiveErrors: 2,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const nppes = report.sources.find((entry) => entry.sourceId === 'NPPES_API');
+
+    expect(nppes?.coverageState).toBe('checked');
+    expect(nppes?.operatorStatus).toBe('HEALTHY');
+    expect(report.spineStatus).toBe('HEALTHY');
+    expect(
+      report.alerts.some((alert) => (
+        alert.includes('FAILURE:') && alert.includes('CMS NPI Registry API')
+      )),
+    ).toBe(false);
+  });
+
+  it('does not leak connector health across sources that only share a prefix', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({
+      connectors: [
+        {
+          connector: 'NPPES',
+          status: 'HEALTHY',
+          lastSuccessAt: new Date().toISOString(),
+          lastErrorAt: null,
+          consecutiveErrors: 0,
+        },
+      ],
+    });
+
+    const report = computeSourceOpsReport();
+    const nppesBulk = report.sources.find((entry) => entry.sourceId === 'NPPES_BULK');
+
+    expect(nppesBulk?.coverageState).toBe('pending');
+    expect(nppesBulk?.coverageReason).toBe('CMS NPPES Monthly Bulk File V2 is disabled by feature flag NPPES_BULK_ENABLED.');
+    expect(nppesBulk?.freshness.status).toBe('unknown');
   });
 
   it('returns HEALTHY spine status when all spine sources are fresh', () => {
@@ -299,6 +372,34 @@ describe('sourceOpsService', () => {
     expect(report.alerts).toContain(
       'FAILURE: Source CMS NPI Registry API has failed 3 consecutive times.',
     );
+  });
+
+  it('treats preview-only PECOS payloads as non-actionable without stale or failure false positives', () => {
+    (getConnectorHealth as jest.Mock).mockReturnValue({ connectors: [] });
+    (getIntegrationHealth as jest.Mock).mockReturnValue({
+      nursysMode: 'live',
+      pecosMode: 'mock',
+      lastNursysFetch: null,
+      lastPecosCheck: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+      healthy: true,
+    });
+
+    const report = computeSourceOpsReport();
+    const pecos = report.sources.find((entry) => entry.sourceId === 'PECOS_PUBLIC');
+
+    expect(pecos?.coverageState).toBe('previewOnly');
+    expect(pecos?.decisionGrade).toBe(false);
+    expect(report.spineStatus).toBe('HEALTHY');
+    expect(
+      report.alerts.some((alert) => (
+        alert.includes('STALE:') && alert.includes('CMS Public Provider Enrollment (PECOS)')
+      )),
+    ).toBe(false);
+    expect(
+      report.alerts.some((alert) => (
+        alert.includes('FAILURE:') && alert.includes('CMS Public Provider Enrollment (PECOS)')
+      )),
+    ).toBe(false);
   });
 
   it('keeps the operator sourceCoverage summary on the same canonical launch-spine contract', () => {

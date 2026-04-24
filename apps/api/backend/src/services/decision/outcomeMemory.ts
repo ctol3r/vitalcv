@@ -19,13 +19,18 @@ export interface OutcomeMemory {
   patterns: OutcomePattern;
 }
 
+function isResolvedOutcome(outcome: DecisionOutcome): boolean {
+  return outcome.outcome !== OutcomeResult.PENDING;
+}
+
 /**
  * Synthesizes a raw list of DecisionOutcomes into actionable OutcomeMemory.
  */
 export function buildOutcomeMemory(npi: string, outcomes: DecisionOutcome[], orgContext?: string): OutcomeMemory {
   const orgOutcomes = orgContext ? outcomes.filter(o => o.orgId === orgContext) : outcomes;
+  const resolvedOutcomes = orgOutcomes.filter(isResolvedOutcome);
 
-  if (orgOutcomes.length === 0) {
+  if (resolvedOutcomes.length === 0) {
     return {
       npi,
       orgId: orgContext,
@@ -40,8 +45,10 @@ export function buildOutcomeMemory(npi: string, outcomes: DecisionOutcome[], org
     };
   }
 
-  const started = orgOutcomes.filter(o => o.outcome === OutcomeResult.STARTED);
-  const failedOrDelayed = orgOutcomes.filter(o => o.outcome === OutcomeResult.FAILED || o.outcome === OutcomeResult.DELAYED);
+  const started = resolvedOutcomes.filter(o => o.outcome === OutcomeResult.STARTED);
+  const failedOrDelayed = resolvedOutcomes.filter(
+    o => o.outcome === OutcomeResult.FAILED || o.outcome === OutcomeResult.DELAYED,
+  );
   
   let totalTime = 0;
   started.forEach(o => totalTime += (o.timeToStartMs || 0));
@@ -58,13 +65,17 @@ export function buildOutcomeMemory(npi: string, outcomes: DecisionOutcome[], org
   return {
     npi,
     orgId: orgContext,
-    history: orgOutcomes,
+    history: resolvedOutcomes,
     patterns: {
-      totalDecisions: orgOutcomes.length,
-      successRate: started.length / orgOutcomes.length,
+      totalDecisions: resolvedOutcomes.length,
+      successRate: started.length / resolvedOutcomes.length,
       averageTimeToStartMs: started.length > 0 ? totalTime / started.length : 0,
-      failureRate: failedOrDelayed.length / orgOutcomes.length,
+      failureRate: failedOrDelayed.length / resolvedOutcomes.length,
       knownFailureTriggers: Array.from(failureTriggers)
     }
   };
 }
+
+export const __testing__ = {
+  isResolvedOutcome,
+};

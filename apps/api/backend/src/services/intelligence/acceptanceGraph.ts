@@ -58,6 +58,12 @@ export interface AcceptancePrediction {
   };
 }
 
+type LearningDecisionOutcome =
+  | 'ACCEPTED_HEAD_START'
+  | 'REQUESTED_INFO'
+  | 'ROUTED_MANUAL'
+  | 'REJECTED';
+
 // ── Tunables ──────────────────────────────────────────────────────────
 
 /** A credential absent from the passport auto-triggers BLOCKER. Policy floor. */
@@ -141,6 +147,12 @@ function computeGapBoosts(
   return boosts.slice(0, GAP_TOP_N);
 }
 
+function isResolvedLearningOutcome(decisionOutcome: string): decisionOutcome is Exclude<LearningDecisionOutcome, 'REQUESTED_INFO'> {
+  return decisionOutcome === 'ACCEPTED_HEAD_START'
+    || decisionOutcome === 'ROUTED_MANUAL'
+    || decisionOutcome === 'REJECTED';
+}
+
 // ── Public API ────────────────────────────────────────────────────────
 
 /**
@@ -177,7 +189,7 @@ export async function predictAcceptance(
   });
 
   const employerMatching = employerHistory.filter(
-    (row) => signatureOf(row.passportSnapshot as PassportState) === passportSig,
+    (row) => isResolvedLearningOutcome(row.decisionOutcome) && signatureOf(row.passportSnapshot as PassportState) === passportSig,
   );
   const employerAccepted = employerMatching.filter(
     (row) => row.decisionOutcome === 'ACCEPTED_HEAD_START',
@@ -185,21 +197,19 @@ export async function predictAcceptance(
 
   if (employerMatching.length >= EMPLOYER_MIN_SAMPLE) {
     const rate = employerAccepted / employerMatching.length;
-    if (rate >= EMPLOYER_HIGH_THRESHOLD) {
-      reasons.push(
-        `This employer accepted ${employerAccepted}/${employerMatching.length} identical passport states`,
-      );
-      return {
-        confidence: 'HIGH',
-        acceptanceRate: rate,
-        reasons,
-        gapBoosts: [],
-        basedOn: {
-          employerHistoryCount: employerMatching.length,
-          networkNeighborsCount: 0,
-        },
-      };
-    }
+    reasons.push(
+      `This employer accepted ${employerAccepted}/${employerMatching.length} identical passport states`,
+    );
+    return {
+      confidence: rate >= EMPLOYER_HIGH_THRESHOLD ? 'HIGH' : 'LOW',
+      acceptanceRate: rate,
+      reasons,
+      gapBoosts: [],
+      basedOn: {
+        employerHistoryCount: employerMatching.length,
+        networkNeighborsCount: 0,
+      },
+    };
   }
 
   // 3. Network-neighbour fallback (different employers, similar role)
@@ -215,7 +225,7 @@ export async function predictAcceptance(
   });
 
   const networkMatching = networkHistory.filter(
-    (row) => signatureOf(row.passportSnapshot as PassportState) === passportSig,
+    (row) => isResolvedLearningOutcome(row.decisionOutcome) && signatureOf(row.passportSnapshot as PassportState) === passportSig,
   );
   const networkAccepted = networkMatching.filter(
     (row) => row.decisionOutcome === 'ACCEPTED_HEAD_START',
@@ -259,4 +269,5 @@ export const __testing__ = {
   signatureOf,
   missingMandatory,
   computeGapBoosts,
+  isResolvedLearningOutcome,
 };

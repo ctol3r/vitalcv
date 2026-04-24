@@ -1,3 +1,4 @@
+import React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -64,16 +65,16 @@ const PILOTS: Record<string, {
       employerAction: 'accept_head_start',
       verifiedLanes: ['NPPES Identity (live — CMS Registry)'],
       pendingLanes: [
-        { lane: 'OIG Exclusions',  reason: 'Integration not yet wired — surfaced as access_required' },
+        { lane: 'OIG Exclusions',  reason: 'Integration not yet wired' },
         { lane: 'State License',   reason: 'No license attached in NPPES for this clinician; board API not yet wired' },
       ],
       limitations: [
         'Single clinician — not a statistically significant sample',
         'OIG exclusions not integrated — cannot claim OIG clearance',
-        'State license not verified — access_required, not fake-passing',
+        'State license not verified — not currently checking CAQH',
         'Employer action recorded in pilot environment, not production deployment',
         '"14-day baseline" comparison is self-reported industry estimate — not a controlled measurement',
-        'Proof tier is partial_proof_pack — decision_grade requires OIG + license integration',
+        'Proof tier is partial — full decision-grade requires OIG and license integration',
       ],
       generatedAt: new Date(1776423023956).toISOString(),
     },
@@ -165,7 +166,7 @@ export default async function PilotProofPage({
             <span className="text-6xl font-black text-green-400">{readinessToActionMin}</span>
             <span className="text-xl text-slate-300 mb-2">minutes</span>
           </div>
-          <p className="text-slate-300 text-sm">From readiness view to employer head-start action</p>
+          <p className="text-slate-300 text-sm">Time to employer action</p>
           {anomalyReport.hasAnomalies && (
             <div className="mt-3 bg-yellow-900/30 border border-yellow-600/30 rounded-lg p-3">
               <p className="text-xs font-bold text-yellow-400 mb-1">⚠ Anomalies detected</p>
@@ -181,7 +182,7 @@ export default async function PilotProofPage({
 
         {/* Before/After Timeline */}
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-5">Event Chain</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-5">What happened</h2>
           <div className="space-y-0">
             {e.isvEvents.map((ev, i) => (
               <div key={ev.event} className="flex items-start gap-4">
@@ -220,7 +221,8 @@ export default async function PilotProofPage({
             <EvidenceRow label="Taxonomy" value={e.taxonomy} />
             <EvidenceRow label="State" value={e.state} />
             <EvidenceRow label="NPPES Status" value={e.nppesStatus} positive />
-            <EvidenceRow label="Proof Tier" value={e.proofTier.replace(/_/g, ' ')} />
+            <EvidenceRow label="Proof type" value={proofTierLabel(e.proofTier)} />
+            <EvidenceRow label="Decision readiness" value={e.nppesStatus === 'Active' ? 'Identity verified' : 'Not verified'} />
             <EvidenceRow label="Employer Action" value={e.employerAction.replace(/_/g, ' ')} />
             <EvidenceRow label="Loop ID" value={e.loopId} mono />
             <EvidenceRow label="Generated" value={new Date(e.generatedAt).toLocaleDateString()} />
@@ -236,7 +238,7 @@ export default async function PilotProofPage({
           </div>
 
           <div className="mt-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Pending Lanes (system state)</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Still incomplete in this pilot run</p>
             {e.pendingLanes.map(l => (
               <div key={l.lane} className="text-sm py-1.5">
                 <span className="font-semibold text-slate-700">{l.lane}</span>
@@ -261,13 +263,13 @@ export default async function PilotProofPage({
 
         {/* Traceability */}
         <section className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-3">Traceability</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-3">How this page was verified</h2>
           <p className="text-sm text-gray-600 mb-3">
             Every metric on this page traces to a system event. The event chain above
             maps directly to AuditEvent rows in the VitalCV database, keyed by Loop ID.
           </p>
           <code className="text-xs font-mono bg-white border border-slate-200 rounded px-3 py-1.5 block text-slate-600 mb-3">
-            GET /api/isv-events/{e.loopId}
+            Evidence record: {e.loopId}
           </code>
           {/* Integrity snapshot */}
           <div className="border border-slate-200 rounded-lg p-3 bg-white text-xs font-mono text-slate-500 space-y-1">
@@ -318,7 +320,7 @@ export default async function PilotProofPage({
         <footer className="text-xs text-gray-400 border-t pt-6 space-y-1">
           <p>This page was generated from real system events. All timestamps are from the live VitalCV event pipeline.</p>
           <p>OIG exclusions and state license verification are not yet integrated. This page does not claim full credentialing coverage.</p>
-          <p>Loop ID: {e.loopId} · NPI: {e.npi}</p>
+          <p>NPI: {e.npi}</p>
         </footer>
       </div>
     </div>
@@ -326,6 +328,12 @@ export default async function PilotProofPage({
 }
 
 // ─── Components ───────────────────────────────────────────────────
+
+function proofTierLabel(tier: string): string {
+  if (tier === 'partial_proof_pack') return 'Partial proof';
+  if (tier === 'decision_grade') return 'Full decision grade';
+  return tier.replace(/_/g, ' ');
+}
 
 function BarRow({
   label,

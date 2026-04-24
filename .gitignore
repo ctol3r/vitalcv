@@ -18,6 +18,7 @@ out/
 *.pem
 .env
 .env.local
+.env.*
 .env.*.local
 
 # Debug
@@ -85,4 +86,3 @@ apps/web/.next.stale/
 node_modules/
 dist/
 .cache/
-

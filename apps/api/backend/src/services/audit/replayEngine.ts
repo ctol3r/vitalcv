@@ -234,6 +234,54 @@ function sha256(input: string): string {
   return createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
+function compareOptionalIsoDesc(left: string | null, right: string | null): number {
+  if (left && right) {
+    return right.localeCompare(left);
+  }
+  if (left) {
+    return -1;
+  }
+  if (right) {
+    return 1;
+  }
+  return 0;
+}
+
+function sortEvidenceRecords(records: EvidenceRecord[]): EvidenceRecord[] {
+  return [...records].sort((left, right) => (
+    left.sourceLabel.localeCompare(right.sourceLabel)
+    || compareOptionalIsoDesc(left.verifiedAt, right.verifiedAt)
+    || left.artifactId.localeCompare(right.artifactId)
+  ));
+}
+
+function validateAuthorityChain(chain: AuthorityChainLink[]): string[] {
+  const anomalies: string[] = [];
+
+  const hasSequentialPositions = chain.every((entry, index) => entry.position === index);
+  if (!hasSequentialPositions) {
+    anomalies.push('Authority chain positions are out of sequence.');
+  }
+
+  if (chain[0]?.nodeType !== 'CLINICIAN') {
+    anomalies.push('Authority chain is missing the clinician root.');
+  }
+
+  if (chain[chain.length - 1]?.nodeType !== 'DECISION') {
+    anomalies.push('Authority chain is missing the decision node.');
+  }
+
+  if (!chain.some((entry) => entry.nodeType === 'CREDENTIAL')) {
+    anomalies.push('Authority chain is incomplete: no credential links captured.');
+  }
+
+  if (!chain.some((entry) => entry.nodeType === 'VERIFIER')) {
+    anomalies.push('Authority chain is incomplete: no verifier link captured.');
+  }
+
+  return anomalies;
+}
+
 // ── Core replay function ──────────────────────────────────────────────────────
 
 export async function replayDecision(capsuleId: string): Promise<DecisionReplay> {
@@ -241,7 +289,7 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
   if (!capsule) throw new Error(`Capsule not found: ${capsuleId}`);
 
   const meta = (capsule.metadata ?? {}) as Record<string, unknown>;
-  const replayedAt = new Date().toISOString();
+  const replayedAt = capsule.updatedAt ?? capsule.createdAt ?? capsule.decisionTimestamp;
 
   // ── Evidence reconstruction ────────────────────────────────────────────────
   const artifacts = capsule.credentialIds.length > 0
@@ -275,7 +323,7 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
   for (const a of contextArtifacts) evidenceMap.set(a.id, a);
   for (const a of artifacts)        evidenceMap.set(a.id, a);     // credentialIds win
 
-  const evidenceRecords: EvidenceRecord[] = Array.from(evidenceMap.values()).map(a => ({
+  const evidenceRecords = sortEvidenceRecords(Array.from(evidenceMap.values()).map(a => ({
     artifactId:       a.id,
     source:           a.source,
     sourceLabel:      sourceLabel(a.source),
@@ -285,7 +333,7 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
     credentialType:   credentialType(a.source),
     jurisdiction:     extractJurisdiction(a.rawPayload),
     sanitizedPayload: sanitize((a.rawPayload ?? {}) as Record<string, unknown>),
-  }));
+  })));
 
   // Sources consulted — deduplicated by source, most recent status wins
   const sourceMap = new Map<string, SourceConsulted>();
@@ -328,6 +376,12 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
   if (Array.isArray(meta.anomalies)) anomalies.push(...(meta.anomalies as string[]));
   if (typeof meta.gaps === 'string') anomalies.push(meta.gaps);
   if (Array.isArray(meta.gaps))      anomalies.push(...(meta.gaps as string[]));
+  if (evidenceRecords.length === 0) {
+    anomalies.push('No verification artifacts were linked into this decision replay.');
+  }
+  if (!capsule.triggerEvent && !capsule.sourceReferenceId) {
+    anomalies.push('No root cause reference was stored with this decision.');
+  }
 
   // ── Integrity check ────────────────────────────────────────────────────────
   const replayResult = await capsuleEngine.verifyDecisionCapsuleReplay(capsuleId);
@@ -375,7 +429,7 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
   });
 
   // 2. Credentials held
-  const uniqueSources = Array.from(new Set(evidenceRecords.map(e => e.source)));
+  const uniqueSources = sourcesConsulted.map((entry) => entry.source);
   for (const src of uniqueSources.slice(0, 6)) {
     const record = evidenceRecords.find(e => e.source === src);
     chain.push({
@@ -444,6 +498,8 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
     linkedAt: capsule.decisionTimestamp,
     edgeType: 'PRODUCED',
   });
+
+  anomalies.push(...validateAuthorityChain(chain));
 
   // ── Related decisions (timeline) ──────────────────────────────────────────
   const related = await prisma.decisionCapsule.findMany({

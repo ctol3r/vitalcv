@@ -347,7 +347,34 @@ describe('employer action routes', () => {
     buildEmployerEvidencePacketMock.mockReset();
     createEmployerEvidencePacketZipStreamMock.mockReset();
 
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({
+      entityId: 'entity-1',
+      npi: '1234567890',
+      identity: { npi: '1234567890', displayName: 'Dr. Jane Doe' },
+      standing: {
+        exclusionStatus: 'CLEAR',
+        exclusionCheckedAt: '2026-03-23T19:00:00.000Z',
+        licensureStatus: 'verified',
+        deaStatus: 'registered',
+        pecosEnrollmentStatus: 'ENROLLED',
+        enrollmentSourceLabel: 'CMS PECOS',
+        enrollmentDataFreshness: 'Quarterly',
+        enrollmentNote: null,
+        negativeFindings: [],
+        pecosStatus: 'enrolled',
+      },
+      truth: {
+        identity: { status: 'VERIFIED' },
+        safety: { status: 'CLEAR' },
+        authority: { status: 'VERIFIED' },
+        eligibility: { status: 'ENROLLED' },
+      },
+      authority: {
+        credentials: [{ stale: false, reviewRequired: false }],
+        summary: { active: 1, missing: [] },
+      },
+      decisionPosture: { status: 'DECISION_GRADE', blockers: [], missing: [] },
+    } as never);
 
     prismaMock.vcvEntity.findUnique.mockResolvedValue({
       id: 'entity-1',
@@ -657,6 +684,89 @@ describe('employer action routes', () => {
     expect(captureEmployerDecisionMock).not.toHaveBeenCalled();
   });
 
+  it('rejects acceptance when readiness is PARTIAL, not DECISION_GRADE', async () => {
+    buildPassportMock.mockResolvedValue({
+      entityId: 'entity-1',
+      npi: '1234567890',
+      identity: { npi: '1234567890', displayName: 'Dr. Jane Doe' },
+      standing: {
+        exclusionStatus: 'CLEAR',
+        licensureStatus: 'verified',
+        deaStatus: 'registered',
+        pecosEnrollmentStatus: 'ENROLLED',
+        negativeFindings: [],
+        pecosStatus: 'enrolled',
+        enrollmentSourceLabel: 'CMS PECOS',
+        enrollmentDataFreshness: 'Quarterly',
+        enrollmentNote: null,
+      },
+      truth: {
+        identity: { status: 'VERIFIED' },
+        safety: { status: 'CLEAR' },
+        authority: { status: 'VERIFIED' },
+        eligibility: { status: 'ENROLLED' },
+      },
+      authority: {
+        credentials: [{ stale: false, reviewRequired: false }],
+        summary: { active: 1, missing: [] },
+      },
+      decisionPosture: { status: 'PARTIAL', blockers: [], missing: [{ sourceId: 'STATE_BOARD' }] },
+    } as never);
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/entity-1/accept')
+      .set('x-clerk-user-id', 'employer-1')
+      .send({})
+      .expect(422);
+
+    expect(response.body.error).toBe('acceptance_not_decision_grade');
+    expect(response.body.readinessStatus).toBe('PARTIAL');
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expect(captureEmployerDecisionMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects acceptance when required PSV fields are missing', async () => {
+    buildPassportMock.mockResolvedValue({
+      entityId: 'entity-1',
+      npi: '1234567890',
+      identity: { npi: '1234567890', displayName: 'Dr. Jane Doe' },
+      standing: {
+        exclusionStatus: 'UNCHECKED',  // fails exclusion_clear
+        licensureStatus: 'pending',     // fails license_verified
+        deaStatus: 'unknown',
+        pecosEnrollmentStatus: 'UNKNOWN',
+        negativeFindings: [],
+        pecosStatus: 'unknown',
+        enrollmentSourceLabel: 'CMS PECOS',
+        enrollmentDataFreshness: 'Quarterly',
+        enrollmentNote: null,
+      },
+      truth: {
+        identity: { status: 'VERIFIED' },
+        safety: { status: 'CLEAR' },
+        authority: { status: 'VERIFIED' },
+        eligibility: { status: 'PENDING' },
+      },
+      authority: {
+        credentials: [],
+        summary: { active: 0, missing: [] },
+      },
+      decisionPosture: { status: 'DECISION_GRADE', blockers: [], missing: [] },
+    } as never);
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/entity-1/accept')
+      .set('x-clerk-user-id', 'employer-1')
+      .send({})
+      .expect(422);
+
+    expect(response.body.error).toBe('acceptance_incomplete');
+    expect(response.body.requiredFieldsMissing).toContain('exclusion_clear');
+    expect(response.body.requiredFieldsMissing).toContain('license_verified');
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expect(captureEmployerDecisionMock).not.toHaveBeenCalled();
+  });
+
   it('keeps status reads backward compatible with legacy audit-only review metadata', async () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce(null);
     prismaMock.auditEvent.findMany.mockResolvedValueOnce([{
@@ -895,7 +1005,7 @@ describe('employer action routes', () => {
 
   it('emits an audit event when exporting the packet as JSON', async () => {
     const packet = buildPacketFixture();
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({ entityId: 'entity-1', decisionPosture: { status: 'DECISION_GRADE', blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
 
     const response = await request(buildApp())
@@ -916,7 +1026,7 @@ describe('employer action routes', () => {
   it('streams the packet bundle as ZIP when requested', async () => {
     const packet = buildPacketFixture();
     const zipStream = new PassThrough();
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({ entityId: 'entity-1', decisionPosture: { status: 'DECISION_GRADE', blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
     createEmployerEvidencePacketZipStreamMock.mockReturnValue(zipStream);
 

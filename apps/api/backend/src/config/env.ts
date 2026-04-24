@@ -1,7 +1,85 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 import { log } from '../obs/logger';
 
 type ApiKeyParseInput = string;
+type LoadEnvOptions = {
+  envDir?: string;
+  forceReload?: boolean;
+};
+
+const ENV_FILENAMES = ['.env', '.env.local'] as const;
+
+function parseEnvFile(contents: string): Record<string, string> {
+  const parsed: Record<string, string> = {};
+
+  for (const rawLine of contents.split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const normalized = line.startsWith('export ') ? line.slice('export '.length).trim() : line;
+    const separatorIndex = normalized.indexOf('=');
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = normalized.slice(0, separatorIndex).trim();
+    if (!/^[A-Z_][A-Z0-9_]*$/iu.test(key)) {
+      continue;
+    }
+
+    let value = normalized.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    parsed[key] = value.replace(/\\n/g, '\n');
+  }
+
+  return parsed;
+}
+
+function loadEnvFile(envDir: string, filename: string, lockedKeys: Set<string>): void {
+  const filePath = path.join(envDir, filename);
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const entries = parseEnvFile(fs.readFileSync(filePath, 'utf8'));
+  for (const [key, value] of Object.entries(entries)) {
+    if (lockedKeys.has(key)) {
+      continue;
+    }
+
+    process.env[key] = value;
+  }
+}
+
+function loadEnvFilesIntoProcess(envDir: string, initialNodeEnv: string): string {
+  const lockedKeys = new Set(Object.keys(process.env));
+
+  for (const filename of ENV_FILENAMES) {
+    loadEnvFile(envDir, filename, lockedKeys);
+  }
+
+  const resolvedNodeEnv = resolveValue(process.env.NODE_ENV) || initialNodeEnv;
+  const environmentFile = `.env.${resolvedNodeEnv}`;
+  if (!ENV_FILENAMES.includes(environmentFile as (typeof ENV_FILENAMES)[number])) {
+    loadEnvFile(envDir, environmentFile, lockedKeys);
+  }
+
+  return resolvedNodeEnv;
+}
+
+function isProductionEnv(): boolean {
+  return String(process.env.NODE_ENV ?? '').trim().toLowerCase() === 'production';
+}
 
 function normalizeCorsCandidate(raw: string | undefined): string {
   const trimmed = raw?.trim();
@@ -70,7 +148,7 @@ function parseBooleanEnvVar(
     raw === undefined || raw === null ? '' : String(raw).trim().toLowerCase();
 
   if (!normalized) {
-    if (requiredInProduction && PRODUCTION) {
+    if (requiredInProduction && isProductionEnv()) {
       throw new Error(`${fieldName} must be defined in production`);
     }
     return false;
@@ -86,9 +164,6 @@ function parseBooleanEnvVar(
 
   throw new Error(`${fieldName} must be 'true', 'false', '1', or '0'`);
 }
-
-const PRODUCTION = process.env.NODE_ENV === 'production';
-
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -126,7 +201,7 @@ const envSchema = z.object({
     },
     z
       .string()
-      .transform((raw) => parseApiKeys(raw, PRODUCTION)),
+      .transform((raw) => parseApiKeys(raw, isProductionEnv())),
   ),
   TRUST_STATE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
   MONITORING_SECRET: z.preprocess(
@@ -153,6 +228,8 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 let _env: Env | null = null;
+let _loadedEnvDir: string | null = null;
+let _loadedNodeEnv: string | null = null;
 
 function resolveValue(raw: unknown): string {
   return String(raw ?? '').trim();
@@ -171,10 +248,22 @@ export function getProductionEnvCheck(): ProductionEnvCheckReport {
  * Parse and validate environment variables.
  * Throws on missing required vars so the process fails fast before serving traffic.
  */
-export function loadEnv(): Env {
-  const productionMode =
-    process.env.NODE_ENV === 'production' ||
-    String(process.env.NODE_ENV).trim().toLowerCase() === 'production';
+export function loadEnv(options: LoadEnvOptions = {}): Env {
+  const envDir = options.envDir ?? process.cwd();
+  const nodeEnv = resolveValue(process.env.NODE_ENV) || 'development';
+
+  if (
+    _env &&
+    !options.forceReload &&
+    _loadedEnvDir === envDir &&
+    _loadedNodeEnv === nodeEnv
+  ) {
+    return _env;
+  }
+
+  const resolvedNodeEnv = loadEnvFilesIntoProcess(envDir, nodeEnv);
+
+  const productionMode = isProductionEnv();
   if (productionMode) {
     const missing = getProductionEnvCheck();
     if (!missing.ok) {
@@ -262,6 +351,8 @@ export function loadEnv(): Env {
   }
 
   _env = result.data;
+  _loadedEnvDir = envDir;
+  _loadedNodeEnv = resolvedNodeEnv;
   return _env;
 }
 
@@ -274,4 +365,10 @@ export function env(): Env {
     throw new Error('env() called before loadEnv(). Call loadEnv() during server startup.');
   }
   return _env;
+}
+
+export function resetEnvForTests(): void {
+  _env = null;
+  _loadedEnvDir = null;
+  _loadedNodeEnv = null;
 }

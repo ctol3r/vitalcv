@@ -49,6 +49,20 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right));
+  return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`).join(',')}}`;
+}
+
 function normalizeList(value: string[] | string | undefined | null): string[] {
   if (!value) {
     return [];
@@ -330,6 +344,47 @@ function actionCreateData(action: RecommendedAction): Prisma.ActionRecommendatio
   };
 }
 
+function compareRecommendedActions(left: RecommendedAction, right: RecommendedAction): number {
+  if (right.priorityScore !== left.priorityScore) {
+    return right.priorityScore - left.priorityScore;
+  }
+
+  if (right.confidence !== left.confidence) {
+    return right.confidence - left.confidence;
+  }
+
+  if (left.createdAt !== right.createdAt) {
+    return left.createdAt.localeCompare(right.createdAt);
+  }
+
+  if (left.recommendedAction !== right.recommendedAction) {
+    return left.recommendedAction.localeCompare(right.recommendedAction);
+  }
+
+  if (left.explanation !== right.explanation) {
+    return left.explanation.localeCompare(right.explanation);
+  }
+
+  return stableStringify(left.metadata).localeCompare(stableStringify(right.metadata));
+}
+
+function dedupeRecommendedActions(actions: readonly RecommendedAction[]): RecommendedAction[] {
+  const byActionId = new Map<string, RecommendedAction>();
+
+  for (const action of actions) {
+    const existing = byActionId.get(action.actionId);
+    if (!existing || compareRecommendedActions(action, existing) < 0) {
+      byActionId.set(action.actionId, action);
+    }
+  }
+
+  return [...byActionId.values()].sort((left, right) => (
+    right.priorityScore - left.priorityScore
+    || right.confidence - left.confidence
+    || left.actionId.localeCompare(right.actionId)
+  ));
+}
+
 function mapActionRow(row: {
   actionId: string;
   actionType: string;
@@ -416,19 +471,20 @@ async function persistActionRecommendations(
   actions: RecommendedAction[],
   prismaClient: PrismaClient,
 ): Promise<StoredActionRecommendation[]> {
-  if (actions.length === 0) {
+  const uniqueActions = dedupeRecommendedActions(actions);
+  if (uniqueActions.length === 0) {
     return [];
   }
 
   const existingRows = await prismaClient.actionRecommendation.findMany({
     where: {
-      actionId: { in: actions.map((action) => action.actionId) },
+      actionId: { in: uniqueActions.map((action) => action.actionId) },
     },
   });
   const existingByActionId = new Map(existingRows.map((row) => [row.actionId, row]));
   const persisted: StoredActionRecommendation[] = [];
 
-  for (const action of actions) {
+  for (const action of uniqueActions) {
     const existing = existingByActionId.get(action.actionId);
     if (!existing) {
       const created = await prismaClient.actionRecommendation.create({
@@ -464,6 +520,124 @@ async function persistActionRecommendations(
   }
 
   return persisted.sort((left, right) => right.priorityScore - left.priorityScore || left.actionId.localeCompare(right.actionId));
+}
+
+const actionStatusInclude = {
+  statusEvents: {
+    orderBy: { createdAt: 'desc' as const },
+  },
+};
+
+type ActionRecommendationWithStatusEvents = Prisma.ActionRecommendationGetPayload<{
+  include: typeof actionStatusInclude;
+}>;
+
+function assertActionExecutionDependencies(
+  action: ActionRecommendationWithStatusEvents,
+  nextStatus: ActionStatus,
+): void {
+  if (nextStatus !== 'completed') {
+    return;
+  }
+
+  const automationMetadata = extractHiringAutomationMetadata(action.metadata);
+  if (!automationMetadata) {
+    return;
+  }
+
+  const unresolvedDependencies = automationMetadata.workflowEffects.missingCredentials;
+  if (
+    unresolvedDependencies.length > 0
+    && action.actionType === 'READY_TO_INTERVIEW'
+  ) {
+    throw new Error(
+      `Action has unresolved dependencies: ${unresolvedDependencies.join(', ')}`,
+    );
+  }
+}
+
+async function applyActionStatusChange(
+  actionId: string,
+  nextStatus: ActionStatus,
+  input: {
+    actorId?: string | null;
+    note?: string | null;
+    metadata?: Record<string, unknown>;
+  },
+  tx: Prisma.TransactionClient,
+): Promise<ActionRecommendationWithStatusEvents> {
+  let existing = await tx.actionRecommendation.findUnique({
+    where: { actionId },
+    include: actionStatusInclude,
+  });
+
+  if (!existing) {
+    throw new Error(`Action not found: ${actionId}`);
+  }
+
+  while (true) {
+    const existingStatus = normalizeActionStatus(existing.status);
+    if (existingStatus === nextStatus) {
+      return existing;
+    }
+
+    assertActionExecutionDependencies(existing, nextStatus);
+
+    if (!canTransitionActionStatus(existingStatus, nextStatus)) {
+      throw new Error(`Invalid action status transition from ${existingStatus} to ${nextStatus}`);
+    }
+
+    const changedAt = new Date().toISOString();
+    const event = buildActionHistoryEvent({
+      fromStatus: existingStatus,
+      toStatus: nextStatus,
+      actorId: input.actorId ?? null,
+      note: input.note ?? null,
+      metadata: input.metadata ?? {},
+      createdAt: changedAt,
+    });
+
+    const updateResult = await tx.actionRecommendation.updateMany({
+      where: {
+        id: existing.id,
+        status: existing.status,
+      },
+      data: {
+        status: nextStatus,
+        executedAt: nextStatus === 'completed' ? new Date(changedAt) : existing.executedAt,
+        dismissedAt: nextStatus === 'skipped' ? new Date(changedAt) : existing.dismissedAt,
+        savedAt: nextStatus === 'in_progress' ? new Date(changedAt) : existing.savedAt,
+      },
+    });
+
+    if (updateResult.count === 1) {
+      await tx.actionStatusEvent.create({
+        data: {
+          actionRecommendationId: existing.id,
+          fromStatus: event.fromStatus,
+          toStatus: event.toStatus,
+          actorId: event.actorId ?? null,
+          note: event.note ?? null,
+          metadata: toJsonValue(event.metadata ?? {}),
+          createdAt: new Date(event.createdAt),
+        },
+      });
+
+      return tx.actionRecommendation.findUniqueOrThrow({
+        where: { actionId },
+        include: actionStatusInclude,
+      });
+    }
+
+    existing = await tx.actionRecommendation.findUnique({
+      where: { actionId },
+      include: actionStatusInclude,
+    });
+
+    if (!existing) {
+      throw new Error(`Action not found: ${actionId}`);
+    }
+  }
 }
 
 function buildActionWhere(
@@ -672,60 +846,10 @@ async function updateActionStatus(
   },
   prismaClient: PrismaClient,
 ): Promise<StoredActionRecommendation> {
-  const existing = await prismaClient.actionRecommendation.findUnique({
-    where: { actionId },
-    include: {
-      statusEvents: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
-
-  if (!existing) {
-    throw new Error(`Action not found: ${actionId}`);
-  }
-
-  const existingStatus = normalizeActionStatus(existing.status);
   const nextStatus = normalizeActionStatus(status);
-
-  if (!canTransitionActionStatus(existingStatus, nextStatus)) {
-    throw new Error(`Invalid action status transition from ${existingStatus} to ${nextStatus}`);
-  }
-
-  const changedAt = new Date().toISOString();
-  const event = buildActionHistoryEvent({
-    fromStatus: existingStatus,
-    toStatus: nextStatus,
-    actorId: input.actorId ?? null,
-    note: input.note ?? null,
-    metadata: input.metadata ?? {},
-    createdAt: changedAt,
-  });
-
-  const updated = await prismaClient.actionRecommendation.update({
-    where: { actionId },
-    data: {
-      status: nextStatus,
-      executedAt: nextStatus === 'completed' ? new Date(changedAt) : existing.executedAt,
-      dismissedAt: nextStatus === 'skipped' ? new Date(changedAt) : existing.dismissedAt,
-      savedAt: nextStatus === 'in_progress' ? new Date(changedAt) : existing.savedAt,
-      statusEvents: {
-        create: [{
-          fromStatus: event.fromStatus,
-          toStatus: event.toStatus,
-          actorId: event.actorId ?? null,
-          note: event.note ?? null,
-          metadata: toJsonValue(event.metadata ?? {}),
-          createdAt: new Date(event.createdAt),
-        }],
-      },
-    },
-    include: {
-      statusEvents: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
+  const updated = await prismaClient.$transaction((tx) => (
+    applyActionStatusChange(actionId, nextStatus, input, tx)
+  ));
 
   return hydrateActionDetail(mapActionRow(updated), prismaClient);
 }

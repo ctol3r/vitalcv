@@ -55,6 +55,7 @@ export function buildEmployerReviewHref(
   entityId: string,
   options: {
     contextId?: string | null;
+    applicationId?: string | null;
     bundleId?: string | null;
     from?: string | null;
   } = {},
@@ -63,6 +64,10 @@ export function buildEmployerReviewHref(
 
   if (typeof options.contextId === 'string' && options.contextId.trim().length > 0) {
     params.set('contextId', options.contextId.trim());
+  }
+
+  if (typeof options.applicationId === 'string' && options.applicationId.trim().length > 0) {
+    params.set('applicationId', options.applicationId.trim());
   }
 
   if (typeof options.bundleId === 'string' && options.bundleId.trim().length > 0) {

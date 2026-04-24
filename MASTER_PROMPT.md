@@ -1,5 +1,5 @@
 # VitalCV Master Prompt — Canonical Operator Context
-> **Version:** 2026-04-01 | **Scope:** All AI agents operating on this repo
+> **Version:** 2026-04-22 | **Scope:** All AI agents operating on this repo
 > **Authority:** Synthesized from: repo source, ANTIGRAVITY.md, Canon.md, CRED0_DOCTRINE.md, CONTRACTORS.md, VITALCV_OVERVIEW.md, PRODUCT_POSITIONING.md, TRUST_LOOP.md, yc-positioning.md, all skill SKILL.md files, RELEASE-GATE-REPORT-2026-04-01.md, LIGHT_FIRST_UX_AUDIT, WAVE180.md, and Google Drive strategic documents.
 
 ---
@@ -111,7 +111,7 @@ VitalCV is not a place you go. VitalCV is the force that lets you go.
 | `apps/issuer-api` | `@vitalcv/issuer-api` | Credential issuance service | ⚠ Exists, integration status unknown |
 | `apps/verifier-api` | `@vitalcv/verifier-api` | OID4VP verifier | ⚠ Canonical Path enforcement |
 | `apps/marketing` | — | Public marketing site (separate visual system) | ⚠ Primary CTA routes to dead `/clinician` page — P0 |
-| `apps/mobile` | — | Expo SDK 52 React Native wallet | 🔲 Designed (Wave Wallet spec) — **not yet built** |
+| `apps/mobile` | — | Expo SDK 52 React Native wallet | ⚠ Wave-121 scaffolded — has ROLE.md, `src/services/`, `app.json`, `theme.ts`. Wave Wallet spec partial. Not production-ready. |
 | `apps/admin-api` | — | Admin tooling | Status unknown |
 | `apps/router` | — | Internal routing service | Status unknown |
 
@@ -146,6 +146,16 @@ VitalCV is not a place you go. VitalCV is the force that lets you go.
 | `packages/tracing` | Observability/tracing |
 | `packages/ingest` | Source ingestion pipeline |
 | `packages/claims` | Claims processing |
+| `packages/command-registry` | Command dispatch system |
+| `packages/conflict-resolution` | Trust conflict handling |
+| `packages/domain` | Domain root / barrel package |
+| `packages/domain-authority` | Authority domain primitives |
+| `packages/domain-provider` | Provider domain primitives |
+| `packages/idempotency` | Idempotency middleware and helpers |
+| `packages/shared` | Shared utilities |
+| `packages/source-adapters` | Source adapter layer (extends psv-adapters) |
+| `packages/trust-contract` | Trust contract types |
+| `packages/truth-enforcement` | Truth enforcement engine |
 
 ### Services (`services/`)
 - `services/decision-engine` — Trust decision engine
@@ -253,7 +263,7 @@ Adding: `PersonProfile`, `OrganizationProfile`, `WorkspaceMembership`, `Workspac
 ### Wave Wallet: Clinician Credential Wallet (Expo)
 `apps/mobile/` — Standalone Expo SDK 52+ React Native app.
 Features: `LocalCredentialStore` (SecureStore), `OfflinePresentationEngine` (VP JWTs, no network), `OID4VPHandler` (QR scan), `NotificationService` (expiry alerts), `WalletSyncService`.
-**Status:** Designed (full spec in WAVE_TASK.md), `apps/mobile/` is **empty** — not yet built.
+**Status:** Wave-121 scaffolded. `apps/mobile/` has ROLE.md (role contract), `src/services/`, `app.json`, `babel.config.js`, `theme.ts`, `tsconfig.json`, `vitest.config.ts`. Not production-ready — Wave Wallet features not yet wired up.
 
 ---
 

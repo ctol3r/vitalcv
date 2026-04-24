@@ -34,6 +34,7 @@ import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { captureDecisionSignal } from '../services/feedback/decisionSignalService';
 import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 import { buildPassport } from '../services/entity/passportService';
+import { validateAcceptanceCompleteness } from '../services/entity/acceptanceCompletenessValidator';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
 import {
@@ -145,20 +146,33 @@ export function registerEmployerActionRoutes(app: Express): void {
         });
       }
 
-      // ── Source coverage gate ────────────────────────────────────────
-      // Validate that the passport is not BLOCKED at the moment of acceptance.
-      // An employer must not accept a clinician whose spine sources are
-      // not in a decision-grade state.
+      // ── Acceptance gate ─────────────────────────────────────────────
+      // Delegated credentialing requires DECISION_GRADE readiness and full
+      // PSV completeness. Partial, checking, and blocked passports are rejected.
       const passport = await buildPassport(entityId);
       if (!passport) {
         throw new HttpError(422, 'Cannot accept: passport data is not available for this entity.');
       }
-      if (passport.decisionPosture.status === 'BLOCKED') {
+
+      const readinessStatus = passport.decisionPosture.status;
+      if (readinessStatus !== 'DECISION_GRADE') {
         return void res.status(422).json({
-          error: 'acceptance_blocked',
-          error_description: 'Cannot accept: one or more critical source checks are blocking readiness.',
+          error: 'acceptance_not_decision_grade',
+          error_description: `Cannot accept: passport readiness is '${readinessStatus}'. Only DECISION_GRADE passports may be accepted. Partial and blocked passports cannot be delegated.`,
+          readinessStatus,
           blockers: passport.decisionPosture.blockers,
-          missingSources: passport.decisionPosture.missing.map((s) => s.sourceId),
+          missingSources: passport.decisionPosture.missing.map((s: { sourceId: string }) => s.sourceId),
+        });
+      }
+
+      const completeness = validateAcceptanceCompleteness(passport);
+      if (!completeness.ok) {
+        return void res.status(422).json({
+          error: 'acceptance_incomplete',
+          error_description: 'Cannot accept: required PSV fields are missing or unverified.',
+          completenessLevel: completeness.completenessLevel,
+          requiredFieldsMissing: completeness.requiredFieldsMissing,
+          evidenceGaps: completeness.evidenceGaps,
         });
       }
 

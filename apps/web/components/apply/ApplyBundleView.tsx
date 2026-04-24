@@ -8,10 +8,12 @@
  * monitoring status, and integrity verification stamp.
  */
 
+import React from 'react';
 import Link from 'next/link';
 import { EmployerSummaryCard } from '@/components/apply/EmployerSummaryCard';
 import { buildEmployerReviewHref } from '@/lib/trust/public-wedge-parity';
 import { canonicalCredStatus } from '@/lib/trust/status-language';
+import { sourceCoverageStateLabel } from '@vitalcv/trust-state';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,16 +31,92 @@ export interface IssuerProvenance {
   trustScore: number;
 }
 
+export interface BundleBlockerAnalysis {
+  blocker: string;
+  delayDays: number | null;
+  fixTime: string;
+  acceptanceLift: number;
+}
+
+export interface BundleBestAction {
+  intent: 'accept' | 'request_refresh' | 'route_to_review' | 'resolve_blockers';
+  label: string;
+  reason: string;
+  estimatedTimeSavedDays: number | null;
+}
+
+export interface BundleAcceptanceAnalysis {
+  probability: number;
+  band: 'BLOCKED' | 'LOW' | 'MEDIUM' | 'HIGH' | 'DECISION_GRADE';
+  estimatedDaysToStart: number | null;
+  blockerAnalysis: BundleBlockerAnalysis[];
+  bestAction: BundleBestAction;
+}
+
 export interface ApplyBundle {
+  applicationId?: string;
   bundleId: string;
   entityId?: string | null;
   npi: string;
   clinicianName: string;
   trustState: {
     readiness_level: string;
-    readiness_score: number;
+    readiness_score: number | null;
     readiness_status: string;
     computed_at: string;
+  };
+  status?: 'unknown' | 'partial' | 'ready' | 'blocked';
+  proofTier?: 'none' | 'snapshot' | 'partial' | 'decision';
+  snapshotHash?: string;
+  includedSources?: string[];
+  includedClaims?: string[];
+  completeness?: {
+    verifiedSources: number;
+    totalSources: number;
+    includedClaims: number;
+    missingSources: number;
+  };
+  blockers?: string[];
+  nextAction?: {
+    id: string;
+    title: string;
+    detail: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  } | null;
+  snapshot?: {
+    sourceCoverage: {
+      checks: Array<{
+        sourceId: string;
+        state: string;
+        reason: string;
+        checkedAt?: string | null;
+      }>;
+      summary: Record<string, string[]>;
+    };
+    claims: Array<{
+      claimId: string;
+      domain: string;
+      credentialType: string;
+      status: string;
+      issuer: string;
+      observedAt: string | null;
+      expiresAt: string | null;
+      artifactIds: string[];
+      receiptIds: string[];
+    }>;
+    freshness: {
+      state: 'current' | 'partial' | 'stale';
+      label: string;
+      checkedAt: string | null;
+    };
+    limitations: Array<{
+      id: string;
+      state: 'pending' | 'stale' | 'access_required' | 'unavailable' | 'review_required' | 'expired';
+      label: string;
+      detail: string;
+    }>;
+    observedAt: string;
+    rawHash: string;
   };
   credentials: BundleCredential[];
   issuerProvenance: IssuerProvenance[];
@@ -47,10 +125,13 @@ export interface ApplyBundle {
   generatedAt: string;
   expiresAt: string;
   signature: string;
+  acceptanceAnalysis?: BundleAcceptanceAnalysis | null;
 }
 
 interface Props {
   bundle: ApplyBundle;
+  footerHref?: string | null;
+  footerLabel?: string | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,6 +162,34 @@ function truncateHash(hash: string, chars = 12): string {
   return `${hash.slice(0, chars)}…${hash.slice(-6)}`;
 }
 
+function proofTierLabel(tier: ApplyBundle['proofTier']): string {
+  switch (tier) {
+    case 'decision':
+      return 'Decision-grade proof';
+    case 'partial':
+      return 'Partial proof';
+    case 'snapshot':
+      return 'Snapshot only';
+    case 'none':
+    default:
+      return 'No proof attached';
+  }
+}
+
+function proofTierDescription(bundle: ApplyBundle): string {
+  switch (bundle.proofTier) {
+    case 'decision':
+      return 'All required source-backed checks in this bundle are current at the moment the snapshot was created.';
+    case 'partial':
+      return 'Some source-backed claims are attached, but limitations still prevent decision-grade reliance.';
+    case 'snapshot':
+      return 'This bundle preserves the current passport state, but the attached evidence is not yet sufficient to generate full proof.';
+    case 'none':
+    default:
+      return 'No source-backed claims are attached yet. This link is a snapshot only and must not be treated as proof.';
+  }
+}
+
 function credentialTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     DEA_LICENSE: 'DEA License',
@@ -107,20 +216,13 @@ function uniqueStrings(values: string[]): string[] {
 }
 
 function buildReadinessBlockers(bundle: ApplyBundle): string[] {
-  const unavailableCredentials = bundle.credentials
+  const unavailableCredentials = (bundle.snapshot?.claims ?? [])
     .filter((credential) => canonicalCredStatus(credential.status) === 'Unavailable')
-    .map((credential) => `${credentialTypeLabel(credential.type)} unavailable`);
-
-  const readinessNote =
-    bundle.trustState.readiness_level === 'L0'
-      ? `${bundle.trustState.readiness_status} - foundation checks still block acceptance`
-      : bundle.trustState.readiness_level === 'L1'
-        ? `${bundle.trustState.readiness_status} - employer review is still required`
-        : null;
+    .map((credential) => `${credentialTypeLabel(credential.credentialType)} unavailable`);
 
   return uniqueStrings([
     ...unavailableCredentials,
-    ...(readinessNote ? [readinessNote] : []),
+    ...(bundle.blockers ?? []),
   ]);
 }
 
@@ -134,33 +236,37 @@ function buildReviewHref(bundle: ApplyBundle): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyBundleView({ bundle }: Props) {
+export function ApplyBundleView({
+  bundle,
+  footerHref,
+  footerLabel,
+}: Props) {
   const monitorMeta = MONITORING_META[bundle.monitoringStatus];
   const verifiedItems = uniqueStrings(
-    bundle.credentials
+    (bundle.snapshot?.claims ?? [])
       .filter((credential) => canonicalCredStatus(credential.status) === 'Verified')
-      .map((credential) => credentialTypeLabel(credential.type)),
+      .map((credential) => credentialTypeLabel(credential.credentialType)),
   );
   const missingItems = uniqueStrings(
-    bundle.credentials
-      .filter((credential) => canonicalCredStatus(credential.status) === 'Pending')
-      .map((credential) => credentialTypeLabel(credential.type)),
+    (bundle.snapshot?.limitations ?? [])
+      .map((limitation) => limitation.label),
   );
   const blockers = buildReadinessBlockers(bundle);
-  const reviewHref = buildReviewHref(bundle);
+  const reviewHref = footerHref ?? buildReviewHref(bundle);
+  const reviewLabel = footerLabel ?? 'Continue to employer review — sign in to record decision';
 
   return (
     <div className="min-h-screen bg-ops-gradient text-foreground">
       {/* Header band */}
       <div className="border-b border-white/6 bg-[var(--vt-surface-dim)] backdrop-blur px-6 py-4">
-        <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <div className="flex items-center gap-2">
-            <VitalCVLogo />
-            <span className="text-sm font-semibold text-foreground">VitalCV</span>
+          <div className="mx-auto flex max-w-2xl items-center justify-between">
+            <div className="flex items-center gap-2">
+              <VitalCVLogo />
+              <span className="text-sm font-semibold text-foreground">VitalCV</span>
+            </div>
+            <span className="text-xs text-muted-foreground/50">Shared employer review link</span>
           </div>
-          <span className="text-xs text-muted-foreground/50">Employer review share</span>
         </div>
-      </div>
 
       {/* Main card */}
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-10 pb-32">
@@ -173,16 +279,21 @@ export function ApplyBundleView({ bundle }: Props) {
           missingItems={missingItems}
           blockers={blockers}
           dataFreshnessNote={`Data as of ${formatDate(bundle.generatedAt)}`}
+          acceptanceProbability={bundle.acceptanceAnalysis?.probability ?? null}
+          acceptanceBand={bundle.acceptanceAnalysis?.band ?? null}
+          estimatedDaysToStart={bundle.acceptanceAnalysis?.estimatedDaysToStart ?? null}
+          bestActionLabel={bundle.acceptanceAnalysis?.bestAction?.label ?? null}
+          bestActionReason={bundle.acceptanceAnalysis?.bestAction?.reason ?? null}
         />
 
         <section className="rounded-2xl border border-white/6 bg-[var(--vt-surface-dim)] px-5 py-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                What you are looking at
+                What this link shows
               </p>
               <p className="mt-1 text-sm text-foreground">
-                A public credential capsule with the clinician&apos;s current readiness, supporting credentials, issuer provenance, and integrity details.
+                This link shows the exact employer-ready evidence that was shared. It stays fixed after creation and does not silently update.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">NPI {bundle.npi}</p>
             </div>
@@ -191,46 +302,78 @@ export function ApplyBundleView({ bundle }: Props) {
               <span className={monitorMeta.color}>{monitorMeta.label}</span>
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Sign in to continue to the employer decision surface and take action on this candidate.
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full border border-white/6 bg-[var(--vt-surface)] px-3 py-1 text-foreground/70">
+              {proofTierLabel(bundle.proofTier ?? 'none')}
+            </span>
+            <span className="rounded-full border border-white/6 bg-[var(--vt-surface)] px-3 py-1 text-muted-foreground">
+              {bundle.completeness?.verifiedSources ?? 0}/{bundle.completeness?.totalSources ?? 0} sources checked
+            </span>
+            <span className="rounded-full border border-white/6 bg-[var(--vt-surface)] px-3 py-1 text-muted-foreground">
+              {bundle.completeness?.includedClaims ?? 0} claims attached
+            </span>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">{proofTierDescription(bundle)}</p>
         </section>
 
-        {/* Credential list */}
+        <section className="rounded-2xl border border-white/6 bg-[var(--vt-surface-dim)] px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                Snapshot freshness
+              </p>
+              <p className="mt-1 text-sm text-foreground">{bundle.snapshot?.freshness?.label ?? ''}</p>
+            </div>
+            <span className="rounded-full border border-white/6 bg-[var(--vt-surface)] px-3 py-1 text-xs text-foreground/70">
+              {bundle.snapshot?.freshness?.state ?? ''}
+            </span>
+          </div>
+          {bundle.nextAction && (
+            <div className="mt-4 rounded-xl border border-white/6 bg-[var(--vt-surface)] px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                What to do next
+              </p>
+              <p className="mt-1 text-sm text-foreground">{bundle.nextAction.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{bundle.nextAction.detail}</p>
+            </div>
+          )}
+        </section>
+
+        {/* Claim list */}
         <section className="overflow-hidden rounded-2xl border border-white/6 bg-[var(--vt-surface)]">
           <div className="border-b border-white/6 px-5 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              Credential Snapshot ({bundle.credentials.length})
+              Verified details included here ({bundle.snapshot?.claims?.length ?? 0})
             </p>
             <p className="mt-1 text-sm text-foreground">
-              Each row shows the credential type, issuing source, current availability, and the most recent verification timestamp included in this share.
+              These are the exact source-backed details captured when this link was created. They do not silently change after the fact.
             </p>
           </div>
           <div className="divide-y divide-white/6">
-            {bundle.credentials.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted-foreground/40">No credentials included in this bundle.</p>
+            {(bundle.snapshot?.claims?.length ?? 0) === 0 ? (
+              <p className="px-5 py-4 text-sm text-muted-foreground/40">No source-backed claims are attached yet. This bundle is snapshot only.</p>
             ) : (
-              bundle.credentials.map((cred, i) => (
-                <div key={`${cred.type}-${i}`} className="flex items-center gap-4 px-5 py-3.5">
+              (bundle.snapshot?.claims ?? []).map((claim) => (
+                <div key={claim.claimId} className="flex items-center gap-4 px-5 py-3.5">
                   <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <CredentialIcon type={cred.type} />
+                    <CredentialIcon type={claim.credentialType} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
-                      <CredentialTypeLabel type={cred.type} />
+                      <CredentialTypeLabel type={claim.credentialType} />
                     </p>
-                    <p className="text-xs text-muted-foreground/50">{cred.issuer}</p>
-                    {cred.expiresAt && (
-                      <p className="text-[10px] text-muted-foreground/40">Expires {formatDate(cred.expiresAt)}</p>
+                    <p className="text-xs text-muted-foreground/50">{claim.issuer}</p>
+                    {claim.expiresAt && (
+                      <p className="text-[10px] text-muted-foreground/40">Expires {formatDate(claim.expiresAt)}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <span className={`text-xs font-semibold ${STATUS_COLORS[canonicalCredStatus(cred.status)] ?? 'text-muted-foreground'}`}>
-                      {canonicalCredStatus(cred.status)}
+                    <span className={`text-xs font-semibold ${STATUS_COLORS[canonicalCredStatus(claim.status)] ?? 'text-muted-foreground'}`}>
+                      {canonicalCredStatus(claim.status)}
                     </span>
-                    {cred.verifiedAt && (
+                    {claim.observedAt && (
                       <p className="mt-0.5 text-[10px] text-muted-foreground/40">
-                        Verified {formatDate(cred.verifiedAt)}
+                        Observed {formatDate(claim.observedAt)}
                       </p>
                     )}
                   </div>
@@ -239,6 +382,52 @@ export function ApplyBundleView({ bundle }: Props) {
             )}
           </div>
         </section>
+
+        <section className="overflow-hidden rounded-2xl border border-white/6 bg-[var(--vt-surface)]">
+          <div className="border-b border-white/6 px-5 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+              Source checks included here
+            </p>
+            <p className="mt-1 text-sm text-foreground">
+              These are the source checks that were captured when this link was created.
+            </p>
+          </div>
+          <div className="divide-y divide-white/6">
+            {(bundle.snapshot?.sourceCoverage?.checks ?? []).map((check) => (
+              <div key={`${check.sourceId}-${check.state}`} className="flex items-start justify-between gap-4 px-5 py-3">
+                <div className="min-w-0">
+                <p className="text-sm text-foreground">{check.sourceId}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{check.reason}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-semibold text-foreground/70">{sourceCoverageStateLabel(check.state as never)}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/40">{check.checkedAt ? formatDate(check.checkedAt) : 'Not yet checked'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {(bundle.snapshot?.limitations?.length ?? 0) > 0 && (
+          <section className="overflow-hidden rounded-2xl border border-white/6 bg-[var(--vt-surface)]">
+            <div className="border-b border-white/6 px-5 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                Limitations
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                These limitations were present when the snapshot was created and remain visible until a new bundle is generated.
+              </p>
+            </div>
+            <div className="divide-y divide-white/6">
+              {(bundle.snapshot?.limitations ?? []).map((limitation) => (
+                <div key={limitation.id} className="px-5 py-3">
+                  <p className="text-sm text-foreground">{limitation.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{limitation.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Issuer provenance */}
         {bundle.issuerProvenance.length > 0 && (
@@ -278,11 +467,17 @@ export function ApplyBundleView({ bundle }: Props) {
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <code className="truncate text-[10px] font-mono text-muted-foreground/50">
+                  {bundle.snapshotHash ? truncateHash(bundle.snapshotHash) : '—'}
+                </code>
+                <span className="text-[10px] text-muted-foreground/40">Snapshot SHA-256</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="truncate text-[10px] font-mono text-muted-foreground/50">
                   {truncateHash(bundle.signature)}
                 </code>
-                <span className="text-[10px] text-muted-foreground/40">SHA-256</span>
+                <span className="text-[10px] text-muted-foreground/40">Bundle SHA-256</span>
               </div>
-              <div className="mt-1 flex gap-4 text-[10px] text-muted-foreground/40">
+              <div className="mt-2 flex gap-4 text-[10px] text-muted-foreground/40">
                 <span>Generated {formatDate(bundle.generatedAt)}</span>
                 <span>Expires {formatDate(bundle.expiresAt)}</span>
               </div>
@@ -292,7 +487,7 @@ export function ApplyBundleView({ bundle }: Props) {
 
         {/* Profile link */}
         <div className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--vt-surface-dim)] px-4 py-3">
-          <span className="text-xs text-muted-foreground/50">Full trust profile</span>
+          <span className="text-xs text-muted-foreground/50">Full VitalCV profile</span>
           <a
             href={bundle.profileUrl}
             target="_blank"
@@ -304,16 +499,18 @@ export function ApplyBundleView({ bundle }: Props) {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/6 bg-[var(--vt-surface-dim)] px-4 py-4 backdrop-blur">
-        <div className="mx-auto max-w-2xl">
-          <Link
-            href={reviewHref}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-muted px-4 py-3 text-center text-sm font-semibold text-foreground transition-colors hover:bg-white/12"
-          >
-            View full report — sign in to accept
-          </Link>
+      {reviewHref && reviewLabel ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/6 bg-[var(--vt-surface-dim)] px-4 py-4 backdrop-blur">
+          <div className="mx-auto max-w-2xl">
+            <Link
+              href={reviewHref}
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-muted px-4 py-3 text-center text-sm font-semibold text-foreground transition-colors hover:bg-white/12"
+            >
+              {reviewLabel}
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -31,11 +31,23 @@ function readSourceEnabled(source: SourceDefinition): boolean {
   return isSourceFlagEnabled(source);
 }
 
+const SOURCE_CONNECTOR_IDS: Readonly<Partial<Record<string, ConnectorHealthEntry['connector']>>> = Object.freeze({
+  NPPES_API: 'NPPES',
+  OIG_LEIE: 'OIG',
+  STATE_BOARD: 'STATE_BOARD',
+});
+
 function findConnectorEntry(
   source: SourceDefinition,
   connectors: ConnectorHealthEntry[],
 ): ConnectorHealthEntry | undefined {
-  return connectors.find((entry) => source.id.startsWith(entry.connector));
+  const connectorId = SOURCE_CONNECTOR_IDS[source.id];
+
+  if (!connectorId) {
+    return undefined;
+  }
+
+  return connectors.find((entry) => entry.connector === connectorId);
 }
 
 function readSourceHealth(
@@ -242,12 +254,11 @@ export function computeSourceOpsReport(): SourceOpsReport {
     }
 
     if (
-      sourceEnabled
+      coverageState === 'stale'
+      && sourceEnabled
       && sourceImplemented
       && (source.tier === 'GOLD' || source.tier === 'SILVER')
       && sourceHealth.lastSuccessAt
-      && !fresh
-      && !isUnavailable
     ) {
       alerts.push(
         `STALE: Decision-grade source ${source.name} has missed its freshness SLA of ${source.refreshSlaHours}h.`,

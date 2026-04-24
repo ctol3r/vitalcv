@@ -4,7 +4,7 @@
  * Production: Railway (delightful-essence)
  * Local dev: localhost:4000
  */
-const RAILWAY_PRODUCTION = 'https://api.vitalcv.com';
+const RAILWAY_PRODUCTION = 'https://delightful-essence-production.up.railway.app';
 
 export const BACKEND_URL: string = (() => {
   // Explicit override always wins

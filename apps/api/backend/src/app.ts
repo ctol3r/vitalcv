@@ -7,9 +7,8 @@ import path from 'node:path';
 import swaggerUi from 'swagger-ui-express';
 import { registerIngestRoutes } from '../../routes/ingest';
 import { registerWedgeRoutes } from '../routes/wedge';
-import { env, getProductionEnvCheck } from './config/env';
+import { env, getProductionEnvCheck, loadEnv } from './config/env';
 import { isAutomatedTestRuntime } from './config/runtimeMode';
-import { validateEnv } from './config/envValidation'; // Wave 196
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { getRequestOrganizationId } from './middleware/organizationContext';
@@ -57,6 +56,7 @@ import { registerHitlRoutes } from './routes/hitl';
 import { registerGraphRoutes } from './routes/graph';
 // Wave 83: Decision Intelligence
 import { registerDecisionInsightsRoutes } from './routes/decisionInsights';
+import { registerEntityDecisionRoute } from './routes/entityDecision'; // Canonical decision contract
 // Wave 84: Trust Simulation
 import { registerSimulationRoutes } from './routes/simulation';
 // Wave 85: Monitoring Events
@@ -155,6 +155,7 @@ import { registerInvestigationRoutes } from './routes/investigation';        // 
 import { registerInvestigationWorkbenchRoutes } from './routes/investigationWorkbench'; // Wave INV+: Investigation workbench APIs
 import { registerFindingsRoutes } from './routes/findings';                  // Wave AI: Autonomous investigators
 import { registerActionsRoutes } from './routes/actions';                    // Waves C49-C51: Action engine API
+import { registerCasesRoutes } from './routes/cases';                        // Multi-case execution system
 import { registerStorylineRoutes } from './routes/storylines';               // Wave ST: Storyline engine
 import { registerDetailAgentRoutes } from './routes/detailAgents';           // Wave DT: Detail agents
 import { registerPollingRoutes } from './routes/polling';                    // Wave POLL: Polling scheduler
@@ -3426,8 +3427,8 @@ function registerVerifierDashboardRoutes(app: Express): void {
 
 // ─── Express Application ────────────────────────────────────
 
-// Wave 196: Validate environment on startup
-validateEnv();
+// Validate environment exactly once before any module reads config.
+loadEnv();
 
 const app = express();
 
@@ -3515,6 +3516,7 @@ registerPublicProfileRoutes(app); // Wave 43: Public Trust Profile — NPI-keyed
 registerHitlRoutes(app);         // Wave 47: AI HITL Review Queue
 registerGraphRoutes(app);        // Wave 82: Trust Graph Intelligence
 registerDecisionInsightsRoutes(app); // Wave 83: Decision Intelligence
+registerEntityDecisionRoute(app);    // Canonical decision contract — GET /api/decision/:entityId
 registerSimulationRoutes(app);       // Wave 84: Trust Simulation
 registerMonitoringEventsRoutes(app); // Wave 85: Monitoring Events
 registerTrustOperationsRoutes(app);  // Wave 87: Trust Operations
@@ -3590,6 +3592,7 @@ registerInvestigationWorkbenchRoutes(app); // Wave INV+ — Investigation workbe
 registerFeedRoutes(app);             // Wave 1 — Live feed event stream
 registerFindingsRoutes(app);         // Wave AI — Autonomous investigators + findings feed
 registerActionsRoutes(app);          // Waves C49-C51 — Action engine API
+registerCasesRoutes(app);            // Multi-case execution system
 registerStorylineRoutes(app);        // Wave ST — Storyline intelligence narratives
 registerDetailAgentRoutes(app);      // Wave DT — Detail agents + system health
 registerPollingRoutes(app);          // Wave POLL — Polling scheduler

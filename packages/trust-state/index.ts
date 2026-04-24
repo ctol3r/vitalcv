@@ -12,6 +12,14 @@ export {
   type LatencyPercentile,
 } from './latencyHistogram';
 export {
+  calculateDeterministicElapsedDays,
+  summarizeDeterministicDecision,
+  type DeterministicDecisionInput,
+  type DeterministicDecisionResult,
+  type DeterministicDecisionState,
+} from './decisionDeterminism';
+
+export {
   CANONICAL_SOURCE_COVERAGE_STATES,
   CANONICAL_TRUTH_DIMENSIONS,
   CANONICAL_TRUTH_STATUSES,

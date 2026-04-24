@@ -26,6 +26,7 @@
  */
 
 import type { Prisma } from '@prisma/client';
+import { calculateDeterministicElapsedDays } from '@vitalcv/trust-state';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 
@@ -446,7 +447,7 @@ type EffectiveNonStartOutcomeRow = {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function daysBetween(a: Date, b: Date): number {
-  return Math.round(Math.abs(b.getTime() - a.getTime()) / 86_400_000);
+  return calculateDeterministicElapsedDays(a, b) ?? 0;
 }
 
 function median(values: number[]): number | null {

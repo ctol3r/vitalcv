@@ -1,4 +1,5 @@
 import { log } from '../../obs/logger';
+import { z } from 'zod';
 
 export const EVENT_BUS_MAX_BUFFER = 500;
 
@@ -78,6 +79,7 @@ type EventHandler<TType extends VitalEventType> = (event: EventEnvelope<TType>) 
 
 const subscriptions = new Map<VitalEventType, Set<EventHandler<VitalEventType>>>();
 const replayBuffer: VitalEvent[] = [];
+const replayBufferIds = new Set<string>();
 
 let eventCounter = 0;
 
@@ -98,22 +100,148 @@ function sortByTimestampDesc<TEvent extends { id: string; timestamp: string }>(e
   ));
 }
 
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const target = value as Record<string, unknown>;
+  for (const key of Object.keys(target)) {
+    deepFreeze(target[key]);
+  }
+
+  return Object.freeze(value);
+}
+
+const isoTimestampSchema = z.string().datetime({ offset: true });
+
+const providerUpdatedPayloadSchema = z.object({
+  providerId: z.string().min(1),
+  npi: z.string().nullable(),
+  providerLabel: z.string().nullable().optional(),
+  operation: z.enum(['created', 'updated']),
+}).strict();
+
+const findingCreatedPayloadSchema = z.object({
+  runId: z.string().nullable(),
+  findingId: z.string().min(1),
+  investigatorId: z.string().min(1),
+  severity: z.string().min(1),
+  status: z.string().min(1),
+  entityIds: z.array(z.string().min(1)),
+  storylineKey: z.string().min(1),
+  operation: z.enum(['created', 'updated']),
+}).strict();
+
+const storylineUpdatedPayloadSchema = z.object({
+  storylineId: z.string().min(1),
+  storylineType: z.string().min(1),
+  status: z.string().min(1),
+  severity: z.string().min(1),
+  entityIds: z.array(z.string().min(1)),
+  findingIds: z.array(z.string().min(1)),
+  operation: z.enum(['created', 'updated', 'status_changed']),
+}).strict();
+
+const investigatorRunCompletePayloadSchema = z.object({
+  runId: z.string().min(1),
+  investigatorId: z.string().min(1),
+  trigger: z.string().min(1),
+  status: z.enum(['succeeded', 'failed']),
+  entityType: z.string().nullable(),
+  targetEntityIds: z.array(z.string().min(1)),
+  startedAt: isoTimestampSchema,
+  completedAt: isoTimestampSchema,
+  durationMs: z.number().finite(),
+  entitiesScanned: z.number().finite(),
+  findingsGenerated: z.number().finite(),
+  findingsCreated: z.number().finite(),
+  findingsUpdated: z.number().finite(),
+  findingsResolved: z.number().finite(),
+  findingsSuppressed: z.number().finite(),
+  storylinesMerged: z.number().finite(),
+  errorMessage: z.string().nullable(),
+}).strict();
+
+const payloadSchemaByType = {
+  PROVIDER_UPDATED: providerUpdatedPayloadSchema,
+  FINDING_CREATED: findingCreatedPayloadSchema,
+  STORYLINE_UPDATED: storylineUpdatedPayloadSchema,
+  INVESTIGATOR_RUN_COMPLETE: investigatorRunCompletePayloadSchema,
+} satisfies {
+  [TType in VitalEventType]: z.ZodType<VitalEventPayloadMap[TType]>;
+};
+
+function validateEventInput<TType extends VitalEventType>(input: {
+  type: TType;
+  payload: VitalEventPayloadMap[TType];
+  id?: string;
+  timestamp?: string;
+}): void {
+  if (input.id !== undefined) {
+    z.string().min(1).parse(input.id);
+  }
+  if (input.timestamp !== undefined) {
+    isoTimestampSchema.parse(input.timestamp);
+  }
+
+  payloadSchemaByType[input.type].parse(input.payload);
+}
+
+export function getEventBusHealthSnapshot(): {
+  bufferDepth: number;
+  latestEventTimestamp: string | null;
+  latestEventId: string | null;
+} {
+  const latestEvent = listRecentEvents({ limit: 1 })[0] ?? null;
+
+  return {
+    bufferDepth: replayBuffer.length,
+    latestEventTimestamp: latestEvent?.timestamp ?? null,
+    latestEventId: latestEvent?.id ?? null,
+  };
+}
+
 export async function publish<TType extends VitalEventType>(input: {
   type: TType;
   payload: VitalEventPayloadMap[TType];
   id?: string;
   timestamp?: string;
 }): Promise<EventEnvelope<TType>> {
+  try {
+    validateEventInput(input);
+  } catch (error) {
+    log('warn', 'event_bus_rejected', {
+      eventType: input.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  const eventId = input.id ?? nextEventId();
+  if (replayBufferIds.has(eventId)) {
+    throw new Error(`Event already exists: ${eventId}`);
+  }
+
   const event: EventEnvelope<TType> = {
-    id: input.id ?? nextEventId(),
+    id: eventId,
     type: input.type,
     timestamp: input.timestamp ?? new Date().toISOString(),
-    payload: input.payload,
+    payload: cloneJson(input.payload),
   };
+  deepFreeze(event);
 
   replayBuffer.push(event as VitalEvent);
+  replayBufferIds.add(event.id);
   if (replayBuffer.length > EVENT_BUS_MAX_BUFFER) {
-    replayBuffer.splice(0, replayBuffer.length - EVENT_BUS_MAX_BUFFER);
+    const dropped = replayBuffer.splice(0, replayBuffer.length - EVENT_BUS_MAX_BUFFER);
+    for (const staleEvent of dropped) {
+      replayBufferIds.delete(staleEvent.id);
+    }
   }
 
   const handlers = [...(subscriptions.get(event.type) ?? [])] as EventHandler<TType>[];
@@ -175,5 +303,6 @@ export function getLatestEventTimestamp(types?: VitalEventType[]): string | null
 export function resetEventBusForTests(): void {
   subscriptions.clear();
   replayBuffer.splice(0, replayBuffer.length);
+  replayBufferIds.clear();
   eventCounter = 0;
 }

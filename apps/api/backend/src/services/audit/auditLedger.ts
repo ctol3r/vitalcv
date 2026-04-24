@@ -94,8 +94,42 @@ const eventIndex = new Map<string, number>();
 
 // ── Hash helper ───────────────────────────────────────────────────────
 
+function sortForHash(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortForHash);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort((left, right) => left.localeCompare(right))
+      .reduce<Record<string, unknown>>((sorted, key) => {
+        sorted[key] = sortForHash((value as Record<string, unknown>)[key]);
+        return sorted;
+      }, {});
+  }
+
+  return value;
+}
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const target = value as Record<string, unknown>;
+  for (const key of Object.keys(target)) {
+    deepFreeze(target[key]);
+  }
+
+  return Object.freeze(value);
+}
+
 function hashPayload(payload: Record<string, unknown>): string {
-  const canonical = JSON.stringify(payload, Object.keys(payload).sort());
+  const canonical = JSON.stringify(sortForHash(payload));
   return createHash('sha256').update(canonical).digest('hex');
 }
 
@@ -107,12 +141,15 @@ function hashPayload(payload: Record<string, unknown>): string {
  */
 export function appendAuditEvent(opts: AppendAuditOptions): AuditEntry {
   const eventId = opts.eventId ?? randomUUID();
+  if (eventIndex.has(eventId)) {
+    throw new Error(`Audit event already exists: ${eventId}`);
+  }
   const time = opts.time ?? new Date().toISOString();
   const traceId = opts.traceId ?? randomUUID();
-  const category = Array.isArray(opts.category) ? opts.category : [opts.category];
+  const category = cloneJson(Array.isArray(opts.category) ? opts.category : [opts.category]);
   const severity = opts.severity ?? 'INFO';
-  const requestFields = opts.requestFields ?? {};
-  const resultFields = opts.resultFields ?? {};
+  const requestFields = cloneJson(opts.requestFields ?? {});
+  const resultFields = cloneJson(opts.resultFields ?? {});
 
   // Canonical payload for hashing (excludes receiptHash itself)
   const preHashPayload = {
@@ -135,7 +172,7 @@ export function appendAuditEvent(opts: AppendAuditOptions): AuditEntry {
   };
 
   // Append-only: freeze the entry to prevent mutation
-  Object.freeze(entry);
+  deepFreeze(entry);
 
   const position = ledger.length;
   ledger.push(entry);
@@ -208,6 +245,11 @@ export function getLedgerSize(): number {
 export function getAuditEvent(eventId: string): AuditEntry | null {
   const pos = eventIndex.get(eventId);
   return pos !== undefined ? ledger[pos] ?? null : null;
+}
+
+export function resetAuditLedgerForTests(): void {
+  ledger.splice(0, ledger.length);
+  eventIndex.clear();
 }
 
 // ── TraceId context helpers ───────────────────────────────────────────

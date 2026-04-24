@@ -17,6 +17,7 @@ import { buildOutcomeMemory, OutcomeMemory } from '../decision/outcomeMemory';
 import { fetchOrgPolicy, applyOrgPolicy } from '../decision/orgPolicyEngine';
 import { calibrateTrust, CalibrationResult } from '../decision/confidenceEngine';
 import { DecisionTrace, storeDecisionTrace } from '../decision/decisionTraceEngine';
+import { sha256ForPayload } from '../../utils/deterministic';
 
 const prisma = new PrismaClient();
 
@@ -226,13 +227,22 @@ export async function generateOmegaDecision(
   
   // If activated or failed, we would record the outcome here
   if (isStartReady) {
+    const deterministicDecisionState = sha256ForPayload({
+      npi,
+      employerId,
+      posture: manifest.readinessPosture,
+      actionTaken: 'PROCEED',
+      acceptedAt: historicAcceptance?.createdAt
+        ? new Date(historicAcceptance.createdAt).toISOString()
+        : null,
+    });
     await recordDecisionOutcome({
       npi,
       orgId: employerId,
-      decisionState: 'hash_' + Math.random().toString(36).substring(7),
+      decisionState: deterministicDecisionState,
       actionTaken: 'PROCEED',
       outcome: OutcomeResult.STARTED,
-      timeToStartMs: historicAcceptance?.createdAt ? Date.now() - new Date(historicAcceptance.createdAt).getTime() : 0,
+      timeToStartMs: null,
       timestamp: new Date().toISOString()
     });
   }

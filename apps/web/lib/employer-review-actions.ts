@@ -34,6 +34,8 @@ export interface DecisionTrustSnapshot {
   trustScore: number;
   trustScoreConfidence: number;
   exclusionStatus: string;
+  deaStatus?: string;
+  licenseStatus?: string;
   exclusionCheckedAt: string | null;
   pecosEnrollmentStatus: string;
   verifiedCredentialCount: number;
@@ -199,6 +201,14 @@ function isDecisionTrustSnapshot(value: unknown): value is DecisionTrustSnapshot
     && isNumber(value.trustScore)
     && isNumber(value.trustScoreConfidence)
     && isString(value.exclusionStatus)
+    && (
+      typeof value.deaStatus === 'undefined'
+      || isString(value.deaStatus)
+    )
+    && (
+      typeof value.licenseStatus === 'undefined'
+      || isString(value.licenseStatus)
+    )
     && isNullableString(value.exclusionCheckedAt)
     && isString(value.pecosEnrollmentStatus)
     && isNumber(value.verifiedCredentialCount)

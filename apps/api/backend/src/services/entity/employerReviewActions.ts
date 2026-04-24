@@ -5,7 +5,10 @@ import prisma from '../../graphql/prisma_client';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { buildPassportByNpi } from './passportService';
 import { computeTrustScoreV1 } from '../trust/trustScoreV1';
+import { validateAcceptanceCompleteness } from './acceptanceCompletenessValidator';
+import type { CompletenessLevel } from './acceptanceCompletenessValidator';
 import { log } from '../../obs/logger';
+import { summarizeDeterministicDecision } from '@vitalcv/trust-state';
 import type {
   CanonicalSourceCoverageSummary,
   CanonicalTruthDimensionId,
@@ -98,6 +101,8 @@ export interface DecisionTrustSnapshot {
   trustScore: number;
   trustScoreConfidence: number;
   exclusionStatus: string;
+  deaStatus?: string;
+  licenseStatus?: string;
   exclusionCheckedAt: string | null;
   pecosEnrollmentStatus: string;
   verifiedCredentialCount: number;
@@ -110,6 +115,10 @@ export interface DecisionTrustSnapshot {
   truthStatuses: Record<CanonicalTruthDimensionId, CanonicalTruthStatus>;
   sourceCoverageSummary: CanonicalSourceCoverageSummary;
   lastCheckedAt: string | null;
+  /** Completeness of required PSV fields at time of decision — for delegated credentialing gate */
+  completenessLevel: CompletenessLevel;
+  /** Required PSV field IDs that were absent at time of decision */
+  requiredFieldsMissing: string[];
 }
 
 function emptyTruthStatuses(): Record<CanonicalTruthDimensionId, CanonicalTruthStatus> {
@@ -163,6 +172,8 @@ export async function buildDecisionTrustSnapshot(
         trustScore: 0,
         trustScoreConfidence: 0,
         exclusionStatus: 'UNCHECKED',
+        deaStatus: 'unknown',
+        licenseStatus: 'unknown',
         exclusionCheckedAt: null,
         pecosEnrollmentStatus: 'UNKNOWN',
         verifiedCredentialCount: 0,
@@ -175,6 +186,8 @@ export async function buildDecisionTrustSnapshot(
         truthStatuses: emptyTruthStatuses(),
         sourceCoverageSummary: emptySourceCoverageSummary(),
         lastCheckedAt: null,
+        completenessLevel: 'none',
+        requiredFieldsMissing: [],
       };
       minimal.snapshotHash = sha256ForPayload(minimal);
       return minimal;
@@ -185,7 +198,7 @@ export async function buildDecisionTrustSnapshot(
     const reviewCount = creds.filter(c => c.reviewRequired).length;
     const verifiedCount = creds.filter(c => !c.stale && !c.reviewRequired).length;
 
-    const blockers = passport.readiness?.nextActions ?? [];
+    const blockers = passport.readiness?.blockers ?? [];
     const gatedDomains: string[] = [];
     if (passport.truth.authority.status === 'ACCESS_REQUIRED') gatedDomains.push('STATE_LICENSE');
     if (passport.truth.eligibility.status === 'ACCESS_REQUIRED') gatedDomains.push('MEDICARE_ENROLLMENT');
@@ -193,6 +206,8 @@ export async function buildDecisionTrustSnapshot(
     const bandMap: Record<string, string> = {
       READY: 'L3', PARTIAL: 'L2', BLOCKED: 'L0', UNKNOWN: 'L0',
     };
+
+    const completeness = validateAcceptanceCompleteness(passport);
 
     const snapshot: DecisionTrustSnapshot = {
       snapshotHash: '',
@@ -206,13 +221,15 @@ export async function buildDecisionTrustSnapshot(
       trustScore: trustScore?.score ?? 0,
       trustScoreConfidence: trustScore?.confidence ?? 0,
       exclusionStatus: passport.standing.exclusionStatus,
+      deaStatus: passport.standing.deaStatus,
+      licenseStatus: passport.standing.licensureStatus,
       exclusionCheckedAt: passport.standing.exclusionCheckedAt ?? null,
       pecosEnrollmentStatus: passport.standing.pecosEnrollmentStatus,
       verifiedCredentialCount: verifiedCount,
       staleCredentialCount: staleCount,
       reviewRequiredCount: reviewCount,
       blockerCount: blockers.length,
-      topBlockers: blockers.slice(0, 5).map(b => b.title),
+      topBlockers: blockers.slice(0, 5),
       missingDomains: passport.authority.summary.missing.slice(0, 10),
       gatedDomains,
       truthStatuses: {
@@ -223,6 +240,8 @@ export async function buildDecisionTrustSnapshot(
       },
       sourceCoverageSummary: passport.sourceCoverage.summary,
       lastCheckedAt: passport.lastCheckedAt ?? null,
+      completenessLevel: completeness.completenessLevel,
+      requiredFieldsMissing: completeness.requiredFieldsMissing,
     };
 
     snapshot.snapshotHash = sha256ForPayload(snapshot);
@@ -250,6 +269,8 @@ export async function buildDecisionTrustSnapshot(
       trustScore: 0,
       trustScoreConfidence: 0,
       exclusionStatus: 'UNCHECKED',
+      deaStatus: 'unknown',
+      licenseStatus: 'unknown',
       exclusionCheckedAt: null,
       pecosEnrollmentStatus: 'UNKNOWN',
       verifiedCredentialCount: 0,
@@ -262,10 +283,28 @@ export async function buildDecisionTrustSnapshot(
       truthStatuses: emptyTruthStatuses(),
       sourceCoverageSummary: emptySourceCoverageSummary(),
       lastCheckedAt: null,
+      completenessLevel: 'none',
+      requiredFieldsMissing: [],
     };
     fallback.snapshotHash = sha256ForPayload(fallback);
     return fallback;
   }
+}
+
+export function summarizeDecisionTrustSnapshot(snapshot: DecisionTrustSnapshot) {
+  return summarizeDeterministicDecision({
+    verifiedEvidenceCount: snapshot.verifiedCredentialCount,
+    limitationLabels: [
+      ...snapshot.missingDomains,
+      ...snapshot.gatedDomains,
+      ...(snapshot.reviewRequiredCount > 0 ? ['Manual review still required'] : []),
+      ...(snapshot.staleCredentialCount > 0 ? ['One or more verified credentials are stale'] : []),
+    ],
+    explicitBlockers: snapshot.topBlockers,
+    deaStatus: snapshot.deaStatus,
+    licenseStatus: snapshot.licenseStatus,
+    exclusionStatus: snapshot.exclusionStatus,
+  });
 }
 
 interface EmployerReviewActionAuditMetadata {

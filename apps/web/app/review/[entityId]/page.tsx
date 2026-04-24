@@ -8,14 +8,15 @@ export default async function ReviewPage({
   searchParams,
 }: {
   params:       Promise<{ entityId: string }>;
-  searchParams: Promise<{ contextId?: string; bundleId?: string; from?: string }>;
+  searchParams: Promise<{ contextId?: string; bundleId?: string; applicationId?: string; from?: string }>;
 }) {
-  const { entityId }                    = await params;
-  const { contextId, bundleId, from }   = await searchParams;
+  const { entityId }                               = await params;
+  const { contextId, bundleId, applicationId, from } = await searchParams;
   return ReviewPageClient({
     entityId,
     contextId,
     bundleId,
+    applicationId,
     from,
   });
 }

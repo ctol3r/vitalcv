@@ -127,6 +127,10 @@ export function registerActionsRoutes(app: Express): void {
         res.status(409).json({ error: message });
         return;
       }
+      if (message.includes('unresolved dependencies')) {
+        res.status(409).json({ error: message });
+        return;
+      }
       log('error', 'actions: status update failed', { error: message, actionId: req.params.id });
       res.status(500).json({ error: 'Failed to update action status' });
     }
@@ -143,6 +147,10 @@ export function registerActionsRoutes(app: Express): void {
         return;
       }
       if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      if (message.includes('unresolved dependencies')) {
         res.status(409).json({ error: message });
         return;
       }
@@ -165,6 +173,10 @@ export function registerActionsRoutes(app: Express): void {
         res.status(409).json({ error: message });
         return;
       }
+      if (message.includes('unresolved dependencies')) {
+        res.status(409).json({ error: message });
+        return;
+      }
       log('error', 'actions: dismiss failed', { error: message, actionId: req.params.id });
       res.status(500).json({ error: 'Failed to dismiss action' });
     }
@@ -181,6 +193,10 @@ export function registerActionsRoutes(app: Express): void {
         return;
       }
       if (message.includes('Invalid action status transition')) {
+        res.status(409).json({ error: message });
+        return;
+      }
+      if (message.includes('unresolved dependencies')) {
         res.status(409).json({ error: message });
         return;
       }
