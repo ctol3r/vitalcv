@@ -233,12 +233,12 @@ function formatField(
   view: FieldConfidenceView<unknown>,
   options: { debug: boolean },
 ): FormattedField {
-  const raw = stringifyValue(view.value);
-  if (raw.length === 0) {
-    return { display: EMPTY_VALUE, full: EMPTY_VALUE };
-  }
+  const raw = formatFieldValue(view.value);
 
-  const echoed = options.debug ? `${raw} \u00B7 ${view.sourceLabel}` : raw;
+  const echoed =
+    options.debug && raw !== EMPTY_VALUE
+      ? `${raw} \u00B7 ${view.sourceLabel}`
+      : raw;
 
   if (echoed.length <= TRUNCATE_AT) {
     return { display: echoed, full: echoed };
@@ -260,9 +260,17 @@ function formatField(
  * collapse them to the canonical EMPTY_VALUE — keeps the "is this empty?"
  * decision in one place.
  */
-function stringifyValue(value: unknown): string {
+export function formatFieldValue(value: unknown): string {
+  const raw = stringifyValue(value);
+  return raw.length === 0 ? EMPTY_VALUE : raw;
+}
+
+function stringifyValue(
+  value: unknown,
+  seen: WeakSet<object> = new WeakSet(),
+): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return value.trim().length > 0 ? value : '';
   if (typeof value === 'number') {
     return Number.isFinite(value) ? String(value) : '';
   }
@@ -272,17 +280,30 @@ function stringifyValue(value: unknown): string {
     return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
   }
   if (Array.isArray(value)) {
-    return value.map(stringifyValue).filter((entry) => entry.length > 0).join(', ');
+    if (seen.has(value)) return '[circular]';
+    seen.add(value);
+    const formatted = value
+      .map((entry) => stringifyValue(entry, seen))
+      .filter((entry) => entry.length > 0)
+      .join(', ');
+    seen.delete(value);
+    return formatted;
   }
   if (typeof value === 'object') {
     // Last resort. Any field reaching this branch is a smell — wrap your
     // domain types in a typed projection upstream rather than leaning on
     // JSON.stringify in the renderer.
+    if (seen.has(value)) return '[circular]';
+    seen.add(value);
     try {
-      return JSON.stringify(value);
+      const serialized = JSON.stringify(value);
+      return typeof serialized === 'string' ? serialized : '';
     } catch {
       return '[unserializable]';
+    } finally {
+      seen.delete(value);
     }
   }
+  if (typeof value === 'symbol' || typeof value === 'function') return '';
   return String(value);
 }

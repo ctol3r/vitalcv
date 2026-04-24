@@ -38,7 +38,10 @@ import {
   type ConfidenceField,
 } from '@domain-common/dataConfidence';
 
-import { ProfileView } from '@/components/profile/ProfileView';
+import {
+  ProfileView,
+  formatFieldValue,
+} from '@/components/profile/ProfileView';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -76,6 +79,7 @@ function rows(container: HTMLElement) {
       value: valueEl?.textContent ?? '',
       valueTitle: valueEl?.getAttribute('title') ?? null,
       confidence: badge?.getAttribute('data-confidence') ?? null,
+      badgeText: badge?.textContent ?? '',
       badgeCount: li.querySelectorAll('[data-confidence]').length,
     };
   });
@@ -206,6 +210,25 @@ describe('ProfileView — I3 null/missing fields still render', () => {
     await view.unmount();
   });
 
+  it('renders an undefined field as an unknown row with the em-dash sentinel', async () => {
+    const fields = {
+      middleName: undefined,
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ middleName: 'Middle Name' }}
+      />,
+    );
+
+    const row = rows(view.container)[0];
+    expect(row?.label).toBe('Middle Name');
+    expect(row?.confidence).toBe('unknown');
+    expect(row?.value).toBe('\u2014');
+
+    await view.unmount();
+  });
+
   it('survives an all-null input — no crashes, every row is unknown', async () => {
     const allNull: Record<Key, null> = {
       fullName: null,
@@ -230,6 +253,20 @@ describe('ProfileView — I3 null/missing fields still render', () => {
 });
 
 describe('ProfileView — formatField value coercion', () => {
+  it('collapses an empty string to the em-dash sentinel', async () => {
+    const fields = {
+      nickname: confidenceField('', fromSource('USER_UPLOAD')),
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ nickname: 'Nickname' }}
+      />,
+    );
+    expect(rows(view.container)[0]?.value).toBe('\u2014');
+    await view.unmount();
+  });
+
   it('coerces a number field to its string form', async () => {
     const fields = {
       count: confidenceField(42, fromSource('NPPES')),
@@ -281,6 +318,72 @@ describe('ProfileView — formatField value coercion', () => {
     );
     expect(rows(view.container)[0]?.value).toBe('\u2014');
     await view.unmount();
+  });
+
+  it('coerces arrays without crashing or rendering object placeholders', async () => {
+    const fields = {
+      aliases: confidenceField(
+        ['Emergency Medicine', 'Urgent Care', null, undefined, ''],
+        fromSource('USER_UPLOAD'),
+      ),
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ aliases: 'Aliases' }}
+      />,
+    );
+
+    const row = rows(view.container)[0];
+    expect(row?.value).toBe('Emergency Medicine, Urgent Care');
+    expect(view.container.textContent).not.toContain('[object Object]');
+
+    await view.unmount();
+  });
+
+  it('coerces object fields to serialized text instead of [object Object]', async () => {
+    const fields = {
+      practiceAddress: confidenceField(
+        { city: 'Oakland', state: 'CA' },
+        fromSource('NPPES'),
+      ),
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ practiceAddress: 'Practice Address' }}
+      />,
+    );
+
+    const row = rows(view.container)[0];
+    expect(row?.value).toBe('{"city":"Oakland","state":"CA"}');
+    expect(view.container.textContent).not.toContain('[object Object]');
+
+    await view.unmount();
+  });
+
+  it('does not crash on malformed object serializers', () => {
+    const returnsUndefined = {
+      toJSON: () => undefined,
+    };
+    const throwsOnSerialize = {
+      toJSON: () => {
+        throw new Error('bad serializer');
+      },
+    };
+
+    expect(() => formatFieldValue(returnsUndefined)).not.toThrow();
+    expect(formatFieldValue(returnsUndefined)).toBe('\u2014');
+    expect(() => formatFieldValue(throwsOnSerialize)).not.toThrow();
+    expect(formatFieldValue(throwsOnSerialize)).toBe('[unserializable]');
+  });
+
+  it('does not recurse forever on circular arrays', () => {
+    const circular: unknown[] = ['root'];
+    circular.push(circular);
+
+    expect(() => formatFieldValue(circular)).not.toThrow();
+    expect(formatFieldValue(circular)).toBe('root, [circular]');
   });
 
   it('truncates long strings and exposes the full text via title attr', async () => {
@@ -353,6 +456,44 @@ describe('ProfileView — debug mode', () => {
     const row = rows(view.container)[0];
     expect(row?.value).toBe('Emergency Medicine');
     expect(row?.value).not.toContain('\u00B7');
+    await view.unmount();
+  });
+});
+
+describe('ProfileView — honest confidence semantics', () => {
+  it('labels AI inference as Inferred (AI)', async () => {
+    const fields = {
+      specialty: confidenceField(
+        'Emergency Medicine',
+        fromSource('INFERENCE'),
+      ),
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ specialty: 'Specialty' }}
+      />,
+    );
+
+    expect(rows(view.container)[0]?.badgeText).toContain('Inferred (AI)');
+    await view.unmount();
+  });
+
+  it('does not label user-uploaded fields as AI', async () => {
+    const fields = {
+      fullName: confidenceField('Macie Miller', fromSource('USER_UPLOAD')),
+    };
+    const view = await renderNode(
+      <ProfileView
+        fields={fields}
+        fieldLabels={{ fullName: 'Full Name' }}
+      />,
+    );
+
+    const row = rows(view.container)[0];
+    expect(row?.confidence).toBe('inferred');
+    expect(row?.badgeText).toContain('Inferred');
+    expect(row?.badgeText).not.toContain('AI');
     await view.unmount();
   });
 });

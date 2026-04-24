@@ -39,7 +39,7 @@ import type { FieldConfidenceView } from '@/lib/profile/confidenceView';
 
 const DISPLAY_LABEL: Readonly<Record<ConfidenceType, string>> = Object.freeze({
   verified: 'Verified',
-  inferred: 'Inferred (AI)',
+  inferred: 'Inferred',
   unknown: 'Unknown',
 });
 
@@ -90,12 +90,15 @@ export function FieldConfidenceBadge({
   className,
 }: FieldConfidenceBadgeProps) {
   const tone = TONE[view.type];
-  const displayLabel = DISPLAY_LABEL[view.type];
+  const displayLabel =
+    view.type === 'inferred' && view.confidence.source === 'INFERENCE'
+      ? 'Inferred (AI)'
+      : DISPLAY_LABEL[view.type];
 
   // The a11y label intentionally combines the data-layer label ('Inferred')
   // with the compliance tooltip so screen readers get the full posture,
-  // not just the glyph. Visual users see the "(AI)" clarifier; screen-reader
-  // users hear the clarifier via the tooltip body.
+  // not just the glyph. Visual users see the "(AI)" clarifier only when the
+  // source is actual inference, not for user-uploaded inferred fields.
   const a11yLabel = `${view.label}: ${view.tooltip}`;
 
   return (
