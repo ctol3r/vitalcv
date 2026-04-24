@@ -71,7 +71,7 @@ describe('/pilot buyer proof page', () => {
     expect(html).toContain('PECOS public data reflects the public release');
     expect(html).toContain('State board coverage depends on institutional access agreements');
     expect(html).toContain(
-      'The trust container records the envelope and artifact hash; it does not replace Primary Source Verification',
+      'The trust container records packet metadata and artifact status; it does not replace Primary Source Verification',
     );
     expect(html).toContain('A partial proof stays partial');
   });
