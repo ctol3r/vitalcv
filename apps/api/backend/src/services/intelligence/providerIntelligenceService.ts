@@ -108,8 +108,8 @@ type GraphEdgeRow = {
 type ResidencyProgramRow = {
   name: string;
   specialty: string;
-  acgme_code: string;
-  hospital_affiliation: string;
+  acgmeCode: string | null;
+  hospitalAffiliation: string | null;
 };
 
 type OrganizationRow = {
@@ -529,8 +529,8 @@ async function loadResidencyPrograms(
       select: {
         name: true,
         specialty: true,
-        acgme_code: true,
-        hospital_affiliation: true,
+        acgmeCode: true,
+        hospitalAffiliation: true,
       },
       take: 1_000,
     });
@@ -1121,15 +1121,15 @@ function buildIdentityLayer(input: {
   };
 
   const ensureTraining = (program: ResidencyProgramRow) => {
-    const entityId = trainingEntityId(program.acgme_code);
+    const entityId = trainingEntityId(program.acgmeCode);
     if (!entities.has(entityId)) {
       entities.set(entityId, createIdentityEntity({
         entityId,
         entityType: 'training',
         label: program.name,
         metadata: {
-          acgmeCode: program.acgme_code,
-          hospitalAffiliation: program.hospital_affiliation,
+          acgmeCode: program.acgmeCode,
+          hospitalAffiliation: program.hospitalAffiliation,
           specialty: program.specialty,
         },
       }));
@@ -1159,7 +1159,7 @@ function buildIdentityLayer(input: {
   }
 
   for (const residency of input.residencies) {
-    const institutionId = ensureInstitution(residency.hospital_affiliation);
+    const institutionId = ensureInstitution(residency.hospitalAffiliation);
     const trainingId = ensureTraining(residency);
     const specialtyId = ensureSpecialty(residency.specialty);
     relations.set(`${trainingId}->${institutionId}`, createIdentityRelation({
@@ -1167,14 +1167,14 @@ function buildIdentityLayer(input: {
       targetEntityId: institutionId,
       relationType: 'hosted_by',
       directed: true,
-      metadata: { acgmeCode: residency.acgme_code },
+      metadata: { acgmeCode: residency.acgmeCode },
     }));
     relations.set(`${trainingId}->${specialtyId}`, createIdentityRelation({
       sourceEntityId: trainingId,
       targetEntityId: specialtyId,
       relationType: 'trains_for',
       directed: true,
-      metadata: { acgmeCode: residency.acgme_code },
+      metadata: { acgmeCode: residency.acgmeCode },
     }));
   }
 
