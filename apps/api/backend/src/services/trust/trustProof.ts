@@ -1,3 +1,13 @@
+import {
+  createTrustContainer,
+  CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
+  type CredentialEnvelopePayload,
+  type FreshnessDescriptor,
+  type IssuerMetadata,
+  type ProofStatus,
+  type ProofTier,
+  type PsvReceiptRef,
+} from './container';
 import prisma from '../../graphql/prisma_client';
 import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisclosurePlaceholder } from '../auditBundleClaims';
 import { generateClaimProof } from '../selectiveProofEngine';
@@ -62,6 +72,7 @@ export type TrustProofBundle = {
   };
   artifactHash: string;
   trustBand: string;
+  trustContainerId?: string;
   readinessScore: number;
   monitoringStatus: MonitoringStatus;
   monitoringSummary: {
@@ -111,6 +122,15 @@ function parseTrustStateSnapshot(rawPayload: unknown): ClinicianTrustState {
     : typeof rawPayload.computedAt === 'string'
       ? rawPayload.computedAt
       : new Date(0).toISOString();
+  const gapSummary = Array.isArray(rawPayload.gap_summary)
+    ? rawPayload.gap_summary.filter((item): item is string => typeof item === 'string')
+    : [];
+  const gaps = Array.isArray(rawPayload.gaps)
+    ? rawPayload.gaps.filter((item): item is string => typeof item === 'string')
+    : gapSummary;
+  const blockers = Array.isArray(rawPayload.blockers)
+    ? rawPayload.blockers.filter((item): item is string => typeof item === 'string')
+    : undefined;
 
   return {
     npi: typeof rawPayload.npi === 'string' ? rawPayload.npi : '',
@@ -128,17 +148,14 @@ function parseTrustStateSnapshot(rawPayload: unknown): ClinicianTrustState {
       ? rawPayload.readiness_status
       : '',
     readiness_score: readinessScore,
-    gap_summary: Array.isArray(rawPayload.gap_summary)
-      ? rawPayload.gap_summary.filter((item): item is string => typeof item === 'string')
-      : [],
+    gap_summary: gapSummary,
+    blockers,
     methodology_version: methodologyVersion,
     computed_at: computedAt,
     trustBand: trustBand as ClinicianTrustState['trustBand'],
     trustScore: readinessScore,
     facts: [],
-    gaps: Array.isArray(rawPayload.gaps)
-      ? rawPayload.gaps.filter((item): item is string => typeof item === 'string')
-      : [],
+    gaps,
     computedAt: computedAt,
   };
 }
@@ -433,9 +450,19 @@ export async function buildTrustProofBundle(npi: string): Promise<TrustProofBund
 
   const artifactHash = sha256Hex(stableStringify(coreBundle));
 
+  const trustContainerId = await issueTrustContainerCredential({
+    entityId: snapshotArtifact.id,
+    npi,
+    trustState,
+    artifacts,
+    artifactHash,
+    sourceSnapshotVerifiedAt: snapshotArtifact.verifiedAt.toISOString(),
+  });
+
   return {
     ...coreBundle,
     artifactHash,
+    trustContainerId,
     bundleDownloads: {
       trustProofJson: `/api/trust-proof/${encodeURIComponent(npi)}`,
       trustProofPdf: `/api/trust-proof/${encodeURIComponent(npi)}?format=pdf`,
@@ -443,4 +470,128 @@ export async function buildTrustProofBundle(npi: string): Promise<TrustProofBund
       auditBundleDownload: `/api/artifact/bundle/${encodeURIComponent(npi)}/download`,
     },
   };
+}
+
+// ── Trust container binding (service layer) ────────────────────────
+// Translates a fully-built trust proof into the CredentialEnvelopePayload
+// shape the trust container understands, then asks the configured
+// provider (mock by default; Dock scaffold when opted in) to issue.
+// Failures are swallowed so an outage in the proof container never
+// breaks bundle generation — the bundle itself is the authoritative
+// artifact. Any issuance that does succeed gets its id bound back
+// onto the bundle via `trustContainerId`.
+
+const TRUST_CONTAINER_FRESHNESS_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const TRUST_CONTAINER_ISSUER_DEFAULT: IssuerMetadata = {
+  did: 'did:vitalcv:issuer_default',
+  name: 'VitalCV',
+  provider: 'mock',
+};
+
+function deriveProofTier(readinessScore: number): ProofTier {
+  if (readinessScore >= 80) return 'DECISION_GRADE';
+  if (readinessScore >= 40) return 'PARTIAL';
+  if (readinessScore > 0) return 'SNAPSHOT';
+  return 'NONE';
+}
+
+function deriveProofStatus(
+  readinessScore: number,
+  limitationNotes: string[],
+  trustBand: string,
+): ProofStatus {
+  if (trustBand === 'BLOCKED' || readinessScore === 0) return 'BLOCKED';
+  if (limitationNotes.length > 0 || readinessScore < 80) return 'PARTIAL';
+  return 'DECISION_GRADE';
+}
+
+function deriveFreshness(verifiedAtIso: string): FreshnessDescriptor {
+  const verifiedMs = Date.parse(verifiedAtIso);
+  const ageSec = Number.isFinite(verifiedMs)
+    ? Math.max(0, Math.floor((Date.now() - verifiedMs) / 1000))
+    : Number.POSITIVE_INFINITY;
+  let label: FreshnessDescriptor['label'] = 'REAL_TIME';
+  if (ageSec > TRUST_CONTAINER_FRESHNESS_TTL_SECONDS) label = 'STALE';
+  else if (ageSec > TRUST_CONTAINER_FRESHNESS_TTL_SECONDS / 2) label = 'AGING';
+  else if (ageSec > 60 * 15) label = 'FRESH';
+  return { label, evidenceAsOf: verifiedAtIso, ttlSeconds: TRUST_CONTAINER_FRESHNESS_TTL_SECONDS };
+}
+
+function appendUniqueLimitation(limitationNotes: string[], value: string | null | undefined): void {
+  const normalized = value?.trim();
+  if (normalized && !limitationNotes.includes(normalized)) {
+    limitationNotes.push(normalized);
+  }
+}
+
+function collectLimitationNotes(trustState: ClinicianTrustState): string[] {
+  const limitationNotes: string[] = [];
+  if (!trustState.identityVerified) appendUniqueLimitation(limitationNotes, 'Identity not strictly verified');
+  if (!trustState.exclusionClear) appendUniqueLimitation(limitationNotes, 'Exclusions not fully cleared');
+  for (const gap of trustState.gap_summary) appendUniqueLimitation(limitationNotes, gap);
+  for (const gap of trustState.gaps) appendUniqueLimitation(limitationNotes, gap);
+  for (const blocker of trustState.blockers ?? []) appendUniqueLimitation(limitationNotes, blocker);
+  return limitationNotes;
+}
+
+async function issueTrustContainerCredential(params: {
+  entityId: string;
+  npi: string;
+  trustState: ClinicianTrustState;
+  artifacts: TrustProofArtifact[];
+  artifactHash: string;
+  sourceSnapshotVerifiedAt: string;
+}): Promise<string | undefined> {
+  const { entityId, npi, trustState, artifacts, artifactHash, sourceSnapshotVerifiedAt } = params;
+
+  const limitationNotes = collectLimitationNotes(trustState);
+
+  const sourceCoverage = Array.from(new Set(artifacts.map((a) => a.issuer))).sort();
+  const psvReceiptRefs: PsvReceiptRef[] = artifacts.map((a) => ({
+    receiptId: a.artifactId,
+    source: a.issuer,
+    verifiedAt: a.verifiedAt,
+    checksum: a.sourceChecksum,
+  }));
+
+  const proofTier = deriveProofTier(trustState.readiness_score);
+  const status = deriveProofStatus(
+    trustState.readiness_score,
+    limitationNotes,
+    trustState.readiness_level,
+  );
+
+  // Preservation invariant: a partial proof stays partial. Never
+  // upgrade to DECISION_GRADE while we still have limitations.
+  const effectiveTier: ProofTier =
+    status === 'DECISION_GRADE' && limitationNotes.length === 0 ? proofTier : proofTier === 'DECISION_GRADE' ? 'PARTIAL' : proofTier;
+
+  const container = createTrustContainer();
+  const issuerMetadata: IssuerMetadata = {
+    ...TRUST_CONTAINER_ISSUER_DEFAULT,
+    provider: container.kind,
+  };
+
+  const envelope: CredentialEnvelopePayload = {
+    entityId,
+    subject: { npi, entityId },
+    clinicianNpi: npi,
+    sourceCoverage,
+    psvReceiptRefs,
+    proofTier: status === 'DECISION_GRADE' ? 'DECISION_GRADE' : effectiveTier,
+    freshness: deriveFreshness(sourceSnapshotVerifiedAt),
+    limitationNotes,
+    auditHash: artifactHash,
+    issuer: issuerMetadata,
+    schemaVersion: CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
+    status,
+  };
+
+  try {
+    const issuance = await container.issueCredential(envelope);
+    return issuance.id;
+  } catch (err) {
+    console.warn('Trust container issuance skipped/failed:', err);
+    return undefined;
+  }
 }
