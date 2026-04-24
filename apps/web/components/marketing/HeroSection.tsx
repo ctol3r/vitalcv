@@ -7,23 +7,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Loader2, Shield, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
-// SOC 2 removed: VitalCV is SOC 2-aligned but not yet certified.
-// Only display standards and frameworks we actually implement or align to.
-const COMPLIANCE_ITEMS = ['NCQA', 'CMS', 'HIPAA', 'OID4VCI', 'ES256'] as const;
+const COMPLIANCE_ITEMS = ['Source-backed', 'HIPAA-aligned', 'W3C VC', 'OID4VCI', 'ES256'] as const;
 
 const MOCK_CREDENTIALS = [
   { label: 'State License', level: 'L3', color: 'var(--claim-l3)' },
-  { label: 'Board Cert', level: 'L2', color: 'var(--claim-l2)' },
-  { label: 'DEA', level: 'L1', color: 'var(--claim-l1)' },
+  { label: 'OIG/LEIE', level: 'L2', color: 'var(--claim-l2)' },
+  { label: 'PECOS', level: 'L1', color: 'var(--claim-l1)' },
 ] as const;
 
 export function HeroSection() {
+  const router = useRouter();
   const [npi, setNpi] = useState('');
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [showClearance, setShowClearance] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalizedNpi = npi.replace(/\D/g, '');
@@ -41,22 +42,25 @@ export function HeroSection() {
 
     if (!/^\d{10}$/.test(normalizedNpi)) {
       setError('Enter a valid 10-digit NPI.');
-      setShowClearance(false);
+      setShowPreview(false);
       return;
     }
 
     setError('');
     setIsVerifying(true);
-    setShowClearance(false);
+    setShowPreview(false);
 
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
 
+    // Show a brief local confirmation, then route to the canonical passport
+    // intake where primary-source verification actually runs.
     timerRef.current = setTimeout(() => {
       setIsVerifying(false);
-      setShowClearance(true);
-    }, 2000);
+      setShowPreview(true);
+      router.push(buildPassportLookupHref(normalizedNpi));
+    }, 200);
   };
 
   return (
@@ -89,9 +93,9 @@ export function HeroSection() {
             </h1>
 
             <p className="max-w-2xl text-lg leading-relaxed text-[var(--warm-charcoal)]/75">
-              VitalCV automates NCQA-compliant primary source verification —
-              generating audit-ready credential artifacts that cut onboarding
-              from months to days. Data freshness varies by source (daily to quarterly).
+              VitalCV checks source-backed credential readiness and generates
+              audit-ready packets for employer review. Data freshness varies by
+              source, from daily checks to quarterly snapshots.
             </p>
 
             <form onSubmit={onSubmit} className="max-w-xl space-y-3">
@@ -190,10 +194,10 @@ export function HeroSection() {
             transition={{ duration: 0.9, delay: 0.1, layout: { type: 'spring', stiffness: 200, damping: 30 } }}
           >
             <h2 className="font-fraunces text-2xl font-semibold tracking-tight text-[var(--warm-charcoal)]">
-              Clearance State
+              Readiness preview
             </h2>
             <p className="mt-2 text-sm text-[var(--warm-charcoal)]/65">
-              Simulated verification output for the entered NPI.
+              Source-backed readiness check runs on the next screen.
             </p>
 
             <AnimatePresence mode="wait">
@@ -208,7 +212,7 @@ export function HeroSection() {
                 >
                   <Skeleton className="h-48 w-full rounded-xl" />
                 </motion.div>
-              ) : showClearance ? (
+              ) : showPreview ? (
                 <motion.div
                   key="ready"
                   layout="position"
@@ -224,24 +228,24 @@ export function HeroSection() {
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-[var(--trust-green)]">
                       <CheckCircle2 className="h-4 w-4" />
-                      Clearance State: PASS
+                      Routing to the readiness surface
                     </div>
                     <p className="mt-3 text-sm text-[var(--warm-charcoal)]/80">
-                      NPI <span className="font-mono">{normalizedNpi}</span> — artifact chain validated and
-                      cryptographically anchored.
+                      NPI <span className="font-mono">{normalizedNpi}</span> — source-backed checks and
+                      freshness labels are rendered on the passport page.
                     </p>
                     <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                       <div>
                         <dt className="text-xs text-[var(--warm-charcoal)]/50">Primary sources</dt>
-                        <dd className="font-semibold text-[var(--warm-charcoal)]">Verified</dd>
+                        <dd className="font-semibold text-[var(--warm-charcoal)]">NPPES · OIG · PECOS</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Trust confidence</dt>
-                        <dd className="font-semibold text-[var(--trust-green)]">99.97%</dd>
+                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Freshness</dt>
+                        <dd className="font-semibold text-[var(--warm-charcoal)]">Labeled per source</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Time to start</dt>
-                        <dd className="font-semibold text-[var(--warm-charcoal)]">2 days</dd>
+                        <dt className="text-xs text-[var(--warm-charcoal)]/50">Next step</dt>
+                        <dd className="font-semibold text-[var(--trust-green)]">Open passport</dd>
                       </div>
                     </dl>
                   </GlassCard>

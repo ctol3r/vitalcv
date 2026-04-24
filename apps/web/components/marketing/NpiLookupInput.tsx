@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { usePostHog } from 'posthog-js/react';
+import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
 export function NpiLookupInput() {
   const router = useRouter();
@@ -21,11 +22,13 @@ export function NpiLookupInput() {
       return;
     }
     setError('');
-    
+
     // Track NPI submission event
     posthog?.capture('NPI_Submitted', { npi: trimmed });
-    
-    router.push(`/readiness?npi=${encodeURIComponent(trimmed)}`);
+
+    // Route to the canonical passport intake. Avoid speculative routes
+    // (/clinician, /readiness) that do not resolve to the passport surface.
+    router.push(buildPassportLookupHref(trimmed));
   }
 
   return (

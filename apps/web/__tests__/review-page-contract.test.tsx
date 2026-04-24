@@ -201,4 +201,75 @@ describe('review page contract', () => {
     expect(markup).toContain('This clinician passport is not available for review yet');
     expect(markup).toContain('/review/entity-1?contextId=ctx-1&amp;bundleId=bundle-1&amp;from=Ada+Lovelace');
   });
+
+  it('resolves share tokens before hydrating the employer review surface', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        entityId: 'entity-1',
+        clinicianNpi: '1234567890',
+        organizationContextId: 'ctx-from-token',
+        bundleId: 'bundle-from-token',
+        reviewHref: '/review/entity-1',
+        shareEventAuditId: 'audit-share-1',
+        sharedAt: '2026-03-23T18:00:00.000Z',
+        expiresAt: '2099-03-24T18:00:00.000Z',
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        entityId: 'entity-1',
+        readiness: {
+          score: 91,
+          blockers: [],
+        },
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        summary: {
+          acceptedOrganizationCount: 0,
+          hasPriorAcceptances: false,
+          headline: 'No prior acceptances',
+          trustCopy: null,
+        },
+        history: [],
+      }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }, 202));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ReviewPage = (await import('../app/review/[entityId]/page')).default;
+    renderToStaticMarkup(await ReviewPage({
+      params: Promise.resolve({ entityId: 'chk_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO12' }),
+      searchParams: Promise.resolve({}),
+    }));
+
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      'http://backend.test/api/employer-review/share-token/chk_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO12',
+      'http://backend.test/api/passport/entity/entity-1',
+      'http://backend.test/api/employer-review/entity-1/acceptance-history',
+      'http://backend.test/api/employer-review/entity-1/view',
+    ]);
+    expect(reviewClientSpy).toHaveBeenCalledWith(expect.objectContaining({
+      contextId: 'ctx-from-token',
+      bundleId: 'bundle-from-token',
+      sharedBy: 'VitalCV packet share',
+    }));
+  });
+
+  it('renders a safe state for expired share tokens without fetching passport data', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({
+      error: 'share_token_expired',
+      error_description: 'This review link has expired. Ask the clinician to share a fresh packet.',
+    }, 410));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ReviewPage = (await import('../app/review/[entityId]/page')).default;
+    const markup = renderToStaticMarkup(await ReviewPage({
+      params: Promise.resolve({ entityId: 'chk_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO12' }),
+      searchParams: Promise.resolve({}),
+    }));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(reviewClientSpy).not.toHaveBeenCalled();
+    expect(markup).toContain('Review link unavailable');
+    expect(markup).toContain('This review link has expired');
+  });
 });

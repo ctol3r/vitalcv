@@ -19,7 +19,7 @@
  * audit record before returning the bundle.
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import type { Prisma } from '@prisma/client';
 import prisma from '../graphql/prisma_client';
@@ -81,6 +81,43 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+const SHARE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const SHARE_TOKEN_PATTERN = /^chk_[A-Za-z0-9_-]{43}$/;
+
+function buildShareToken(): string {
+  return `chk_${randomBytes(32).toString('base64url')}`;
+}
+
+function hashShareToken(token: string): string {
+  return sha256ForPayload({
+    schema: 'vitalcv.employer.share-token-hash.v1',
+    token,
+  });
+}
+
+function resolveAppOrigin(): string {
+  const configured =
+    process.env.APP_ORIGIN
+    ?? process.env.NEXT_PUBLIC_APP_URL
+    ?? process.env.WEB_ORIGIN
+    ?? 'https://app.vitalcv.com';
+
+  try {
+    const url = new URL(configured);
+    return url.origin;
+  } catch {
+    return 'https://app.vitalcv.com';
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function metadataRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
 }
 
 function buildEmployerDecisionMetadata(input: {
@@ -626,21 +663,32 @@ export function registerEmployerActionRoutes(app: Express): void {
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
 
-      const { npi: bodyNpi } = (req.body ?? {}) as { npi?: string };
-      const clinicianNpi = bodyNpi ?? subject.clinicianNpi;
+      const { npi: bodyNpi, organizationContextId, bundleId } = (req.body ?? {}) as {
+        npi?: string;
+        organizationContextId?: string | null;
+        bundleId?: string | null;
+      };
+      const clinicianNpi = bodyNpi?.trim() ?? subject.clinicianNpi;
+      if (clinicianNpi !== subject.clinicianNpi) {
+        throw new HttpError(400, 'Share packet NPI does not match the reviewed clinician.');
+      }
 
-      // Generate ephemeral share token
-      const shareToken = `chk_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
-      const shareUrl = `${req.protocol}://${req.get('host')}/review/${shareToken}`;
+      const sharedAt = new Date();
+      const expiresAt = new Date(sharedAt.getTime() + SHARE_TOKEN_TTL_MS);
+      const shareToken = buildShareToken();
+      const shareTokenHash = hashShareToken(shareToken);
+      const shareUrl = `${resolveAppOrigin()}/review/${shareToken}`;
 
       const auditMetadata = toJsonValue({
         schema: 'vitalcv.employer.packet-shared.v1',
         employerId,
         entityId,
         clinicianNpi,
-        shareToken,
-        shareUrl,
-        sharedAt: new Date().toISOString(),
+        organizationContextId: readOptionalString(organizationContextId),
+        bundleId: readOptionalString(bundleId),
+        shareTokenHash,
+        sharedAt: sharedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
       });
 
       const auditEvent = await prisma.auditEvent.create({
@@ -662,13 +710,78 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         npi_prefix: clinicianNpi.slice(0, 4) + '····',
-        shareToken,
       });
 
       return void res.status(201).json({
         ok: true,
         shareUrl,
         auditEventId: auditEvent.id,
+        expiresAt: expiresAt.toISOString(),
+      });
+    }),
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/employer-review/share-token/:token
+  // Resolve an ephemeral employer review share token to its scoped review target.
+  // Missing, malformed, or expired tokens fail closed.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get(
+    '/api/employer-review/share-token/:token',
+    asyncHandler(async (req, res) => {
+      const token = req.params.token?.trim() ?? '';
+      if (!SHARE_TOKEN_PATTERN.test(token)) {
+        return void res.status(404).json({
+          error: 'share_token_not_found',
+          error_description: 'This review link is not available.',
+        });
+      }
+
+      const shareTokenHash = hashShareToken(token);
+      const shareEvent = await prisma.auditEvent.findFirst({
+        where: {
+          type: 'EMPLOYER_PACKET_SHARED',
+          metadata: {
+            path: ['shareTokenHash'],
+            equals: shareTokenHash,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          referenceId: true,
+          clinicianId: true,
+          createdAt: true,
+          metadata: true,
+        },
+      });
+
+      if (!shareEvent) {
+        return void res.status(404).json({
+          error: 'share_token_not_found',
+          error_description: 'This review link is not available.',
+        });
+      }
+
+      const metadata = metadataRecord(shareEvent.metadata);
+      const expiresAt = readOptionalString(metadata.expiresAt);
+      if (!expiresAt || Date.parse(expiresAt) <= Date.now()) {
+        return void res.status(410).json({
+          error: 'share_token_expired',
+          error_description: 'This review link has expired. Ask the clinician to share a fresh packet.',
+        });
+      }
+
+      return void res.status(200).json({
+        ok: true,
+        entityId: shareEvent.referenceId,
+        clinicianNpi: shareEvent.clinicianId,
+        organizationContextId: readOptionalString(metadata.organizationContextId),
+        bundleId: readOptionalString(metadata.bundleId),
+        reviewHref: `/review/${shareEvent.referenceId}`,
+        shareEventAuditId: shareEvent.id,
+        sharedAt: shareEvent.createdAt.toISOString(),
+        expiresAt,
       });
     }),
   );
@@ -710,7 +823,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       // If a specific acceptanceId is provided, use it; otherwise find the most recent ACCEPTED one.
       const acceptance = await (bodyAcceptanceId
         ? prisma.employerAcceptance.findFirst({
-            where:  { id: bodyAcceptanceId, employerId, status: 'ACCEPTED' },
+            where:  { id: bodyAcceptanceId, employerId, clinicianNpi: subject.clinicianNpi, status: 'ACCEPTED' },
             select: { id: true, clinicianNpi: true },
           })
         : prisma.employerAcceptance.findFirst({
@@ -721,6 +834,9 @@ export function registerEmployerActionRoutes(app: Express): void {
       );
 
       if (!acceptance) {
+        throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
+      }
+      if (acceptance.clinicianNpi !== subject.clinicianNpi) {
         throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
       }
 
@@ -864,6 +980,7 @@ export function registerEmployerActionRoutes(app: Express): void {
       'GET  /api/employer-review/:entityId/acceptance-history',
       'GET  /api/employer-review/:entityId/packet',
       'POST /api/employer-review/:entityId/share-packet',
+      'GET  /api/employer-review/share-token/:token',
       'POST /api/employer-review/:entityId/confirm-start',
       'GET  /api/employer-review/npi/:npi/refresh-requests',
     ],

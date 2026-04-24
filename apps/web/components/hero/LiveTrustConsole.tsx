@@ -41,7 +41,7 @@ export function LiveTrustConsole({
     setTerminalSteps(['[SYSTEM] Initializing Omega Orchestrator...']);
     
     setTimeout(() => {
-      setTerminalSteps(prev => [...prev, '[OK] NPPES verified (Identity & Taxonomy)']);
+      setTerminalSteps(prev => [...prev, '[OK] NPPES checked (Identity & Taxonomy)']);
     }, 400);
 
     setTimeout(() => {
@@ -77,8 +77,8 @@ export function LiveTrustConsole({
                 Stop starting over.
                 <span className="block text-emerald-600 mt-2">Start ready.</span>
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-muted-foreground max-w-xl mx-auto lg:mx-0">
-                Enter your NPI to check your credentialing status across federal sources in seconds. See what&rsquo;s verified, what&rsquo;s missing, and what could delay your next start.
+                <p className="mt-6 text-lg leading-relaxed text-muted-foreground max-w-xl mx-auto lg:mx-0">
+                Enter your NPI to check your credentialing status across federal sources in seconds. See what&rsquo;s checked, what&rsquo;s missing, and what could delay your next start.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0">
@@ -176,7 +176,7 @@ export function LiveTrustConsole({
                         <span className="text-sm font-medium text-foreground">3 / 3 Critical Lanes</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Immutable Receipts</span>
+                        <span className="text-sm text-muted-foreground">Source Receipts</span>
                         <span className="text-sm font-mono text-muted-foreground">SHA256...e9f4</span>
                       </div>
                     </div>
@@ -199,7 +199,7 @@ export function LiveTrustConsole({
           <div className="text-center mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">The Algorithm Canon in Action</h2>
             <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-              VitalCV operates on mathematical truth, not self-reported claims. Our orchestrator enforces strict execution integrity across three distinct layers.
+              VitalCV operates on source-backed evidence, not self-reported claims. Our orchestrator preserves execution integrity across three distinct layers.
             </p>
           </div>
 
@@ -225,7 +225,7 @@ export function LiveTrustConsole({
               <h3 className="text-xl font-bold text-foreground mb-3">2. Prove</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 <strong>Claims + Receipts</strong><br/>
-                Every fetched fact is hashed into a cryptographic receipt. Conflicting data is mathematically resolved by our Arbitration Engine based on strict source authority.
+                Every fetched fact is hashed into a cryptographic receipt. Conflicting data is routed through source authority rules with provenance attached.
               </p>
             </div>
 
@@ -237,7 +237,7 @@ export function LiveTrustConsole({
               <h3 className="text-xl font-bold text-foreground mb-3">3. Start</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 <strong>Decision + Apply</strong><br/>
-                The Omega Orchestrator evaluates the time-locked Proof Manifest against organizational policy and outputs a deterministic recommendation, completely bypassing traditional credentialing delays.
+                The Omega Orchestrator evaluates the Proof Manifest against organizational policy and returns an auditable recommendation for employer review.
               </p>
             </div>
 

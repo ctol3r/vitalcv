@@ -215,6 +215,15 @@ function buildPacketPayload() {
   };
 }
 
+function buildSharePacketPayload() {
+  return {
+    ok: true,
+    shareUrl: 'https://app.vitalcv.test/review/chk_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNO12',
+    auditEventId: 'audit-share-1',
+    expiresAt: '2099-03-24T18:00:00.000Z',
+  };
+}
+
 describe('/api/employer-review/[entityId]/[action] proxy', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -296,6 +305,56 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'invalid_request',
       error_description: 'Malformed request-refresh request body.',
+    });
+  });
+
+  it('forwards authenticated share-packet writes and validates the response contract', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildSharePacketPayload(), 201));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/share-packet', {
+      method: 'POST',
+      body: JSON.stringify({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'share-packet' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/employer-review/entity-1/share-packet',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'x-clerk-user-id': 'clerk-user-1',
+        }),
+        body: JSON.stringify({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' }),
+      }),
+    );
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual(buildSharePacketPayload());
+  });
+
+  it('rejects malformed share-packet bodies before proxying', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/share-packet', {
+      method: 'POST',
+      body: JSON.stringify({ npi: 'not-an-npi' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'share-packet' }),
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_request',
+      error_description: 'Malformed share-packet request body.',
     });
   });
 
