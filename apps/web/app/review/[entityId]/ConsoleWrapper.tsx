@@ -81,6 +81,8 @@ async function fetchConsoleData(entityId: string): Promise<ConsoleProps | null> 
       nextAction,
       auditTrail,
       loopId: isvData?.events?.[0]?.loopId,
+      trustContainer: manifest?.trustContainer ?? undefined,
+
     };
   } catch {
     return null;
