@@ -30,6 +30,16 @@ Measure your true "time-to-action" baseline. VitalCV runs alongside your existin
 * **Proof-Pack Exported:** 100% verifiable Evidence Artifacts generated.
 * **Days-at-Risk Identified:** Days saved in the simulation before manual intervention was required.
 
+## Timeline (30 days)
+| Phase | Days | Who leads | Outputs |
+| :--- | :--- | :--- | :--- |
+| **Kickoff & scope sign-off** | Day 0 – Day 2 | VitalCV Solutions | Signed scope doc, named review operator, baseline captured (or honest "not tracked") |
+| **NPI intake & ingest** | Day 2 – Day 5 | VitalCV + Buyer | 10–30 NPIs loaded, source lanes running (NPPES / OIG LEIE / PECOS / selected state board) |
+| **Review window** | Day 5 – Day 25 | Buyer review operator | Employer review decisions recorded against each packet; proof-packs exported as needed |
+| **KPI report + wrap-up call** | Day 26 – Day 30 | VitalCV | Startability timeline deltas, refresh-request counts, proof-tier distribution, limitations log, 30-minute review call |
+
+No measurement starts before the scope document is signed. Pilot can be paused by either party at any phase.
+
 ## Buyer Responsibilities
 1. Provide a roster of 10–30 real clinician NPIs (no other PII required).
 2. Designate one hiring/credentialing team member to act as the primary review operator.

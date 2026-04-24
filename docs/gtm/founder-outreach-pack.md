@@ -5,7 +5,7 @@ This document contains plain-spoken, practical outreach scripts tailored for hea
 ---
 
 ## 1. The 30-Second Pitch (Elevator)
-"Hi, I’m Chris. Healthcare staffing loses millions when start dates slip because an application sat waiting for a manual credential check. VitalCV gives your credentialing team a verified head start. You drop in an NPI, and we instantly assemble a verifiable evidence packet—Identity, OIG exclusions, and PECOS enrollment. Your team knows what’s ready and what’s missing on day zero, cutting days of uncertainty before the start date slips."
+"Hi, I’m Chris. When a clinician start date slips because an application sat for weeks waiting on a manual credential check, you lose revenue, placements, and coordinator hours — usually all three at once. VitalCV gives your credentialing team a verified head start: you drop in an NPI and we assemble a source-backed evidence packet from NPPES identity, OIG federal exclusions, PECOS public enrollment, and a configured state-licensure lane. Your team knows what is decision-grade, what is partial, and what still needs primary source verification on day zero — without replacing your credentialing committee."
 
 ## 2. The 90-Second Pitch (Discovery Call)
 "Hi, I’m Chris. If you’re like most staffing or credentialing leaders, your biggest headache isn’t finding candidates—it’s getting them cleared to start. An application often sits in a black box for weeks before someone realizes a state license expired or OIG requires review. 
