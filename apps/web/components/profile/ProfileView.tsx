@@ -106,10 +106,10 @@ export function ProfileView<K extends string>({
   // "unknown"-typed views so the row is still rendered downstream — no field
   // is silently dropped.
   const keys = Object.keys(fields) as K[];
-  const entries = keys.map<[K, FieldConfidenceView<unknown>]>((key) => [
-    key,
-    viewField(fields[key] ?? null),
-  ]);
+  const entries = keys.map<[K, FieldConfidenceView<unknown>]>((key) => {
+    const view = viewField(fields[key] ?? null);
+    return [key, hasDisplayableValue(view.value) ? view : viewField(null)];
+  });
 
   // (I1) Deterministic ordering lives in the data layer, not this component.
   // We pass entries in caller-supplied order; the stable sort preserves that
@@ -195,8 +195,8 @@ function ProfileFieldRow({ label, view, debug }: ProfileFieldRowProps) {
 // Resolves the "butter experience" value-rendering decision laid out in the
 // original TODO. The chosen posture for v1:
 //
-//   (a) Null handling      → em dash '—'. Same width everywhere, no system-
-//                            error voice, doesn't shadow the Unknown badge.
+//   (a) Null handling      → 'Unknown'. Matches the provenance badge language
+//                            and keeps empty values explicit in exports.
 //   (b) Non-string values  → typed switch (string / number / boolean / Date /
 //                            array / object). Delegating to `String(value)`
 //                            is too risky once domain models start carrying
@@ -220,7 +220,7 @@ function ProfileFieldRow({ label, view, debug }: ProfileFieldRowProps) {
 
 const TRUNCATE_AT = 80;
 const ELLIPSIS = '\u2026'; // …
-const EMPTY_VALUE = '\u2014'; // —
+const UNKNOWN_VALUE = 'Unknown';
 
 interface FormattedField {
   /** Text to render in the row's value slot. May be truncated. */
@@ -236,7 +236,7 @@ function formatField(
   const raw = formatFieldValue(view.value);
 
   const echoed =
-    options.debug && raw !== EMPTY_VALUE
+    options.debug && raw !== UNKNOWN_VALUE
       ? `${raw} \u00B7 ${view.sourceLabel}`
       : raw;
 
@@ -256,13 +256,16 @@ function formatField(
 /**
  * Pure value-to-string coercion for arbitrary `unknown` payloads.
  *
- * Returns the empty string for null/undefined/NaN-Date so `formatField` can
- * collapse them to the canonical EMPTY_VALUE — keeps the "is this empty?"
- * decision in one place.
+ * Returns "Unknown" for null/undefined/empty values so the row's value text
+ * and badge posture agree in missing/conflict/unresolved cases.
  */
 export function formatFieldValue(value: unknown): string {
-  const raw = stringifyValue(value);
-  return raw.length === 0 ? EMPTY_VALUE : raw;
+  try {
+    const raw = stringifyValue(value);
+    return raw.length === 0 ? UNKNOWN_VALUE : raw;
+  } catch {
+    return UNKNOWN_VALUE;
+  }
 }
 
 function stringifyValue(
@@ -270,14 +273,17 @@ function stringifyValue(
   seen: WeakSet<object> = new WeakSet(),
 ): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value.trim().length > 0 ? value : '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? formatIsoLikeDate(trimmed) ?? trimmed : '';
+  }
   if (typeof value === 'number') {
     return Number.isFinite(value) ? String(value) : '';
   }
   if (typeof value === 'bigint') return value.toString();
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+    return Number.isNaN(value.getTime()) ? '' : formatDate(value);
   }
   if (Array.isArray(value)) {
     if (seen.has(value)) return '[circular]';
@@ -290,20 +296,65 @@ function stringifyValue(
     return formatted;
   }
   if (typeof value === 'object') {
-    // Last resort. Any field reaching this branch is a smell — wrap your
-    // domain types in a typed projection upstream rather than leaning on
-    // JSON.stringify in the renderer.
     if (seen.has(value)) return '[circular]';
     seen.add(value);
     try {
-      const serialized = JSON.stringify(value);
-      return typeof serialized === 'string' ? serialized : '';
+      const entries = Object.entries(value)
+        .map(([key, entry]) => {
+          const formatted = stringifyValue(entry, seen);
+          return formatted.length > 0 ? `${key}: ${formatted}` : '';
+        })
+        .filter((entry) => entry.length > 0);
+
+      if (entries.length === 0) return '';
+
+      const visible = entries.slice(0, 4).join('; ');
+      return entries.length > 4 ? `${visible}; ${ELLIPSIS}` : visible;
     } catch {
-      return '[unserializable]';
+      return '[unreadable object]';
     } finally {
       seen.delete(value);
     }
   }
   if (typeof value === 'symbol' || typeof value === 'function') return '';
   return String(value);
+}
+
+function hasDisplayableValue(value: unknown): boolean {
+  try {
+    return stringifyValue(value).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function formatIsoLikeDate(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}(?:[T\s].*)?$/.test(value)) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      date.getUTCFullYear() !== year
+      || date.getUTCMonth() !== month - 1
+      || date.getUTCDate() !== day
+    ) {
+      return value;
+    }
+    return formatDate(date);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : formatDate(parsed);
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
 }

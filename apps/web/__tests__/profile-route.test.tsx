@@ -26,13 +26,19 @@ describe('/profile/[npi] route', () => {
     notFoundMock.mockClear();
   });
 
-  it('rejects invalid NPI params before rendering the profile surface', async () => {
+  it('renders invalid NPI params safely as an unknown profile surface', async () => {
     const { default: ProfilePage } = await import('../app/profile/[npi]/page');
 
-    await expect(
-      ProfilePage({ params: Promise.resolve({ npi: 'not-an-npi' }) }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(notFoundMock).toHaveBeenCalledTimes(1);
+    const node = await ProfilePage({
+      params: Promise.resolve({ npi: 'not-an-npi' }),
+    });
+    const markup = renderToStaticMarkup(node);
+
+    expect(notFoundMock).not.toHaveBeenCalled();
+    expect(markup).toContain('Invalid NPI');
+    expect(markup).toContain('not-an-npi');
+    expect(countConfidenceBadges(markup, 'unknown')).toBe(5);
+    expect(markup).not.toContain('[object Object]');
   });
 
   it('trims whitespace around a valid ten-digit NPI before lookup', async () => {
@@ -45,7 +51,7 @@ describe('/profile/[npi] route', () => {
     const markup = renderToStaticMarkup(node);
 
     expect(notFoundMock).not.toHaveBeenCalled();
-    expect(markup).toContain('NPI: 1003000126');
+    expect(markup).toContain('1003000126');
     expect(markup).not.toContain(' 1003000126 ');
   });
 
@@ -60,7 +66,7 @@ describe('/profile/[npi] route', () => {
     // Identity markers come from DEMO_PROFILES[1003000126].
     expect(markup).toContain('Sarah Chen, MD');
     expect(markup).toContain('Internal Medicine');
-    expect(markup).toContain('NPI: 1003000126');
+    expect(markup).toContain('1003000126');
 
     // Known demo path does NOT use the unresolved subtitle.
     expect(markup).not.toContain('No enrichment data available');
@@ -80,13 +86,13 @@ describe('/profile/[npi] route', () => {
     const markup = renderToStaticMarkup(node);
 
     expect(notFoundMock).not.toHaveBeenCalled();
-    expect(markup).toContain('NPI: 9999999999');
+    expect(markup).toContain('9999999999');
     expect(markup).toContain('No enrichment data available');
 
     // Every field collapses to unknown — no verified or inferred leakage.
     expect(countConfidenceBadges(markup, 'verified')).toBe(0);
     expect(countConfidenceBadges(markup, 'inferred')).toBe(0);
-    expect(countConfidenceBadges(markup, 'unknown')).toBe(4);
+    expect(countConfidenceBadges(markup, 'unknown')).toBe(5);
 
     // Must NOT echo any demo provider's name.
     expect(markup).not.toContain('Sarah Chen');
@@ -126,7 +132,7 @@ describe('/profile/[npi] route', () => {
     const { default: ProfilePage } = await import('../app/profile/[npi]/page');
 
     // Must not throw — ProfileView's formatFieldValue collapses empty
-    // strings to the em-dash sentinel rather than crashing.
+    // strings to the Unknown sentinel rather than crashing.
     const node = await ProfilePage({
       params: Promise.resolve({ npi: '1003000126' }),
     });
@@ -134,14 +140,14 @@ describe('/profile/[npi] route', () => {
 
     // Name still renders (non-partial field).
     expect(markup).toContain('Sarah Chen, MD');
-    // Empty specialty collapses to em-dash via stringifyValue's whitespace
+    // Empty specialty collapses to Unknown via stringifyValue's whitespace
     // trim branch. The field row still exists with its unknown-empty display.
-    expect(markup).toContain('\u2014'); // em dash
+    expect(markup).toContain('Unknown');
     // Every row still carries a badge (I2 invariant at the route boundary).
     const totalBadges =
       countConfidenceBadges(markup, 'verified') +
       countConfidenceBadges(markup, 'inferred') +
       countConfidenceBadges(markup, 'unknown');
-    expect(totalBadges).toBe(4);
+    expect(totalBadges).toBe(5);
   });
 });

@@ -16,8 +16,8 @@
  *       shape is stable across providers with varying enrichment coverage.
  *
  * Also covers the formatField resolution of the long-standing TODO:
- *   - null → em dash
- *   - Date → YYYY-MM-DD
+ *   - null / undefined / empty → Unknown
+ *   - Date / ISO strings → readable date
  *   - number / boolean coercion
  *   - long-string truncation with title-attr reveal
  *   - debug=true appends source label inline
@@ -195,7 +195,7 @@ describe('ProfileView — I2 every row has exactly one badge', () => {
 });
 
 describe('ProfileView — I3 null/missing fields still render', () => {
-  it('renders a null field as an unknown row with the em-dash sentinel', async () => {
+  it('renders a null field as an unknown row with the Unknown sentinel', async () => {
     const view = await renderNode(
       <ProfileView fields={fixtureFields} fieldLabels={fixtureLabels} />,
     );
@@ -205,12 +205,12 @@ describe('ProfileView — I3 null/missing fields still render', () => {
     );
     expect(unknownRow).toBeDefined();
     expect(unknownRow?.confidence).toBe('unknown');
-    expect(unknownRow?.value).toBe('\u2014'); // em dash
+    expect(unknownRow?.value).toBe('Unknown');
 
     await view.unmount();
   });
 
-  it('renders an undefined field as an unknown row with the em-dash sentinel', async () => {
+  it('renders an undefined field as an unknown row with the Unknown sentinel', async () => {
     const fields = {
       middleName: undefined,
     };
@@ -224,7 +224,7 @@ describe('ProfileView — I3 null/missing fields still render', () => {
     const row = rows(view.container)[0];
     expect(row?.label).toBe('Middle Name');
     expect(row?.confidence).toBe('unknown');
-    expect(row?.value).toBe('\u2014');
+    expect(row?.value).toBe('Unknown');
 
     await view.unmount();
   });
@@ -245,7 +245,7 @@ describe('ProfileView — I3 null/missing fields still render', () => {
     expect(out).toHaveLength(5);
     for (const row of out) {
       expect(row.confidence).toBe('unknown');
-      expect(row.value).toBe('\u2014');
+      expect(row.value).toBe('Unknown');
     }
 
     await view.unmount();
@@ -253,7 +253,7 @@ describe('ProfileView — I3 null/missing fields still render', () => {
 });
 
 describe('ProfileView — formatField value coercion', () => {
-  it('collapses an empty string to the em-dash sentinel', async () => {
+  it('collapses an empty string to the Unknown sentinel and Unknown badge', async () => {
     const fields = {
       nickname: confidenceField('', fromSource('USER_UPLOAD')),
     };
@@ -263,7 +263,8 @@ describe('ProfileView — formatField value coercion', () => {
         fieldLabels={{ nickname: 'Nickname' }}
       />,
     );
-    expect(rows(view.container)[0]?.value).toBe('\u2014');
+    expect(rows(view.container)[0]?.value).toBe('Unknown');
+    expect(rows(view.container)[0]?.confidence).toBe('unknown');
     await view.unmount();
   });
 
@@ -295,7 +296,7 @@ describe('ProfileView — formatField value coercion', () => {
     await view.unmount();
   });
 
-  it('coerces a Date field to ISO YYYY-MM-DD', async () => {
+  it('coerces a Date field to a readable date', async () => {
     const fields = {
       issuedAt: confidenceField(
         new Date('2024-06-15T12:30:00.000Z'),
@@ -305,18 +306,44 @@ describe('ProfileView — formatField value coercion', () => {
     const view = await renderNode(
       <ProfileView fields={fields} fieldLabels={{ issuedAt: 'Issued' }} />,
     );
-    expect(rows(view.container)[0]?.value).toBe('2024-06-15');
+    expect(rows(view.container)[0]?.value).toBe('Jun 15, 2024');
     await view.unmount();
   });
 
-  it('collapses an invalid Date to the em-dash sentinel', async () => {
+  it('coerces an ISO date string to a readable date', async () => {
+    const fields = {
+      issuedAt: confidenceField(
+        '2024-06-15T12:30:00.000Z',
+        fromSource('STATE_BOARD'),
+      ),
+    };
+    const view = await renderNode(
+      <ProfileView fields={fields} fieldLabels={{ issuedAt: 'Issued' }} />,
+    );
+    expect(rows(view.container)[0]?.value).toBe('Jun 15, 2024');
+    await view.unmount();
+  });
+
+  it('leaves malformed date strings readable instead of crashing', async () => {
+    const fields = {
+      issuedAt: confidenceField('2024-02-31', fromSource('NPPES')),
+    };
+    const view = await renderNode(
+      <ProfileView fields={fields} fieldLabels={{ issuedAt: 'Issued' }} />,
+    );
+    expect(rows(view.container)[0]?.value).toBe('2024-02-31');
+    await view.unmount();
+  });
+
+  it('collapses an invalid Date object to the Unknown sentinel and Unknown badge', async () => {
     const fields = {
       issuedAt: confidenceField(new Date('not-a-date'), fromSource('NPPES')),
     };
     const view = await renderNode(
       <ProfileView fields={fields} fieldLabels={{ issuedAt: 'Issued' }} />,
     );
-    expect(rows(view.container)[0]?.value).toBe('\u2014');
+    expect(rows(view.container)[0]?.value).toBe('Unknown');
+    expect(rows(view.container)[0]?.confidence).toBe('unknown');
     await view.unmount();
   });
 
@@ -341,7 +368,7 @@ describe('ProfileView — formatField value coercion', () => {
     await view.unmount();
   });
 
-  it('coerces object fields to serialized text instead of [object Object]', async () => {
+  it('coerces object fields to compact readable text instead of [object Object]', async () => {
     const fields = {
       practiceAddress: confidenceField(
         { city: 'Oakland', state: 'CA' },
@@ -356,26 +383,27 @@ describe('ProfileView — formatField value coercion', () => {
     );
 
     const row = rows(view.container)[0];
-    expect(row?.value).toBe('{"city":"Oakland","state":"CA"}');
+    expect(row?.value).toBe('city: Oakland; state: CA');
     expect(view.container.textContent).not.toContain('[object Object]');
 
     await view.unmount();
   });
 
-  it('does not crash on malformed object serializers', () => {
+  it('does not crash on malformed object payloads', () => {
     const returnsUndefined = {
       toJSON: () => undefined,
     };
-    const throwsOnSerialize = {
-      toJSON: () => {
-        throw new Error('bad serializer');
+    const throwsOnRead = Object.defineProperty({}, 'bad', {
+      enumerable: true,
+      get() {
+        throw new Error('bad payload');
       },
-    };
+    });
 
     expect(() => formatFieldValue(returnsUndefined)).not.toThrow();
-    expect(formatFieldValue(returnsUndefined)).toBe('\u2014');
-    expect(() => formatFieldValue(throwsOnSerialize)).not.toThrow();
-    expect(formatFieldValue(throwsOnSerialize)).toBe('[unserializable]');
+    expect(formatFieldValue(returnsUndefined)).toBe('Unknown');
+    expect(() => formatFieldValue(throwsOnRead)).not.toThrow();
+    expect(formatFieldValue(throwsOnRead)).toBe('[unreadable object]');
   });
 
   it('does not recurse forever on circular arrays', () => {
