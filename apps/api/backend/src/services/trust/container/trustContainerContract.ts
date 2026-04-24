@@ -15,6 +15,8 @@ export type ProofTier = 'DECISION_GRADE' | 'PARTIAL' | 'SNAPSHOT' | 'NONE';
 
 export type ProofStatus = 'DECISION_GRADE' | 'PARTIAL' | 'BLOCKED';
 
+export type TrustContainerExportEnvironment = 'mock-dev' | 'dock-scaffold';
+
 export interface TrustContainerConfig {
   provider: TrustContainerProviderKind;
   apiUrl?: string;
@@ -72,6 +74,18 @@ export interface IssuedCredentialResult {
   issuedAt: string;
   envelopeHash: string;
   mock?: boolean;
+}
+
+export interface TrustContainerExportReference {
+  trustContainerId: string;
+  provider: TrustContainerProviderKind;
+  environment: TrustContainerExportEnvironment;
+  label: string;
+  mock: boolean;
+  status: ProofStatus;
+  proofTier: ProofTier;
+  issuedAt: string;
+  envelopeHash: string;
 }
 
 export interface VerificationResult {

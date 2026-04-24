@@ -7,6 +7,8 @@ import {
   type ProofStatus,
   type ProofTier,
   type PsvReceiptRef,
+  type TrustContainerExportEnvironment,
+  type TrustContainerExportReference,
 } from './container';
 import prisma from '../../graphql/prisma_client';
 import { buildCanonicalClaimsFromArtifact, buildClaimDigests, buildSelectiveDisclosurePlaceholder } from '../auditBundleClaims';
@@ -73,6 +75,7 @@ export type TrustProofBundle = {
   artifactHash: string;
   trustBand: string;
   trustContainerId?: string;
+  trustContainer?: TrustContainerExportReference;
   readinessScore: number;
   monitoringStatus: MonitoringStatus;
   monitoringSummary: {
@@ -450,7 +453,7 @@ export async function buildTrustProofBundle(npi: string): Promise<TrustProofBund
 
   const artifactHash = sha256Hex(stableStringify(coreBundle));
 
-  const trustContainerId = await issueTrustContainerCredential({
+  const trustContainer = await issueTrustContainerCredential({
     entityId: snapshotArtifact.id,
     npi,
     trustState,
@@ -462,7 +465,8 @@ export async function buildTrustProofBundle(npi: string): Promise<TrustProofBund
   return {
     ...coreBundle,
     artifactHash,
-    trustContainerId,
+    trustContainerId: trustContainer?.trustContainerId,
+    trustContainer,
     bundleDownloads: {
       trustProofJson: `/api/trust-proof/${encodeURIComponent(npi)}`,
       trustProofPdf: `/api/trust-proof/${encodeURIComponent(npi)}?format=pdf`,
@@ -478,8 +482,8 @@ export async function buildTrustProofBundle(npi: string): Promise<TrustProofBund
 // provider (mock by default; Dock scaffold when opted in) to issue.
 // Failures are swallowed so an outage in the proof container never
 // breaks bundle generation — the bundle itself is the authoritative
-// artifact. Any issuance that does succeed gets its id bound back
-// onto the bundle via `trustContainerId`.
+// artifact. Any issuance that does succeed gets a safe reference
+// bound back onto the bundle without exposing raw credential payloads.
 
 const TRUST_CONTAINER_FRESHNESS_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const TRUST_CONTAINER_ISSUER_DEFAULT: IssuerMetadata = {
@@ -534,6 +538,20 @@ function collectLimitationNotes(trustState: ClinicianTrustState): string[] {
   return limitationNotes;
 }
 
+function trustContainerEnvironment(
+  provider: 'mock' | 'dock',
+  mock: boolean | undefined,
+): TrustContainerExportEnvironment {
+  if (mock || provider === 'mock') return 'mock-dev';
+  return 'dock-scaffold';
+}
+
+function trustContainerLabel(environment: TrustContainerExportEnvironment): string {
+  return environment === 'mock-dev'
+    ? 'Mock/dev trust container credential reference'
+    : 'Dock scaffold trust container credential reference';
+}
+
 async function issueTrustContainerCredential(params: {
   entityId: string;
   npi: string;
@@ -541,7 +559,7 @@ async function issueTrustContainerCredential(params: {
   artifacts: TrustProofArtifact[];
   artifactHash: string;
   sourceSnapshotVerifiedAt: string;
-}): Promise<string | undefined> {
+}): Promise<TrustContainerExportReference | undefined> {
   const { entityId, npi, trustState, artifacts, artifactHash, sourceSnapshotVerifiedAt } = params;
 
   const limitationNotes = collectLimitationNotes(trustState);
@@ -589,7 +607,18 @@ async function issueTrustContainerCredential(params: {
 
   try {
     const issuance = await container.issueCredential(envelope);
-    return issuance.id;
+    const environment = trustContainerEnvironment(container.kind, issuance.mock);
+    return {
+      trustContainerId: issuance.id,
+      provider: container.kind,
+      environment,
+      label: trustContainerLabel(environment),
+      mock: issuance.mock === true || container.kind === 'mock',
+      status,
+      proofTier: envelope.proofTier,
+      issuedAt: issuance.issuedAt,
+      envelopeHash: issuance.envelopeHash,
+    };
   } catch (err) {
     console.warn('Trust container issuance skipped/failed:', err);
     return undefined;
