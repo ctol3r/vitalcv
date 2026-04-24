@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
+import { ClinicianProfileSections } from '@/components/profile/ClinicianProfileSections';
+import { KnowledgeTrustGraphPanel } from '@/components/trust/KnowledgeTrustGraphPanel';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { fetchPassportEntity } from '@/lib/api';
@@ -64,5 +66,13 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     );
   }
 
-  return <PassportWallet passport={passport} />;
+  return (
+    <div className="bg-background">
+      <PassportWallet passport={passport} />
+      <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+        <KnowledgeTrustGraphPanel className="mt-6" />
+        <ClinicianProfileSections passport={passport} />
+      </div>
+    </div>
+  );
 }
