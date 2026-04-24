@@ -47,6 +47,6 @@
 * `vcv-web`
   * **Purpose:** The production frontend Vercel project serving `vitalcv.com`. Maps directly to `apps/web`.
   * **Status:** Canonical.
-* `vitalcv` / `web` / `vitalcv-marketing` / `staging`
+* `vitalcv-marketing` / `staging`
   * **Status:** Legacy / Tangled projects.
   * **Action:** Route all production traffic through `vcv-web`.
