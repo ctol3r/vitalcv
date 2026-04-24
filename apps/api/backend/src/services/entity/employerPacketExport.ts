@@ -5,6 +5,7 @@ import {
   EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES,
   type EmployerEvidencePacketV1,
 } from './employerPacket';
+import { trustContainerDisplayLabel } from '../trust/container/trustContainerManifest';
 
 export interface EmployerEvidencePacketBundleContents {
   packetJson: string;
@@ -101,6 +102,14 @@ function buildReadme(packet: EmployerEvidencePacketV1): string {
     `Freshness Label: ${packet.freshness.label}`,
     `Decision posture: ${packet.decisionPosture.status}`,
     `Safe next action: ${packet.decisionPosture.nextAction}`,
+    '',
+    `${trustContainerDisplayLabel(packet.manifest.trustContainer)}`,
+    ...(packet.manifest.trustContainer?.trustContainerId
+      ? [`Credential container id: ${packet.manifest.trustContainer.trustContainerId}`]
+      : []),
+    ...(packet.manifest.trustContainer?.skipReason
+      ? [`Credential container skip reason: ${packet.manifest.trustContainer.skipReason}`]
+      : []),
     '',
     'Bundle Files',
     ...EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES.map((file) => `- ${file}`),

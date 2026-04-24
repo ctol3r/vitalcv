@@ -7,6 +7,7 @@ import { DockTrustContainer } from './dockTrustContainer';
 import { MockTrustContainer } from './mockTrustContainer';
 
 export * from './trustContainerContract';
+export * from './trustContainerManifest';
 export { DockTrustContainer } from './dockTrustContainer';
 export { MockTrustContainer } from './mockTrustContainer';
 

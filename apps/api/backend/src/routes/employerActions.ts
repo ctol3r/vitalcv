@@ -36,6 +36,8 @@ import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
+import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
+import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
 import {
   loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
@@ -578,9 +580,11 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       const clinicianNpi = entity.npi;
       const format = resolvePacketExportFormat(req);
+      const trustContainerEntry = await issueTrustContainerManifestEntry({ passport });
       const packet = buildEmployerEvidencePacket({
         passport,
         employerId,
+        trustContainer: trustContainerEntry,
       });
       const auditMetadata = toJsonValue(JSON.parse(JSON.stringify({
         schema: 'vitalcv.employer.packet-export.v1',
@@ -602,6 +606,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         artifactReferenceCount: packet.artifactReferences.length,
         sourceCoverageSummary: packet.sourceCoverageSummary,
         freshness: packet.freshness,
+        trustContainer: toTrustContainerAuditMetadata(trustContainerEntry),
       })));
       await prisma.auditEvent.create({
         data: {

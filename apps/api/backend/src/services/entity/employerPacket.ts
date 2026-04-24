@@ -7,6 +7,10 @@ import {
   type CanonicalTruthStatus,
 } from '@vitalcv/trust-state';
 import type { TrustPassport } from './passportService';
+import {
+  trustContainerNotIssuedEntry,
+  type TrustContainerManifestEntry,
+} from '../trust/container/trustContainerManifest';
 
 type PassportCredential = TrustPassport['authority']['credentials'][number];
 
@@ -89,6 +93,11 @@ export interface EmployerEvidencePacketManifestV1 {
   freshness: TrustPassport['trustPosture']['freshness'];
   status: EmployerEvidencePacketManifestStatusV1;
   sources: EmployerPacketSourceManifestEntry[];
+  /**
+   * Hidden trust-container issuance metadata. Always present so readers
+   * can distinguish "container not issued" from "field missing".
+   */
+  trustContainer: TrustContainerManifestEntry;
 }
 
 export interface EmployerEvidencePacketV1 {
@@ -545,6 +554,7 @@ export function buildEmployerEvidencePacket(input: {
   passport: TrustPassport;
   employerId: string;
   exportedAt?: string;
+  trustContainer?: TrustContainerManifestEntry;
 }): EmployerEvidencePacketV1 {
   const exportedAt = input.exportedAt ?? new Date().toISOString();
   const launchSpineChecks = resolveLaunchSpineCoverage(input.passport);
@@ -554,6 +564,9 @@ export function buildEmployerEvidencePacket(input: {
   const receiptReferences = buildReceiptReferences(manifestSources);
   const freshness = input.passport.trustPosture.freshness;
   const decisionPosture = buildDecisionPosture(input.passport);
+  const trustContainer =
+    input.trustContainer
+    ?? trustContainerNotIssuedEntry('No trust-container credential was requested for this export.');
 
   const manifest: EmployerEvidencePacketManifestV1 = {
     schema: 'vitalcv.employer.packet-manifest.v1',
@@ -582,6 +595,7 @@ export function buildEmployerEvidencePacket(input: {
       sourceCoverageSummary,
     },
     sources: manifestSources,
+    trustContainer,
   };
 
   return {

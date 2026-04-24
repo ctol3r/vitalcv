@@ -23,6 +23,8 @@ import { generateShareLink } from '../services/passport/shareLink';
 import { buildPassportByNpi } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { sha256ForPayload } from '../utils/deterministic';
+import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
+import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
 import {
   getCachedTrustState,
   computeClinicianTrustState,
@@ -1198,9 +1200,11 @@ export function registerPassportRoutes(app: Express): void {
         return;
       }
 
+      const trustContainerEntry = await issueTrustContainerManifestEntry({ passport });
       const packet = buildEmployerEvidencePacket({
         passport,
         employerId: 'clinician-self-export',
+        trustContainer: trustContainerEntry,
       });
 
       // Audit: write ARTIFACT_EXPORTED before returning payload
@@ -1214,6 +1218,7 @@ export function registerPassportRoutes(app: Express): void {
         sourceIds: packet.manifest.sources.map((s) => s.sourceId),
         receiptReferences: packet.receiptReferences,
         blockerCount: (packet as any).structuredBlockers?.length || 0,
+        trustContainer: toTrustContainerAuditMetadata(trustContainerEntry),
       }));
 
       await prisma.auditEvent.create({
