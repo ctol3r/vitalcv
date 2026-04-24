@@ -37,6 +37,7 @@ import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCar
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { TrustContainerPanel } from '@/components/trust/TrustContainerPanel';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -1815,6 +1816,10 @@ function ReviewClientLoaded({
             <Accordion
               items={proofItems}
               telemetryComponentId="employer_review_proof"
+            />
+            <TrustContainerPanel
+              entry={passport.trustContainer ?? null}
+              className="mt-4"
             />
           </EvidenceDisclosureCard>
         )}
