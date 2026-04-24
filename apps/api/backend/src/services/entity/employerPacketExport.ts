@@ -5,7 +5,10 @@ import {
   EMPLOYER_EVIDENCE_PACKET_BUNDLE_FILES,
   type EmployerEvidencePacketV1,
 } from './employerPacket';
-import { trustContainerDisplayLabel } from '../trust/container/trustContainerManifest';
+import {
+  assertTrustContainerManifestHasNoSecrets,
+  trustContainerDisplayLabel,
+} from '../trust/container/trustContainerManifest';
 
 export interface EmployerEvidencePacketBundleContents {
   packetJson: string;
@@ -73,6 +76,8 @@ function buildStatusDocument(
 
 function buildReadme(packet: EmployerEvidencePacketV1): string {
   const summary = packet.sourceCoverageSummary;
+  const trustContainer = packet.manifest.trustContainer;
+  const limitationNotes = trustContainer?.limitationNotes ?? [];
 
   return [
     'VitalCV Employer Evidence Packet',
@@ -103,12 +108,18 @@ function buildReadme(packet: EmployerEvidencePacketV1): string {
     `Decision posture: ${packet.decisionPosture.status}`,
     `Safe next action: ${packet.decisionPosture.nextAction}`,
     '',
-    `${trustContainerDisplayLabel(packet.manifest.trustContainer)}`,
-    ...(packet.manifest.trustContainer?.trustContainerId
-      ? [`Credential container id: ${packet.manifest.trustContainer.trustContainerId}`]
+    `${trustContainerDisplayLabel(trustContainer)}`,
+    ...(trustContainer?.trustContainerId
+      ? [`Credential container id: ${trustContainer.trustContainerId}`]
       : []),
-    ...(packet.manifest.trustContainer?.skipReason
-      ? [`Credential container skip reason: ${packet.manifest.trustContainer.skipReason}`]
+    ...(trustContainer?.skipReason
+      ? [`Credential container skip reason: ${trustContainer.skipReason}`]
+      : []),
+    ...(limitationNotes.length > 0
+      ? [
+          'Credential container limitations:',
+          ...limitationNotes.map((limitation) => `- ${limitation}`),
+        ]
       : []),
     '',
     'Bundle Files',
@@ -119,6 +130,12 @@ function buildReadme(packet: EmployerEvidencePacketV1): string {
 export function buildEmployerEvidencePacketBundleContents(
   packet: EmployerEvidencePacketV1,
 ): EmployerEvidencePacketBundleContents {
+  // Defence-in-depth: make sure no secret material ever rides out on the
+  // trust-container entry. The type doesn't have slots for secrets, but a
+  // careless caller could splat them in; this guard fails loudly if so.
+  if (packet.manifest.trustContainer) {
+    assertTrustContainerManifestHasNoSecrets(packet.manifest.trustContainer);
+  }
   return {
     packetJson: stableStringify(packet),
     manifestJson: stableStringify(packet.manifest),

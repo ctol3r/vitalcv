@@ -100,6 +100,33 @@ describe('buildCredentialEnvelopeFromPassport', () => {
     expect(envelope.limitationNotes).toEqual(['Identity not strictly verified']);
   });
 
+  it('treats trust-posture gaps as limitations and prevents decision-grade metadata', () => {
+    const envelope = buildCredentialEnvelopeFromPassport({
+      passport: minimalPassport({
+        readiness: {
+          status: 'READY',
+          score: 90,
+          readiness_score: 90,
+          level: 'L3',
+          estimatedStartDays: 3,
+          blockers: [],
+          nextActions: [],
+        } as unknown as TrustPassport['readiness'],
+        trustPosture: {
+          freshness: { state: 'current', label: 'Current', items: [] },
+          blockers: [],
+          missingItems: [],
+          gatedItems: ['Institutional access required'],
+          reviewRequiredItems: [],
+          staleItems: [],
+        } as unknown as TrustPassport['trustPosture'],
+      }),
+    });
+    expect(envelope.status).toBe('PARTIAL');
+    expect(envelope.proofTier).toBe('PARTIAL');
+    expect(envelope.limitationNotes).toEqual(['Institutional access required']);
+  });
+
   it('emits BLOCKED when posture is blocked or score is zero', () => {
     const envelope = buildCredentialEnvelopeFromPassport({
       passport: minimalPassport({
@@ -143,8 +170,12 @@ describe('issueTrustContainerManifestEntry', () => {
       limitationNotes: ['this should block decision-grade'],
     };
     const entry = await issueTrustContainerManifestEntry({ passport, envelope: badEnvelope });
-    expect(entry.status).toBe('not_issued');
+    expect(entry.status).toBe('failed');
     expect(entry.trustContainerId).toBeNull();
+    expect(entry.credentialEnvelopeId).toBeNull();
+    expect(entry.provider).toBe('mock');
+    expect(entry.environment).toBe('mock-dev');
+    expect(entry.label).toBe('Credential container: issuance failed');
     expect(entry.skipReason).toMatch(/LIMITATION|limitation/i);
   });
 });

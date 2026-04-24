@@ -8,10 +8,12 @@
 
 import {
   CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
+  assertTrustContainerManifestHasNoSecrets,
   buildTrustContainerManifestEntry,
   fingerprintTrustContainerEntry,
   toTrustContainerAuditMetadata,
   trustContainerDisplayLabel,
+  trustContainerFailedEntry,
   trustContainerNotIssuedEntry,
   type CredentialEnvelopePayload,
   type IssuedCredentialResult,
@@ -64,6 +66,7 @@ describe('TrustContainerManifestEntry', () => {
     });
     expect(entry.status).toBe('issued');
     expect(entry.trustContainerId).toBe('mock_vc_test');
+    expect(entry.credentialEnvelopeId).toBe('deadbeef'.repeat(8));
     expect(entry.provider).toBe('mock');
     expect(entry.mock).toBe(true);
     expect(entry.environment).toBe('mock-dev');
@@ -103,6 +106,39 @@ describe('TrustContainerManifestEntry', () => {
     expect(entry.limitationNotes).toEqual(limitations);
   });
 
+  it('does not allow limitation-bearing metadata to remain decision-grade', () => {
+    const entry = buildTrustContainerManifestEntry({
+      issuance: issuance(),
+      envelope: envelope({
+        status: 'DECISION_GRADE',
+        proofTier: 'DECISION_GRADE',
+        limitationNotes: ['Institutional access required'],
+      }),
+      provider: 'mock',
+    });
+    expect(entry.proofStatus).toBe('PARTIAL');
+    expect(entry.proofTier).toBe('PARTIAL');
+    expect(entry.limitationNotes).toEqual(['Institutional access required']);
+  });
+
+  it('does not export credential payload secrets into manifest metadata', () => {
+    const entry = buildTrustContainerManifestEntry({
+      issuance: issuance({
+        vcPayload: {
+          apiKey: 'dock_live_secret_123456',
+          privateKey: 'private_material_123456',
+          nested: { secret: 'secret_value_123456' },
+        },
+      }),
+      envelope: envelope(),
+      provider: 'mock',
+    });
+    const exported = JSON.stringify(entry);
+    expect(exported).not.toContain('dock_live_secret_123456');
+    expect(exported).not.toContain('private_material_123456');
+    expect(exported).not.toContain('secret_value_123456');
+  });
+
   it('builds a not_issued entry when issuance is skipped', () => {
     const entry = trustContainerNotIssuedEntry('container disabled in this environment');
     expect(entry.status).toBe('not_issued');
@@ -113,6 +149,16 @@ describe('TrustContainerManifestEntry', () => {
     expect(entry.mock).toBe(false);
     expect(entry.skipReason).toBe('container disabled in this environment');
     expect(entry.limitationNotes).toEqual([]);
+  });
+
+  it('redacts secret-like values from skipped issuance reasons', () => {
+    const entry = trustContainerNotIssuedEntry(
+      'failed with DOCK_API_KEY=dock_live_secret_123456 privateKey=private_material_123456 token=token_value_123456',
+    );
+    expect(entry.skipReason).not.toContain('dock_live_secret_123456');
+    expect(entry.skipReason).not.toContain('private_material_123456');
+    expect(entry.skipReason).not.toContain('token_value_123456');
+    expect(entry.skipReason).toContain('[redacted]');
   });
 
   it('trustContainerDisplayLabel is defensive against missing entries', () => {
@@ -136,6 +182,7 @@ describe('TrustContainerManifestEntry', () => {
     });
     const audit = toTrustContainerAuditMetadata(entry);
     expect(audit.trustContainerId).toBe('mock_vc_test');
+    expect(audit.credentialEnvelopeId).toBe('deadbeef'.repeat(8));
     expect(audit.provider).toBe('mock');
     expect(audit.environment).toBe('mock-dev');
     expect(audit.status).toBe('issued');
@@ -143,6 +190,39 @@ describe('TrustContainerManifestEntry', () => {
     expect(audit.proofTier).toBe('DECISION_GRADE');
     expect(audit.auditHash).toBe('c'.repeat(64));
     expect('skipReason' in audit).toBe(false);
+  });
+
+  it('builds a failed entry distinct from not_issued', () => {
+    const failedMock = trustContainerFailedEntry({ reason: 'Dock HTTP 503', provider: 'dock' });
+    expect(failedMock.status).toBe('failed');
+    expect(failedMock.trustContainerId).toBeNull();
+    expect(failedMock.credentialEnvelopeId).toBeNull();
+    expect(failedMock.provider).toBe('dock');
+    expect(failedMock.environment).toBe('dock-scaffold');
+    expect(failedMock.label).toBe('Credential container: issuance failed');
+    expect(failedMock.skipReason).toBe('Dock HTTP 503');
+
+    const audit = toTrustContainerAuditMetadata(failedMock);
+    expect(audit.status).toBe('failed');
+    expect(audit.skipReason).toBe('Dock HTTP 503');
+  });
+
+  it('assertTrustContainerManifestHasNoSecrets throws on forbidden keys', () => {
+    const entry = buildTrustContainerManifestEntry({
+      issuance: issuance(),
+      envelope: envelope(),
+      provider: 'mock',
+    });
+    expect(() => assertTrustContainerManifestHasNoSecrets(entry)).not.toThrow();
+
+    const poisoned = { ...entry, apiKey: 'dock_live_secret' } as unknown;
+    expect(() => assertTrustContainerManifestHasNoSecrets(poisoned)).toThrow(/apiKey/);
+
+    const nestedPoisoned = {
+      ...entry,
+      meta: { authorization: 'Bearer abc' },
+    } as unknown;
+    expect(() => assertTrustContainerManifestHasNoSecrets(nestedPoisoned)).toThrow(/authorization/);
   });
 
   it('toTrustContainerAuditMetadata surfaces skipReason when not issued', () => {
@@ -163,6 +243,7 @@ describe('TrustContainerManifestEntry', () => {
       status: entry.status,
       label: entry.label,
       trustContainerId: entry.trustContainerId,
+      credentialEnvelopeId: entry.credentialEnvelopeId,
       schemaVersion: entry.schemaVersion,
       provider: entry.provider,
       environment: entry.environment,

@@ -7,51 +7,56 @@ import type {
 } from './trustContainerContract';
 import { CREDENTIAL_ENVELOPE_SCHEMA_VERSION } from './trustContainerContract';
 
-/**
- * Public-facing description of a trust-container issuance as it appears
- * inside proof-pack manifests and audit events. Purposefully carries
- * only non-sensitive metadata — the VC itself is never inlined here.
- *
- * The entry is always present in the manifest (even when no credential
- * was issued) so downstream readers can distinguish "no issuance
- * happened" from "issuance succeeded but fields are missing".
- */
-export interface TrustContainerManifestEntry {
-  /** `issued` when a credential id exists; `not_issued` otherwise. */
-  status: 'issued' | 'not_issued';
-  /** Opaque credential id assigned by the provider. Null when skipped. */
-  trustContainerId: string | null;
-  /** Provider kind (`mock` | `dock`). Null when skipped. */
-  provider: TrustContainerProviderKind | null;
-  /** Export label that makes mock/dev and scaffold provenance explicit. */
-  label: string;
-  /** Non-production/scaffold environment label. Null when skipped. */
-  environment: TrustContainerExportEnvironment | null;
-  /** ISO-8601 issuance timestamp. Null when skipped. */
-  issuedAt: string | null;
-  /** Envelope schema version this manifest entry conforms to. */
-  schemaVersion: typeof CREDENTIAL_ENVELOPE_SCHEMA_VERSION;
-  /** sha256 hex of the canonical audit bundle the envelope attests to. */
-  artifactHash: string | null;
-  /** Explicit mirror of the envelope audit hash (same value as artifactHash). */
-  auditHash: string | null;
-  /** Proof tier the container committed to. */
-  proofTier: CredentialEnvelopePayload['proofTier'] | null;
-  /** Decision status the credential envelope committed to. */
-  proofStatus: CredentialEnvelopePayload['status'] | null;
-  /** Limitation notes preserved verbatim from the envelope. */
-  limitationNotes: string[];
-  /** True when the artifact came from a mock/scaffold provider. */
-  mock: boolean;
-  /** Human-readable reason when `status === 'not_issued'`. */
-  skipReason?: string;
+function redactSensitiveText(value: string): string {
+  return value
+    .replace(/\b(api[_-]?key|private[_-]?key|secret|token)\s*[:=]\s*[^,\s;]+/gi, '$1=[redacted]')
+    .replace(/\b(sk|pk|dock)_[A-Za-z0-9_-]{8,}\b/g, '[redacted]');
 }
 
 /**
- * Build a manifest entry from a successful issuance + envelope pair.
- * The entry mirrors envelope fields so verifiers can correlate the
- * audit hash and proof tier without having to dereference the VC.
+ * Public-facing description of a trust-container issuance as it appears
+ * inside proof-pack manifests and audit events. Purposefully carries
+ * only non-sensitive metadata — the VC itself is never inlined here, and
+ * nothing from the Dock config (api key, issuer DID secrets) is allowed
+ * onto this shape. See `assertTrustContainerManifestHasNoSecrets` for
+ * the enforcement path.
+ *
+ * The entry is always present in the manifest so downstream readers can
+ * distinguish "no issuance happened" from "field missing".
+ *
+ * Status values:
+ *   - `issued`    — a credential id exists and the envelope was accepted.
+ *   - `not_issued` — issuance was skipped by policy (no provider,
+ *                    export path disabled, etc.).
+ *   - `failed`    — issuance was attempted and errored; we still surface
+ *                   the skip reason so the export audit captures *why*.
  */
+export type TrustContainerIssuanceStatus = 'issued' | 'not_issued' | 'failed';
+
+export interface TrustContainerManifestEntry {
+  status: TrustContainerIssuanceStatus;
+  trustContainerId: string | null;
+  /**
+   * Deterministic envelope hash reported by the provider. Useful for
+   * verifiers that want to correlate a manifest back to the exact
+   * envelope without seeing the VC. Null when not issued.
+   */
+  credentialEnvelopeId: string | null;
+  provider: TrustContainerProviderKind | null;
+  label: string;
+  environment: TrustContainerExportEnvironment | null;
+  issuedAt: string | null;
+  schemaVersion: typeof CREDENTIAL_ENVELOPE_SCHEMA_VERSION;
+  artifactHash: string | null;
+  auditHash: string | null;
+  proofTier: CredentialEnvelopePayload['proofTier'] | null;
+  proofStatus: CredentialEnvelopePayload['status'] | null;
+  limitationNotes: string[];
+  mock: boolean;
+  /** Human-readable reason for non-success states. */
+  skipReason?: string;
+}
+
 export function buildTrustContainerManifestEntry(params: {
   issuance: IssuedCredentialResult;
   envelope: CredentialEnvelopePayload;
@@ -60,9 +65,18 @@ export function buildTrustContainerManifestEntry(params: {
   const { issuance, envelope, provider } = params;
   const environment: TrustContainerExportEnvironment =
     issuance.mock === true || provider === 'mock' ? 'mock-dev' : 'dock-scaffold';
+  const hasLimitations = envelope.limitationNotes.length > 0;
+  const proofStatus: CredentialEnvelopePayload['status'] =
+    hasLimitations && envelope.status === 'DECISION_GRADE' ? 'PARTIAL' : envelope.status;
+  const proofTier: CredentialEnvelopePayload['proofTier'] =
+    proofStatus !== 'DECISION_GRADE' && envelope.proofTier === 'DECISION_GRADE'
+      ? 'PARTIAL'
+      : envelope.proofTier;
+
   return {
     status: 'issued',
     trustContainerId: issuance.id,
+    credentialEnvelopeId: issuance.envelopeHash,
     provider,
     label:
       environment === 'mock-dev'
@@ -73,15 +87,15 @@ export function buildTrustContainerManifestEntry(params: {
     schemaVersion: CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
     artifactHash: envelope.auditHash,
     auditHash: envelope.auditHash,
-    proofTier: envelope.proofTier,
-    proofStatus: envelope.status,
+    proofTier,
+    proofStatus,
     limitationNotes: [...envelope.limitationNotes],
-    mock: issuance.mock === true,
+    mock: issuance.mock === true || provider === 'mock',
   };
 }
 
 /**
- * Build the "no issuance happened" manifest entry. Explicit is better
+ * Build the "issuance was skipped by policy" entry. Explicit is better
  * than silently dropping the field — downstream readers then know the
  * container path was exercised (and skipped) rather than missing.
  */
@@ -91,6 +105,7 @@ export function trustContainerNotIssuedEntry(
   return {
     status: 'not_issued',
     trustContainerId: null,
+    credentialEnvelopeId: null,
     provider: null,
     label: 'Credential container: not issued',
     environment: null,
@@ -102,14 +117,48 @@ export function trustContainerNotIssuedEntry(
     proofStatus: null,
     limitationNotes: [],
     mock: false,
-    skipReason,
+    skipReason: redactSensitiveText(skipReason),
   };
 }
 
-/** Compact view used by ARTIFACT_EXPORTED audit metadata. */
+/**
+ * Build the "issuance was attempted and failed" entry. Carries the
+ * provider kind (if known) so observability can filter mock-path
+ * failures from real ones.
+ */
+export function trustContainerFailedEntry(params: {
+  reason: string;
+  provider?: TrustContainerProviderKind | null;
+}): TrustContainerManifestEntry {
+  const provider = params.provider ?? null;
+  const environment: TrustContainerExportEnvironment | null = provider
+    ? provider === 'mock'
+      ? 'mock-dev'
+      : 'dock-scaffold'
+    : null;
+  return {
+    status: 'failed',
+    trustContainerId: null,
+    credentialEnvelopeId: null,
+    provider,
+    label: 'Credential container: issuance failed',
+    environment,
+    issuedAt: null,
+    schemaVersion: CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
+    artifactHash: null,
+    auditHash: null,
+    proofTier: null,
+    proofStatus: null,
+    limitationNotes: [],
+    mock: provider === 'mock',
+    skipReason: redactSensitiveText(params.reason),
+  };
+}
+
 export interface TrustContainerAuditMetadata {
   status: TrustContainerManifestEntry['status'];
   trustContainerId: string | null;
+  credentialEnvelopeId: string | null;
   provider: TrustContainerProviderKind | null;
   label: string;
   environment: TrustContainerManifestEntry['environment'];
@@ -126,6 +175,7 @@ export function toTrustContainerAuditMetadata(
   return {
     status: entry.status,
     trustContainerId: entry.trustContainerId,
+    credentialEnvelopeId: entry.credentialEnvelopeId,
     provider: entry.provider,
     label: entry.label,
     environment: entry.environment,
@@ -137,15 +187,51 @@ export function toTrustContainerAuditMetadata(
   };
 }
 
-/** Verifier-safe label for UIs and READMEs. Defensive against missing entries. */
 export function trustContainerDisplayLabel(
   entry: TrustContainerManifestEntry | null | undefined,
 ): string {
   if (!entry) return 'Credential container: not issued';
+  if (entry.status === 'failed') return 'Credential container: issuance failed';
   return entry.label;
 }
 
-/** Deterministic fingerprint — useful for audit trails that want drift detection. */
 export function fingerprintTrustContainerEntry(entry: TrustContainerManifestEntry): string {
   return sha256Hex(stableStringify(entry));
+}
+
+/**
+ * Fields that must never appear in manifest or audit payloads. This is
+ * a defence-in-depth guard — the TrustContainerManifestEntry type does
+ * not have slots for these, but a careless caller could still splat
+ * them in.
+ */
+const FORBIDDEN_MANIFEST_KEYS = [
+  'apiKey',
+  'api_key',
+  'dockApiKey',
+  'DOCK_API_KEY',
+  'privateKey',
+  'private_key',
+  'secret',
+  'bearerToken',
+  'authorization',
+  'cookie',
+  'password',
+] as const;
+
+/**
+ * Assert that a manifest entry (or any JSON-serializable value derived
+ * from it) does not contain secret material. Intended for the proof-pack
+ * export path to fail loudly if the shape drifts.
+ */
+export function assertTrustContainerManifestHasNoSecrets(value: unknown): void {
+  const canonical = stableStringify(value);
+  for (const key of FORBIDDEN_MANIFEST_KEYS) {
+    const needle = `"${key}"`;
+    if (canonical.includes(needle)) {
+      throw new Error(
+        `Trust container manifest must not expose secret material (found "${key}")`,
+      );
+    }
+  }
 }

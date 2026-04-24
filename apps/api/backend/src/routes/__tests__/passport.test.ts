@@ -13,6 +13,10 @@ jest.mock('../../graphql/prisma_client', () => ({
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
+    learningEvent: { upsert: jest.fn().mockResolvedValue({}) },
+
+    vcvEntity: { upsert: jest.fn(), findUnique: jest.fn() },
+
     claimRecord: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -72,6 +76,10 @@ const prismaMock = prisma as unknown as {
   decisionCapsule: {
     findMany: jest.Mock;
   };
+    learningEvent: { upsert: jest.Mock; };
+
+    vcvEntity: { upsert: jest.Mock; findUnique: jest.Mock; };
+
   claimRecord: {
     findMany: jest.Mock;
     findFirst: jest.Mock;

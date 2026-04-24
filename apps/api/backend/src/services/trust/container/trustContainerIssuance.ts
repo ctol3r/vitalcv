@@ -2,7 +2,7 @@ import { sha256ForPayload } from '../../../utils/deterministic';
 import { createTrustContainer } from './index';
 import {
   buildTrustContainerManifestEntry,
-  trustContainerNotIssuedEntry,
+  trustContainerFailedEntry,
   type TrustContainerManifestEntry,
 } from './trustContainerManifest';
 import {
@@ -54,6 +54,37 @@ function deriveProofStatus(
   return 'DECISION_GRADE';
 }
 
+function appendLimitation(
+  limitationNotes: string[],
+  value: string | null | undefined,
+): void {
+  const normalized = value?.trim();
+  if (normalized && !limitationNotes.includes(normalized)) {
+    limitationNotes.push(normalized);
+  }
+}
+
+function appendLimitations(
+  limitationNotes: string[],
+  values: readonly string[] | undefined,
+): void {
+  for (const value of values ?? []) {
+    appendLimitation(limitationNotes, value);
+  }
+}
+
+function collectPassportLimitations(passport: TrustPassport): string[] {
+  const limitationNotes: string[] = [];
+  appendLimitations(limitationNotes, passport.readiness.blockers);
+  appendLimitations(limitationNotes, passport.readiness.gaps);
+  appendLimitations(limitationNotes, passport.trustPosture.blockers);
+  appendLimitations(limitationNotes, passport.trustPosture.missingItems);
+  appendLimitations(limitationNotes, passport.trustPosture.gatedItems);
+  appendLimitations(limitationNotes, passport.trustPosture.reviewRequiredItems);
+  appendLimitations(limitationNotes, passport.trustPosture.staleItems);
+  return limitationNotes;
+}
+
 export interface BuildPassportEnvelopeInput {
   passport: TrustPassport;
   evidenceAsOf?: string;
@@ -67,7 +98,7 @@ export function buildCredentialEnvelopeFromPassport(
   const evidenceAsOf =
     input.evidenceAsOf ?? passport.lastCheckedAt ?? new Date().toISOString();
 
-  const limitationNotes: string[] = [...passport.readiness.blockers];
+  const limitationNotes = collectPassportLimitations(passport);
 
   const sourceCoverage = Array.from(
     new Set(passport.sourceCoverage.checks.map((c) => c.sourceId)),
@@ -146,13 +177,16 @@ export interface IssueTrustContainerManifestEntryInput {
  * Build an envelope from a passport, ask the configured trust container
  * to issue it, and return a manifest entry suitable for embedding in a
  * proof-pack export. Issuance failure never propagates — it becomes an
- * explicit `not_issued` entry so exports keep working.
+ * explicit `failed` entry carrying the underlying reason so exports
+ * still succeed and the audit trail records *why* issuance dropped.
  */
 export async function issueTrustContainerManifestEntry(
   input: IssueTrustContainerManifestEntryInput,
 ): Promise<TrustContainerManifestEntry> {
+  let providerKind: 'mock' | 'dock' | null = null;
   try {
     const container = createTrustContainer();
+    providerKind = container.kind;
     const envelope =
       input.envelope ??
       buildCredentialEnvelopeFromPassport({
@@ -174,6 +208,6 @@ export async function issueTrustContainerManifestEntry(
     });
   } catch (err) {
     const reason = err instanceof Error ? err.message : 'trust container issuance failed';
-    return trustContainerNotIssuedEntry(reason);
+    return trustContainerFailedEntry({ reason, provider: providerKind });
   }
 }

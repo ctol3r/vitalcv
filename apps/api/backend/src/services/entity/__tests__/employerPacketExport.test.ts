@@ -225,6 +225,7 @@ function buildPacketFixture(): EmployerEvidencePacketV1 {
       trustContainer: {
         status: 'issued',
         trustContainerId: 'mock_vc_fixture_id',
+        credentialEnvelopeId: 'envelope-hash-fixture',
         provider: 'mock',
         label: 'Mock/dev credential container',
         environment: 'mock-dev',
@@ -344,7 +345,7 @@ describe('employer packet export bundle', () => {
     expect(bundle.readmeTxt).toContain('source-coverage.json');
     expect(bundle.readmeTxt).toContain('status.json');
     expect(bundle.readmeTxt).toContain('Decision posture: READY');
-    expect(bundle.readmeTxt).toContain('Safe next action: Accept as head start or export this packet for employer review.');
+    expect(bundle.readmeTxt).toContain('Safe next action: Accept as head start.');
   });
 
   it('packages packet.json, manifest.json, source-coverage.json, status.json, and README.txt into a zip stream', async () => {
@@ -385,6 +386,7 @@ describe('employer packet export bundle', () => {
         trustContainer: {
           status: 'not_issued',
           trustContainerId: null,
+          credentialEnvelopeId: null,
           provider: null,
           label: 'Credential container: not issued',
           environment: null,
@@ -406,6 +408,35 @@ describe('employer packet export bundle', () => {
     expect(bundle.readmeTxt).not.toContain('Credential container id:');
   });
 
+  it('preserves trust-container limitations in JSON and ZIP source documents', () => {
+    const packet = buildPacketFixture();
+    const limited: EmployerEvidencePacketV1 = {
+      ...packet,
+      manifest: {
+        ...packet.manifest,
+        trustContainer: {
+          ...packet.manifest.trustContainer,
+          proofTier: 'PARTIAL',
+          proofStatus: 'PARTIAL',
+          limitationNotes: ['Institutional access required'],
+        },
+      },
+    };
+    const bundle = buildEmployerEvidencePacketBundleContents(limited);
+    const packetJson = JSON.parse(bundle.packetJson) as EmployerEvidencePacketV1;
+    const manifest = JSON.parse(bundle.manifestJson) as typeof limited.manifest;
+
+    expect(packetJson.manifest.trustContainer.limitationNotes).toEqual([
+      'Institutional access required',
+    ]);
+    expect(manifest.trustContainer.limitationNotes).toEqual([
+      'Institutional access required',
+    ]);
+    expect(bundle.readmeTxt).toContain('Credential container limitations:');
+    expect(bundle.readmeTxt).toContain('- Institutional access required');
+    expect(bundle.manifestJson).toBe(buildEmployerEvidencePacketBundleContents(limited).manifestJson);
+  });
+
   it('keeps JSON and ZIP manifest trust-container fields identical', () => {
     // The ZIP stream is built from the same `buildEmployerEvidencePacketBundleContents`
     // output as the JSON manifest, so a contract test confirming both derive
@@ -417,8 +448,91 @@ describe('employer packet export bundle', () => {
     expect(bundleA.manifestJson).toBe(bundleB.manifestJson);
 
     const manifest = JSON.parse(bundleA.manifestJson) as typeof packet.manifest;
-    expect(manifest.trustContainer).toEqual(packet.manifest.trustContainer);
+    const inlinePacket = JSON.parse(bundleA.packetJson) as EmployerEvidencePacketV1;
+
+    // All Wave 3C required fields must be present & identical across the
+    // inline packet view and the manifest-only view.
+    const requiredKeys: (keyof typeof packet.manifest.trustContainer)[] = [
+      'status',
+      'trustContainerId',
+      'credentialEnvelopeId',
+      'provider',
+      'environment',
+      'label',
+      'issuedAt',
+      'schemaVersion',
+      'artifactHash',
+      'auditHash',
+      'proofTier',
+      'proofStatus',
+      'limitationNotes',
+      'mock',
+    ];
+    for (const key of requiredKeys) {
+      expect(manifest.trustContainer[key]).toEqual(packet.manifest.trustContainer[key]);
+      expect(inlinePacket.manifest.trustContainer[key]).toEqual(
+        packet.manifest.trustContainer[key],
+      );
+    }
     expect(manifest.trustContainer.trustContainerId).toBe('mock_vc_fixture_id');
+    expect(manifest.trustContainer.credentialEnvelopeId).toBe('envelope-hash-fixture');
     expect(manifest.trustContainer.environment).toBe('mock-dev');
+  });
+
+  it('fails loudly when a caller splats secret material onto the trust-container entry', () => {
+    const packet = buildPacketFixture();
+    const poisoned = {
+      ...packet,
+      manifest: {
+        ...packet.manifest,
+        trustContainer: {
+          ...packet.manifest.trustContainer,
+          apiKey: 'dock_live_123456789012',
+        } as unknown as EmployerEvidencePacketV1['manifest']['trustContainer'],
+      },
+    };
+    expect(() => buildEmployerEvidencePacketBundleContents(poisoned)).toThrow(/apiKey/);
+  });
+
+  it('does not leak secret-like field names in JSON or manifest output', () => {
+    const packet = buildPacketFixture();
+    const bundle = buildEmployerEvidencePacketBundleContents(packet);
+    const forbidden = /"(?:apiKey|api_key|dockApiKey|DOCK_API_KEY|privateKey|private_key|secret|bearerToken|authorization|cookie|password)"\s*:/i;
+    expect(bundle.packetJson).not.toMatch(forbidden);
+    expect(bundle.manifestJson).not.toMatch(forbidden);
+    expect(bundle.readmeTxt).not.toMatch(/apiKey|privateKey|bearerToken/i);
+  });
+
+  it('surfaces the failed status distinctly from not_issued in JSON and README', () => {
+    const packet = buildPacketFixture();
+    const failedPacket: EmployerEvidencePacketV1 = {
+      ...packet,
+      manifest: {
+        ...packet.manifest,
+        trustContainer: {
+          status: 'failed',
+          trustContainerId: null,
+          credentialEnvelopeId: null,
+          provider: 'mock',
+          label: 'Credential container: issuance failed',
+          environment: 'mock-dev',
+          issuedAt: null,
+          schemaVersion: '1.0.0',
+          artifactHash: null,
+          auditHash: null,
+          proofTier: null,
+          proofStatus: null,
+          limitationNotes: [],
+          mock: true,
+          skipReason: 'provider throw: simulated outage',
+        },
+      },
+    };
+    const bundle = buildEmployerEvidencePacketBundleContents(failedPacket);
+    const manifest = JSON.parse(bundle.manifestJson) as typeof failedPacket.manifest;
+    expect(manifest.trustContainer.status).toBe('failed');
+    expect(bundle.readmeTxt).toContain('Credential container: issuance failed');
+    expect(bundle.readmeTxt).toContain('Credential container skip reason: provider throw: simulated outage');
+    expect(bundle.readmeTxt).not.toContain('Credential container: not issued');
   });
 });
