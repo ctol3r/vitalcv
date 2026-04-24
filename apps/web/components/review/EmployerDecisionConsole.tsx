@@ -223,10 +223,11 @@ export function EmployerDecisionConsole({
                   {auditTrail.map(entry => (
                     <AuditRow key={entry.id} entry={entry} />
                   ))}
-                  {/* Trust Container UX — subordinate to source coverage */}
-                  {trustContainer !== undefined ? (
-                    <TrustContainerPanel entry={trustContainer} className="mt-4" />
-                  ) : null}
+                  <TrustContainerPanel
+                    entry={trustContainer ?? null}
+                    className="mt-4 border-slate-200 bg-white"
+                    verbose
+                  />
 
                   {loopId && (
                     <p className="font-mono text-[10px] text-slate-400 pt-1">
