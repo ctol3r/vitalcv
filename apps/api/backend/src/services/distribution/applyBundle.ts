@@ -144,7 +144,7 @@ function buildSnapshot(payload: EmployerReviewPayloadV1): ApplyBundle['snapshot'
   const checks = (payload.sourceCoverage.checks as Array<{ sourceId: string; state: string; reason: string; checkedAt?: string | null }>);
   const summary = payload.sourceCoverage.summary as unknown as Record<string, string[]>;
 
-  const claims = Object.freeze(payload.credentialsIncluded.map((c) => Object.freeze({
+  const claims = payload.credentialsIncluded.map((c) => ({
     claimId: c.credentialId,
     domain: c.domain,
     credentialType: c.credentialType,
@@ -152,16 +152,16 @@ function buildSnapshot(payload: EmployerReviewPayloadV1): ApplyBundle['snapshot'
     issuer: c.issuerName ?? 'VitalCV Authority',
     observedAt: c.observedAt ?? null,
     expiresAt: c.expiresAt ?? null,
-  })));
+  }));
 
-  const limitations = Object.freeze(checks
+  const limitations = checks
     .filter((check) => check.state !== 'checked')
-    .map((check) => Object.freeze({
+    .map((check) => ({
       id: check.sourceId,
-      state: COVERAGE_TO_LIMITATION[check.state] ?? 'unavailable',
+      state: COVERAGE_TO_LIMITATION[check.state] ?? 'unavailable' as const,
       label: check.sourceId.replace(/_/g, ' ').toLowerCase(),
       detail: check.reason,
-    })));
+    }));
 
   const checkedAt = checks.find((c) => c.state === 'checked')?.checkedAt ?? null;
   const staleCount = summary['stale']?.length ?? 0;
@@ -177,14 +177,20 @@ function buildSnapshot(payload: EmployerReviewPayloadV1): ApplyBundle['snapshot'
     .update(JSON.stringify({ sourceCoverage: { checks, summary }, claims, observedAt: payload.checkedAt }))
     .digest('hex');
 
-  return Object.freeze({
-    sourceCoverage: Object.freeze({ checks, summary }),
+  const snap = {
+    sourceCoverage: { checks, summary },
     claims,
-    freshness: Object.freeze({ state: freshnessState, label: freshnessLabel, checkedAt }),
+    freshness: { state: freshnessState, label: freshnessLabel, checkedAt },
     limitations,
     observedAt: payload.checkedAt,
     rawHash,
-  });
+  };
+  // Freeze to prevent mutation after contract creation
+  Object.freeze(snap.claims);
+  Object.freeze(snap.limitations);
+  Object.freeze(snap.freshness);
+  Object.freeze(snap);
+  return snap;
 }
 
 export interface ApplyBundleContract {

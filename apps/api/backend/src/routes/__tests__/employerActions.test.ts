@@ -20,6 +20,9 @@ jest.mock('../../graphql/prisma_client', () => ({
     outboxEvent: {
       upsert: jest.fn(),
     },
+    learningEvent: {
+      upsert: jest.fn().mockResolvedValue(null),
+    },
     $transaction: jest.fn(),
   },
 }));
