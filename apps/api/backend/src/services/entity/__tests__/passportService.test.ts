@@ -485,7 +485,7 @@ describe('passportService', () => {
       }),
     }));
     expect(passport?.trustPosture.safeToRelyOnNow).toEqual([]);
-    expect(passport?.readiness.status).toBe('PARTIAL');
+    expect(passport?.readiness.status).toBe('CHECKING');
     expect(passport?.readiness.score).toBe(0);
     expect(passport?.readiness.level).toBe('L0');
     expect(passport?.readiness.blockers).toEqual([]);
@@ -674,7 +674,7 @@ describe('passportService', () => {
     expect(passport?.trustPosture.reviewRequiredItems).toContain(
       'OIG LEIE returned a possible match and requires human adjudication',
     );
-    expect(passport?.readiness.status).toBe('PARTIAL');
+    expect(passport?.readiness.status).toBe('BLOCKED');
     expect(passport?.readiness.blockers).toEqual([]);
     expect(passport?.readiness.gaps).toContain('OIG/LEIE possible match requires review');
   });

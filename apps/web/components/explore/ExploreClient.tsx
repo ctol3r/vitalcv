@@ -25,6 +25,7 @@ import {
 } from '@/lib/mobile/dashboard';
 import ApplyModal from './ApplyModal';
 import { AdvisoryPanelUI } from '@/components/advisory/AdvisoryPanel';
+import AcceptancePredictor from '@/components/acceptance/AcceptancePredictor';
 
 /* ── API shape ───────────────────────────────────────────────── */
 
@@ -849,6 +850,26 @@ function OpportunityCard({
              <p className="text-xs text-foreground/70 mt-1">Preview your start-readiness timeline</p>
            </div>
         </div>
+      )}
+
+      {/* Acceptance Predictor — learns from prior decisions at this employer
+          and similar employers in the network. Fails soft when no history.
+          Gate: only render when we actually know the clinician's credential
+          state. A missing `comparison` object means "we haven't compared
+          against this opportunity yet", which is distinct from "compared
+          and found no credentials". Previously an empty credential list
+          was forwarded to the predictor, which treats empty as "mandatory
+          credential missing" → BLOCKER, so cards misleadingly read
+          "Missing requirement" when we actually had no data at all. */}
+      {opp.organizationId && opp.comparison && (
+        <AcceptancePredictor
+          employerId={opp.organizationId}
+          specialty={opp.specialty}
+          state={opp.state}
+          credentialTypes={opp.comparison.satisfied
+            .map((s) => s.key ?? s.label)
+            .filter((value): value is string => typeof value === 'string' && value.length > 0)}
+        />
       )}
 
       {/* CTAs */}
