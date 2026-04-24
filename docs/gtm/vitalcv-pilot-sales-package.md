@@ -1,64 +1,87 @@
-# VitalCV Founder Sales Kit & Buyer Package
+# VitalCV — Pilot Sales Package
 
-This document consolidates all the approved commercial outreach and pilot documentation for VitalCV. Use this as your primary source material when talking to prospects.
+One-document consolidation of the sales kit. This is the primary source material for external conversations; it mirrors the individual assets in this folder so nothing contradicts between them.
 
-## The Foundation
-* **The Core Problem:** 10-40 days of "black box" waiting before an application is reviewed. Start dates slip. Money is lost.
-* **The Solution:** A verifiable Evidence Artifact on Day Zero.
-* **The Wedge (What is Live):** NPPES public registry identity, OIG LEIE federal exclusions, PECOS public enrollment, and the Mock/Dev Trust Container.
+* Full scope document: [`30-day-psv-readiness-pilot.md`](./30-day-psv-readiness-pilot.md)
+* Full outreach copy: [`founder-outreach-pack.md`](./founder-outreach-pack.md)
+* Full qualification rubric: [`buyer-qualification-checklist.md`](./buyer-qualification-checklist.md)
+* Pipeline tracker template: [`pilot-outreach-tracker.md`](./pilot-outreach-tracker.md)
+* External memo for buyers: [`pilot-kit/01-external-pilot-memo.md`](./pilot-kit/01-external-pilot-memo.md)
 
-## 1. The Pilot Offer (30-Day PSV Readiness Pilot)
-We offer a free 30-Day PSV Readiness Pilot. The goal is to measure the buyer's true "time-to-action" baseline against what happens when they have Day Zero evidence.
+---
 
-**What We Do:**
-* Ingest 10–30 clinician NPIs.
-* Run checks against NPPES, OIG LEIE, PECOS, and configured state boards.
-* Package findings into a verifiable Proof-Pack (JSON/ZIP/PDF) with an explicit mock/dev trust-container tracking hash.
-* Provide a Startability/KPI report highlighting "days-at-risk" eliminated.
+## Positioning
 
-**What We Do Not Do:**
-* Replace Primary Source Verification (PSV) completely.
-* Replace the credentialing committee.
-* Check NPDB, DEA, ABMS, CAQH, or SAM.gov. (Note: NPDB self-query evidence expires after 45 days and is a future lane.)
-* Claim real-time Nursys/FSMB access without an institutional agreement.
+VitalCV is **PSV readiness + audit-ready proof + time-risk visibility**. It is not a CVO replacement, not a credentialing committee substitute, and not a blockchain product. Limitations are explicit in every asset.
 
-## 2. Founder Outreach Pack
+| The wedge | The truth |
+| :--- | :--- |
+| "Day-zero source-backed readiness" | NPPES identity + OIG LEIE federal exclusion posture + PECOS public enrollment posture + one configured state licensure lane |
+| "Proof pack with audit event on every export" | Deterministic JSON / ZIP / PDF with a sha256 artifact hash and an `ARTIFACT_EXPORTED` audit row written before bytes leave the platform |
+| "Trust container" | Hidden backend record that binds the credential envelope id + artifact hash + issuer metadata; mock/dev today, Dock-compatible scaffold wired for later |
+| What we do **not** sell | Real-time OIG / LEIE feeds, license validity from NPPES, production DIDs, NPDB access, DEA, ABMS, CAQH, SAM.gov |
 
-### 30-Second Elevator Pitch
-"Hi, I’m Chris. Healthcare staffing loses millions when start dates slip because an application sat waiting for a manual credential check. VitalCV gives your credentialing team a verified head start. You drop in an NPI, and we instantly assemble a source-backed evidence packet—public registry identity, federal OIG exclusions, and public PECOS enrollment. Your team knows what’s ready and what’s missing on day zero, cutting days of uncertainty before the start date slips."
+---
 
-### Cold Email Template
-**Subject:** Cutting your time-to-clear for clinician onboarding
+## The Pilot Offer (30-Day PSV Readiness Pilot)
 
-Hi [First Name],
+* **Duration:** 30 days
+* **Volume:** 10–30 clinician NPIs
+* **Cost:** Small no-charge structured pilot. No invoice during the window. Commercial terms are only discussed after the KPI wrap-up — and only if both sides want to continue.
+* **Timeline:** Kickoff + scope sign-off (Day 0–2) → NPI intake + ingest (Day 2–5) → Review window (Day 5–25) → KPI report + wrap-up call (Day 26–30).
 
-I imagine slipped start dates due to credentialing delays are a constant headache for your team. Applications often sit for weeks before a missing state license or OIG flag is caught.
+### Sources included
+| Source | What it confirms |
+| :--- | :--- |
+| NPPES | NPI identity and public registry fields (name, specialty taxonomy, enumeration date). **Not** license validity. |
+| OIG LEIE | Federal exclusion posture against the latest available source release. **Not** a real-time OIG feed. |
+| PECOS public | Medicare FFS public enrollment posture against the latest available public release. **Not** the real-time PECOS portal. |
+| State licensure lane | One configured state board lane where institutional access or a public API is available. |
 
-I’m the founder of VitalCV. We provide a verifiable head start for your credentialing team. You provide an NPI, and we instantly generate a source-backed evidence packet (NPPES, OIG LEIE, PECOS) that flags what’s ready and what’s missing on day zero.
+### Out of scope
+* Primary Source Verification (PSV) — we surface what still needs it; we do not perform it.
+* Credentialing committee / final privileging decision.
+* NPDB (self-query evidence expires after 45 days — future lane), DEA, ABMS, CAQH.
+* **SAM.gov is not integrated yet; OIG LEIE is included.**
+* Real-time Nursys / FSMB access without an explicit institutional agreement.
+* Production DID / Verifiable Credential issuance. The trust container runs in mock/dev for this pilot; a Dock-compatible scaffold is wired but not producing production credentials.
 
-We don't replace your credentialing committee—we just stop the waiting. 
+---
 
-I’m looking for 3 medical groups to run a free 30-day PSV Readiness Pilot. We’ll run 20 of your NPIs and show you exactly how many manual verification days we can eliminate. 
+## Outreach Cheat Sheet (see `founder-outreach-pack.md` for the full copy)
 
-Open to a 10-minute call next Tuesday to see if there's a fit?
+**30-second pitch.** When a clinician start date slips because an application sat for weeks waiting on a manual credential check, you lose revenue, placements, and coordinator hours — usually all three at once. VitalCV assembles a source-backed evidence packet from NPPES identity, OIG LEIE federal exclusions, PECOS public enrollment posture, and a configured state licensure lane, so your team knows on day zero what is decision-grade, what is partial, and what still needs PSV — without replacing your credentialing committee.
 
-Best,
-Chris
+**Cold email hook (subject: "Cutting your time-to-clear for clinician onboarding").** 3 medical groups wanted. Small no-charge 30-day pilot. 10–30 NPIs. You get a KPI report measured against your own baseline.
 
-### Objection Handling
-* **"Is this replacing our CVO or software?"** -> No. We sit at the very top of the funnel to give your team an instant verified packet on day zero. It makes your existing software and team faster.
-* **"Is this replacing our credentialing committee?"** -> Absolutely not. We provide a verified head start, not a final credentialing decision.
-* **"Is this blockchain/crypto?"** -> No. We use standard, verifiable digital signatures to ensure the data we pull hasn't been tampered with. It's an immutable audit log, not a cryptocurrency.
+**Top objection handling.**
+* *"Replacing our CVO / software?"* → No. We sit at the top of the funnel and hand a source-backed packet on day zero; your existing stack still owns the committee decision.
+* *"Replacing our committee?"* → No. We provide a source-backed head start, not a final credentialing decision.
+* *"Is this blockchain / crypto?"* → No. The trust container is an internal audit record. We use standard cryptographic signatures for tamper detection, not a public ledger and not a cryptocurrency.
 
-## 3. Buyer Qualification Checklist
+---
 
-**Ideal Targets:** VP Talent Acquisition, Director of Medical Staff Services, Credentialing Manager, VP Staffing Operations.
+## Qualification in one table (see `buyer-qualification-checklist.md`)
 
-**Discovery Questions:**
-* "When a new clinician signs an offer, how many days does their file sit before the first primary source check?"
-* "If we could hand your team an instant, verified packet showing OIG, PECOS, and Identity status on day zero, how would that change your workflow?"
+| Axis | 5 (green) | 3 (yellow) | 1 (disqualify) |
+| :--- | :--- | :--- | :--- |
+| **Urgency** | Start dates slipping weekly | Process is slow but they manage | 90-day window, no pressure |
+| **Data readiness** | Can provide 30 NPIs tomorrow; knows baseline | Can provide NPIs; no baseline | 4 weeks of legal review just to share public NPIs |
+| **Pilot feasibility** | Understands this is a day-zero head start, not a CVO replacement | Wants custom state boards that aren't live yet, but willing to test included lanes | Demands real-time CAQH / NPDB immediately |
 
-**Disqualifying Signs (Walk Away):**
-* Expects full automation of the final privileging decision.
-* Requires immediate legacy HRIS integration just to run a pilot.
-* Only onboard 1-2 clinicians a quarter.
+Add the three axes. **12–15** → pilot fit. **8–11** → nurture. **< 8** → disqualify.
+
+---
+
+## Pipeline hygiene (see `pilot-outreach-tracker.md`)
+
+One tracker row per account. Columns: account · buyer type · contact · problem hypothesis · intro source · outreach date · response · discovery scheduled · fit score · blockers · next step · owner · last touched · notes. Any row with `last touched` older than 10 days and `next step != closed` gets a nudge or gets closed out.
+
+---
+
+## Rules we hold each asset to
+
+* No guaranteed savings, no instant-hire claims, no fake ROI, no fake customer traction.
+* No blockchain-first pitch. The trust container is explained as an audit record; cryptography is an integrity detail, not the product story.
+* Limitations are explicit everywhere. Partial evidence stays partial. NPPES is identity, not license. OIG LEIE is federal, not state. PECOS is public, not real-time.
+* Every number used externally comes from a real measurement or is labelled as an internal simulation on the `/pilot` page.

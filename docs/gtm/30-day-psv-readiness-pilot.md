@@ -26,10 +26,10 @@ Measure your true "time-to-action" baseline. VitalCV runs alongside your existin
 * We **do not** issue production DIDs or Verifiable Credentials (the trust container operates in Mock/Dev mode for this pilot).
 
 ## Success Metrics
-* **Time to First Signal:** From NPI submission to the first verifiable readiness signal.
-* **Automated Source Checks:** Percentage of baseline checks completed automatically.
-* **Proof-Pack Exported:** 100% verifiable Evidence Artifacts generated.
-* **Days-at-Risk Identified:** Days saved in the simulation before manual intervention was required.
+* **Time to First Signal:** From NPI submission to the first source-backed readiness signal.
+* **Automated Source Lanes Hit:** Number of configured lanes (NPPES / OIG LEIE / PECOS public / selected state board) that returned a check state during the window.
+* **Proof-Pack Export Coverage:** Share of in-scope clinicians for whom a proof pack (JSON / ZIP / PDF) was generated.
+* **Days-at-Risk Surfaced:** Time between "file entered VitalCV" and "packet ready for reviewer" measured against the buyer's own baseline. Reported as a delta, never as a guaranteed saving.
 
 ## Timeline (30 days)
 | Phase | Days | Who leads | Outputs |
@@ -55,9 +55,9 @@ No measurement starts before the scope document is signed. Pilot can be paused b
 5. Provide a Startability/KPI report comparing pilot performance to your baseline.
 
 ## Expected Outputs
-* **Employer Review Dashboard:** A real-time view of lane states (Identity, Safety, Licensure, Enrollment).
-* **Evidence Artifacts:** JSON, ZIP, and PDF packets containing source-backed evidence, limitations, and deterministic audit hashes.
-* **KPI Report:** A summary of "days-at-risk" identified and manual steps reduced.
+* **Employer Review Surface:** A per-clinician view of lane states (Identity, Safety, Authority, Enrollment) with freshness and limitation notes; refreshed on each source check, not a live feed.
+* **Proof Packs:** JSON, ZIP, and PDF packets containing source-backed evidence, limitation notes, and deterministic artifact / audit hashes. An ARTIFACT_EXPORTED audit event is written before each packet leaves the platform.
+* **KPI Report:** Startability timeline deltas, refresh-request counts with owner attribution, and proof-tier distribution — reported against the buyer's own baseline, never against a generic industry figure.
 
 ## Disqualifying Conditions
 * The buyer expects VitalCV to fully automate the final credentialing committee decision.

@@ -16,7 +16,7 @@ Use this checklist during discovery calls to determine if an organization is a f
 2. **The Pain:** "How often do start dates slip because a missing license or an OIG flag is discovered in week 3 instead of week 1?"
 3. **The Workflow:** "Are you currently managing this process in spreadsheets, an ATS (like Greenhouse), or dedicated credentialing software (like CredentialStream)?"
 4. **The Volume:** "Roughly how many clinicians do you onboard or re-credential per month?"
-5. **The Blockers:** "If we could hand your team an instant, verified packet showing OIG, PECOS, and Identity status on day zero, how would that change your workflow?"
+5. **The Blockers:** "If we could hand your team a source-backed packet on day zero showing NPPES identity, OIG LEIE federal exclusion posture, and PECOS public enrollment posture — with explicit limitation notes for everything that still needs PSV — how would that change your workflow?"
 
 ## Disqualifying Buyer Signs (Do Not Pitch Pilot)
 * **Wants Full Automation:** They expect VitalCV to replace their credentialing committee and make the final privileging decision.
@@ -38,7 +38,7 @@ Use this checklist during discovery calls to determine if an organization is a f
 
 ### Pilot Feasibility Score (1-5)
 * 5: Understands this is a day-zero "head start" tool, not a full CVO replacement.
-* 3: Wants some custom state boards that aren't live yet, but willing to test OIG/PECOS.
+* 3: Wants some custom state boards that aren't live yet, but willing to test against OIG LEIE federal exclusions and PECOS public enrollment posture.
 * 1: Demands real-time CAQH and NPDB access immediately.
 
 ## Next Action Mapping
