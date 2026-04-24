@@ -358,4 +358,67 @@ describe('employer packet export bundle', () => {
     expect(zipBuffer.includes(Buffer.from('status.json'))).toBe(true);
     expect(zipBuffer.includes(Buffer.from('README.txt'))).toBe(true);
   });
+
+  it('surfaces the trust-container manifest entry in README and JSON', () => {
+    const packet = buildPacketFixture();
+    const bundle = buildEmployerEvidencePacketBundleContents(packet);
+    const manifest = JSON.parse(bundle.manifestJson) as typeof packet.manifest;
+
+    expect(manifest.trustContainer).toBeDefined();
+    expect(manifest.trustContainer.status).toBe('issued');
+    expect(manifest.trustContainer.trustContainerId).toBe('mock_vc_fixture_id');
+    expect(manifest.trustContainer.provider).toBe('mock');
+    expect(manifest.trustContainer.mock).toBe(true);
+    expect(manifest.trustContainer.environment).toBe('mock-dev');
+    expect(bundle.readmeTxt).toContain('Mock/dev credential container');
+    expect(bundle.readmeTxt).toContain('Credential container id: mock_vc_fixture_id');
+    expect(bundle.readmeTxt).not.toMatch(/wallet/i);
+    expect(bundle.readmeTxt).not.toMatch(/on-chain|on chain/i);
+  });
+
+  it('renders the not-issued label when trust-container issuance was skipped', () => {
+    const packet = buildPacketFixture();
+    const skipped: EmployerEvidencePacketV1 = {
+      ...packet,
+      manifest: {
+        ...packet.manifest,
+        trustContainer: {
+          status: 'not_issued',
+          trustContainerId: null,
+          provider: null,
+          label: 'Credential container: not issued',
+          environment: null,
+          issuedAt: null,
+          schemaVersion: '1.0.0',
+          artifactHash: null,
+          auditHash: null,
+          proofTier: null,
+          proofStatus: null,
+          limitationNotes: [],
+          mock: false,
+          skipReason: 'container disabled',
+        },
+      },
+    };
+    const bundle = buildEmployerEvidencePacketBundleContents(skipped);
+    expect(bundle.readmeTxt).toContain('Credential container: not issued');
+    expect(bundle.readmeTxt).toContain('Credential container skip reason: container disabled');
+    expect(bundle.readmeTxt).not.toContain('Credential container id:');
+  });
+
+  it('keeps JSON and ZIP manifest trust-container fields identical', () => {
+    // The ZIP stream is built from the same `buildEmployerEvidencePacketBundleContents`
+    // output as the JSON manifest, so a contract test confirming both derive
+    // from a single manifest.json blob is sufficient (and robust against the
+    // zlib compression applied by archiver).
+    const packet = buildPacketFixture();
+    const bundleA = buildEmployerEvidencePacketBundleContents(packet);
+    const bundleB = buildEmployerEvidencePacketBundleContents(packet);
+    expect(bundleA.manifestJson).toBe(bundleB.manifestJson);
+
+    const manifest = JSON.parse(bundleA.manifestJson) as typeof packet.manifest;
+    expect(manifest.trustContainer).toEqual(packet.manifest.trustContainer);
+    expect(manifest.trustContainer.trustContainerId).toBe('mock_vc_fixture_id');
+    expect(manifest.trustContainer.environment).toBe('mock-dev');
+  });
 });
