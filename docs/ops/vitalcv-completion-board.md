@@ -1,6 +1,6 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave LIVE-102 live-truth audit)
-Source: Wave LIVE-102
+Last Updated: 2026-04-24 (post Wave GOD-2)
+Source: Wave GOD-2
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
@@ -19,7 +19,7 @@ This board tracks the functional reality of VitalCV.
 ## PRODUCT LOOP
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Holder Experience | 72% | +2% | Live site verification confirmed usable flow and source-backed identity recovery. |
+| Holder Experience | 78% | +6% | Clinician profile expanded to 16 sections; explicit provenance tagging prevents overclaim. |
 | Verifier Experience | 88% | 0% | Employer console handles proof objects and CTAs gracefully on live site. |
 | Hiring Loop | 45% | 0% | Basic acceptance signals work; integration into HRIS is 0%. |
 | Pilot Ops / GTM | 93% | 0% | Pilot funnel is entirely unbroken end-to-end and live verified. |
@@ -27,21 +27,21 @@ This board tracks the functional reality of VitalCV.
 ## DATA + PSV
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Source Spine | 70% | +4% | NPPES fallback identity pipeline recovered; honest fallback cadence implemented for OIG/PECOS. |
+| Source Spine | 70% | 0% | NPPES fallback identity pipeline recovered; honest fallback cadence implemented for OIG/PECOS. |
 | Authority Lanes | 32% | 0% | State boards require extensive adapter build-out. |
 | Bulk / CSV / Imports | 30% | 0% | Some CSV ingest; roster management is manual. |
 
 ## INTELLIGENCE + UX
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Orchestrator / Decision Logic | 58% | 0% | Basic status derivation works; complex decisioning lacks models. |
-| UX / Usability | 100% | +2% | UI fidelity correctly surfaces "Pending" and "Access Required"; no longer collapses into red "Unavailable". |
+| Orchestrator / Decision Logic | 62% | +4% | Provenance resolution hierarchy defined (VERIFIED > USER_ENTERED > INFERRED > UNKNOWN > CONFLICT). |
+| UX / Usability | 100% | 0% | UI fidelity correctly surfaces "Pending" and "Access Required"; rich 16-section profile live. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Issuer / Trust Object | 74% | 0% | Trust container hides implementation details effectively. |
+| Issuer / Trust Object | 78% | +4% | Knowledge Trust Graph panel mounts in product to explicitly display proof and evidence invariants. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
 | Deploy / Production Truth | 95% | 0% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
 
@@ -51,7 +51,12 @@ This board tracks the functional reality of VitalCV.
 | Launch Wedge Completion | 100% | 0% | P0 routes (ingest, review, pilot, employers, privacy, terms) all completely unblocked or gracefully degraded. |
 | Pilot-Ready Completion | 99% | 0% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **64%** | **+1%** | Tests green, typecheck clean, live-URL paths explicitly verified by Claude Browser. |
+| **Overall VitalCV Completion** | **65%** | **+1%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified. Clinician profile surface significantly richer. |
+
+## Wave GOD-2 evidence
+* **Profile Capabilities:** 16 distinct sections (identity, contact, locations, medical school, residency, fellowship, specialty, subspecialty, board certifications, licenses, work history, affiliations, research, publications, documents, career goals).
+* **Provenance Enforcement:** Explicit 5-state vocabulary introduced (`VERIFIED`, `USER_ENTERED`, `INFERRED`, `UNKNOWN`, `CONFLICT`).
+* **Knowledge Trust Graph Panel:** Built and mounted dynamically on the `PassportEntityClient` so clinicians see exactly what rules govern their evidence flow.
 
 ## Wave LIVE-102 evidence
 * **Browser Audit Result:** LIVE WEDGE USABLE

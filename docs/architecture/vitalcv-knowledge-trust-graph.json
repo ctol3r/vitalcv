@@ -46,7 +46,9 @@
     "Partial proof stays partial.",
     "Trust container does not upgrade proof tier.",
     "Audit events prove action history, not clinical truth.",
-    "CRS is derived from evidence; it is not evidence itself."
+    "CRS is derived from evidence; it is not evidence itself.",
+    "Claims resolve via strict provenance: VERIFIED > USER_ENTERED > INFERRED > UNKNOWN."
+
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
