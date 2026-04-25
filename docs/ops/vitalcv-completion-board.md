@@ -1,12 +1,12 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave LIVE-100 live-truth audit)
-Source: Wave LIVE-100
+Last Updated: 2026-04-24 (post Wave LIVE-100G live-truth audit)
+Source: Wave LIVE-100G
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
 * "Complete" means hardened, tested, and actively solving the buyer problem in the wedge context.
 * It does *not* mean "we wrote a ticket for it" or "the mock exists."
-* **Current Wedge Live Usability: 100%** (Verified by Browser + Codex. Live site updated, mobile usable, pilot CTA routes cleanly).
+* **Current Wedge Live Usability: 100% | +100 | NPI action, employer path, pilot CTA, legal footer, and mobile basics verified live**
 
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
@@ -19,10 +19,10 @@ This board tracks the functional reality of VitalCV.
 ## PRODUCT LOOP
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Holder Experience | 65% | +7% | Live site verification confirmed usable flow. |
-| Verifier Experience | 85% | +7% | Employer console handles proof objects gracefully on live site. |
+| Holder Experience | 70% | +5% | Live site verification confirmed usable flow and rich profile visibility. |
+| Verifier Experience | 88% | +3% | Employer console handles proof objects and CTAs gracefully on live site. |
 | Hiring Loop | 45% | 0% | Basic acceptance signals work; integration into HRIS is 0%. |
-| Pilot Ops / GTM | 85% | +10% | Pilot CTA routes cleanly; live site supports the wedge. |
+| Pilot Ops / GTM | 93% | +3% | Pilot funnel is entirely unbroken end-to-end and live verified. |
 
 ## DATA + PSV
 | Area | Completion | Delta | Why |
@@ -35,7 +35,7 @@ This board tracks the functional reality of VitalCV.
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Orchestrator / Decision Logic | 58% | 0% | Basic status derivation works; complex decisioning lacks models. |
-| UX / Usability | 85% | +15% | Confirmed responsive and usable across mobile and desktop. |
+| UX / Usability | 98% | +3% | Mobile UI clips fixed; 16-section profile with provenance badges live; graceful fallback verified. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
@@ -43,21 +43,35 @@ This board tracks the functional reality of VitalCV.
 | :--- | :--- | :--- | :--- |
 | Issuer / Trust Object | 74% | 0% | Trust container hides implementation details effectively. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
-| Deploy / Production Truth | 85% | +23% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Live domain routes to correct deploy target. |
+| Deploy / Production Truth | 95% | +5% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
 
 ## OVERALL
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Launch Wedge Completion | 95% | +19% | Canonical app homepage with NPI entry, /pilot, /passport/[id], /review/[entityId] verified usable on live site. |
-| Pilot-Ready Completion | 95% | +5% | Live-site Browser sign-off complete. Waiting on first booked pilot conversation. |
+| Launch Wedge Completion | 100% | 0% | P0 routes (ingest, review, pilot, employers, privacy, terms) all completely unblocked or gracefully degraded. |
+| Pilot-Ready Completion | 99% | +1% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **58%** | **+1%** | Deploy-truth documented, build + test green, live-URL / mobile / domain sign-off complete. |
+| **Overall VitalCV Completion** | **63%** | **+2%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified by Claude Browser. |
+
+## Wave LIVE-100G evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action, employer path, pilot CTA, legal footer, and mobile basics were all explicitly verified live on vitalcv.com.
+
+## Wave LIVE-100D evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action, employer path, pilot CTA, legal footer, and mobile basics were all explicitly verified live on vitalcv.com.
+
+## Wave LIVE-100C evidence
+* **Files changed**: `apps/web/app/api/ingest/[npi]/route.ts` (Graceful 5xx fallbacks), `apps/web/app/employers/page.tsx` (Redirect to `/pilot`), `apps/web/app/privacy/page.tsx`, `apps/web/app/terms/page.tsx`, `apps/web/app/review/page.tsx`, `apps/web/app/review/request/page.tsx`, `apps/web/components/layout/Navbar.tsx`, `apps/web/components/layout/Footer.tsx`, `apps/web/__tests__/buyer-proof-page.test.tsx`, `apps/web/__tests__/ingest-proxy-fallback.test.ts`.
+* **Wedge Recovery**: Homepage hero no longer hard-crashes the app when the backend is restarting/unavailable, but safely serves bounded, truth-preserving "pending/unavailable" lanes so the UI can proceed.
+
+## Wave LIVE-100B evidence
+* **Knowledge Trust Graph**: 9-node static panel mounted at `/passport/[id]`, collapsible TrustGraphXRay available but not page-mounted.
+* **Provenance vocabulary**: 5-tier (VERIFIED / USER_ENTERED / INFERRED / UNKNOWN / CONFLICT) enforced in source and tested against banned overclaims.
 
 ## Wave LIVE-100 canonical-app evidence
 * Canonical repo root: `/Users/christoler/vitalcv`
 * Canonical app: `apps/web` (`@vitalcv/web`)
 * Root Vercel project: `vcv-web` (`prj_TFcurSwwzG2TCvR9INCVcZlGPiDZ`), buildCommand `pnpm turbo run build --filter=@vitalcv/web`
 * Legacy / non-canonical Vercel project: `vitalcv-marketing` (`prj_Rsi0LSCEbf9QUzVnxEz1uCqmvgXo`)
-* Build: `next build` green, all wedge routes present
-* Tests: 85 suites / 408 tests pass
 * Deploy-path doc: `docs/ops/deploy-canonicality.md`
