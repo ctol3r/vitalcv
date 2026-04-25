@@ -24,7 +24,14 @@
     "Knowledge Inbox Item",
     "Classification Suggestion",
     "Profile Update Suggestion",
-    "Uploaded Evidence"
+    "Uploaded Evidence",
+    "Issuer",
+    "IssuerVerificationRequest",
+    "IssuerResponse",
+    "VerificationPartner",
+    "ConsentArtifact",
+    "ContractedAgent",
+    "VerificationRoute"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -41,13 +48,20 @@
     { "source": "Employer Review", "relation": "REVIEWS", "target": "Proof Pack" },
     { "source": "Reviewer Action", "relation": "WRITES", "target": "Audit Event" },
     { "source": "Pilot KPI Event", "relation": "MEASURES", "target": "Reviewer Action" },
-    { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" },
     { "source": "Clinician", "relation": "SUBMITS", "target": "Knowledge Inbox Item" },
     { "source": "Knowledge Inbox Item", "relation": "CLASSIFIED_AS", "target": "Classification Suggestion" },
     { "source": "Knowledge Inbox Item", "relation": "SUGGESTS", "target": "Profile Update Suggestion" },
     { "source": "Knowledge Inbox Item", "relation": "MAPS_TO", "target": "Graph Node" },
     { "source": "Uploaded Evidence", "relation": "SUPPORTS", "target": "Credential Claim" },
-    { "source": "Credential Claim", "relation": "NEEDS_SOURCE_CHECK", "target": "Source Check" }
+    { "source": "Claim", "relation": "NEEDS_ISSUER_VERIFICATION", "target": "IssuerVerificationRequest" },
+    { "source": "IssuerVerificationRequest", "relation": "ROUTES_TO", "target": "Issuer" },
+    { "source": "IssuerVerificationRequest", "relation": "MAY_USE", "target": "VerificationPartner" },
+    { "source": "Holder", "relation": "CONSENTS_WITH", "target": "ConsentArtifact" },
+    { "source": "IssuerResponse", "relation": "CONFIRMS", "target": "Claim" },
+    { "source": "IssuerResponse", "relation": "CORRECTS", "target": "Claim" },
+    { "source": "IssuerResponse", "relation": "PRODUCES", "target": "ReceiptCandidate" },
+    { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
+    { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -62,8 +76,11 @@
     "Inbox classification is not verification. It remains USER_ENTERED or INFERRED until backed by a PSV receipt.",
     "Accepting an inbox suggestion updates profile context, not proof tier.",
     "Uploaded evidence requires review or source verification before VERIFIED.",
-    "Board certification text can only create profile context or a source-evidence queue item until specialty-board source evidence exists.",
-    "License text can only create profile context or a state-board source-check queue item until state-board source evidence exists."
+    "Issuer request is not verification.",
+    "Partner routing is not verification.",
+    "Issuer responses can be partial or legally limited.",
+    "Contracted agent responses must name the agent.",
+    "Clinician consent is required where applicable."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
