@@ -1,4 +1,4 @@
-import type { KnowledgeInboxClassification } from './types';
+import type { KnowledgeInboxClassification, AcceptedKnowledgeInboxSuggestion } from './types';
 
 /**
  * Deterministic baseline classifier.
@@ -14,9 +14,13 @@ export function classifyInboxItem(rawText: string): KnowledgeInboxClassification
     return {
       itemType: 'training',
       confidence: 'Medium',
+      provenance: 'USER_ENTERED',
+      proofTier: 'profile_context_only',
+      decisionGrade: false,
+      verificationStatus: 'not_source_verified',
       suggestedProfileSection: 'Postgraduate Training',
       suggestedGraphNode: 'Credential Claim (Training)',
-      limitationNote: 'Self-reported training history; not PSV verified.',
+      limitationNote: 'Self-reported training history; not primary-source evidence.',
       nextAction: 'Review and accept to profile',
     };
   }
@@ -26,9 +30,13 @@ export function classifyInboxItem(rawText: string): KnowledgeInboxClassification
     return {
       itemType: 'publication',
       confidence: 'High',
+      provenance: 'INFERRED',
+      proofTier: 'profile_context_only',
+      decisionGrade: false,
+      verificationStatus: 'not_source_verified',
       suggestedProfileSection: 'Publications',
       suggestedGraphNode: 'Credential Claim (Publication)',
-      limitationNote: 'Inferred from text; not independently verified.',
+      limitationNote: 'Inferred from text; not independently source-matched.',
       nextAction: 'Review and accept to profile',
     };
   }
@@ -38,6 +46,10 @@ export function classifyInboxItem(rawText: string): KnowledgeInboxClassification
     return {
       itemType: 'license',
       confidence: 'Medium',
+      provenance: 'USER_ENTERED',
+      proofTier: 'source_evidence_required',
+      decisionGrade: false,
+      verificationStatus: 'not_source_verified',
       suggestedProfileSection: 'Licenses',
       suggestedGraphNode: 'Credential Claim (License)',
       limitationNote: 'Requires state board Primary Source Verification to reach decision-grade.',
@@ -50,6 +62,10 @@ export function classifyInboxItem(rawText: string): KnowledgeInboxClassification
     return {
       itemType: 'boardCertification',
       confidence: 'Medium',
+      provenance: 'USER_ENTERED',
+      proofTier: 'source_evidence_required',
+      decisionGrade: false,
+      verificationStatus: 'not_source_verified',
       suggestedProfileSection: 'Board Certifications',
       suggestedGraphNode: 'Credential Claim (Board Cert)',
       limitationNote: 'User-entered claim; requires ABMS/Specialty board source evidence to become VERIFIED.',
@@ -60,9 +76,26 @@ export function classifyInboxItem(rawText: string): KnowledgeInboxClassification
   return {
     itemType: 'unknown',
     confidence: 'Low',
+    provenance: 'USER_ENTERED',
+    proofTier: 'profile_context_only',
+    decisionGrade: false,
+    verificationStatus: 'not_source_verified',
     suggestedProfileSection: 'Uncategorized',
     suggestedGraphNode: 'Unknown',
     limitationNote: 'Could not automatically classify this information.',
     nextAction: 'Manual review required',
+  };
+}
+
+export function acceptInboxSuggestion(
+  classification: KnowledgeInboxClassification,
+): AcceptedKnowledgeInboxSuggestion {
+  return {
+    itemType: classification.itemType,
+    suggestedProfileSection: classification.suggestedProfileSection,
+    proofTier: 'profile_context_only',
+    decisionGrade: false,
+    verificationStatus: 'not_source_verified',
+    limitationNote: classification.limitationNote,
   };
 }
