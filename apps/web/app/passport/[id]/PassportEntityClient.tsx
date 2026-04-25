@@ -7,6 +7,29 @@ import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import { ClinicianProfileSections, type ClinicianProfileData } from '@/components/profile/ClinicianProfileSections';
+import { KnowledgeTrustGraphPanel } from '@/components/trust/KnowledgeTrustGraphPanel';
+
+function buildMockProfileData(passport: PassportData): ClinicianProfileData {
+  return {
+    identity: { value: passport.identity.displayName, provenance: 'VERIFIED' },
+    contact: { value: '', provenance: 'UNKNOWN' },
+    locations: { value: [], provenance: 'UNKNOWN' },
+    medicalSchool: { value: '', provenance: 'UNKNOWN' },
+    residency: { value: '', provenance: 'UNKNOWN' },
+    fellowship: { value: '', provenance: 'UNKNOWN' },
+    specialty: { value: passport.identity.specialty || '', provenance: 'VERIFIED' },
+    subspecialty: { value: '', provenance: 'UNKNOWN' },
+    boardCertifications: { value: [], provenance: 'UNKNOWN' },
+    licenses: { value: [], provenance: 'UNKNOWN' },
+    workHistory: { value: [], provenance: 'UNKNOWN' },
+    affiliations: { value: [], provenance: 'UNKNOWN' },
+    research: { value: [], provenance: 'UNKNOWN' },
+    publications: { value: [], provenance: 'UNKNOWN' },
+    documents: { value: [], provenance: 'UNKNOWN' },
+    careerGoals: { value: '', provenance: 'UNKNOWN' },
+  };
+}
 
 interface PassportEntityClientProps {
   entityId: string;
@@ -64,5 +87,13 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     );
   }
 
-  return <PassportWallet passport={passport} />;
+  return (
+    <div className="flex flex-col gap-8 pb-16">
+      <PassportWallet passport={passport} />
+      <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
+        <KnowledgeTrustGraphPanel />
+        <ClinicianProfileSections data={buildMockProfileData(passport)} />
+      </div>
+    </div>
+  );
 }
