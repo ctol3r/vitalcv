@@ -1,8 +1,10 @@
 {
   "nodes": [
     "Clinician",
+    "Holder",
     "NPI",
     "Identity Claim",
+    "Claim",
     "Credential Claim",
     "Source",
     "Source Check",
@@ -19,7 +21,21 @@
     "Reviewer Action",
     "Audit Event",
     "Pilot KPI Event",
-    "Start Outcome"
+    "Start Outcome",
+    "Knowledge Inbox",
+    "Knowledge Inbox Item",
+    "Classification Suggestion",
+    "Profile Update Suggestion",
+    "Uploaded Evidence",
+    "Issuer",
+    "IssuerVerificationRequest",
+    "IssuerResponse",
+    "VerificationPartner",
+    "ConsentArtifact",
+    "ContractedAgent",
+    "ReceiptCandidate",
+    "SourceOrIssuer",
+    "VerificationRoute"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -36,6 +52,19 @@
     { "source": "Employer Review", "relation": "REVIEWS", "target": "Proof Pack" },
     { "source": "Reviewer Action", "relation": "WRITES", "target": "Audit Event" },
     { "source": "Pilot KPI Event", "relation": "MEASURES", "target": "Reviewer Action" },
+    { "source": "Clinician", "relation": "SUBMITS", "target": "Knowledge Inbox Item" },
+    { "source": "Knowledge Inbox Item", "relation": "CLASSIFIED_AS", "target": "Classification Suggestion" },
+    { "source": "Knowledge Inbox Item", "relation": "SUGGESTS", "target": "Profile Update Suggestion" },
+    { "source": "Knowledge Inbox Item", "relation": "MAPS_TO", "target": "Graph Node" },
+    { "source": "Uploaded Evidence", "relation": "SUPPORTS", "target": "Credential Claim" },
+    { "source": "Credential Claim", "relation": "NEEDS_ISSUER_VERIFICATION", "target": "IssuerVerificationRequest" },
+    { "source": "IssuerVerificationRequest", "relation": "ROUTES_TO", "target": "Issuer" },
+    { "source": "IssuerVerificationRequest", "relation": "MAY_USE", "target": "VerificationPartner" },
+    { "source": "Holder", "relation": "CONSENTS_WITH", "target": "ConsentArtifact" },
+    { "source": "IssuerResponse", "relation": "MAY_CONFIRM", "target": "Credential Claim" },
+    { "source": "IssuerResponse", "relation": "MAY_CORRECT", "target": "Credential Claim" },
+    { "source": "IssuerResponse", "relation": "PRODUCES", "target": "ReceiptCandidate" },
+    { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
   ],
   "rules": [
@@ -46,7 +75,21 @@
     "Partial proof stays partial.",
     "Trust container does not upgrade proof tier.",
     "Audit events prove action history, not clinical truth.",
-    "CRS is derived from evidence; it is not evidence itself."
+    "CRS is derived from evidence; it is not evidence itself.",
+    "Claims resolve via strict provenance: VERIFIED > USER_ENTERED > INFERRED > UNKNOWN.",
+    "Inbox classification is not verification. It remains USER_ENTERED or INFERRED until backed by a PSV receipt.",
+    "Accepting an inbox suggestion updates profile context, not proof tier.",
+    "Uploaded evidence requires review or source verification before VERIFIED.",
+    "Issuer request is not verification.",
+    "Partner routing is a recommendation only and does not imply an active partner integration.",
+    "Issuer responses can be partial or legally limited.",
+    "A confirmed issuer response creates a receipt candidate only; it does not create global proof.",
+    "legally_only maps to review_required.",
+    "wrong_office reroutes without confirming the claim.",
+    "requires_release pauses the request.",
+    "Contracted agent responses must name the agent.",
+    "Contracted agent responses must preserve the distinction between agent and source basis.",
+    "Clinician consent is required where applicable."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

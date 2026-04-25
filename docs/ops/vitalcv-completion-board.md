@@ -1,12 +1,12 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave LIVE-100D live-truth audit)
-Source: Wave LIVE-100D
+Last Updated: 2026-04-24 (post Wave GOD-3S)
+Source: Wave GOD-3S
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
 * "Complete" means hardened, tested, and actively solving the buyer problem in the wedge context.
 * It does *not* mean "we wrote a ticket for it" or "the mock exists."
-* **Current Wedge Live Usability: 100% | +100 | NPI action, employer path, pilot CTA, legal footer, and mobile basics verified live.**
+* **Current Wedge Live Usability: 100% | +100 | production artifact updated and P0 route/API/mobile blockers fixed**
 
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
@@ -19,39 +19,68 @@ This board tracks the functional reality of VitalCV.
 ## PRODUCT LOOP
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Holder Experience | 70% | +5% | Live site verification confirmed usable flow and rich profile visibility. |
-| Verifier Experience | 88% | +3% | Employer console handles proof objects and CTAs gracefully on live site. |
+| Holder Experience | 82% | 0% | Clinician profile expanded with Knowledge Inbox data capture model. |
+| Verifier Experience | 88% | 0% | Employer console handles proof objects and CTAs gracefully on live site. |
 | Hiring Loop | 45% | 0% | Basic acceptance signals work; integration into HRIS is 0%. |
-| Pilot Ops / GTM | 93% | +3% | Pilot funnel is entirely unbroken end-to-end and live verified. |
+| Pilot Ops / GTM | 93% | 0% | Pilot funnel is entirely unbroken end-to-end and live verified. |
 
 ## DATA + PSV
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Source Spine | 66% | 0% | Foundation solid; missing NPDB, SAM.gov, ABMS. |
+| Source Spine | 70% | 0% | NPPES fallback identity pipeline recovered; honest fallback cadence implemented for OIG/PECOS. |
 | Authority Lanes | 32% | 0% | State boards require extensive adapter build-out. |
 | Bulk / CSV / Imports | 30% | 0% | Some CSV ingest; roster management is manual. |
 
 ## INTELLIGENCE + UX
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Orchestrator / Decision Logic | 58% | 0% | Basic status derivation works; complex decisioning lacks models. |
-| UX / Usability | 98% | +3% | Mobile UI clips fixed; 16-section profile with provenance badges live; graceful fallback verified. |
+| Orchestrator / Decision Logic | 68% | 0% | Deterministic Knowledge Inbox classification (13 states) enforcing safe provenance triage. |
+| UX / Usability | 100% | 0% | Mobile UI clips fixed; 16-section profile with provenance badges live; PWA foundation active. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Issuer / Trust Object | 74% | 0% | Trust container hides implementation details effectively. |
+| Issuer / Trust Object | 78% | 0% | Knowledge Trust Graph panel mounts in product to explicitly display proof and evidence invariants. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
-| Deploy / Production Truth | 95% | +5% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
+| Deploy / Production Truth | 95% | 0% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
 
 ## OVERALL
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Launch Wedge Completion | 100% | 0% | P0 routes (ingest, review, pilot, employers, privacy, terms) all completely unblocked or gracefully degraded. |
-| Pilot-Ready Completion | 99% | +1% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
+| Pilot-Ready Completion | 99% | 0% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **63%** | **+2%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified by Claude Browser. |
+| **Overall VitalCV Completion** | **66%** | **0%** | Tests green, typecheck clean, live-URL verified, inbox classification safe. |
+
+## Wave GOD-3S evidence
+* **Validation Proof:** 454/454 tests passed.
+* **Architecture Safe:** Confirmed that Knowledge Inbox items map strictly to `USER_ENTERED` or `INFERRED` domains, with explicit graph rules preventing auto-upgrades to `VERIFIED` without a PSV receipt.
+
+## Wave GOD-3 evidence
+* **Inbox Capabilities:** Data models, types, and deterministic classification helper created to funnel free-text input safely into `USER_ENTERED` or `INFERRED` items without faking PSV checks.
+* **Graph Updates:** 5 new node types and 5 new edge types added to architectural graph; 3 new explicit graph rules ensuring AI/ML triage never overrides real source evidence.
+* **Validation:** 445 tests clean. Zero banned string collisions.
+
+## Wave GOD-2 evidence
+* **Profile Capabilities:** 16 distinct sections (identity, contact, locations, medical school, residency, fellowship, specialty, subspecialty, board certifications, licenses, work history, affiliations, research, publications, documents, career goals).
+* **Provenance Enforcement:** Explicit 5-state vocabulary introduced (`VERIFIED`, `USER_ENTERED`, `INFERRED`, `UNKNOWN`, `CONFLICT`).
+* **Knowledge Trust Graph Panel:** Built and mounted dynamically on the `PassportEntityClient` so clinicians see exactly what rules govern their evidence flow.
+
+## Wave LIVE-102 evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action returned source-backed identity dynamically from the public proxy.
+* UI fidelity properly renders `Pending` and `Access required` states instead of collapsing them to `Unavailable`.
+
+## Wave LIVE-101 evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action returned source-backed identity dynamically.
+* Overclaims prevented (NPPES is identity only, not licensure proof).
+* Source fallback semantics are honest.
+
+## Wave LIVE-100G evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action, employer path, pilot CTA, legal footer, and mobile basics were all explicitly verified live on vitalcv.com.
 
 ## Wave LIVE-100D evidence
 * **Browser Audit Result:** LIVE WEDGE USABLE
