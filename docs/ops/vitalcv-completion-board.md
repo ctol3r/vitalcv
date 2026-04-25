@@ -1,6 +1,6 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave LIVE-100G live-truth audit)
-Source: Wave LIVE-100G
+Last Updated: 2026-04-24 (post Wave LIVE-101 live-truth audit)
+Source: Wave LIVE-101
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
@@ -19,15 +19,15 @@ This board tracks the functional reality of VitalCV.
 ## PRODUCT LOOP
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Holder Experience | 70% | +5% | Live site verification confirmed usable flow and rich profile visibility. |
-| Verifier Experience | 88% | +3% | Employer console handles proof objects and CTAs gracefully on live site. |
+| Holder Experience | 72% | +2% | Live site verification confirmed usable flow and source-backed identity recovery. |
+| Verifier Experience | 88% | 0% | Employer console handles proof objects and CTAs gracefully on live site. |
 | Hiring Loop | 45% | 0% | Basic acceptance signals work; integration into HRIS is 0%. |
-| Pilot Ops / GTM | 93% | +3% | Pilot funnel is entirely unbroken end-to-end and live verified. |
+| Pilot Ops / GTM | 93% | 0% | Pilot funnel is entirely unbroken end-to-end and live verified. |
 
 ## DATA + PSV
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Source Spine | 66% | 0% | Foundation solid; missing NPDB, SAM.gov, ABMS. |
+| Source Spine | 68% | +2% | NPPES fallback identity pipeline recovered; honest fallback cadence implemented for OIG/PECOS. |
 | Authority Lanes | 32% | 0% | State boards require extensive adapter build-out. |
 | Bulk / CSV / Imports | 30% | 0% | Some CSV ingest; roster management is manual. |
 
@@ -35,7 +35,7 @@ This board tracks the functional reality of VitalCV.
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Orchestrator / Decision Logic | 58% | 0% | Basic status derivation works; complex decisioning lacks models. |
-| UX / Usability | 98% | +3% | Mobile UI clips fixed; 16-section profile with provenance badges live; graceful fallback verified. |
+| UX / Usability | 98% | 0% | Mobile UI clips fixed; 16-section profile with provenance badges live; graceful fallback verified. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
@@ -43,15 +43,21 @@ This board tracks the functional reality of VitalCV.
 | :--- | :--- | :--- | :--- |
 | Issuer / Trust Object | 74% | 0% | Trust container hides implementation details effectively. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
-| Deploy / Production Truth | 95% | +5% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
+| Deploy / Production Truth | 95% | 0% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
 
 ## OVERALL
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Launch Wedge Completion | 100% | 0% | P0 routes (ingest, review, pilot, employers, privacy, terms) all completely unblocked or gracefully degraded. |
-| Pilot-Ready Completion | 99% | +1% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
+| Pilot-Ready Completion | 99% | 0% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
 | Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **63%** | **+2%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified by Claude Browser. |
+| **Overall VitalCV Completion** | **63%** | **0%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified by Claude Browser. |
+
+## Wave LIVE-101 evidence
+* **Browser Audit Result:** LIVE WEDGE USABLE
+* NPI action returned source-backed identity dynamically.
+* Overclaims prevented (NPPES is identity only, not licensure proof).
+* Source fallback semantics are honest.
 
 ## Wave LIVE-100G evidence
 * **Browser Audit Result:** LIVE WEDGE USABLE
