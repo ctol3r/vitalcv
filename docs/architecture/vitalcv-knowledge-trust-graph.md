@@ -60,6 +60,7 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Credential Claim` NEEDS_ISSUER_VERIFICATION `Issuer Verification Request`
 * `Issuer Verification Request` MAY_ROUTE_TO `Verification Partner`
 * `Issuer Verification Request` ROUTES_TO `Source`
+* `Issuer` RESPONDS_WITH `Issuer Response`
 * `Issuer Response` PRODUCES `Receipt Candidate`
 * `Contracted Agent` ACTS_FOR `Source`
 

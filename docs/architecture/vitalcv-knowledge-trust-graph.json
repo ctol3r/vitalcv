@@ -61,6 +61,7 @@
     { "source": "IssuerVerificationRequest", "relation": "ROUTES_TO", "target": "Issuer" },
     { "source": "IssuerVerificationRequest", "relation": "MAY_USE", "target": "VerificationPartner" },
     { "source": "Holder", "relation": "CONSENTS_WITH", "target": "ConsentArtifact" },
+    { "source": "Issuer", "relation": "RESPONDS_WITH", "target": "IssuerResponse" },
     { "source": "IssuerResponse", "relation": "MAY_CONFIRM", "target": "Credential Claim" },
     { "source": "IssuerResponse", "relation": "MAY_CORRECT", "target": "Credential Claim" },
     { "source": "IssuerResponse", "relation": "PRODUCES", "target": "ReceiptCandidate" },
