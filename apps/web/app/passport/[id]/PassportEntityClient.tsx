@@ -9,6 +9,8 @@ import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { ClinicianProfileSections, type ClinicianProfileData } from '@/components/profile/ClinicianProfileSections';
 import { KnowledgeTrustGraphPanel } from '@/components/trust/KnowledgeTrustGraphPanel';
+import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
+import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
 
 function buildMockProfileData(passport: PassportData): ClinicianProfileData {
   return {
@@ -87,12 +89,39 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     );
   }
 
+  // GOD-3: Inbox is wired here as a UI mount point. Real items will
+  // arrive once a backend endpoint provides them; until then the
+  // panel renders its empty state. We never synthesize fake items
+  // and we never auto-mark anything VERIFIED.
+  const inboxItems: KnowledgeInboxItem[] = [];
+
   return (
     <div className="flex flex-col gap-8 pb-16">
       <PassportWallet passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
         <KnowledgeTrustGraphPanel />
         <ClinicianProfileSections data={buildMockProfileData(passport)} />
+        <section
+          className="rounded-2xl border border-border bg-background/60 p-5 sm:p-6"
+          aria-label="Knowledge Inbox"
+          data-testid="passport-knowledge-inbox-mount"
+        >
+          <header className="mb-4 space-y-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              Knowledge Inbox
+            </p>
+            <h3 className="text-base font-semibold text-foreground">
+              Captured but not yet source-verified
+            </h3>
+            <p className="text-xs text-muted-foreground/80">
+              The inbox is where new clinician-supplied evidence is staged.
+              Items here are USER_ENTERED or INFERRED; nothing here is
+              automatically marked verified, and nothing here calls an
+              external AI API.
+            </p>
+          </header>
+          <KnowledgeInboxPanel items={inboxItems} />
+        </section>
       </div>
     </div>
   );
