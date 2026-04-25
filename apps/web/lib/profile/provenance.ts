@@ -1,14 +1,17 @@
 /**
- * Provenance vocabulary for the clinician profile MVP+ (Wave LIVE-100B).
+ * Provenance vocabulary for the clinician profile + inbox surfaces.
  *
- * Rule: every user-visible field on the profile carries exactly one
- * provenance tag. There is no "implied" truthiness — missing data is
- * UNKNOWN, user-typed data is USER_ENTERED, source-backed data is
- * VERIFIED, and contradictions are CONFLICT.
+ * Single export module so both the GOD-2 ClinicianProfileSections
+ * surface and the GOD-3 Knowledge Inbox classifier share one
+ * vocabulary. Two names are exposed for back-compat:
+ *   - `ProfileProvenance` (used by ClinicianProfileSections + helpers)
+ *   - `FieldProvenance`   (used by lib/knowledge-inbox/types)
+ * Both are the same union, so consumers can use either name.
  *
- * These tags are the contract the profile UI uses to render a badge
- * next to each field and to drive the "NPPES is identity, not
- * licensure" honesty the hero already states.
+ * Rule: every user-visible field carries exactly one provenance tag.
+ * There is no "implied" truthiness — missing data is UNKNOWN,
+ * user-typed data is USER_ENTERED, source-backed data is VERIFIED,
+ * and contradictions are CONFLICT.
  */
 
 export type ProfileProvenance =
@@ -17,6 +20,12 @@ export type ProfileProvenance =
   | 'INFERRED'
   | 'UNKNOWN'
   | 'CONFLICT';
+
+/**
+ * Alias kept for the Knowledge Inbox types module. Both names refer
+ * to the same vocabulary; either is safe to import.
+ */
+export type FieldProvenance = ProfileProvenance;
 
 export interface ProvenanceMeta {
   label: string;
@@ -57,11 +66,20 @@ export const PROVENANCE_META: Record<ProfileProvenance, ProvenanceMeta> = {
   },
 };
 
+export interface ProfileField<T> {
+  value: T;
+  provenance: ProfileProvenance;
+  sourceLabel?: string;
+  lastUpdated?: string;
+  confidence?: string;
+  limitationNote?: string;
+}
+
 /**
  * Small helper for the UI: given a raw value and the provenance tag,
- * fall back to "Unknown" and UNKNOWN when the value is missing, regardless
- * of the caller's claim. This keeps missing-data honest even if a
- * caller passes the wrong tag.
+ * fall back to "Unknown" and UNKNOWN when the value is missing
+ * regardless of the caller's claim. Keeps missing-data honest even
+ * if a caller passes the wrong tag.
  */
 export function normalizeFieldProvenance(
   value: string | number | null | undefined,
