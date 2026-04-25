@@ -14,23 +14,23 @@
  */
 
 import * as React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ClinicianProfileSections } from '../components/profile/ClinicianProfileSections';
 import { KnowledgeTrustGraphPanel } from '../components/trust/KnowledgeTrustGraphPanel';
+import { PROVENANCE_META, normalizeFieldProvenance } from '../lib/profile/provenance';
 import type { PassportData } from '../lib/trust/passport-contract';
 
 const BANNED = [
+  'fully verified',
   'blockchain verified',
   'wallet ready',
-  'fully verified',
   'guaranteed',
   'instant hire',
-  'legally accepted',
-  'risk transferred',
   'complete credentialing',
-  'on-chain proof',
-  'zero-touch credentialing',
+  'nppes verified license',
+  'board certified',
 ] as const;
 
 function assertNoBanned(html: string): void {
@@ -58,7 +58,7 @@ function buildPassport(): PassportData {
           domain: 'LICENSURE',
           type: 'STATE_LICENSE',
           status: 'ACTIVE',
-          verificationLevel: 'PRIMARY_SOURCE',
+          verificationLevel: 'SOURCE_VERIFIED',
           jurisdiction: 'CA',
           expiresAt: '2027-12-31',
           stale: false,
@@ -223,13 +223,25 @@ describe('ClinicianProfileSections', () => {
   });
 
   it('falls back to UNKNOWN for missing values regardless of claimed provenance', () => {
+    expect(normalizeFieldProvenance(null, 'VERIFIED')).toEqual({
+      display: 'Unknown',
+      provenance: 'UNKNOWN',
+    });
+
     const html = renderToStaticMarkup(
       <ClinicianProfileSections passport={buildPassport()} />,
     );
     // Contact section has no extended data; every row should be UNKNOWN.
     const contact = html.match(/profile-section-contact[\s\S]*?<\/section>/)?.[0] ?? '';
+    expect(contact).toContain('Unknown');
     expect(contact).toContain('data-provenance="UNKNOWN"');
     expect(contact).not.toContain('data-provenance="VERIFIED"');
+  });
+
+  it('keeps conflict provenance visible and neutral unknown copy explicit', () => {
+    expect(PROVENANCE_META.CONFLICT.label).toBe('Conflict');
+    expect(PROVENANCE_META.CONFLICT.description).toContain('sources disagree');
+    expect(PROVENANCE_META.UNKNOWN.description).toContain('Neutral');
   });
 
   it('never emits a banned overclaim string', () => {
@@ -269,5 +281,41 @@ describe('KnowledgeTrustGraphPanel', () => {
   it('never emits a banned overclaim string', () => {
     const html = renderToStaticMarkup(<KnowledgeTrustGraphPanel expanded />);
     assertNoBanned(html);
+  });
+});
+
+describe('LIVE-100B source copy guard', () => {
+  const sourceFiles = [
+    'app/page.tsx',
+    'components/layout/Navbar.tsx',
+    'app/passport/page.tsx',
+    'app/passport/layout.tsx',
+    'app/passport/[id]/PassportEntityClient.tsx',
+    'app/p/[slug]/page.tsx',
+    'app/holder/readiness/ReadinessSurface.tsx',
+    'components/passport/PassportWallet.tsx',
+    'components/profile/ClinicianProfileSections.tsx',
+    'components/trust/KnowledgeTrustGraphPanel.tsx',
+    'components/trust/TrustGraphXRay.tsx',
+    'components/knowledge/KnowledgeExplorer.tsx',
+    'components/trust-state/SourceProvenanceDrawer.tsx',
+    'components/motion/FloatingCredentials.tsx',
+    'components/mobile/MobileExperience.tsx',
+    'components/sandbox/ClinicianPassport.tsx',
+    'components/clinician/WalletDashboard.tsx',
+    'components/explore/ApplyModal.tsx',
+    'lib/trust/passport-truth.ts',
+    'lib/trust/homepage-public-truth.ts',
+    'components/marketing/BentoGrid.tsx',
+  ];
+
+  it('keeps visible profile, trust, graph, and CTA copy free of banned overclaims', () => {
+    for (const relativePath of sourceFiles) {
+      const source = readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
+      assertNoBanned(source);
+      expect(source).not.toMatch(/license\s+(checked|verified)\s+via\s+NPPES/i);
+      expect(source).not.toMatch(/No license attached in NPPES/i);
+      expect(source).not.toMatch(/instantly verify[^.]*credentialing status/i);
+    }
   });
 });

@@ -65,7 +65,7 @@ const PILOTS: Record<string, {
       verifiedLanes: ['NPPES Identity (live — CMS Registry)'],
       pendingLanes: [
         { lane: 'OIG Exclusions',  reason: 'Integration not yet wired — surfaced as access_required' },
-        { lane: 'State License',   reason: 'No license attached in NPPES for this clinician; board API not yet wired' },
+        { lane: 'State License',   reason: 'No state-board license source attached for this clinician; board API not yet wired' },
       ],
       limitations: [
         'Single clinician — not a statistically significant sample',
@@ -219,7 +219,7 @@ export default async function PilotProofPage({
             <EvidenceRow label="Provider" value={`${e.providerName} · NPI ${e.npi}`} />
             <EvidenceRow label="Taxonomy" value={e.taxonomy} />
             <EvidenceRow label="State" value={e.state} />
-            <EvidenceRow label="NPPES Status" value={e.nppesStatus} positive />
+            <EvidenceRow label="NPPES Identity Status" value={e.nppesStatus} positive />
             <EvidenceRow label="Proof Tier" value={e.proofTier.replace(/_/g, ' ')} />
             <EvidenceRow label="Employer Action" value={e.employerAction.replace(/_/g, ' ')} />
             <EvidenceRow label="Loop ID" value={e.loopId} mono />

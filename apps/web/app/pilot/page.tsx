@@ -39,7 +39,7 @@ const PILOT_SCOPE = [
   {
     title: 'What success looks like',
     body:
-      'You see documented source coverage and a verifiable proof pack per clinician before the formal committee process. We do not replace your credentialing committee — we shorten the days-at-risk window before committee review.',
+      'You see documented source coverage, packet status, and limitation notes per clinician before the formal committee process. We do not replace your credentialing committee — we shorten the days-at-risk window before committee review.',
     icon: <CheckCircle2 className="h-4 w-4" aria-hidden />,
   },
 ] as const;
@@ -49,7 +49,7 @@ const LIMITATION_HONESTY = [
   'OIG LEIE covers federal exclusion scope only; state Medicaid exclusion lists are out of scope until they are adapter-connected.',
   'PECOS public data reflects the public release, not the real-time enrollment portal.',
   'State board coverage depends on institutional access agreements; uninstrumented states remain an adapter gap, not a verified claim.',
-  'The trust container records the envelope and artifact hash; it does not replace Primary Source Verification (PSV).',
+  'The trust container records packet metadata and artifact status; it does not replace Primary Source Verification (PSV).',
   'A partial proof stays partial. Container issuance never upgrades partial evidence to decision-grade.',
 ] as const;
 
@@ -67,31 +67,31 @@ const PILOT_KPI_SAMPLES = [
   {
     label: 'Proof-pack export formats',
     value: 'JSON · ZIP · PDF',
-    note: 'Manifest + audit hash in every export',
+    note: 'Manifest references in every export',
   },
   {
     label: 'Audit record per export',
     value: 'ARTIFACT_EXPORTED',
-    note: 'Writes a signed audit event before the bundle returns',
+    note: 'Records an audit event before the bundle returns',
   },
 ] as const;
 
 const PROOF_OBJECT_LIVE = [
   'NPPES, OIG LEIE, and PECOS public checks with canonical source coverage',
-  'Proof-pack exports (JSON and ZIP) with deterministic artifact + audit hashes',
+  'Proof-pack exports (JSON and ZIP) with deterministic artifact hashing',
   'ARTIFACT_EXPORTED audit event every time a packet leaves the platform',
   'Partial-proof limitation notes preserved verbatim through every export',
 ] as const;
 
 const PROOF_OBJECT_PARTIAL = [
-  'Automated primary source verification against every state board',
-  'CAQH and ABMS integrations',
-  'Production verifiable credential issuance via Dock (scaffolded, not live)',
+  'Configured state-board PSV adapters for launch-state authority checks',
+  'Additional payer and organization source adapters after source agreements',
+  'Production credential-container issuance after provider configuration',
   'Continuous monitoring outside the configured pilot lanes',
 ] as const;
 
 const TRUST_CONTAINER_SAFE_COPY = [
-  'Records the evidence packet’s credential envelope and artifact hash.',
+  'Records the evidence packet’s credential envelope and artifact status.',
   'Does not replace primary source verification.',
   'Does not upgrade partial evidence to decision-grade.',
   'Mock/dev containers are not production credentials.',
@@ -220,9 +220,9 @@ export default function PilotPage() {
           </div>
           <p className="text-muted-foreground text-base leading-relaxed max-w-3xl mb-4">
             The trust container is a hidden backend record that binds the
-            credential envelope id, artifact hash, and issuer metadata to the
+            credential envelope id, artifact status, and issuer metadata to the
             proof pack. It is provider-pluggable — a deterministic mock today
-            and a Dock-compatible scaffold ready for future production wiring.
+            and a production-provider scaffold ready for future wiring.
           </p>
           <ul
             className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground"

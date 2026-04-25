@@ -454,10 +454,10 @@ export default function MobileExperience({
                       <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/5 px-4 py-3 text-sm">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                          <p className="font-medium text-emerald-100">Fully Verified</p>
+                          <p className="font-medium text-emerald-100">Source Checks Current</p>
                         </div>
                         <p className="mt-1 text-xs text-emerald-200/70">
-                          Ready for priority one-tap applications everywhere.
+                          Ready for review where source coverage is complete.
                         </p>
                       </div>
                     )}

@@ -141,6 +141,13 @@ function EmptyList({ label }: { label: string }) {
   );
 }
 
+function isSourceBackedVerificationLevel(level: string | null | undefined): boolean {
+  return level === 'PRIMARY_SOURCE'
+    || level === 'PRIMARY_SOURCE_VERIFICATION'
+    || level === 'SOURCE_VERIFIED'
+    || level === 'CRYPTOGRAPHICALLY_SIGNED';
+}
+
 export function ClinicianProfileSections({
   passport,
   extended,
@@ -259,9 +266,9 @@ export function ClinicianProfileSections({
         ) : (
           boards.map((b) => (
             <div key={b.id} className="space-y-1">
-              <Field label="Issuer" value={b.issuerName ?? b.issuerEntityId ?? null} provenance={b.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
-              <Field label="Status" value={b.statusLabel ?? b.status} provenance={b.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
-              <Field label="Expires" value={b.expiresAt ?? null} provenance={b.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Issuer" value={b.issuerName ?? b.issuerEntityId ?? null} provenance={isSourceBackedVerificationLevel(b.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Status" value={b.statusLabel ?? b.status} provenance={isSourceBackedVerificationLevel(b.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Expires" value={b.expiresAt ?? null} provenance={isSourceBackedVerificationLevel(b.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
             </div>
           ))
         )}
@@ -277,9 +284,9 @@ export function ClinicianProfileSections({
         ) : (
           licences.map((l) => (
             <div key={l.id} className="space-y-1">
-              <Field label="Jurisdiction" value={l.jurisdiction ?? null} provenance={l.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
-              <Field label="Status" value={l.statusLabel ?? l.status} provenance={l.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
-              <Field label="Expires" value={l.expiresAt ?? null} provenance={l.verificationLevel === 'PRIMARY_SOURCE' ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Jurisdiction" value={l.jurisdiction ?? null} provenance={isSourceBackedVerificationLevel(l.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Status" value={l.statusLabel ?? l.status} provenance={isSourceBackedVerificationLevel(l.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
+              <Field label="Expires" value={l.expiresAt ?? null} provenance={isSourceBackedVerificationLevel(l.verificationLevel) ? 'VERIFIED' : 'USER_ENTERED'} />
             </div>
           ))
         )}

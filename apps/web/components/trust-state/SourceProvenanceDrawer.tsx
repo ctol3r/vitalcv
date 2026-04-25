@@ -26,7 +26,7 @@ export function SourceProvenanceDrawer({
             <div>
               <h3 className="text-emerald-50 font-medium">Source-Backed Fact</h3>
               <p className="text-sm text-emerald-200/70 mt-1 leading-relaxed">
-                This credential fact was retrieved directly from an authoritative primary source and cryptographically signed to guarantee untampered provenance.
+                This credential fact was retrieved directly from an authoritative primary source and cryptographically signed so tampering can be detected.
               </p>
             </div>
           </div>

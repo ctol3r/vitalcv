@@ -59,7 +59,7 @@ export const PROVENANCE_META: Record<ProfileProvenance, ProvenanceMeta> = {
 
 /**
  * Small helper for the UI: given a raw value and the provenance tag,
- * fall back to "—" and UNKNOWN when the value is missing, regardless
+ * fall back to "Unknown" and UNKNOWN when the value is missing, regardless
  * of the caller's claim. This keeps missing-data honest even if a
  * caller passes the wrong tag.
  */
@@ -72,7 +72,7 @@ export function normalizeFieldProvenance(
     || value === undefined
     || (typeof value === 'string' && value.trim().length === 0);
   if (isMissing) {
-    return { display: '—', provenance: 'UNKNOWN' };
+    return { display: 'Unknown', provenance: 'UNKNOWN' };
   }
   return { display: String(value), provenance: claimed };
 }

@@ -308,7 +308,7 @@ describe('passport review truth', () => {
     );
     expect(truth.buckets.sourceBackedNow.map((item) => item.label)).toContain('Enrollment / Eligibility');
     expect(truth.buckets.contextualOnly.map((item) => item.label)).not.toContain('Physician license (OR)');
-    expect(truth.buckets.stale.map((item) => item.label)).toContain('Board certified');
+    expect(truth.buckets.stale.map((item) => item.label)).toContain('Board certification');
     expect(truth.buckets.needsReview.map((item) => item.label)).toContain('Sanctions & Exclusions');
     expect(truth.buckets.missingOrAccessRequired.map((item) => item.label)).toContain('DEA / Controlled Substance');
     expect(truth.buckets.nextActions.map((item) => item.label)).toContain('Upload DEA evidence');
@@ -393,8 +393,8 @@ describe('passport review truth', () => {
 
     const truth = buildPassportReviewTruthModel(passport);
 
-    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Board certified');
-    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Board certified');
+    expect(truth.buckets.sourceBackedNow.map((item) => item.label)).not.toContain('Board certification');
+    expect(truth.buckets.contextualOnly.map((item) => item.label)).toContain('Board certification');
   });
 
   it('keeps stale and contextual top-level truth out of source-backed review buckets', () => {

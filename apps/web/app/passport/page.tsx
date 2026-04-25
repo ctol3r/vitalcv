@@ -485,8 +485,8 @@ function PassportPageContent({
                   Check Your Readiness
                 </h1>
                 <p className="text-muted-foreground text-sm sm:text-base mt-3 leading-relaxed max-w-xl">
-                  Enter your NPI to instantly verify your credentialing status across NPPES,
-                  OIG/LEIE, PECOS, and state medical boards. Results appear in seconds.
+                  Enter your NPI to start a source-backed readiness check across identity,
+                  sanctions, enrollment, and configured state-board sources. Results appear in seconds when sources respond.
                 </p>
               </div>
 

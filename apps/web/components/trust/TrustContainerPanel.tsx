@@ -8,7 +8,7 @@
  *     container entry exists.
  *   - Mock/dev containers are always labelled as such.
  *   - Missing metadata renders a neutral fallback, not a claim.
- *   - No wallet, no on-chain, no "legally accepted" language.
+ *   - Guard against unsupported overclaim language.
  */
 
 import * as React from 'react';

@@ -266,31 +266,64 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
   };
 }
 
+type TrainingRecord = PassportData['training']['records'][number];
+
+function isSourceBackedTrainingRecord(record: TrainingRecord): boolean {
+  return record.verificationLevel === 'PRIMARY_SOURCE'
+    || record.verificationLevel === 'PRIMARY_SOURCE_VERIFICATION'
+    || record.verificationLevel === 'SOURCE_VERIFIED'
+    || record.verificationLevel === 'CRYPTOGRAPHICALLY_SIGNED';
+}
+
+function TrainingRow({ record }: { record: TrainingRecord }) {
+  const sourceBacked = isSourceBackedTrainingRecord(record);
+  const title = record.degreeOrTitle ?? record.recordType.replace(/_/g, ' ').toLowerCase();
+  const note = sourceBacked
+    ? 'Source-backed training receipt attached. Review the receipt before relying on this claim.'
+    : 'Profile-entered training context. Not primary source verified.';
+
+  return (
+    <div className="py-1.5 border-b border-white/5 last:border-0">
+      <div className="flex justify-between gap-3 text-xs">
+        <span className="text-foreground/60">{title}</span>
+        <TrustStatusBadge
+          status={sourceBacked ? 'checked' : 'review_required'}
+          label={sourceBacked ? 'Source-backed' : 'User-entered'}
+          size="sm"
+        />
+      </div>
+      {(record.institutionName || record.specialty || record.endYear) && (
+        <div className="text-muted-foreground/60 text-xs mt-0.5">
+          {[record.institutionName, record.specialty, record.endYear ? String(record.endYear) : null].filter(Boolean).join(' · ')}
+        </div>
+      )}
+      <div className="text-muted-foreground/40 text-xs mt-0.5">
+        Source: {sourceBacked ? 'Attached training source' : 'Profile-entered'}
+      </div>
+      <div className="text-muted-foreground/30 text-xs mt-0.5 leading-relaxed">{note}</div>
+    </div>
+  );
+}
+
 function buildTrainingSection(passport: PassportData): AccordionItem {
   const { training } = passport;
+  const hasSourceBackedTraining = training.records.some(isSourceBackedTrainingRecord);
   return {
     id:      'training',
-    trigger: 'Training confirmed by issuing institution',
-    status:  training.degreeVerified && training.hasResidency ? 'checked'
-           : training.hasDegree                               ? 'pending'
-           : 'review_required',
+    trigger: 'Training and education',
+    status:  hasSourceBackedTraining && training.hasResidency ? 'checked'
+           : training.records.length > 0 || training.hasDegree ? 'review_required'
+           : 'pending',
     content: (
       <div className="py-1 space-y-1">
         {training.records.length === 0 && (
-          <p className="text-muted-foreground/50 text-xs py-1">No training records on file.</p>
+          <div className="py-1.5">
+            <p className="text-muted-foreground/50 text-xs">No training records on file.</p>
+            <p className="text-muted-foreground/30 text-xs mt-0.5">Unknown — not evidence of absence.</p>
+          </div>
         )}
         {training.records.map(r => (
-          <div key={r.id} className="py-1.5 border-b border-white/5 last:border-0">
-            <div className="flex justify-between text-xs">
-              <span className="text-foreground/60">{r.degreeOrTitle ?? r.recordType.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className="text-muted-foreground">{r.endYear ?? '—'}</span>
-            </div>
-            {(r.institutionName || r.specialty) && (
-              <div className="text-muted-foreground/60 text-xs mt-0.5">
-                {[r.institutionName, r.specialty].filter(Boolean).join(' · ')}
-              </div>
-            )}
-          </div>
+          <TrainingRow key={r.id} record={r} />
         ))}
       </div>
     ),
@@ -902,7 +935,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
           onClose={() => setShareModalOpen(false)}
           npi={passport.npi ?? ''}
           clinicianName={identity.displayName}
-          entityId={''}
+          entityId={passport.entityId}
         />
 
         {/* ── Footer nav ───────────────────────────────────────────────────── */}

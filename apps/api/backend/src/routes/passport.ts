@@ -1002,7 +1002,7 @@ function maybeNotFound(res: Response, npi: string, doc: PassportDocument | Trust
 function logPassportError(route: string, npi: string, error: unknown): void {
   log('error', route, {
     npi,
-    error: error instanceof Error ? error.message : String(error),
+    error: error instanceof Error ? error.stack : String(error),
   });
 }
 

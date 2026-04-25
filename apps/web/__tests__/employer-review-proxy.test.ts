@@ -140,43 +140,6 @@ function buildPacketPayload() {
       sources: [
         {
           sourceId: 'STATE_BOARD',
-          truthStatus: 'ACCESS REQUIRED',
-          state: 'accessRequired',
-          reason: 'Institutional state board access is required.',
-          checkedAt: null,
-          observedAt: null,
-          expiresAt: null,
-          freshness: {
-            status: 'unknown',
-            checkedAt: null,
-            observedAt: null,
-            expiresAt: null,
-            freshnessWindowHours: null,
-          },
-          provenance: {
-            artifactId: null,
-            artifactIds: ['artifact-1'],
-            receiptIds: ['receipt-1'],
-            sourceUrl: null,
-            rawArtifactRef: null,
-            checksum: null,
-            parserVersion: null,
-          },
-          parserVersion: null,
-          checksum: null,
-          sourceUrl: null,
-          rawArtifactRef: null,
-          freshnessWindowHours: null,
-          confidenceLabel: null,
-          reviewRequired: false,
-          artifactId: null,
-          artifactIds: ['artifact-1'],
-          receiptIds: ['receipt-1'],
-        },
-      ],
-      sources: [
-        {
-          sourceId: 'STATE_BOARD',
           truthStatus: 'ACCESS_REQUIRED',
           state: 'accessRequired',
           reason: 'Institutional state board access is required.',
@@ -211,6 +174,22 @@ function buildPacketPayload() {
           receiptIds: ['receipt-1'],
         },
       ],
+      trustContainer: {
+        status: 'issued',
+        trustContainerId: 'mock_vc_fixture',
+        credentialEnvelopeId: 'envelope-fixture',
+        provider: 'mock',
+        label: 'Mock/dev credential container',
+        environment: 'mock-dev',
+        issuedAt: '2026-03-23T19:00:00.000Z',
+        schemaVersion: '1.0.0',
+        artifactHash: 'artifact-hash-fixture',
+        auditHash: 'audit-hash-fixture',
+        proofTier: 'PARTIAL',
+        proofStatus: 'PARTIAL',
+        limitationNotes: ['Institutional access required'],
+        mock: true,
+      },
     },
   };
 }
@@ -283,6 +262,66 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
         action: 'refresh',
         auditEventId: 'audit-refresh-1',
       }),
+    });
+  });
+
+  it('forwards share-packet generation and validates the share-token response', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      ok: true,
+      shareUrl: 'https://app.vitalcv.com/review/chk_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi01234567',
+      auditEventId: 'audit-share-1',
+      expiresAt: '2026-03-24T19:00:00.000Z',
+    }, 201));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/share-packet', {
+      method: 'POST',
+      body: JSON.stringify({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'share-packet' }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.test/api/employer-review/entity-1/share-packet',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'x-clerk-user-id': 'clerk-user-1',
+        }),
+        body: JSON.stringify({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' }),
+      }),
+    );
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      shareUrl: 'https://app.vitalcv.com/review/chk_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi01234567',
+      auditEventId: 'audit-share-1',
+      expiresAt: '2026-03-24T19:00:00.000Z',
+    });
+  });
+
+  it('rejects malformed share-packet bodies before proxying', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new Request('http://localhost/api/employer-review/entity-1/share-packet', {
+      method: 'POST',
+      body: JSON.stringify({ npi: ['1234567890'] }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'share-packet' }),
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_request',
+      error_description: 'Malformed share-packet request body.',
     });
   });
 
@@ -532,6 +571,26 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     });
   });
 
+  it('rejects packet JSON when trust-container metadata carries secret material', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const invalidPacket = buildPacketPayload();
+    (invalidPacket.manifest.trustContainer as Record<string, unknown>).privateKey = 'pk_live_secret123';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(invalidPacket)));
+
+    const { GET } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await GET(new Request('http://localhost/api/employer-review/entity-1/packet', {
+      headers: { Accept: 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'packet' }),
+    });
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: 'invalid_upstream_payload',
+      error_description: 'Invalid employer evidence packet.',
+    });
+  });
+
   it('passes through valid packet JSON after manifest validation', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPacketPayload())));
@@ -551,6 +610,14 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     await expect(response.json()).resolves.toEqual(expect.objectContaining({
       manifest: expect.objectContaining({
         sources: expect.any(Array),
+        trustContainer: expect.objectContaining({
+          status: 'issued',
+          provider: 'mock',
+          environment: 'mock-dev',
+          proofTier: 'PARTIAL',
+          limitationNotes: ['Institutional access required'],
+          mock: true,
+        }),
       }),
       sourceCoverageSummary: expect.objectContaining({
         accessRequired: ['STATE_BOARD'],
