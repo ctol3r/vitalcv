@@ -7,31 +7,8 @@ import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
-import { ClinicianProfileSections, type ClinicianProfileData } from '@/components/profile/ClinicianProfileSections';
-import { KnowledgeTrustGraphPanel } from '@/components/trust/KnowledgeTrustGraphPanel';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
-
-function buildMockProfileData(passport: PassportData): ClinicianProfileData {
-  return {
-    identity: { value: passport.identity.displayName, provenance: 'VERIFIED' },
-    contact: { value: '', provenance: 'UNKNOWN' },
-    locations: { value: [], provenance: 'UNKNOWN' },
-    medicalSchool: { value: '', provenance: 'UNKNOWN' },
-    residency: { value: '', provenance: 'UNKNOWN' },
-    fellowship: { value: '', provenance: 'UNKNOWN' },
-    specialty: { value: passport.identity.specialty || '', provenance: 'VERIFIED' },
-    subspecialty: { value: '', provenance: 'UNKNOWN' },
-    boardCertifications: { value: [], provenance: 'UNKNOWN' },
-    licenses: { value: [], provenance: 'UNKNOWN' },
-    workHistory: { value: [], provenance: 'UNKNOWN' },
-    affiliations: { value: [], provenance: 'UNKNOWN' },
-    research: { value: [], provenance: 'UNKNOWN' },
-    publications: { value: [], provenance: 'UNKNOWN' },
-    documents: { value: [], provenance: 'UNKNOWN' },
-    careerGoals: { value: '', provenance: 'UNKNOWN' },
-  };
-}
 
 interface PassportEntityClientProps {
   entityId: string;
@@ -89,18 +66,17 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     );
   }
 
-  // GOD-3: Inbox is wired here as a UI mount point. Real items will
-  // arrive once a backend endpoint provides them; until then the
-  // panel renders its empty state. We never synthesize fake items
-  // and we never auto-mark anything VERIFIED.
+  // GOD-3: Inbox is mounted here as a UI surface. Real items arrive
+  // once a backend endpoint provides them; until then the panel
+  // renders its empty state. We never synthesize fake items and we
+  // never auto-mark anything verified. No external model calls happen
+  // in classification — see lib/knowledge-inbox/classifyInboxItem.ts.
   const inboxItems: KnowledgeInboxItem[] = [];
 
   return (
     <div className="flex flex-col gap-8 pb-16">
       <PassportWallet passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
-        <KnowledgeTrustGraphPanel />
-        <ClinicianProfileSections data={buildMockProfileData(passport)} />
         <section
           className="rounded-2xl border border-border bg-background/60 p-5 sm:p-6"
           aria-label="Knowledge Inbox"
@@ -115,9 +91,9 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
             </h3>
             <p className="text-xs text-muted-foreground/80">
               The inbox is where new clinician-supplied evidence is staged.
-              Items here are USER_ENTERED or INFERRED; nothing here is
-              automatically marked verified, and nothing here calls an
-              external AI API.
+              Items here are user-entered or inferred; nothing is
+              automatically marked verified, and classification runs
+              deterministically without external model calls.
             </p>
           </header>
           <KnowledgeInboxPanel items={inboxItems} />
