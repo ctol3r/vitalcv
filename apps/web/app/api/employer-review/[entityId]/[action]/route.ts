@@ -14,6 +14,7 @@ const AUTHENTICATED_MUTATION_ACTIONS = new Set([
   'accept',
   'request-refresh',
   'route-to-review',
+  'share-packet',
   'confirm-start',
 ]);
 const PUBLIC_MUTATION_ACTIONS = new Set(['view']);
@@ -228,6 +229,30 @@ function parseConfirmStartBody(body: unknown): UnknownRecord | null {
   return body;
 }
 
+function parseSharePacketBody(body: unknown): UnknownRecord | null {
+  if (!isRecord(body)) {
+    return null;
+  }
+
+  if (validateAllowedKeys(body, ['npi', 'organizationContextId', 'bundleId'])) {
+    return null;
+  }
+
+  if (
+    !(
+      typeof body.npi === 'undefined'
+      || body.npi === null
+      || (typeof body.npi === 'string' && /^\d{10}$/.test(body.npi))
+    )
+    || !isNullableString(body.organizationContextId)
+    || !isNullableString(body.bundleId)
+  ) {
+    return null;
+  }
+
+  return body;
+}
+
 function parseViewBody(body: unknown): UnknownRecord | null {
   if (!isRecord(body)) {
     return null;
@@ -260,6 +285,8 @@ function sanitizeActionBody(
       return parseRefreshBody(body);
     case 'route-to-review':
       return parseReviewBody(body);
+    case 'share-packet':
+      return parseSharePacketBody(body);
     case 'confirm-start':
       return parseConfirmStartBody(body);
     case 'view':
@@ -295,6 +322,19 @@ function isConfirmStartPayload(value: unknown): value is {
     && isString(value.attestationId)
     && isString(value.auditEventId)
     && isString(value.startedAt);
+}
+
+function isSharePacketPayload(value: unknown): value is {
+  ok: true;
+  shareUrl: string;
+  auditEventId: string;
+  expiresAt: string;
+} {
+  return isRecord(value)
+    && value.ok === true
+    && isString(value.shareUrl)
+    && isString(value.auditEventId)
+    && isString(value.expiresAt);
 }
 
 function resolveProxyUrl(
@@ -380,6 +420,13 @@ export async function POST(
   if (action === 'confirm-start') {
     if (!isConfirmStartPayload(payload)) {
       return jsonError(502, 'invalid_upstream_payload', 'Upstream confirm-start response did not include attestation and audit event identifiers.');
+    }
+    return NextResponse.json(payload, { status: response.status });
+  }
+
+  if (action === 'share-packet') {
+    if (!isSharePacketPayload(payload)) {
+      return jsonError(502, 'invalid_upstream_payload', 'Upstream share-packet response did not include a share URL, expiration, and audit event identifier.');
     }
     return NextResponse.json(payload, { status: response.status });
   }

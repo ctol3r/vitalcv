@@ -30,8 +30,8 @@ const CHIPS: CredentialChip[] = [
     animClass: 'animate-drift-1',
   },
   {
-    label: 'Board Certified',
-    sublabel: 'ABIM · Internal Medicine',
+    label: 'Board certification',
+    sublabel: 'Source required',
     icon: 'shield',
     color: 'blue',
     style: { top: '18%', right: '7%' },
@@ -47,8 +47,8 @@ const CHIPS: CredentialChip[] = [
     animClass: 'animate-drift-3',
   },
   {
-    label: 'Nursys Verified',
-    sublabel: 'License standing confirmed',
+    label: 'Nursys access required',
+    sublabel: 'Institutional lane gated',
     icon: 'shield',
     color: 'amber',
     style: { bottom: '20%', right: '5%' },

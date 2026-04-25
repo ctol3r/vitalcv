@@ -51,7 +51,7 @@ export default function ClinicianPassport({ trustState, npi, clinicianName, erro
   const [profileData, setProfileData] = useState({
     email: "doctor@example.com",
     phone: "(555) 123-4567",
-    specialtyDescription: "Board Certified in Internal Medicine with 10+ years of experience in acute care settings."
+    specialtyDescription: "Internal Medicine clinician with 10+ years of experience in acute care settings."
   });
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);

@@ -43,7 +43,7 @@ function buildDemoSnapshot(): ReadinessSnapshot {
 const DEMO_LIMITATIONS = [
   'NPPES identity verified against live CMS registry.',
   'OIG exclusions: integration not yet wired — access_required.',
-  'State license: no license attached in NPPES for this clinician; board API not wired.',
+  'State license: no state-board source attached for this clinician; board API not wired.',
   'Score reflects identity lane only (25% = 1 of 4 tracked lanes).',
 ];
 

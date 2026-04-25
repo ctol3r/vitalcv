@@ -34,8 +34,21 @@ interface ReviewPageClientProps {
 
 type JsonFetchResult<T> = {
   ok: boolean;
+  status: number;
   body: T | null;
   errorDescription: string | null;
+};
+
+type ShareTokenResolutionResponse = {
+  ok: true;
+  entityId: string;
+  clinicianNpi: string;
+  organizationContextId: string | null;
+  bundleId: string | null;
+  reviewHref: string;
+  shareEventAuditId: string;
+  sharedAt: string;
+  expiresAt: string;
 };
 
 function readErrorDescription(value: unknown): string | null {
@@ -71,16 +84,22 @@ async function fetchBackendJson<T>(
 
     return {
       ok: response.ok,
+      status: response.status,
       body: response.ok ? payload as T : null,
       errorDescription: readErrorDescription(payload),
     };
   } catch {
     return {
       ok: false,
+      status: 0,
       body: null,
       errorDescription: null,
     };
   }
+}
+
+function isShareToken(value: string): boolean {
+  return /^chk_[A-Za-z0-9_-]{43}$/.test(value);
 }
 
 function buildRetryHref(input: {
@@ -104,14 +123,62 @@ export default async function ReviewPageClient({
   bundleId,
   from,
 }: ReviewPageClientProps) {
+  let resolvedEntityId = entityId;
+  let resolvedContextId = contextId;
+  let resolvedBundleId = bundleId;
+  let resolvedFrom = from;
+
+  if (isShareToken(entityId)) {
+    const tokenResult = await fetchBackendJson<ShareTokenResolutionResponse>(
+      `/api/employer-review/share-token/${encodeURIComponent(entityId)}`,
+    );
+
+    if (!tokenResult.ok || !tokenResult.body?.ok) {
+      const isExpired = tokenResult.status === 410;
+      return (
+        <main
+          data-testid="share-token-unresolved"
+          data-share-token-status={isExpired ? 'expired' : 'missing'}
+          className="min-h-screen bg-background flex flex-col items-center justify-center px-4"
+        >
+          <div className="w-full max-w-sm">
+            <TrustStateCard
+              eyebrow="Employer review"
+              title="Review link unavailable"
+              description={
+                isExpired
+                  ? 'This review link has expired. Ask the clinician to share a fresh packet.'
+                  : 'This review link is missing, expired, or no longer maps to an active packet.'
+              }
+              tone="warning"
+              centered
+              actions={(
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button asChild variant="ghost" className="h-11 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <Link href={PUBLIC_WEDGE_ROUTE_TARGETS.reviewEntry}>Back to review</Link>
+                  </Button>
+                </div>
+              )}
+            />
+          </div>
+        </main>
+      );
+    }
+
+    resolvedEntityId = tokenResult.body.entityId;
+    resolvedContextId = tokenResult.body.organizationContextId ?? contextId;
+    resolvedBundleId = tokenResult.body.bundleId ?? bundleId;
+    resolvedFrom = from ?? 'VitalCV packet share';
+  }
+
   const [passportResult, historyResult] = await Promise.all([
     fetchBackendJson<PassportData>(
-      /^\d{10}$/.test(entityId)
-        ? `/api/passport/npi/${encodeURIComponent(entityId)}`
-        : `/api/passport/entity/${encodeURIComponent(entityId)}`,
+      /^\d{10}$/.test(resolvedEntityId)
+        ? `/api/passport/npi/${encodeURIComponent(resolvedEntityId)}`
+        : `/api/passport/entity/${encodeURIComponent(resolvedEntityId)}`,
     ),
     fetchBackendJson<EmployerAcceptanceHistoryResponse>(
-      `/api/employer-review/${encodeURIComponent(entityId)}/acceptance-history`,
+      `/api/employer-review/${encodeURIComponent(resolvedEntityId)}/acceptance-history`,
     ),
   ]);
 
@@ -121,10 +188,10 @@ export default async function ReviewPageClient({
       ? historyResult.body
       : buildEmptyAcceptanceHistory();
   const retryHref = buildRetryHref({
-    entityId,
-    contextId,
-    bundleId,
-    from,
+    entityId: resolvedEntityId,
+    contextId: resolvedContextId,
+    bundleId: resolvedBundleId,
+    from: resolvedFrom,
   });
 
   if (!passport) {
@@ -164,13 +231,13 @@ export default async function ReviewPageClient({
     );
   }
 
-  await fetch(`${getBackendBase()}/api/employer-review/${encodeURIComponent(entityId)}/view`, {
+  await fetch(`${getBackendBase()}/api/employer-review/${encodeURIComponent(resolvedEntityId)}/view`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
     body: JSON.stringify({
-      organizationContextId: contextId ?? null,
-      bundleId: bundleId ?? null,
+      organizationContextId: resolvedContextId ?? null,
+      bundleId: resolvedBundleId ?? null,
       readinessScore: passport.readiness.score ?? null,
       blockers: passport.readiness.blockers ?? [],
     }),
@@ -179,9 +246,9 @@ export default async function ReviewPageClient({
   return (
     <ReviewClient
       passport={passport}
-      contextId={contextId}
-      bundleId={bundleId}
-      sharedBy={from}
+      contextId={resolvedContextId}
+      bundleId={resolvedBundleId}
+      sharedBy={resolvedFrom}
       acceptanceHistory={acceptanceHistory}
     />
   );

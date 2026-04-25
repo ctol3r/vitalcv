@@ -115,7 +115,7 @@ const DEMO_TRUST: { band: TrustBand; score: number } = { band: 'YELLOW', score: 
 const DEMO_VITA_BALANCE = 185;
 
 const DEMO_VITA_EVENTS: VitaEvent[] = [
-  { id: 'v1', kind: 'CREDENTIAL_VERIFIED', label: 'Medical license checked via NPPES',      tokens: 50, timestamp: new Date(Date.now() - 2 * 3_600_000).toISOString()     },
+  { id: 'v1', kind: 'CREDENTIAL_VERIFIED', label: 'NPI identity checked via NPPES',         tokens: 50, timestamp: new Date(Date.now() - 2 * 3_600_000).toISOString()     },
   { id: 'v2', kind: 'DOCUMENT_UPLOADED',   label: 'Board certification uploaded',          tokens: 15, timestamp: new Date(Date.now() - 18 * 3_600_000).toISOString()    },
   { id: 'v3', kind: 'PROFILE_COMPLETED',   label: 'NPI identity checked',                  tokens: 30, timestamp: new Date(Date.now() - 2 * 86_400_000).toISOString()    },
   { id: 'v4', kind: 'CREDENTIAL_VERIFIED', label: 'Sanctions exclusion checked',           tokens: 50, timestamp: new Date(Date.now() - 3 * 86_400_000).toISOString()    },

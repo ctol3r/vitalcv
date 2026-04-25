@@ -26,7 +26,7 @@ const ENGINES = [
     title: 'Primary Source Orchestrator',
     subtitle: 'Zero Human Data Entry',
     description:
-      'Live integrations with NPPES, OIG/LEIE, and state board networks (via Nursys). Credentials are verified at their origin source — no manual lookups, no phone calls, no faxes.',
+      'Live integrations with NPPES and OIG/LEIE, plus configured state-board lanes when available. Identity, sanctions, and licensure stay separate so registry data never masquerades as license proof.',
     accent: 'cyan',
     span: 'lg:col-span-1',
     visual: OrchestratorVisual,

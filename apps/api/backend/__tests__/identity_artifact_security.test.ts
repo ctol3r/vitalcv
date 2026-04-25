@@ -32,7 +32,7 @@ function makeProviderFixture(): NormalizedProvider {
     addresses: [],
     identifiers: [],
     enumeration_date: '2010-01-01',
-    last_updated: '2026-01-01',
+    last_updated: '2026-01-01', mailing_address: null, endpoints: [], other_names: [],
   };
 }
 

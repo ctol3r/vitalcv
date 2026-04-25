@@ -4,6 +4,7 @@ import {
   isDecisionGradeAuthorityCredential,
   resolveAuthorityAccordionStatus,
   resolveAuthorityDecisionBasisBucket,
+  resolveAuthorityEvidenceStatus,
   resolveAuthorityEvidenceLabel,
   resolveAuthorityMethodLabel,
   resolveAuthorityNote,
@@ -124,5 +125,31 @@ describe('passport truth helpers', () => {
     expect(resolveAuthorityTrustStatus(pending)).toBe('pending');
     expect(resolveAuthorityTrustStatus(unavailable)).toBe('unavailable');
     expect(resolveAuthorityTrustStatus(accessRequired)).toBe('access_required');
+  });
+
+  it('does not promote active board or training claims without source-backed verification', () => {
+    const boardClaim = buildCredential({
+      domain: 'BOARD_CERTIFICATION',
+      type: 'BOARD_CERT',
+      status: 'ACTIVE',
+      verificationLevel: 'USER_ENTERED',
+      authorityClaimCode: 'BOARD_CERTIFIED',
+      issuerName: 'ABIM',
+    });
+    const trainingClaim = buildCredential({
+      domain: 'TRAINING',
+      type: 'RESIDENCY',
+      status: 'ACTIVE',
+      verificationLevel: 'USER_ENTERED',
+      authorityClaimCode: 'TRAINING_COMPLETED',
+      issuerName: 'Residency Program',
+    });
+
+    expect(resolveAuthorityTitle(boardClaim)).toBe('Board certification');
+    expect(resolveAuthorityEvidenceStatus(boardClaim)).toBe('pending');
+    expect(resolveAuthorityVdsStatus(boardClaim)).toBe('pending');
+    expect(isDecisionGradeAuthorityCredential(boardClaim)).toBe(false);
+    expect(resolveAuthorityEvidenceStatus(trainingClaim)).toBe('pending');
+    expect(isDecisionGradeAuthorityCredential(trainingClaim)).toBe(false);
   });
 });

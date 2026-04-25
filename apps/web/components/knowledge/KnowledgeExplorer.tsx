@@ -60,6 +60,7 @@ const TYPE_COLORS: Record<EntityType, { bg: string; text: string; border: string
 const RELATIONSHIP_LABELS: Record<string, string> = {
   ISSUED_BY: 'Issued By',
   VERIFIED_BY: 'Verified By',
+  CONTEXT_FOR: 'Context For',
   DEPENDS_ON: 'Depends On',
   AUTHORIZED_BY: 'Authorized By',
   MONITORED_BY: 'Monitored By',
@@ -70,22 +71,22 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 const DEMO_ENTITIES: KnowledgeEntity[] = [
   { id: 'clinician-1003000126', type: 'clinician', label: 'Dr. Sarah Chen', trustScore: 0.92, centrality: 1.0, metadata: { npi: '1003000126' } },
   { id: 'issuer-ca-medical-board', type: 'issuer', label: 'CA Medical Board', trustScore: 0.95, centrality: 0.6, metadata: {} },
-  { id: 'issuer-abim', type: 'issuer', label: 'ABIM', trustScore: 0.98, centrality: 0.4, metadata: {} },
+  { id: 'issuer-training-source', type: 'issuer', label: 'Training source', trustScore: 0.58, centrality: 0.4, metadata: { proofTier: 'contextual' } },
   { id: 'credential-license', type: 'credential', label: 'Medical License', trustScore: 0.9, centrality: 0.7, metadata: { status: 'ACTIVE', exp: '2027-03-15' } },
-  { id: 'credential-board-cert', type: 'credential', label: 'Board Certification', trustScore: 0.95, centrality: 0.5, metadata: { status: 'ACTIVE', exp: '2028-12-01' } },
+  { id: 'credential-training', type: 'credential', label: 'Training assertion', trustScore: 0.5, centrality: 0.5, metadata: { status: 'SUPPLEMENTAL', proofTier: 'contextual' } },
   { id: 'verifier-psv', type: 'verifier', label: 'PSV Engine', trustScore: 1.0, centrality: 0.3, metadata: {} },
-  { id: 'decision-hire', type: 'decision', label: 'HIRING (VALID)', trustScore: 0.88, centrality: 0.5, metadata: { confidence: 0.92 } },
+  { id: 'decision-review', type: 'decision', label: 'Review context', trustScore: 0.58, centrality: 0.5, metadata: { proofTier: 'partial' } },
 ];
 
 const DEMO_RELATIONSHIPS: KnowledgeRelationship[] = [
   { id: 'r1', type: 'ISSUED_BY', sourceId: 'credential-license', targetId: 'issuer-ca-medical-board', weight: 1.0, confidence: 0.95 },
-  { id: 'r2', type: 'ISSUED_BY', sourceId: 'credential-board-cert', targetId: 'issuer-abim', weight: 1.0, confidence: 0.95 },
+  { id: 'r2', type: 'CONTEXT_FOR', sourceId: 'credential-training', targetId: 'issuer-training-source', weight: 0.5, confidence: 0.5 },
   { id: 'r3', type: 'VERIFIED_BY', sourceId: 'clinician-1003000126', targetId: 'credential-license', weight: 1.0, confidence: 0.9 },
-  { id: 'r4', type: 'VERIFIED_BY', sourceId: 'clinician-1003000126', targetId: 'credential-board-cert', weight: 1.0, confidence: 0.9 },
+  { id: 'r4', type: 'CONTEXT_FOR', sourceId: 'clinician-1003000126', targetId: 'credential-training', weight: 0.5, confidence: 0.5 },
   { id: 'r5', type: 'VERIFIED_BY', sourceId: 'credential-license', targetId: 'verifier-psv', weight: 1.0, confidence: 1.0 },
-  { id: 'r6', type: 'DEPENDS_ON', sourceId: 'decision-hire', targetId: 'credential-license', weight: 1.0, confidence: 0.92 },
-  { id: 'r7', type: 'DEPENDS_ON', sourceId: 'decision-hire', targetId: 'credential-board-cert', weight: 1.0, confidence: 0.92 },
-  { id: 'r8', type: 'AUTHORIZED_BY', sourceId: 'decision-hire', targetId: 'issuer-ca-medical-board', weight: 1.0, confidence: 0.92 },
+  { id: 'r6', type: 'DEPENDS_ON', sourceId: 'decision-review', targetId: 'credential-license', weight: 1.0, confidence: 0.92 },
+  { id: 'r7', type: 'CONTEXT_FOR', sourceId: 'decision-review', targetId: 'credential-training', weight: 0.5, confidence: 0.5 },
+  { id: 'r8', type: 'AUTHORIZED_BY', sourceId: 'decision-review', targetId: 'issuer-ca-medical-board', weight: 1.0, confidence: 0.92 },
   { id: 'r9', type: 'MONITORED_BY', sourceId: 'credential-license', targetId: 'verifier-psv', weight: 0.8, confidence: 1.0 },
 ];
 

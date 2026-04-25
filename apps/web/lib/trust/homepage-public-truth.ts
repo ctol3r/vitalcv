@@ -33,7 +33,7 @@ export const HOMEPAGE_PUBLIC_TRUTH_SOURCES = [
     name: 'NPPES',
     sublabel: 'NPI identity',
     tooltip:
-      'The National Plan and Provider Enumeration System assigns NPIs to all licensed healthcare providers. NPPES identity is the foundation of every downstream credential check.',
+      'The National Plan and Provider Enumeration System assigns NPIs to covered healthcare providers and organizations. NPPES confirms registry identity only; licensure still needs its own source.',
     sourceState: 'checked',
     evidenceKind: 'generic',
     satisfied: false,

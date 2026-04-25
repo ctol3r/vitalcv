@@ -8,7 +8,27 @@ jest.mock('../../../graphql/prisma_client', () => ({
   },
 }));
 
+const mockIssueCredential = jest.fn();
+
+jest.mock('../container', () => {
+  const actual = jest.requireActual('../container');
+  return {
+    ...actual,
+    createTrustContainer: jest.fn(() => ({
+      kind: 'mock',
+      healthCheck: jest.fn(),
+      issueCredential: mockIssueCredential,
+      verifyCredential: jest.fn(),
+      anchorReceipt: jest.fn(),
+      createPresentation: jest.fn(),
+      resolveDid: jest.fn(),
+      exportProofBundle: jest.fn(),
+    })),
+  };
+});
+
 import prisma from '../../../graphql/prisma_client';
+import type { CredentialEnvelopePayload } from '../container';
 import { buildTrustProofBundle, renderTrustProofPdf } from '../trustProof';
 
 const prismaMock = prisma as unknown as {
@@ -22,6 +42,15 @@ describe('trustProof', () => {
   beforeEach(() => {
     prismaMock.verificationArtifact.findFirst.mockReset();
     prismaMock.verificationArtifact.findMany.mockReset();
+    mockIssueCredential.mockReset();
+    mockIssueCredential.mockResolvedValue({
+      id: 'issued-vc-1',
+      did: 'did:vitalcv-mock:issuer',
+      vcPayload: {},
+      issuedAt: '2026-03-01T00:00:00.000Z',
+      envelopeHash: 'e'.repeat(64),
+      mock: true,
+    });
   });
 
   it('builds a deterministic redacted proof bundle from stored artifacts', async () => {
@@ -63,6 +92,100 @@ describe('trustProof', () => {
     expect(first.issuers).toEqual(['NURSYS']);
     expect(first.credentialClaims.redacted).toBe(true);
     expect(first.bundleDownloads.trustProofPdf).toContain('format=pdf');
+  });
+
+  it('binds the proof-pack hash into the credential envelope and preserves limitations', async () => {
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'snapshot-1',
+      checksum: 'snapshot-checksum',
+      verifiedAt: new Date('2026-03-01T00:00:00Z'),
+      rawPayload: {
+        npi: '1234567890',
+        identityVerified: true,
+        exclusionClear: true,
+        readiness_level: 'L3',
+        readiness_score: 91,
+        gap_summary: ['PECOS enrollment verification stale'],
+        methodology_version: '243.1',
+        computed_at: '2026-03-01T00:00:00Z',
+      },
+    });
+    prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
+
+    const bundle = await buildTrustProofBundle('1234567890');
+    const envelope = mockIssueCredential.mock.calls[0]?.[0] as CredentialEnvelopePayload;
+
+    expect(bundle.trustContainerId).toBe('issued-vc-1');
+    expect(bundle.trustContainer).toEqual({
+      trustContainerId: 'issued-vc-1',
+      provider: 'mock',
+      environment: 'mock-dev',
+      label: 'Mock/dev trust container credential reference',
+      mock: true,
+      status: 'PARTIAL',
+      proofTier: 'PARTIAL',
+      issuedAt: '2026-03-01T00:00:00.000Z',
+      envelopeHash: 'e'.repeat(64),
+    });
+    expect(envelope.auditHash).toBe(bundle.artifactHash);
+    expect(envelope.status).toBe('PARTIAL');
+    expect(envelope.proofTier).toBe('PARTIAL');
+    expect(envelope.limitationNotes).toEqual(['PECOS enrollment verification stale']);
+  });
+
+  it('degrades safely when trust container issuance fails', async () => {
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'snapshot-1',
+      checksum: 'snapshot-checksum',
+      verifiedAt: new Date('2026-03-01T00:00:00Z'),
+      rawPayload: {
+        npi: '1234567890',
+        identityVerified: true,
+        exclusionClear: true,
+        readiness_level: 'L3',
+        readiness_score: 91,
+        gap_summary: [],
+        methodology_version: '243.1',
+        computed_at: '2026-03-01T00:00:00Z',
+      },
+    });
+    prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
+    mockIssueCredential.mockRejectedValueOnce(new Error('provider unavailable'));
+
+    const bundle = await buildTrustProofBundle('1234567890');
+    const envelope = mockIssueCredential.mock.calls[0]?.[0] as CredentialEnvelopePayload;
+
+    expect(bundle.trustContainerId).toBeUndefined();
+    expect(bundle.trustContainer).toBeUndefined();
+    expect(bundle.artifactHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(envelope.status).toBe('DECISION_GRADE');
+    expect(envelope.proofTier).toBe('DECISION_GRADE');
+  });
+
+  it('issues a decision-grade envelope only when score passes and limitations are empty', async () => {
+    prismaMock.verificationArtifact.findFirst.mockResolvedValue({
+      id: 'snapshot-1',
+      checksum: 'snapshot-checksum',
+      verifiedAt: new Date('2026-03-01T00:00:00Z'),
+      rawPayload: {
+        npi: '1234567890',
+        identityVerified: true,
+        exclusionClear: true,
+        readiness_level: 'L3',
+        readiness_score: 91,
+        gap_summary: [],
+        methodology_version: '243.1',
+        computed_at: '2026-03-01T00:00:00Z',
+      },
+    });
+    prismaMock.verificationArtifact.findMany.mockResolvedValue([]);
+
+    await buildTrustProofBundle('1234567890');
+    const envelope = mockIssueCredential.mock.calls[0]?.[0] as CredentialEnvelopePayload;
+
+    expect(envelope.status).toBe('DECISION_GRADE');
+    expect(envelope.proofTier).toBe('DECISION_GRADE');
+    expect(envelope.limitationNotes).toEqual([]);
   });
 
   it('renders a PDF from the canonical proof payload', async () => {

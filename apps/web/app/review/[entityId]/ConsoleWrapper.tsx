@@ -13,6 +13,7 @@ import type {
   ConsoleProps, BlockerItem, AuditEntry,
 } from '@/components/review/EmployerDecisionConsole';
 import type { LaneSnapshot, ReadinessPosture } from '@/components/proof/trust-types';
+import { normalizeTrustContainerManifestView } from '@/lib/trust/trust-container-view';
 
 // ─── Data adapter ─────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ async function fetchConsoleData(entityId: string): Promise<ConsoleProps | null> 
       nextAction,
       auditTrail,
       loopId: isvData?.events?.[0]?.loopId,
+      trustContainer: normalizeTrustContainerManifestView(manifest?.trustContainer),
     };
   } catch {
     return null;

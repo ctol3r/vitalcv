@@ -1,13 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Search, Moon, Sun, Shield, Terminal } from 'lucide-react';
 import Link from 'next/link';
+import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
 /* ── Hero — Sandbox Brutalist Design ───────────────────────── */
 
 export function Hero() {
+  const router = useRouter();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [npi, setNpi] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -17,6 +22,18 @@ export function Hero() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const normalizedNpi = npi.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(normalizedNpi)) {
+      setError('Enter a valid 10-digit NPI.');
+      return;
+    }
+    setError(null);
+    // Canonical marketing wedge: always land on the passport lookup surface.
+    router.push(buildPassportLookupHref(normalizedNpi));
   };
 
   return (
@@ -41,18 +58,36 @@ export function Hero() {
         </p>
 
         {/* NPI Input Form */}
-        <form className="max-w-md mx-auto relative">
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto relative">
+          <label htmlFor="brutalist-hero-npi" className="sr-only">10-digit NPI</label>
           <input
+            id="brutalist-hero-npi"
             type="text"
+            inputMode="numeric"
+            pattern="\d{10}"
+            maxLength={10}
+            value={npi}
+            onChange={(e) => {
+              setNpi(e.target.value.replace(/\D/g, ''));
+              if (error) setError(null);
+            }}
             placeholder="ENTER 10-DIGIT NPI"
+            aria-invalid={error ? 'true' : undefined}
+            aria-describedby={error ? 'brutalist-hero-npi-error' : undefined}
             className="w-full bg-transparent border-b-2 border-line py-4 px-2 text-2xl font-mono focus:outline-none focus:border-ink transition-colors placeholder:opacity-20 uppercase"
           />
           <button
             type="submit"
+            aria-label="Check readiness"
             className="absolute right-0 bottom-4 p-2 hover:scale-110 transition-transform"
           >
             <ArrowRight className="w-6 h-6" />
           </button>
+          {error && (
+            <p id="brutalist-hero-npi-error" role="alert" className="mt-3 text-xs text-red-500 uppercase tracking-widest">
+              {error}
+            </p>
+          )}
         </form>
 
         {/* Source Icons */}

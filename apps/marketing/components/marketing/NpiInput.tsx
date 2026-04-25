@@ -11,7 +11,7 @@ import { buildWebAppUrl } from '../../lib/webAppUrl';
  * Flow:
  * 1. User enters 10-digit NPI
  * 2. On submit → POST to /api/npi/:npi
- * 3. If exists → route to /clinician?npi=...
+ * 3. If exists → route to the canonical passport surface on the web app
  * 4. If not found → inline "NPI not found" error
  * 5. If network error → graceful inline message
  *

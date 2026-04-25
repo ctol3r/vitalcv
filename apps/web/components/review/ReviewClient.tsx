@@ -37,6 +37,7 @@ import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCar
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
 import { TimeToStartEstimateSummary } from '@/components/trust/TimeToStartEstimateSummary';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { TrustContainerPanel } from '@/components/trust/TrustContainerPanel';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
 import { TrustLabel, type TrustStatus } from '@/components/ui/trust-label';
 import type { PassportData } from '@/lib/trust/passport-contract';
@@ -70,6 +71,7 @@ import {
   type EmployerReviewActionState,
   type EmployerReviewStatusResponse,
 } from '@/lib/employer-review-actions';
+import { isAcceptBlockedDecisionPosture } from '@/lib/employer-review-state';
 import { trackUxEvent } from '@/lib/telemetry/ux-tracker';
 import {
   buildPassportReviewTruthModel,
@@ -485,7 +487,7 @@ function BinaryDecisionCard({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/30">Next best action</p>
-              <p className="mt-1 text-sm leading-relaxed text-foreground">
+              <p data-testid="decision-next-action" className="mt-1 text-sm leading-relaxed text-foreground">
                 {decisionPosture.nextAction}
               </p>
             </div>
@@ -495,18 +497,39 @@ function BinaryDecisionCard({
             </div>
           </div>
           {blocked.length > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
-            </p>
+            // External-pilot P0: reviewer must see the full blocker set when the
+            // decision is BLOCKED (so the cause of the disabled Accept is never
+            // hidden behind the "…"). In non-blocked states we keep the compact
+            // 3-item summary to preserve the at-a-glance density contract.
+            isAcceptBlockedDecisionPosture(decisionPosture.status) ? (
+              <ul
+                data-testid="blocker-list"
+                aria-label={`${blocked.length} active blocker${blocked.length === 1 ? '' : 's'} preventing acceptance`}
+                className="mt-3 space-y-1 text-xs text-muted-foreground"
+              >
+                {blocked.map((b) => (
+                  <li key={b} data-testid="blocker-item" className="flex items-start gap-2">
+                    <span aria-hidden className="mt-0.5 text-rose-400/80">•</span>
+                    <span className="text-foreground/80">{b}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p data-testid="blocker-summary" className="mt-3 text-xs text-muted-foreground">
+                {blocked.length} active blocker{blocked.length !== 1 ? 's' : ''}: {blocked.slice(0, 3).join(', ')}{blocked.length > 3 ? '…' : ''}
+              </p>
+            )
           )}
         </div>
         <Button
+          data-testid="employer-accept-button"
+          data-blocked={isAcceptBlockedDecisionPosture(decisionPosture.status) ? 'true' : 'false'}
           onClick={onAccept}
-          disabled={!canPersistActions || decisionPosture.status === 'BLOCKED'}
+          disabled={!canPersistActions || isAcceptBlockedDecisionPosture(decisionPosture.status)}
           variant="success"
           className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
         >
-          {decisionPosture.status === 'BLOCKED'
+          {isAcceptBlockedDecisionPosture(decisionPosture.status)
             ? 'Acceptance blocked — resolve blockers first'
             : `Accept as head start${blocked.length > 0 ? ` — ${blocked.length} gap${blocked.length !== 1 ? 's' : ''} noted` : ''}`}
         </Button>
@@ -529,7 +552,26 @@ function BinaryDecisionCard({
           </Button>
         </div>
         {previewOnlyMessage && (
-          <p className="text-center text-[10px] text-muted-foreground/40 pt-1 font-mono">{previewOnlyMessage}</p>
+          // External-pilot P0: previously the preview-only state rendered as
+          // faint fine-print, so external reviewers hit a dead end trying to
+          // act. Lift it to a card with an explicit sign-in CTA so the path
+          // from "I can see this review" → "I can persist a decision" is one
+          // click instead of requiring product context.
+          <div
+            data-testid="employer-action-preview-only"
+            className="mt-2 rounded-2xl border border-amber-500/25 bg-amber-500/5 px-3 py-3 space-y-2"
+          >
+            <p className="text-[11px] leading-relaxed text-amber-200/80">{previewOnlyMessage}</p>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              data-testid="employer-action-preview-signin"
+              className="h-9 w-full rounded-full border-amber-400/40 bg-transparent text-[10px] font-bold uppercase tracking-widest text-amber-200 hover:bg-amber-400 hover:text-background"
+            >
+              <a href={CLERK_SIGN_IN_URL}>Sign in to persist decisions</a>
+            </Button>
+          </div>
         )}
       </div>
     </div>
@@ -945,6 +987,13 @@ function ReviewClientLoaded({
             : null;
   const canPersistActions = previewOnlyMessage === null;
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn, isEmployer });
+  // Wave-1 P0: confirm-start must be reachable *both* after an in-session accept
+  // and when the reviewer returns to a previously-accepted review (persisted state).
+  // Nesting confirm-start inside `actionState.phase === 'done'` only (old behavior)
+  // hid it whenever the page remounted — returning reviewers could never record start.
+  const hasAcceptedAction =
+    (actionState.phase === 'done' && actionState.state.action === 'accept')
+    || persistedActionState?.action === 'accept';
 
   useEffect(() => {
     return () => {
@@ -1106,6 +1155,10 @@ function ReviewClientLoaded({
   }
 
   async function handleAccept() {
+    if (isAcceptBlockedDecisionPosture(passport.decisionPosture?.status ?? passport.readiness.status)) {
+      return;
+    }
+
     await runEmployerAction({
       intent: 'accept',
       endpoint: 'accept',
@@ -1144,22 +1197,31 @@ function ReviewClientLoaded({
   async function handleConfirmStart(e: React.FormEvent) {
     e.preventDefault();
     const acceptanceId = persistedActionState?.persistence?.acceptanceId ?? null;
-    if (!confirmStartFields.startedAt || !confirmStartFields.role || !confirmStartFields.facility) return;
+    const startedAt = confirmStartFields.startedAt.trim();
+    const role      = confirmStartFields.role.trim();
+    const facility  = confirmStartFields.facility.trim();
+    if (!startedAt || !role || !facility) {
+      setConfirmStartState({
+        phase: 'error',
+        message: 'Start date, role, and facility are required before the audit record can close.',
+      });
+      return;
+    }
     setConfirmStartState({ phase: 'loading' });
     try {
       const res = await fetch(`${API}/api/employer-review/${passport.entityId}/confirm-start`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startedAt:    confirmStartFields.startedAt,
-          role:         confirmStartFields.role,
-          facility:     confirmStartFields.facility,
+          startedAt,
+          role,
+          facility,
           ...(acceptanceId ? { acceptanceId } : {}),
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? `Confirm start failed (${res.status})`);
+        const err = await res.json().catch(() => ({})) as { error?: string; error_description?: string };
+        throw new Error(err.error_description ?? err.error ?? `Confirm start failed (${res.status})`);
       }
       const data = await res.json() as { attestationId: string; startedAt: string };
       setConfirmStartState({ phase: 'done', attestationId: data.attestationId, startedAt: data.startedAt });
@@ -1346,74 +1408,6 @@ function ReviewClientLoaded({
                 <p className="text-muted-foreground/40 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
               </div>
 
-              {/* Record Start Date — only available after an accept action */}
-              {actionState.state.action === 'accept' && confirmStartState.phase !== 'done' && (
-                <div className="mt-4 rounded-lg border border-white/8 bg-card px-3 py-3 space-y-3">
-                  <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Record start date</p>
-                  {confirmStartState.phase === 'error' && (
-                    <p className="text-destructive text-xs">{confirmStartState.message}</p>
-                  )}
-                  <form onSubmit={(e) => { void handleConfirmStart(e); }} className="space-y-2">
-                    <div className="space-y-1">
-                      <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-date">Start date</label>
-                      <input
-                        id="confirm-start-date"
-                        type="date"
-                        required
-                        value={confirmStartFields.startedAt}
-                        onChange={(e) => setConfirmStartFields((f) => ({ ...f, startedAt: e.target.value }))}
-                        className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-role">Role</label>
-                        <input
-                          id="confirm-start-role"
-                          type="text"
-                          required
-                          placeholder="e.g. Attending Cardiologist"
-                          value={confirmStartFields.role}
-                          onChange={(e) => setConfirmStartFields((f) => ({ ...f, role: e.target.value }))}
-                          className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-facility">Facility</label>
-                        <input
-                          id="confirm-start-facility"
-                          type="text"
-                          required
-                          placeholder="e.g. Main Campus"
-                          value={confirmStartFields.facility}
-                          onChange={(e) => setConfirmStartFields((f) => ({ ...f, facility: e.target.value }))}
-                          className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={confirmStartState.phase === 'loading' || !confirmStartFields.startedAt || !confirmStartFields.role || !confirmStartFields.facility}
-                      className="w-full text-xs min-h-[36px]"
-                    >
-                      {confirmStartState.phase === 'loading' ? 'Recording…' : 'Record Start'}
-                    </Button>
-                  </form>
-                </div>
-              )}
-
-              {/* Start attested confirmation */}
-              {actionState.state.action === 'accept' && confirmStartState.phase === 'done' && (
-                <div className="mt-4 rounded-lg border border-[var(--vt-success)]/25 bg-[var(--vt-success)]/5 px-3 py-2 space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[var(--vt-success)] text-xs">✔</span>
-                    <p className="text-[var(--vt-success)] text-xs font-medium">Start attested</p>
-                  </div>
-                  <p className="text-muted-foreground/60 text-[10px] font-mono break-all">{confirmStartState.attestationId}</p>
-                  <p className="text-muted-foreground/50 text-[10px]">{new Date(confirmStartState.startedAt).toLocaleDateString()}</p>
-                </div>
-              )}
             </TrustStateCard>
           </SectionReveal>
         )}
@@ -1430,6 +1424,101 @@ function ReviewClientLoaded({
                 </Button>
               )}
             />
+          </SectionReveal>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            CONFIRM-START — hoisted to top level so it's reachable whenever the
+            review has been accepted (in-session OR previously persisted).
+            Prior behavior nested this inside the just-accepted TrustStateCard,
+            which meant returning reviewers could never record a start date.
+        ══════════════════════════════════════════════════════════════════ */}
+        {canPersistActions && hasAcceptedAction && confirmStartState.phase !== 'done' && (
+          <SectionReveal delay={0.05}>
+            <Card
+              data-testid="confirm-start-panel"
+              className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none"
+            >
+              <div>
+                <p className="text-muted-foreground/60 text-[10px] font-semibold uppercase tracking-widest">Record start date</p>
+                <p className="mt-1 text-sm text-foreground">Attach an attested start date so the audit trail closes the loop on this acceptance.</p>
+              </div>
+              {confirmStartState.phase === 'error' && (
+                <p data-testid="confirm-start-error" className="text-destructive text-xs">{confirmStartState.message}</p>
+              )}
+              <form onSubmit={(e) => { void handleConfirmStart(e); }} className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-date">Start date</label>
+                  <input
+                    id="confirm-start-date"
+                    data-testid="confirm-start-date"
+                    type="date"
+                    required
+                    value={confirmStartFields.startedAt}
+                    onChange={(e) => setConfirmStartFields((f) => ({ ...f, startedAt: e.target.value }))}
+                    className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-role">Role</label>
+                    <input
+                      id="confirm-start-role"
+                      data-testid="confirm-start-role"
+                      type="text"
+                      required
+                      placeholder="e.g. Attending Cardiologist"
+                      value={confirmStartFields.role}
+                      onChange={(e) => setConfirmStartFields((f) => ({ ...f, role: e.target.value }))}
+                      className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground/50 text-[10px] uppercase tracking-widest" htmlFor="confirm-start-facility">Facility</label>
+                    <input
+                      id="confirm-start-facility"
+                      data-testid="confirm-start-facility"
+                      type="text"
+                      required
+                      placeholder="e.g. Main Campus"
+                      value={confirmStartFields.facility}
+                      onChange={(e) => setConfirmStartFields((f) => ({ ...f, facility: e.target.value }))}
+                      className="w-full rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-white/20"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  data-testid="confirm-start-submit"
+                  size="sm"
+                  disabled={
+                    confirmStartState.phase === 'loading'
+                    || !confirmStartFields.startedAt.trim()
+                    || !confirmStartFields.role.trim()
+                    || !confirmStartFields.facility.trim()
+                  }
+                  className="w-full text-xs min-h-[36px]"
+                >
+                  {confirmStartState.phase === 'loading' ? 'Recording…' : 'Record Start'}
+                </Button>
+              </form>
+            </Card>
+          </SectionReveal>
+        )}
+
+        {confirmStartState.phase === 'done' && (
+          <SectionReveal delay={0.05}>
+            <Card
+              data-testid="confirm-start-success"
+              className="gap-2 rounded-2xl border-[var(--vt-success)]/25 bg-[var(--vt-success)]/5 px-5 py-4 shadow-none"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-[var(--vt-success)] text-xs">✔</span>
+                <p className="text-[var(--vt-success)] text-xs font-medium">Start attested</p>
+              </div>
+              <p className="text-muted-foreground/60 text-[10px] font-mono break-all">{confirmStartState.attestationId}</p>
+              <p className="text-muted-foreground/50 text-[10px]">{new Date(confirmStartState.startedAt).toLocaleDateString()}</p>
+            </Card>
           </SectionReveal>
         )}
 
@@ -1727,6 +1816,10 @@ function ReviewClientLoaded({
             <Accordion
               items={proofItems}
               telemetryComponentId="employer_review_proof"
+            />
+            <TrustContainerPanel
+              entry={passport.trustContainer ?? null}
+              className="mt-4"
             />
           </EvidenceDisclosureCard>
         )}

@@ -8,6 +8,10 @@ import {
   type CanonicalTruthStatus,
 } from '@vitalcv/trust-state';
 import { normalizePassportSourceCoverageChecks } from '@/lib/trust/source-coverage';
+import {
+  normalizeTrustContainerManifestView,
+  type TrustContainerManifestView,
+} from '@/lib/trust/trust-container-view';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -71,6 +75,7 @@ export interface EmployerEvidencePacket {
     freshness: unknown;
     status: unknown;
     sources: EmployerPacketSourceManifestEntry[];
+    trustContainer: TrustContainerManifestView | null;
   };
   receiptReferences: Array<{ sourceId: string; receiptId: string }>;
   artifactReferences: Array<{ sourceId: string; artifactId: string }>;
@@ -250,6 +255,15 @@ export function normalizeEmployerEvidencePacket(
     checks: normalizedManifestCoverageChecks,
     summary: summarizeCanonicalSourceCoverage(normalizedManifestCoverageChecks),
   };
+  const hasTrustContainer = hasOwn(manifest, 'trustContainer')
+    && typeof manifest.trustContainer !== 'undefined';
+  const trustContainer = hasTrustContainer
+    ? normalizeTrustContainerManifestView(manifest.trustContainer)
+    : null;
+
+  if (hasTrustContainer && manifest.trustContainer !== null && !trustContainer) {
+    return null;
+  }
 
   return {
     schema: value.schema as string,
@@ -274,6 +288,7 @@ export function normalizeEmployerEvidencePacket(
       freshness: manifest.freshness,
       status: manifest.status,
       sources: [...(manifest.sources as EmployerPacketSourceManifestEntry[])],
+      trustContainer,
     },
     receiptReferences: [...(value.receiptReferences as Array<{ sourceId: string; receiptId: string }>)],
     artifactReferences: [...(value.artifactReferences as Array<{ sourceId: string; artifactId: string }>)],

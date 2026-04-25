@@ -27,6 +27,13 @@ function isAuthorityUnavailable(credential: PassportAuthorityCredential): boolea
     || credential.connectorState === 'unresolved';
 }
 
+function isSourceBackedVerificationLevel(level: string | undefined): boolean {
+  return level === 'PRIMARY_SOURCE'
+    || level === 'PRIMARY_SOURCE_VERIFICATION'
+    || level === 'SOURCE_VERIFIED'
+    || level === 'CRYPTOGRAPHICALLY_SIGNED';
+}
+
 export function resolveAuthorityEvidenceStatus(
   credential: PassportAuthorityCredential,
 ): AuthorityEvidenceStatus {
@@ -55,7 +62,7 @@ export function resolveAuthorityEvidenceStatus(
     || credential.authorityClaimCode === 'TRAINING_COMPLETED'
     || credential.status === 'ACTIVE'
   ) {
-    return 'verified';
+    return isSourceBackedVerificationLevel(credential.verificationLevel) ? 'verified' : 'pending';
   }
 
   return 'pending';
@@ -178,7 +185,7 @@ export function resolveAuthorityTitle(
     case 'RN_LICENSE_DISCIPLINED':
       return `Nursing license${state} — disciplinary record`;
     case 'BOARD_CERTIFIED':
-      return 'Board certified';
+      return 'Board certification';
     case 'BOARD_ORDER_PRESENT':
       return `Board order present${state}`;
     case 'TRAINING_COMPLETED':

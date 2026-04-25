@@ -10,6 +10,10 @@ import {
   type PassportSourceCoverageReport,
 } from '@/lib/trust/source-coverage';
 import { resolvePassportTruthSet } from '@/lib/trust/passport-truth-set';
+import {
+  normalizeTrustContainerManifestView,
+  type TrustContainerManifestView,
+} from '@/lib/trust/trust-container-view';
 
 export type ReadinessStatus = ReadinessState;
 export type PassportTrustPostureState =
@@ -194,6 +198,15 @@ export interface PassportData {
   divergence?: PassportDivergence;
   /** Wave 245: Continuous monitoring status */
   monitoring?: PassportMonitoringStatus;
+  /**
+   * Wave 4: Verifier-visible trust-container manifest entry. Optional —
+   * present only when the backend attaches a trust-container issuance
+   * record to the review. Shape mirrors the backend
+   * TrustContainerManifestEntry; the web bundle keeps its own local
+   * shape (see components/trust/TrustContainerPanel) so this field is
+   * typed structurally rather than nominally.
+   */
+  trustContainer?: TrustContainerManifestView | null;
 }
 
 export interface PassportDivergence {
@@ -478,7 +491,12 @@ export function isPassportData(value: unknown): value is PassportData {
     && isString(value.lastCheckedAt)
     && isTrustPosture(value.trustPosture)
     && (typeof value.truth === 'undefined' || isRecord(value.truth))
-    && (typeof value.decisionPosture === 'undefined' || isDecisionPosture(value.decisionPosture));
+    && (typeof value.decisionPosture === 'undefined' || isDecisionPosture(value.decisionPosture))
+    && (
+      typeof value.trustContainer === 'undefined'
+      || value.trustContainer === null
+      || normalizeTrustContainerManifestView(value.trustContainer) !== null
+    );
 }
 
 export function normalizePassportData(value: unknown): PassportData | null {
@@ -488,6 +506,10 @@ export function normalizePassportData(value: unknown): PassportData | null {
 
   const passport = value as PassportData;
   const normalizedChecks = normalizePassportSourceCoverageChecks(passport.sourceCoverage);
+  const normalizedTrustContainer =
+    typeof passport.trustContainer === 'undefined'
+      ? undefined
+      : normalizeTrustContainerManifestView(passport.trustContainer);
   const normalized: PassportData = {
     ...passport,
     readiness: {
@@ -501,6 +523,9 @@ export function normalizePassportData(value: unknown): PassportData | null {
       checks: normalizedChecks,
       summary: summarizeCanonicalSourceCoverage(normalizedChecks),
     },
+    ...(typeof normalizedTrustContainer === 'undefined'
+      ? {}
+      : { trustContainer: normalizedTrustContainer }),
   };
 
   normalized.truth = resolvePassportTruthSet(normalized);

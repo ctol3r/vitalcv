@@ -17,6 +17,10 @@ import {
   STATUS_EXPLANATIONS, KNOWN_LANES,
   type SourceStatus, type ReadinessPosture, type LaneSnapshot, type StateLogEntry,
 } from '@/components/proof/trust-types';
+import {
+  TrustContainerPanel,
+  type TrustContainerManifestView,
+} from '@/components/trust/TrustContainerPanel';
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -40,6 +44,12 @@ export interface AuditEntry {
 }
 
 export interface ConsoleProps {
+  /**
+   * Wave 4: hidden trust-container manifest entry for the reviewed
+   * clinician. Optional; rendered subordinate to source coverage.
+   */
+  trustContainer?: TrustContainerManifestView | null;
+
   entityId: string;
   npi: string;
   name: string;
@@ -84,7 +94,7 @@ function deriveDecisionState(posture: ReadinessPosture, blockers: BlockerItem[])
 
 export function EmployerDecisionConsole({
   entityId, npi, name, taxonomy, state, posture, lanes, proofTier,
-  score, blockers, nextAction, auditTrail, loopId, onAction,
+  score, blockers, nextAction, auditTrail, loopId, onAction, trustContainer,
 }: ConsoleProps) {
   const decisionState = deriveDecisionState(posture, blockers);
   const cfg = DECISION_CONFIG[decisionState];
@@ -213,6 +223,12 @@ export function EmployerDecisionConsole({
                   {auditTrail.map(entry => (
                     <AuditRow key={entry.id} entry={entry} />
                   ))}
+                  <TrustContainerPanel
+                    entry={trustContainer ?? null}
+                    className="mt-4 border-slate-200 bg-white"
+                    verbose
+                  />
+
                   {loopId && (
                     <p className="font-mono text-[10px] text-slate-400 pt-1">
                       Loop ID: {loopId}

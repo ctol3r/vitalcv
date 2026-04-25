@@ -1,0 +1,55 @@
+{
+  "nodes": [
+    "Clinician",
+    "NPI",
+    "Identity Claim",
+    "Credential Claim",
+    "Source",
+    "Source Check",
+    "PSV Receipt",
+    "Source Coverage State",
+    "Freshness Window",
+    "Limitation Note",
+    "Credential Readiness Score",
+    "Passport",
+    "Proof Pack",
+    "Trust Container",
+    "Credential Envelope",
+    "Employer Review",
+    "Reviewer Action",
+    "Audit Event",
+    "Pilot KPI Event",
+    "Start Outcome"
+  ],
+  "edges": [
+    { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
+    { "source": "NPI", "relation": "RESOLVES_IDENTITY", "target": "Identity Claim" },
+    { "source": "Credential Claim", "relation": "SUPPORTED_BY", "target": "Source Check" },
+    { "source": "Source Check", "relation": "PRODUCES", "target": "PSV Receipt" },
+    { "source": "PSV Receipt", "relation": "HAS_FRESHNESS", "target": "Freshness Window" },
+    { "source": "Source Check", "relation": "HAS_COVERAGE_STATE", "target": "Source Coverage State" },
+    { "source": "Credential Claim", "relation": "HAS_LIMITATION", "target": "Limitation Note" },
+    { "source": "Passport", "relation": "CONTAINS", "target": "Credential Claim" },
+    { "source": "Proof Pack", "relation": "EXPORTS", "target": "Passport" },
+    { "source": "Trust Container", "relation": "WRAPS", "target": "Credential Envelope" },
+    { "source": "Credential Envelope", "relation": "REFERENCES", "target": "Proof Pack" },
+    { "source": "Employer Review", "relation": "REVIEWS", "target": "Proof Pack" },
+    { "source": "Reviewer Action", "relation": "WRITES", "target": "Audit Event" },
+    { "source": "Pilot KPI Event", "relation": "MEASURES", "target": "Reviewer Action" },
+    { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
+  ],
+  "rules": [
+    "NPPES identity claim is NOT licensure proof.",
+    "OIG/LEIE clear means federal OIG LEIE scope only.",
+    "PECOS public data means public enrollment posture, not real-time portal status.",
+    "State board / Nursys / FSMB must remain access-aware.",
+    "Partial proof stays partial.",
+    "Trust container does not upgrade proof tier.",
+    "Audit events prove action history, not clinical truth.",
+    "CRS is derived from evidence; it is not evidence itself."
+  ],
+  "knownLimitations": [
+    "Machine-readable stub is documentation-grade only, not integrated into runtime types."
+  ],
+  "lastUpdated": "2026-04-24"
+}
