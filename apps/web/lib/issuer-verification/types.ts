@@ -118,18 +118,104 @@ export interface ConsentArtifact {
   releaseFormUrl?: string;
 }
 
+/**
+ * Review states a ReceiptCandidate can carry once it has been
+ * derived from an IssuerResponse. None of these states implies the
+ * underlying claim is finalized verification — they describe what
+ * policy-level review is still required.
+ */
+export type ReceiptCandidateReviewState =
+  | 'review_required'
+  | 'ready_for_policy_review'
+  | 'conflict_review_required'
+  | 'release_required'
+  | 'reroute_required'
+  | 'unable_to_verify'
+  | 'expired'
+  | 'canceled';
+
+/**
+ * The party VitalCV believes provided the IssuerResponse.
+ * Attribution is recorded explicitly so a reviewer can see *who*
+ * spoke for the source, separate from the source itself.
+ */
+export interface AttributedResponder {
+  name: string;
+  role?: string;
+  contact?: string;
+  attributedAt: string;
+  attributionMethod:
+    | 'self_attested'
+    | 'directory_match'
+    | 'partner_assertion'
+    | 'unknown';
+}
+
+/**
+ * Records the source of record the response speaks for, plus any
+ * contracted-agent layer between VitalCV and that source. This shape
+ * is the load-bearing piece of the contracted-agent rule: the agent
+ * and the source are never collapsed into one identity.
+ */
+export interface SourceBasis {
+  /** The authoritative source of record the response speaks for. */
+  sourceOrganizationName: string;
+  isContractedAgent: boolean;
+  /** Required when isContractedAgent is true. */
+  agentName?: string;
+  /** Required when isContractedAgent is true — the source the agent acts for. */
+  agentActsFor?: string;
+  basisNote?: string;
+}
+
+/**
+ * Audit metadata kept alongside the candidate so a reviewer can
+ * trace where the response came from. This is metadata only — it is
+ * not an audit event and does not write to any system store.
+ */
+export interface ReceiptCandidateAuditMetadata {
+  recordedAt: string;
+  recordedBy: 'demo' | 'review_surface' | 'system';
+  inboundChannel:
+    | 'issuer_response_form'
+    | 'partner_response'
+    | 'manual_entry';
+  notes?: string;
+}
+
 export interface ReceiptCandidate {
+  // ---- ISSUER-1 baseline fields ----
   candidateId: string;
   createdAt: string;
   basis: 'issuer_direct' | 'contracted_agent';
   /** Required when basis is 'contracted_agent'. */
   agentName?: string;
-  /** Always required — the source the response speaks for. */
+  /** The source the response speaks for (after agent normalization). */
   sourceOrganizationName: string;
   attributionStatus: 'unattributed' | 'attributed_pending_review' | 'attributed_reviewed';
-  /** Literal false — type-level guarantee that classification cannot be decision-grade. */
+  /** Literal false — type-level guarantee that the candidate is not decision-grade. */
   decisionGrade: false;
   notes?: string;
+
+  // ---- ISSUER-2 review-surface extensions (optional for back-compat) ----
+  /** Canonical id used by the review surface; the builder sets it equal to candidateId. */
+  receiptCandidateId?: string;
+  requestId?: string;
+  claimId?: string;
+  claimType?: VerificationClaimType;
+  issuerCandidate?: IssuerCandidate;
+  responseStatus?: IssuerResponseStatus;
+  responseSummary?: string;
+  attributedResponder?: AttributedResponder;
+  responseReceivedAt?: string;
+  sourceBasis?: SourceBasis;
+  /** Set when the responding party is a contracted agent acting for a source. */
+  contractedAgent?: { name: string; actsFor: string };
+  limitationNote?: string;
+  reviewState?: ReceiptCandidateReviewState;
+  /** Literal — type-level guarantee that the candidate is never marked source-backed. */
+  proofTier?: 'receipt_candidate';
+  auditMetadata?: ReceiptCandidateAuditMetadata;
 }
 
 export interface IssuerResponse {

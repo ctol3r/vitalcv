@@ -33,6 +33,10 @@ The conceptual graph defining how truth moves through VitalCV.
 28. **Verification Partner**: A recommended routing option; recommendation does not imply an active integration.
 29. **Receipt Candidate**: A non-global proof candidate awaiting attribution and policy review.
 30. **Contracted Agent**: A third party acting for a source or issuer; agent identity must stay distinct from the source.
+31. **Receipt Candidate Review**: The policy-level review step a receipt candidate must clear before it can become a PSV receipt.
+32. **Attributed Responder**: The named party VitalCV believes provided an issuer response — recorded explicitly, separate from the source itself.
+33. **Source Basis**: The source-of-record a response speaks for, plus any contracted-agent layer between VitalCV and that source.
+34. **Policy Review Decision**: The accept-or-reject outcome of a receipt-candidate review; only this outcome can convert a candidate into a PSV receipt.
 
 
 ## Edges
@@ -62,6 +66,11 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Issuer Verification Request` ROUTES_TO `Source`
 * `Issuer` RESPONDS_WITH `Issuer Response`
 * `Issuer Response` PRODUCES `Receipt Candidate`
+* `Receipt Candidate` REQUIRES `Receipt Candidate Review`
+* `Receipt Candidate Review` MAY_CREATE `PSV Receipt`
+* `Attributed Responder` ATTESTS_RESPONSE `Issuer Response`
+* `Issuer Response` HAS_SOURCE_BASIS `Source Basis`
+* `Policy Review Decision` ACCEPTS_OR_REJECTS `Receipt Candidate`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -83,4 +92,8 @@ The conceptual graph defining how truth moves through VitalCV.
 15. **Receipt Candidate Boundary**: A confirmed issuer response creates a receipt candidate only; it does not create global proof.
 16. **Limited Response Boundary**: `legally_only` maps to `review_required`; `wrong_office` reroutes without confirming the claim; `requires_release` pauses the request.
 17. **Contracted Agent Boundary**: Contracted agent responses must preserve both the agent identity and the original source basis.
+18. **Receipt Candidate Boundary II**: A receipt candidate is not a final PSV receipt. Only a policy review decision can convert a candidate into a PSV receipt.
+19. **Conflict Review Boundary**: A corrected response creates a conflict review, not proof.
+20. **Legally-Only Boundary**: A `legally_only` response does not create full proof — it remains review_required even on an otherwise confirmed-style outcome.
+21. **Source Basis Retention**: The contracted-agent / source distinction must be retained on the receipt candidate; the agent and the source are never collapsed into one identity.
 
