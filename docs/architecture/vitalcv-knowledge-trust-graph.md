@@ -23,6 +23,12 @@ The conceptual graph defining how truth moves through VitalCV.
 18. **Audit Event**: An immutable system record tracking state changes and data exports.
 19. **Pilot KPI Event**: Derived metric for operational tracking.
 20. **Start Outcome**: The ultimate result (e.g. Clinician starts work).
+21. **Knowledge Inbox**: Staging area for unverified, user-provided evidence.
+22. **Knowledge Inbox Item**: A discrete piece of captured knowledge before classification.
+23. **Classification Suggestion**: The AI-derived intent of an inbox item.
+24. **Profile Update Suggestion**: A proposed change to the clinician passport based on an inbox item.
+25. **Uploaded Evidence**: Raw documents or text provided by the clinician.
+
 
 ## Edges
 * `Clinician` HAS_NPI `NPI`
@@ -40,6 +46,13 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Reviewer Action` WRITES `Audit Event`
 * `Pilot KPI Event` MEASURES `Reviewer Action`
 * `Start Outcome` CLOSES_LOOP `Employer Review`
+* `Clinician` SUBMITS `Knowledge Inbox Item`
+* `Knowledge Inbox Item` CLASSIFIED_AS `Classification Suggestion`
+* `Knowledge Inbox Item` SUGGESTS `Profile Update Suggestion`
+* `Knowledge Inbox Item` MAPS_TO `Graph Node`
+* `Uploaded Evidence` SUPPORTS `Credential Claim`
+* `Credential Claim` NEEDS_SOURCE_CHECK `Source Check`
+
 
 ## Trust Rules & Invariants
 1. **NPPES is Identity, not Authority**: An NPPES match confirms identity/enumeration but does NOT serve as licensure proof.
@@ -51,4 +64,8 @@ The conceptual graph defining how truth moves through VitalCV.
 7. **Audit Truth**: Audit events prove action history (who exported what, when), but do not replace clinical truth (what the state board says).
 8. **Derivative Scoring**: The Credential Readiness Score (CRS) is a derivative metric based on evidence; it is not evidence itself.
 9. **Provenance Hierarchy**: Claims resolve according to explicit provenance constraints: `VERIFIED` > `USER_ENTERED` > `INFERRED` > `UNKNOWN`. A conflict between multiple sources is explicitly labeled `CONFLICT` and never silently discarded.
+10. **Inbox Classification != Verification**: Categorizing an uploaded document or text string does not make it verified. It remains `USER_ENTERED` or `INFERRED` until backed by a PSV receipt.
+11. **Suggestion Acceptance Boundaries**: Accepting an inbox suggestion updates the profile context, but it cannot upgrade the proof tier of the overall artifact.
+12. **Evidence Requires Review**: Uploaded evidence requires human review or automated source verification before it can ever be marked `VERIFIED`.
+
 

@@ -20,6 +20,12 @@
     "Audit Event",
     "Pilot KPI Event",
     "Start Outcome"
+    "Knowledge Inbox",
+    "Knowledge Inbox Item",
+    "Classification Suggestion",
+    "Profile Update Suggestion",
+    "Uploaded Evidence"
+
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -37,6 +43,17 @@
     { "source": "Reviewer Action", "relation": "WRITES", "target": "Audit Event" },
     { "source": "Pilot KPI Event", "relation": "MEASURES", "target": "Reviewer Action" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
+    , { "source": "Clinician", "relation": "SUBMITS", "target": "Knowledge Inbox Item" },
+    { "source": "Knowledge Inbox Item", "relation": "CLASSIFIED_AS", "target": "Classification Suggestion" },
+    { "source": "Knowledge Inbox Item", "relation": "SUGGESTS", "target": "Profile Update Suggestion" },
+    { "source": "Uploaded Evidence", "relation": "SUPPORTS", "target": "Credential Claim" }
+
+    "Knowledge Inbox",
+    "Knowledge Inbox Item",
+    "Classification Suggestion",
+    "Profile Update Suggestion",
+    "Uploaded Evidence"
+
   ],
   "rules": [
     "NPPES identity claim is NOT licensure proof.",
@@ -48,6 +65,8 @@
     "Audit events prove action history, not clinical truth.",
     "CRS is derived from evidence; it is not evidence itself.",
     "Claims resolve via strict provenance: VERIFIED > USER_ENTERED > INFERRED > UNKNOWN."
+    ,n    "Inbox classification is not verification. It remains USER_ENTERED or INFERRED until backed by a PSV receipt.",n    "Accepting an inbox suggestion updates profile context, not proof tier.",n    "Uploaded evidence requires review or source verification before VERIFIED."
+
 
   ],
   "knownLimitations": [
