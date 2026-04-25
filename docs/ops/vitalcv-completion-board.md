@@ -59,6 +59,11 @@ This board tracks the functional reality of VitalCV.
 * **Graph Updates:** 7 new node types (Issuer, ConsentArtifact, etc.) and 9 new edges (ROUTES_TO, CONSENTS_WITH) added to the architectural Trust Graph. 5 explicit trust invariants enforced to ensure an issuer *request* never upgrades the proof tier prematurely.
 * **Validation:** 468 tests green.
 
+## Wave GOD-3S evidence
+* **Validation Proof:** 468/468 tests passed.
+* **Architecture Safe:** Confirmed that Knowledge Inbox items map strictly to `USER_ENTERED` or `INFERRED` domains, with explicit graph rules preventing auto-upgrades to `VERIFIED` without a PSV receipt.
+
+
 ## Wave GOD-3 evidence
 * **Inbox Capabilities:** Data models, types, and deterministic classification helper created to funnel free-text input safely into `USER_ENTERED` or `INFERRED` items without faking PSV checks.
 * **Graph Updates:** 5 new node types and 5 new edge types added to architectural graph; 3 new explicit graph rules ensuring AI/ML triage never overrides real source evidence.
