@@ -1,6 +1,6 @@
 # VitalCV Completion Board
-Last Updated: 2026-04-24 (post Wave MOBILE-100 PWA/mobile audit)
-Source: Wave MOBILE-100
+Last Updated: 2026-04-24 (post Wave ISSUER-1)
+Source: Wave ISSUER-1
 
 ## Philosophy
 This board tracks the functional reality of VitalCV. 
@@ -11,7 +11,7 @@ This board tracks the functional reality of VitalCV.
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Trust Infrastructure | 87% | 0% | Core container and proof layers exist. |
+| Trust Infrastructure | 90% | +3% | Issuer verification request routing and status tracking established. |
 | Truth / Enforcement | 71% | 0% | Identity, OIG, PECOS enforced; licensure lanes sparse. |
 | Drift + Monitoring | 62% | 0% | Freshness timers run, but active re-checks need ops testing. |
 | Governance / Audit | 70% | 0% | ARTIFACT_EXPORTED captures safe metadata; compliance checks pass. |
@@ -21,27 +21,27 @@ This board tracks the functional reality of VitalCV.
 | :--- | :--- | :--- | :--- |
 | Holder Experience | 82% | 0% | Clinician profile expanded with Knowledge Inbox data capture model. |
 | Verifier Experience | 88% | 0% | Employer console handles proof objects and CTAs gracefully on live site. |
-| Hiring Loop | 45% | 0% | Basic acceptance signals work; integration into HRIS is 0%. |
+| Hiring Loop | 50% | +5% | Verification routing maps built for clearinghouses, GME offices, and boards. |
 | Pilot Ops / GTM | 93% | 0% | Pilot funnel is entirely unbroken end-to-end and live verified. |
 
 ## DATA + PSV
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
 | Source Spine | 70% | 0% | NPPES fallback identity pipeline recovered; honest fallback cadence implemented for OIG/PECOS. |
-| Authority Lanes | 32% | 0% | State boards require extensive adapter build-out. |
+| Authority Lanes | 35% | +3% | Issuer/partner verification boundaries defined (e.g. National Student Clearinghouse). |
 | Bulk / CSV / Imports | 30% | 0% | Some CSV ingest; roster management is manual. |
 
 ## INTELLIGENCE + UX
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Orchestrator / Decision Logic | 68% | 0% | Deterministic Knowledge Inbox classification (13 states) enforcing safe provenance triage. |
+| Orchestrator / Decision Logic | 70% | +2% | Deterministic Knowledge Inbox and Issuer Partner routing rules active. |
 | UX / Usability | 100% | 0% | Mobile UI clips fixed; 16-section profile with provenance badges live; PWA foundation active. |
 | Career Autopilot | 25% | 0% | Concept only. |
 
 ## ENTERPRISE
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
-| Issuer / Trust Object | 78% | 0% | Knowledge Trust Graph panel mounts in product to explicitly display proof and evidence invariants. |
+| Issuer / Trust Object | 80% | +2% | Trust graph expanded to handle Consent Artifacts, Issuers, and Verification Partners. |
 | Security / Compliance | 35% | 0% | Identity artifacts encrypted, but HIPAA/SOC2 architecture pending. |
 | Deploy / Production Truth | 95% | 0% | Root `.vercel/project.json` → `vcv-web` canonical flow works. Backend 500s are now caught and safely degraded at the Edge. Domain verified. |
 
@@ -50,12 +50,14 @@ This board tracks the functional reality of VitalCV.
 | :--- | :--- | :--- | :--- |
 | Launch Wedge Completion | 100% | 0% | P0 routes (ingest, review, pilot, employers, privacy, terms) all completely unblocked or gracefully degraded. |
 | Pilot-Ready Completion | 99% | 0% | The pilot funnel is entirely clear of 404s and 500-level dead ends. Needs first live inbound. |
-| Enterprise-Ready Completion | 38% | 0% | Security, compliance, and bulk lanes require hardening. |
-| **Overall VitalCV Completion** | **66%** | **0%** | Tests green, typecheck clean, live-URL / mobile / domain paths explicitly verified. Clinician profile surface significantly richer. PWA manifest configured. |
+| Enterprise-Ready Completion | 40% | +2% | Security/Compliance boundaries + Issuer verification tracking initiated. |
+| **Overall VitalCV Completion** | **68%** | **+2%** | Tests green (468 tests), live-URL verified, Issuer confirmation hub foundation merged. |
 
-## Wave MOBILE-100 evidence
-* **PWA Foundation:** `apps/web/app/manifest.ts` added enabling standalone display mode and `themeColor` configuration in `layout.tsx`.
-* **Mobile Overflows:** Verified responsive classes (`w-full`, `max-w-sm sm:max-w-md`, `grid-cols-1 md:grid-cols-2`) across the hero console and pilot pages.
+## Wave ISSUER-1 evidence
+* **Issuer Verification:** Added data models for `IssuerVerificationRequest`, `ConsentArtifact`, and `IssuerResponse`.
+* **Partner Router:** `routeVerificationClaim` implemented to deterministically map education to clearinghouses, residency to GME offices, and background checks to CRA partners.
+* **Graph Updates:** 7 new node types (Issuer, ConsentArtifact, etc.) and 9 new edges (ROUTES_TO, CONSENTS_WITH) added to the architectural Trust Graph. 5 explicit trust invariants enforced to ensure an issuer *request* never upgrades the proof tier prematurely.
+* **Validation:** 468 tests green.
 
 ## Wave GOD-3 evidence
 * **Inbox Capabilities:** Data models, types, and deterministic classification helper created to funnel free-text input safely into `USER_ENTERED` or `INFERRED` items without faking PSV checks.
