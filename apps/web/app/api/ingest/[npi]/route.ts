@@ -64,6 +64,7 @@ interface FallbackBody {
   reason: UpstreamFailureReason;
   npi: string;
   runId: null;
+  runIdReason: string;
   lanes: FallbackLane[];
   message: string;
   truth: {
@@ -137,6 +138,8 @@ async function fallbackResponse(npi: string, reason: UpstreamFailureReason): Pro
     reason,
     npi,
     runId: null,
+    runIdReason:
+      'No ingest run was created because the backend ingest start did not return a usable response. Fallback lanes are read-only recovery evidence.',
     lanes,
     message: messageFor(reason, nppesRecovered),
     truth: {
