@@ -74,7 +74,13 @@
     "IssuerLifecycleReplay",
     "IssuerAuditCorrelation",
     "PayloadHash",
-    "ReplaySafeEvent"
+    "ReplaySafeEvent",
+    "IssuerAuditPersistenceAdapter",
+    "RepositoryAuditAdapter",
+    "PersistenceAdapterDecision",
+    "RepositoryCapability",
+    "PersistedAuditRecord",
+    "PersistenceConfiguration"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -153,6 +159,13 @@
     { "source": "IssuerAuditCorrelation", "relation": "GROUPS", "target": "IssuerRequestLifecycleEvent" },
     { "source": "IssuerAuditEventRecord", "relation": "HAS_MODE", "target": "IssuerAuditPersistenceMode" },
     { "source": "ReplaySafeEvent", "relation": "MAY_BE_INCLUDED_IN", "target": "IssuerLifecycleReplay" },
+    { "source": "IssuerAuditWriter", "relation": "MAY_USE", "target": "IssuerAuditPersistenceAdapter" },
+    { "source": "IssuerAuditPersistenceAdapter", "relation": "EVALUATES", "target": "RepositoryCapability" },
+    { "source": "RepositoryAuditAdapter", "relation": "MAY_WRITE", "target": "PersistedAuditRecord" },
+    { "source": "PersistenceAdapterDecision", "relation": "SELECTS", "target": "IssuerAuditPersistenceMode" },
+    { "source": "PersistedAuditRecord", "relation": "REQUIRES", "target": "WriterConfirmation" },
+    { "source": "PersistenceConfiguration", "relation": "DRIVES", "target": "PersistenceAdapterDecision" },
+    { "source": "IssuerAuditPersistenceAdapter", "relation": "EMITS", "target": "PersistenceAdapterDecision" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -223,7 +236,14 @@
     "Persistence requires a real writer's confirmation; demo and no-op writers cannot return persisted=true.",
     "No UI may claim an audit write occurred without a persisted persistence status from a repository or external writer.",
     "An audit event record never changes a claim's proof tier and never sets globalCredentialTruth=true.",
-    "PayloadHash is empty by default; it is fabricated only by a writer with cryptographic anchoring (future wave)."
+    "PayloadHash is empty by default; it is fabricated only by a writer with cryptographic anchoring (future wave).",
+    "Default persistence adapter is noop; active persistence is off unless explicitly turned on via configuration.",
+    "repository_candidate is not active persistence; it means a repository-shaped writer could be wired but is not yet.",
+    "Only repository_enabled may produce a persisted write status, and even then the actual write requires writer confirmation.",
+    "Adapter availability does not imply active persistence; a writer must invoke and confirm.",
+    "The frontend/web layer must not silently import a backend DB writer into the client bundle; a client-safe boundary is required first.",
+    "No UI may claim an audit trail exists without a persisted persistence status from a repository or external writer.",
+    "An adapter cannot upgrade proofTier or set globalCredentialTruth=true."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."

@@ -71,6 +71,12 @@ The conceptual graph defining how truth moves through VitalCV.
 66. **Issuer Audit Correlation**: The grouping (correlationId + requestId + optional subjectId) that threads lifecycle events into a single replay.
 67. **Payload Hash**: Optional cryptographic anchoring for an audit event payload. Empty placeholder by default; only fabricated by a writer with anchoring support (future wave).
 68. **Replay-Safe Event**: An audit event record marked safe to include in a lifecycle replay. Replay-safe is context, not proof.
+69. **Issuer Audit Persistence Adapter**: The decision boundary that selects which writer kind (`noop` / `demo` / `repository_candidate` / `repository_enabled` / `unavailable`) to use for an audit event record. Default is `noop`.
+70. **Repository Audit Adapter**: A type-safe stub that describes what a repository-backed writer would persist. This slice does not import the existing backend repository — it documents the deferred bridge.
+71. **Persistence Adapter Decision**: The structured outcome of an adapter selection (kind, resultMode, reason, capabilities, optional wiring description).
+72. **Repository Capability**: A specific capability an adapter is designed to support — `write_audit_event`, `write_psv_receipt`, `replay_lifecycle`, `hash_payload`, `preserve_limitations`, `preserve_source_basis`, `preserve_responder_attribution`.
+73. **Persisted Audit Record**: An audit event record whose write was confirmed by a repository or external writer. Only `repository_enabled` adapters may produce one.
+74. **Persistence Configuration**: The caller-supplied input that drives the adapter decision. There are no environment lookups, no implicit feature flags — the operator must explicitly opt in to repository writes.
 
 
 ## Edges
@@ -150,6 +156,13 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Issuer Audit Correlation` GROUPS `Issuer Request Lifecycle Event`
 * `Issuer Audit Event Record` HAS_MODE `Issuer Audit Persistence Mode`
 * `Replay-Safe Event` MAY_BE_INCLUDED_IN `Issuer Lifecycle Replay`
+* `Issuer Audit Writer` MAY_USE `Issuer Audit Persistence Adapter`
+* `Issuer Audit Persistence Adapter` EVALUATES `Repository Capability`
+* `Repository Audit Adapter` MAY_WRITE `Persisted Audit Record`
+* `Persistence Adapter Decision` SELECTS `Issuer Audit Persistence Mode`
+* `Persisted Audit Record` REQUIRES `Writer Confirmation`
+* `Persistence Configuration` DRIVES `Persistence Adapter Decision`
+* `Issuer Audit Persistence Adapter` EMITS `Persistence Adapter Decision`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -201,4 +214,9 @@ The conceptual graph defining how truth moves through VitalCV.
 45. **Replay-Safe Is Not Legal Proof Boundary**: `replaySafe` means an event MAY be included in a timeline replay for context. It does NOT mean legal proof; the replay disclaimer makes this explicit.
 46. **No Fake Persistence Boundary**: Demo, no-op, and `none` writers cannot return `persisted: true`. The boundary helper enforces this at runtime regardless of what the writer claims.
 47. **Payload Hash Honesty Boundary**: `payloadHash` is an empty-string placeholder by default. A non-empty hash is fabricated only by a writer with cryptographic anchoring; this slice does not ship one.
+48. **Persistence Adapter Default Boundary**: The default adapter is `noop`. There are no environment lookups, no implicit feature flags — turning real persistence on requires explicit operator configuration.
+49. **Repository Candidate Boundary**: `repository_candidate` is NOT active persistence. It documents that a repository-shaped writer could be wired and provides type-safe payload mapping; it does not invoke a writer and cannot return `persisted: true`.
+50. **Operator Opt-In Boundary**: `enableRepositoryWrites: true` is necessary but not sufficient. Even with the operator flag set, this slice keeps the adapter `unavailable` until a client-safe writer is wired (a future wave).
+51. **No Backend Bundle Crossing Boundary**: The web layer must not import a backend DB writer (Prisma client) into the client bundle. The repository adapter stub documents the deferred bridge and refuses to import any backend module.
+52. **Adapter Cannot Upgrade Truth Tier Boundary**: An adapter never sets `decisionGrade=true`, never changes `proofTier`, and never sets `globalCredentialTruth=true`. The audit boundary's role is action-history persistence — clinical truth invariants live in ISSUER-2/3/4/5.
 
