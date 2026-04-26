@@ -288,3 +288,92 @@ export const PSV_RECEIPT_COPY: Record<PsvReceiptCopyKey, StatusCopy> = {
 export function psvReceiptCopy(key: PsvReceiptCopyKey): StatusCopy {
   return PSV_RECEIPT_COPY[key];
 }
+
+/**
+ * Reviewer-safe copy for PSV receipt reuse lifecycle states.
+ *
+ * Truth contract:
+ *   - "Reusable" never means automatic verifier acceptance.
+ *   - No copy implies live monitoring or current source truth.
+ *   - Revocation/supersession copy reflects modeled state, not
+ *     active polling.
+ *   - No bare "Verified" label.
+ */
+export type PsvReceiptReuseCopyKey =
+  | 'reusable'
+  | 'not_reusable'
+  | 'needs_refresh'
+  | 'expired'
+  | 'revoked'
+  | 'superseded'
+  | 'scope_mismatch'
+  | 'limitation_blocks_reuse'
+  | 'source_recheck_required'
+  | 'policy_review_required';
+
+export const PSV_RECEIPT_REUSE_COPY: Record<PsvReceiptReuseCopyKey, StatusCopy> = {
+  reusable: {
+    label: 'Reusable as scoped evidence',
+    description:
+      'May be reused as scoped evidence within the receipt scope, limitations, and freshness window. This is not automatic verifier acceptance and does not imply current source truth.',
+    reviewRequired: false,
+  },
+  not_reusable: {
+    label: 'Not reusable',
+    description:
+      'Reuse is blocked by a structural gap on the receipt (missing source basis, attribution, or audit metadata).',
+    reviewRequired: true,
+  },
+  needs_refresh: {
+    label: 'Needs refresh',
+    description:
+      'Receipt is reusable but approaching its freshness window. Consider requesting a refresh before relying on it.',
+    reviewRequired: true,
+  },
+  expired: {
+    label: 'Expired',
+    description:
+      'Receipt is past its freshness window. Reuse is blocked; a source recheck or refresh is required.',
+    reviewRequired: false,
+  },
+  revoked: {
+    label: 'Revoked',
+    description:
+      'A revocation has been recorded for this receipt. Reuse is blocked. VitalCV records revocation when it is reported; it does not actively poll the source.',
+    reviewRequired: false,
+  },
+  superseded: {
+    label: 'Superseded',
+    description:
+      'A more recent receipt has been recorded for the same source and claim. Reuse the superseding receipt or request a refresh.',
+    reviewRequired: false,
+  },
+  scope_mismatch: {
+    label: 'Scope mismatch',
+    description:
+      'Requested reuse scope does not match the receipt scope. A different receipt or a fresh source check is required.',
+    reviewRequired: true,
+  },
+  limitation_blocks_reuse: {
+    label: 'Limitation blocks reuse',
+    description:
+      'A limitation on the receipt blocks the requested reuse purpose. Use a receipt without that limitation, or request a fresh source check.',
+    reviewRequired: true,
+  },
+  source_recheck_required: {
+    label: 'Source recheck required',
+    description:
+      'Reuse for this purpose requires a fresh source check before the receipt can be reconsidered as scoped evidence.',
+    reviewRequired: true,
+  },
+  policy_review_required: {
+    label: 'Policy review required',
+    description:
+      'Reuse for this purpose requires policy review acceptance before the receipt can be considered scoped evidence.',
+    reviewRequired: true,
+  },
+};
+
+export function psvReceiptReuseCopy(key: PsvReceiptReuseCopyKey): StatusCopy {
+  return PSV_RECEIPT_REUSE_COPY[key];
+}
