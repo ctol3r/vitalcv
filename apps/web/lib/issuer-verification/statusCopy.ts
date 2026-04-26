@@ -504,3 +504,69 @@ export function getIssuerLifecycleStatusCopy(
 ): StatusCopy {
   return ISSUER_REQUEST_LIFECYCLE_COPY[key];
 }
+
+/**
+ * Reviewer-safe copy for issuer audit persistence boundary states.
+ *
+ * Truth contract:
+ *   - No copy claims a row was persisted unless the status itself
+ *     is `persisted`.
+ *   - "Replay-safe" copy never implies legal proof.
+ *   - "Pending" and "demo" copy must read as distinct from
+ *     "persisted".
+ */
+export type IssuerAuditPersistenceCopyKey =
+  | 'pending_not_written'
+  | 'demo_not_persisted'
+  | 'persisted'
+  | 'audit_write_failed'
+  | 'replay_safe'
+  | 'not_legal_proof';
+
+export const ISSUER_AUDIT_PERSISTENCE_COPY: Record<
+  IssuerAuditPersistenceCopyKey,
+  StatusCopy
+> = {
+  pending_not_written: {
+    label: 'Pending (not written)',
+    description:
+      'Default state. No writer has attempted to persist this record. Timeline replay shows recorded workflow context. It does not prove clinical truth by itself.',
+    reviewRequired: false,
+  },
+  demo_not_persisted: {
+    label: 'Demo (not persisted)',
+    description:
+      'A demo or no-op writer was used. No audit row was persisted; the record is replay context only and is distinct from a persisted audit record.',
+    reviewRequired: false,
+  },
+  persisted: {
+    label: 'Persisted',
+    description:
+      'A real repository or external writer confirmed a persisted audit row. Persistence proves action history; it does not, on its own, prove clinical truth.',
+    reviewRequired: false,
+  },
+  audit_write_failed: {
+    label: 'Audit write failed',
+    description:
+      'A real writer attempted to persist and failed. The record is not part of any audit trail until a retry succeeds.',
+    reviewRequired: true,
+  },
+  replay_safe: {
+    label: 'Replay-safe',
+    description:
+      'May be included in timeline replay for context. Replay-safe does not mean legal proof and does not change any claim truth tier.',
+    reviewRequired: false,
+  },
+  not_legal_proof: {
+    label: 'Not legal proof',
+    description:
+      'Audit boundary metadata describes action history, not clinical truth. It is not legal proof on its own.',
+    reviewRequired: false,
+  },
+};
+
+export function getIssuerAuditPersistenceCopy(
+  key: IssuerAuditPersistenceCopyKey,
+): StatusCopy {
+  return ISSUER_AUDIT_PERSISTENCE_COPY[key];
+}

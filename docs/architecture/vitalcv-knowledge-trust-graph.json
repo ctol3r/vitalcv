@@ -67,7 +67,14 @@
     "IssuerRequestLifecycleEvent",
     "IssuerRequestDeliveryState",
     "RequesterAction",
-    "IssuerViewEvent"
+    "IssuerViewEvent",
+    "IssuerAuditEventRecord",
+    "IssuerAuditWriter",
+    "IssuerAuditPersistenceMode",
+    "IssuerLifecycleReplay",
+    "IssuerAuditCorrelation",
+    "PayloadHash",
+    "ReplaySafeEvent"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -138,6 +145,14 @@
     { "source": "IssuerRequestTimeline", "relation": "MAY_CREATE", "target": "ReceiptCandidate" },
     { "source": "IssuerRequestLifecycleEvent", "relation": "RECORDED_ON", "target": "IssuerRequestTimeline" },
     { "source": "IssuerRequestDeliveryState", "relation": "ATTESTED_BY", "target": "RequesterAction" },
+    { "source": "IssuerRequestTimeline", "relation": "MAY_PRODUCE", "target": "IssuerAuditEventRecord" },
+    { "source": "IssuerAuditWriter", "relation": "PERSISTS", "target": "IssuerAuditEventRecord" },
+    { "source": "IssuerLifecycleReplay", "relation": "REPLAYS", "target": "IssuerAuditEventRecord" },
+    { "source": "IssuerAuditEventRecord", "relation": "REFERENCES", "target": "RelatedArtifact" },
+    { "source": "PayloadHash", "relation": "BINDS", "target": "IssuerAuditEventRecord" },
+    { "source": "IssuerAuditCorrelation", "relation": "GROUPS", "target": "IssuerRequestLifecycleEvent" },
+    { "source": "IssuerAuditEventRecord", "relation": "HAS_MODE", "target": "IssuerAuditPersistenceMode" },
+    { "source": "ReplaySafeEvent", "relation": "MAY_BE_INCLUDED_IN", "target": "IssuerLifecycleReplay" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -201,7 +216,14 @@
     "viewed_by_issuer requires an explicit observed event from the verification surface; requester attestation does not satisfy this gate.",
     "response_received does not finalize verification; receipt candidate review and policy review are still required.",
     "No issuer request lifecycle status creates global credential truth.",
-    "Lifecycle audit metadata defaults to eventState='pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired."
+    "Lifecycle audit metadata defaults to eventState='pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired.",
+    "Audit event records prove action history, not clinical truth.",
+    "pending and demo audit events are not persisted audit records.",
+    "replay-safe means an event MAY be included in timeline replay for context; it does not mean legal proof.",
+    "Persistence requires a real writer's confirmation; demo and no-op writers cannot return persisted=true.",
+    "No UI may claim an audit write occurred without a persisted persistence status from a repository or external writer.",
+    "An audit event record never changes a claim's proof tier and never sets globalCredentialTruth=true.",
+    "PayloadHash is empty by default; it is fabricated only by a writer with cryptographic anchoring (future wave)."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
