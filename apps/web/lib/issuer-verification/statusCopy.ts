@@ -228,3 +228,63 @@ export function policyReviewCopy(
 ): StatusCopy {
   return POLICY_REVIEW_COPY[status];
 }
+
+/**
+ * Reviewer-safe copy for PSV receipt promotion lifecycle states.
+ *
+ * Truth contract:
+ *   - No status renders as the bare word "Verified".
+ *   - PSV receipt language is always scoped or evidence-bound.
+ *   - "Promoted" never implies global credential truth.
+ *   - Blocked states explain which gate refused.
+ */
+export type PsvReceiptCopyKey =
+  | 'psv_receipt_candidate'
+  | 'psv_receipt_promoted'
+  | 'promotion_blocked'
+  | 'promotion_requires_limitation'
+  | 'promotion_requires_policy_acceptance'
+  | 'promotion_requires_source_basis';
+
+export const PSV_RECEIPT_COPY: Record<PsvReceiptCopyKey, StatusCopy> = {
+  psv_receipt_candidate: {
+    label: 'PSV receipt candidate',
+    description:
+      'Candidate accepted under policy review. Scoped evidence; not final credentialing proof on its own.',
+    reviewRequired: true,
+  },
+  psv_receipt_promoted: {
+    label: 'PSV receipt promoted',
+    description:
+      'Receipt promoted under policy review. Scope, limitations, and freshness remain controlling. This is scoped evidence, not global credential truth.',
+    reviewRequired: false,
+  },
+  promotion_blocked: {
+    label: 'Promotion blocked',
+    description:
+      'Promotion was refused. The original candidate and evidence metadata are preserved.',
+    reviewRequired: true,
+  },
+  promotion_requires_limitation: {
+    label: 'Promotion requires limitation',
+    description:
+      'The originating issuer response was legally_only; promotion requires an explicit limitation note before a PSV receipt can be issued.',
+    reviewRequired: true,
+  },
+  promotion_requires_policy_acceptance: {
+    label: 'Promotion requires policy acceptance',
+    description:
+      'Promotion is blocked until policy review accepts the candidate. Reject, request_more_info, reroute, and pending decisions cannot promote.',
+    reviewRequired: true,
+  },
+  promotion_requires_source_basis: {
+    label: 'Promotion requires source basis',
+    description:
+      'Promotion requires a source basis to be carried by the candidate; the contracted-agent / source distinction must be preserved on the receipt.',
+    reviewRequired: true,
+  },
+};
+
+export function psvReceiptCopy(key: PsvReceiptCopyKey): StatusCopy {
+  return PSV_RECEIPT_COPY[key];
+}

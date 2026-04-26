@@ -43,6 +43,11 @@ The conceptual graph defining how truth moves through VitalCV.
 38. **Conflict Review**: The dedicated review step that resolves a corrected-issuer-response conflict before any candidate is accepted.
 39. **Review Outcome**: The structured result of a policy review decision, including whether a PSVReceiptCandidate was produced and the gate that blocked when it was not.
 40. **Corrected Issuer Response**: An issuer response that returns corrected detail; it triggers a conflict review and never directly creates proof.
+41. **PSV Receipt Promotion**: The discrete promotion step from a PSVReceiptCandidate to a scoped PSVReceipt; only an accepted policy review may produce one.
+42. **PSV Receipt Scope**: The narrative bounds of a PSV receipt — what claim type it covers, what it does not cover, and the source-of-record it speaks for.
+43. **PSV Receipt Limitation**: An explicit limitation that travels with a PSV receipt (legally_only, partial_confirmation, contracted_agent, access_required, jurisdictional_scope, or other).
+44. **Audit Metadata**: Structured metadata anchored to a PSV receipt indicating whether a real audit-event row was written; defaults to pending_not_written on demo surfaces.
+45. **Freshness Policy**: The TTL window for a PSV receipt — issuance time, ttlDays, and the absolute timestamp at which the receipt becomes stale.
 
 
 ## Edges
@@ -87,6 +92,14 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Policy Review Action` RECORDED_BY `Policy Review Decision`
 * `Policy Review Decision` PRODUCES `Review Outcome`
 * `Conflict Review` RESOLVES `Corrected Issuer Response`
+* `PSV Receipt Candidate` MAY_PROMOTE_TO `PSV Receipt`
+* `PSV Receipt Promotion` REQUIRES `Policy Review Decision`
+* `PSV Receipt` HAS_SCOPE `PSV Receipt Scope`
+* `PSV Receipt` HAS_LIMITATION `PSV Receipt Limitation`
+* `PSV Receipt` REFERENCES `Issuer Response`
+* `PSV Receipt` REFERENCES `Source Basis`
+* `PSV Receipt` MAY_ANCHOR `Audit Metadata`
+* `PSV Receipt` BOUND_BY `Freshness Policy`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -119,4 +132,9 @@ The conceptual graph defining how truth moves through VitalCV.
 26. **Evidence Preservation Boundary**: Rejection and other refusals preserve the original `IssuerResponse` and `ReceiptCandidate` audit metadata; the underlying evidence is never deleted by a policy review decision.
 27. **PSVReceiptCandidate Boundary**: A `PSVReceiptCandidate` is candidate-grade output (`decisionGrade: false`, `proofTier: 'psv_receipt_candidate'`). It is not a global PSV receipt and is not automatically reusable credential proof; promotion to `PSV Receipt` is gated by a separate review.
 28. **Audit Honesty Boundary**: The policy review surface does not write a real audit-event row. Audit metadata recorded on the demo surface is explicitly labeled `recordedBy: 'demo'` and copy on the page does not claim the action was logged to an audit trail.
+29. **PSV Receipt Scope Boundary**: A `PSVReceipt` is scoped evidence, not global credential truth. `globalCredentialTruth` is the literal `false`; the receipt's `scope`, `limitations`, and `freshness` window remain controlling for any downstream credential claim.
+30. **PSV Receipt Promotion Boundary**: Promotion to `PSVReceipt` requires `policyReviewDecision.status === 'accepted_as_psv_candidate'`. Reject, request_more_info, reroute, request_release, conflict_review_required, and any pending decision cannot promote.
+31. **PSV Receipt Origin Refusal Boundary**: `wrong_office` and `unable_to_verify` origin response statuses cannot promote, even if the candidate somehow reached this surface.
+32. **PSV Receipt Limitation Retention Boundary**: `legally_only` origin responses require at least one explicit `PSVReceiptLimitation` entry before promotion. Contracted-agent responses always emit at least one limitation describing the agent / source layer.
+33. **PSV Receipt Audit Honesty Boundary**: `PSVReceipt.auditMetadata.eventState` defaults to `'pending_not_written'` and stays there until a real audit service writes a row. UI copy may not claim a real audit event was written until that wiring exists.
 
