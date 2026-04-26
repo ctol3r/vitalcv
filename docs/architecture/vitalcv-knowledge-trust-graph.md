@@ -48,6 +48,14 @@ The conceptual graph defining how truth moves through VitalCV.
 43. **PSV Receipt Limitation**: An explicit limitation that travels with a PSV receipt (legally_only, partial_confirmation, contracted_agent, access_required, jurisdictional_scope, or other).
 44. **Audit Metadata**: Structured metadata anchored to a PSV receipt indicating whether a real audit-event row was written; defaults to pending_not_written on demo surfaces.
 45. **Freshness Policy**: The TTL window for a PSV receipt — issuance time, ttlDays, and the absolute timestamp at which the receipt becomes stale.
+46. **PSV Receipt Reuse Decision**: A reviewer-facing decision that evaluates whether a scoped PSV receipt may be reused as scoped evidence for a new purpose; checks freshness, revocation, supersession, scope, and limitations.
+47. **PSV Receipt Reuse Request**: The verifier ask to reuse a receipt (target receipt + reuse scope + caller-controlled clock); does not imply automatic acceptance.
+48. **PSV Receipt Freshness Window**: The derived freshness reading for a receipt at a given clock — fresh / needs_refresh / expired plus daysRemaining.
+49. **PSV Receipt Revocation State**: Modeled revocation status for a receipt — VitalCV records revocations when reported; it does not actively poll sources.
+50. **PSV Receipt Supersession**: Modeled state when a newer receipt replaces an older one for the same source/claim.
+51. **Reuse Policy**: The rules that govern how a `PSVReceiptReuseDecision` is computed (freshness threshold, scope match, limitation policy, revocation/supersession handling).
+52. **Source Recheck Request**: A request to perform a fresh source check when reuse cannot be supported; the request itself is not verification.
+53. **Scoped Evidence**: How a reused PSV receipt is presented to a verifier — bounded by the receipt's scope, limitations, and freshness; not a guarantee of acceptance or current source truth.
 
 
 ## Edges
@@ -100,6 +108,15 @@ The conceptual graph defining how truth moves through VitalCV.
 * `PSV Receipt` REFERENCES `Source Basis`
 * `PSV Receipt` MAY_ANCHOR `Audit Metadata`
 * `PSV Receipt` BOUND_BY `Freshness Policy`
+* `PSV Receipt` MAY_BE_REUSED_AS `Scoped Evidence`
+* `PSV Receipt Reuse Decision` EVALUATES `PSV Receipt`
+* `PSV Receipt Reuse Decision` CHECKS `PSV Receipt Freshness Window`
+* `PSV Receipt Reuse Decision` CHECKS `PSV Receipt Revocation State`
+* `PSV Receipt Reuse Decision` CHECKS `PSV Receipt Scope`
+* `PSV Receipt Reuse Decision` MAY_REQUIRE `Source Recheck Request`
+* `PSV Receipt Supersession` REPLACES `PSV Receipt`
+* `PSV Receipt Reuse Request` TARGETS `PSV Receipt`
+* `Reuse Policy` GOVERNS `PSV Receipt Reuse Decision`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -137,4 +154,8 @@ The conceptual graph defining how truth moves through VitalCV.
 31. **PSV Receipt Origin Refusal Boundary**: `wrong_office` and `unable_to_verify` origin response statuses cannot promote, even if the candidate somehow reached this surface.
 32. **PSV Receipt Limitation Retention Boundary**: `legally_only` origin responses require at least one explicit `PSVReceiptLimitation` entry before promotion. Contracted-agent responses always emit at least one limitation describing the agent / source layer.
 33. **PSV Receipt Audit Honesty Boundary**: `PSVReceipt.auditMetadata.eventState` defaults to `'pending_not_written'` and stays there until a real audit service writes a row. UI copy may not claim a real audit event was written until that wiring exists.
+34. **PSV Receipt Reuse Boundary**: Reuse of a `PSVReceipt` is not automatic verifier acceptance; "reusable" means may-be-considered as scoped evidence within the receipt's scope, limitations, and freshness window. A reuse decision does NOT upgrade `globalCredentialTruth`, which remains the literal `false`.
+35. **No Live Monitoring Boundary**: VitalCV does not actively poll source systems for revocation or change. A receipt's revocation/supersession state is **modeled** — recorded when reported. Absence of a recorded revocation is not a guarantee of current source truth.
+36. **Reuse Refusal Boundary**: Expired, revoked, or superseded receipts cannot be reused. Scope mismatch (different claim type or different source organization) blocks reuse. Limitations on a receipt can block reuse for purposes the limitation does not cover (e.g., legally_only receipts cannot back clinical-scope reuse).
+37. **Reuse Audit Honesty Boundary**: `PSVReceiptReuseDecision.auditMetadata.eventState` defaults to `'pending_not_written'`. The reuse review surface does not write a real audit-event row and does not call source APIs.
 

@@ -51,7 +51,15 @@
     "PSVReceiptScope",
     "PSVReceiptLimitation",
     "AuditMetadata",
-    "FreshnessPolicy"
+    "FreshnessPolicy",
+    "PSVReceiptReuseDecision",
+    "PSVReceiptReuseRequest",
+    "PSVReceiptFreshnessWindow",
+    "PSVReceiptRevocationState",
+    "PSVReceiptSupersession",
+    "ReusePolicy",
+    "SourceRecheckRequest",
+    "ScopedEvidence"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -103,6 +111,15 @@
     { "source": "PSVReceipt", "relation": "REFERENCES", "target": "SourceBasis" },
     { "source": "PSVReceipt", "relation": "MAY_ANCHOR", "target": "AuditMetadata" },
     { "source": "PSVReceipt", "relation": "BOUND_BY", "target": "FreshnessPolicy" },
+    { "source": "PSVReceipt", "relation": "MAY_BE_REUSED_AS", "target": "ScopedEvidence" },
+    { "source": "PSVReceiptReuseDecision", "relation": "EVALUATES", "target": "PSVReceipt" },
+    { "source": "PSVReceiptReuseDecision", "relation": "CHECKS", "target": "PSVReceiptFreshnessWindow" },
+    { "source": "PSVReceiptReuseDecision", "relation": "CHECKS", "target": "PSVReceiptRevocationState" },
+    { "source": "PSVReceiptReuseDecision", "relation": "CHECKS", "target": "PSVReceiptScope" },
+    { "source": "PSVReceiptReuseDecision", "relation": "MAY_REQUIRE", "target": "SourceRecheckRequest" },
+    { "source": "PSVReceiptSupersession", "relation": "REPLACES", "target": "PSVReceipt" },
+    { "source": "PSVReceiptReuseRequest", "relation": "TARGETS", "target": "PSVReceipt" },
+    { "source": "ReusePolicy", "relation": "GOVERNS", "target": "PSVReceiptReuseDecision" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -151,7 +168,15 @@
     "legally_only origin responses require at least one explicit limitation before promotion.",
     "PSVReceipt limitations and freshness policy remain controlling for any downstream credential claim.",
     "PSVReceipt.globalCredentialTruth is the literal false; the receipt is scoped to its source check, not a free pass to credential the clinician for everything.",
-    "PSVReceipt audit metadata defaults to eventState='pending_not_written'; UI may not claim a real audit-event row was written until a real audit service is wired."
+    "PSVReceipt audit metadata defaults to eventState='pending_not_written'; UI may not claim a real audit-event row was written until a real audit service is wired.",
+    "Reuse of a PSVReceipt is not automatic verifier acceptance; reusable means may-be-considered as scoped evidence, not finalized verification.",
+    "Reuse does not imply current source truth; VitalCV does not actively poll source systems for revocation or change.",
+    "Expired, revoked, and superseded receipts cannot be reused.",
+    "Revocation and supersession are recorded when reported; absence of a recorded revocation is not a guarantee of current source truth.",
+    "Scope mismatch (different claim type or different source organization) blocks reuse; a different receipt or a fresh source check is required.",
+    "Limitations on a receipt can block reuse for purposes the limitation does not cover (e.g., legally_only receipts cannot back clinical-scope reuse).",
+    "A reuse decision keeps PSVReceipt.globalCredentialTruth as the literal false; reuse never upgrades the receipt's truth tier.",
+    "The reuse review surface defaults audit eventState to 'pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
