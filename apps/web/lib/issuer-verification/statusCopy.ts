@@ -377,3 +377,130 @@ export const PSV_RECEIPT_REUSE_COPY: Record<PsvReceiptReuseCopyKey, StatusCopy> 
 export function psvReceiptReuseCopy(key: PsvReceiptReuseCopyKey): StatusCopy {
   return PSV_RECEIPT_REUSE_COPY[key];
 }
+
+/**
+ * Reviewer-safe copy for issuer request lifecycle statuses.
+ *
+ * Truth contract:
+ *   - No copy renders as the bare word "Verified".
+ *   - Copy never makes the issuer-affirmation overclaim outside the
+ *     response-status copy that legitimately covers it (that copy
+ *     lives in REVIEW_STATE_COPY).
+ *   - Copy never claims a real audit-event row was written.
+ *   - "Sent" and "viewed" copy is unambiguous about who attested it.
+ */
+export type IssuerRequestLifecycleCopyKey =
+  | 'draft'
+  | 'consent_required'
+  | 'consent_recorded'
+  | 'ready_to_send'
+  | 'manual_link_generated'
+  | 'copied_by_requester'
+  | 'sent_by_requester'
+  | 'viewed_by_issuer'
+  | 'response_received'
+  | 'receipt_candidate_created'
+  | 'policy_review_pending'
+  | 'psv_receipt_promoted'
+  | 'closed'
+  | 'canceled'
+  | 'expired';
+
+export const ISSUER_REQUEST_LIFECYCLE_COPY: Record<
+  IssuerRequestLifecycleCopyKey,
+  StatusCopy
+> = {
+  draft: {
+    label: 'Draft',
+    description:
+      'Verification request is being prepared. No issuer contact has been made.',
+    reviewRequired: false,
+  },
+  consent_required: {
+    label: 'Consent required',
+    description:
+      'Holder consent must be recorded before a manual send link can be generated.',
+    reviewRequired: false,
+  },
+  consent_recorded: {
+    label: 'Consent recorded',
+    description:
+      'Holder consent has been recorded for this verification scope.',
+    reviewRequired: false,
+  },
+  ready_to_send: {
+    label: 'Ready to send',
+    description:
+      'Consent is in place. The requester may now generate a manual send link.',
+    reviewRequired: false,
+  },
+  manual_link_generated: {
+    label: 'Manual link generated',
+    description:
+      'A manual send link has been generated. Generation is not delivery; the requester must copy and send the link manually.',
+    reviewRequired: false,
+  },
+  copied_by_requester: {
+    label: 'Copied by requester',
+    description:
+      'The requester has attested to copying the manual link. Copying is not delivery.',
+    reviewRequired: false,
+  },
+  sent_by_requester: {
+    label: 'Sent by requester',
+    description:
+      'The requester has attested to sending the link manually. Send attestation does not mean the issuer has viewed the request.',
+    reviewRequired: false,
+  },
+  viewed_by_issuer: {
+    label: 'Viewed by issuer',
+    description:
+      'The verification surface observed the issuer opening the request. View observation does not mean the claim is finalized.',
+    reviewRequired: false,
+  },
+  response_received: {
+    label: 'Response received',
+    description:
+      'A response has been received from the issuer. Receipt does not finalize verification — see receipt candidate review.',
+    reviewRequired: true,
+  },
+  receipt_candidate_created: {
+    label: 'Receipt candidate created',
+    description:
+      'A receipt candidate has been built from the response. Candidate review and policy review are still required.',
+    reviewRequired: true,
+  },
+  policy_review_pending: {
+    label: 'Policy review pending',
+    description:
+      'The candidate is awaiting policy review. This is not acceptance; reject and request-more-info are valid outcomes.',
+    reviewRequired: true,
+  },
+  psv_receipt_promoted: {
+    label: 'PSV receipt promoted',
+    description:
+      'A scoped PSV receipt has been promoted under policy review. Scope, limitations, and freshness remain controlling; this is not global credential truth.',
+    reviewRequired: false,
+  },
+  closed: {
+    label: 'Closed',
+    description: 'Request has been closed; no further lifecycle events expected.',
+    reviewRequired: false,
+  },
+  canceled: {
+    label: 'Canceled',
+    description: 'Request was canceled before completion.',
+    reviewRequired: false,
+  },
+  expired: {
+    label: 'Expired',
+    description: 'Request expired without completion.',
+    reviewRequired: false,
+  },
+};
+
+export function getIssuerLifecycleStatusCopy(
+  key: IssuerRequestLifecycleCopyKey,
+): StatusCopy {
+  return ISSUER_REQUEST_LIFECYCLE_COPY[key];
+}

@@ -59,7 +59,15 @@
     "PSVReceiptSupersession",
     "ReusePolicy",
     "SourceRecheckRequest",
-    "ScopedEvidence"
+    "ScopedEvidence",
+    "ConsentRequirement",
+    "ConsentArtifactSummary",
+    "ManualIssuerSendLink",
+    "IssuerRequestTimeline",
+    "IssuerRequestLifecycleEvent",
+    "IssuerRequestDeliveryState",
+    "RequesterAction",
+    "IssuerViewEvent"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -120,6 +128,16 @@
     { "source": "PSVReceiptSupersession", "relation": "REPLACES", "target": "PSVReceipt" },
     { "source": "PSVReceiptReuseRequest", "relation": "TARGETS", "target": "PSVReceipt" },
     { "source": "ReusePolicy", "relation": "GOVERNS", "target": "PSVReceiptReuseDecision" },
+    { "source": "IssuerVerificationRequest", "relation": "REQUIRES", "target": "ConsentRequirement" },
+    { "source": "Holder", "relation": "PROVIDES", "target": "ConsentArtifactSummary" },
+    { "source": "ConsentArtifactSummary", "relation": "ENABLES", "target": "ManualIssuerSendLink" },
+    { "source": "RequesterAction", "relation": "COPIES", "target": "ManualIssuerSendLink" },
+    { "source": "RequesterAction", "relation": "MARKS_SENT", "target": "IssuerVerificationRequest" },
+    { "source": "IssuerViewEvent", "relation": "OBSERVES", "target": "IssuerVerificationRequest" },
+    { "source": "IssuerResponse", "relation": "ADVANCES", "target": "IssuerRequestTimeline" },
+    { "source": "IssuerRequestTimeline", "relation": "MAY_CREATE", "target": "ReceiptCandidate" },
+    { "source": "IssuerRequestLifecycleEvent", "relation": "RECORDED_ON", "target": "IssuerRequestTimeline" },
+    { "source": "IssuerRequestDeliveryState", "relation": "ATTESTED_BY", "target": "RequesterAction" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -176,7 +194,14 @@
     "Scope mismatch (different claim type or different source organization) blocks reuse; a different receipt or a fresh source check is required.",
     "Limitations on a receipt can block reuse for purposes the limitation does not cover (e.g., legally_only receipts cannot back clinical-scope reuse).",
     "A reuse decision keeps PSVReceipt.globalCredentialTruth as the literal false; reuse never upgrades the receipt's truth tier.",
-    "The reuse review surface defaults audit eventState to 'pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired."
+    "The reuse review surface defaults audit eventState to 'pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired.",
+    "Consent enables a manual send link to be generated; consent is not verification.",
+    "Manual link generation is not delivery; VitalCV does not send email or SMS from the lifecycle module.",
+    "copied_by_requester and sent_by_requester are requester-attested; they do not mean the issuer received or viewed anything.",
+    "viewed_by_issuer requires an explicit observed event from the verification surface; requester attestation does not satisfy this gate.",
+    "response_received does not finalize verification; receipt candidate review and policy review are still required.",
+    "No issuer request lifecycle status creates global credential truth.",
+    "Lifecycle audit metadata defaults to eventState='pending_not_written'; UI may not claim an audit-event row was written until a real audit service is wired."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
