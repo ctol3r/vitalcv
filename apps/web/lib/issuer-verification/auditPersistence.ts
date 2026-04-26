@@ -22,9 +22,9 @@ import type {
  *     is governed by ISSUER-2/3/4/5 — the audit boundary cannot
  *     upgrade it.
  *   - This module is a pure transform — no database, no network, no
- *     external API calls, no email/text/callback dispatch. The
- *     no-op writer is the reference implementation; a real
- *     repository-backed writer is a future wave.
+ *     external API calls, no outbound notification or callback
+ *     dispatch. The no-op writer is the reference implementation;
+ *     a real repository-backed writer is a future wave.
  */
 
 /** The lifecycle action types this module knows how to record. */
