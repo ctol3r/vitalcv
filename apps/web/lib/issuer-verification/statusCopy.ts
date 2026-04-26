@@ -1,4 +1,7 @@
-import type { VerificationRequestStatus } from './types';
+import type {
+  ReceiptCandidateReviewState,
+  VerificationRequestStatus,
+} from './types';
 
 /**
  * Clinician-safe copy for each VerificationRequestStatus.
@@ -91,4 +94,65 @@ export const STATUS_COPY: Record<VerificationRequestStatus, StatusCopy> = {
 
 export function statusCopy(status: VerificationRequestStatus): StatusCopy {
   return STATUS_COPY[status];
+}
+
+/**
+ * Clinician-/reviewer-safe copy for each ReceiptCandidateReviewState.
+ *
+ * No copy here may say a candidate is "verified" without policy
+ * qualification. The preferred phrasing is "ready for policy review",
+ * "receipt candidate", "requires review", or
+ * "does not finalize verification".
+ */
+export const REVIEW_STATE_COPY: Record<ReceiptCandidateReviewState, StatusCopy> = {
+  review_required: {
+    label: 'Requires review',
+    description:
+      'Receipt candidate created. This requires review and does not finalize verification.',
+    reviewRequired: true,
+  },
+  ready_for_policy_review: {
+    label: 'Ready for policy review',
+    description:
+      'Receipt candidate is ready for policy review. This does not finalize verification on its own.',
+    reviewRequired: true,
+  },
+  conflict_review_required: {
+    label: 'Conflict review required',
+    description:
+      'Issuer returned a corrected version; conflict review is required before any proof is derived.',
+    reviewRequired: true,
+  },
+  release_required: {
+    label: 'Release required',
+    description:
+      'A release form is required before the issuer will respond. Receipt candidate is paused.',
+    reviewRequired: false,
+  },
+  reroute_required: {
+    label: 'Reroute required',
+    description:
+      'Request must be rerouted to another office. Receipt candidate does not finalize verification.',
+    reviewRequired: false,
+  },
+  unable_to_verify: {
+    label: 'Unable to verify',
+    description:
+      'Issuer could not verify this claim from their records; this is not a confirmation.',
+    reviewRequired: true,
+  },
+  expired: {
+    label: 'Expired',
+    description: 'Receipt candidate expired without policy review.',
+    reviewRequired: false,
+  },
+  canceled: {
+    label: 'Canceled',
+    description: 'Receipt candidate was canceled before policy review.',
+    reviewRequired: false,
+  },
+};
+
+export function reviewStateCopy(state: ReceiptCandidateReviewState): StatusCopy {
+  return REVIEW_STATE_COPY[state];
 }

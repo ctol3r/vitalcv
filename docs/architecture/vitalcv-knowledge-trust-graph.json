@@ -35,7 +35,11 @@
     "ContractedAgent",
     "ReceiptCandidate",
     "SourceOrIssuer",
-    "VerificationRoute"
+    "VerificationRoute",
+    "ReceiptCandidateReview",
+    "AttributedResponder",
+    "SourceBasis",
+    "PolicyReviewDecision"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -65,6 +69,11 @@
     { "source": "IssuerResponse", "relation": "MAY_CONFIRM", "target": "Credential Claim" },
     { "source": "IssuerResponse", "relation": "MAY_CORRECT", "target": "Credential Claim" },
     { "source": "IssuerResponse", "relation": "PRODUCES", "target": "ReceiptCandidate" },
+    { "source": "ReceiptCandidate", "relation": "REQUIRES", "target": "ReceiptCandidateReview" },
+    { "source": "ReceiptCandidateReview", "relation": "MAY_CREATE", "target": "PSV Receipt" },
+    { "source": "AttributedResponder", "relation": "ATTESTS_RESPONSE", "target": "IssuerResponse" },
+    { "source": "PolicyReviewDecision", "relation": "ACCEPTS_OR_REJECTS", "target": "ReceiptCandidate" },
+    { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
   ],
@@ -90,7 +99,12 @@
     "requires_release pauses the request.",
     "Contracted agent responses must name the agent.",
     "Contracted agent responses must preserve the distinction between agent and source basis.",
-    "Clinician consent is required where applicable."
+    "Clinician consent is required where applicable.",
+    "A receipt candidate is not a final PSV receipt.",
+    "Only a policy review decision can convert a receipt candidate into a PSV receipt.",
+    "A corrected response creates a conflict review; it does not create proof.",
+    "legally_only does not create full proof, even on a confirmed-style outcome.",
+    "The contracted-agent / source distinction must be retained on the receipt candidate."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
