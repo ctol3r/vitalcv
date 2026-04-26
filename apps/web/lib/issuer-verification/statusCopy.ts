@@ -1,4 +1,5 @@
 import type {
+  PolicyReviewDecisionStatus,
   ReceiptCandidateReviewState,
   VerificationRequestStatus,
 } from './types';
@@ -155,4 +156,75 @@ export const REVIEW_STATE_COPY: Record<ReceiptCandidateReviewState, StatusCopy> 
 
 export function reviewStateCopy(state: ReceiptCandidateReviewState): StatusCopy {
   return REVIEW_STATE_COPY[state];
+}
+
+/**
+ * Reviewer-safe copy for each PolicyReviewDecisionStatus.
+ *
+ * Truth contract:
+ *   - No status renders as the bare word "Verified".
+ *   - Accepted decisions speak of "PSV receipt candidate", not a final
+ *     PSV receipt or final credentialing proof.
+ *   - Rejected, request_more_info, and cancel statuses make explicit
+ *     that nothing has been verified by this decision.
+ */
+export const POLICY_REVIEW_COPY: Record<PolicyReviewDecisionStatus, StatusCopy> = {
+  pending_review: {
+    label: 'Pending policy review',
+    description:
+      'Receipt candidate is awaiting policy review. This is not final credentialing proof.',
+    reviewRequired: true,
+  },
+  accepted_as_psv_candidate: {
+    label: 'Accepted as PSV receipt candidate',
+    description:
+      'Policy review accepted the candidate; the result is a PSV receipt candidate. This does not finalize verification on its own.',
+    reviewRequired: true,
+  },
+  rejected: {
+    label: 'Rejected',
+    description:
+      'Policy review rejected the candidate. The original issuer response and evidence metadata are preserved.',
+    reviewRequired: false,
+  },
+  request_more_info: {
+    label: 'Request more information',
+    description:
+      'Reviewer asked the issuer for additional detail. This does not finalize verification.',
+    reviewRequired: true,
+  },
+  requires_release: {
+    label: 'Requires release',
+    description:
+      'A release form is required before the candidate can be reviewed for acceptance. Decision is paused.',
+    reviewRequired: true,
+  },
+  reroute_required: {
+    label: 'Reroute required',
+    description:
+      'Request must be rerouted to another office before any acceptance. This decision does not verify the claim.',
+    reviewRequired: true,
+  },
+  conflict_review_required: {
+    label: 'Conflict review required',
+    description:
+      'A corrected response or other conflict must be resolved by conflict review before the candidate can be accepted.',
+    reviewRequired: true,
+  },
+  expired: {
+    label: 'Expired',
+    description: 'Policy review window expired without a decision.',
+    reviewRequired: false,
+  },
+  canceled: {
+    label: 'Canceled',
+    description: 'Policy review was canceled before a decision was reached.',
+    reviewRequired: false,
+  },
+};
+
+export function policyReviewCopy(
+  status: PolicyReviewDecisionStatus,
+): StatusCopy {
+  return POLICY_REVIEW_COPY[status];
 }

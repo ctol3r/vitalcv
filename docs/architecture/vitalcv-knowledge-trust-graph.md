@@ -37,6 +37,12 @@ The conceptual graph defining how truth moves through VitalCV.
 32. **Attributed Responder**: The named party VitalCV believes provided an issuer response — recorded explicitly, separate from the source itself.
 33. **Source Basis**: The source-of-record a response speaks for, plus any contracted-agent layer between VitalCV and that source.
 34. **Policy Review Decision**: The accept-or-reject outcome of a receipt-candidate review; only this outcome can convert a candidate into a PSV receipt.
+35. **Policy Review Actor**: The named reviewer (policy reviewer, credentialing committee, or compliance officer) recorded against a policy review decision.
+36. **Policy Review Action**: The discrete action chosen by the reviewer — accept_candidate, reject_candidate, request_more_info, request_release, reroute, mark_conflict_review, or cancel.
+37. **PSV Receipt Candidate**: The output of an accepted policy review. Still candidate-grade — not a global PSV receipt, not decision-grade, and not automatically reusable credential proof.
+38. **Conflict Review**: The dedicated review step that resolves a corrected-issuer-response conflict before any candidate is accepted.
+39. **Review Outcome**: The structured result of a policy review decision, including whether a PSVReceiptCandidate was produced and the gate that blocked when it was not.
+40. **Corrected Issuer Response**: An issuer response that returns corrected detail; it triggers a conflict review and never directly creates proof.
 
 
 ## Edges
@@ -71,6 +77,16 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Attributed Responder` ATTESTS_RESPONSE `Issuer Response`
 * `Issuer Response` HAS_SOURCE_BASIS `Source Basis`
 * `Policy Review Decision` ACCEPTS_OR_REJECTS `Receipt Candidate`
+* `Receipt Candidate` REQUIRES `Policy Review Decision`
+* `Policy Review Decision` ACCEPTS `Receipt Candidate`
+* `Policy Review Decision` REJECTS `Receipt Candidate`
+* `Policy Review Decision` REQUESTS_MORE_INFO `Issuer Verification Request`
+* `Policy Review Decision` MAY_CREATE `PSV Receipt Candidate`
+* `PSV Receipt Candidate` MAY_BECOME `PSV Receipt`
+* `Policy Review Actor` PERFORMS `Policy Review Action`
+* `Policy Review Action` RECORDED_BY `Policy Review Decision`
+* `Policy Review Decision` PRODUCES `Review Outcome`
+* `Conflict Review` RESOLVES `Corrected Issuer Response`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -96,4 +112,11 @@ The conceptual graph defining how truth moves through VitalCV.
 19. **Conflict Review Boundary**: A corrected response creates a conflict review, not proof.
 20. **Legally-Only Boundary**: A `legally_only` response does not create full proof — it remains review_required even on an otherwise confirmed-style outcome.
 21. **Source Basis Retention**: The contracted-agent / source distinction must be retained on the receipt candidate; the agent and the source are never collapsed into one identity.
+22. **Policy Review Acceptance Boundary**: Only the `accept_candidate` action under policy review may produce a `PSVReceiptCandidate`. `reject_candidate`, `request_more_info`, `request_release`, `reroute`, `mark_conflict_review`, and `cancel` never produce one.
+23. **Acceptance Precondition Boundary**: `accept_candidate` requires the receipt candidate to be in `ready_for_policy_review`. `review_required`, `conflict_review_required`, `release_required`, `reroute_required`, `unable_to_verify`, `expired`, and `canceled` cannot produce a `PSVReceiptCandidate`.
+24. **Refused-Response Acceptance Boundary**: `wrong_office` and `unable_to_verify` responses cannot produce a `PSVReceiptCandidate` even if their review state is somehow misrouted; the builder refuses by response status.
+25. **Legally-Only Limitation Boundary**: A `legally_only` response may only produce a `PSVReceiptCandidate` if an explicit limitation note travels with the candidate.
+26. **Evidence Preservation Boundary**: Rejection and other refusals preserve the original `IssuerResponse` and `ReceiptCandidate` audit metadata; the underlying evidence is never deleted by a policy review decision.
+27. **PSVReceiptCandidate Boundary**: A `PSVReceiptCandidate` is candidate-grade output (`decisionGrade: false`, `proofTier: 'psv_receipt_candidate'`). It is not a global PSV receipt and is not automatically reusable credential proof; promotion to `PSV Receipt` is gated by a separate review.
+28. **Audit Honesty Boundary**: The policy review surface does not write a real audit-event row. Audit metadata recorded on the demo surface is explicitly labeled `recordedBy: 'demo'` and copy on the page does not claim the action was logged to an audit trail.
 

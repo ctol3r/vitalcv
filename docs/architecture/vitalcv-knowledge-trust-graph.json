@@ -39,7 +39,13 @@
     "ReceiptCandidateReview",
     "AttributedResponder",
     "SourceBasis",
-    "PolicyReviewDecision"
+    "PolicyReviewDecision",
+    "PolicyReviewActor",
+    "PolicyReviewAction",
+    "PSVReceiptCandidate",
+    "ConflictReview",
+    "ReviewOutcome",
+    "CorrectedIssuerResponse"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -73,6 +79,16 @@
     { "source": "ReceiptCandidateReview", "relation": "MAY_CREATE", "target": "PSV Receipt" },
     { "source": "AttributedResponder", "relation": "ATTESTS_RESPONSE", "target": "IssuerResponse" },
     { "source": "PolicyReviewDecision", "relation": "ACCEPTS_OR_REJECTS", "target": "ReceiptCandidate" },
+    { "source": "ReceiptCandidate", "relation": "REQUIRES", "target": "PolicyReviewDecision" },
+    { "source": "PolicyReviewDecision", "relation": "ACCEPTS", "target": "ReceiptCandidate" },
+    { "source": "PolicyReviewDecision", "relation": "REJECTS", "target": "ReceiptCandidate" },
+    { "source": "PolicyReviewDecision", "relation": "REQUESTS_MORE_INFO", "target": "IssuerVerificationRequest" },
+    { "source": "PolicyReviewDecision", "relation": "MAY_CREATE", "target": "PSVReceiptCandidate" },
+    { "source": "PSVReceiptCandidate", "relation": "MAY_BECOME", "target": "PSV Receipt" },
+    { "source": "PolicyReviewActor", "relation": "PERFORMS", "target": "PolicyReviewAction" },
+    { "source": "PolicyReviewAction", "relation": "RECORDED_BY", "target": "PolicyReviewDecision" },
+    { "source": "PolicyReviewDecision", "relation": "PRODUCES", "target": "ReviewOutcome" },
+    { "source": "ConflictReview", "relation": "RESOLVES", "target": "CorrectedIssuerResponse" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -104,10 +120,19 @@
     "Only a policy review decision can convert a receipt candidate into a PSV receipt.",
     "A corrected response creates a conflict review; it does not create proof.",
     "legally_only does not create full proof, even on a confirmed-style outcome.",
-    "The contracted-agent / source distinction must be retained on the receipt candidate."
+    "The contracted-agent / source distinction must be retained on the receipt candidate.",
+    "Only an accept_candidate policy review action may produce a PSVReceiptCandidate.",
+    "accept_candidate requires the receipt candidate to be in ready_for_policy_review.",
+    "wrong_office and unable_to_verify responses cannot produce a PSVReceiptCandidate.",
+    "conflict_review_required candidates cannot be accepted without conflict resolution.",
+    "legally_only acceptances require an explicit limitation note before producing a PSVReceiptCandidate.",
+    "request_more_info, reject, reroute, request_release, mark_conflict_review, and cancel never produce a PSVReceiptCandidate.",
+    "Rejection preserves the original IssuerResponse and ReceiptCandidate evidence metadata.",
+    "A PSVReceiptCandidate is not a global PSV receipt; promotion requires a separate gate.",
+    "Audit events are only claimed when a real audit-event row is written; demo metadata is labeled as such."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
   ],
-  "lastUpdated": "2026-04-24"
+  "lastUpdated": "2026-04-26"
 }
