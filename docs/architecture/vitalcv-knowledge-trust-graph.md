@@ -64,6 +64,13 @@ The conceptual graph defining how truth moves through VitalCV.
 59. **Issuer Request Delivery State**: Whether a manual link has been copied or sent — requester-attested unless a delivery integration exists.
 60. **Requester Action**: A discrete action the requester took (copy, mark-sent, etc.) — attested provenance, not observation.
 61. **Issuer View Event**: An observed event recorded when the verification surface sees the issuer open the request — does not mean the claim is verified.
+62. **Issuer Audit Event Record**: The structured record VitalCV would persist for an issuer-flow action (consent recorded, link generated, viewed, etc.). Carries persistence status, mode, payload hash, correlation, and replay-safe flag.
+63. **Issuer Audit Writer**: The interface that turns a record into a persistence outcome. The reference no-op writer never persists; a repository writer is a future wave.
+64. **Issuer Audit Persistence Mode**: Which writer is wired in this environment — `none`, `demo`, `noop`, `repository`, or `external`. Only `repository` and `external` may produce a `persisted` status.
+65. **Issuer Lifecycle Replay**: The replay surface that gathers audit event records for a request. Replay shows recorded workflow context; it is not legal proof.
+66. **Issuer Audit Correlation**: The grouping (correlationId + requestId + optional subjectId) that threads lifecycle events into a single replay.
+67. **Payload Hash**: Optional cryptographic anchoring for an audit event payload. Empty placeholder by default; only fabricated by a writer with anchoring support (future wave).
+68. **Replay-Safe Event**: An audit event record marked safe to include in a lifecycle replay. Replay-safe is context, not proof.
 
 
 ## Edges
@@ -135,6 +142,14 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Issuer Request Timeline` MAY_CREATE `Receipt Candidate`
 * `Issuer Request Lifecycle Event` RECORDED_ON `Issuer Request Timeline`
 * `Issuer Request Delivery State` ATTESTED_BY `Requester Action`
+* `Issuer Request Timeline` MAY_PRODUCE `Issuer Audit Event Record`
+* `Issuer Audit Writer` PERSISTS `Issuer Audit Event Record`
+* `Issuer Lifecycle Replay` REPLAYS `Issuer Audit Event Record`
+* `Issuer Audit Event Record` REFERENCES `Related Artifact`
+* `Payload Hash` BINDS `Issuer Audit Event Record`
+* `Issuer Audit Correlation` GROUPS `Issuer Request Lifecycle Event`
+* `Issuer Audit Event Record` HAS_MODE `Issuer Audit Persistence Mode`
+* `Replay-Safe Event` MAY_BE_INCLUDED_IN `Issuer Lifecycle Replay`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -181,4 +196,9 @@ The conceptual graph defining how truth moves through VitalCV.
 40. **Attested vs Observed Boundary**: `copied_by_requester` and `sent_by_requester` are requester-attested (`source: 'attested'`). `viewed_by_issuer` and `response_received` require an observed event (`source: 'observed'`) from the verification surface. Requester attestation is never sufficient to satisfy the observed-event gate.
 41. **Lifecycle Audit Honesty Boundary**: `IssuerRequestLifecycleAuditMetadata.eventState` defaults to `'pending_not_written'`. UI may not claim a real audit-event row was written until a real audit service is wired.
 42. **No Lifecycle Truth Crossing Boundary**: No issuer request lifecycle status creates global credential truth. `psv_receipt_promoted` reflects the ISSUER-4 promotion outcome (scoped evidence with `globalCredentialTruth: false`); it does not, by being on the timeline, upgrade any claim's truth tier.
+43. **Audit Persistence Boundary**: An audit event record's `persistenceStatus` is `pending_not_written` by default. Only an `IssuerAuditWriter` whose `mode` is `'repository'` or `'external'` can produce `persisted`. Demo / no-op writers cannot — the boundary downgrades any false `persisted: true` claim to `demo_not_persisted` defensively.
+44. **Audit Records Are Action History Boundary**: Audit event records describe action history (who did what, when), not clinical truth. They never change a claim's proof tier and never set `globalCredentialTruth=true`.
+45. **Replay-Safe Is Not Legal Proof Boundary**: `replaySafe` means an event MAY be included in a timeline replay for context. It does NOT mean legal proof; the replay disclaimer makes this explicit.
+46. **No Fake Persistence Boundary**: Demo, no-op, and `none` writers cannot return `persisted: true`. The boundary helper enforces this at runtime regardless of what the writer claims.
+47. **Payload Hash Honesty Boundary**: `payloadHash` is an empty-string placeholder by default. A non-empty hash is fabricated only by a writer with cryptographic anchoring; this slice does not ship one.
 
