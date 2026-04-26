@@ -215,14 +215,18 @@ describe('buildManualIssuerSendLink', () => {
     expect(link.instructions.toLowerCase()).not.toContain('vitalcv sends');
   });
 
-  it('generation does not constitute delivery — instructions explicitly disclaim sending', () => {
+  it('generation does not constitute delivery — instructions explicitly disclaim VitalCV-side dispatch', () => {
     const link = buildManualIssuerSendLink(ok(), {
       linkId: 'link-1',
       baseUrl: 'https://demo.vitalcv.example',
       generatedAt: '2026-04-26T01:00:00.000Z',
       ttlMinutes: 60,
     });
-    expect(link.instructions.toLowerCase()).toContain('vitalcv does not send');
+    expect(link.instructions.toLowerCase()).toMatch(
+      /vitalcv does not (dispatch|send)/,
+    );
+    expect(link.instructions.toLowerCase()).toContain('manually');
+    expect(link.instructions.toLowerCase()).toContain('the requester');
   });
 });
 

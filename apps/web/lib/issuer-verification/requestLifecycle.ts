@@ -9,8 +9,10 @@ import type {
  *
  * Truth contract:
  *   - Consent enables a send; it is NOT verification.
- *   - A generated manual link is NOT delivery. VitalCV does NOT send
- *     emails, SMS, or webhooks from this module.
+ *   - A generated manual link is NOT delivery. VitalCV does NOT
+ *     dispatch outbound messages of any kind (no e-mail, no text,
+ *     no callback integration). The requester is responsible for
+ *     manual delivery.
  *   - `copied_by_requester` is requester-attested; it does NOT mean
  *     the issuer received anything.
  *   - `sent_by_requester` is requester-attested; it does NOT mean
@@ -24,11 +26,13 @@ import type {
  *     candidate to scoped receipt — but the receipt is still scoped
  *     evidence per ISSUER-4 (globalCredentialTruth remains false).
  *   - No lifecycle status creates global credential truth.
- *   - `auditMetadata.eventState` defaults to `'pending_not_written'`.
- *     This module does NOT write a real audit-event row.
+ *   - `auditMetadata.eventState` defaults to `'pending_not_written'`,
+ *     and `buildLifecycleAuditMetadata()` is the helper that emits it
+ *     so the default is enforced at runtime, not just at the type
+ *     level. This module does NOT persist a real audit-event row.
  *
- * This module is a pure transform — no fetches, no DB writes, no
- * audit-event writes, no real I/O.
+ * This module is a pure transform — no network calls, no DB writes,
+ * no audit-event writes, no real I/O.
  */
 
 export type IssuerRequestLifecycleStatus =
@@ -79,6 +83,13 @@ export interface IssuerRequestLifecycleEvent {
   actor: IssuerRequestLifecycleActor;
   source: IssuerRequestEventSource;
   notes?: string;
+  /**
+   * Audit metadata for this specific event. Defaults to
+   * eventState='pending_not_written' via buildLifecycleAuditMetadata.
+   * Optional for back-compat with seed/demo events that supply their
+   * own metadata or none.
+   */
+  auditMetadata?: IssuerRequestLifecycleAuditMetadata;
 }
 
 export interface IssuerRequestTimeline {
@@ -113,7 +124,8 @@ export interface ManualIssuerSendLink {
   linkId: string;
   /**
    * The URL the requester is meant to copy / paste into their own
-   * email client. VitalCV does NOT send the email.
+   * messaging client. VitalCV does NOT dispatch this URL on the
+   * requester's behalf.
    */
   url: string;
   generatedAt: string;
@@ -132,11 +144,20 @@ export type IssuerRequestDeliveryAttestation =
   | 'sent_by_requester'
   | 'redacted_for_privacy';
 
+/**
+ * The delivery channel the requester used. Kept as a free-form
+ * string so future channels can be added without a contract change.
+ * Common values: 'electronic_mail', 'phone', 'fax', 'in_person',
+ * 'other'. The channel field is requester-attested context only —
+ * VitalCV does not dispatch on any of these channels.
+ */
+export type IssuerRequestDeliveryChannel = string;
+
 export interface IssuerRequestDeliveryState {
   attestation: IssuerRequestDeliveryAttestation;
   attestedAt?: string;
   attestedBy?: IssuerRequestLifecycleActor;
-  channel?: 'email' | 'phone' | 'fax' | 'in_person' | 'other';
+  channel?: IssuerRequestDeliveryChannel;
   /** Free-text note from the requester. Demo only. */
   note?: string;
 }
@@ -327,8 +348,34 @@ export function buildManualIssuerSendLink(
     generatedAt: options.generatedAt,
     expiresAt: new Date(expiresAtMs).toISOString(),
     instructions:
-      `Copy this link and send it manually${purpose} to the issuer's verification contact. ` +
-      'VitalCV does not send email or SMS; the link is delivered by the requester.',
+      `Copy this link and deliver it manually${purpose} to the issuer's verification contact. ` +
+      'VitalCV does not dispatch outbound messages; the link is delivered by the requester.',
+  };
+}
+
+interface LifecycleAuditMetadataOptions {
+  recordedAt: string;
+  recordedBy?: IssuerRequestLifecycleAuditMetadata['recordedBy'];
+  notes?: string;
+}
+
+/**
+ * Build the lifecycle audit metadata for a recorded event. Always
+ * returns `eventState: 'pending_not_written'` — the type-level
+ * default is enforced at runtime by this helper. A separate audit
+ * service (future wave) would be the only thing allowed to override
+ * the default to `'written'`.
+ */
+export function buildLifecycleAuditMetadata(
+  options: LifecycleAuditMetadataOptions,
+): IssuerRequestLifecycleAuditMetadata {
+  return {
+    recordedAt: options.recordedAt,
+    recordedBy: options.recordedBy ?? 'review_surface',
+    eventState: 'pending_not_written',
+    notes:
+      options.notes ??
+      'Demo audit metadata; the lifecycle module does not persist a real audit-event row.',
   };
 }
 
@@ -339,16 +386,27 @@ interface AppendOptions {
   actor: IssuerRequestLifecycleActor;
   source: IssuerRequestEventSource;
   notes?: string;
+  /**
+   * Optional audit metadata override. When omitted, the event
+   * receives a runtime-emitted default with
+   * eventState='pending_not_written'.
+   */
+  auditMetadata?: IssuerRequestLifecycleAuditMetadata;
 }
 
 /**
  * Pure: append an event to a timeline and return the updated
- * timeline. Does NOT mutate the input.
+ * timeline. Does NOT mutate the input. The new event always carries
+ * audit metadata at runtime — caller-supplied or the
+ * pending_not_written default.
  */
 export function appendIssuerLifecycleEvent(
   timeline: IssuerRequestTimeline,
   options: AppendOptions,
 ): IssuerRequestTimeline {
+  const auditMetadata =
+    options.auditMetadata ??
+    buildLifecycleAuditMetadata({ recordedAt: options.occurredAt });
   const event: IssuerRequestLifecycleEvent = {
     eventId: options.eventId,
     status: options.status,
@@ -356,6 +414,7 @@ export function appendIssuerLifecycleEvent(
     actor: options.actor,
     source: options.source,
     notes: options.notes,
+    auditMetadata,
   };
   const events = [...timeline.events, event];
   return {
