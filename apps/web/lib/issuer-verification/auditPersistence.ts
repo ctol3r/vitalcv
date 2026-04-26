@@ -161,6 +161,24 @@ export interface IssuerAuditWriteResult {
   persistedId?: string;
   /** Optional error info when status === 'failed'. */
   error?: { code: string; message: string };
+  /**
+   * ISSUER-8 — Optional adapter decision metadata. When a writer
+   * was selected via the persistence-adapter boundary
+   * (auditPersistenceAdapter.ts), the decision payload is surfaced
+   * here so callers can show the operator which adapter ran. Setting
+   * this field does NOT change the persistence guarantee — the
+   * `persisted` flag remains the load-bearing signal.
+   */
+  adapterDecision?: {
+    kind:
+      | 'noop'
+      | 'demo'
+      | 'repository_candidate'
+      | 'repository_enabled'
+      | 'unavailable';
+    reason: string;
+    wiringDescription?: string;
+  };
 }
 
 /**
