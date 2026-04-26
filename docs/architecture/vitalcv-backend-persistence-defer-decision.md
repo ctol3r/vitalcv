@@ -1,0 +1,122 @@
+# VitalCV — Backend Persistence Defer Decision (ISSUER-9)
+
+**Decision**: `defer_until_contract_aligned`
+**Decided**: 2026-04-26 (during ISSUER-9 build)
+**Implied adapter kind**: `repository_candidate`
+**Outcome**: No real backend persistence is wired in this slice. The no-op audit writer remains the default. The persistence adapter for `apps/web` stays at `repository_candidate` until the conditions below are satisfied.
+
+This memo is the canonical source of truth for **why** VitalCV does not turn on backend persistence for issuer audit / PSV receipt artifacts in ISSUER-9, **what** must change first, and **how** to re-evaluate.
+
+---
+
+## Context
+
+The ISSUER-1..8 chain produces seven structured artifacts at the web layer (`apps/web/lib/issuer-verification/`):
+
+- `ReceiptCandidate` (ISSUER-2)
+- `PolicyReviewDecision` and `PSVReceiptCandidate` (ISSUER-3)
+- `PSVReceipt` with scope / limitations / freshness / `globalCredentialTruth: false` literal (ISSUER-4)
+- `PSVReceiptReuseDecision` with revocation / supersession state (ISSUER-5)
+- `IssuerRequestTimeline` and `IssuerRequestLifecycleEvent` (ISSUER-6)
+- `IssuerAuditEventRecord` and `IssuerLifecycleReplay` (ISSUER-7)
+- `IssuerAuditPersistenceAdapter` decision (ISSUER-8)
+
+The existing backend repository (`apps/api/backend/repositories/psvReceipts.repo.ts`) is Prisma-bound, lives in the `chai-vc-platform-backend` package, and predates the issuer-verification chain. It stores the legacy `PsvReceiptSnapshot` shape (snake_case `receipt_id`, `fetched_at`, `ttl_seconds`, `revoked`, `source_authority`, `attestor_id`, `verification_request_id`).
+
+ISSUER-9 was scoped to either implement or explicitly defer real backend persistence. After contract audit, **defer is the only safe path**.
+
+---
+
+## Why defer
+
+The backend repository contract is structurally incompatible with the issuer-verification truth contract. Each of these blockers is independently sufficient to defer; together they require either a major schema change or a parallel, contract-aligned schema.
+
+### 1. `contract_shape_mismatch`
+- Backend `PsvReceiptSnapshot` is a flat snake_case row keyed by `receipt_id`.
+- ISSUER-4 `PSVReceipt` is a nested camelCase object: `psvReceiptId`, `psvCandidateId`, `receiptCandidateId`, `requestId`, `claimId`, `claimType`, `promotedAt`, `promotedBy`, `sourceBasis`, `attributedResponder`, `scope`, `limitations`, `freshness`, `proofTier`, `decisionGrade`, `globalCredentialTruth`, `auditMetadata`.
+- The two shapes do not intersect on most fields. A blind row write would silently drop the truth-contract fields the issuer chain depends on.
+
+### 2. `missing_limitations`
+- Backend row has no `limitations` array. ISSUER-4 mandates an array of `PSVReceiptLimitation` (`legally_only`, `partial_confirmation`, `contracted_agent`, `access_required`, `jurisdictional_scope`, `other`).
+- A receipt without its limitations is structurally unsafe — e.g., a `legally_only` response stripped of its limitation could be misread as a full clinical confirmation.
+
+### 3. `missing_source_basis`
+- Backend row has `source_authority` (a string enum: `OIG_LEIE`, `STATE_BOARD`, etc.). ISSUER-2/3 require `SourceBasis` carrying both the source-of-record and any contracted-agent layer (`isContractedAgent`, `agentName`, `agentActsFor`).
+- Persisting only `source_authority` collapses the contracted-agent / source distinction. The truth contract forbids that collapse.
+
+### 4. `missing_responder_attribution`
+- Backend row has `attestor_id` (string). ISSUER-2 requires `AttributedResponder` (`name`, `role`, `attributedAt`, `attributionMethod`).
+- An `attestor_id` without the attribution method (`self_attested` / `directory_match` / `partner_assertion` / `unknown`) drops the load-bearing attribution-quality signal.
+
+### 5. `missing_freshness_scope`
+- Backend row has `ttl_seconds` (number). ISSUER-4 requires `FreshnessPolicy` (`ttlDays`, `issuedAt`, `staleAfter`) AND `PSVReceiptScope` (`claimType`, `covers`, `doesNotCover`, `sourceOrganizationName`).
+- A TTL without scope language cannot bound the credential claim the receipt supports.
+
+### 6. `no_writer_confirmation`
+- Backend repo has no audit-event table; there is no writer that confirms an `IssuerAuditEventRecord` was persisted. ISSUER-7's truth contract requires a writer to flip `persistenceStatus` to `'persisted'`.
+
+### 7. `client_server_boundary_violation`
+- Importing the backend repository into `apps/web/lib/issuer-verification/` would pull server-only Prisma into the web client bundle and break Next.js builds. ISSUER-8 closed this boundary explicitly and tests assert no static import of `apps/api/`, `@vitalcv/psv`, `prisma_client`, or `psvReceipts.repo`.
+- A client-safe RPC boundary (server action, REST endpoint, or RPC) is required first.
+
+### 8. `untested_repository`
+- The backend repository has no test coverage in PR-time CI. Persistence behavior — including the failure modes this defer memo cares about (idempotency, partial writes, error handling) — is not verified.
+
+### 9. `migration_required`
+- Aligning the backend schema requires adding columns/tables for: `limitations` (jsonb array), `source_basis` (jsonb), `attributed_responder` (jsonb), `scope` (jsonb), `freshness` (jsonb), candidate-vs-receipt distinction (column or separate table), and an audit-event table. This is a schema migration outside the scope of any single issuer wave.
+
+---
+
+## What re-enabling persistence requires
+
+Each of the following must be true before `evaluateBackendPersistenceReadiness` returns `implement_now`:
+
+1. **Schema alignment** — backend persistence has columns/tables matching the ISSUER-2..7 contracts (limitations, source basis, responder attribution, scope, freshness, audit events, candidate vs receipt).
+2. **Server-only writer** — `apps/web/lib/issuer-verification/serverRepositoryAuditAdapter.ts` exists, is server-only (Next.js server action or RPC route), confirms each row before reporting `persisted`, and is under test.
+3. **Client/server boundary tests** — automated proof that no backend module is imported into the client bundle.
+4. **Repository test coverage** — backend repository has tests asserting every truth-contract field round-trips and partial writes fail loud.
+5. **Operator opt-in** — the persistence adapter requires `enableRepositoryWrites: true` AND a separate operator-controlled flag before the adapter transitions to `repository_enabled`.
+
+When all five are true, set the corresponding `BackendPersistenceCapabilityCheck` flags to `satisfied: true` in the readiness input. The decision will flip to `implement_now`.
+
+---
+
+## Adapter acceptance criteria
+
+A future server-only adapter MUST satisfy:
+
+- ✅ Returns `persisted: true` only when a real row was written and confirmed by the underlying repository.
+- ✅ Carries the `IssuerAuditEventRecord` and `PSVReceipt` truth-contract fields verbatim (no field-dropping).
+- ✅ Refuses to run from client code (verified by build-time checks).
+- ✅ Reports `failed` with an error code when the repository rejects a row.
+- ✅ Surfaces the `BackendPersistenceDecision` artifact alongside the write result for audit-trail provenance.
+- ✅ Has tests covering: success path, failure path, partial-write rollback, double-write idempotency, schema-mismatch detection.
+
+---
+
+## Next safe implementation wave
+
+ISSUER-10 (or named follow-up) should:
+
+1. Open a parallel schema track that introduces the contract-aligned tables (`issuer_audit_event`, `psv_receipt_v2`, etc.) WITHOUT breaking the existing `psvReceipts.repo.ts`.
+2. Land a server-only writer module under `apps/api/backend/` (NOT `apps/web/`).
+3. Wire a Next.js server action or RPC under `apps/web/app/api/` that the persistence adapter can call from client code without crossing the bundle boundary.
+4. Add adapter tests proving:
+   - persisted=true only after writer confirmation
+   - all truth-contract fields preserved
+   - no client-bundle imports of backend modules
+5. Re-run `evaluateBackendPersistenceReadiness` with all capabilities `satisfied: true` and confirm the decision flips to `implement_now`.
+6. Toggle the persistence adapter from `repository_candidate` to `repository_enabled` — and only then.
+
+---
+
+## Status of this memo
+
+This memo is **authoritative documentation**. The defer decision is encoded in:
+
+- `apps/web/lib/issuer-verification/backendPersistenceDecision.ts` — runtime decision helpers.
+- `apps/web/__tests__/issuer-backend-persistence-decision.test.ts` — tests asserting the defer path is the default.
+- `apps/web/app/issuer/backend-persistence/[requestId]/page.tsx` — review surface that renders the decision.
+- `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` — graph nodes / edges / rules / boundaries.
+
+If a future change updates the runtime defaults, this memo MUST be updated in the same wave.
