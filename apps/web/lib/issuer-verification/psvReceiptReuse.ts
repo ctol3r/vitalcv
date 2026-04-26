@@ -384,26 +384,27 @@ export function buildPsvReceiptReuseDecision(
   options: DecisionOptions,
 ): PSVReceiptReuseDecision {
   // Run structural gates first so we can build a decision even when
-  // freshness data is missing (without throwing).
+  // freshness/source-basis/responder/audit data is missing (without
+  // calling getPsvReceiptFreshnessState, which would throw on a
+  // missing freshness window).
   const structural = structuralFailureReason(request.receipt);
-  const freshness: PSVReceiptFreshnessWindow = structural === 'missing_freshness_window'
-    ? {
-        ttlDays: 0,
-        issuedAt: '(missing)',
-        staleAfter: '(missing)',
-        nowIso: request.nowIso,
-        state: 'expired',
-        daysRemaining: 0,
-      }
+  const fallbackFreshness: PSVReceiptFreshnessWindow = {
+    ttlDays: 0,
+    issuedAt: '(unavailable)',
+    staleAfter: '(unavailable)',
+    nowIso: request.nowIso,
+    state: 'expired',
+    daysRemaining: 0,
+  };
+  const freshness: PSVReceiptFreshnessWindow = structural
+    ? fallbackFreshness
     : getPsvReceiptFreshnessState(
         request.receipt,
         request.nowIso,
         request.refreshSoftThresholdDays ?? 0,
       );
   const failure =
-    structural === 'missing_freshness_window'
-      ? structural
-      : getPsvReceiptReuseFailureReason(request, freshness);
+    structural ?? getPsvReceiptReuseFailureReason(request, freshness);
   const revocation =
     request.revocation ?? { state: 'not_revoked', source: 'demo' };
   const supersession =
