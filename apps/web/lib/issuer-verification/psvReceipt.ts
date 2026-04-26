@@ -165,10 +165,13 @@ interface ReceiptArtifactOptions {
 }
 
 /**
- * Build the PSVReceipt artifact. Internal helper — callers should go
- * through `promotePsvReceiptCandidate` so the gates run.
+ * Build the PSVReceipt artifact. **Module-internal**: callers MUST go
+ * through `promotePsvReceiptCandidate` so the policy-review gate
+ * runs. This is intentionally not exported — exporting it would
+ * provide an ungated construction path that bypasses the truth
+ * contract.
  */
-export function buildPsvReceiptArtifact(
+function buildPsvReceiptArtifact(
   options: ReceiptArtifactOptions,
 ): PSVReceipt {
   const { candidate } = options;
