@@ -56,6 +56,14 @@ The conceptual graph defining how truth moves through VitalCV.
 51. **Reuse Policy**: The rules that govern how a `PSVReceiptReuseDecision` is computed (freshness threshold, scope match, limitation policy, revocation/supersession handling).
 52. **Source Recheck Request**: A request to perform a fresh source check when reuse cannot be supported; the request itself is not verification.
 53. **Scoped Evidence**: How a reused PSV receipt is presented to a verifier — bounded by the receipt's scope, limitations, and freshness; not a guarantee of acceptance or current source truth.
+54. **Consent Requirement**: Whether a clinician release is required for a given claim type and the scope under which the issuer is asked to act.
+55. **Consent Artifact Summary**: A stable summary of a recorded consent artifact — id, scope, status, timestamps, optional release-form pointer.
+56. **Manual Issuer Send Link**: A URL the requester copies and sends to the issuer manually. VitalCV does not send the email or SMS; generation is not delivery.
+57. **Issuer Request Timeline**: The ordered sequence of lifecycle events recorded against an issuer verification request.
+58. **Issuer Request Lifecycle Event**: A single event on the timeline (status, actor, source, occurredAt, optional notes).
+59. **Issuer Request Delivery State**: Whether a manual link has been copied or sent — requester-attested unless a delivery integration exists.
+60. **Requester Action**: A discrete action the requester took (copy, mark-sent, etc.) — attested provenance, not observation.
+61. **Issuer View Event**: An observed event recorded when the verification surface sees the issuer open the request — does not mean the claim is verified.
 
 
 ## Edges
@@ -117,6 +125,16 @@ The conceptual graph defining how truth moves through VitalCV.
 * `PSV Receipt Supersession` REPLACES `PSV Receipt`
 * `PSV Receipt Reuse Request` TARGETS `PSV Receipt`
 * `Reuse Policy` GOVERNS `PSV Receipt Reuse Decision`
+* `Issuer Verification Request` REQUIRES `Consent Requirement`
+* `Holder` PROVIDES `Consent Artifact Summary`
+* `Consent Artifact Summary` ENABLES `Manual Issuer Send Link`
+* `Requester Action` COPIES `Manual Issuer Send Link`
+* `Requester Action` MARKS_SENT `Issuer Verification Request`
+* `Issuer View Event` OBSERVES `Issuer Verification Request`
+* `Issuer Response` ADVANCES `Issuer Request Timeline`
+* `Issuer Request Timeline` MAY_CREATE `Receipt Candidate`
+* `Issuer Request Lifecycle Event` RECORDED_ON `Issuer Request Timeline`
+* `Issuer Request Delivery State` ATTESTED_BY `Requester Action`
 * `Contracted Agent` ACTS_FOR `Source`
 
 
@@ -158,4 +176,9 @@ The conceptual graph defining how truth moves through VitalCV.
 35. **No Live Monitoring Boundary**: VitalCV does not actively poll source systems for revocation or change. A receipt's revocation/supersession state is **modeled** — recorded when reported. Absence of a recorded revocation is not a guarantee of current source truth.
 36. **Reuse Refusal Boundary**: Expired, revoked, or superseded receipts cannot be reused. Scope mismatch (different claim type or different source organization) blocks reuse. Limitations on a receipt can block reuse for purposes the limitation does not cover (e.g., legally_only receipts cannot back clinical-scope reuse).
 37. **Reuse Audit Honesty Boundary**: `PSVReceiptReuseDecision.auditMetadata.eventState` defaults to `'pending_not_written'`. The reuse review surface does not write a real audit-event row and does not call source APIs.
+38. **Consent Enables, Does Not Verify Boundary**: Holder consent is the precondition for generating a manual send link. Consent is NOT verification; it does not, on its own, advance the truth tier of any claim.
+39. **Manual Send Boundary**: VitalCV does not send email, SMS, or webhooks from the lifecycle module. Manual link generation is not delivery; a generated link only enables the requester to copy and send manually.
+40. **Attested vs Observed Boundary**: `copied_by_requester` and `sent_by_requester` are requester-attested (`source: 'attested'`). `viewed_by_issuer` and `response_received` require an observed event (`source: 'observed'`) from the verification surface. Requester attestation is never sufficient to satisfy the observed-event gate.
+41. **Lifecycle Audit Honesty Boundary**: `IssuerRequestLifecycleAuditMetadata.eventState` defaults to `'pending_not_written'`. UI may not claim a real audit-event row was written until a real audit service is wired.
+42. **No Lifecycle Truth Crossing Boundary**: No issuer request lifecycle status creates global credential truth. `psv_receipt_promoted` reflects the ISSUER-4 promotion outcome (scoped evidence with `globalCredentialTruth: false`); it does not, by being on the timeline, upgrade any claim's truth tier.
 
