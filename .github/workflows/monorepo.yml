@@ -79,7 +79,15 @@ jobs:
       - name: Run tests (non-backend packages)
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
-        run: pnpm turbo run test --filter=!@vitalcv/api
+        # The backend's actual package name is chai-vc-platform-backend
+        # (see apps/api/backend/package.json), NOT @vitalcv/api. Without
+        # excluding both names, the backend integration test suite ran
+        # on every push to main and failed (no DB, no external service
+        # mocks) — repeatedly red since at least PR #167. Real backend
+        # test coverage lives in .github/workflows/ci-preflight.yml
+        # (see the "backend tests" step there); the deploy-api job in
+        # this file only builds the backend, it does not test it.
+        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
 
   deploy-api:
     name: Deploy API
