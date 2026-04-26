@@ -45,7 +45,13 @@
     "PSVReceiptCandidate",
     "ConflictReview",
     "ReviewOutcome",
-    "CorrectedIssuerResponse"
+    "CorrectedIssuerResponse",
+    "PSVReceipt",
+    "PSVReceiptPromotion",
+    "PSVReceiptScope",
+    "PSVReceiptLimitation",
+    "AuditMetadata",
+    "FreshnessPolicy"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -89,6 +95,14 @@
     { "source": "PolicyReviewAction", "relation": "RECORDED_BY", "target": "PolicyReviewDecision" },
     { "source": "PolicyReviewDecision", "relation": "PRODUCES", "target": "ReviewOutcome" },
     { "source": "ConflictReview", "relation": "RESOLVES", "target": "CorrectedIssuerResponse" },
+    { "source": "PSVReceiptCandidate", "relation": "MAY_PROMOTE_TO", "target": "PSVReceipt" },
+    { "source": "PSVReceiptPromotion", "relation": "REQUIRES", "target": "PolicyReviewDecision" },
+    { "source": "PSVReceipt", "relation": "HAS_SCOPE", "target": "PSVReceiptScope" },
+    { "source": "PSVReceipt", "relation": "HAS_LIMITATION", "target": "PSVReceiptLimitation" },
+    { "source": "PSVReceipt", "relation": "REFERENCES", "target": "IssuerResponse" },
+    { "source": "PSVReceipt", "relation": "REFERENCES", "target": "SourceBasis" },
+    { "source": "PSVReceipt", "relation": "MAY_ANCHOR", "target": "AuditMetadata" },
+    { "source": "PSVReceipt", "relation": "BOUND_BY", "target": "FreshnessPolicy" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
     { "source": "Start Outcome", "relation": "CLOSES_LOOP", "target": "Employer Review" }
@@ -129,7 +143,15 @@
     "request_more_info, reject, reroute, request_release, mark_conflict_review, and cancel never produce a PSVReceiptCandidate.",
     "Rejection preserves the original IssuerResponse and ReceiptCandidate evidence metadata.",
     "A PSVReceiptCandidate is not a global PSV receipt; promotion requires a separate gate.",
-    "Audit events are only claimed when a real audit-event row is written; demo metadata is labeled as such."
+    "Audit events are only claimed when a real audit-event row is written; demo metadata is labeled as such.",
+    "A PSVReceipt is scoped evidence, not global credential truth.",
+    "Promotion to PSVReceipt requires a policyReviewDecision with status accepted_as_psv_candidate.",
+    "wrong_office and unable_to_verify origin responses cannot promote to a PSVReceipt.",
+    "rejected, request_more_info, reroute, request_release, conflict_review_required, and pending policy decisions cannot promote.",
+    "legally_only origin responses require at least one explicit limitation before promotion.",
+    "PSVReceipt limitations and freshness policy remain controlling for any downstream credential claim.",
+    "PSVReceipt.globalCredentialTruth is the literal false; the receipt is scoped to its source check, not a free pass to credential the clinician for everything.",
+    "PSVReceipt audit metadata defaults to eventState='pending_not_written'; UI may not claim a real audit-event row was written until a real audit service is wired."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
