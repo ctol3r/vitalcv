@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   buildPsvReceiptArtifact,
@@ -577,6 +580,18 @@ describe('PSV receipt copy', () => {
   it('no PSV receipt label is the bare word "Verified"', () => {
     for (const c of Object.values(PSV_RECEIPT_COPY)) {
       expect(c.label).not.toBe('Verified');
+    }
+  });
+
+  it('keeps banned overclaim substrings out of the PSV receipt page source', () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const pagePath = resolve(
+      here,
+      '../app/issuer/psv-receipt/[requestId]/page.tsx',
+    );
+    const src = readFileSync(pagePath, 'utf8').toLowerCase();
+    for (const phrase of BANNED) {
+      expect(src).not.toContain(phrase.toLowerCase());
     }
   });
 });
