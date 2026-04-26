@@ -213,3 +213,38 @@ export function previewRepositoryAdapterResult(
       'Preview only. No repository writer was invoked; no row was persisted.',
   };
 }
+
+/**
+ * ISSUER-9 — surface the upstream backend persistence decision.
+ *
+ * Callers from the persistence-adapter boundary may pass the
+ * `BackendPersistenceDecision` (built by
+ * `evaluateBackendPersistenceReadiness` in
+ * `backendPersistenceDecision.ts`) so the adapter can carry the
+ * deferred-bridge blockers verbatim in its message. The adapter
+ * NEVER returns `persisted: true` here regardless of the upstream
+ * decision — this helper only enriches the explanatory message.
+ */
+export interface RepositoryAdapterDecisionSummary {
+  status: string;
+  blockers: ReadonlyArray<string>;
+  reason: string;
+}
+
+export function previewRepositoryAdapterResultWithDecision(
+  decision: IssuerPersistenceAdapterDecision,
+  record: IssuerAuditEventRecord,
+  upstreamDecision: RepositoryAdapterDecisionSummary,
+): RepositoryAuditAdapterResult {
+  const base = previewRepositoryAdapterResult(decision, record);
+  const blockerSummary =
+    upstreamDecision.blockers.length === 0
+      ? '(no blockers)'
+      : upstreamDecision.blockers.join(', ');
+  return {
+    ...base,
+    message:
+      `${base.message} Upstream backend persistence decision: ${upstreamDecision.status}. ` +
+      `Blockers: ${blockerSummary}. ${upstreamDecision.reason}`,
+  };
+}

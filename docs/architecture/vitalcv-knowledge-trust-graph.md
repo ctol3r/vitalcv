@@ -77,6 +77,12 @@ The conceptual graph defining how truth moves through VitalCV.
 72. **Repository Capability**: A specific capability an adapter is designed to support — `write_audit_event`, `write_psv_receipt`, `replay_lifecycle`, `hash_payload`, `preserve_limitations`, `preserve_source_basis`, `preserve_responder_attribution`.
 73. **Persisted Audit Record**: An audit event record whose write was confirmed by a repository or external writer. Only `repository_enabled` adapters may produce one.
 74. **Persistence Configuration**: The caller-supplied input that drives the adapter decision. There are no environment lookups, no implicit feature flags — the operator must explicitly opt in to repository writes.
+75. **Backend Persistence Decision**: The structured outcome of `evaluateBackendPersistenceReadiness` — status (implement_now / defer_until_contract_aligned / unavailable / unsafe / needs_backend_adapter), implied adapter kind, capability checks, blockers, recommendation. Default is defer.
+76. **Backend Persistence Capability Check**: A single capability the backend repository must offer before persistence is enabled (stores scoped PSV receipt, preserves limitation notes / source basis / responder attribution / freshness scope, distinguishes candidate vs receipt, supports audit event persistence, exposes server-only writer, has test coverage).
+77. **Backend Persistence Blocker**: A discrete reason persistence is blocked (contract shape mismatch, missing limitations / source basis / responder attribution / freshness scope, no writer confirmation, client/server boundary violation, untested repository, migration required).
+78. **Server Repository Audit Adapter**: A future server-only writer that confirms each row. Does NOT exist in this slice; named in the graph so the deferred bridge has a target.
+79. **Writer Confirmation**: The signal a writer emits when a real row was persisted. Required before any record's `persistenceStatus` may be `'persisted'`.
+80. **Contract Alignment**: The shape-compatibility precondition between the legacy backend repository and the issuer-verification truth contract. Must be satisfied before a server adapter may be wired.
 
 
 ## Edges
@@ -162,6 +168,13 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Persistence Adapter Decision` SELECTS `Issuer Audit Persistence Mode`
 * `Persisted Audit Record` REQUIRES `Writer Confirmation`
 * `Persistence Configuration` DRIVES `Persistence Adapter Decision`
+* `Backend Persistence Decision` EVALUATES `Repository Audit Adapter`
+* `Repository Audit Adapter` REQUIRES `Contract Alignment`
+* `Writer Confirmation` REQUIRED_FOR `Persisted Audit Record`
+* `Backend Persistence Blocker` BLOCKS `Persistence Adapter Decision`
+* `Backend Persistence Capability Check` GATES `Backend Persistence Decision`
+* `Server Repository Audit Adapter` MAY_PRODUCE `Persisted Audit Record`
+* `Contract Alignment` PRECEDES `Server Repository Audit Adapter`
 * `Issuer Audit Persistence Adapter` EMITS `Persistence Adapter Decision`
 * `Contracted Agent` ACTS_FOR `Source`
 
@@ -219,4 +232,8 @@ The conceptual graph defining how truth moves through VitalCV.
 50. **Operator Opt-In Boundary**: `enableRepositoryWrites: true` is necessary but not sufficient. Even with the operator flag set, this slice keeps the adapter `unavailable` until a client-safe writer is wired (a future wave).
 51. **No Backend Bundle Crossing Boundary**: The web layer must not import a backend DB writer (Prisma client) into the client bundle. The repository adapter stub documents the deferred bridge and refuses to import any backend module.
 52. **Adapter Cannot Upgrade Truth Tier Boundary**: An adapter never sets `decisionGrade=true`, never changes `proofTier`, and never sets `globalCredentialTruth=true`. The audit boundary's role is action-history persistence — clinical truth invariants live in ISSUER-2/3/4/5.
+53. **Backend Compatibility Is Not Persistence Boundary**: Whether the backend repository can structurally accept a row is independent of whether VitalCV persisted one. Only a writer's confirmation makes a record persisted.
+54. **Defer Is The Default Boundary**: `evaluateBackendPersistenceReadiness` returns `defer_until_contract_aligned` by default. Every capability check must be explicitly satisfied before the decision flips to `implement_now`.
+55. **Server-Only Writer Boundary**: No client-side path may write audit records. A writer is server-only by construction; client code may invoke it only through a Next.js server action / RPC route, never via direct repository import.
+56. **Capability-Gated Implementation Boundary**: The nine `BackendPersistenceCapabilityCheck` capabilities are independent gates. A blocker on any one of them prevents `implement_now`, regardless of how many others are satisfied.
 

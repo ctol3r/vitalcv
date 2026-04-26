@@ -80,7 +80,13 @@
     "PersistenceAdapterDecision",
     "RepositoryCapability",
     "PersistedAuditRecord",
-    "PersistenceConfiguration"
+    "PersistenceConfiguration",
+    "BackendPersistenceDecision",
+    "BackendPersistenceCapabilityCheck",
+    "BackendPersistenceBlocker",
+    "ServerRepositoryAuditAdapter",
+    "WriterConfirmation",
+    "ContractAlignment"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -165,6 +171,13 @@
     { "source": "PersistenceAdapterDecision", "relation": "SELECTS", "target": "IssuerAuditPersistenceMode" },
     { "source": "PersistedAuditRecord", "relation": "REQUIRES", "target": "WriterConfirmation" },
     { "source": "PersistenceConfiguration", "relation": "DRIVES", "target": "PersistenceAdapterDecision" },
+    { "source": "BackendPersistenceDecision", "relation": "EVALUATES", "target": "RepositoryAuditAdapter" },
+    { "source": "RepositoryAuditAdapter", "relation": "REQUIRES", "target": "ContractAlignment" },
+    { "source": "WriterConfirmation", "relation": "REQUIRED_FOR", "target": "PersistedAuditRecord" },
+    { "source": "BackendPersistenceBlocker", "relation": "BLOCKS", "target": "PersistenceAdapterDecision" },
+    { "source": "BackendPersistenceCapabilityCheck", "relation": "GATES", "target": "BackendPersistenceDecision" },
+    { "source": "ServerRepositoryAuditAdapter", "relation": "MAY_PRODUCE", "target": "PersistedAuditRecord" },
+    { "source": "ContractAlignment", "relation": "PRECEDES", "target": "ServerRepositoryAuditAdapter" },
     { "source": "IssuerAuditPersistenceAdapter", "relation": "EMITS", "target": "PersistenceAdapterDecision" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
@@ -243,7 +256,13 @@
     "Adapter availability does not imply active persistence; a writer must invoke and confirm.",
     "The frontend/web layer must not silently import a backend DB writer into the client bundle; a client-safe boundary is required first.",
     "No UI may claim an audit trail exists without a persisted persistence status from a repository or external writer.",
-    "An adapter cannot upgrade proofTier or set globalCredentialTruth=true."
+    "An adapter cannot upgrade proofTier or set globalCredentialTruth=true.",
+    "Backend repository compatibility is not persistence; only a writer's confirmation makes a record persisted.",
+    "Real backend persistence requires writer confirmation per row; absence of confirmation keeps the record at pending_not_written.",
+    "No client-side path may write audit records; the persistence boundary lives on the server.",
+    "Deferring backend persistence is safer than wiring a contract-misaligned writer; defer is the documented default.",
+    "Every BackendPersistenceCapabilityCheck must be satisfied before a BackendPersistenceDecision returns implement_now.",
+    "ServerRepositoryAuditAdapter exists only after contract alignment; this slice does not ship one."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
