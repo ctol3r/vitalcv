@@ -8,6 +8,40 @@ This board tracks the functional reality of VitalCV.
 * It does *not* mean "we wrote a ticket for it" or "the mock exists."
 * **Current Wedge Live Usability: 100% | +100 | production artifact updated and P0 route/API/mobile blockers fixed**
 
+## Status Lexicon
+
+The Completion Board uses exact percentages plus emoji phase labels only.
+
+| % Range | Status Emoji | Status Name |
+|---:|---|---|
+| 0% | 🧊 | Planned |
+| 1–24% | 🌱 | Seed |
+| 25–49% | 🧱 | Foundation |
+| 50–69% | 🛠️ | Buildout |
+| 70–89% | 🚀 | Hardening |
+| 90–99% | ✅ | Target Zone |
+| 100% | 🏁 | Complete |
+
+Forbidden qualitative labels (must never appear in a Status cell):
+- very low
+- low
+- not started
+- partial
+- high
+- almost done
+- near complete
+
+Lookup examples:
+- 0% → 🧊 Planned
+- 8% → 🌱 Seed
+- 18% → 🌱 Seed
+- 35% → 🧱 Foundation
+- 58% → 🛠️ Buildout
+- 82% → 🚀 Hardening
+- 92% → ✅ Target Zone
+
+This board (the GOD-3S snapshot on `origin/main`) carries percentages and prose "Why" cells only — it does not have a Status column to populate. The lexicon above is the **forward spec**: any future board (including the schema introduced in PR #182 and any wave delta report) must use this exact vocabulary.
+
 ## CORE SYSTEM
 | Area | Completion | Delta | Why |
 | :--- | :--- | :--- | :--- |
@@ -100,3 +134,16 @@ This board tracks the functional reality of VitalCV.
 * Root Vercel project: `vcv-web` (`prj_TFcurSwwzG2TCvR9INCVcZlGPiDZ`), buildCommand `pnpm turbo run build --filter=@vitalcv/web`
 * Legacy / non-canonical Vercel project: `vitalcv-marketing` (`prj_Rsi0LSCEbf9QUzVnxEz1uCqmvgXo`)
 * Deploy-path doc: `docs/ops/deploy-canonicality.md`
+
+## Future Wave Reporting Rule
+
+Every future wave must report:
+- exact Current %
+- exact After Target %
+- exact Expected Delta
+- exact Actual Delta
+- emoji phase label (per Status Lexicon)
+- evidence required
+- merge / verification condition
+
+Do not use qualitative maturity words ("very low", "low", "partial", "strong", "high", "near target", "above target", "almost done", "near complete") in place of percentages. Numbers move on merge + verification only; the emoji phase is derived from the percentage, not asserted independently.
