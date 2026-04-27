@@ -1,3 +1,34 @@
+// BACKEND-1 boundary note (2026-04-26):
+//
+// This repository does not yet persist the full issuer PSVReceipt
+// contract.
+//
+// The rows written here are the LEGACY `PSVReceiptSnapshot` shape
+// (receipt_id / source_authority / access_or_license_id /
+// transaction_id / fetched_at / response_hash / ttl_seconds /
+// revoked, plus optional lane / verification_check /
+// verification_outcome / failure_reason / source / attestor_id /
+// verification_request_id). They do NOT carry the issuer
+// trust-contract fields:
+//   - limitations[] (ISSUER-2/4)
+//   - sourceBasis with contracted-agent vs source distinction (ISSUER-2)
+//   - attributedResponder with attributionMethod (ISSUER-2)
+//   - scope (covers / doesNotCover / sourceOrganizationName) (ISSUER-4)
+//   - freshness (ttlDays / issuedAt / staleAfter) (ISSUER-4)
+//   - candidate-vs-receipt distinction (ISSUER-3/4)
+//   - writerConfirmation as the persistence gate (ISSUER-7/8)
+//
+// Persistence here MUST NOT be interpreted as a persisted issuer
+// PSVReceipt under the truth contract — see
+// docs/architecture/vitalcv-backend-persistence-defer-decision.md and
+// packages/domain-core/psvReceiptMapping.ts (mapLegacySnapshotToDomainReceipt
+// always emits a `legacy_snapshot_only` contract gap).
+//
+// A future wave is required to (a) add a contract-aligned schema, and
+// (b) add a server-only writer that confirms each row before reporting
+// persisted status. This file remains untouched in BACKEND-1 except
+// for this header.
+
 import {
   PSVReceipt,
   type AppendReceiptInput,

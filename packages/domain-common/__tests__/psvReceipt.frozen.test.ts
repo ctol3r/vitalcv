@@ -401,3 +401,264 @@ describe('FROZEN: PSVReceipt required fields', () => {
     expect(baseReceipt().hashAnchor).toBeTruthy();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────
+// BACKEND-1 — Domain PSV Receipt contract alignment frozen tests.
+//
+// These tests pin the domain-core mapper / validator behavior. They
+// do NOT exercise the live backend repository; the backend remains
+// untouched in this slice. See
+// docs/architecture/vitalcv-backend-persistence-defer-decision.md.
+// ─────────────────────────────────────────────────────────────────────
+
+// Use a relative path because @vitalcv/domain-common does not list
+// @vitalcv/domain-core in its package.json deps; relative imports
+// work in workspace tests without changing lockfiles.
+import {
+  mapIssuerPsvReceiptToDomainReceipt,
+  mapLegacySnapshotToDomainReceipt,
+  validateDomainPsvReceiptContract,
+  explainDomainPsvReceiptContractGap,
+  type IssuerPsvReceiptShape,
+  type DomainPsvReceipt,
+  type DomainPsvReceiptWriterConfirmation,
+  type PsvReceiptSnapshot,
+} from '../../domain-core';
+
+function fullIssuerInput(): IssuerPsvReceiptShape {
+  return {
+    psvReceiptId: 'psv-receipt-1',
+    psvCandidateId: 'psv-cand-1',
+    receiptCandidateId: 'rc-1',
+    requestId: 'req-1',
+    claimId: 'claim-1',
+    claimType: 'residency',
+    scope: {
+      claimType: 'residency',
+      covers: 'Internal Medicine residency 2018-2021.',
+      doesNotCover:
+        'Does not cover board certification, license status, or malpractice history.',
+      sourceOrganizationName: 'Demo GME Office',
+    },
+    limitations: [],
+    sourceBasis: {
+      sourceOrganizationName: 'Demo GME Office',
+      isContractedAgent: false,
+    },
+    attributedResponder: {
+      name: 'J. Doe',
+      role: 'Program Coordinator',
+      attributedAt: '2026-04-26T01:00:00.000Z',
+      attributionMethod: 'self_attested',
+    },
+    freshness: {
+      ttlDays: 365,
+      issuedAt: '2026-04-26T01:00:00.000Z',
+      staleAfter: '2027-04-26T01:00:00.000Z',
+    },
+  };
+}
+
+function repoConfirmation(): DomainPsvReceiptWriterConfirmation {
+  return {
+    confirmedAt: '2026-04-26T02:00:00.000Z',
+    confirmedBy: 'demo-writer',
+    writerMode: 'repository',
+    persistedRowId: 'row-1',
+  };
+}
+
+describe('BACKEND-1 mapper — required fields surface contract gaps when missing', () => {
+  it('missing limitations produces a missing_limitations gap', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      limitations: undefined,
+    };
+    const { gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(gaps.map((g) => g.kind)).toContain('missing_limitations');
+  });
+
+  it('missing sourceBasis produces a missing_source_basis gap', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      sourceBasis: undefined,
+    };
+    const { gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(gaps.map((g) => g.kind)).toContain('missing_source_basis');
+  });
+
+  it('missing attributedResponder produces a missing_responder_attribution gap', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      attributedResponder: undefined,
+    };
+    const { gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(gaps.map((g) => g.kind)).toContain('missing_responder_attribution');
+  });
+
+  it('missing freshness produces a missing_freshness gap', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      freshness: undefined,
+    };
+    const { gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(gaps.map((g) => g.kind)).toContain('missing_freshness');
+  });
+
+  it('missing scope produces a missing_scope gap', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      scope: undefined,
+    };
+    const { gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(gaps.map((g) => g.kind)).toContain('missing_scope');
+  });
+});
+
+describe('BACKEND-1 mapper — writer confirmation gates persisted status', () => {
+  it('without writerConfirmation, the result is candidate (when candidate refs exist)', () => {
+    const result = mapIssuerPsvReceiptToDomainReceipt(fullIssuerInput());
+    expect(result.contractAligned).toBe(true);
+    expect(result.receipt.status).toBe('candidate');
+  });
+
+  it('with valid repository writerConfirmation AND no gaps, the result is persisted', () => {
+    const result = mapIssuerPsvReceiptToDomainReceipt(fullIssuerInput(), {
+      writerConfirmation: repoConfirmation(),
+    });
+    expect(result.receipt.status).toBe('persisted');
+    expect(result.receipt.writerConfirmation).toEqual(repoConfirmation());
+  });
+
+  it('with writerConfirmation BUT structural gaps, refuses to mark persisted', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      sourceBasis: undefined,
+    };
+    const result = mapIssuerPsvReceiptToDomainReceipt(input, {
+      writerConfirmation: repoConfirmation(),
+    });
+    expect(result.receipt.status).not.toBe('persisted');
+    expect(result.gaps.map((g) => g.kind)).toContain('missing_source_basis');
+  });
+
+  it('writerConfirmation with invalid writerMode is rejected', () => {
+    const result = mapIssuerPsvReceiptToDomainReceipt(fullIssuerInput(), {
+      writerConfirmation: {
+        ...repoConfirmation(),
+        writerMode: 'demo' as unknown as 'repository',
+      },
+    });
+    expect(result.receipt.status).not.toBe('persisted');
+    expect(result.gaps.map((g) => g.kind)).toContain('invalid_writer_mode');
+  });
+});
+
+describe('BACKEND-1 mapper — does not fabricate missing fields', () => {
+  it('missing limitations: receipt.limitations stays undefined (no synthesized empty array)', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      limitations: undefined,
+    };
+    const { receipt } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(receipt.limitations).toBeUndefined();
+  });
+
+  it('missing sourceBasis: receipt.sourceBasis stays undefined', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      sourceBasis: undefined,
+    };
+    const { receipt } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(receipt.sourceBasis).toBeUndefined();
+  });
+
+  it('missing attributedResponder: receipt.responderAttribution stays undefined', () => {
+    const input: IssuerPsvReceiptShape = {
+      ...fullIssuerInput(),
+      attributedResponder: undefined,
+    };
+    const { receipt } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect(receipt.responderAttribution).toBeUndefined();
+  });
+});
+
+describe('BACKEND-1 mapper — does not introduce globalCredentialTruth', () => {
+  it('upstream globalCredentialTruth is dropped and a gap is emitted', () => {
+    const input = {
+      ...fullIssuerInput(),
+      globalCredentialTruth: false,
+    } as IssuerPsvReceiptShape;
+    const { receipt, gaps } = mapIssuerPsvReceiptToDomainReceipt(input);
+    expect((receipt as Record<string, unknown>).globalCredentialTruth).toBeUndefined();
+    expect(gaps.map((g) => g.kind)).toContain(
+      'forbidden_global_credential_truth_field',
+    );
+  });
+
+  it('DomainPsvReceipt type carries no proofTier or decisionGrade fields', () => {
+    const result = mapIssuerPsvReceiptToDomainReceipt(fullIssuerInput(), {
+      writerConfirmation: repoConfirmation(),
+    });
+    const receipt = result.receipt as Record<string, unknown>;
+    expect(receipt.proofTier).toBeUndefined();
+    expect(receipt.decisionGrade).toBeUndefined();
+    expect(receipt.globalCredentialTruth).toBeUndefined();
+  });
+});
+
+describe('BACKEND-1 mapper — legacy PsvReceiptSnapshot is not a full PSVReceipt', () => {
+  it('mapLegacySnapshotToDomainReceipt always emits legacy_snapshot_only gap', () => {
+    const snapshot: PsvReceiptSnapshot = {
+      receiptId: 'legacy-1',
+      fetchedAt: '2026-04-01T00:00:00.000Z',
+      ttlSeconds: 365 * 24 * 60 * 60,
+      revoked: false,
+    };
+    const { gaps, contractAligned } = mapLegacySnapshotToDomainReceipt(snapshot);
+    expect(contractAligned).toBe(false);
+    expect(gaps.map((g) => g.kind)).toContain('legacy_snapshot_only');
+    expect(gaps.map((g) => g.kind)).toContain('missing_limitations');
+    expect(gaps.map((g) => g.kind)).toContain('missing_source_basis');
+    expect(gaps.map((g) => g.kind)).toContain('missing_responder_attribution');
+    expect(gaps.map((g) => g.kind)).toContain('missing_scope');
+  });
+
+  it('legacy snapshot result is pending_not_persisted regardless of writer claim', () => {
+    const snapshot: PsvReceiptSnapshot = {
+      receiptId: 'legacy-1',
+      fetchedAt: '2026-04-01T00:00:00.000Z',
+      ttlSeconds: 100,
+      revoked: false,
+    };
+    const { receipt } = mapLegacySnapshotToDomainReceipt(snapshot);
+    expect(receipt.status).toBe('pending_not_persisted');
+    expect(receipt.writerConfirmation).toBeUndefined();
+  });
+});
+
+describe('BACKEND-1 validator', () => {
+  it('flags missing fields on a persisted receipt', () => {
+    const partial: DomainPsvReceipt = Object.freeze({
+      receiptId: 'r-1',
+      status: 'persisted',
+    });
+    const gaps = validateDomainPsvReceiptContract(partial);
+    const kinds = gaps.map((g) => g.kind);
+    expect(kinds).toContain('missing_scope');
+    expect(kinds).toContain('missing_limitations');
+    expect(kinds).toContain('missing_source_basis');
+    expect(kinds).toContain('missing_responder_attribution');
+    expect(kinds).toContain('missing_freshness');
+    expect(kinds).toContain('missing_writer_confirmation_for_persisted');
+  });
+
+  it('explainDomainPsvReceiptContractGap returns a non-empty string', () => {
+    const text = explainDomainPsvReceiptContractGap({
+      kind: 'missing_limitations',
+      field: 'limitations',
+      message: 'demo',
+    });
+    expect(text.length).toBeGreaterThan(0);
+  });
+});
