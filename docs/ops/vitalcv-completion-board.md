@@ -180,10 +180,10 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Doximity import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
 | PubMed import | 10 | 90 | 80 | +0 | +0 | Concept; no in-product import | 🌱 Seed |
 | CSV / roster import | 30 | 90 | 60 | +0 | +0 | Per existing board: "some CSV ingest; roster mgmt manual" | 🧱 Foundation |
-| Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX scoped | 🧱 Foundation |
+| Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX partial | 🧱 Foundation |
 | Shareable passport | 35 | 90 | 55 | +0 | +0 | `/passport/[id]` route + provenance panel | 🧱 Foundation |
 | Proof pack export | 20 | 90 | 70 | +0 | +0 | Conceptual shape; no audited bundle | 🌱 Seed |
-| Import error handling | 20 | 90 | 70 | +0 | +0 | Inbox classifier handles known states; UX surfacing scoped | 🌱 Seed |
+| Import error handling | 20 | 90 | 70 | +0 | +0 | Inbox classifier handles known states; UX surfacing partial | 🌱 Seed |
 | Import provenance labels | 40 | 90 | 50 | +0 | +0 | 5-tier provenance vocab enforced (Wave GOD-3S) | 🧱 Foundation |
 
 ---
@@ -233,7 +233,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Backend test coverage | 35 | 90 | 55 | +0 | +0 | Issuer 321/321 vitest pass; legacy backend repo lacks coverage | 🧱 Foundation |
 | API route hardening | 25 | 90 | 65 | +0 | +0 | No CORS/helmet/API key story (Phase 1.3) | 🧱 Foundation |
 | Repository adapter | 70 | 90 | 20 | +0 | +0 | (#176/#177) decision boundaries | 🚀 Hardening |
-| Database migration readiness | 5 | 90 | 85 | +0 | +0 | Per memory: SQLite + in-memory; PostgreSQL migration is Phase 1.1 (Phase 1.1 outstanding) | 🌱 Seed |
+| Database migration readiness | 5 | 90 | 85 | +0 | +0 | Per memory: SQLite + in-memory; PostgreSQL migration is Phase 1.1 (not started) | 🌱 Seed |
 
 ---
 
@@ -264,7 +264,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Vercel deploy health | 60 | 90 | 30 | +0 | +0 | Per memory `project_vercel_project_linkage.md`: vitalcv.com → `vcv-web` on `blockchaincv` team | 🛠️ Buildout |
 | Regression test coverage | 45 | 90 | 45 | +0 | +0 | Heavy on issuer slice; thin elsewhere | 🧱 Foundation |
 | Route map coverage | 30 | 90 | 60 | +0 | +0 | No published route map gate | 🧱 Foundation |
-| Smoke tests | 35 | 90 | 55 | +0 | +0 | (#179) preflight smoke scoped | 🧱 Foundation |
+| Smoke tests | 35 | 90 | 55 | +0 | +0 | (#179) preflight smoke partial | 🧱 Foundation |
 | Release checklist | 20 | 90 | 70 | +0 | +0 | No published release checklist | 🌱 Seed |
 
 ---
