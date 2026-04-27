@@ -120,3 +120,42 @@ This memo is **authoritative documentation**. The defer decision is encoded in:
 - `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` — graph nodes / edges / rules / boundaries.
 
 If a future change updates the runtime defaults, this memo MUST be updated in the same wave.
+
+---
+
+## BACKEND-1 status update (2026-04-26)
+
+### What is now satisfied
+
+- **Domain contract aligned at the type level.** `packages/domain-core/psvReceipts.ts` adds (additively, alongside the legacy `PsvReceiptSnapshot`):
+  - `DomainPsvReceipt` with required `scope`, `limitations`, `sourceBasis`, `responderAttribution`, `freshness`, optional `candidateReference`, optional `writerConfirmation`.
+  - `DomainPsvReceiptStatus` (`pending_not_persisted` / `candidate` / `persisted` / `failed_persistence` / `unavailable`).
+  - `DomainPsvReceiptWriterConfirmation` with `writerMode` constrained to `'repository' | 'external'`.
+  - `DomainPsvReceiptContractGap` with 10 explicit gap kinds.
+- **Mapper and validator land in `packages/domain-core/psvReceiptMapping.ts`.** `mapIssuerPsvReceiptToDomainReceipt` maps an issuer-shape PSVReceipt without fabricating fields — every missing field surfaces a contract gap. `validateDomainPsvReceiptContract` emits gaps independently of the mapper. `mapLegacySnapshotToDomainReceipt` always emits a `legacy_snapshot_only` gap so the legacy backend snapshot cannot be silently treated as a full domain receipt.
+- **Persisted status is gated.** A domain receipt can carry `status: 'persisted'` ONLY when (a) every required field is present AND (b) a `writerConfirmation` with `writerMode in {repository, external}` is supplied. Any structural gap blocks persisted; an invalid writer mode blocks persisted.
+- **Frozen tests pin the contract.** `packages/domain-common/__tests__/psvReceipt.frozen.test.ts` adds tests asserting: missing limitations / sourceBasis / responderAttribution / freshness / scope each produce a gap; mapper does not fabricate missing fields; writer confirmation gates persisted; legacy snapshot is not a full receipt; `globalCredentialTruth` is dropped if upstream supplies it; `proofTier` and `decisionGrade` are not present on the domain receipt.
+- **Backend repository carries an honesty header.** `apps/api/backend/repositories/psvReceipts.repo.ts` now opens with a comment block stating that the rows it persists are the legacy snapshot shape and MUST NOT be interpreted as a persisted issuer PSVReceipt under the truth contract. No behavioral change.
+
+### What remains blocked
+
+- **`stores_scoped_psv_receipt`** — the Prisma schema still stores `PsvReceiptSnapshot`; a contract-aligned schema does not exist yet.
+- **`distinguishes_candidate_vs_receipt`** — the Prisma schema does not yet model `PSVReceiptCandidate` separately from a promoted `PSVReceipt`.
+- **`supports_audit_event_persistence`** — there is no `issuer_audit_event` table or writer.
+- **`exposes_server_only_writer`** — no client-safe RPC / server action exists; the persistence boundary still lives across the apps/api ↔ apps/web crossing.
+- **`has_test_coverage`** for the legacy backend repository — the existing repo's behavior is still untested in PR-time CI.
+
+### Acceptance criteria for a real backend writer
+
+A future server-only writer MUST:
+
+1. Accept a `DomainPsvReceipt` (the BACKEND-1 type) plus an internally-generated `writerConfirmation`.
+2. Refuse to write if `validateDomainPsvReceiptContract` returns any gaps.
+3. Map the domain receipt onto a contract-aligned schema (new tables / columns; no overloading the legacy `psvReceipt` row).
+4. Return `persisted: true` only after the underlying repository confirms the row.
+5. Live behind a Next.js server action / RPC route in `apps/web/app/api/...`; `apps/web/lib/issuer-verification/` MUST NOT import the writer directly.
+6. Have tests covering: success path, structural-gap refusal, writer-mode invalidation, partial-write failure, double-write idempotency, no-client-bundle-import.
+
+### Decision still in force
+
+The runtime decision returned by `evaluateBackendPersistenceReadiness` defaults to `defer_until_contract_aligned`. BACKEND-1 closes the **type-level** contract gap; it does not close the **schema-level** or **writer-level** gaps. Real persistence remains off in production code paths.
