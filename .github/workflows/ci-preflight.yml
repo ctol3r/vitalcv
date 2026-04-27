@@ -122,5 +122,14 @@ jobs:
         # sweep excludes DB-dependent backend packages to avoid false
         # failures from missing Railway/DB context (no Clerk auth
         # context, no ISSUER_KEY_ENCRYPTION_SECRET, no seeded UUIDs).
-        # Same exclusion shape applied to monorepo.yml in PR #173 (OPS-DEPLOY-1).
-        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
+        #
+        # Full @vitalcv/web unit tests and the canonical web build are
+        # protected by the Web Quality workflow on Node 22. Railway
+        # preflight runs on the deploy/API Node 20 lane and should not
+        # duplicate the full jsdom web test suite, which can fail before
+        # tests start on Node 20 because of transitive ESM/CJS worker
+        # loading drift. This keeps deploy preflight focused on Railway
+        # backend/package smoke coverage without hiding Web Quality.
+        # Same backend exclusion shape applied to monorepo.yml in
+        # PR #173 (OPS-DEPLOY-1).
+        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend --filter=!@vitalcv/web
