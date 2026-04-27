@@ -117,4 +117,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight
           STRICT_TRANSITION_MODE: "true"
-        run: pnpm test
+        # Backend/API packages that require DB or service mocks are
+        # exercised in backend-specific workflows. The preflight smoke
+        # sweep excludes DB-dependent backend packages to avoid false
+        # failures from missing Railway/DB context (no Clerk auth
+        # context, no ISSUER_KEY_ENCRYPTION_SECRET, no seeded UUIDs).
+        # Same exclusion shape applied to monorepo.yml in PR #173 (OPS-DEPLOY-1).
+        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
