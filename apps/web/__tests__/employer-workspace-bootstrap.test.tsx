@@ -209,7 +209,7 @@ describe('ReviewClient context attribution (source-level)', () => {
       resolve(__dirname, '../components/review/ReviewClient.tsx'),
       'utf-8',
     );
-    expect(src).toContain('Audit trail');
+    expect(src).toContain('Audit-boundary record');
     expect(src).toContain('Actions tied to this context');
     expect(src).toContain('contextId.slice(0, 8)');
   });

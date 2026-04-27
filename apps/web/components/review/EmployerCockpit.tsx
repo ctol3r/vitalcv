@@ -312,7 +312,7 @@ export function EmployerCockpit({ passport }: EmployerCockpitProps) {
         <div className="border-t-4 border-[var(--vt-border)] pt-12 pb-12 sticky bottom-0 bg-[var(--vt-bg)] z-10 flex flex-col md:flex-row justify-between items-center gap-6 mt-24">
           <div>
             <h3 className="text-lg font-bold uppercase tracking-widest mb-1">Make a Decision</h3>
-            <p className="text-xs font-mono opacity-60">Your action will be logged in the audit trail.</p>
+            <p className="text-xs font-mono opacity-60">Your action will be captured as audit-boundary metadata.</p>
           </div>
 
           <div className="flex flex-wrap gap-4 w-full md:w-auto">

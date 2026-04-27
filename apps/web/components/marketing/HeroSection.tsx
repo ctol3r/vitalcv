@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { buildPassportLookupHref } from '@/lib/trust/public-wedge-parity';
 
-const COMPLIANCE_ITEMS = ['Source-backed', 'HIPAA-aligned', 'W3C VC', 'OID4VCI', 'ES256'] as const;
+const COMPLIANCE_ITEMS = ['Source-backed', 'NPPES identity', 'Provenance-tracked', 'VC-compatible architecture (planned)'] as const;
 
 const MOCK_CREDENTIALS = [
   { label: 'State License', level: 'L3', color: 'var(--claim-l3)' },

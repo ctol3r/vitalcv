@@ -388,13 +388,13 @@ export function AkgExplainer({ npi, context, backendUrl }: AkgExplainerProps) {
                     <section className="rounded-2xl border border-teal-500/15 bg-teal-500/5 p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Anchor className="h-4 w-4 text-teal-400" />
-                        <p className="text-xs font-semibold text-teal-400">Cryptographic Audit Anchor</p>
+                        <p className="text-xs font-semibold text-teal-400">Audit-boundary anchor</p>
                       </div>
                       <p className="font-mono text-[11px] text-slate-500 break-all">
                         {result.auditAnchor}
                       </p>
                       <p className="mt-1.5 text-[10px] text-slate-600">
-                        SHA-256 of all path hashes — anchors this response to the audit trail.
+                        Deterministic identifier (SHA-256 of path hashes) for this response&apos;s audit-boundary record.
                       </p>
                     </section>
 

@@ -211,7 +211,7 @@ describe('ReviewClient context attribution', () => {
     expect(src).toContain('Request a review context');
   });
 
-  it('ReviewClient source contains audit trail attribution when contextId present', async () => {
+  it('ReviewClient source contains audit-boundary attribution when contextId present', async () => {
     const { readFileSync } = await import('fs');
     const { resolve } = await import('path');
     const src = readFileSync(
@@ -219,7 +219,7 @@ describe('ReviewClient context attribution', () => {
       'utf-8',
     );
 
-    expect(src).toContain('Audit trail');
+    expect(src).toContain('Audit-boundary record');
     expect(src).toContain('Actions tied to this context');
     expect(src).toContain('contextId.slice(0, 8)');
   });

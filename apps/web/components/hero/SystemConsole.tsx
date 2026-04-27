@@ -156,8 +156,8 @@ export function SystemConsole() {
             </h1>
 
             <p className="max-w-xl body-lg text-muted-foreground">
-              VitalCV automates primary source verification, anchors it to a
-              cryptographic audit trail, and continuously monitors compliance — so
+              VitalCV automates primary source verification, captures each step
+              as audit-boundary metadata, and continuously monitors freshness — so
               clinicians start faster. Data freshness varies by source (daily to quarterly).
             </p>
 
