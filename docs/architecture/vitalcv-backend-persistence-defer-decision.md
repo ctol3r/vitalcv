@@ -159,3 +159,46 @@ A future server-only writer MUST:
 ### Decision still in force
 
 The runtime decision returned by `evaluateBackendPersistenceReadiness` defaults to `defer_until_contract_aligned`. BACKEND-1 closes the **type-level** contract gap; it does not close the **schema-level** or **writer-level** gaps. Real persistence remains off in production code paths.
+
+---
+
+## BACKEND-2 status update (2026-04-27)
+
+### Decision: defer the real writer; ship the boundary only
+
+BACKEND-2 was scoped to either implement a real server-side writer OR ship a writer boundary with a deferred default. After re-auditing the contract readiness against BACKEND-1's still-open blockers, the safe path is **boundary only**.
+
+### Why the writer is still deferred
+
+The schema-level blockers identified in the original memo are unchanged. A "real" writer at this point would have to choose one of three unsafe paths:
+
+1. **Write to the legacy `psvReceipt` table.** This silently drops `limitations`, `sourceBasis` (with contracted-agent vs source distinction), `attributedResponder` (with `attributionMethod`), `scope`, `freshness`, and the candidate-vs-receipt distinction. That is a truth-contract violation — the persisted row would not be a `PSVReceipt` under ISSUER-4 semantics.
+2. **Run a Prisma migration to create a contract-aligned table.** The BACKEND-2 brief explicitly forbids broad migrations: "DO NOT add broad migrations". A migration is the right answer for the next wave; it is not in scope here.
+3. **Write to filesystem JSON or in-memory state.** That is fake persistence — the truth contract requires writer confirmation from a real repository, which JSON files / in-memory stores do not provide.
+
+All three paths violate the truth contract. The boundary-only outcome is the only safe option for this wave.
+
+### What BACKEND-2 ships
+
+**`apps/web/lib/issuer-verification/serverPsvReceiptWriter.ts`** — the writer boundary, with:
+- `ServerPsvReceiptWriter` interface, `ServerPsvReceiptWriteInput`, `ServerPsvReceiptWriteResult`, `ServerPsvReceiptWriteStatus` (`persisted` / `failed` / `unavailable` / `dry_run` / `deferred`), `ServerPsvReceiptWriterFailureReason` (7 reasons), `ServerPsvReceiptWriterConfirmation` (with `writerMode in {repository, external}`).
+- `canUseServerPsvReceiptWriter()` — pure structural gate; refuses missing required fields, refuses forbidden truth-tier fields (`globalCredentialTruth`/`decisionGrade`/`proofTier`), refuses client-supplied `persisted`/`confirmation` flags.
+- `buildServerPsvReceiptWriteInput()` — pure builder; strips forbidden truth-tier fields defensively.
+- `writePsvReceiptWithConfirmation()` — orchestrator that invokes a writer AND validates its result. **Defensively downgrades** any writer that returns `persisted=true` without a valid `writerMode in {repository, external}` confirmation.
+- `createDeferredServerPsvReceiptWriter()` — the BACKEND-2 default. Returns `'deferred'` for valid input, `'failed'` for invalid input, `'dry_run'` when requested. **NEVER returns `persisted=true`.**
+- `createUnavailableServerPsvReceiptWriter()` — returns `'unavailable'` for environments with no writer wired.
+
+**No API route ships.** `apps/web/app/api/issuer/psv-receipt/persist/route.ts` is intentionally NOT created. Per the BACKEND-2 STEP 4 rule, the unsafe path is "do not create route" — and we are unsafe because the table doesn't exist.
+
+### Acceptance criteria for the next wave (BACKEND-3 or named follow-up)
+
+The next wave that turns persistence ON must:
+
+1. Land a Prisma migration that creates a contract-aligned schema (new table(s); no overloading the legacy `psvReceipt` row).
+2. Implement a real server-only writer that accepts a `ServerPsvReceiptWriteInput`, talks to the new table, and returns a `ServerPsvReceiptWriterConfirmation` with `writerMode === 'repository'`.
+3. Land a Next.js server action / API route under `apps/web/app/api/issuer/psv-receipt/persist/` that the persistence-adapter boundary can call from server components — never imported by client code.
+4. Add tests covering: success path, structural-gap refusal, writer-mode invalidation, partial-write rollback, double-write idempotency, no-client-bundle-import, audit-event co-persistence.
+5. Update `evaluateBackendPersistenceReadiness` to return `implement_now` once every capability check is satisfied.
+6. Update `createRepositoryAuditAdapter` to flip from `unavailable` to `repository_enabled` (still requiring per-row writer confirmation).
+
+The BACKEND-2 boundary is designed to drop into that future wave with no API change — the deferred writer just gets replaced by the real one.

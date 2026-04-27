@@ -83,6 +83,10 @@ The conceptual graph defining how truth moves through VitalCV.
 78. **Server Repository Audit Adapter**: A future server-only writer that confirms each row. Does NOT exist in this slice; named in the graph so the deferred bridge has a target.
 79. **Writer Confirmation**: The signal a writer emits when a real row was persisted. Required before any record's `persistenceStatus` may be `'persisted'`.
 80. **Contract Alignment**: The shape-compatibility precondition between the legacy backend repository and the issuer-verification truth contract. Must be satisfied before a server adapter may be wired.
+81. **Server PSV Receipt Writer**: BACKEND-2's writer-boundary contract. Defines `ServerPsvReceiptWriter`, `ServerPsvReceiptWriteInput`, `ServerPsvReceiptWriteResult`, and `ServerPsvReceiptWriterConfirmation`. The default deferred writer NEVER persists; a future repository-backed writer is required to flip `persisted=true`.
+82. **Dry-Run Persistence Attempt**: A write-attempt result with `status: 'dry_run'` and `persisted: false`. Used to validate input shape without writing.
+83. **Failed Persistence Attempt**: A write-attempt result with `status: 'failed'` and `persisted: false`. Set when input is malformed, when the writer rejected the row, or when the boundary downgraded a buggy writer claim.
+84. **Deferred Persistence Attempt**: A write-attempt result with `status: 'deferred'` and `persisted: false`. The BACKEND-2 default; signals that contract alignment is incomplete and the writer cannot run safely.
 
 
 ## Edges
@@ -175,6 +179,12 @@ The conceptual graph defining how truth moves through VitalCV.
 * `Backend Persistence Capability Check` GATES `Backend Persistence Decision`
 * `Server Repository Audit Adapter` MAY_PRODUCE `Persisted Audit Record`
 * `Contract Alignment` PRECEDES `Server Repository Audit Adapter`
+* `Server PSV Receipt Writer` MAY_PRODUCE `Persisted Audit Record`
+* `Server PSV Receipt Writer` EMITS `Writer Confirmation`
+* `Dry-Run Persistence Attempt` DOES_NOT_PRODUCE `Persisted Audit Record`
+* `Failed Persistence Attempt` DOES_NOT_PRODUCE `Persisted Audit Record`
+* `Deferred Persistence Attempt` DOES_NOT_PRODUCE `Persisted Audit Record`
+* `Contract Alignment` PRECEDES `Server PSV Receipt Writer`
 * `Issuer Audit Persistence Adapter` EMITS `Persistence Adapter Decision`
 * `Contracted Agent` ACTS_FOR `Source`
 
@@ -236,4 +246,8 @@ The conceptual graph defining how truth moves through VitalCV.
 54. **Defer Is The Default Boundary**: `evaluateBackendPersistenceReadiness` returns `defer_until_contract_aligned` by default. Every capability check must be explicitly satisfied before the decision flips to `implement_now`.
 55. **Server-Only Writer Boundary**: No client-side path may write audit records. A writer is server-only by construction; client code may invoke it only through a Next.js server action / RPC route, never via direct repository import.
 56. **Capability-Gated Implementation Boundary**: The nine `BackendPersistenceCapabilityCheck` capabilities are independent gates. A blocker on any one of them prevents `implement_now`, regardless of how many others are satisfied.
+57. **Writer Boundary Boundary**: The `ServerPsvReceiptWriter` interface defines the writer contract. The default deferred writer NEVER returns `persisted=true`. Replacing the deferred writer with a repository-backed writer is the load-bearing transition for real persistence.
+58. **Confirmation Required Boundary**: A `ServerPsvReceiptWriteResult` may carry `status: 'persisted'` ONLY if the writer also emits a `ServerPsvReceiptWriterConfirmation` with `writerMode in {repository, external}`. The boundary's `writePsvReceiptWithConfirmation` orchestrator defensively downgrades any persisted claim that lacks a valid confirmation.
+59. **No Client-Persisted-Flag Boundary**: `canUseServerPsvReceiptWriter` refuses input that carries a client-supplied `persisted` or `confirmation` field. Only a real writer may emit a confirmation; clients cannot self-report persistence.
+60. **No Forbidden Truth Tier Boundary**: `ServerPsvReceiptWriteInput` does not type `decisionGrade`/`proofTier`/`globalCredentialTruth`, AND the boundary refuses input that smuggles them in at runtime. The writer cannot upgrade a claim's truth tier under any circumstance.
 

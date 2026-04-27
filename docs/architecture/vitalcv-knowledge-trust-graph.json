@@ -86,7 +86,11 @@
     "BackendPersistenceBlocker",
     "ServerRepositoryAuditAdapter",
     "WriterConfirmation",
-    "ContractAlignment"
+    "ContractAlignment",
+    "ServerPsvReceiptWriter",
+    "DryRunPersistenceAttempt",
+    "FailedPersistenceAttempt",
+    "DeferredPersistenceAttempt"
   ],
   "edges": [
     { "source": "Clinician", "relation": "HAS_NPI", "target": "NPI" },
@@ -178,6 +182,13 @@
     { "source": "BackendPersistenceCapabilityCheck", "relation": "GATES", "target": "BackendPersistenceDecision" },
     { "source": "ServerRepositoryAuditAdapter", "relation": "MAY_PRODUCE", "target": "PersistedAuditRecord" },
     { "source": "ContractAlignment", "relation": "PRECEDES", "target": "ServerRepositoryAuditAdapter" },
+    { "source": "ServerPsvReceiptWriter", "relation": "MAY_PRODUCE", "target": "PersistedAuditRecord" },
+    { "source": "ServerPsvReceiptWriter", "relation": "EMITS", "target": "WriterConfirmation" },
+    { "source": "WriterConfirmation", "relation": "REQUIRED_FOR", "target": "PersistedAuditRecord" },
+    { "source": "DryRunPersistenceAttempt", "relation": "DOES_NOT_PRODUCE", "target": "PersistedAuditRecord" },
+    { "source": "FailedPersistenceAttempt", "relation": "DOES_NOT_PRODUCE", "target": "PersistedAuditRecord" },
+    { "source": "DeferredPersistenceAttempt", "relation": "DOES_NOT_PRODUCE", "target": "PersistedAuditRecord" },
+    { "source": "ContractAlignment", "relation": "PRECEDES", "target": "ServerPsvReceiptWriter" },
     { "source": "IssuerAuditPersistenceAdapter", "relation": "EMITS", "target": "PersistenceAdapterDecision" },
     { "source": "IssuerResponse", "relation": "HAS_SOURCE_BASIS", "target": "SourceBasis" },
     { "source": "ContractedAgent", "relation": "ACTS_FOR", "target": "SourceOrIssuer" },
@@ -262,7 +273,13 @@
     "No client-side path may write audit records; the persistence boundary lives on the server.",
     "Deferring backend persistence is safer than wiring a contract-misaligned writer; defer is the documented default.",
     "Every BackendPersistenceCapabilityCheck must be satisfied before a BackendPersistenceDecision returns implement_now.",
-    "ServerRepositoryAuditAdapter exists only after contract alignment; this slice does not ship one."
+    "ServerRepositoryAuditAdapter exists only after contract alignment; this slice does not ship one.",
+    "The ServerPsvReceiptWriter boundary defines the writer contract; the default deferred writer never persists.",
+    "A persisted ServerPsvReceiptWriteResult requires a ServerPsvReceiptWriterConfirmation with writerMode in {repository, external}.",
+    "The boundary defensively downgrades any persisted=true claim from a writer that did not emit a valid confirmation.",
+    "DryRun, deferred, unavailable, and failed write attempts NEVER produce a PersistedAuditRecord.",
+    "Client-supplied persisted/confirmation flags are refused by canUseServerPsvReceiptWriter; only a real writer may emit a confirmation.",
+    "Forbidden truth-tier fields (decisionGrade, proofTier, globalCredentialTruth) on ServerPsvReceiptWriteInput are refused by the boundary."
   ],
   "knownLimitations": [
     "Machine-readable stub is documentation-grade only, not integrated into runtime types."
