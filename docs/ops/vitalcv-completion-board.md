@@ -22,6 +22,46 @@ Source branch: `docs/full-scope-completion-board-deltas`
 
 A row that fails any required-evidence check is capped at **75%** regardless of internal completeness.
 
+## Status Lexicon
+
+The Completion Board uses exact percentages plus emoji phase labels only. The phase is **derived from** Current %, never asserted independently.
+
+| % Range | Status Emoji | Status Name |
+|---:|---|---|
+| 0% | 🧊 | Planned |
+| 1–24% | 🌱 | Seed |
+| 25–49% | 🧱 | Foundation |
+| 50–69% | 🛠️ | Buildout |
+| 70–89% | 🚀 | Hardening |
+| 90–99% | ✅ | Target Zone |
+| 100% | 🏁 | Complete |
+
+Forbidden qualitative labels (must never appear in a Status cell or any wave delta report):
+
+- very low
+- low
+- not started
+- partial
+- high
+- almost done
+- near complete
+- strong
+- near target
+- above target
+
+Lookup examples:
+
+- 0% → 🧊 Planned
+- 8% → 🌱 Seed
+- 18% → 🌱 Seed
+- 35% → 🧱 Foundation
+- 58% → 🛠️ Buildout
+- 82% → 🚀 Hardening
+- 92% → ✅ Target Zone
+- 100% → 🏁 Complete
+
+This lexicon supersedes the prior board's qualitative status words. Work-state nuance (merged-on-main, boundary-only, deferred, concept) lives in the **Evidence Required** column, not in Status.
+
 ## Required Table Schema
 
 Every section uses this schema:
@@ -29,7 +69,7 @@ Every section uses this schema:
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
 
-Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · `deferred` · `concept`.
+Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#status-lexicon) above. Never assert phase independently of percentage.
 
 ---
 
@@ -37,18 +77,18 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Issuer request / router | 80 | 90 | 10 | +0 | +0 | Routes + tests on main (#167) | merged |
-| Partner route model | 75 | 90 | 15 | +0 | +0 | Partner router + tests (#167) | merged |
-| Issuer response intake | 70 | 90 | 20 | +0 | +0 | Intake surface + tests (#168) | merged |
-| Receipt candidate | 85 | 90 | 5 | +0 | +0 | `receiptCandidate.ts` + literal `decisionGrade:false`/`proofTier:'receipt_candidate'` tests | merged |
-| Policy review decision | 85 | 90 | 5 | +0 | +0 | `policyReview.ts` 5-gate flow + tests | merged |
-| PSV receipt promotion | 70 | 90 | 20 | +0 | +0 | PSV receipt + reuse boundary (#172) | merged |
-| Reuse / revocation / supersession boundary | 75 | 90 | 15 | +0 | +0 | (#172) tests | merged |
-| Consent / manual send / timeline | 70 | 90 | 20 | +0 | +0 | Consent + timeline (#174) | merged |
-| Audit persistence boundary | 75 | 90 | 15 | +0 | +0 | (#175) `auditPersistence.ts` + tests | merged |
-| Persistence adapter decision | 75 | 90 | 15 | +0 | +0 | (#176) | merged |
-| Backend writer boundary | 75 | 90 | 15 | +0 | +0 | (#180) `serverPsvReceiptWriter.ts` defensive downgrade + tests; **deferred default writer only** | boundary only |
-| Domain / core PSV receipt contract alignment | 80 | 90 | 10 | +0 | +0 | (#178) `packages/domain-core/psvReceipts.ts` + frozen mapper tests | merged |
+| Issuer request / router | 80 | 90 | 10 | +0 | +0 | Routes + tests on main (#167) | 🚀 Hardening |
+| Partner route model | 75 | 90 | 15 | +0 | +0 | Partner router + tests (#167) | 🚀 Hardening |
+| Issuer response intake | 70 | 90 | 20 | +0 | +0 | Intake surface + tests (#168) | 🚀 Hardening |
+| Receipt candidate | 85 | 90 | 5 | +0 | +0 | `receiptCandidate.ts` + literal `decisionGrade:false`/`proofTier:'receipt_candidate'` tests | 🚀 Hardening |
+| Policy review decision | 85 | 90 | 5 | +0 | +0 | `policyReview.ts` 5-gate flow + tests | 🚀 Hardening |
+| PSV receipt promotion | 70 | 90 | 20 | +0 | +0 | PSV receipt + reuse boundary (#172) | 🚀 Hardening |
+| Reuse / revocation / supersession boundary | 75 | 90 | 15 | +0 | +0 | (#172) tests | 🚀 Hardening |
+| Consent / manual send / timeline | 70 | 90 | 20 | +0 | +0 | Consent + timeline (#174) | 🚀 Hardening |
+| Audit persistence boundary | 75 | 90 | 15 | +0 | +0 | (#175) `auditPersistence.ts` + tests | 🚀 Hardening |
+| Persistence adapter decision | 75 | 90 | 15 | +0 | +0 | (#176) | 🚀 Hardening |
+| Backend writer boundary | 75 | 90 | 15 | +0 | +0 | (#180) `serverPsvReceiptWriter.ts` defensive downgrade + tests; **deferred default writer only** | 🚀 Hardening |
+| Domain / core PSV receipt contract alignment | 80 | 90 | 10 | +0 | +0 | (#178) `packages/domain-core/psvReceipts.ts` + frozen mapper tests | 🚀 Hardening |
 
 ---
 
@@ -56,27 +96,27 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Signup / account creation | 10 | 90 | 80 | +0 | +0 | Real auth (Clerk/NextAuth) wired; e2e signup test | not started |
-| Login / account recovery | 10 | 90 | 80 | +0 | +0 | Sign-in flow + recovery; per memory `project_auth_google_oauth_config.md` Google OAuth currently broken in prod | not started |
-| NPI check | 65 | 90 | 25 | +0 | +0 | NPPES proxy + ingest fallback in `apps/web/app/api/ingest/[npi]/route.ts` | partial |
-| Rich clinician profile shell | 55 | 90 | 35 | +0 | +0 | 16-section profile shell on `/passport/[id]` (Wave GOD-2) | partial |
-| Identity / contact / locations | 35 | 90 | 55 | +0 | +0 | Inputs exist as user-entered only; no verified binding | partial |
-| Medical school | 25 | 90 | 65 | +0 | +0 | Free-text capture; no source verification | partial |
-| Residency | 25 | 90 | 65 | +0 | +0 | Same | partial |
-| Fellowship | 25 | 90 | 65 | +0 | +0 | Same | partial |
-| Training programs | 20 | 90 | 70 | +0 | +0 | Same | partial |
-| Specialty / subspecialty | 30 | 90 | 60 | +0 | +0 | Capture + NPPES inference only | partial |
-| Current employer | 25 | 90 | 65 | +0 | +0 | User-entered, no employer-side verification | partial |
-| Employer history | 20 | 90 | 70 | +0 | +0 | Same | partial |
-| Affiliations | 20 | 90 | 70 | +0 | +0 | Same | partial |
-| Work history | 20 | 90 | 70 | +0 | +0 | Same | partial |
-| Research / publications | 15 | 90 | 75 | +0 | +0 | Section exists, no live source binding | partial |
-| PubMed layer | 10 | 90 | 80 | +0 | +0 | Concept + MCP available; no in-product fetch / dedupe / display | concept |
-| LinkedIn-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | not started |
-| Doximity-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | not started |
-| Career goals / preferences | 25 | 90 | 65 | +0 | +0 | Capture exists, no matching loop | partial |
-| Profile completion score | 20 | 90 | 70 | +0 | +0 | No live score widget | partial |
-| Clinician-facing value dashboard | 10 | 90 | 80 | +0 | +0 | Not built | not started |
+| Signup / account creation | 10 | 90 | 80 | +0 | +0 | Real auth (Clerk/NextAuth) wired; e2e signup test | 🌱 Seed |
+| Login / account recovery | 10 | 90 | 80 | +0 | +0 | Sign-in flow + recovery; per memory `project_auth_google_oauth_config.md` Google OAuth currently broken in prod | 🌱 Seed |
+| NPI check | 65 | 90 | 25 | +0 | +0 | NPPES proxy + ingest fallback in `apps/web/app/api/ingest/[npi]/route.ts` | 🛠️ Buildout |
+| Rich clinician profile shell | 55 | 90 | 35 | +0 | +0 | 16-section profile shell on `/passport/[id]` (Wave GOD-2) | 🛠️ Buildout |
+| Identity / contact / locations | 35 | 90 | 55 | +0 | +0 | Inputs exist as user-entered only; no verified binding | 🧱 Foundation |
+| Medical school | 25 | 90 | 65 | +0 | +0 | Free-text capture; no source verification | 🧱 Foundation |
+| Residency | 25 | 90 | 65 | +0 | +0 | Same | 🧱 Foundation |
+| Fellowship | 25 | 90 | 65 | +0 | +0 | Same | 🧱 Foundation |
+| Training programs | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Specialty / subspecialty | 30 | 90 | 60 | +0 | +0 | Capture + NPPES inference only | 🧱 Foundation |
+| Current employer | 25 | 90 | 65 | +0 | +0 | User-entered, no employer-side verification | 🧱 Foundation |
+| Employer history | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Affiliations | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Work history | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Research / publications | 15 | 90 | 75 | +0 | +0 | Section exists, no live source binding | 🌱 Seed |
+| PubMed layer | 10 | 90 | 80 | +0 | +0 | Concept + MCP available; no in-product fetch / dedupe / display | 🌱 Seed |
+| LinkedIn-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
+| Doximity-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
+| Career goals / preferences | 25 | 90 | 65 | +0 | +0 | Capture exists, no matching loop | 🧱 Foundation |
+| Profile completion score | 20 | 90 | 70 | +0 | +0 | No live score widget | 🌱 Seed |
+| Clinician-facing value dashboard | 10 | 90 | 80 | +0 | +0 | Not built | 🌱 Seed |
 
 ---
 
@@ -84,14 +124,14 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Mobile web / PWA | 35 | 90 | 55 | +0 | +0 | Responsive layout; PWA manifest foundation per Wave GOD-2; no installability/offline shell verified | partial |
-| Native iOS app | 0 | 90 | 90 | +0 | +0 | None shipped | not started |
-| Native Android app | 0 | 90 | 90 | +0 | +0 | None shipped | not started |
-| Mobile document capture | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Device trust / App Attest / Play Integrity | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Biometric gating | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Push notification readiness | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Offline / degraded-state handling | 25 | 90 | 65 | +0 | +0 | Some 5xx graceful fallbacks (#LIVE-100C/D) but no offline data shell | partial |
+| Mobile web / PWA | 35 | 90 | 55 | +0 | +0 | Responsive layout; PWA manifest foundation per Wave GOD-2; no installability/offline shell verified | 🧱 Foundation |
+| Native iOS app | 0 | 90 | 90 | +0 | +0 | None shipped | 🧊 Planned |
+| Native Android app | 0 | 90 | 90 | +0 | +0 | None shipped | 🧊 Planned |
+| Mobile document capture | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Device trust / App Attest / Play Integrity | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Biometric gating | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Push notification readiness | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Offline / degraded-state handling | 25 | 90 | 65 | +0 | +0 | Some 5xx graceful fallbacks (#LIVE-100C/D) but no offline data shell | 🧱 Foundation |
 
 ---
 
@@ -99,17 +139,17 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Government ID verification | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Selfie / liveness | 0 | 90 | 90 | +0 | +0 | None | not started |
-| Clinician-to-NPI binding | 15 | 90 | 75 | +0 | +0 | NPI lookup exists; no proven-person-to-NPI binding | partial |
-| Identity proofing policy | 10 | 90 | 80 | +0 | +0 | No documented IAL/AAL policy | not started |
-| Account recovery | 10 | 90 | 80 | +0 | +0 | Tied to broken auth slice | not started |
-| Session security | 20 | 90 | 70 | +0 | +0 | Default Next/Clerk session handling, not hardened | partial |
-| OWASP ASVS baseline | 15 | 90 | 75 | +0 | +0 | No published ASVS scorecard | not started |
-| Security headers / secure defaults | 35 | 90 | 55 | +0 | +0 | Some headers via Next defaults; no audited CSP | partial |
-| Data classification | 20 | 90 | 70 | +0 | +0 | Provenance vocab exists (VERIFIED/USER_ENTERED/INFERRED/UNKNOWN/CONFLICT); no PII/PHI tier doc | partial |
-| Retention / redaction | 10 | 90 | 80 | +0 | +0 | No retention policy enforced | not started |
-| Secrets / env handling | 30 | 90 | 60 | +0 | +0 | `.env` patterns in repo; no zod env validation (Phase 0.3 outstanding) | partial |
+| Government ID verification | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Selfie / liveness | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Clinician-to-NPI binding | 15 | 90 | 75 | +0 | +0 | NPI lookup exists; no proven-person-to-NPI binding | 🌱 Seed |
+| Identity proofing policy | 10 | 90 | 80 | +0 | +0 | No documented IAL/AAL policy | 🌱 Seed |
+| Account recovery | 10 | 90 | 80 | +0 | +0 | Tied to broken auth slice | 🌱 Seed |
+| Session security | 20 | 90 | 70 | +0 | +0 | Default Next/Clerk session handling, not hardened | 🌱 Seed |
+| OWASP ASVS baseline | 15 | 90 | 75 | +0 | +0 | No published ASVS scorecard | 🌱 Seed |
+| Security headers / secure defaults | 35 | 90 | 55 | +0 | +0 | Some headers via Next defaults; no audited CSP | 🧱 Foundation |
+| Data classification | 20 | 90 | 70 | +0 | +0 | Provenance vocab exists (VERIFIED/USER_ENTERED/INFERRED/UNKNOWN/CONFLICT); no PII/PHI tier doc | 🌱 Seed |
+| Retention / redaction | 10 | 90 | 80 | +0 | +0 | No retention policy enforced | 🌱 Seed |
+| Secrets / env handling | 30 | 90 | 60 | +0 | +0 | `.env` patterns in repo; no zod env validation (Phase 0.3 outstanding) | 🧱 Foundation |
 
 ---
 
@@ -117,15 +157,15 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| WCAG 2.2 AA baseline | 12 | 90 | 78 | +0 | +0 | No published audit; no automated axe gate in CI | not started |
-| Keyboard navigation | 25 | 90 | 65 | +0 | +0 | Default browser behavior; no audited focus traps | partial |
-| Screen reader labels | 20 | 90 | 70 | +0 | +0 | Spot fixes; no systematic ARIA audit | partial |
-| Touch targets | 30 | 90 | 60 | +0 | +0 | Mobile clip fixes (Wave GOD-2); no 44×44 audit | partial |
-| Error-state accessibility | 15 | 90 | 75 | +0 | +0 | Error UIs not audited for SR | partial |
-| Contrast | 30 | 90 | 60 | +0 | +0 | Design-system v2 tokens in flight on a separate branch | partial |
-| Reduced motion | 10 | 90 | 80 | +0 | +0 | No prefers-reduced-motion handling verified | not started |
-| Form accessibility | 15 | 90 | 75 | +0 | +0 | No labeled-region audit | partial |
-| Mobile accessibility | 15 | 90 | 75 | +0 | +0 | Same | partial |
+| WCAG 2.2 AA baseline | 12 | 90 | 78 | +0 | +0 | No published audit; no automated axe gate in CI | 🌱 Seed |
+| Keyboard navigation | 25 | 90 | 65 | +0 | +0 | Default browser behavior; no audited focus traps | 🧱 Foundation |
+| Screen reader labels | 20 | 90 | 70 | +0 | +0 | Spot fixes; no systematic ARIA audit | 🌱 Seed |
+| Touch targets | 30 | 90 | 60 | +0 | +0 | Mobile clip fixes (Wave GOD-2); no 44×44 audit | 🧱 Foundation |
+| Error-state accessibility | 15 | 90 | 75 | +0 | +0 | Error UIs not audited for SR | 🌱 Seed |
+| Contrast | 30 | 90 | 60 | +0 | +0 | Design-system v2 tokens in flight on a separate branch | 🧱 Foundation |
+| Reduced motion | 10 | 90 | 80 | +0 | +0 | No prefers-reduced-motion handling verified | 🌱 Seed |
+| Form accessibility | 15 | 90 | 75 | +0 | +0 | No labeled-region audit | 🌱 Seed |
+| Mobile accessibility | 15 | 90 | 75 | +0 | +0 | Same | 🌱 Seed |
 
 ---
 
@@ -133,18 +173,18 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| CV upload | 25 | 90 | 65 | +0 | +0 | Knowledge Inbox foundation (#166) for free-text capture; binary CV upload not wired | partial |
-| Document upload | 20 | 90 | 70 | +0 | +0 | Same | partial |
-| Drag/drop upload UX | 15 | 90 | 75 | +0 | +0 | No verified DnD surface | not started |
-| LinkedIn import | 5 | 90 | 85 | +0 | +0 | Not built | not started |
-| Doximity import | 5 | 90 | 85 | +0 | +0 | Not built | not started |
-| PubMed import | 10 | 90 | 80 | +0 | +0 | Concept; no in-product import | concept |
-| CSV / roster import | 30 | 90 | 60 | +0 | +0 | Per existing board: "some CSV ingest; roster mgmt manual" | partial |
-| Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX partial | partial |
-| Shareable passport | 35 | 90 | 55 | +0 | +0 | `/passport/[id]` route + provenance panel | partial |
-| Proof pack export | 20 | 90 | 70 | +0 | +0 | Conceptual shape; no audited bundle | partial |
-| Import error handling | 20 | 90 | 70 | +0 | +0 | Inbox classifier handles known states; UX surfacing partial | partial |
-| Import provenance labels | 40 | 90 | 50 | +0 | +0 | 5-tier provenance vocab enforced (Wave GOD-3S) | partial |
+| CV upload | 25 | 90 | 65 | +0 | +0 | Knowledge Inbox foundation (#166) for free-text capture; binary CV upload not wired | 🧱 Foundation |
+| Document upload | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Drag/drop upload UX | 15 | 90 | 75 | +0 | +0 | No verified DnD surface | 🌱 Seed |
+| LinkedIn import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
+| Doximity import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
+| PubMed import | 10 | 90 | 80 | +0 | +0 | Concept; no in-product import | 🌱 Seed |
+| CSV / roster import | 30 | 90 | 60 | +0 | +0 | Per existing board: "some CSV ingest; roster mgmt manual" | 🧱 Foundation |
+| Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX scoped | 🧱 Foundation |
+| Shareable passport | 35 | 90 | 55 | +0 | +0 | `/passport/[id]` route + provenance panel | 🧱 Foundation |
+| Proof pack export | 20 | 90 | 70 | +0 | +0 | Conceptual shape; no audited bundle | 🌱 Seed |
+| Import error handling | 20 | 90 | 70 | +0 | +0 | Inbox classifier handles known states; UX surfacing scoped | 🌱 Seed |
+| Import provenance labels | 40 | 90 | 50 | +0 | +0 | 5-tier provenance vocab enforced (Wave GOD-3S) | 🧱 Foundation |
 
 ---
 
@@ -152,15 +192,15 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Data model | 75 | 90 | 15 | +0 | +0 | `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` boundaries 1–28 | merged |
-| Claim / source / receipt navigation | 60 | 90 | 30 | +0 | +0 | TrustGraph panel mounts on `/passport/[id]` | partial |
-| Roam/Obsidian-style visual graph UX | 22 | 90 | 68 | +0 | +0 | Static panel only; no graph layout engine | partial |
-| Graph search | 10 | 90 | 80 | +0 | +0 | Not built | not started |
-| Graph filtering | 10 | 90 | 80 | +0 | +0 | Not built | not started |
-| Graph export | 30 | 90 | 60 | +0 | +0 | Underlying JSON exportable; no UI export | partial |
-| Clinician-facing graph explanation | 35 | 90 | 55 | +0 | +0 | Static explainer in panel | partial |
-| Verifier-facing graph explanation | 30 | 90 | 60 | +0 | +0 | Same | partial |
-| Graph-to-proof-pack path | 20 | 90 | 70 | +0 | +0 | Not connected end-to-end | partial |
+| Data model | 75 | 90 | 15 | +0 | +0 | `docs/architecture/vitalcv-knowledge-trust-graph.{md,json}` boundaries 1–28 | 🚀 Hardening |
+| Claim / source / receipt navigation | 60 | 90 | 30 | +0 | +0 | TrustGraph panel mounts on `/passport/[id]` | 🛠️ Buildout |
+| Roam/Obsidian-style visual graph UX | 22 | 90 | 68 | +0 | +0 | Static panel only; no graph layout engine | 🌱 Seed |
+| Graph search | 10 | 90 | 80 | +0 | +0 | Not built | 🌱 Seed |
+| Graph filtering | 10 | 90 | 80 | +0 | +0 | Not built | 🌱 Seed |
+| Graph export | 30 | 90 | 60 | +0 | +0 | Underlying JSON exportable; no UI export | 🧱 Foundation |
+| Clinician-facing graph explanation | 35 | 90 | 55 | +0 | +0 | Static explainer in panel | 🧱 Foundation |
+| Verifier-facing graph explanation | 30 | 90 | 60 | +0 | +0 | Same | 🧱 Foundation |
+| Graph-to-proof-pack path | 20 | 90 | 70 | +0 | +0 | Not connected end-to-end | 🌱 Seed |
 
 ---
 
@@ -168,16 +208,16 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Employer review | 60 | 90 | 30 | +0 | +0 | Issuer review surface (#168) demo render only — `recordedBy:'demo'` | partial |
-| Request review | 55 | 90 | 35 | +0 | +0 | Same | partial |
-| Verifier worklist | 30 | 90 | 60 | +0 | +0 | No audited multi-request worklist | partial |
-| Evidence inspection | 50 | 90 | 40 | +0 | +0 | Receipt candidate viewer | partial |
-| Reuse decision UX | 50 | 90 | 40 | +0 | +0 | (#172) reuse boundary surfaced in review | partial |
-| Policy decision UX | 60 | 90 | 30 | +0 | +0 | Policy review 5-gate UX | partial |
-| Exportable proof pack | 25 | 90 | 65 | +0 | +0 | Not bundled | partial |
-| Team / org roles | 10 | 90 | 80 | +0 | +0 | None | not started |
-| Review status tracking | 45 | 90 | 45 | +0 | +0 | Request lifecycle states present | partial |
-| Employer CTA / conversion path | 40 | 90 | 50 | +0 | +0 | `/employers` redirect + `/pilot` CTA live | partial |
+| Employer review | 60 | 90 | 30 | +0 | +0 | Issuer review surface (#168) demo render only — `recordedBy:'demo'` | 🛠️ Buildout |
+| Request review | 55 | 90 | 35 | +0 | +0 | Same | 🛠️ Buildout |
+| Verifier worklist | 30 | 90 | 60 | +0 | +0 | No audited multi-request worklist | 🧱 Foundation |
+| Evidence inspection | 50 | 90 | 40 | +0 | +0 | Receipt candidate viewer | 🛠️ Buildout |
+| Reuse decision UX | 50 | 90 | 40 | +0 | +0 | (#172) reuse boundary surfaced in review | 🛠️ Buildout |
+| Policy decision UX | 60 | 90 | 30 | +0 | +0 | Policy review 5-gate UX | 🛠️ Buildout |
+| Exportable proof pack | 25 | 90 | 65 | +0 | +0 | Not bundled | 🧱 Foundation |
+| Team / org roles | 10 | 90 | 80 | +0 | +0 | None | 🌱 Seed |
+| Review status tracking | 45 | 90 | 45 | +0 | +0 | Request lifecycle states present | 🧱 Foundation |
+| Employer CTA / conversion path | 40 | 90 | 50 | +0 | +0 | `/employers` redirect + `/pilot` CTA live | 🧱 Foundation |
 
 ---
 
@@ -185,15 +225,15 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Domain PSV receipt contract | 85 | 90 | 5 | +0 | +0 | (#178) frozen mapper tests | merged |
-| Server writer confirmation boundary | 80 | 90 | 10 | +0 | +0 | (#180) defensive downgrade + tests | boundary only |
-| Real persistence writer | 5 | 90 | 85 | +0 | +0 | Default writer is **deferred-only**; no contract-aligned Prisma table; no audit-event table; no client-safe RPC | deferred |
-| Audit replay | 10 | 90 | 80 | +0 | +0 | No replay surface | not started |
-| Export API | 15 | 90 | 75 | +0 | +0 | None client-safe | not started |
-| Backend test coverage | 35 | 90 | 55 | +0 | +0 | Issuer 321/321 vitest pass; legacy backend repo lacks coverage | partial |
-| API route hardening | 25 | 90 | 65 | +0 | +0 | No CORS/helmet/API key story (Phase 1.3) | partial |
-| Repository adapter | 70 | 90 | 20 | +0 | +0 | (#176/#177) decision boundaries | boundary only |
-| Database migration readiness | 5 | 90 | 85 | +0 | +0 | Per memory: SQLite + in-memory; PostgreSQL migration is Phase 1.1 (not started) | not started |
+| Domain PSV receipt contract | 85 | 90 | 5 | +0 | +0 | (#178) frozen mapper tests | 🚀 Hardening |
+| Server writer confirmation boundary | 80 | 90 | 10 | +0 | +0 | (#180) defensive downgrade + tests | 🚀 Hardening |
+| Real persistence writer | 5 | 90 | 85 | +0 | +0 | Default writer is **deferred-only**; no contract-aligned Prisma table; no audit-event table; no client-safe RPC | 🌱 Seed |
+| Audit replay | 10 | 90 | 80 | +0 | +0 | No replay surface | 🌱 Seed |
+| Export API | 15 | 90 | 75 | +0 | +0 | None client-safe | 🌱 Seed |
+| Backend test coverage | 35 | 90 | 55 | +0 | +0 | Issuer 321/321 vitest pass; legacy backend repo lacks coverage | 🧱 Foundation |
+| API route hardening | 25 | 90 | 65 | +0 | +0 | No CORS/helmet/API key story (Phase 1.3) | 🧱 Foundation |
+| Repository adapter | 70 | 90 | 20 | +0 | +0 | (#176/#177) decision boundaries | 🚀 Hardening |
+| Database migration readiness | 5 | 90 | 85 | +0 | +0 | Per memory: SQLite + in-memory; PostgreSQL migration is Phase 1.1 (Phase 1.1 outstanding) | 🌱 Seed |
 
 ---
 
@@ -201,16 +241,16 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Pricing / paywall | 5 | 90 | 85 | +0 | +0 | None | not started |
-| Self-serve signup | 10 | 90 | 80 | +0 | +0 | Tied to auth slice | not started |
-| Onboarding | 15 | 90 | 75 | +0 | +0 | No audited onboarding flow | partial |
-| Support / admin | 10 | 90 | 80 | +0 | +0 | No support surface | not started |
-| Pilot ops | 50 | 90 | 40 | +0 | +0 | `/pilot` CTA live; no funnel instrumentation | partial |
-| Analytics | 20 | 90 | 70 | +0 | +0 | No PostHog product-analytics events confirmed end-to-end | partial |
-| Docs / status page | 15 | 90 | 75 | +0 | +0 | No public status page | not started |
-| Legal pages | 60 | 90 | 30 | +0 | +0 | `/privacy` and `/terms` live (#LIVE-100C) | partial |
-| Sales / pilot collateral | 25 | 90 | 65 | +0 | +0 | Some pilot pages; no proof-pack | partial |
-| Demo data / reset flow | 20 | 90 | 70 | +0 | +0 | Issuer review surface uses `recordedBy:'demo'` | partial |
+| Pricing / paywall | 5 | 90 | 85 | +0 | +0 | None | 🌱 Seed |
+| Self-serve signup | 10 | 90 | 80 | +0 | +0 | Tied to auth slice | 🌱 Seed |
+| Onboarding | 15 | 90 | 75 | +0 | +0 | No audited onboarding flow | 🌱 Seed |
+| Support / admin | 10 | 90 | 80 | +0 | +0 | No support surface | 🌱 Seed |
+| Pilot ops | 50 | 90 | 40 | +0 | +0 | `/pilot` CTA live; no funnel instrumentation | 🛠️ Buildout |
+| Analytics | 20 | 90 | 70 | +0 | +0 | No PostHog product-analytics events confirmed end-to-end | 🌱 Seed |
+| Docs / status page | 15 | 90 | 75 | +0 | +0 | No public status page | 🌱 Seed |
+| Legal pages | 60 | 90 | 30 | +0 | +0 | `/privacy` and `/terms` live (#LIVE-100C) | 🛠️ Buildout |
+| Sales / pilot collateral | 25 | 90 | 65 | +0 | +0 | Some pilot pages; no proof-pack | 🧱 Foundation |
+| Demo data / reset flow | 20 | 90 | 70 | +0 | +0 | Issuer review surface uses `recordedBy:'demo'` | 🌱 Seed |
 
 ---
 
@@ -218,14 +258,14 @@ Status vocabulary: `merged` · `boundary only` · `partial` · `not started` · 
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Web quality | 65 | 90 | 25 | +0 | +0 | TypeScript + ESLint enforced on build (no ignore flags); 321/321 issuer tests | merged |
-| Monorepo CI/CD | 55 | 90 | 35 | +0 | +0 | Turbo workflows; merge-protection hook requires Codex SAFE | merged |
-| Railway deploy preflight | 40 | 90 | 50 | +0 | +0 | (#179) excluded db-dependent backend packages from preflight smoke | partial |
-| Vercel deploy health | 60 | 90 | 30 | +0 | +0 | Per memory `project_vercel_project_linkage.md`: vitalcv.com → `vcv-web` on `blockchaincv` team | partial |
-| Regression test coverage | 45 | 90 | 45 | +0 | +0 | Heavy on issuer slice; thin elsewhere | partial |
-| Route map coverage | 30 | 90 | 60 | +0 | +0 | No published route map gate | partial |
-| Smoke tests | 35 | 90 | 55 | +0 | +0 | (#179) preflight smoke partial | partial |
-| Release checklist | 20 | 90 | 70 | +0 | +0 | No published release checklist | not started |
+| Web quality | 65 | 90 | 25 | +0 | +0 | TypeScript + ESLint enforced on build (no ignore flags); 321/321 issuer tests | 🛠️ Buildout |
+| Monorepo CI/CD | 55 | 90 | 35 | +0 | +0 | Turbo workflows; merge-protection hook requires Codex SAFE | 🛠️ Buildout |
+| Railway deploy preflight | 40 | 90 | 50 | +0 | +0 | (#179) excluded db-dependent backend packages from preflight smoke | 🧱 Foundation |
+| Vercel deploy health | 60 | 90 | 30 | +0 | +0 | Per memory `project_vercel_project_linkage.md`: vitalcv.com → `vcv-web` on `blockchaincv` team | 🛠️ Buildout |
+| Regression test coverage | 45 | 90 | 45 | +0 | +0 | Heavy on issuer slice; thin elsewhere | 🧱 Foundation |
+| Route map coverage | 30 | 90 | 60 | +0 | +0 | No published route map gate | 🧱 Foundation |
+| Smoke tests | 35 | 90 | 55 | +0 | +0 | (#179) preflight smoke scoped | 🧱 Foundation |
+| Release checklist | 20 | 90 | 70 | +0 | +0 | No published release checklist | 🌱 Seed |
 
 ---
 
@@ -236,6 +276,20 @@ Every future wave must include:
 | Area | Before | After Target | Expected Delta | Actual Delta | Evidence Required | Apply When |
 |---|---:|---:|---:|---:|---|---|
 | Example | 20% | 35% | +15 | +0 until merge | Code + tests + route + docs | After merge + verification |
+
+## Future Wave Reporting Rule
+
+Every future wave must report each affected row with:
+
+- exact Current %
+- exact After Target %
+- exact Expected Delta
+- exact Actual Delta (stays at `+0` until merge + verification)
+- emoji phase label derived from the resulting % (per [Status Lexicon](#status-lexicon))
+- Evidence Required (code merged, tests, route/UI, truth/copy review, accessibility/mobile, verification)
+- Apply When condition (merge + verification gate)
+
+Do not use qualitative maturity words ("very low", "low", "not started", "partial", "high", "almost done", "near complete", "strong", "near target", "above target") in place of percentages or in place of the emoji phase. Numbers move on merge + verification only; the emoji phase is **derived from** the percentage, never asserted independently. Work-state nuance (merged-on-main, boundary-only, deferred default writer, concept-only) belongs in Evidence Required, not in Status.
 
 ## Low-Score-First Attack Order
 
