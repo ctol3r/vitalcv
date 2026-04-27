@@ -165,28 +165,30 @@ function pickLimitations(
     );
     return undefined;
   }
-  return Object.freeze(
-    input.limitations.map((l) => {
-      if (!l.kind || !l.description) {
-        // Surface the gap but do not fabricate values.
-        gaps.push(
-          gap(
-            'missing_limitations',
-            'limitations[].kind|description',
-            'Each limitation entry requires both `kind` and `description`.',
-          ),
-        );
-        return Object.freeze({
-          kind: 'other' as const,
-          description: l.description ?? '(missing description)',
-        });
-      }
-      return Object.freeze({
+  // Skip malformed entries entirely — the mapper must not fabricate
+  // a `kind` or substitute a placeholder `description`. Each
+  // malformed entry surfaces a gap; the output array contains only
+  // the well-formed entries.
+  const validEntries: DomainPsvReceiptLimitation[] = [];
+  for (const l of input.limitations) {
+    if (!l.kind || !l.description) {
+      gaps.push(
+        gap(
+          'missing_limitations',
+          'limitations[].kind|description',
+          'Each limitation entry requires both `kind` and `description`. Malformed entries are dropped, not synthesized.',
+        ),
+      );
+      continue;
+    }
+    validEntries.push(
+      Object.freeze({
         kind: l.kind,
         description: l.description,
-      });
-    }),
-  );
+      }),
+    );
+  }
+  return Object.freeze(validEntries);
 }
 
 function pickSourceBasis(
@@ -325,12 +327,16 @@ function decideStatus(
     return 'pending_not_persisted';
   }
   // If structural gaps exist, refuse to mark persisted.
+  // missing_candidate_reference covers the missing psvReceiptId
+  // case (no honest id to persist against).
   const blockingKinds: DomainPsvReceiptContractGapKind[] = [
     'missing_limitations',
     'missing_source_basis',
     'missing_responder_attribution',
     'missing_freshness',
     'missing_scope',
+    'missing_candidate_reference',
+    'invalid_writer_mode',
   ];
   if (gaps.some((g) => blockingKinds.includes(g.kind))) {
     return 'pending_not_persisted';
@@ -415,13 +421,16 @@ export function mapIssuerPsvReceiptToDomainReceipt(
   const gaps: DomainPsvReceiptContractGap[] = [];
   checkForbiddenFields(input, gaps);
 
-  const receiptId = input.psvReceiptId ?? '(missing)';
+  // Empty string is the honest "absent id" representation. The
+  // mapper does NOT synthesize a placeholder string. The missing
+  // id surfaces both as `receiptId: ''` AND as an explicit gap.
+  const receiptId = input.psvReceiptId ?? '';
   if (!input.psvReceiptId) {
     gaps.push(
       gap(
         'missing_candidate_reference',
         'psvReceiptId',
-        'IssuerPsvReceiptShape.psvReceiptId is required for mapping; the mapper does not fabricate one.',
+        'IssuerPsvReceiptShape.psvReceiptId is required for mapping; the mapper does not fabricate one. Result will carry receiptId="" and cannot reach status="persisted".',
       ),
     );
   }
