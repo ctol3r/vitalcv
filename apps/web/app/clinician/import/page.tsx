@@ -1,92 +1,84 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 
+import {
+  buildImportErrorState,
+  buildImportFoundationEntries,
+  explainImportIntegrationStatus,
+  getImportProvenanceLabel,
+  type ImportErrorKind,
+  type ImportFoundationEntry,
+  type ImportProvenanceStatus,
+} from '@/lib/import-export/importFoundation';
+
 export const metadata: Metadata = {
   title: 'Clinician Import · VitalCV',
   description:
-    'Entry points for CV upload, document upload, PubMed/LinkedIn/Doximity import, CSV/roster import, and export. Inactive integrations are explicitly marked planned or entry-point-only.',
+    'Entry points for CV upload, document upload, PubMed/LinkedIn/Doximity import, CSV/roster import, and export. Inactive integrations are explicitly marked planned or entry-only.',
 };
 
-type IntegrationStatus = 'planned' | 'entry point only';
+const IMPORT_KINDS = new Set([
+  'cv_upload',
+  'document_upload',
+  'linkedin_import',
+  'doximity_import',
+  'pubmed_import',
+  'csv_roster_import',
+]);
 
-interface IntegrationCard {
-  key: string;
-  title: string;
-  body: string;
-  status: IntegrationStatus;
-}
-
-const IMPORTS: ReadonlyArray<IntegrationCard> = [
-  {
-    key: 'cv-upload',
-    title: 'CV upload',
-    body: 'Upload a CV/resume. Document parsing into structured profile fields is not wired in this entry point.',
-    status: 'entry point only',
-  },
-  {
-    key: 'document-upload',
-    title: 'Document upload',
-    body: 'Attach a credentialing document (license, certificate, attestation). Source-backed verification of the document is a separate path.',
-    status: 'entry point only',
-  },
-  {
-    key: 'pubmed',
-    title: 'PubMed import',
-    body: 'Pull authored publications from PubMed. Imported entries are imported-candidates until a source-backed check upgrades them.',
-    status: 'entry point only',
-  },
-  {
-    key: 'linkedin',
-    title: 'LinkedIn import',
-    body: 'Pull employment and education from LinkedIn. Integration is planned; no live LinkedIn sync ships today.',
-    status: 'planned',
-  },
-  {
-    key: 'doximity',
-    title: 'Doximity import',
-    body: 'Pull profile content from Doximity. Integration is planned; no live Doximity sync ships today.',
-    status: 'planned',
-  },
-  {
-    key: 'csv-roster',
-    title: 'CSV / roster import',
-    body: 'Bulk-import a roster of clinicians. Some CSV ingest paths exist for pilot ops; full roster automation is planned.',
-    status: 'entry point only',
-  },
-];
-
-const EXPORTS: ReadonlyArray<IntegrationCard> = [
-  {
-    key: 'export-bundle',
-    title: 'Export bundle',
-    body: 'Export an audit-ready bundle of your filled fields and any attached evidence. Bundle UX is in progress; cryptographic signing of exports is planned.',
-    status: 'entry point only',
-  },
-  {
-    key: 'shareable-passport',
-    title: 'Shareable passport',
-    body: 'Generate a public/limited-share passport URL for your profile. Provenance badges accompany every field on the share view.',
-    status: 'entry point only',
-  },
-];
-
-const STATUS_CLASS: Record<IntegrationStatus, string> = {
+const STATUS_CLASS: Record<ImportFoundationEntry['status'], string> = {
   planned: 'border-slate-400/40 bg-slate-500/10 text-slate-600',
-  'entry point only': 'border-amber-500/40 bg-amber-500/10 text-amber-700',
+  entry_only: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
+  partial: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
+  live: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700',
 };
 
-function StatusPill({ status }: { status: IntegrationStatus }) {
+const STATUS_LABEL: Record<ImportFoundationEntry['status'], string> = {
+  planned: 'planned',
+  entry_only: 'entry only',
+  partial: 'partial',
+  live: 'live',
+};
+
+const SAMPLE_ERROR_KINDS: ReadonlyArray<ImportErrorKind> = [
+  'unsupported_file_type',
+  'file_too_large',
+  'parse_failure',
+  'integration_unavailable',
+  'rate_limited',
+  'transport_error',
+  'validation_failed',
+];
+
+const SAMPLE_PROVENANCE: ReadonlyArray<ImportProvenanceStatus> = [
+  'self_attested',
+  'imported_candidate',
+  'source_backed',
+  'unknown',
+  'conflict',
+];
+
+function StatusPill({ status }: { status: ImportFoundationEntry['status'] }) {
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${STATUS_CLASS[status]}`}
-      aria-label={`Status: ${status}`}
+      aria-label={`Status: ${STATUS_LABEL[status]}`}
+      title={explainImportIntegrationStatus(status)}
     >
-      {status}
+      {STATUS_LABEL[status]}
     </span>
   );
 }
 
-function CardGrid({ heading, items, headingId }: { heading: string; items: ReadonlyArray<IntegrationCard>; headingId: string }) {
+function CardGrid({
+  heading,
+  items,
+  headingId,
+}: {
+  heading: string;
+  items: ReadonlyArray<ImportFoundationEntry>;
+  headingId: string;
+}) {
   return (
     <section aria-labelledby={headingId} className="space-y-4">
       <h2 id={headingId} className="text-lg font-semibold sm:text-xl">
@@ -95,7 +87,7 @@ function CardGrid({ heading, items, headingId }: { heading: string; items: Reado
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {items.map((card) => (
           <article
-            key={card.key}
+            key={card.kind}
             className="flex flex-col rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
           >
             <header className="flex items-start justify-between gap-3">
@@ -103,8 +95,13 @@ function CardGrid({ heading, items, headingId }: { heading: string; items: Reado
               <StatusPill status={card.status} />
             </header>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-              {card.body}
+              {card.description}
             </p>
+            {card.roadmapNote && (
+              <p className="mt-2 text-[11px] text-muted-foreground/80">
+                Roadmap: {card.roadmapNote}
+              </p>
+            )}
           </article>
         ))}
       </div>
@@ -113,6 +110,11 @@ function CardGrid({ heading, items, headingId }: { heading: string; items: Reado
 }
 
 export default function ClinicianImportPage() {
+  const entries = buildImportFoundationEntries();
+  const imports = entries.filter((e) => IMPORT_KINDS.has(e.kind));
+  const exports = entries.filter((e) => !IMPORT_KINDS.has(e.kind));
+  const sampleErrors = SAMPLE_ERROR_KINDS.map((k) => buildImportErrorState({ kind: k }));
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
       <header className="mb-8 sm:mb-10">
@@ -123,17 +125,65 @@ export default function ClinicianImportPage() {
           Import sources and export bundles
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          <strong>{`Import entries may be planned or entry-only. Imported or uploaded data is not verified until source-backed evidence is attached.`}</strong>{' '}
           Cards below are entry points. Inactive integrations are explicitly
           marked <em>planned</em>; partial integrations are marked <em>entry
-          point only</em>. No card claims a live integration that does not
-          ship today. <strong>Imported entries remain imported-candidates
-          until a source-backed check upgrades them.</strong>
+          only</em>. No card claims a live integration that does not ship today.
         </p>
       </header>
 
       <div className="space-y-10">
-        <CardGrid heading="Import" items={IMPORTS} headingId="import-section-heading" />
-        <CardGrid heading="Export" items={EXPORTS} headingId="export-section-heading" />
+        <CardGrid heading="Import" items={imports} headingId="import-section-heading" />
+        <CardGrid heading="Export" items={exports} headingId="export-section-heading" />
+
+        <section
+          aria-labelledby="error-state-heading"
+          className="space-y-3 rounded-xl border border-amber-500/15 bg-amber-500/5 p-4 sm:p-5"
+        >
+          <h2 id="error-state-heading" className="text-base font-semibold sm:text-lg">
+            Import error states
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Errors are user-safe by design. We never surface raw network errors,
+            stack traces, or upstream payloads.
+          </p>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {sampleErrors.map((err) => (
+              <div key={err.kind} className="rounded-lg border border-amber-500/20 bg-white/50 p-3 text-sm">
+                <dt className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {err.kind}
+                </dt>
+                <dd className="mt-1">
+                  <p className="font-medium">{err.userMessage}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{err.remediation}</p>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section
+          aria-labelledby="provenance-heading"
+          className="space-y-3 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+        >
+          <h2 id="provenance-heading" className="text-base font-semibold sm:text-lg">
+            Import provenance labels
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Provenance labels reflect <em>origin</em>, not <em>trust</em>. The
+            strongest label this foundation produces is <code>imported-candidate</code>.
+          </p>
+          <ul className="space-y-2 text-sm">
+            {SAMPLE_PROVENANCE.map((p) => (
+              <li key={p} className="rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-white/50 p-3">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {p}
+                </p>
+                <p className="mt-0.5">{getImportProvenanceLabel(p)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </main>
   );
