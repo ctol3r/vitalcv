@@ -57,7 +57,7 @@ Every page is missing OG tags, Twitter cards, canonical URLs, structured data, r
 ## /PASSPORT PAGE REDESIGN
 The main conversion page (/passport) is 70% empty with a monospace heading and bare NPI input. Redesign it to include:
 1. Better heading: "Check Your Readiness" with a subheading explaining what happens ("Enter your NPI to instantly verify your credentialing status across NPPES, OIG/LEIE, PECOS, and state medical boards")
-2. NPI input with Luhn checksum validation, 10-digit mask, and real-time visual feedback
+2. NPI input with Luhn checksum validation, 10-digit mask, and current readiness feedback
 3. Below the input, a brief explanation of each source with small icons:
 - NPPES: "Identity verification from the National Plan and Provider Enumeration System"
 - OIG/LEIE: "Exclusion check against the Office of Inspector General's List of Excluded Individuals"
