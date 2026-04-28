@@ -7,64 +7,24 @@
  *
  * Returns ONLY safe metadata: snapshots already strip raw upstream payloads
  * at the runProbe layer, and we never echo headers or request bodies.
+ *
+ * The handler implementation lives in `_handler.ts` so this file stays
+ * narrowly typed to Next.js's allowed Route exports (GET/POST/etc. +
+ * `runtime`/`dynamic`). Tests import the `__handleForTests` shim from
+ * `_handler.ts`.
  */
 
-import { NextResponse } from 'next/server';
+import type { NextResponse } from 'next/server';
 
-import {
-  checkAuth,
-  readAuthEnv,
-  readAuthHeaders,
-} from '../_auth';
-import { runAllProbes } from '@/lib/source-health/runner/runAllProbes';
-import type { RunAllProbesDeps } from '@/lib/source-health/runner/runAllProbes';
+import { handleProbe } from './_handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export interface ProbeRouteDeps {
-  runProbes?: (deps?: RunAllProbesDeps) => ReturnType<typeof runAllProbes>;
-  authEnv?: ReturnType<typeof readAuthEnv>;
-}
-
-async function handle(
-  req: Request,
-  deps: ProbeRouteDeps = {},
-): Promise<NextResponse> {
-  const env = deps.authEnv ?? readAuthEnv();
-  const auth = checkAuth(readAuthHeaders(req), env);
-  if (!auth.ok) {
-    return NextResponse.json(auth.body, { status: auth.status });
-  }
-
-  const runner = deps.runProbes ?? runAllProbes;
-  const result = await runner();
-
-  // Safe shape: snapshots already use the canonical SourceHealthSnapshot
-  // type; runProbe never carries raw payloads or headers. errors[] is a
-  // redacted token list. Do not include req body, headers, or env.
-  return NextResponse.json(
-    {
-      snapshots: result.snapshots,
-      durationMs: result.durationMs,
-      errors: result.errors,
-    },
-    { status: 200 },
-  );
-}
-
 export async function GET(req: Request): Promise<NextResponse> {
-  return handle(req);
+  return handleProbe(req);
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  return handle(req);
-}
-
-/** Test-only export — invoked directly by route tests with DI'd deps. */
-export async function __handleForTests(
-  req: Request,
-  deps: ProbeRouteDeps,
-): Promise<NextResponse> {
-  return handle(req, deps);
+  return handleProbe(req);
 }

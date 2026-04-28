@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { __handleForTests } from '@/app/api/internal/source-health/snapshots/route';
+import { __handleForTests } from '@/app/api/internal/source-health/snapshots/_handler';
 import type { SourceHealthSnapshot } from '@/lib/source-health/sourceHealthTypes';
 
 const env = { cronSecret: 'good-cron', monitoringSecret: 'good-mon' };

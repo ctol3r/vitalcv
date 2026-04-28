@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { __handleForTests } from '@/app/api/internal/source-health/probe/route';
+import { __handleForTests } from '@/app/api/internal/source-health/probe/_handler';
 import type { SourceHealthSnapshot } from '@/lib/source-health/sourceHealthTypes';
 
 const FAKE_SNAPSHOT: SourceHealthSnapshot = {
