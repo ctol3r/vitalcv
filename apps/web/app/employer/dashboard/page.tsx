@@ -1,10 +1,16 @@
 import React from 'react';
 
+import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
+
 export default function EmployerDashboardPage() {
   return (
     <div className="p-8 text-foreground bg-background">
       <h1 className="text-3xl font-bold mb-8">Employer Dashboard</h1>
-      
+
+      <div className="mb-8">
+        <LaneHealthMount heading="Source operational state (employer view)" />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 border rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Applications by State</h2>
