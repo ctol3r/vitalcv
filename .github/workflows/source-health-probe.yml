@@ -1,0 +1,56 @@
+# Scheduled source-health probe.
+#
+# Required GitHub repository secrets:
+#   - CRON_SECRET: must match the CRON_SECRET configured on the deployed
+#     Vercel/Next.js app. Used as the Bearer token to authenticate this
+#     scheduled caller.
+#   - PROBE_URL: https origin of the deployed web app, e.g.
+#     "https://app.vitalcv.example". The workflow appends
+#     /api/internal/source-health/probe.
+#
+# Truth contract:
+#   - This workflow does NOT classify clinicians. It triggers an
+#     internal endpoint that classifies the operational health of
+#     upstream credentialing sources only. A DEGRADED / UNAVAILABLE
+#     lane is a property of the source, never a clinician defect.
+#   - The Bearer token is the only credential sent. The response body
+#     is echoed for operator visibility but contains only safe
+#     metadata (already redacted by the server). The secret itself is
+#     NEVER echoed.
+
+name: Source Health Probe
+
+on:
+  schedule:
+    # Every 15 minutes.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Trigger source-health probe
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: POST /api/internal/source-health/probe
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PROBE_URL: ${{ secrets.PROBE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ] || [ -z "${PROBE_URL:-}" ]; then
+            echo "Missing CRON_SECRET or PROBE_URL secret." >&2
+            exit 1
+          fi
+          # -fsS: fail on non-2xx, silent progress, show errors.
+          # Authorization header is consumed by the server's checkAuth.
+          response="$(curl -fsS -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PROBE_URL}/api/internal/source-health/probe")"
+          # Echo response for operator visibility. Body contains only
+          # safe metadata; secret is not echoed.
+          echo "$response"
