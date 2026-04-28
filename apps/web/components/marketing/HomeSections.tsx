@@ -367,7 +367,7 @@ const WHY_NOW_ITEMS = [
   {
     icon: Rocket,
     title: 'The technology finally exists',
-    body: 'SD-JWT, W3C Verifiable Credentials, and OpenID4VCI are ratified standards. NPI APIs are open. The infrastructure to do this right — portably, verifiably, with source-backed freshness windows — is here today.',
+    body: 'SD-JWT, W3C Verifiable Credentials, and OpenID4VCI are ratified standards and NPI APIs are open. VitalCV is built toward this VC-compatible architecture; today the product ships source-backed identity (NPPES) and provenance-tracked freshness windows.',
   },
 ] as const;
 

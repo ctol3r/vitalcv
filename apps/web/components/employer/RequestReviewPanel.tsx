@@ -249,7 +249,7 @@ export function RequestReviewPanel() {
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
               Send this to the clinician, or open it yourself to see their passport in employer
-              review mode. Employer actions on this review will be recorded in the audit trail.
+              review mode. Employer actions on this review are captured as audit-boundary metadata.
             </p>
             <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">
               <p className="text-[11px] font-mono text-foreground break-all">{result.reviewUrl}</p>
@@ -272,7 +272,7 @@ export function RequestReviewPanel() {
 
           <p className="text-center text-muted-foreground/40 text-xs leading-relaxed">
             Employer actions on this review are recorded against context{' '}
-            <span className="font-mono">{result.contextId.slice(0, 8)}…</span> in the audit trail.
+            <span className="font-mono">{result.contextId.slice(0, 8)}…</span> as audit-boundary metadata.
           </p>
 
           <Button

@@ -21,7 +21,7 @@ export default function AcceptanceNetwork() {
         return {
           title: 'The Acceptance Network',
           subtitle:
-            'VitalCV is a credential wallet that gets stronger every time an employer accepts an artifact.',
+            'VitalCV is a credential record that gets stronger every time an employer accepts an artifact.',
           steps: [
             { h: 'Upload once', p: 'Keep your credential record current in one place.' },
             { h: 'Generate artifacts', p: 'Audit-ready bundles with timestamps and provenance.' },

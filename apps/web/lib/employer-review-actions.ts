@@ -414,7 +414,7 @@ function formatPersistenceConfirmation(state: EmployerReviewActionState): string
   }
 
   if (state.persistence.mode === 'audit_only') {
-    return 'This environment persisted the audit trail only.';
+    return 'This environment captured audit-boundary metadata only.';
   }
 
   return null;
@@ -424,7 +424,7 @@ export function formatEmployerReviewPersistedDetail(state: EmployerReviewActionS
   const details = [
     state.summary.description,
     formatPersistenceConfirmation(state),
-    `Audit event ${state.auditEventId} was recorded ${new Date(state.timestamp).toLocaleString()}.`,
+    `Audit-boundary entry ${state.auditEventId} was captured ${new Date(state.timestamp).toLocaleString()}.`,
     state.trustSnapshot ? `Trust snapshot ${state.trustSnapshot.snapshotHash.slice(0, 12)}... was captured with the decision.` : null,
   ].filter((value): value is string => Boolean(value && value.trim()));
 

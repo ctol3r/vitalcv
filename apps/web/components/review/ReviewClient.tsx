@@ -771,7 +771,7 @@ async function postAction(
     const status = res.status;
     if (status === 401 || status === 403) {
       if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
-      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision logged for pilot audit trail');
+      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision captured as pilot audit-boundary metadata');
     }
     throw new Error(err.error_description ?? `Action failed (${status})`);
   }
@@ -1330,7 +1330,7 @@ function ReviewClientLoaded({
               </div>
             )}
             <div className="flex justify-between text-xs mt-1">
-              <span className="text-muted-foreground">Audit trail</span>
+              <span className="text-muted-foreground">Audit-boundary record</span>
               <span className="text-foreground">Actions tied to this context</span>
             </div>
           </Card>
@@ -1371,7 +1371,7 @@ function ReviewClientLoaded({
               title={actionState.message}
               description={
                 actionState.intent === 'reject'
-                  ? 'Your rejection decision has been recorded in the pilot audit trail.'
+                  ? 'Your rejection decision has been captured as pilot audit-boundary metadata.'
                   : 'Your request has been recorded. During the pilot, clinicians will be notified through the pilot operations channel.'
               }
               tone="success"
@@ -1400,7 +1400,7 @@ function ReviewClientLoaded({
             >
               <div className="flex items-center gap-2">
                 <span className="text-[var(--vt-success)] text-sm">✔</span>
-                <p className="text-foreground/70 text-sm font-medium">Audit trail recorded</p>
+                <p className="text-foreground/70 text-sm font-medium">Audit-boundary entry captured</p>
               </div>
               <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1 space-y-1.5">
                 <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Audit record</p>
@@ -1441,7 +1441,7 @@ function ReviewClientLoaded({
             >
               <div>
                 <p className="text-muted-foreground/60 text-[10px] font-semibold uppercase tracking-widest">Record start date</p>
-                <p className="mt-1 text-sm text-foreground">Attach an attested start date so the audit trail closes the loop on this acceptance.</p>
+                <p className="mt-1 text-sm text-foreground">Attach an attested start date so the audit-boundary record closes the loop on this acceptance.</p>
               </div>
               {confirmStartState.phase === 'error' && (
                 <p data-testid="confirm-start-error" className="text-destructive text-xs">{confirmStartState.message}</p>
@@ -1979,7 +1979,7 @@ function ReviewClientLoaded({
                     {blocked.length} active blocker{blocked.length === 1 ? '' : 's'} — you&apos;re accepting with known gaps
                   </p>
                   <p className="text-amber-400/50 text-[10px] mt-0.5">
-                    "Proceed with Credentialing Head Start" records your decision and these blockers in the audit trail. Primary source verification (PSV) is still pending.
+                    "Proceed with Credentialing Head Start" records your decision and these blockers as audit-boundary metadata. Primary source verification (PSV) is still pending.
                   </p>
                 </div>
               </div>

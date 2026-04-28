@@ -44,9 +44,9 @@ const ENGINES = [
   {
     icon: Link2,
     title: 'Audit Scrapbook',
-    subtitle: 'Cryptographically Signed Compliance',
+    subtitle: 'Audit-boundary metadata for every action',
     description:
-      'Every verification event is hashed, timestamped, and signed. Produces a cryptographically verifiable audit trail — every employer decision, source check, and readiness update is on the record.',
+      'Every verification event is timestamped and captured as audit-boundary metadata — employer decisions, source checks, and readiness updates each get a structured record. Cryptographic signing of records is on the roadmap and not yet shipped.',
     accent: 'violet',
     span: 'lg:col-span-2',
     visual: AuditVisual,
