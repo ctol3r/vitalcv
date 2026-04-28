@@ -89,6 +89,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Persistence adapter decision | 75 | 90 | 15 | +0 | +0 | (#176) | 🚀 Hardening |
 | Backend writer boundary | 75 | 90 | 15 | +0 | +0 | (#180) `serverPsvReceiptWriter.ts` defensive downgrade + tests; **deferred default writer only** | 🚀 Hardening |
 | Domain / core PSV receipt contract alignment | 80 | 90 | 10 | +0 | +0 | (#178) `packages/domain-core/psvReceipts.ts` + frozen mapper tests | 🚀 Hardening |
+| Source health classifier | 65 | 90 | 25 | +0 | +65 | `SourceHealthState`, `LaneHealthBadge`, `unavailableLane` (#186); snapshot store, `runAllProbes`, internal `/api/internal/source-health/{probe,snapshots}` routes, scheduled workflow, source-health tests (#187) | 🛠️ Buildout |
 
 ---
 
@@ -228,10 +229,10 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Domain PSV receipt contract | 85 | 90 | 5 | +0 | +0 | (#178) frozen mapper tests | 🚀 Hardening |
 | Server writer confirmation boundary | 80 | 90 | 10 | +0 | +0 | (#180) defensive downgrade + tests | 🚀 Hardening |
 | Real persistence writer | 5 | 90 | 85 | +0 | +0 | Default writer is **deferred-only**; no contract-aligned Prisma table; no audit-event table; no client-safe RPC | 🌱 Seed |
-| Audit replay | 10 | 90 | 80 | +0 | +0 | No replay surface | 🌱 Seed |
+| Audit replay | 18 | 90 | 72 | +0 | +8 | (#187) snapshot store + `getLaneSnapshots` fallback give a read-side replay path for source-health lanes | 🌱 Seed |
 | Export API | 15 | 90 | 75 | +0 | +0 | None client-safe | 🌱 Seed |
-| Backend test coverage | 35 | 90 | 55 | +0 | +0 | Issuer 321/321 vitest pass; legacy backend repo lacks coverage | 🧱 Foundation |
-| API route hardening | 25 | 90 | 65 | +0 | +0 | No CORS/helmet/API key story (Phase 1.3) | 🧱 Foundation |
+| Backend test coverage | 42 | 90 | 48 | +0 | +7 | Issuer 321/321 vitest pass; (#187) adds 88-test source-health suite (runAllProbes, snapshotStore, probeRoute, snapshotsRoute, noFakeLive); legacy backend repo still lacks coverage | 🧱 Foundation |
+| API route hardening | 32 | 90 | 58 | +0 | +7 | (#187) internal source-health routes use dual-auth (Bearer `CRON_SECRET` preferred; `x-monitoring-secret` legacy) and 500 fail-closed when both unset; no CORS/helmet/API key story for public routes (Phase 1.3) | 🧱 Foundation |
 | Repository adapter | 70 | 90 | 20 | +0 | +0 | (#176/#177) decision boundaries | 🚀 Hardening |
 | Database migration readiness | 5 | 90 | 85 | +0 | +0 | Per memory: SQLite + in-memory; PostgreSQL migration is Phase 1.1 (not started) | 🌱 Seed |
 
@@ -262,9 +263,9 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Monorepo CI/CD | 55 | 90 | 35 | +0 | +0 | Turbo workflows; merge-protection hook requires Codex SAFE | 🛠️ Buildout |
 | Railway deploy preflight | 40 | 90 | 50 | +0 | +0 | (#179) excluded db-dependent backend packages from preflight smoke | 🧱 Foundation |
 | Vercel deploy health | 60 | 90 | 30 | +0 | +0 | Per memory `project_vercel_project_linkage.md`: vitalcv.com → `vcv-web` on `blockchaincv` team | 🛠️ Buildout |
-| Regression test coverage | 45 | 90 | 45 | +0 | +0 | Heavy on issuer slice; thin elsewhere | 🧱 Foundation |
+| Regression test coverage | 50 | 90 | 40 | +0 | +5 | Heavy on issuer slice; (#186/#187) source-health suite at 88/88 in 9 files; still thin in clinician/mobile/marketing surfaces | 🛠️ Buildout |
 | Route map coverage | 30 | 90 | 60 | +0 | +0 | No published route map gate | 🧱 Foundation |
-| Smoke tests | 35 | 90 | 55 | +0 | +0 | (#179) preflight smoke partial | 🧱 Foundation |
+| Smoke tests | 45 | 90 | 45 | +0 | +10 | (#179) preflight smoke partial; (#187) `.github/workflows/source-health-probe.yml` adds a 6h cron-driven CI smoke against the source-health classifier | 🧱 Foundation |
 | Release checklist | 20 | 90 | 70 | +0 | +0 | No published release checklist | 🌱 Seed |
 
 ---
@@ -309,4 +310,8 @@ Do not use qualitative maturity words ("very low", "low", "not started", "partia
 - Replaces the prior board's headline "100% wedge usability / 99% pilot-ready / 66% overall" framing. That framing rolled live-URL non-crashing into completion; the new schema treats route stability as one row of one section, not a system score.
 - Trust-engine rows are the only ones permitted to sit in the 70–85 band; they have merged code on `main` (PRs #166–#180) and tests, but each is still capped below 90 because **real persistence is deferred** (#180), so the proof-of-action chain is incomplete end-to-end.
 - Live clinician product, identity proofing, accessibility, mobile, and import/export rows are conservatively scored per the brief.
-- All Expected/Actual Wave Deltas are `+0` in this PR — this PR is docs-only; it changes the framework, not the scores' underlying state.
+- All Expected/Actual Wave Deltas are `+0` in the framework PR — that PR is docs-only; it changes the framework, not the scores' underlying state.
+
+## RELIABILITY-2 board delta (PR #187 evidence)
+
+RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `LaneHealthBadge`, `unavailableLane`, the snapshot store, `runAllProbes`, internal `/api/internal/source-health/probe` and `/snapshots` routes, the scheduled `source-health-probe.yml` workflow, and the source-health test suite (88/88). This board delta records that evidence on existing full-scope rows and adds one new row (`Source health classifier`) under Trust Engine — without reviving old aggregate roll-up rows (`Drift + Monitoring`, `Source Spine`, `Truth / Enforcement`, `Enterprise-Ready Completion`, `Overall VitalCV Completion`), which were intentionally retired by the full-scope schema.
