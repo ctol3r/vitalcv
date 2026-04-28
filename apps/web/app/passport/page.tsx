@@ -29,6 +29,7 @@ import { ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
+import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildEmployerReviewHref,
@@ -744,6 +745,9 @@ function PassportPageContent({
             {canViewPassport && (
               <WhatsNextPanel state={state} />
             )}
+
+            {/* Source operational state — provenance-safe; reports lane health only */}
+            <LaneHealthMount />
 
             {/* Terminal no-profile state */}
             {noProfileYet && (
