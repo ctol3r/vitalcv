@@ -1,0 +1,101 @@
+# source-health
+
+Operational health for upstream credentialing sources (NPPES, OIG/LEIE, PECOS,
+state boards).
+
+> **Scope, in plain words:** this module reports whether a source is currently
+> reachable. It does **not** make verification, certification, or compliance
+> claims about provider data. Verification chrome (e.g. "VERIFIED") MUST NOT be
+> driven by this module's output for non-`LIVE` states.
+
+## State machine
+
+| State          | Meaning                                                              | `isHealthy` | `canEvidenceBeUpgraded` |
+| -------------- | -------------------------------------------------------------------- | ----------- | ----------------------- |
+| `LIVE`         | Last probe got a 2xx response.                                       | true        | **true**                |
+| `DEGRADED`     | Last probe got a 5xx response (server error).                        | false       | false                   |
+| `UNAVAILABLE`  | Network error, timeout, or no response.                              | false       | false                   |
+| `RATE_LIMITED` | Last probe got a 429.                                                | false       | false                   |
+| `UNKNOWN`      | No reading, or response we cannot classify (no status, etc.).        | false       | false                   |
+
+Truth invariant (encoded as predicates and tested in
+`__tests__/source-health/sourceHealth.truthTable.test.ts`):
+
+- `canEvidenceBeUpgraded(state)` is `true` **only** when `state === 'LIVE'`.
+- `isHealthy(state)` is `true` **only** when `state === 'LIVE'`. `DEGRADED` is
+  *not* healthy.
+
+A 4 × 5 truth table (`SourceId × SourceHealthState`) is exhaustively tested.
+
+## Banned-phrase contract
+
+`unavailableLane()` produces user-facing copy via a deterministic table per
+`(sourceId, state)`. The output **must never** contain any of the following
+(case-insensitive), enforced by
+`__tests__/source-health/unavailableLane.bannedPhrases.test.ts`:
+
+- `real-time`, `real time`
+- `live verification`
+- `guaranteed`
+- `always available`
+- `verified`, `certified`
+- `instant`
+- `tamper-proof`
+- `hipaa compliant`
+- `soc2 certified`
+- `ncqa verified`
+
+If you need to update copy, edit the `copyFor()` table in
+`unavailableLane.ts`. Do **not** weaken the banned-phrase test.
+
+## Probes
+
+Each probe under `probes/` exports `async function probe(deps)` and returns a
+`SourceHealthSnapshot`. All probes:
+
+- accept dependency-injected `fetchImpl`, `now`, and `timeoutMs` for tests
+- never throw — failures are absorbed and reflected in `state` / `reason`
+- delegate state classification to `runProbe()` so mappings are consistent
+
+State mapping (in `runProbe.ts`):
+
+| Outcome                  | State          |
+| ------------------------ | -------------- |
+| 2xx                      | `LIVE`         |
+| 429                      | `RATE_LIMITED` |
+| 5xx                      | `DEGRADED`     |
+| network error / timeout  | `UNAVAILABLE`  |
+| anything else            | `UNKNOWN`      |
+
+The state-board probe is intentionally a no-op until per-state probes are
+wired; it returns `UNKNOWN`. We do **not** fake `LIVE`.
+
+## Aggregator
+
+`aggregateLaneHealth(snapshots)` is pure and deterministic. It returns:
+
+- `snapshots` — defensive copy of the input
+- `unavailableLanes` — one `UnavailableLane` per non-`LIVE` snapshot, in
+  input order
+- `allHealthy` — `true` only if the input is non-empty and every snapshot is
+  `LIVE`
+
+## How to add a new source
+
+1. Add the new id to `SourceId` in `sourceHealthTypes.ts` and to
+   `ALL_SOURCE_IDS`.
+2. Add a copy entry for every non-`LIVE` state in `unavailableLane.ts`
+   (`SOURCE_DISPLAY_NAME` + `copyFor()` if the language differs).
+3. Create `probes/<source>Probe.ts` that calls `runProbe(<id>, fetcher, deps)`.
+4. Re-export from `probes/index.ts`.
+5. Re-run the truth-table and banned-phrase tests — both iterate
+   `ALL_SOURCE_IDS` × `ALL_SOURCE_HEALTH_STATES` and will automatically cover
+   the new source.
+
+## What this module does NOT do
+
+- It does not make verification claims.
+- It does not certify providers or data.
+- It does not promise availability ("always available", "guaranteed", etc.).
+- It does not replace the existing `lib/status/sourceOps.ts` ops report; that
+  module is a separate, broader operator-facing surface.
