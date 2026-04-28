@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 /**
- * /passport — Wallet entry + live ingest hydration
+ * /passport — Passport entry + live ingest hydration
  *
  * Flow: TYPE → SEE → TRUST → SHARE
  *
@@ -511,7 +511,7 @@ function PassportPageContent({
                       placeholder="Enter 10-digit NPI"
                       className="h-14 w-full rounded-none border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
                     />
-                    {/* Real-time visual feedback */}
+                    {/* NPI input length + checksum feedback */}
                     {npi.length > 0 && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground/50">
                         {npi.length}/10
