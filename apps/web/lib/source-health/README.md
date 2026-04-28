@@ -99,3 +99,86 @@ wired; it returns `UNKNOWN`. We do **not** fake `LIVE`.
 - It does not promise availability ("always available", "guaranteed", etc.).
 - It does not replace the existing `lib/status/sourceOps.ts` ops report; that
   module is a separate, broader operator-facing surface.
+
+## Live Probe Scheduling (RELIABILITY-2)
+
+### Architecture
+
+```
+GitHub Actions (cron every 15m on main)
+        │
+        │  POST  Authorization: Bearer ${{ secrets.CRON_SECRET }}
+        ▼
+/api/internal/source-health/probe
+        │
+        ▼
+runAllProbes()  ──► nppesProbe / oigProbe / pecosProbe / stateBoardProbe
+        │                          │
+        │                          ▼
+        │                   runProbe() — classifies
+        │                   2xx → LIVE, 5xx → DEGRADED,
+        │                   429 → RATE_LIMITED,
+        │                   timeout/network → UNAVAILABLE,
+        │                   else → UNKNOWN
+        ▼
+snapshotStore (in-memory, module-scope Map)
+        ▲
+        │
+GET /api/internal/source-health/snapshots ◄── operator/dashboard
+getLaneSnapshots() ◄── UI surfaces (UNKNOWN placeholder when cold)
+```
+
+### Cold-start truth
+
+Snapshots are ephemeral. Vercel serverless cold starts reset the
+in-memory store. This is acceptable for v1; durable persistence is
+the next layer. When the store is cold, `getLaneSnapshots()` returns
+four UNKNOWN placeholder snapshots — never LIVE — and the
+`/snapshots` endpoint returns an empty array with `observedAt: null`.
+This is the honest answer.
+
+### Authentication
+
+Both `/api/internal/source-health/probe` and `/snapshots` accept:
+
+- `Authorization: Bearer <CRON_SECRET>` — preferred for scheduled
+  callers (GitHub Actions, Vercel Cron).
+- `x-monitoring-secret: <MONITORING_SECRET>` — legacy/manual operator
+  path consistent with `/api/pilot-kpi-export`.
+
+If neither header matches, the route returns 401. If both env
+secrets are unset on the server, the route returns 500
+(`no probe auth configured`) — fail closed.
+
+### Secret rotation
+
+`CRON_SECRET`:
+1. Generate a new high-entropy value (e.g. `openssl rand -hex 32`).
+2. Set the new value in the Vercel project env (Production +
+   Preview), then redeploy.
+3. Update the matching GitHub Actions repository secret
+   `CRON_SECRET`.
+4. Trigger a manual `workflow_dispatch` of "Source Health Probe" to
+   confirm 200.
+5. After confirmation, retire the old value.
+
+`MONITORING_SECRET`:
+1. Same generate-and-rotate pattern in Vercel.
+2. Update any operator tooling and `/api/pilot-kpi-export` callers
+   that depend on this secret. (This module is one consumer; not
+   the only one — coordinate with `pilot-ops`.)
+
+### Classification telemetry — required note
+
+> Scheduled probe snapshots are classification telemetry, not
+> credential verification and not clinician defects. A `DEGRADED`
+> or `UNAVAILABLE` lane reflects upstream source health only — it
+> never invalidates a clinician's profile, NPI, or any
+> source-backed evidence captured during a `LIVE` window.
+
+### Truth invariant restated
+
+`LIVE` is emitted ONLY by a confirmed 2xx probe response from
+`runProbe`. The placeholder seed in `getLaneSnapshots` returns
+UNKNOWN for every source and never LIVE. The store never
+fabricates a LIVE on cold start.
