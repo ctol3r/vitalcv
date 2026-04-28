@@ -128,11 +128,11 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Mobile web / PWA | 35 | 90 | 55 | +0 | +0 | Responsive layout; PWA manifest foundation per Wave GOD-2; no installability/offline shell verified | 🧱 Foundation |
 | Native iOS app | 0 | 90 | 90 | +0 | +0 | None shipped | 🧊 Planned |
 | Native Android app | 0 | 90 | 90 | +0 | +0 | None shipped | 🧊 Planned |
-| Mobile document capture | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
+| Mobile document capture | 25 | 90 | 65 | +0 | +25 | (FOUNDATION-SWEEP-3) `apps/web/lib/mobile/mobileCaptureFoundation.ts` defines the web/PWA scope + 7-capability checklist with explicit `Native iOS and Android apps are not shipped` and `Native camera workflows are not enabled yet` disclaimers; surfaced on `/clinician/mobile-capture` route | 🧱 Foundation |
 | Device trust / App Attest / Play Integrity | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
 | Biometric gating | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
 | Push notification readiness | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
-| Offline / degraded-state handling | 25 | 90 | 65 | +0 | +0 | Some 5xx graceful fallbacks (#LIVE-100C/D) but no offline data shell | 🧱 Foundation |
+| Offline / degraded-state handling | 25 | 90 | 65 | +0 | +0 | 5xx graceful fallbacks (#LIVE-100C/D) + (FOUNDATION-SWEEP-3) `degradedStateFoundation.ts` defines a 6-state policy (offline / upstream_unavailable / upload_failed / source_probe_unknown / retry_required / local_draft_only) with `offlineSyncImplemented: false` and `sourceOutageIsClinicianDefect: false` invariants; no offline data shell yet | 🧱 Foundation |
 
 ---
 
@@ -144,7 +144,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Selfie / liveness | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
 | Clinician-to-NPI binding | 28 | 90 | 62 | +0 | +13 | NPI lookup exists + (FOUNDATION-SWEEP-2) `evaluateClinicianNpiBindingReadiness` returns `foundation_ready` for identifier-resolved+self-attested input; explicit `gov_id_required`/`liveness_required` placeholders for planned controls; no proven-person-to-NPI binding still | 🧱 Foundation |
 | Identity proofing policy | 25 | 90 | 65 | +0 | +15 | (FOUNDATION-SWEEP-2) `apps/web/lib/identity/identityProofingPolicy.ts` defines `IdentityProofingPolicyDecision` with NPI-lookup + self-attested-name as the only `isLive: true` controls; government ID + liveness explicitly `isLive: false`; no IAL2/IAL3 asserted; `/clinician/identity` route renders the policy summary | 🧱 Foundation |
-| Account recovery | 10 | 90 | 80 | +0 | +0 | Tied to broken auth slice | 🌱 Seed |
+| Account recovery | 25 | 90 | 65 | +0 | +15 | Tied to broken auth slice + (FOUNDATION-SWEEP-3) `accountRecoveryFoundation.ts` defines 5 recovery methods (saved_recovery_code / issued_recovery_code / recovery_contact / repeated_identity_proofing / support_review) all `isLive: false`; explicit holder-notification + recovery-distinct-from-auth requirements; surfaced on `/account/recovery` route; no production recovery flow ships | 🧱 Foundation |
 | Session security | 20 | 90 | 70 | +0 | +0 | Default Next/Clerk session handling, not hardened | 🌱 Seed |
 | OWASP ASVS baseline | 15 | 90 | 75 | +0 | +0 | No published ASVS scorecard | 🌱 Seed |
 | Security headers / secure defaults | 35 | 90 | 55 | +0 | +0 | Some headers via Next defaults; no audited CSP | 🧱 Foundation |
@@ -245,13 +245,13 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Pricing / paywall | 5 | 90 | 85 | +0 | +0 | None | 🌱 Seed |
 | Self-serve signup | 10 | 90 | 80 | +0 | +0 | Tied to auth slice | 🌱 Seed |
 | Onboarding | 15 | 90 | 75 | +0 | +0 | No audited onboarding flow | 🌱 Seed |
-| Support / admin | 10 | 90 | 80 | +0 | +0 | No support surface | 🌱 Seed |
+| Support / admin | 25 | 90 | 65 | +0 | +15 | (FOUNDATION-SWEEP-3) `supportAdminFoundation.ts` defines 6-capability plan (intake / triage / review queue / audit-safe note / demo reset request / escalation policy) with `staffed: false` and `productionAdminEnabled: false` invariants; surfaced on `/support` route; no live staffed support | 🧱 Foundation |
 | Pilot ops | 50 | 90 | 40 | +0 | +0 | `/pilot` CTA live; no funnel instrumentation | 🛠️ Buildout |
 | Analytics | 20 | 90 | 70 | +0 | +0 | No PostHog product-analytics events confirmed end-to-end | 🌱 Seed |
 | Docs / status page | 15 | 90 | 75 | +0 | +0 | No public status page | 🌱 Seed |
 | Legal pages | 60 | 90 | 30 | +0 | +0 | `/privacy` and `/terms` live (#LIVE-100C) | 🛠️ Buildout |
 | Sales / pilot collateral | 25 | 90 | 65 | +0 | +0 | Some pilot pages; no proof-pack | 🧱 Foundation |
-| Demo data / reset flow | 20 | 90 | 70 | +0 | +0 | Issuer review surface uses `recordedBy:'demo'` | 🌱 Seed |
+| Demo data / reset flow | 28 | 90 | 62 | +0 | +8 | Issuer review surface uses `recordedBy:'demo'` + (FOUNDATION-SWEEP-3) `demoResetFoundation.ts` defines 5 demo-bounded reset scopes with `productionResetEnabled: false`, `destructive: false`, and `requiresOperatorConfirmation: true` invariants; surfaced on `/admin/demo-reset` route; no destructive reset logic ships | 🧱 Foundation |
 
 ---
 
