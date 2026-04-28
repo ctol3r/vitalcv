@@ -142,8 +142,8 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 |---|---:|---:|---:|---:|---:|---|---|
 | Government ID verification | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
 | Selfie / liveness | 0 | 90 | 90 | +0 | +0 | None | 🧊 Planned |
-| Clinician-to-NPI binding | 15 | 90 | 75 | +0 | +0 | NPI lookup exists; no proven-person-to-NPI binding | 🌱 Seed |
-| Identity proofing policy | 10 | 90 | 80 | +0 | +0 | No documented IAL/AAL policy | 🌱 Seed |
+| Clinician-to-NPI binding | 28 | 90 | 62 | +0 | +13 | NPI lookup exists + (FOUNDATION-SWEEP-2) `evaluateClinicianNpiBindingReadiness` returns `foundation_ready` for identifier-resolved+self-attested input; explicit `gov_id_required`/`liveness_required` placeholders for planned controls; no proven-person-to-NPI binding still | 🧱 Foundation |
+| Identity proofing policy | 25 | 90 | 65 | +0 | +15 | (FOUNDATION-SWEEP-2) `apps/web/lib/identity/identityProofingPolicy.ts` defines `IdentityProofingPolicyDecision` with NPI-lookup + self-attested-name as the only `isLive: true` controls; government ID + liveness explicitly `isLive: false`; no IAL2/IAL3 asserted; `/clinician/identity` route renders the policy summary | 🧱 Foundation |
 | Account recovery | 10 | 90 | 80 | +0 | +0 | Tied to broken auth slice | 🌱 Seed |
 | Session security | 20 | 90 | 70 | +0 | +0 | Default Next/Clerk session handling, not hardened | 🌱 Seed |
 | OWASP ASVS baseline | 15 | 90 | 75 | +0 | +0 | No published ASVS scorecard | 🌱 Seed |
@@ -158,13 +158,13 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| WCAG 2.2 AA baseline | 12 | 90 | 78 | +0 | +0 | No published audit; no automated axe gate in CI | 🌱 Seed |
+| WCAG 2.2 AA baseline | 25 | 90 | 65 | +0 | +13 | (FOUNDATION-SWEEP-2) `apps/web/lib/accessibility/accessibilityFoundation.ts` defines a 9-category baseline checklist with explicit `disclaimer: 'not a WCAG 2.2 AA certification'`; no published audit yet; no automated axe gate in CI | 🧱 Foundation |
 | Keyboard navigation | 25 | 90 | 65 | +0 | +0 | Default browser behavior; no audited focus traps | 🧱 Foundation |
-| Screen reader labels | 20 | 90 | 70 | +0 | +0 | Spot fixes; no systematic ARIA audit | 🌱 Seed |
+| Screen reader labels | 25 | 90 | 65 | +0 | +5 | Spot fixes + (FOUNDATION-SWEEP-2) `screen_reader_labels` category in the accessibility foundation checklist with explicit pass condition; new `/clinician/identity` page uses semantic regions (`aria-labelledby`, `aria-label` on status pills) | 🧱 Foundation |
 | Touch targets | 30 | 90 | 60 | +0 | +0 | Mobile clip fixes (Wave GOD-2); no 44×44 audit | 🧱 Foundation |
 | Error-state accessibility | 15 | 90 | 75 | +0 | +0 | Error UIs not audited for SR | 🌱 Seed |
 | Contrast | 30 | 90 | 60 | +0 | +0 | Design-system v2 tokens in flight on a separate branch | 🧱 Foundation |
-| Reduced motion | 10 | 90 | 80 | +0 | +0 | No prefers-reduced-motion handling verified | 🌱 Seed |
+| Reduced motion | 25 | 90 | 65 | +0 | +15 | (FOUNDATION-SWEEP-2) `reduced_motion` category in the accessibility foundation checklist with explicit `passCondition`; no prefers-reduced-motion handling audited end-to-end yet | 🧱 Foundation |
 | Form accessibility | 15 | 90 | 75 | +0 | +0 | No labeled-region audit | 🌱 Seed |
 | Mobile accessibility | 15 | 90 | 75 | +0 | +0 | Same | 🌱 Seed |
 
@@ -175,7 +175,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
 | CV upload | 25 | 90 | 65 | +0 | +0 | Knowledge Inbox foundation (#166) for free-text capture; binary CV upload not wired | 🧱 Foundation |
-| Document upload | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
+| Document upload | 32 | 90 | 58 | +0 | +12 | (FOUNDATION-SWEEP-2) `document_upload` is a first-class `ImportEntryKind` in `importFoundation.ts` with `entry_only` status; surfaced as a card on `/clinician/import` with explicit "source-backed verification of the document is a separate path" copy | 🧱 Foundation |
 | Drag/drop upload UX | 15 | 90 | 75 | +0 | +0 | No verified DnD surface | 🌱 Seed |
 | LinkedIn import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
 | Doximity import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
@@ -184,7 +184,7 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX partial | 🧱 Foundation |
 | Shareable passport | 35 | 90 | 55 | +0 | +0 | `/passport/[id]` route + provenance panel | 🧱 Foundation |
 | Proof pack export | 20 | 90 | 70 | +0 | +0 | Conceptual shape; no audited bundle | 🌱 Seed |
-| Import error handling | 20 | 90 | 70 | +0 | +0 | Inbox classifier handles known states; UX surfacing partial | 🌱 Seed |
+| Import error handling | 25 | 90 | 65 | +0 | +5 | Inbox classifier handles known states + (FOUNDATION-SWEEP-2) `buildImportErrorState` returns user-safe `{userMessage, remediation}` for 8 `ImportErrorKind` values (unsupported_file_type, file_too_large, parse_failure, integration_unavailable, rate_limited, transport_error, validation_failed, unknown); no raw stack/payload/secret leaks; rendered as a section on `/clinician/import` | 🧱 Foundation |
 | Import provenance labels | 40 | 90 | 50 | +0 | +0 | 5-tier provenance vocab enforced (Wave GOD-3S) | 🧱 Foundation |
 
 ---
