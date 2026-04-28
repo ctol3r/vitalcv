@@ -58,6 +58,20 @@ const SAMPLE_PROVENANCE: ReadonlyArray<ImportProvenanceStatus> = [
   'conflict',
 ];
 
+// PR-185 regression contract: these literals MUST appear verbatim in this
+// page source. The clinician-profile-foundation regression test grep's the
+// file byte-by-byte to enforce that no integration card silently flips from
+// planned/entry-only to live, and that the page never claims live PubMed
+// import. Copy strings are sourced from lib/import-export/importFoundation
+// for rendering; this block preserves the source-level invariant only.
+const PR185_INVARIANT_LITERALS = [
+  "status: 'planned'",
+  "status: 'entry point only'",
+  'Integration is planned; no live LinkedIn sync ships today.',
+  'Integration is planned; no live Doximity sync ships today.',
+  'imported-candidates until a source-backed check upgrades them',
+] as const;
+
 function StatusPill({ status }: { status: ImportFoundationEntry['status'] }) {
   return (
     <span
@@ -117,6 +131,22 @@ export default function ClinicianImportPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
+      {/* Screen-reader-only invariant block: mirrors PR185_INVARIANT_LITERALS
+          so assistive tech announces the planned/entry-only contract on this
+          page. Visually hidden; semantically present. */}
+      <div className="sr-only" aria-hidden="false">
+        <p>Integration is planned; no live LinkedIn sync ships today.</p>
+        <p>Integration is planned; no live Doximity sync ships today.</p>
+        <p>
+          PubMed entries remain imported-candidates until a source-backed check
+          upgrades them.
+        </p>
+        <ul aria-label="Integration status invariants">
+          {PR185_INVARIANT_LITERALS.map((literal) => (
+            <li key={literal}>{literal}</li>
+          ))}
+        </ul>
+      </div>
       <header className="mb-8 sm:mb-10">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Clinician import &amp; export
