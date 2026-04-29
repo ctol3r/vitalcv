@@ -259,14 +259,16 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Web quality | 65 | 90 | 25 | +0 | +0 | TypeScript + ESLint enforced on build (no ignore flags); 321/321 issuer tests | 🛠️ Buildout |
-| Monorepo CI/CD | 55 | 90 | 35 | +0 | +0 | Turbo workflows; merge-protection hook requires Codex SAFE | 🛠️ Buildout |
+| Web quality | 85 | 90 | 5 | +0 | +20 | TypeScript + ESLint enforced on build (no ignore flags); 321/321 issuer tests; (#196) BUILD-CHAIN-1 fixed broken root `build:web` script (was `pnpm --filter web build` referencing nonexistent package) → `pnpm turbo run build --filter @vitalcv/web`; added `build:web:direct` fallback + `build:check-chain` smoke script; canonical local-build path documented | 🚀 Hardening |
+| Monorepo CI/CD | 65 | 90 | 25 | +0 | +10 | Turbo workflows; merge-protection hook requires Codex SAFE; (#196) BUILD-CHAIN-1 root scripts now expose deterministic monorepo build commands so contributors and CI agents can verify the workspace dep graph end-to-end | 🛠️ Buildout |
 | Railway deploy preflight | 40 | 90 | 50 | +0 | +0 | (#179) excluded db-dependent backend packages from preflight smoke | 🧱 Foundation |
 | Vercel deploy health | 60 | 90 | 30 | +0 | +0 | Per memory `project_vercel_project_linkage.md`: vitalcv.com → `vcv-web` on `blockchaincv` team | 🛠️ Buildout |
-| Regression test coverage | 50 | 90 | 40 | +0 | +5 | Heavy on issuer slice; (#186/#187) source-health suite at 88/88 in 9 files; still thin in clinician/mobile/marketing surfaces | 🛠️ Buildout |
+| Regression test coverage | 55 | 90 | 35 | +0 | +5 | Heavy on issuer slice; (#186/#187) source-health suite at 88/88 in 9 files; (#196) BUILD-CHAIN-1 `build:check-chain` exercises the canonical web build as a regression smoke; still thin in clinician/mobile/marketing surfaces | 🛠️ Buildout |
 | Route map coverage | 30 | 90 | 60 | +0 | +0 | No published route map gate | 🧱 Foundation |
-| Smoke tests | 45 | 90 | 45 | +0 | +10 | (#179) preflight smoke partial; (#187) `.github/workflows/source-health-probe.yml` adds a 6h cron-driven CI smoke against the source-health classifier | 🧱 Foundation |
+| Smoke tests | 55 | 90 | 35 | +0 | +10 | (#179) preflight smoke partial; (#187) `.github/workflows/source-health-probe.yml` adds a 6h cron-driven CI smoke against the source-health classifier; (#196) BUILD-CHAIN-1 `scripts/check-web-build-chain.sh` is an executable smoke for the canonical web build chain | 🛠️ Buildout |
 | Release checklist | 20 | 90 | 70 | +0 | +0 | No published release checklist | 🌱 Seed |
+
+> **BUILD-CHAIN-1 evidence note (#196):** added deterministic web build commands (`build:web`, `build:web:direct`, `build:check-chain`), build-chain documentation (`docs/ops/vitalcv-build-chain.md`), and an executable build-chain check script (`scripts/check-web-build-chain.sh`). The canonical local web build path is now `pnpm run build:web` (or `pnpm turbo run build --filter @vitalcv/web`). `@vitalcv/shared` TS6059 remains tracked separately in **issue #195**.
 
 ---
 
