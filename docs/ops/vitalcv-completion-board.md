@@ -112,9 +112,9 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | Affiliations | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
 | Work history | 20 | 90 | 70 | +0 | +0 | Same | 🌱 Seed |
 | Research / publications | 15 | 90 | 75 | +0 | +0 | Section exists, no live source binding | 🌱 Seed |
-| PubMed layer | 10 | 90 | 80 | +0 | +0 | Concept + MCP available; no in-product fetch / dedupe / display | 🌱 Seed |
-| LinkedIn-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
-| Doximity-style profile layer | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
+| PubMed layer | 30 | 90 | 60 | +0 | +20 | Concept + MCP available + (FOUNDATION-SWEEP-5) `apps/web/lib/research/publicationFoundation.ts` defines 5 source kinds (PubMed / ORCID / Crossref / OpenAlex / manual_entry) with `pubmedCandidatesVerifiedByDefault: false` and `sourceBackedVerificationImplemented: false` typed literals; `PublicationCandidate` carries typed `verified: false`; PubMed candidates require disambiguation; `getResearchProfileReadiness` reports `verifiedCount: 0`; surfaced on `/clinician/research` route; in-product fetch/dedupe still planned | 🧱 Foundation |
+| LinkedIn-style profile layer | 28 | 90 | 62 | +0 | +23 | (FOUNDATION-SWEEP-5) `apps/web/lib/clinician-profile/professionalProfileLayer.ts` defines `linkedin_style` layer as a presentation concept (NOT a LinkedIn integration) with `verifiesCredentials: false` typed literal; surfaced on `/clinician/profile-layers` route | 🧱 Foundation |
+| Doximity-style profile layer | 26 | 90 | 64 | +0 | +21 | (FOUNDATION-SWEEP-5) Same `professionalProfileLayer.ts` foundation defines `doximity_style` layer as a presentation concept (NOT a Doximity integration) with `verifiesCredentials: false` typed literal; surfaced on `/clinician/profile-layers` route | 🧱 Foundation |
 | Career goals / preferences | 25 | 90 | 65 | +0 | +0 | Capture exists, no matching loop | 🧱 Foundation |
 | Profile completion score | 20 | 90 | 70 | +0 | +0 | No live score widget | 🌱 Seed |
 | Clinician-facing value dashboard | 10 | 90 | 80 | +0 | +0 | Not built | 🌱 Seed |
@@ -177,9 +177,9 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 | CV upload | 25 | 90 | 65 | +0 | +0 | Knowledge Inbox foundation (#166) for free-text capture; binary CV upload not wired | 🧱 Foundation |
 | Document upload | 32 | 90 | 58 | +0 | +12 | (FOUNDATION-SWEEP-2) `document_upload` is a first-class `ImportEntryKind` in `importFoundation.ts` with `entry_only` status; surfaced as a card on `/clinician/import` with explicit "source-backed verification of the document is a separate path" copy | 🧱 Foundation |
 | Drag/drop upload UX | 15 | 90 | 75 | +0 | +0 | No verified DnD surface | 🌱 Seed |
-| LinkedIn import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
-| Doximity import | 5 | 90 | 85 | +0 | +0 | Not built | 🌱 Seed |
-| PubMed import | 10 | 90 | 80 | +0 | +0 | Concept; no in-product import | 🌱 Seed |
+| LinkedIn import | 25 | 90 | 65 | +0 | +20 | (FOUNDATION-SWEEP-5) `apps/web/lib/import-export/professionalImportFoundation.ts` defines `linkedin_profile` entry as `planned` with `isLive: false`; required capabilities include `no_scraping` and `no_credential_collection`; surfaced on `/clinician/import/professional` route; **no live integration ships** | 🧱 Foundation |
+| Doximity import | 25 | 90 | 65 | +0 | +20 | (FOUNDATION-SWEEP-5) Same `professionalImportFoundation.ts` defines `doximity_profile` entry as `planned` with `isLive: false`; same `no_scraping`/`no_credential_collection` required capabilities; surfaced on `/clinician/import/professional` route; **no live integration ships** | 🧱 Foundation |
+| PubMed import | 30 | 90 | 60 | +0 | +20 | (FOUNDATION-SWEEP-5) Same `professionalImportFoundation.ts` defines `pubmed_publications` entry as `candidate_ready` with `isLive: false`; `evaluateProfessionalImportReadiness` upgrades to `source_candidate` only when a real source match is attached, NEVER to `source_backed` from this foundation; **`productionReady: false` typed literal**; required capabilities include `identity_disambiguation` and `author_match_required`; surfaced on `/clinician/import/professional` + `/clinician/research` routes; **no live PubMed integration ships in this wave** | 🧱 Foundation |
 | CSV / roster import | 30 | 90 | 60 | +0 | +0 | Per existing board: "some CSV ingest; roster mgmt manual" | 🧱 Foundation |
 | Export bundle | 25 | 90 | 65 | +0 | +0 | `ARTIFACT_EXPORTED` event metadata exists; bundle UX partial | 🧱 Foundation |
 | Shareable passport | 35 | 90 | 55 | +0 | +0 | `/passport/[id]` route + provenance panel | 🧱 Foundation |
