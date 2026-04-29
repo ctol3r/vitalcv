@@ -242,9 +242,9 @@ Status vocabulary: emoji phase derived from Current % per the [Status Lexicon](#
 
 | Area | Current % | Target % | Delta to 90% | Expected Wave Delta | Actual Wave Delta | Evidence Required | Status |
 |---|---:|---:|---:|---:|---:|---|---|
-| Pricing / paywall | 5 | 90 | 85 | +0 | +0 | None | 🌱 Seed |
-| Self-serve signup | 10 | 90 | 80 | +0 | +0 | Tied to auth slice | 🌱 Seed |
-| Onboarding | 15 | 90 | 75 | +0 | +0 | No audited onboarding flow | 🌱 Seed |
+| Pricing/paywall | 28 | 90 | 62 | +0 | +20 | (FOUNDATION-SWEEP-6A) `apps/web/lib/commercial/pricingFoundation.ts` defines 5 commercial plan kinds with typed `collectsPayment: false`, `subscriptionActive: false`, and `checkoutIntegrationLive: false`; `/pricing` states payments are not collected in this build; no Stripe/checkout/vendor integration ships | 🧱 Foundation |
+| Self-serve signup | 32 | 90 | 58 | +0 | +20 | (FOUNDATION-SWEEP-6A) `apps/web/lib/commercial/selfServeSignupFoundation.ts` defines role/NPI/profile/export/review steps with `accountCreationProductionReady: false`, `identityProofingComplete: false`, and `paymentCollectionLive: false`; `/signup` states production account creation may require additional controls | 🧱 Foundation |
+| Onboarding | 38 | 90 | 52 | +0 | +20 | (FOUNDATION-SWEEP-6A) `apps/web/lib/commercial/onboardingFoundation.ts` defines NPI/profile/import/readiness/proof-pack/verifier-share milestones with `productionOnboardingComplete: false` and `completesCredentialing: false`; `/onboarding` states readiness and next steps do not complete credentialing | 🧱 Foundation |
 | Support / admin | 25 | 90 | 65 | +0 | +15 | (FOUNDATION-SWEEP-3) `supportAdminFoundation.ts` defines 6-capability plan (intake / triage / review queue / audit-safe note / demo reset request / escalation policy) with `staffed: false` and `productionAdminEnabled: false` invariants; surfaced on `/support` route; no live staffed support | 🧱 Foundation |
 | Pilot ops | 50 | 90 | 40 | +0 | +0 | `/pilot` CTA live; no funnel instrumentation | 🛠️ Buildout |
 | Analytics | 20 | 90 | 70 | +0 | +0 | No PostHog product-analytics events confirmed end-to-end | 🌱 Seed |
