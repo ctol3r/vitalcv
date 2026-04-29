@@ -8,7 +8,9 @@
     "services/*"
   ],
   "scripts": {
-    "build:web": "pnpm --filter web build",
+    "build:web": "pnpm turbo run build --filter @vitalcv/web",
+    "build:web:direct": "pnpm --filter @vitalcv/trust-state build && pnpm --filter @vitalcv/web build",
+    "build:check-chain": "bash scripts/check-web-build-chain.sh",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "test": "turbo test",
