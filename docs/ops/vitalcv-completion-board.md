@@ -194,13 +194,13 @@ Every section uses this schema:
 |---|---:|---:|---|---|
 | Employer review | 60 | 60 | No action this wave. Issuer review surface (#168); demo render only (`recordedBy:'demo'`). | 🛠️ Buildout |
 | Request review | 55 | 55 | No action this wave. Same as employer review. | 🛠️ Buildout |
-| Verifier worklist | 30 | 30 | No action this wave. No audited multi-request worklist. | 🧱 Foundation |
+| Verifier worklist | 30 | 48 | FOUNDATION-SWEEP-7: `worklist.ts` WorklistItem/filter/status-copy foundation; WorklistPanel component; /employer/worklist shell; dbBackedWorklist: false. | 🧱 Foundation |
 | Evidence inspection | 50 | 50 | No action this wave. Receipt candidate viewer. | 🛠️ Buildout |
-| Reuse decision UX | 50 | 50 | No action this wave. (#172) reuse boundary surfaced in review. | 🛠️ Buildout |
-| Policy decision UX | 60 | 60 | No action this wave. Policy review 5-gate UX. | 🛠️ Buildout |
+| Reuse decision UX | 50 | 65 | FOUNDATION-SWEEP-7: `reuseDecisionFoundation.ts` 3-basis model; explainReuseBasis says 'previously assessed'; crossTenantReuseImplemented: false. | 🛠️ Buildout |
+| Policy decision UX | 60 | 75 | FOUNDATION-SWEEP-7: `policyDecisionFoundation.ts` 4-outcome model; no 'approved'/'rejected' language; automatedPolicyEngine: false; /employer/decision/[id] shell. | 🛠️ Buildout |
 | Exportable proof pack | 25 | 25 | No action this wave. Not bundled. | 🧱 Foundation |
-| Team / org roles | 10 | 10 | No action this wave. None. | 🌱 Seed |
-| Review status tracking | 45 | 45 | No action this wave. Request lifecycle states present. | 🧱 Foundation |
+| Team / org roles | 10 | 28 | FOUNDATION-SWEEP-7: `orgRolesFoundation.ts` 3-role model; invitation lifecycle; invitationSystemLive: false, rbacEnforced: false. | 🧱 Foundation |
+| Review status tracking | 45 | 60 | FOUNDATION-SWEEP-7: `reviewStatusFoundation.ts` 6-state lifecycle; transitionAllowed() state machine; truth-safe copy for all states; productionWorkflowLive: false. | 🛠️ Buildout |
 | Employer CTA / conversion path | 40 | 40 | No action this wave. `/employers` redirect + `/pilot` CTA live. | 🧱 Foundation |
 
 ---
