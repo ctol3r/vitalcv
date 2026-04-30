@@ -24,7 +24,12 @@ coverage
 .git
 .gitignore
 
-# tests & docs not needed at deploy time
+# tests & top-level docs/ not needed at deploy time
+# Leading slash anchors `/docs/` to the repo root so it only matches
+# the top-level markdown docs directory, NOT the Next route directory
+# at apps/web/app/docs/. The unanchored `docs` pattern (gitignore
+# semantics) matched any directory named `docs` at any depth and
+# silently dropped /docs from the build manifest.
 **/__tests__
 **/*.test.*
-docs
+/docs/
