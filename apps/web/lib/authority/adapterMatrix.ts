@@ -9,6 +9,8 @@
  *      accidentally imply production authority verification.
  */
 
+import { californiaMedicalBoardAdapter } from './californiaAdapter';
+
 export type AuthorityAdapterCapability =
   | 'verify_license'
   | 'check_disciplinary'
@@ -39,7 +41,7 @@ export interface AdapterMatrix {
 
 export function buildAdapterMatrix(): AdapterMatrix {
   return {
-    adapters: [],
+    adapters: [californiaMedicalBoardAdapter],
     allAdaptersLive: false,
   };
 }
