@@ -64,6 +64,24 @@ describe('analytics foundation', () => {
     for (const r of required) expect(present).toContain(r);
   });
 
+  it('analytics-foundation route renders the privacy-safe disclaimer + invariant labels', () => {
+    const src = readFileSync(resolve(APP_ROOT, 'analytics-foundation/page.tsx'), 'utf-8');
+    expect(src).toContain('Analytics events are a privacy-safe foundation vocabulary. No PHI or credential payloads are collected here.');
+    expect(src).toContain('Dispatched to third party');
+    expect(src).toContain('Production pipeline live');
+    expect(src).toContain('Collects PHI');
+    expect(src).toContain('Collects credential payload');
+  });
+
+  it('the entire JSON serialization of the analytics plan contains no banned identifier-bearing context-key', () => {
+    const text = JSON.stringify(plan).toLowerCase();
+    // The serialized plan walks every event's allowedContextKeys; banned terms
+    // must not appear anywhere in it.
+    for (const banned of ['"npi"', '"email"', '"phone"', '"firstname"', '"lastname"', '"ssn"', '"dob"', '"credential"', '"token"', '"secret"']) {
+      expect(text).not.toContain(banned);
+    }
+  });
+
   it('allowedContextKeys never includes identifier-bearing fields', () => {
     const banned = ['npi', 'email', 'phone', 'name', 'firstName', 'lastName', 'address', 'ssn', 'dob', 'credential', 'token', 'secret'];
     for (const e of plan.events) {
