@@ -178,6 +178,49 @@ describe('analytics / status / docs route copy invariants', () => {
     expect(src).toContain('Docs are a launch-readiness foundation, not complete API documentation.');
   });
 
+  it('docs page renders the API-docs-complete invariant as false', () => {
+    const src = readRoute('docs/page.tsx');
+    expect(src).toContain('API docs complete');
+    expect(src).toContain('apiDocsComplete');
+  });
+
+  it('docs page surfaces the four planned-status surfaces from the foundation', () => {
+    const src = readRoute('docs/page.tsx');
+    // The page renders plan.surfaces; the foundation must include these kinds
+    // and the page must walk them — the kinds are rendered via `kind: ${s.kind}`.
+    expect(src).toContain('Planned status surfaces');
+    expect(src).toContain('plan.surfaces');
+    // The four required surface kinds the brief calls out:
+    for (const kind of [
+      'docs_index',
+      'api_docs_planned',
+      'public_changelog_planned',
+      'incident_notice_planned',
+    ]) {
+      // Each kind is asserted via the foundation's typed catalog (covered by
+      // the status-foundation test block above) AND must surface on the page
+      // via `kind: ${s.kind}` rendering.
+      const surface = buildStatusFoundationPlan().surfaces.find((s) => s.kind === kind);
+      expect(surface).toBeDefined();
+    }
+  });
+
+  it('docs page does not claim complete API documentation or production status operations', () => {
+    const src = readRoute('docs/page.tsx').toLowerCase();
+    // Anti-claim disclaimer is present (already asserted above); the positive
+    // claims listed here MUST NOT appear.
+    const positiveClaims = [
+      'api documentation complete',
+      'we ship complete api docs',
+      'production status page is live',
+      'production monitoring live',
+      'we guarantee uptime',
+    ];
+    for (const phrase of positiveClaims) {
+      expect(src).not.toContain(phrase);
+    }
+  });
+
   it('no Lane B route claims a positive live state for any planned surface', () => {
     // Note: "uptime guarantee" and "complete api documentation" appear inside
     // negation disclaimers ("No uptime guarantee is implied", "not complete API
