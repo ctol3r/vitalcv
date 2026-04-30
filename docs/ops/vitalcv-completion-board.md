@@ -131,8 +131,8 @@ Every section uses this schema:
 | Session security | 20 | 20 | No action this wave. Default Next/Clerk session handling, not hardened. | 🌱 Seed |
 | OWASP ASVS baseline | 15 | 15 | No action this wave. No published ASVS scorecard. | 🌱 Seed |
 | Security headers / secure defaults | 35 | 35 | No action this wave. Some headers via Next defaults; no audited CSP. | 🧱 Foundation |
-| Data classification | 20 | 20 | No action this wave. Provenance vocab exists; no PII/PHI tier doc. | 🌱 Seed |
-| Retention / redaction | 10 | 10 | No action this wave. No retention policy enforced. | 🌱 Seed |
+| Data classification | 20 | 33 | ENTERPRISE-VANGUARD-6A: `dataClassificationFoundation.ts` 4-tier vocab (public/pii/phi/internal); 6 REDACTION_RULES; maskValue(); redactionLive: false, piiTierDocLive: false. | 🧱 Foundation |
+| Retention / redaction | 10 | 25 | ENTERPRISE-VANGUARD-6A: `retentionFoundation.ts` 5-entity retention policy model; DEFAULT_RETENTION_POLICIES; retentionEnforced: false, autoDeleteLive: false. | 🧱 Foundation |
 | Secrets / env handling | 30 | 30 | No action this wave. `.env` patterns in repo; no zod env validation. | 🧱 Foundation |
 
 ---
@@ -231,7 +231,7 @@ Every section uses this schema:
 | Support / admin | 25 | 25 | No action this wave. `supportAdminFoundation.ts` 6-capability plan; `staffed: false`, `productionAdminEnabled: false` (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
 | Pilot ops | 50 | 50 | No action this wave. `/pilot` CTA live; no funnel instrumentation. | 🛠️ Buildout |
 | Analytics | 40 | 40 | No action this wave. `analyticsFoundation.ts` 6-event privacy-safe vocabulary; no vendor wired; production pipeline not live (#FOUNDATION-SWEEP-6B). | 🧱 Foundation |
-| Docs / status page | 45 | 45 | No action this wave. `statusFoundation.ts` 6-surface plan; `productionStatusPageLive: false`; `/status` and `/docs` routes live (#FOUNDATION-SWEEP-6B). | 🧱 Foundation |
+| Docs / status page | 45 | 55 | ENTERPRISE-VANGUARD-6A: `apps/web/app/api/compliance/evidence/route.ts` compliance evidence shape route; superadminGateLive: false; reports planned controls, not enforced production policies. | 🛠️ Buildout |
 | Legal pages | 60 | 60 | No action this wave. `/privacy` and `/terms` live (#LIVE-100C). | 🛠️ Buildout |
 | Sales / pilot collateral | 25 | 25 | No action this wave. Some pilot pages; no proof-pack. | 🧱 Foundation |
 | Demo data / reset flow | 28 | 28 | No action this wave. `demoResetFoundation.ts` 5 reset scopes; `productionResetEnabled: false`, `destructive: false` (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
