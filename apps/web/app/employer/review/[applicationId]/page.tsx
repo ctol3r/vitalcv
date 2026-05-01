@@ -5,15 +5,19 @@ import { signPayloadES256 } from '../../../../lib/trust/cryptoService';
 export default async function EmployerReviewPage(props: { params: Promise<{ applicationId: string }> }) {
   const { applicationId } = await props.params;
 
-  // Demo: sign a sample receipt so the employer can verify it
+  // Demo: sign a sample receipt so the employer can verify cryptographic integrity.
+  // proofTier is 'demo_receipt' — this token was NOT produced by the PSV promotion chain
+  // and does not represent a real PSVReceipt. It exists solely to demonstrate the
+  // signature-verification surface in the employer cockpit.
   const demoToken = await signPayloadES256({
     sub: `application:${applicationId}`,
     iss: 'vitalcv',
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600,
     proofTier: 'demo_receipt',
+    demo: true,
     applicationId,
-    note: 'Demo receipt for employer review surface',
+    note: 'Demo receipt for employer review surface — not a real PSV receipt',
   });
 
   return (
