@@ -43,6 +43,6 @@ export function explainOrgRole(role: OrgRole): string {
     case 'reviewer':
       return 'Can participate in internal application assessment workflows once production RBAC is connected; this foundation grants no live permissions.';
     case 'read_only':
-      return 'Can view assigned review context once production RBAC is connected; this foundation grants no decision-recording permissions.';
+      return 'Can view assigned review context once production RBAC is connected; this foundation grants no live permissions.';
   }
 }
