@@ -96,6 +96,7 @@ import {
 } from '@/lib/trust/passport-truth';
 import { buildPassportPilotTimeToStartEstimate } from '@/lib/trust/time-to-start-estimate';
 import type { CanonicalTruthSet } from '@vitalcv/trust-state';
+import { type ReceiptPosture } from '@/lib/receipt-verification';
 
 function latestCredentialObservationDate(
   credentials: PassportData['authority']['credentials'],
@@ -586,6 +587,7 @@ interface ReviewClientLoadedProps {
   bundleId?:  string;
   sharedBy?:  string;
   acceptanceHistory?: EmployerAcceptanceHistoryResponse;
+  receiptJwts?: string[];
 }
 
 interface ReviewClientLoadingProps {
@@ -771,7 +773,7 @@ async function postAction(
     const status = res.status;
     if (status === 401 || status === 403) {
       if (endpoint === 'request-refresh') throw new PilotFallbackError('Request recorded — clinician will be notified during pilot');
-      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision captured as pilot audit-boundary metadata');
+      if (endpoint === 'reject') throw new PilotFallbackError('Rejection recorded — decision logged for pilot audit trail');
     }
     throw new Error(err.error_description ?? `Action failed (${status})`);
   }
@@ -867,6 +869,147 @@ function AcceptanceHistoryPanel({
   );
 }
 
+// ── Cryptographic receipt available panel ────────────────────────────────
+
+function extractKidFromJwt(jwt: string): string | null {
+  try {
+    const raw = jwt.split('.')[0] ?? '';
+    const padded = raw + '='.repeat((4 - (raw.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/'))) as Record<string, unknown>;
+    return typeof decoded.kid === 'string' ? decoded.kid : null;
+  } catch {
+    return null;
+  }
+}
+
+function CryptoReceiptAvailablePanel({ receiptJwts }: { receiptJwts: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (receiptJwts.length === 0) return null;
+
+  const firstJwt = receiptJwts[0]!;
+  const kid = extractKidFromJwt(firstJwt);
+  const truncatedJwt = firstJwt.length > 100 ? `${firstJwt.slice(0, 100)}…` : firstJwt;
+
+  return (
+    <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-indigo-400 text-sm" aria-label="Cryptographic Receipt">🔐</span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">
+              Cryptographic Receipt Available
+            </p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/50">
+              This evidence is cryptographically signed by VitalCV as the orchestration agent.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0 h-7 px-2 text-[10px] text-indigo-400/70 hover:text-indigo-300 hover:bg-indigo-500/10"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Hide' : 'View proof'}
+        </Button>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 space-y-2.5 border-t border-white/8 pt-3">
+          {kid && (
+            <div className="flex items-center justify-between gap-2 text-[10px]">
+              <span className="text-muted-foreground/60 shrink-0">Key ID (kid)</span>
+              <span className="font-mono text-foreground/80 truncate">{kid}</span>
+            </div>
+          )}
+          <div className="rounded-lg border border-white/8 bg-black/20 px-2.5 py-2">
+            <p className="font-mono text-[9px] leading-relaxed text-muted-foreground/40 break-all">
+              {receiptJwts.length === 1 ? truncatedJwt : `${truncatedJwt} (+${receiptJwts.length - 1} more)`}
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-2 text-[10px]">
+            <span className="text-muted-foreground/50">Verify public keys independently</span>
+            <Link
+              href="/.well-known/jwks.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400/70 hover:text-indigo-300 underline underline-offset-2 shrink-0"
+            >
+              /.well-known/jwks.json ↗
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Cryptographic lock banner ─────────────────────────────────────────────
+
+function CryptographicLockBanner({ posture }: { posture: ReceiptPosture | 'checking' }) {
+  if (posture === 'pending') return null;
+
+  if (posture === 'checking') {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.025] px-4 py-3">
+        <span className="text-muted-foreground/40 text-sm">⟳</span>
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40">
+          Verifying cryptographic receipts…
+        </p>
+      </div>
+    );
+  }
+
+  if (posture === 'secured') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+        <span className="text-emerald-400 text-base" aria-label="Cryptographically Secured">🔒</span>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/80">
+            Cryptographically Secured
+          </p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/50">
+            All attached receipt claims passed signature verification.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (posture === 'expired') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+        <span className="text-amber-400 text-base" aria-label="Receipt Expired">⏱</span>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
+            Receipt Expired
+          </p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/50">
+            One or more receipts have passed their validity window. Request a refresh.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/8 px-4 py-3">
+      <span className="text-rose-400 text-base" aria-label="Evidence Compromised">🔴</span>
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400">
+          EVIDENCE COMPROMISED
+        </p>
+        <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/50">
+          Receipt signature verification failed. These claims cannot be relied upon.
+          Employer actions have been disabled.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
@@ -930,7 +1073,11 @@ function ReviewClientLoaded({
   bundleId,
   sharedBy,
   acceptanceHistory,
+  receiptJwts,
 }: ReviewClientLoadedProps) {
+  const [receiptPosture, setReceiptPosture] = useState<ReceiptPosture | 'checking'>(
+    receiptJwts && receiptJwts.length > 0 ? 'checking' : 'pending',
+  );
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
   const [confirmStartState, setConfirmStartState] = useState<
@@ -948,6 +1095,36 @@ function ReviewClientLoaded({
   const actionInFlightRef = useRef(false);
   const trackEvent = useTrackEvent();
   const reviewOpenedTrackedRef = useRef(false);
+
+  // Zero-trust receipt verification: POST tokens to the server-side verification
+  // route on mount so the signing secret is never exposed to the browser.
+  useEffect(() => {
+    if (!receiptJwts || receiptJwts.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/receipt/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tokens: receiptJwts }),
+        });
+        if (!res.ok) throw new Error(`Verification API error (${res.status})`);
+        const data = await res.json() as { posture: ReceiptPosture };
+        if (!cancelled && mountedRef.current) {
+          setReceiptPosture(data.posture);
+        }
+      } catch {
+        if (!cancelled && mountedRef.current) {
+          setReceiptPosture('compromised');
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  // receiptJwts identity is stable — parent should memoize or use a literal array
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receiptJwts?.join(',')]);
 
   const { identity, readiness, standing, authority } = passport;
   const truth = resolvePassportTruthSet(passport);
@@ -985,7 +1162,8 @@ function ReviewClientLoaded({
           : !isEmployer
             ? 'Preview. Switch into an employer workspace to persist decisions.'
             : null;
-  const canPersistActions = previewOnlyMessage === null;
+  const isEvidenceCompromised = receiptPosture === 'compromised';
+  const canPersistActions = previewOnlyMessage === null && !isEvidenceCompromised;
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn, isEmployer });
   // Wave-1 P0: confirm-start must be reachable *both* after an in-session accept
   // and when the reviewer returns to a previously-accepted review (persisted state).
@@ -1284,6 +1462,14 @@ function ReviewClientLoaded({
           <span className="text-muted-foreground/50 text-xs">Employer review</span>
         </div>
 
+        {/* ── Cryptographic receipt available panel ───────────────────────── */}
+        {receiptJwts && receiptJwts.length > 0 && (
+          <CryptoReceiptAvailablePanel receiptJwts={receiptJwts} />
+        )}
+
+        {/* ── Cryptographic receipt lock banner ────────────────────────────── */}
+        <CryptographicLockBanner posture={receiptPosture} />
+
         {/* ══════════════════════════════════════════════════════════════════
             BINARY DECISION CARD — Above the fold. Employer decides here.
             <10 seconds. Everything else is collapsed below.
@@ -1330,7 +1516,7 @@ function ReviewClientLoaded({
               </div>
             )}
             <div className="flex justify-between text-xs mt-1">
-              <span className="text-muted-foreground">Audit-boundary record</span>
+              <span className="text-muted-foreground">Audit trail</span>
               <span className="text-foreground">Actions tied to this context</span>
             </div>
           </Card>
@@ -1371,7 +1557,7 @@ function ReviewClientLoaded({
               title={actionState.message}
               description={
                 actionState.intent === 'reject'
-                  ? 'Your rejection decision has been captured as pilot audit-boundary metadata.'
+                  ? 'Your rejection decision has been recorded in the pilot audit trail.'
                   : 'Your request has been recorded. During the pilot, clinicians will be notified through the pilot operations channel.'
               }
               tone="success"
@@ -1400,7 +1586,7 @@ function ReviewClientLoaded({
             >
               <div className="flex items-center gap-2">
                 <span className="text-[var(--vt-success)] text-sm">✔</span>
-                <p className="text-foreground/70 text-sm font-medium">Audit-boundary entry captured</p>
+                <p className="text-foreground/70 text-sm font-medium">Audit trail recorded</p>
               </div>
               <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1 space-y-1.5">
                 <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Audit record</p>
@@ -1441,7 +1627,7 @@ function ReviewClientLoaded({
             >
               <div>
                 <p className="text-muted-foreground/60 text-[10px] font-semibold uppercase tracking-widest">Record start date</p>
-                <p className="mt-1 text-sm text-foreground">Attach an attested start date so the audit-boundary record closes the loop on this acceptance.</p>
+                <p className="mt-1 text-sm text-foreground">Attach an attested start date so the audit trail closes the loop on this acceptance.</p>
               </div>
               {confirmStartState.phase === 'error' && (
                 <p data-testid="confirm-start-error" className="text-destructive text-xs">{confirmStartState.message}</p>
@@ -1979,7 +2165,7 @@ function ReviewClientLoaded({
                     {blocked.length} active blocker{blocked.length === 1 ? '' : 's'} — you&apos;re accepting with known gaps
                   </p>
                   <p className="text-amber-400/50 text-[10px] mt-0.5">
-                    "Proceed with Credentialing Head Start" records your decision and these blockers as audit-boundary metadata. Primary source verification (PSV) is still pending.
+                    "Proceed with Credentialing Head Start" records your decision and these blockers in the audit trail. Primary source verification (PSV) is still pending.
                   </p>
                 </div>
               </div>

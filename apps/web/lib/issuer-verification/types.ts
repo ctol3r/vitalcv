@@ -251,25 +251,7 @@ export interface IssuerVerificationRequest {
   response?: IssuerResponse;
 }
 
-/**
- * ISSUER-3 — Policy Review Decision Surface contracts.
- *
- * Truth contract:
- *   - Only `accept_candidate` may produce a PSVReceiptCandidate.
- *   - `accept_candidate` requires the candidate be in
- *     `ready_for_policy_review` (not `review_required`,
- *     `conflict_review_required`, or any other state).
- *   - Reject preserves the underlying response/evidence; it does not
- *     delete the original IssuerResponse or the ReceiptCandidate's
- *     audit metadata.
- *   - request_more_info and reroute do not verify anything; they loop
- *     back to the issuer routing layer.
- *   - A PSVReceiptCandidate is itself still candidate-grade output
- *     (`decisionGrade: false`, distinct
- *     `proofTier: 'psv_receipt_candidate'`) and is NOT a global PSV
- *     receipt. Promotion to PSVReceipt is a future wave with its own
- *     gate.
- */
+// ── Policy review types ────────────────────────────────────────────────────
 
 export type PolicyReviewAction =
   | 'accept_candidate'
@@ -281,60 +263,32 @@ export type PolicyReviewAction =
   | 'cancel';
 
 export type PolicyReviewDecisionStatus =
-  | 'pending_review'
   | 'accepted_as_psv_candidate'
   | 'rejected'
   | 'request_more_info'
   | 'requires_release'
   | 'reroute_required'
   | 'conflict_review_required'
-  | 'expired'
   | 'canceled';
 
 export interface PolicyReviewActor {
   actorId: string;
   displayName: string;
-  role:
-    | 'policy_reviewer'
-    | 'credentialing_committee'
-    | 'compliance_officer'
-    | 'demo';
+  role: string;
 }
 
-/**
- * Audit metadata kept with a policy review decision. Like
- * ReceiptCandidateAuditMetadata, this is metadata-only — it is not a
- * real audit-event row, and `recordedBy: 'demo'` makes that explicit
- * for the review surface.
- */
 export interface PolicyReviewAuditMetadata {
   recordedAt: string;
   recordedBy: 'demo' | 'review_surface' | 'system';
   notes?: string;
 }
 
-/**
- * The reason a decision did or did not produce a PSVReceiptCandidate.
- * Present whether the decision created the candidate or refused to.
- */
 export interface PolicyReviewOutcome {
   createdPsvReceiptCandidate: boolean;
-  reason: string;
-  /** Set when the gate refused; identifies which gate blocked. */
-  refusalGate?:
-    | 'review_state_not_ready'
-    | 'action_does_not_create_candidate'
-    | 'legally_only_requires_limitation_note'
-    | 'wrong_office_cannot_create_candidate'
-    | 'unable_to_verify_cannot_create_candidate'
-    | 'conflict_review_unresolved';
+  refusalGate?: string;
+  reason?: string;
 }
 
-/**
- * The accept/reject/etc. decision a policy reviewer makes against a
- * receipt candidate. Decisions are recorded as metadata only on the
- * demo surface — no DB row is written.
- */
 export interface PolicyReviewDecision {
   decisionId: string;
   receiptCandidateId: string;
@@ -344,18 +298,11 @@ export interface PolicyReviewDecision {
   decidedAt: string;
   actor: PolicyReviewActor;
   rationale?: string;
-  /** True only when the action was accept_candidate AND all gates passed. */
   createdPsvReceiptCandidate: boolean;
   outcome: PolicyReviewOutcome;
   auditMetadata: PolicyReviewAuditMetadata;
 }
 
-/**
- * The output of an accepted policy review. Still candidate-grade
- * output: `decisionGrade: false` literal and
- * `proofTier: 'psv_receipt_candidate'` literal. Promotion to a real
- * PSVReceipt is a future wave (ISSUER-4) and requires its own gate.
- */
 export interface PSVReceiptCandidate {
   psvCandidateId: string;
   receiptCandidateId: string;
@@ -364,47 +311,71 @@ export interface PSVReceiptCandidate {
   claimType: VerificationClaimType;
   acceptedAt: string;
   acceptedBy: PolicyReviewActor;
-  /** Carried through from the underlying ReceiptCandidate. */
   sourceBasis: SourceBasis;
   attributedResponder: AttributedResponder;
-  /** Required when the underlying response was legally_only. */
   limitationNote?: string;
-  /** Literal — type-level guarantee this is not decision-grade. */
+  /** Literal false — not decision-grade until promoted to a PSVReceipt. */
   decisionGrade: false;
-  /** Literal — distinct from ReceiptCandidate's 'receipt_candidate'. */
+  /** Literal — type-level distinction from ReceiptCandidate. */
   proofTier: 'psv_receipt_candidate';
   notes?: string;
 }
 
-/**
- * ISSUER-4 — PSV Receipt Promotion contracts.
- *
- * Truth contract:
- *   - A PSVReceipt is **scoped evidence**, not global credential
- *     truth. The receipt's scope, limitations, and freshness policy
- *     are themselves load-bearing.
- *   - Only an accepted policy review (i.e., a PSVReceiptCandidate that
- *     resulted from `policyReviewDecision.status ===
- *     'accepted_as_psv_candidate'`) may be promoted to a PSVReceipt.
- *   - rejected, request_more_info, reroute, request_release,
- *     mark_conflict_review, cancel, and any pending decision cannot
- *     promote.
- *   - wrong_office and unable_to_verify response statuses cannot
- *     promote even if the candidate somehow reached this surface.
- *   - legally_only candidates promote only if a limitation note
- *     travels with the candidate.
- *   - The promotion helper is a pure transform; no DB writes, no
- *     audit-event writes. PSVReceiptAuditMetadata.eventState defaults
- *     to `'pending_not_written'` so callers cannot accidentally claim
- *     a real audit row was written when none was.
- *   - PSVReceipt.proofTier is the literal `'psv_receipt'` (distinct
- *     from `'psv_receipt_candidate'` and `'receipt_candidate'`).
- *   - PSVReceipt.decisionGrade is the literal `true` for the source
- *     check this receipt records — but the credential claim it backs
- *     only inherits truth within the receipt's scope, limitations,
- *     and freshness window. globalCredentialTruth is the literal
- *     `false` to make that explicit.
- */
+// ── PSV receipt types ──────────────────────────────────────────────────────
+
+export interface PSVReceiptScope {
+  claimType: VerificationClaimType;
+  covers: string;
+  doesNotCover: string;
+  sourceOrganizationName: string;
+}
+
+export interface PSVReceiptLimitation {
+  kind: string;
+  description: string;
+}
+
+export interface FreshnessPolicy {
+  ttlDays: number;
+  issuedAt: string;
+  staleAfter: string;
+}
+
+export type PSVReceiptAuditEventState =
+  | 'pending_not_written'
+  | 'written'
+  | 'failed';
+
+export interface PSVReceiptAuditMetadata {
+  recordedAt: string;
+  recordedBy: 'demo' | 'review_surface' | 'system';
+  eventState: PSVReceiptAuditEventState;
+  notes?: string;
+}
+
+export interface PSVReceipt {
+  psvReceiptId: string;
+  psvCandidateId: string;
+  receiptCandidateId: string;
+  requestId: string;
+  claimId: string;
+  claimType: VerificationClaimType;
+  promotedAt: string;
+  promotedBy: PolicyReviewActor;
+  sourceBasis: SourceBasis;
+  attributedResponder: AttributedResponder;
+  scope: PSVReceiptScope;
+  limitations: PSVReceiptLimitation[];
+  freshness: FreshnessPolicy;
+  /** Literal — proof tier for this artifact. */
+  proofTier: 'psv_receipt';
+  /** Literal true — this receipt IS decision-grade for its own scope. */
+  decisionGrade: true;
+  /** Literal false — a scoped receipt is never global credential truth. */
+  globalCredentialTruth: false;
+  auditMetadata: PSVReceiptAuditMetadata;
+  notes?: string;
+}
 
 export type PSVReceiptPromotionFailureReason =
   | 'not_a_psv_receipt_candidate'
@@ -420,156 +391,23 @@ export type PSVReceiptPromotionFailureReason =
   | 'missing_source_basis'
   | 'missing_attributed_responder';
 
-export type PSVReceiptAuditEventState =
-  | 'pending_not_written'
-  | 'queued_demo_only'
-  | 'written';
-
-/**
- * Audit metadata for a PSV receipt. The truth contract requires
- * `eventState !== 'written'` until a real audit-event row is actually
- * written by an audit service that exists in the codebase. Until
- * then, callers must surface this as pending — never as written.
- */
-export interface PSVReceiptAuditMetadata {
-  recordedAt: string;
-  recordedBy: 'demo' | 'review_surface' | 'system';
-  /** Defaults to 'pending_not_written' so demo surfaces cannot claim a real write. */
-  eventState: PSVReceiptAuditEventState;
-  notes?: string;
-}
-
-/**
- * The scope binding a PSV receipt. Even though the receipt is
- * decision-grade for the source check it records, the credential
- * claim it can support is bounded by this scope. claimType bounds
- * what kind of claim is covered; covers and doesNotCover are
- * human-readable narrowings.
- */
-export interface PSVReceiptScope {
-  claimType: VerificationClaimType;
-  /** Plain-language description of what this receipt covers. */
-  covers: string;
-  /** Plain-language description of what this receipt does NOT cover. */
-  doesNotCover: string;
-  /** Source-of-record organization name (carried from sourceBasis). */
-  sourceOrganizationName: string;
-}
-
-/**
- * An explicit limitation that travels with a PSV receipt. Examples:
- * "Dates and identity only" for a legally_only response;
- * "Federal exclusions only" for an OIG LEIE check; "Self-attested
- * agent" for a contracted-agent response.
- */
-export interface PSVReceiptLimitation {
-  kind:
-    | 'legally_only'
-    | 'partial_confirmation'
-    | 'contracted_agent'
-    | 'access_required'
-    | 'jurisdictional_scope'
-    | 'other';
-  description: string;
-}
-
-/**
- * Freshness policy for a PSV receipt. ttlDays is the maximum age at
- * which the receipt is considered current; staleAfter is the absolute
- * timestamp at which it crosses out of policy. The receipt does not
- * self-revoke — a separate revocation surface (future wave) is the
- * authority for that.
- */
-export interface FreshnessPolicy {
-  ttlDays: number;
-  issuedAt: string;
-  staleAfter: string;
-}
-
-/**
- * The PSV receipt artifact itself. Promotion from PSVReceiptCandidate
- * via `promotePsvReceiptCandidate` is the only path to construct
- * one; the type-level invariants below cannot be satisfied by hand.
- */
-export interface PSVReceipt {
-  psvReceiptId: string;
-  /** The PSVReceiptCandidate this receipt was promoted from. */
-  psvCandidateId: string;
-  receiptCandidateId: string;
-  requestId: string;
-  claimId: string;
-  claimType: VerificationClaimType;
-  promotedAt: string;
-  promotedBy: PolicyReviewActor;
-  /** Carried verbatim from the candidate. Agent and source remain distinct. */
-  sourceBasis: SourceBasis;
-  attributedResponder: AttributedResponder;
-  /** Required, non-empty narrative bounds for what this receipt covers. */
-  scope: PSVReceiptScope;
-  /**
-   * Required limitations array. May be empty only when the underlying
-   * response had none; legally_only and contracted_agent responses
-   * always emit at least one entry.
-   */
-  limitations: PSVReceiptLimitation[];
-  freshness: FreshnessPolicy;
-  /** Literal — distinct from the candidate tiers; PSV receipts have their own tier. */
-  proofTier: 'psv_receipt';
-  /**
-   * Literal — the source check is decision-grade. Whether the
-   * credential claim it backs flips to verified is bounded by scope,
-   * limitations, and freshness; this flag does NOT mean global
-   * credential truth.
-   */
-  decisionGrade: true;
-  /** Literal — explicit guard against any global-truth interpretation. */
-  globalCredentialTruth: false;
-  auditMetadata: PSVReceiptAuditMetadata;
-  notes?: string;
-}
-
-/**
- * Input shape for `promotePsvReceiptCandidate`.
- */
 export interface PSVReceiptPromotionInput {
   psvReceiptCandidate: PSVReceiptCandidate;
-  /**
-   * The policy review decision that produced the candidate. Promotion
-   * refuses unless decision.status === 'accepted_as_psv_candidate'.
-   */
   policyReviewDecision: PolicyReviewDecision;
-  /**
-   * The originating issuer-response status (carried from the
-   * underlying ReceiptCandidate). Defense-in-depth: even though
-   * ISSUER-3 refuses wrong_office / unable_to_verify upstream, this
-   * field lets the promotion helper re-check independently. Callers
-   * MUST pass this when known.
-   */
   originResponseStatus?: IssuerResponseStatus;
-  /** ID assigned to the receipt by the caller. */
   psvReceiptId: string;
   promotedAt: string;
   promotedBy: PolicyReviewActor;
-  /** Freshness TTL in days. Caller-controlled so tests stay deterministic. */
   ttlDays: number;
   scope: PSVReceiptScope;
-  /**
-   * Optional override; if omitted, the helper derives limitations
-   * from the candidate's response status and contracted-agent flag.
-   */
   limitations?: PSVReceiptLimitation[];
   notes?: string;
 }
 
-/**
- * Result of a promotion attempt. `promoted` is true iff a PSVReceipt
- * was constructed; `failureReason` is set iff promotion was refused.
- */
 export interface PSVReceiptPromotionResult {
   promoted: boolean;
   psvReceipt?: PSVReceipt;
   failureReason?: PSVReceiptPromotionFailureReason;
   message: string;
-  /** The candidate is preserved on every outcome — no mutation. */
   preservedCandidate: PSVReceiptCandidate;
 }
