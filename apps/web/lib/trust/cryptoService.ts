@@ -5,6 +5,9 @@
  * receiptIssuer keypair so that tokens signed here can be verified
  * against the same JWKS published at /.well-known/jwks.json.
  *
+ * Key persistence is handled by receiptIssuer via RECEIPT_PRIVATE_KEY_JWK
+ * and RECEIPT_KID env vars. In dev/test, an ephemeral keypair is generated.
+ *
  * TODO(VERIFIER-200-arch): replace demo signing with proper
  * signIssuerReceipt calls; this bridge is a transitional shim.
  */
