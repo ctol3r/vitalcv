@@ -216,6 +216,15 @@ export interface ReceiptCandidate {
   /** Literal — type-level guarantee that the candidate is never marked source-backed. */
   proofTier?: 'receipt_candidate';
   auditMetadata?: ReceiptCandidateAuditMetadata;
+
+  // ---- ISSUER-ES256 — signed receipt extension ----
+  /**
+   * ES256-signed JWT minted by signIssuerReceipt when the response
+   * status is 'confirmed'. Present only on confirmed candidates.
+   * The JWT payload carries claimId, source, status, observed_at,
+   * and raw_hash. Absent on non-confirmed candidates.
+   */
+  signedReceiptJwt?: string;
 }
 
 export interface IssuerResponse {

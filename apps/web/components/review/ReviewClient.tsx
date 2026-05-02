@@ -586,6 +586,7 @@ interface ReviewClientLoadedProps {
   bundleId?:  string;
   sharedBy?:  string;
   acceptanceHistory?: EmployerAcceptanceHistoryResponse;
+  receiptJwts?: string[];
 }
 
 interface ReviewClientLoadingProps {
@@ -867,6 +868,83 @@ function AcceptanceHistoryPanel({
   );
 }
 
+// ── Cryptographic receipt available panel ────────────────────────────────
+
+function extractKidFromJwt(jwt: string): string | null {
+  try {
+    const raw = jwt.split('.')[0] ?? '';
+    const padded = raw + '='.repeat((4 - (raw.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/'))) as Record<string, unknown>;
+    return typeof decoded.kid === 'string' ? decoded.kid : null;
+  } catch {
+    return null;
+  }
+}
+
+function CryptoReceiptAvailablePanel({ receiptJwts }: { receiptJwts: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (receiptJwts.length === 0) return null;
+
+  const firstJwt = receiptJwts[0]!;
+  const kid = extractKidFromJwt(firstJwt);
+  const truncatedJwt = firstJwt.length > 100 ? `${firstJwt.slice(0, 100)}…` : firstJwt;
+
+  return (
+    <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-indigo-400 text-sm" aria-label="Cryptographic Receipt">🔐</span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">
+              Cryptographic Receipt Available
+            </p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground/50">
+              This evidence is cryptographically signed by VitalCV as the orchestration agent.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0 h-7 px-2 text-[10px] text-indigo-400/70 hover:text-indigo-300 hover:bg-indigo-500/10"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Hide' : 'View proof'}
+        </Button>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 space-y-2.5 border-t border-white/8 pt-3">
+          {kid && (
+            <div className="flex items-center justify-between gap-2 text-[10px]">
+              <span className="text-muted-foreground/60 shrink-0">Key ID (kid)</span>
+              <span className="font-mono text-foreground/80 truncate">{kid}</span>
+            </div>
+          )}
+          <div className="rounded-lg border border-white/8 bg-black/20 px-2.5 py-2">
+            <p className="font-mono text-[9px] leading-relaxed text-muted-foreground/40 break-all">
+              {receiptJwts.length === 1 ? truncatedJwt : `${truncatedJwt} (+${receiptJwts.length - 1} more)`}
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-2 text-[10px]">
+            <span className="text-muted-foreground/50">Verify public keys independently</span>
+            <Link
+              href="/.well-known/jwks.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400/70 hover:text-indigo-300 underline underline-offset-2 shrink-0"
+            >
+              /.well-known/jwks.json ↗
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReviewClientLoadingShell({ entityId }: { entityId?: string }) {
   return (
     <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-10 sm:pt-16 pb-28">
@@ -930,6 +1008,7 @@ function ReviewClientLoaded({
   bundleId,
   sharedBy,
   acceptanceHistory,
+  receiptJwts,
 }: ReviewClientLoadedProps) {
   const [actionState, setActionState] = useState<ActionState>({ phase: 'idle' });
   const [persistedActionState, setPersistedActionState] = useState<EmployerReviewActionState | null>(null);
@@ -1283,6 +1362,11 @@ function ReviewClientLoaded({
           <span className="text-muted-foreground/50 text-xs tracking-widest uppercase">VitalCV</span>
           <span className="text-muted-foreground/50 text-xs">Employer review</span>
         </div>
+
+        {/* ── Cryptographic receipt available panel ───────────────────────── */}
+        {receiptJwts && receiptJwts.length > 0 && (
+          <CryptoReceiptAvailablePanel receiptJwts={receiptJwts} />
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             BINARY DECISION CARD — Above the fold. Employer decides here.
