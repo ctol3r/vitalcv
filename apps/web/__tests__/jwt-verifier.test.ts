@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { signPayloadES256 } from '../lib/trust/cryptoService';
-import { verifyReceiptJWT } from '../lib/trust/jwtVerifier';
+import { verifyReceiptJWT, RECEIPT_ISSUER, RECEIPT_AUDIENCE } from '../lib/trust/jwtVerifier';
 
 // Helper: build a minimal valid payload
 function makePayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const now = Math.floor(Date.now() / 1000);
   return {
     sub: 'application:test-123',
-    iss: 'vitalcv',
+    iss: RECEIPT_ISSUER,
+    aud: RECEIPT_AUDIENCE,
     iat: now,
     exp: now + 3600,
-    proofTier: 'psv_receipt',
+    proofTier: 'demo_receipt',
     ...overrides,
   };
 }
@@ -21,7 +22,7 @@ describe('verifyReceiptJWT', () => {
     const result = await verifyReceiptJWT(token);
     expect(result.verified).toBe(true);
     expect(result.payload).toBeDefined();
-    expect(result.payload?.iss).toBe('vitalcv');
+    expect(result.payload?.issuer).toBe(RECEIPT_ISSUER);
     expect(result.error).toBeUndefined();
   });
 
