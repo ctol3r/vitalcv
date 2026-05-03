@@ -83,8 +83,8 @@ Every section uses this schema:
 | Signup / account creation | 10 | 10 | No action this wave. Real auth (Clerk/NextAuth) wired; e2e signup test required. | 🌱 Seed |
 | Login / account recovery | 10 | 10 | No action this wave. Sign-in flow + recovery; Google OAuth currently broken in prod. | 🌱 Seed |
 | NPI check | 65 | 65 | No action this wave. NPPES proxy + ingest fallback in `apps/web/app/api/ingest/[npi]/route.ts`. | 🛠️ Buildout |
-| Rich clinician profile shell | 55 | 55 | No action this wave. 16-section profile shell on `/passport/[id]` (Wave GOD-2). | 🛠️ Buildout |
-| Identity / contact / locations | 35 | 35 | No action this wave. Inputs exist as user-entered only; no verified binding. | 🧱 Foundation |
+| Rich clinician profile shell | 55 | 75 | `profileTypes.ts` (163 lines) + `profileCompletion.ts` (253 lines) + profile/graph/onboarding/import routes + 22-test suite (PR-C rescue). | 🛠️ Buildout |
+| Identity / contact / locations | 35 | 55 | Structured `ClinicianProfile` field schema with provenance + confidence axis in `profileTypes.ts`; user-entered only, no verified binding (PR-C rescue). | 🧱 Foundation |
 | Medical school | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Residency | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Fellowship | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
@@ -99,8 +99,8 @@ Every section uses this schema:
 | LinkedIn-style profile layer | 28 | 28 | No action this wave. `professionalProfileLayer.ts` linkedin_style as presentation concept; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
 | Doximity-style profile layer | 26 | 26 | No action this wave. Same `professionalProfileLayer.ts`; doximity_style; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
 | Career goals / preferences | 25 | 25 | No action this wave. Capture exists, no matching loop. | 🧱 Foundation |
-| Profile completion score | 20 | 20 | No action this wave. No live score widget. | 🌱 Seed |
-| Clinician-facing value dashboard | 10 | 10 | No action this wave. Not built. | 🌱 Seed |
+| Profile completion score | 20 | 40 | `profileCompletion.ts` weighted score with `source-backed`/`self-attested`/`imported-candidate` tiers; 22 tests pass (PR-C rescue). | 🧱 Foundation |
+| Clinician-facing value dashboard | 10 | 30 | `/clinician/graph` Knowledge Graph Preview route + clinician profile routes wired; no live personalization widget yet (PR-C rescue). | 🌱 Seed |
 
 ---
 
