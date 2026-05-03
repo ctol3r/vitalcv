@@ -129,6 +129,10 @@ export default function ClinicianImportPage() {
           ship today. <strong>Imported entries remain imported-candidates
           until a source-backed check upgrades them.</strong>
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Import entries may be planned or entry-only. Imported or uploaded
+          data is not verified until source-backed evidence is attached.
+        </p>
       </header>
 
       <div className="space-y-10">
