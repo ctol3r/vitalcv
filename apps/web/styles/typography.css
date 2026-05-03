@@ -26,9 +26,12 @@
 
 :root {
   --font-display: var(--vt-font-display, 'Instrument Serif', Georgia, serif);
-  --font-mono:    var(--font-jetbrains, 'JetBrains Mono', monospace);
+  /* Geist Mono leads the mono stack as of Bundle B17; JetBrains kept
+     as fallback so any legacy --font-jetbrains references still resolve. */
+  --font-mono:    var(--font-geist-mono, var(--font-jetbrains, 'JetBrains Mono', monospace));
   --font-serif:   var(--font-fraunces, 'Fraunces', Georgia, serif);
-  --font-body:    var(--vt-font-body, 'DM Sans', system-ui, sans-serif);
+  /* Body now resolves to Geist via --vt-font-body (set in app/layout.tsx). */
+  --font-body:    var(--vt-font-body, 'Geist', 'DM Sans', system-ui, sans-serif);
 }
 
 /* ── Type scale tokens ──────────────────────────────────────────────── */
