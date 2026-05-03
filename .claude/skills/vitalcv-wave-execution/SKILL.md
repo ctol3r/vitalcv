@@ -1,6 +1,6 @@
 ---
 name: vitalcv-wave-execution
-description: Executes VitalCV waves using OpenClaw, Claude Code Terminal, and Codex with PR hygiene, board accuracy, rescue-bucket isolation, and merge gates.
+description: Executes VitalCV waves using OpenClaw, Claude Code Terminal, optional Claude Desktop/Cowork/Browser only when useful, and Codex verification with PR hygiene, board accuracy, rescue-bucket isolation, and merge gates.
 ---
 
 # VitalCV Wave Execution
@@ -179,6 +179,8 @@ Status emoji is **derived from** the percentage, never asserted independently. N
 - **One PR per coherent bucket.** A bucket is "all the work needed for one row family or one feature surface, no more."
 - **Codex SAFE required before merge.** Subagent stand-ins do not satisfy the merge hook. Use `codex exec`.
 - **Use exact board values from `docs/ops/vitalcv-completion-board.md`.** Never round, paraphrase, or "approximate" a row's `Current %`. Quote it character-for-character from the file on `origin/main`.
+- **No product code in docs-only waves.** A wave declared as docs/skill/board/ops cannot include `apps/web/{app,lib,components}` source changes. If a docs PR needs a product change to land, split it into a separate product PR with its own gate.
+- **No merge without `gh pr checks`.** The merge command must be preceded in the visible transcript by a `gh pr checks <N>` (or `gh pr view <N> --json statusCheckRollup`) call confirming green/neutral/skipping. No assumptions, no "checks were green earlier."
 - **Truth contract is non-negotiable.** Banned strings from `CLAUDE.md` may not appear in product code or product copy. Tests asserting their absence are encouraged.
 - **No status label may be the bare word `Verified`.** Use `Source-verified`, `Source-backed`, etc.
 
