@@ -322,6 +322,6 @@ RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `Lane
 **PR-F (#214, commit bae32c90)** — rescue/app-shell-font-migration → merged to main.
 * `apps/web/app/layout.tsx`: Geist + Geist_Mono loaded from `next/font/google`; registers `--font-geist-var` / `--font-geist-mono-var`; updates `--font-body`, `--font-sans`, `--font-heading`, `--vt-font-body` to lead with Geist; `display:swap` on all 5 font slots.
 * `apps/web/app/HomePageClient.tsx`: responsive homepage shell (25 breakpoint-aware classes, 12-col grid, fluid `clamp()` hero typography); NPI input with real-time digit validation; source panel (NPPES/OIG/LEIE/PECOS/CA-PA) with Live/Gated chips; trust-tier ladder; pilot CTA copy aligned to measured `isvReadinessToActionMs` evidence.
-* Truth audit: banned-string scan clean; CTA reworded from "identity verified in 1.8 min" → "readiness to employer action in 1.8 min" to match pilot evidence on `/p/norcal-pa-pilot-1`.
+* Truth audit: CTA reworded from "identity verified in 1.8 min" → "readiness to employer action in 1.8 min" to match pilot evidence on `/p/norcal-pa-pilot-1`. NPDB removed from T3 tier example (HomePageClient.tsx:76) — NPDB is not integrated and forbidden in public copy per source-coverage-matrix + public-claims-matrix.
 * Codex SAFE (2 rounds). Build: 169/169 static pages. CI: all green.
 * Row moved: `Mobile web / PWA` 35→40 (responsive homepage shell shipped; PWA installability/offline still unverified).
