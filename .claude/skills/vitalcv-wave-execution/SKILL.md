@@ -15,9 +15,14 @@ Invoke this skill at the start of any wave/rescue/sprint that involves opening o
 
 | Role | Tool | Mandate |
 |---|---|---|
-| Conductor | **OpenClaw** | Issues missions per PR bucket; never builds, never merges. Holds the queue and the GO/NO-GO log. Preferred for 3-wave bundles. |
 | Builder | **Claude Code Terminal** | Writes code, edits files, opens PRs, runs `gh pr merge` *after* Codex SAFE. The only role allowed to push code or click merge. |
 | Verifier | **Codex** (`codex exec` v0.125+) | Mandatory three-pass audit (implementation / diff / copy) before any merge. Subagent stand-ins do NOT satisfy the merge hook. |
+
+### Paused (do not invoke unless user explicitly restores)
+
+| Role | Tool | Status |
+|---|---|---|
+| Conductor | **OpenClaw** | **Paused.** Previously issued missions per PR bucket, but is currently not in the active loop. Do not invoke unless the user explicitly says "restore OpenClaw" or names it in the brief. The user / Claude Code Terminal handle the queue directly. |
 
 ### Optional roles (use only when actually useful)
 
