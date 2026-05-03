@@ -1,6 +1,6 @@
 export const typographyTokens = {
-  fontSans: "var(--font-geist), 'Geist', ui-sans-serif, system-ui, sans-serif",
-  fontMono: "var(--font-geist-mono), 'Geist Mono', 'SFMono-Regular', ui-monospace, monospace",
+  fontSans: "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
+  fontMono: "var(--font-jetbrains), 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace",
   size: {
     display: '3rem',
     h1: '2.25rem',
