@@ -1,6 +1,6 @@
 ---
 name: vitalcv-wave-execution
-description: Executes VitalCV waves using OpenClaw, Claude Code Terminal, and Codex with PR hygiene, board accuracy, and merge gates.
+description: Executes VitalCV waves using OpenClaw, Claude Code Terminal, and Codex with PR hygiene, board accuracy, rescue-bucket isolation, and merge gates.
 ---
 
 # VitalCV Wave Execution
@@ -166,6 +166,7 @@ Status emoji is **derived from** the percentage, never asserted independently. N
 - **No `git clean` in rescue worktrees.** Never destroy untracked files; the user's other waves may depend on them.
 - **One PR per coherent bucket.** A bucket is "all the work needed for one row family or one feature surface, no more."
 - **Codex SAFE required before merge.** Subagent stand-ins do not satisfy the merge hook. Use `codex exec`.
+- **Use exact board values from `docs/ops/vitalcv-completion-board.md`.** Never round, paraphrase, or "approximate" a row's `Current %`. Quote it character-for-character from the file on `origin/main`.
 - **Truth contract is non-negotiable.** Banned strings from `CLAUDE.md` may not appear in product code or product copy. Tests asserting their absence are encouraged.
 - **No status label may be the bare word `Verified`.** Use `Source-verified`, `Source-backed`, etc.
 
@@ -226,6 +227,42 @@ Merge (only after Codex SAFE + green checks):
 gh pr merge <N> --squash --delete-branch \
   --subject "<type>(<scope>): <summary>"
 ```
+
+## 3-wave-per-request operating pattern
+
+When a single user request bundles multiple waves (the most common shape), execute them as three sequential lanes within the same conversation. Each lane must complete its own gate before the next starts.
+
+### Lane structure
+
+| Lane | Purpose | Allowed work | Forbidden work |
+|---|---|---|---|
+| **Lane 1: Gate the current PR** | Watch CI, run Codex, merge if SAFE — close out whatever PR is in flight from the prior turn. | `gh pr checks --watch`, fix smallest possible regression, push, request `codex exec`, then `gh pr merge`. | Opening a new branch. Touching files outside the in-flight PR. Inflating the board. |
+| **Lane 2: Build the next narrow PR** | Open the next coherent bucket from the queue. One PR, one bucket, one branch. | Fresh `origin/main` worktree, copy in-scope files only, targeted vitest, full build, truth scan, push, open PR. | Mixed-bucket rescues. Speculative refactors. Touching the board before merge. |
+| **Lane 3: Prepare the following PR or tooling/cleanup** | Stage the next bucket OR ship a non-product PR (skill, doc, board update, completion board delta after a merge). | New worktree for next bucket; or a docs/skill/ops PR; or worktree pruning; or board update for a row whose evidence merged in Lane 1. | Starting a third product PR in the same turn. Bypassing Codex on the Lane-1 merge to free up time. |
+
+### Order of operations within a 3-wave turn
+
+1. **Inspect first.** `git fetch origin main`, `gh pr list`, `git worktree list`. Establish the queue truth before any worktree creation.
+2. **Lane 1 first, always.** Never start a new branch while a prior PR is mid-flight. Either gate it through to merge, or explicitly mark it `WAITING FOR CODEX` and proceed.
+3. **Lane 2 only after Lane 1 is unblocked.** Lane 1 may be unblocked by either: merge, Codex SAFE awaiting user approval, or `WAITING FOR CHECKS` with no fixable failures.
+4. **Lane 3 only after Lane 2 has a PR open.** Lane 3 can run in parallel with Lane 2's CI watch (it does not push to the same branch).
+5. **Single end-of-turn report.** One summary table covering all three lanes. Never report Lane 1 separately and then forget to mention Lane 2's CI state.
+
+### Anti-patterns to refuse
+
+- **Lane drift.** Lane 2 work creeping into Lane 1's PR scope (e.g. "while I'm here, also fix this other thing"). Reject — open a separate PR.
+- **Lane skipping.** Starting Lane 3 before Lane 2 has a PR open. Reject — Lane 3 depends on Lane 2 being committed.
+- **Lane stacking.** Two product PRs in Lane 2 + Lane 3 of the same turn. Lane 3 must be tooling/docs/cleanup, not a second product slice.
+- **Gate bypass.** Skipping Lane 1's Codex/merge to "save time for Lane 2." Reject — the merge gate is non-negotiable; better to ship one clean PR than three half-gated ones.
+- **Stale brief execution.** Acting on a triage report that predates `origin/main`. Re-validate file lists against the current `origin/main` SHA before copying anything.
+
+### Compact 3-lane end-of-turn report
+
+| Lane | PR # | Branch | State | Verdict | Next action |
+|---|---|---|---|---|---|
+| 1 | `<N>` | `<branch>` | merged / waiting Codex / waiting checks / NEEDS FIX | one of `MERGED` / `READY FOR MERGE` / `WAITING FOR CHECKS` / `NEEDS FIX` | what unblocks it |
+| 2 | `<N>` | `<branch>` | open, CI \<state\> | `READY FOR CODEX VERIFY` / `WAITING FOR CHECKS` / `NEEDS FIX` | what unblocks it |
+| 3 | `<N>` or N/A | `<branch>` or "tooling/cleanup" | open / N/A | `READY FOR CODEX VERIFY` / `STAGED` / `N/A` | what unblocks it |
 
 ## Failure modes to refuse
 
