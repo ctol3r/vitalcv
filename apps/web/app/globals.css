@@ -805,6 +805,81 @@ body {
   --spotlight-opacity: 0;
 }
 
+/* ─── Bundle B17: Prototype keyframes ────────────────────
+   Three motion primitives lifted from the prototype:
+     · pulse-soft   — pending state breathing dot (1.6s)
+     · lane-shimmer — indeterminate progress wash on lane rows
+     · drawer-enter — accordion-like reveal for evidence drawers
+   Curve uses the production system ease (0.2, 0.8, 0.2, 1) — the
+   prototype's slightly snappier (0.7) variant was rejected to avoid
+   touching the 50+ existing animations that share the system curve. */
+
+@keyframes vcv-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@keyframes vcv-lane-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes vcv-drawer-enter {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 1200px; }
+}
+
+@layer utilities {
+  /* Soft breathing pulse — used on the pending-state dot in lane chips. */
+  .pulse-soft {
+    animation: vcv-pulse-soft 1.6s ease-in-out infinite;
+  }
+
+  /* Indeterminate progress wash — apply to a relative parent; the
+     ::after layer handles the gradient sweep. */
+  .lane-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .lane-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgb(15 23 42 / 0.08), transparent);
+    transform: translateX(-100%);
+    animation: vcv-lane-shimmer 1.8s ease-in-out infinite;
+  }
+  .dark .lane-shimmer::after {
+    background: linear-gradient(90deg, transparent, rgb(228 227 224 / 0.06), transparent);
+  }
+
+  /* Drawer reveal — used by LaneRow evidence expansion. */
+  .drawer-enter {
+    animation: vcv-drawer-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  /* Letter-spacing token from the prototype (-0.01em). Applied to
+     headings and primary buttons for the prototype's slightly
+     condensed UI feel. */
+  .tracking-tightish {
+    letter-spacing: -0.01em;
+  }
+
+  /* Tabular nums utility — guarantees consistent column widths for
+     hashes, NPIs, timestamps, countdowns. The prototype applies this
+     to time, code, kbd, samp by default; here we expose it as an
+     opt-in utility plus default it on those elements below. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Default tabular-nums on canonical numeric / mono elements — matches
+   the prototype's globals so hash columns never jitter. */
+time, code, kbd, samp {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Bioluminescent hero glow */
 @keyframes glow-breathe {
   0%, 100% { opacity: 0.20; transform: scale(1); }

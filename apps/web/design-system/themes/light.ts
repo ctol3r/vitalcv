@@ -26,6 +26,14 @@ export const lightTheme: VdsThemeDefinition = {
     riskLow: 'oklch(0.7 0.16 158)',
     riskMedium: 'oklch(0.77 0.15 84)',
     riskHigh: 'oklch(0.58 0.21 25)',
+    // Lane state palette — calibrated to read as a coherent set on light bg.
+    // Verified/emerald, Pending/amber, Access/indigo, Blocked/rose, Contradicted/purple, Unknown/slate.
+    stateVerified: 'oklch(0.58 0.13 158)',
+    statePending: 'oklch(0.62 0.13 80)',
+    stateAccess: 'oklch(0.5 0.18 268)',
+    stateBlocked: 'oklch(0.58 0.21 25)',
+    stateContradicted: 'oklch(0.5 0.22 295)',
+    stateUnknown: 'oklch(0.55 0.012 252)',
     nodeProvider: 'oklch(0.62 0.17 248)',
     nodeInstitution: 'oklch(0.68 0.12 205)',
     nodePublication: 'oklch(0.76 0.15 145)',

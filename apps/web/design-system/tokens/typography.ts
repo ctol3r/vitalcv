@@ -21,6 +21,10 @@ export const typographyTokens = {
     normal: '1.5',
     loose: '1.7',
   },
+  // Prototype letter-spacing token; available on demand via .tracking-tightish utility.
+  letterSpacing: {
+    tightish: '-0.01em',
+  },
 } as const;
 
 export type TypographySizeToken = keyof typeof typographyTokens.size;
