@@ -26,6 +26,14 @@ export const darkTheme: VdsThemeDefinition = {
     riskLow: 'oklch(0.78 0.14 158)',
     riskMedium: 'oklch(0.79 0.15 84)',
     riskHigh: 'oklch(0.7 0.19 25)',
+    // Lane state palette (Command Center) — slightly brighter than light theme
+    // so chips remain legible against slate-950 surfaces.
+    stateVerified: 'oklch(0.74 0.14 158)',
+    statePending: 'oklch(0.78 0.14 80)',
+    stateAccess: 'oklch(0.72 0.16 268)',
+    stateBlocked: 'oklch(0.7 0.19 25)',
+    stateContradicted: 'oklch(0.7 0.2 295)',
+    stateUnknown: 'oklch(0.7 0.012 252)',
     nodeProvider: 'oklch(0.73 0.14 248)',
     nodeInstitution: 'oklch(0.8 0.11 205)',
     nodePublication: 'oklch(0.79 0.14 145)',

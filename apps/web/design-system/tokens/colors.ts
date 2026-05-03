@@ -21,6 +21,15 @@ export const semanticColorTokens = {
   riskLow: 'risk-low',
   riskMedium: 'risk-medium',
   riskHigh: 'risk-high',
+  // Lane states — credential-readiness vocabulary (prototype Wave 1+).
+  // Distinct from severity/risk: these describe what the system has done
+  // about a fact, not how dangerous the fact is.
+  stateVerified: 'state-verified',
+  statePending: 'state-pending',
+  stateAccess: 'state-access',
+  stateBlocked: 'state-blocked',
+  stateContradicted: 'state-contradicted',
+  stateUnknown: 'state-unknown',
   nodeProvider: 'node-provider',
   nodeInstitution: 'node-institution',
   nodePublication: 'node-publication',
@@ -60,6 +69,12 @@ export const semanticColorCssVariables: Record<SemanticColorTokenName, `--${stri
   riskLow: '--vt-risk-low',
   riskMedium: '--vt-risk-medium',
   riskHigh: '--vt-risk-high',
+  stateVerified: '--vt-state-verified',
+  statePending: '--vt-state-pending',
+  stateAccess: '--vt-state-access',
+  stateBlocked: '--vt-state-blocked',
+  stateContradicted: '--vt-state-contradicted',
+  stateUnknown: '--vt-state-unknown',
   nodeProvider: '--vt-node-provider',
   nodeInstitution: '--vt-node-institution',
   nodePublication: '--vt-node-publication',
