@@ -11,13 +11,25 @@ Invoke this skill at the start of any wave/rescue/sprint that involves opening o
 
 ## Tool role matrix
 
+### Required roles
+
 | Role | Tool | Mandate |
 |---|---|---|
-| Conductor | **OpenClaw** | Issues missions per PR bucket; never builds, never merges. Holds the queue and the GO/NO-GO log. Optional but preferred for 3-wave bundles. |
+| Conductor | **OpenClaw** | Issues missions per PR bucket; never builds, never merges. Holds the queue and the GO/NO-GO log. Preferred for 3-wave bundles. |
 | Builder | **Claude Code Terminal** | Writes code, edits files, opens PRs, runs `gh pr merge` *after* Codex SAFE. The only role allowed to push code or click merge. |
 | Verifier | **Codex** (`codex exec` v0.125+) | Mandatory three-pass audit (implementation / diff / copy) before any merge. Subagent stand-ins do NOT satisfy the merge hook. |
 
-Disallowed: OpenClaw, Browser, Cowork must not perform build/verify work. The merge-protection hook on `gh pr merge` requires a real `codex exec` SAFE verdict visible in the transcript.
+### Optional roles (use only when actually useful)
+
+| Role | Tool | When to use it |
+|---|---|---|
+| Visual review | **Claude Desktop** | Side-by-side visual diff review, preview-pane inspection, parallel-session supervision, judgment calls on whether a render matches intent. Skip for pure logic / docs PRs. |
+| Copy QA | **Cowork** | Copy QA, docs polish, stakeholder-readable synthesis. Skip when the PR is internal-only or has no user-facing copy changes. |
+| Live preview | **Browser** | Live preview/route/mobile QA against the Vercel preview URL. Skip when the change is invisible on the URL surface (server-only, types-only, lib-only). |
+
+**Do not add optional tools just because they exist.** Each optional tool burns context; only invoke when its specific affordance materially affects the gate decision.
+
+**Hard exclusion:** OpenClaw, Browser, and Cowork must not perform build/verify work. The merge-protection hook on `gh pr merge` requires a real `codex exec` SAFE verdict visible in the transcript — no other source counts.
 
 ## Workflow
 
