@@ -1,7 +1,7 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-04-30 (BOARD-SCHEMA-3 normalization)
-Source branch: `docs/board-schema-3-normalize`
+Last updated: 2026-05-02 (SECURITY-COMPLIANCE-DELTA-1)
+Source branch: `docs/security-compliance-delta-1`
 
 ## Full-Scope Coverage Rule
 
@@ -63,7 +63,7 @@ Every section uses this schema:
 | Issuer request / router | 80 | 80 | No action this wave. Routes + tests on main (#167). | 🚀 Hardening |
 | Partner route model | 75 | 75 | No action this wave. Partner router + tests (#167). | 🚀 Hardening |
 | Issuer response intake | 70 | 70 | No action this wave. Intake surface + tests (#168). | 🚀 Hardening |
-| Receipt candidate | 85 | 85 | No action this wave. `receiptCandidate.ts` + literal `decisionGrade:false`/`proofTier:'receipt_candidate'` tests on main. | 🚀 Hardening |
+| Receipt candidate | 85 | 88 | SECURITY-COMPLIANCE-DELTA-1: ES256 receipt signer (`receiptCandidateSigner.ts`) + JWKS-compatible issuer (`receiptIssuer.ts`); JWKS endpoint; crypto-receipt.test.ts + es256-receipt-engine.test.ts suites (#203). | 🚀 Hardening |
 | Policy review decision | 85 | 85 | No action this wave. `policyReview.ts` 5-gate flow + tests. | 🚀 Hardening |
 | PSV receipt promotion | 70 | 70 | No action this wave. PSV receipt + reuse boundary (#172). | 🚀 Hardening |
 | Reuse / revocation / supersession boundary | 75 | 75 | No action this wave. (#172) tests. | 🚀 Hardening |
@@ -133,7 +133,7 @@ Every section uses this schema:
 | Security headers / secure defaults | 35 | 35 | No action this wave. Some headers via Next defaults; no audited CSP. | 🧱 Foundation |
 | Data classification | 20 | 33 | ENTERPRISE-VANGUARD-6A: `dataClassificationFoundation.ts` 4-tier vocab (public/pii/phi/internal); 6 REDACTION_RULES; maskValue(); redactionLive: false, piiTierDocLive: false. | 🧱 Foundation |
 | Retention / redaction | 10 | 25 | ENTERPRISE-VANGUARD-6A: `retentionFoundation.ts` 5-entity retention policy model; DEFAULT_RETENTION_POLICIES; retentionEnforced: false, autoDeleteLive: false. | 🧱 Foundation |
-| Secrets / env handling | 30 | 30 | No action this wave. `.env` patterns in repo; no zod env validation. | 🧱 Foundation |
+| Secrets / env handling | 30 | 42 | SECURITY-COMPLIANCE-DELTA-1: ES256 P-256 ephemeral key management (#203/#204); JWKS endpoint exports public key only — private key material never serialised; key-safety tested in es256-receipt-engine.test.ts; SYSTEM_ADMIN_SECRET gate on compliance evidence route (#201). | 🧱 Foundation |
 
 ---
 
@@ -195,7 +195,7 @@ Every section uses this schema:
 | Employer review | 60 | 60 | No action this wave. Issuer review surface (#168); demo render only (`recordedBy:'demo'`). | 🛠️ Buildout |
 | Request review | 55 | 55 | No action this wave. Same as employer review. | 🛠️ Buildout |
 | Verifier worklist | 30 | 48 | FOUNDATION-SWEEP-7: `worklist.ts` WorklistItem/filter/status-copy foundation; WorklistPanel component; /employer/worklist shell; dbBackedWorklist: false. | 🧱 Foundation |
-| Evidence inspection | 50 | 50 | No action this wave. Receipt candidate viewer. | 🛠️ Buildout |
+| Evidence inspection | 50 | 62 | SECURITY-COMPLIANCE-DELTA-1: ES256 JWT verifier (`jwtVerifier.ts`, `cryptoService.ts`); `/api/receipts/verify` route; `ReceiptVerificationBadge` component; 8-scenario jwt-verifier.test.ts suite; HS256 explicitly rejected (#204). | 🛠️ Buildout |
 | Reuse decision UX | 50 | 65 | FOUNDATION-SWEEP-7: `reuseDecisionFoundation.ts` 3-basis model; explainReuseBasis says 'previously assessed'; crossTenantReuseImplemented: false. | 🛠️ Buildout |
 | Policy decision UX | 60 | 75 | FOUNDATION-SWEEP-7: `policyDecisionFoundation.ts` 4-outcome model; no 'approved'/'rejected' language; automatedPolicyEngine: false; /employer/decision/[id] shell. | 🛠️ Buildout |
 | Exportable proof pack | 25 | 25 | No action this wave. Not bundled. | 🧱 Foundation |
@@ -215,7 +215,7 @@ Every section uses this schema:
 | Audit replay | 18 | 18 | No action this wave. (#187) snapshot store + `getLaneSnapshots` fallback; read-side replay for source-health lanes. | 🌱 Seed |
 | Export API | 15 | 15 | No action this wave. None client-safe. | 🌱 Seed |
 | Backend test coverage | 42 | 42 | No action this wave. Issuer 321/321 vitest pass; source-health 88/88 (#187). | 🧱 Foundation |
-| API route hardening | 32 | 32 | No action this wave. (#187) source-health routes use dual-auth; no CORS/helmet/API key story for public routes. | 🧱 Foundation |
+| API route hardening | 32 | 40 | SECURITY-COMPLIANCE-DELTA-1: SYSTEM_ADMIN_SECRET gate on compliance evidence route (#201); JWKS endpoint public-key-only contract tested (#203); ES256-only algorithm enforcement in `/api/receipts/verify` (rejects HS256/alg:none) (#204). | 🧱 Foundation |
 | Repository adapter | 70 | 70 | No action this wave. (#176/#177) decision boundaries. | 🚀 Hardening |
 | Database migration readiness | 5 | 5 | No action this wave. SQLite + in-memory; PostgreSQL migration is Phase 1.1 (no implementation yet). | 🌱 Seed |
 
@@ -301,3 +301,7 @@ Do not use qualitative maturity words ("very low", "low", "not started", "partia
 ## RELIABILITY-2 board delta (PR #187 evidence)
 
 RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `LaneHealthBadge`, `unavailableLane`, the snapshot store, `runAllProbes`, internal `/api/internal/source-health/probe` and `/snapshots` routes, the scheduled `source-health-probe.yml` workflow, and the source-health test suite (88/88). This board delta records that evidence on existing full-scope rows and adds one new row (`Source health classifier`) under Trust Engine — without reviving old aggregate roll-up rows (`Drift + Monitoring`, `Source Spine`, `Truth / Enforcement`, `Enterprise-Ready Completion`, `Overall VitalCV Completion`), which were intentionally retired by the full-scope schema.
+
+## SECURITY-COMPLIANCE-DELTA-1 board delta (PRs #201, #203, #204 evidence)
+
+Merged PRs #201 (ENTERPRISE-VANGUARD-6A), #203 (ES256 receipt issuer + JWKS), and #204 (VERIFIER-200 JWT verifier) shipped PII redaction controls, system-admin compliance evidence guard, authority-adapter decision-grade blocking, ES256 receipt issuance, a public JWKS endpoint, and ES256-only JWT receipt verification (HS256 and alg:none explicitly rejected). This board delta records that evidence on four existing rows — `Receipt candidate` (Trust Engine), `Secrets / env handling` (Identity + Security), `Evidence inspection` (Verifier / Employer Product), and `API route hardening` (Backend / Persistence / API) — without adding aggregate roll-up rows, which were intentionally retired by the full-scope schema. The mission-brief roll-up names "Security / Compliance", "Trust Infrastructure", "Issuer / Trust Object", and "Verifier Experience" do not correspond to existing rows in BOARD-SCHEMA-3; their evidence is captured in the four rows above.
