@@ -108,7 +108,7 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Mobile web / PWA | 35 | 35 | No action this wave. Responsive layout; PWA manifest foundation (Wave GOD-2); no installability/offline shell verified. | 🧱 Foundation |
+| Mobile web / PWA | 35 | 42 | PR-F (#214, bae32c90): editorial homepage client + app-shell responsive layout (`HomePageClient.tsx`, `layout.tsx`) with mobile-first sections + Geist font system at the layout level; PWA installability + offline shell still not verified. | 🧱 Foundation |
 | Native iOS app | 25 | 25 | No action this wave. `nativeAppReadiness.ts` iOS capability set; all `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
 | Native Android app | 25 | 25 | No action this wave. Same `nativeAppReadiness.ts`; Android `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
 | Mobile document capture | 25 | 25 | No action this wave. `mobileCaptureFoundation.ts` web/PWA scope + 7-capability checklist; native camera not enabled yet (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
@@ -316,3 +316,12 @@ RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `Lane
 * `apps/web/app/globals.css` — aligned to token-backed values.
 * Row moved: `Contrast` 30→35 (tokens on main; no axe audit yet).
 * Font swap (Geist) reverted in this rescue to keep PR-E additive; font migration deferred to app-shell (PR-F).
+
+## PR-F Rescue board delta (post #214 merge)
+
+**PR-F (#214, commit bae32c90)** — rescue/app-shell-font-migration → merged to main.
+* `apps/web/app/layout.tsx`: Geist + Geist_Mono via `next/font/google`; wires `--font-geist`/`--font-geist-mono`/`--font-body`/`--font-sans`/`--font-heading`/`--font-mono` CSS variables at the body level (Bundle B17). JetBrains Mono and the marketing sans stack kept as fallbacks.
+* `apps/web/app/HomePageClient.tsx`: editorial homepage port (Bundle B26) using `LaneStateBadge` + `TrustTierBadge` from PR-E; NPI submit routes to `/passport?npi=`; copy line "readiness to employer action in 1.8 min".
+* Row moved: `Mobile web / PWA` 35→42 (responsive shell + Geist font system at layout level; installability + offline shell still not verified).
+* Rows held: `Contrast` stays 35 (no axe-based contrast audit added in PR-F); `Web quality` stays 85 (no new CI gate); `Vercel deploy health` stays 60 (no deploy procedure change).
+* `typographyTokens.fontSans` (lib) intentionally unchanged — `theme-tokens.test.ts` still asserts Nunito Sans on the lib side; layout-level CSS vars override at runtime. Lib-level token migration is a future PR with a paired test update.
