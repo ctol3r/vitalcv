@@ -1,7 +1,7 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-03 (PR-C clinician rescue + PR-E design-system v2 rescue)
-Source branch: `rescue/ops-docs-foundation`
+Last updated: 2026-05-03 (PR-F app-shell / Geist font migration)
+Source branch: `board/prf-delta`
 
 ## Full-Scope Coverage Rule
 
@@ -108,7 +108,7 @@ Every section uses this schema:
 
 | Area | Current % | After Wave % | Detail / Action Per Area | Status |
 |---|---:|---:|---|---|
-| Mobile web / PWA | 35 | 35 | No action this wave. Responsive layout; PWA manifest foundation (Wave GOD-2); no installability/offline shell verified. | 🧱 Foundation |
+| Mobile web / PWA | 35 | 40 | PR-F (#214, bae32c90): HomePageClient responsive shell shipped — 25 breakpoint-aware classes (sm:/md:/lg:), 12-col grid, fluid clamp() typography; Geist + Geist_Mono with display:swap on all 5 font slots. PWA installability/offline shell still unverified. | 🧱 Foundation |
 | Native iOS app | 25 | 25 | No action this wave. `nativeAppReadiness.ts` iOS capability set; all `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
 | Native Android app | 25 | 25 | No action this wave. Same `nativeAppReadiness.ts`; Android `isLive: false`; no native app is live (#FOUNDATION-SWEEP-4). | 🧱 Foundation |
 | Mobile document capture | 25 | 25 | No action this wave. `mobileCaptureFoundation.ts` web/PWA scope + 7-capability checklist; native camera not enabled yet (#FOUNDATION-SWEEP-3). | 🧱 Foundation |
@@ -316,3 +316,12 @@ RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `Lane
 * `apps/web/app/globals.css` — aligned to token-backed values.
 * Row moved: `Contrast` 30→35 (tokens on main; no axe audit yet).
 * Font swap (Geist) reverted in this rescue to keep PR-E additive; font migration deferred to app-shell (PR-F).
+
+## PR-F App-shell / Geist font migration board delta (post #214 merge)
+
+**PR-F (#214, commit bae32c90)** — rescue/app-shell-font-migration → merged to main.
+* `apps/web/app/layout.tsx`: Geist + Geist_Mono loaded from `next/font/google`; registers `--font-geist-var` / `--font-geist-mono-var`; updates `--font-body`, `--font-sans`, `--font-heading`, `--vt-font-body` to lead with Geist; `display:swap` on all 5 font slots.
+* `apps/web/app/HomePageClient.tsx`: responsive homepage shell (25 breakpoint-aware classes, 12-col grid, fluid `clamp()` hero typography); NPI input with real-time digit validation; source panel (NPPES/OIG/LEIE/PECOS/CA-PA) with Live/Gated chips; trust-tier ladder; pilot CTA copy aligned to measured `isvReadinessToActionMs` evidence.
+* Truth audit: banned-string scan clean; CTA reworded from "identity verified in 1.8 min" → "readiness to employer action in 1.8 min" to match pilot evidence on `/p/norcal-pa-pilot-1`.
+* Codex SAFE (2 rounds). Build: 169/169 static pages. CI: all green.
+* Row moved: `Mobile web / PWA` 35→40 (responsive homepage shell shipped; PWA installability/offline still unverified).
