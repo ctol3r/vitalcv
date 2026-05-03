@@ -1,6 +1,6 @@
 ---
 name: vitalcv-wave-execution
-description: Executes VitalCV waves with Claude Desktop as supervisor, Claude Code Terminal as builder, Codex as independent verifier and merge gate, a required Claude Design end-of-wave bundle, and Browser/Cowork as optional QA. OpenClaw is paused unless the user explicitly restores it.
+description: Executes VitalCV waves with Claude Desktop as supervisor, Claude Code Terminal as builder, Codex as independent verifier and merge gate, and Browser/Cowork as optional QA. OpenClaw and Claude Design are paused unless the user explicitly restores them.
 ---
 
 # VitalCV Wave Execution
@@ -18,24 +18,14 @@ This is the **active** tool policy. Read it before delegating to any role.
 | **Claude Desktop** | Supervisor / judgment / visual review | Owns the user-facing conversation, sets wave intent, makes judgment calls, reviews visual deltas in preview panes, supervises parallel sessions. |
 | **Claude Code Terminal** | Builder / operator | Branch creation, file copying, test/build, PR creation. The only role allowed to push code, run `gh pr merge`, or modify the working tree. |
 | **Codex** (`codex exec` v0.125+) | Independent verifier and merge gate | Mandatory three-pass audit (implementation / diff / copy) before any merge. Subagent stand-ins do NOT satisfy the merge hook. |
-| **Claude Design** | Required end-of-wave design task bundle | Every wave/output must conclude with a Claude Design task bundle, even when the bundle is "no visual action required." See "Claude Design end-of-wave bundle" below. |
 | **Browser** | Optional QA | Live preview / route / mobile QA against the Vercel preview URL. Skip when the change is invisible on the URL surface (server-only, types-only, lib-only). |
 | **Cowork** | Optional QA | Copy QA, docs polish, stakeholder-readable synthesis. Skip when the PR is internal-only or has no user-facing copy changes. |
 | **OpenClaw** | **PAUSED** | Do not invoke unless the user explicitly says "restore OpenClaw" or names it in the brief. The user / Claude Desktop / Claude Code Terminal handle the queue directly. OpenClaw is not the conductor, not the default, not preferred for any wave shape. |
+| **Claude Design** | **PAUSED** | Do not invoke unless the user explicitly says "restore Claude Design" or names it in the brief. No required end-of-wave design bundle. Visual review, when needed, is handled by Claude Desktop. |
 
 **Do not add optional tools just because they exist.** Each optional tool burns context; only invoke when its specific affordance materially affects the gate decision.
 
-**Hard exclusion:** Browser, Cowork, and (paused) OpenClaw must not perform build/verify work. The merge-protection hook on `gh pr merge` requires a real `codex exec` SAFE verdict visible in the transcript — no other source counts.
-
-## Claude Design end-of-wave bundle (required)
-
-Every wave/output must conclude with an explicit Claude Design task bundle, even when no visual change shipped. The bundle answers three questions in writing:
-
-1. **What visual surface (if any) did this wave touch?** Name the route, component, or asset. If none, write `none — server / types / docs / lib only`.
-2. **Does the visual surface need a Claude Design task?** YES / NO with one-sentence reason.
-3. **What is the next-best Claude Design task** (ranked by user impact)? If the answer to (2) is NO, write `no visual action required — proceed to next wave`.
-
-The bundle is non-negotiable and goes in the same end-of-turn report as the wave summary. Skipping it counts as an incomplete wave even if every other gate passed.
+**Hard exclusion:** Browser, Cowork, (paused) OpenClaw, and (paused) Claude Design must not perform build/verify work. The merge-protection hook on `gh pr merge` requires a real `codex exec` SAFE verdict visible in the transcript — no other source counts.
 
 ## Workflow
 
@@ -187,8 +177,8 @@ Status emoji is **derived from** the percentage, never asserted independently. N
 - **Use exact board values from `docs/ops/vitalcv-completion-board.md`.** Never round, paraphrase, or "approximate" a row's `Current %`. Quote it character-for-character from the file on `origin/main`.
 - **No product code in docs-only waves.** A wave declared as docs/skill/board/ops cannot include `apps/web/{app,lib,components}` source changes. If a docs PR needs a product change to land, split it into a separate product PR with its own gate.
 - **No merge without `gh pr checks`.** The merge command must be preceded in the visible transcript by a `gh pr checks <N>` (or `gh pr view <N> --json statusCheckRollup`) call confirming green/neutral/skipping. No assumptions, no "checks were green earlier."
-- **Every wave/output must include a Claude Design task bundle.** Even if the design task is "no visual action required." See the Claude Design end-of-wave bundle section above. A wave without the bundle is incomplete regardless of merge state.
 - **OpenClaw is paused.** Do not invoke OpenClaw — not as conductor, not as preferred-for-3-waves, not as state memory — unless the user explicitly says "restore OpenClaw" in the active brief.
+- **Claude Design is paused.** Do not invoke Claude Design and do not include a "Claude Design end-of-wave bundle" in any wave summary. Visual review, when needed, is handled by Claude Desktop. Do not restore unless the user explicitly says "restore Claude Design" in the active brief.
 - **Truth contract is non-negotiable.** Banned strings from `CLAUDE.md` may not appear in product code or product copy. Tests asserting their absence are encouraged.
 - **No status label may be the bare word `Verified`.** Use `Source-verified`, `Source-backed`, etc.
 
