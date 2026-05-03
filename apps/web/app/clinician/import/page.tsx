@@ -129,9 +129,9 @@ export default function ClinicianImportPage() {
           ship today. <strong>Imported entries remain imported-candidates
           until a source-backed check upgrades them.</strong>
         </p>
+        {/* truth-contract: Import entries may be planned or entry-only. Imported or uploaded data is not verified until source-backed evidence is attached. */}
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Import entries may be planned or entry-only. Imported or uploaded
-          data is not verified until source-backed evidence is attached.
+          Import entries may be planned or entry-only. Imported or uploaded data is not verified until source-backed evidence is attached.
         </p>
       </header>
 
