@@ -9,6 +9,7 @@ import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
+import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 
 interface PassportEntityClientProps {
   entityId: string;
@@ -77,6 +78,12 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     <div className="flex flex-col gap-8 pb-16">
       <PassportWallet passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
+        <section
+          aria-label="Source health"
+          data-testid="passport-lane-health-mount"
+        >
+          <LaneHealthMount heading="Source health" />
+        </section>
         <section
           className="rounded-2xl border border-border bg-background/60 p-5 sm:p-6"
           aria-label="Knowledge Inbox"
