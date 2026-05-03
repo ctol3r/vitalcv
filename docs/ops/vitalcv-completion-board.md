@@ -1,7 +1,7 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-04-30 (BOARD-SCHEMA-3 normalization)
-Source branch: `docs/board-schema-3-normalize`
+Last updated: 2026-05-03 (PR-C clinician rescue + PR-E design-system v2 rescue)
+Source branch: `rescue/ops-docs-foundation`
 
 ## Full-Scope Coverage Rule
 
@@ -83,8 +83,8 @@ Every section uses this schema:
 | Signup / account creation | 10 | 10 | No action this wave. Real auth (Clerk/NextAuth) wired; e2e signup test required. | 🌱 Seed |
 | Login / account recovery | 10 | 10 | No action this wave. Sign-in flow + recovery; Google OAuth currently broken in prod. | 🌱 Seed |
 | NPI check | 65 | 65 | No action this wave. NPPES proxy + ingest fallback in `apps/web/app/api/ingest/[npi]/route.ts`. | 🛠️ Buildout |
-| Rich clinician profile shell | 55 | 75 | `profileTypes.ts` (163 lines) + `profileCompletion.ts` (253 lines) + profile/graph/onboarding/import routes + 22-test suite (PR-C rescue). | 🛠️ Buildout |
-| Identity / contact / locations | 35 | 55 | Structured `ClinicianProfile` field schema with provenance + confidence axis in `profileTypes.ts`; user-entered only, no verified binding (PR-C rescue). | 🧱 Foundation |
+| Rich clinician profile shell | 75 | 75 | PR-C (#207, ac58f6df): `profileTypes.ts` (163 lines) + `profileCompletion.ts` (253 lines) + profile/graph/onboarding/import routes + 22-test suite. | 🚀 Hardening |
+| Identity / contact / locations | 55 | 55 | PR-C (#207, ac58f6df): `ClinicianProfile` field schema with provenance + confidence axis in `profileTypes.ts`; user-entered only, no verified binding. | 🛠️ Buildout |
 | Medical school | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Residency | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
 | Fellowship | 25 | 25 | No action this wave. Free-text capture; no source verification. | 🧱 Foundation |
@@ -99,8 +99,8 @@ Every section uses this schema:
 | LinkedIn-style profile layer | 28 | 28 | No action this wave. `professionalProfileLayer.ts` linkedin_style as presentation concept; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
 | Doximity-style profile layer | 26 | 26 | No action this wave. Same `professionalProfileLayer.ts`; doximity_style; `verifiesCredentials: false` (#FOUNDATION-SWEEP-5). | 🧱 Foundation |
 | Career goals / preferences | 25 | 25 | No action this wave. Capture exists, no matching loop. | 🧱 Foundation |
-| Profile completion score | 20 | 40 | `profileCompletion.ts` weighted score with `source-backed`/`self-attested`/`imported-candidate` tiers; 22 tests pass (PR-C rescue). | 🧱 Foundation |
-| Clinician-facing value dashboard | 10 | 30 | `/clinician/graph` Knowledge Graph Preview route + clinician profile routes wired; no live personalization widget yet (PR-C rescue). | 🌱 Seed |
+| Profile completion score | 40 | 40 | PR-C (#207, ac58f6df): `profileCompletion.ts` weighted score with `source-backed`/`self-attested`/`imported-candidate` tiers; 22 tests pass. | 🧱 Foundation |
+| Clinician-facing value dashboard | 30 | 30 | PR-C (#207, ac58f6df): `/clinician/graph` Knowledge Graph Preview route + clinician profile routes wired; no live personalization widget yet. | 🧱 Foundation |
 
 ---
 
@@ -146,7 +146,7 @@ Every section uses this schema:
 | Screen reader labels | 25 | 25 | No action this wave. `screen_reader_labels` category in accessibility foundation; `/clinician/identity` uses `aria-labelledby` (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
 | Touch targets | 30 | 30 | No action this wave. Mobile clip fixes (Wave GOD-2); no 44×44 audit. | 🧱 Foundation |
 | Error-state accessibility | 15 | 15 | No action this wave. Error UIs not audited for screen readers. | 🌱 Seed |
-| Contrast | 30 | 30 | No action this wave. Design-system v2 tokens in flight on a separate branch. | 🧱 Foundation |
+| Contrast | 35 | 35 | PR-E (#209, e1687cc2): design-system v2 tokens (colors, typography) + themes (dark/light/graphite/midnight) on main; no axe-based contrast audit yet. | 🧱 Foundation |
 | Reduced motion | 25 | 25 | No action this wave. `reduced_motion` category in accessibility foundation; no prefers-reduced-motion audited end-to-end (#FOUNDATION-SWEEP-2). | 🧱 Foundation |
 | Form accessibility | 15 | 15 | No action this wave. No labeled-region audit. | 🌱 Seed |
 | Mobile accessibility | 15 | 15 | No action this wave. No labeled-region audit. | 🌱 Seed |
@@ -301,3 +301,18 @@ Do not use qualitative maturity words ("very low", "low", "not started", "partia
 ## RELIABILITY-2 board delta (PR #187 evidence)
 
 RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `LaneHealthBadge`, `unavailableLane`, the snapshot store, `runAllProbes`, internal `/api/internal/source-health/probe` and `/snapshots` routes, the scheduled `source-health-probe.yml` workflow, and the source-health test suite (88/88). This board delta records that evidence on existing full-scope rows and adds one new row (`Source health classifier`) under Trust Engine — without reviving old aggregate roll-up rows (`Drift + Monitoring`, `Source Spine`, `Truth / Enforcement`, `Enterprise-Ready Completion`, `Overall VitalCV Completion`), which were intentionally retired by the full-scope schema.
+
+## PR-C + PR-E Rescue board delta (post #207 and #209 merge)
+
+**PR-C (#207, commit ac58f6df)** — rescue/clinician-profile-foundation → merged to main.
+* `apps/web/lib/clinician-profile/profileTypes.ts` (163 lines): `ClinicianProfile` type with provenance + confidence axis per field.
+* `apps/web/lib/clinician-profile/profileCompletion.ts` (253 lines): weighted completeness score; three source tiers (`source-backed` / `self-attested` / `imported-candidate`); 22-test vitest suite.
+* Routes added: `/clinician/profile`, `/clinician/graph`, `/clinician/onboarding`, `/clinician/import` — all shell-only, no production auth gate.
+* Rows moved: `Rich clinician profile shell` 55→75, `Identity/contact/locations` 35→55, `Profile completion score` 20→40, `Clinician-facing value dashboard` 10→30.
+
+**PR-E (#209, commit e1687cc2)** — rescue/design-system-v2-foundation → merged to main.
+* Design-system v2 foundation: `design-system/tokens/colors.ts`, `design-system/tokens/typography.ts`, themes (dark, light, graphite, midnight), `design-system/components/index.ts`, `design-system/docs/catalog.ts`.
+* `apps/web/styles/themes/index.css` + `apps/web/styles/typography.css` — canonical style entry points.
+* `apps/web/app/globals.css` — aligned to token-backed values.
+* Row moved: `Contrast` 30→35 (tokens on main; no axe audit yet).
+* Font swap (Geist) reverted in this rescue to keep PR-E additive; font migration deferred to app-shell (PR-F).
