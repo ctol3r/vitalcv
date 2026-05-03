@@ -401,7 +401,7 @@ export default function HomePageClient() {
               className="inline-flex items-center gap-2 text-sm text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] transition-colors group"
             >
               <span className="w-2 h-2 rounded-full bg-[var(--vt-state-verified)] animate-pulse" aria-hidden="true" />
-              See real pilot results — identity verified in 1.8 min
+              View a pilot session — NPI lookup to readiness in 1.8 min
               <span className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true">→</span>
             </Link>
           </div>
