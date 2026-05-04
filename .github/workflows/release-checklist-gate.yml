@@ -1,0 +1,58 @@
+name: Release Checklist Gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  release-checklist:
+    name: Release Checklist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required checkboxes are marked in PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PR_BODY:-}" ]]; then
+            echo "::error::PR body is empty. Paste the release checklist from docs/ops/release-checklist.md and check each applicable item before merge."
+            exit 1
+          fi
+
+          # Required checkboxes — must appear marked or have a documented exemption ("docs-only — no code changes" etc.)
+          required_lines=(
+            "vitest green"
+            "typecheck clean"
+            "lint clean"
+            "build clean"
+            "no banned strings"
+            "no untested route added"
+            "truth-contract preserved"
+            "codex exec SAFE verdict"
+            "mobile + a11y considered"
+            "copy reviewed for compliance"
+          )
+
+          missing=0
+          for line in "${required_lines[@]}"; do
+            # A "marked" checkbox line contains both [x] (or [X]) and the required substring on the same line.
+            if echo "$PR_BODY" | grep -E "^- \[(x|X)\] .*${line}" > /dev/null; then
+              echo "ok: ${line}"
+            elif echo "$PR_BODY" | grep -E "docs-only — no code changes" > /dev/null && echo "$line" | grep -E "(vitest|typecheck|lint|build)" > /dev/null; then
+              echo "exempt (docs-only): ${line}"
+            else
+              echo "::error::Missing or unmarked release-checklist item: '${line}'. See docs/ops/release-checklist.md."
+              missing=1
+            fi
+          done
+
+          if [[ "$missing" -eq 1 ]]; then
+            exit 1
+          fi
+
+          echo "Release checklist gate: PASSED"
