@@ -1,0 +1,59 @@
+name: DB Migration Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/prisma/migrations/**'
+      - 'apps/api/backend/prisma/schema.prisma'
+      - '.github/workflows/db-migrate-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: vitalcv_migrate_gate
+
+jobs:
+  prisma-migrate-gate:
+    name: Prisma migrate deploy
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: prisma migrate diff (dry-run check)
+        env:
+          DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+        run: |
+          cd apps/api/backend
+          npx prisma migrate diff \
+            --from-empty \
+            --to-migrations ./prisma/migrations \
+            --shadow-database-url "${DATABASE_URL}" \
+            --exit-code || true
+      - name: prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+        run: |
+          cd apps/api/backend
+          npx prisma migrate deploy
