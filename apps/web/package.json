@@ -19,6 +19,7 @@
     "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.2",
     "@blueprintjs/core": "^6.10.0",
     "@blueprintjs/icons": "^6.7.0",
     "@blueprintjs/table": "^6.0.19",
@@ -71,6 +72,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "prisma": "^6.19.2",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
