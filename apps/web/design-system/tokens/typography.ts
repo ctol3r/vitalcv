@@ -1,6 +1,6 @@
 export const typographyTokens = {
-  fontSans: "var(--font-nunito-sans), 'Nunito Sans', system-ui, sans-serif",
-  fontMono: "var(--font-jetbrains), 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace",
+  fontSans: "var(--font-geist), 'Geist', 'Nunito Sans', ui-sans-serif, system-ui, sans-serif",
+  fontMono: "var(--font-geist-mono), 'Geist Mono', 'SFMono-Regular', ui-monospace, monospace",
   size: {
     display: '3rem',
     h1: '2.25rem',
@@ -20,6 +20,10 @@ export const typographyTokens = {
     tight: '1.15',
     normal: '1.5',
     loose: '1.7',
+  },
+  // Prototype letter-spacing token; available on demand via .tracking-tightish utility.
+  letterSpacing: {
+    tightish: '-0.01em',
   },
 } as const;
 

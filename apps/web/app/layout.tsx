@@ -7,7 +7,7 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
-import { Fraunces, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+import { Fraunces, Geist, Geist_Mono, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
@@ -42,6 +42,25 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-var',
 });
 
+// Geist — primary system sans for the credential-readiness surfaces.
+// Replaces Nunito Sans as the canonical UI typeface (Bundle B17).
+const geist = Geist({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-geist-var',
+});
+
+// Geist Mono — paired monospace for hashes, NPIs, codes, timestamps.
+// Loaded with `font-feature-settings: 'zero'` and tabular-nums applied
+// at the .mono utility level (see globals.css).
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+  variable: '--font-geist-mono-var',
+});
+
 const fontVariables = {
   // Design system tokens first (so our overrides win below)
   ...vdsCssVariables,
@@ -50,15 +69,18 @@ const fontVariables = {
   '--font-plus-jakarta': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
   '--font-inter': "var(--font-inter-var), 'Inter', system-ui, sans-serif",
   '--font-jetbrains': "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
-  // Public-web typography
-  '--vt-font-body': "'DM Sans', system-ui, sans-serif",
+  // Geist — primary system sans + matching monospace (Bundle B17).
+  '--font-geist': "var(--font-geist-var), 'Geist', ui-sans-serif, system-ui, sans-serif",
+  '--font-geist-mono': "var(--font-geist-mono-var), 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace",
+  // Public-web typography — Geist now leads, marketing serifs kept as fallback for legacy callouts.
+  '--vt-font-body': "var(--font-geist-var), 'Geist', 'DM Sans', system-ui, sans-serif",
   '--vt-font-display': "'Instrument Serif', Georgia, serif",
-  '--font-body': "'DM Sans', system-ui, sans-serif",
+  '--font-body': "var(--font-geist-var), 'Geist', 'DM Sans', system-ui, sans-serif",
   '--font-display': "'Instrument Serif', Georgia, serif",
-  '--font-sans': "'DM Sans', system-ui, sans-serif",
-  '--font-heading': "var(--font-plus-jakarta-var), 'Plus Jakarta Sans', system-ui, sans-serif",
+  '--font-sans': "var(--font-geist-var), 'Geist', ui-sans-serif, system-ui, sans-serif",
+  '--font-heading': "var(--font-geist-var), 'Geist', 'Plus Jakarta Sans', system-ui, sans-serif",
   '--font-serif':   "var(--font-fraunces-var), 'Fraunces', Georgia, serif",
-  '--font-mono':    "var(--font-jetbrains-var), 'JetBrains Mono', ui-monospace, monospace",
+  '--font-mono':    "var(--font-geist-mono-var), 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace",
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
@@ -154,7 +176,7 @@ export default async function RootLayout({
       lang="en"
       style={fontVariables}
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${fraunces.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${fraunces.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

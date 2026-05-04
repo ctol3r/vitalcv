@@ -250,3 +250,166 @@ export interface IssuerVerificationRequest {
   history: IssuerVerificationRequestHistoryEntry[];
   response?: IssuerResponse;
 }
+
+// ── Policy review types ────────────────────────────────────────────────────
+
+export type PolicyReviewAction =
+  | 'accept_candidate'
+  | 'reject_candidate'
+  | 'request_more_info'
+  | 'request_release'
+  | 'reroute'
+  | 'mark_conflict_review'
+  | 'cancel';
+
+export type PolicyReviewDecisionStatus =
+  | 'pending_review'
+  | 'accepted_as_psv_candidate'
+  | 'rejected'
+  | 'request_more_info'
+  | 'requires_release'
+  | 'reroute_required'
+  | 'conflict_review_required'
+  | 'expired'
+  | 'canceled';
+
+export interface PolicyReviewActor {
+  actorId: string;
+  displayName: string;
+  role: string;
+}
+
+export interface PolicyReviewAuditMetadata {
+  recordedAt: string;
+  recordedBy: 'demo' | 'review_surface' | 'system';
+  notes?: string;
+}
+
+export interface PolicyReviewOutcome {
+  createdPsvReceiptCandidate: boolean;
+  refusalGate?: string;
+  reason?: string;
+}
+
+export interface PolicyReviewDecision {
+  decisionId: string;
+  receiptCandidateId: string;
+  requestId: string;
+  action: PolicyReviewAction;
+  status: PolicyReviewDecisionStatus;
+  decidedAt: string;
+  actor: PolicyReviewActor;
+  rationale?: string;
+  createdPsvReceiptCandidate: boolean;
+  outcome: PolicyReviewOutcome;
+  auditMetadata: PolicyReviewAuditMetadata;
+}
+
+export interface PSVReceiptCandidate {
+  psvCandidateId: string;
+  receiptCandidateId: string;
+  requestId: string;
+  claimId: string;
+  claimType: VerificationClaimType;
+  acceptedAt: string;
+  acceptedBy: PolicyReviewActor;
+  sourceBasis: SourceBasis;
+  attributedResponder: AttributedResponder;
+  limitationNote?: string;
+  /** Literal false — not decision-grade until promoted to a PSVReceipt. */
+  decisionGrade: false;
+  /** Literal — type-level distinction from ReceiptCandidate. */
+  proofTier: 'psv_receipt_candidate';
+  notes?: string;
+}
+
+// ── PSV receipt types ──────────────────────────────────────────────────────
+
+export interface PSVReceiptScope {
+  claimType: VerificationClaimType;
+  covers: string;
+  doesNotCover: string;
+  sourceOrganizationName: string;
+}
+
+export interface PSVReceiptLimitation {
+  kind: string;
+  description: string;
+}
+
+export interface FreshnessPolicy {
+  ttlDays: number;
+  issuedAt: string;
+  staleAfter: string;
+}
+
+export type PSVReceiptAuditEventState =
+  | 'pending_not_written'
+  | 'written'
+  | 'failed';
+
+export interface PSVReceiptAuditMetadata {
+  recordedAt: string;
+  recordedBy: 'demo' | 'review_surface' | 'system';
+  eventState: PSVReceiptAuditEventState;
+  notes?: string;
+}
+
+export interface PSVReceipt {
+  psvReceiptId: string;
+  psvCandidateId: string;
+  receiptCandidateId: string;
+  requestId: string;
+  claimId: string;
+  claimType: VerificationClaimType;
+  promotedAt: string;
+  promotedBy: PolicyReviewActor;
+  sourceBasis: SourceBasis;
+  attributedResponder: AttributedResponder;
+  scope: PSVReceiptScope;
+  limitations: PSVReceiptLimitation[];
+  freshness: FreshnessPolicy;
+  /** Literal — proof tier for this artifact. */
+  proofTier: 'psv_receipt';
+  /** Literal true — this receipt IS decision-grade for its own scope. */
+  decisionGrade: true;
+  /** Literal false — a scoped receipt is never global credential truth. */
+  globalCredentialTruth: false;
+  auditMetadata: PSVReceiptAuditMetadata;
+  notes?: string;
+}
+
+export type PSVReceiptPromotionFailureReason =
+  | 'not_a_psv_receipt_candidate'
+  | 'policy_review_not_accepted'
+  | 'wrong_office_cannot_promote'
+  | 'unable_to_verify_cannot_promote'
+  | 'rejected_cannot_promote'
+  | 'request_more_info_cannot_promote'
+  | 'reroute_cannot_promote'
+  | 'release_required_cannot_promote'
+  | 'conflict_review_unresolved'
+  | 'legally_only_requires_limitation'
+  | 'missing_source_basis'
+  | 'missing_attributed_responder';
+
+export interface PSVReceiptPromotionInput {
+  psvReceiptCandidate: PSVReceiptCandidate;
+  policyReviewDecision: PolicyReviewDecision;
+  originResponseStatus?: IssuerResponseStatus;
+  psvReceiptId: string;
+  promotedAt: string;
+  promotedBy: PolicyReviewActor;
+  ttlDays: number;
+  scope: PSVReceiptScope;
+  limitations?: PSVReceiptLimitation[];
+  notes?: string;
+}
+
+export interface PSVReceiptPromotionResult {
+  promoted: boolean;
+  psvReceipt?: PSVReceipt;
+  failureReason?: PSVReceiptPromotionFailureReason;
+  message: string;
+  preservedCandidate: PSVReceiptCandidate;
+}
