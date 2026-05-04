@@ -44,7 +44,8 @@ export type PSVReceiptReuseStatus =
   | 'scope_mismatch'
   | 'limitation_blocks_reuse'
   | 'policy_review_required'
-  | 'source_recheck_required';
+  | 'source_recheck_required'
+  | 'blocked_cross_tenant';
 
 export type PSVReceiptReuseFailureReason =
   | 'receipt_expired'
@@ -58,7 +59,8 @@ export type PSVReceiptReuseFailureReason =
   | 'responder_attribution_missing'
   | 'policy_review_required'
   | 'audit_metadata_missing'
-  | 'unsupported_receipt_type';
+  | 'unsupported_receipt_type'
+  | 'cross_tenant_no_consent';
 
 export type PSVReceiptFreshnessState = 'fresh' | 'needs_refresh' | 'expired';
 
@@ -129,6 +131,15 @@ export interface PSVReceiptReuseRequest {
    * `reusable`. Caller-controlled.
    */
   refreshSoftThresholdDays?: number;
+  /**
+   * Cross-tenant guard. When both are supplied and they differ, reuse
+   * is blocked unless `crossTenantConsentReceiptId` is also present.
+   * Omitting either field skips the tenant check (single-tenant path).
+   */
+  requestingTenantId?: string;
+  issuingTenantId?: string;
+  /** Explicit consent receipt that authorises cross-tenant reuse. */
+  crossTenantConsentReceiptId?: string;
 }
 
 /**
@@ -206,6 +217,8 @@ export function getPsvReceiptFreshnessState(
 }
 
 const FAILURE_EXPLANATIONS: Record<PSVReceiptReuseFailureReason, string> = {
+  cross_tenant_no_consent:
+    'Reuse is blocked: the requesting tenant differs from the issuing tenant and no cross-tenant consent receipt is present. An explicit consent receipt is required before cross-tenant reuse is permitted.',
   receipt_expired:
     'The PSV receipt is past its freshness window. Reuse is blocked; a source recheck or refresh is required.',
   receipt_revoked:
@@ -233,6 +246,7 @@ const FAILURE_EXPLANATIONS: Record<PSVReceiptReuseFailureReason, string> = {
 };
 
 const STATUS_BY_FAILURE: Record<PSVReceiptReuseFailureReason, PSVReceiptReuseStatus> = {
+  cross_tenant_no_consent: 'blocked_cross_tenant',
   receipt_expired: 'expired',
   receipt_revoked: 'revoked',
   receipt_superseded: 'superseded',
@@ -313,6 +327,15 @@ export function getPsvReceiptReuseFailureReason(
   if (revocation.state === 'revoked') return 'receipt_revoked';
   if (supersession.state === 'superseded') return 'receipt_superseded';
   if (freshness.state === 'expired') return 'receipt_expired';
+
+  if (
+    request.requestingTenantId &&
+    request.issuingTenantId &&
+    request.requestingTenantId !== request.issuingTenantId &&
+    !request.crossTenantConsentReceiptId
+  ) {
+    return 'cross_tenant_no_consent';
+  }
 
   if (!scopesMatch(receipt.scope, reuseScope)) return 'scope_mismatch';
 
@@ -513,4 +536,20 @@ export function markPsvReceiptSuperseded(input: {
     supersededAt: input.supersededAt,
     source: input.source ?? 'manual_entry',
   };
+}
+
+// Cross-tenant reuse guard — standalone predicate used when the full
+// buildPsvReceiptReuseDecision pipeline is not needed.
+export type CrossTenantReuseResult =
+  | { blocked: false }
+  | { blocked: true; reason: 'cross_tenant_no_consent' };
+
+export function checkCrossTenantReuseBlock(
+  requestingTenantId: string,
+  issuingTenantId: string,
+  crossTenantConsentReceiptId?: string,
+): CrossTenantReuseResult {
+  if (requestingTenantId === issuingTenantId) return { blocked: false };
+  if (crossTenantConsentReceiptId) return { blocked: false };
+  return { blocked: true, reason: 'cross_tenant_no_consent' };
 }
