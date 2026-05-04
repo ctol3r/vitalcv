@@ -3,6 +3,14 @@
 // Canonical role definitions, route-role mappings, and post-login redirects.
 // Used by middleware, components, and tests.
 
+/**
+ * Clerk org-membership roles for verifier team access.
+ * Maps to the `team_role` claim in the Clerk JWT.
+ * Order is privilege-ascending: readonly < member < admin < owner.
+ */
+export const VERIFIER_TEAM_ROLES = ['owner', 'admin', 'member', 'readonly'] as const;
+export type VerifierTeamRole = (typeof VERIFIER_TEAM_ROLES)[number];
+
 export const UserRole = {
   CLINICIAN: 'CLINICIAN',
   VERIFIER: 'VERIFIER',

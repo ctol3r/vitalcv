@@ -8,6 +8,10 @@ import {
   ROLE_LANDING,
   type UserRoleType,
 } from '@/lib/auth/roles';
+import {
+  checkVerifierPermission,
+  parseTeamRole,
+} from '@/lib/auth/orgInvitations';
 
 /**
  * Role-based middleware for VitalCV.
@@ -31,10 +35,38 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
  * failures are caught and the request passes through to route handlers.
  */
 const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
+/** Verifier API routes — require Clerk auth + org-level RBAC before the
+ *  normal /api/* public-route pass-through would fire. */
+const VERIFIER_API = /^\/api\/verifier(\/.*)?$/;
 const CLERK_MIDDLEWARE_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
+
+  // 0. Verifier API RBAC — checked before the /api/* public-route pass-through.
+  //    Reads org_id and team_role from the JWT vitalcv claim. The resource
+  //    org_id is supplied by the client via the x-verifier-org header so the
+  //    middleware can enforce cross-org isolation without a DB read.
+  if (VERIFIER_API.test(pathname)) {
+    const session = await auth();
+    if (!session.userId) {
+      return new NextResponse(null, { status: 403 });
+    }
+    const claims = session.sessionClaims?.vitalcv as Record<string, unknown> | undefined;
+    const requestingOrgId = (claims?.org_id as string | undefined) ?? null;
+    const teamRole = parseTeamRole(claims?.team_role);
+    const resourceOrgId = req.headers.get('x-verifier-org') ?? '';
+    const decision = checkVerifierPermission({
+      requestingOrgId,
+      teamRole,
+      resourceOrgId,
+      method: req.method,
+    });
+    if (!decision.permitted) {
+      return new NextResponse(null, { status: decision.statusCode });
+    }
+    return NextResponse.next();
+  }
 
   // 1. Public routes pass through
   if (isPublicRoute(pathname)) {
