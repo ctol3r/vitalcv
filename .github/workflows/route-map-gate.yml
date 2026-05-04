@@ -1,0 +1,24 @@
+name: Route Map Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'docs/ops/route-map.md'
+      - 'scripts/generate-route-map.mjs'
+      - '.github/workflows/route-map-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  route-map:
+    name: Route Map
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify route map is up to date
+        run: |
+          set -euo pipefail
+          node scripts/generate-route-map.mjs --check
