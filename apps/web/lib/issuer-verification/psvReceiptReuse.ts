@@ -514,3 +514,34 @@ export function markPsvReceiptSuperseded(input: {
     source: input.source ?? 'manual_entry',
   };
 }
+
+// ---------------------------------------------------------------------------
+// VERIFIER-REUSE-1 — Cross-tenant reuse block
+// ---------------------------------------------------------------------------
+
+export type CrossTenantReuseResult =
+  | { blocked: false }
+  | { blocked: true; reason: 'cross_tenant_no_consent' };
+
+/**
+ * Asserts that PSV receipt reuse is blocked across tenant boundaries
+ * unless an explicit cross-tenant consent receipt is provided.
+ *
+ * There is no auto-reuse path across tenants — even a fresh, in-scope receipt
+ * cannot be reused by a different tenant without an explicit consent receipt ID.
+ * This prevents a receipt issued for org-A's hiring workflow from being silently
+ * consumed by org-B without a documented consent handoff.
+ */
+export function checkCrossTenantReuseBlock(
+  requestingTenantId: string,
+  issuingTenantId: string,
+  crossTenantConsentReceiptId?: string,
+): CrossTenantReuseResult {
+  if (requestingTenantId === issuingTenantId) {
+    return { blocked: false };
+  }
+  if (crossTenantConsentReceiptId) {
+    return { blocked: false };
+  }
+  return { blocked: true, reason: 'cross_tenant_no_consent' };
+}

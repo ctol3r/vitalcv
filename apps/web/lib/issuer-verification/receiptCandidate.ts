@@ -180,3 +180,42 @@ export function buildReceiptCandidateFromIssuerResponse(
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// VERIFIER-EVIDENCE-1 — Constraint violation classifier
+// ---------------------------------------------------------------------------
+
+export type ConstraintViolationState =
+  | 'tamper_detected'
+  | 'constraint_violation'
+  | 'unknown_error';
+
+/**
+ * Classifies a database error into a verifier-surface state.
+ *
+ * Postgres error code 23514 is a CHECK constraint violation. In the context
+ * of a receipt candidate write, a 23514 means the row failed an invariant
+ * guard (e.g. decisionGrade must be false, proofTier must be 'receipt_candidate').
+ * This is treated as tamper_detected rather than an opaque error so the
+ * surface can surface a meaningful state to the operator.
+ */
+export function classifyConstraintViolation(error: unknown): ConstraintViolationState {
+  if (
+    error !== null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code: unknown }).code === '23514'
+  ) {
+    return 'tamper_detected';
+  }
+  if (
+    error !== null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string' &&
+    (error as { code: string }).code.startsWith('23')
+  ) {
+    return 'constraint_violation';
+  }
+  return 'unknown_error';
+}
