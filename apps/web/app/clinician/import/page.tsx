@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import { DocumentUploadZone } from '@/components/upload/DocumentUploadZone';
 
 export const metadata: Metadata = {
   title: 'Clinician Import · VitalCV',
@@ -137,6 +138,18 @@ export default function ClinicianImportPage() {
 
       <div className="space-y-10">
         <CardGrid heading="Import" items={IMPORTS} headingId="import-section-heading" />
+
+        <section aria-labelledby="doc-upload-zone-heading" className="space-y-4">
+          <h2 id="doc-upload-zone-heading" className="text-lg font-semibold sm:text-xl">
+            Attach a credentialing document
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Upload a PDF, JPEG, PNG, or HEIC file (max 10 MB). The document is recorded
+            as user-entered. Source-backed verification is a separate step.
+          </p>
+          <DocumentUploadZone />
+        </section>
+
         <CardGrid heading="Export" items={EXPORTS} headingId="export-section-heading" />
       </div>
     </main>
