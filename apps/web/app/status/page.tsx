@@ -1,10 +1,13 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 
+import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
 import {
   buildStatusFoundationPlan,
   explainStatusSurfaceStatus,
 } from '@/lib/commercial/statusFoundation';
+import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
+import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
 
 export const metadata: Metadata = {
   title: 'Status · VitalCV',
@@ -12,8 +15,14 @@ export const metadata: Metadata = {
     'Status surfaces are foundation previews. No uptime guarantee is implied.',
 };
 
+const COMPLIANCE_DISCLAIMER =
+  'This report is a foundation shape for vendor risk assessments. It reflects planned controls, not enforced production policies.';
+
 export default function StatusPage() {
   const plan = buildStatusFoundationPlan();
+  const dataClassification = buildDataClassificationFoundation();
+  const retention = buildRetentionFoundation();
+  const authority = buildAdapterMatrix();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
@@ -73,6 +82,44 @@ export default function StatusPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section
+        aria-labelledby="compliance-heading"
+        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+      >
+        <h2 id="compliance-heading" className="text-base font-semibold sm:text-lg">
+          Compliance evidence (foundation shape)
+        </h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {COMPLIANCE_DISCLAIMER}
+        </p>
+        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Data classification</dt>
+            <dd className="mt-1">
+              <p className="font-mono text-xs">redactionLive: {String(dataClassification.redactionLive)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{dataClassification.rules.length} redaction rules</p>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Retention</dt>
+            <dd className="mt-1">
+              <p className="font-mono text-xs">retentionEnforced: {String(retention.retentionEnforced)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{retention.policies.length} entity policies</p>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Authority adapters</dt>
+            <dd className="mt-1">
+              <p className="font-mono text-xs">allAdaptersLive: {String(authority.allAdaptersLive)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{authority.adapters.length} adapters</p>
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Machine-readable shape: <code>GET /api/compliance/evidence</code> (same sources).
+        </p>
       </section>
 
       <section
