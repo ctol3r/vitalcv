@@ -1,0 +1,94 @@
+name: Banned Strings Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  banned-strings:
+    name: Banned Strings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for banned overclaim strings
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # Banned phrases per CLAUDE.md "Banned strings" — verbatim.
+          # The grep is case-insensitive and matches anywhere in a line.
+          # Test split-join constants live under apps/web/__tests__/ and may
+          # contain banned strings as deliberate split sentinels; those files
+          # are excluded from the gate.
+          banned=(
+            'automatically verified'
+            'guaranteed verification'
+            'complete credentialing'
+            'instant credentialing'
+            'legally accepted'
+            'risk transferred'
+            'final verification without review'
+            'source confirmed before response'
+            'certified compliant'
+            'HIPAA compliant'
+            'SOC2 certified'
+          )
+
+          # Scan files changed in this PR (relative to base).
+          changed=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA"..."$HEAD_SHA" \
+            | grep -E '\.(tsx?|jsx?|md|mdx|css|html|json|yml|yaml)$' \
+            | grep -vE '^apps/web/__tests__/' \
+            | grep -vE '\.test\.(tsx?|jsx?)$' \
+            | grep -vE '^docs/ops/release-checklist\.md$' \
+            | grep -vE '^docs/architecture/vitalcv-knowledge-trust-graph\.(md|json)$' \
+            || true)
+
+          if [[ -z "$changed" ]]; then
+            echo "No source/copy files changed; banned-strings gate skipped."
+            exit 0
+          fi
+
+          echo "Scanning changed files:"
+          echo "$changed"
+          echo ""
+
+          violations=0
+          for phrase in "${banned[@]}"; do
+            # Build a single grep against all changed files. Hits print path:line:match.
+            # `grep -n -i -F` (case-insensitive, fixed-string) is the lightest possible scan.
+            if hits=$(echo "$changed" | xargs -I{} grep -n -i -F -e "$phrase" "{}" 2>/dev/null); then
+              if [[ -n "$hits" ]]; then
+                echo "::error::Banned string '$phrase' found:"
+                echo "$hits"
+                violations=$((violations + 1))
+              fi
+            fi
+          done
+
+          # Bare-word "Verified" check: a status label rendered as the literal
+          # word "Verified" (capital V, word-boundary). Distinct from "Verified by"
+          # or "Source-verified". This is a heuristic — false positives are
+          # acceptable and can be appealed by the PR author with explicit comment.
+          # Excludes test files, route-map output, and translation seed strings.
+          bare_verified_hits=$(echo "$changed" \
+            | xargs -I{} grep -nP "(>|^|\")Verified(<|\$|\")" "{}" 2>/dev/null \
+            | grep -v "Verified-by\|verified-source" || true)
+          if [[ -n "$bare_verified_hits" ]]; then
+            echo "::warning::Possible bare 'Verified' label found (review for truth-contract compliance):"
+            echo "$bare_verified_hits"
+          fi
+
+          if [[ "$violations" -gt 0 ]]; then
+            echo ""
+            echo "::error::$violations banned-string violation(s) detected. See CLAUDE.md 'Banned strings' for the canonical list and rationale."
+            exit 1
+          fi
+
+          echo "Banned-strings gate: PASSED"
