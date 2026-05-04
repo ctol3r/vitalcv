@@ -1,4 +1,5 @@
 import { withSentryConfig } from '@sentry/nextjs';
+import { getSecurityHeadersForNext } from './security-headers.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -26,6 +27,14 @@ const nextConfig = {
       { source: '/dashboard', destination: '/intelligence?view=dashboard', permanent: false },
       { source: '/docs/api', destination: '/developers', permanent: false },
       { source: '/employers/kaiser-permanente-norcal', destination: '/employers/kaiser-permanente-northern-california', permanent: false },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: getSecurityHeadersForNext(),
+      },
     ];
   },
   webpack: (config, { isServer }) => {
