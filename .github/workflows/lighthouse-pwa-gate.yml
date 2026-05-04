@@ -1,0 +1,32 @@
+name: Lighthouse PWA Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/manifest.ts'
+      - 'apps/web/public/sw.js'
+      - 'apps/web/next.config.mjs'
+      - 'apps/web/app/layout.tsx'
+      - '.github/workflows/lighthouse-pwa-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  pwa-shell-tests:
+    name: PWA shell unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Run PWA shell tests
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/mobile-pwa-shell.test.ts

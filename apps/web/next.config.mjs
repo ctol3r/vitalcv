@@ -43,9 +43,15 @@ const nextConfig = {
 // Only enable Sentry build-time instrumentation when DSN is configured
 const sentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
-export default sentryEnabled
+// PWA service worker registration.
+// sw.js lives at apps/web/public/sw.js and is served at /sw.js.
+// Registration is handled client-side via navigator.serviceWorker.register('/sw.js')
+// in the root layout. NEXT_DISABLE_PWA=1 disables registration in CI/SSR contexts.
+const baseConfig = sentryEnabled
   ? withSentryConfig(nextConfig, {
       silent: true,
       hideSourceMaps: true,
     })
   : nextConfig;
+
+export default baseConfig;
