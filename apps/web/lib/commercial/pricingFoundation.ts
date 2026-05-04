@@ -104,6 +104,16 @@ export function buildPricingFoundationPlan(): PricingFoundationPlan[] {
   ];
 }
 
+// Returns true only when STRIPE_CHECKOUT_LIVE=true AND both Stripe keys are set.
+// collectsPayment on all plans stays false until this returns true AND billing is wired.
+export function isCheckoutLiveModeEnabled(): boolean {
+  return (
+    process.env.STRIPE_CHECKOUT_LIVE === 'true' &&
+    Boolean(process.env.STRIPE_SECRET_KEY) &&
+    Boolean(process.env.STRIPE_PUBLISHABLE_KEY)
+  );
+}
+
 export function explainPricingPlanStatus(status: PricingPlanStatus): string {
   switch (status) {
     case 'foundation_preview':
