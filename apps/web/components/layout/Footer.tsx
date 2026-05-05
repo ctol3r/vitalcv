@@ -36,12 +36,12 @@ export default function Footer() {
                 {link.label}
               </Link>
             ))}
-            <a
-              href="mailto:hello@vitalcv.com"
+            <Link
+              href="/contact"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Contact
-            </a>
+            </Link>
           </nav>
         </div>
       </div>
