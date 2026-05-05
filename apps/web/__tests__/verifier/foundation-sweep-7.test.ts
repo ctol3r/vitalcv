@@ -452,10 +452,16 @@ describe('verifier component and page copy invariants', () => {
     expect(markup).toContain('Self-attested input needs source review');
   });
 
-  it('employer worklist shell carries the planned DB integration copy and main aria label', () => {
+  it('employer worklist shell is wired to the live DB-backed worklist repo', () => {
     const src = readWebFile('app/employer/worklist/page.tsx');
-    expect(src).toContain('Worklist is connected to submitted applications. Live DB integration');
-    expect(src).toContain('aria-label="Employer worklist shell"');
+    // DB integration is now live (PR superseding #241): the page imports
+    // getWorklist from the verifier worklistRepo and renders rows via
+    // WorklistPanel. The earlier placeholder copy "Worklist is connected
+    // to submitted applications. Live DB integration" was replaced when
+    // the live read landed.
+    expect(src).toContain("from '@/lib/verifier/worklistRepo'");
+    expect(src).toContain('getWorklist');
+    expect(src).toContain('WorklistPanel');
   });
 
   it('employer decision shell carries the planned recording copy and read-only area', () => {

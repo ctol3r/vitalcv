@@ -86,3 +86,4 @@ node_modules/
 dist/
 .cache/
 
+apps/web/lib/generated/
