@@ -13,13 +13,26 @@ import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 
 interface PassportEntityClientProps {
   entityId: string;
+  /** When provided, the demo seeder hydrates the passport in place of the fetch. */
+  initialPassport?: PassportData;
+  /** Banner copy rendered above PassportWallet when the demo fixture is in use. */
+  demoBanner?: string;
 }
 
-export default function PassportEntityClient({ entityId }: PassportEntityClientProps) {
-  const [passport, setPassport] = useState<PassportData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function PassportEntityClient({
+  entityId,
+  initialPassport,
+  demoBanner,
+}: PassportEntityClientProps) {
+  const [passport, setPassport] = useState<PassportData | null>(initialPassport ?? null);
+  const [loading, setLoading] = useState(!initialPassport);
 
   useEffect(() => {
+    if (initialPassport) {
+      // Demo path — fixture is already seeded, no fetch.
+      return;
+    }
+
     let cancelled = false;
 
     void (async () => {
@@ -36,7 +49,7 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
     return () => {
       cancelled = true;
     };
-  }, [entityId]);
+  }, [entityId, initialPassport]);
 
   if (loading) {
     return <PassportWallet loading />;
@@ -75,7 +88,17 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   const inboxItems: KnowledgeInboxItem[] = [];
 
   return (
-    <div className="flex flex-col gap-8 pb-16">
+    <div className="flex flex-col gap-8 pb-16" data-demo-passport={demoBanner ? 'true' : 'false'}>
+      {demoBanner && (
+        <div
+          role="note"
+          aria-label="Demo passport banner"
+          data-testid="demo-passport-banner"
+          className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2.5 text-center text-xs text-amber-200"
+        >
+          {demoBanner}
+        </div>
+      )}
       <PassportWallet passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
         <section
