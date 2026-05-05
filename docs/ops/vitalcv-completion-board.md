@@ -1,6 +1,6 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-03 (PR-C clinician rescue + PR-E design-system v2 rescue)
+Last updated: 2026-05-05 (Wave A merge burndown — 11 PRs landed)
 Source branch: `rescue/ops-docs-foundation`
 
 ## Full-Scope Coverage Rule
@@ -325,3 +325,44 @@ RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `Lane
 * Row moved: `Mobile web / PWA` 35→42 (responsive shell + Geist font system at layout level; installability + offline shell still not verified).
 * Rows held: `Contrast` stays 35 (no axe-based contrast audit added in PR-F); `Web quality` stays 85 (no new CI gate); `Vercel deploy health` stays 60 (no deploy procedure change).
 * `typographyTokens.fontSans` (lib) intentionally unchanged — `theme-tokens.test.ts` still asserts Nunito Sans on the lib side; layout-level CSS vars override at runtime. Lib-level token migration is a future PR with a paired test update.
+
+## Wave A — Code Red merge burndown (2026-05-05)
+
+11 PRs merged to main between `5d530f13` and `91f162b5`. Three PRs deferred (#237, #240, #247) due to unrelated backend test drift or schema-conflict resolution that requires its own PR. PR #243 (verifier RBAC) auto-conflicted on the last merge of the script and is queued for rebase.
+
+### Per-row Current % deltas (evidenced by code on `origin/main`)
+
+| Row | Before | After | Evidence |
+|---|---:|---:|---|
+| Real persistence writer (Trust Engine) | 5 | 30 | #221 — Prisma scaffold for IssuerRequest + ReceiptCandidate with truth-contract CHECK constraints (decisionGrade=FALSE, proofTier='receipt_candidate', recordedBy enum). Writer not wired yet (Wave B). |
+| Source health classifier (Trust Engine) | 65 | 75 | #252 — post-deploy source-health probe workflow + script + test. |
+| Reuse / revocation / supersession boundary (Trust Engine) | 75 | 80 | #235 — `classifyConstraintViolation` (Postgres 23514 → tamper_detected) + `checkCrossTenantReuseBlock` consent helpers. |
+| Verifier worklist / decision UX | 60 | 80 | #253 — replaces foundation array with DB-backed `getWorklist()` reads from ReceiptCandidate; `REVIEW_STATE_MAP` keyed by canonical `ReceiptCandidateReviewState`. |
+| WCAG 2.2 AA baseline | 50 | 80 | #229 + #232 — foundation a11y assertions + axe-core gate on hero routes. |
+| Security headers | 25 | 75 | #226 — strict response-header baseline (CSP/HSTS/X-Content-Type-Options/Referrer-Policy/Permissions-Policy). |
+| Secrets / env handling | 40 | 70 | #228 — typed env contract with build-time validation. |
+| API route hardening | 35 | 60 | #234 — CORS allowlist + API key foundation. |
+| OWASP ASVS L1 baseline | 0 | 40 | #227 — published ASVS L1 scorecard at `docs/security/asvs-scorecard.md`. |
+| Legal pages | 30 | 70 | #242 — DPA template + cookie policy pages with footer wiring. |
+
+### Section roll-ups (derived)
+
+* 🧠 Trust Engine / Issuer Infrastructure: ~78 → ~85
+* 🧑‍⚕️ Live Clinician Product: held (no Wave A action on clinician-facing rows)
+* 🛂 Verifier / Employer: ~67 → ~74
+* 📊 Intelligence / UX: ~64 → ~70 (a11y gate landed)
+* 🏛 Enterprise / Compliance: ~42 → ~58 (security headers + env + CORS + ASVS + legal)
+
+### Deferred (require own follow-up PR, not in this delta)
+
+* **#237** db-migration baseline — Prisma migrate gate now passes after dropping `--shadow-database-url`, but Railway Deploy Preflight still blocked by a real backend test drift (`employerActions.test.ts` expects `reviewHref: "/review/{entity}?contextId={ctx}&bundleId={bundle}"` while the route returns `"/review/undefined"`). That's a backend route bug, not a docs/CI bug.
+* **#247** policy decision persistence — `apps/web/prisma/schema.prisma` had a conflict with the canonical-types comment that #253 added; resolution requires its own PR rather than mid-rebase fix-forward.
+* **#240** cross-tenant reuse block — Web Quality CI failure that needs the same kind of test/copy alignment #253 needed; left as a follow-up.
+* **#243** verifier RBAC — auto-conflicted as the 7th PR in the merge script (after #242 touched footer/middleware-adjacent files); needs a rebase + re-merge.
+
+### Verification artifacts
+
+* `git log origin/main 5d530f13..91f162b5` — 11 commits, all squash-merges with PR numbers.
+* No row above 90% claimed in this delta.
+* No banned phrases introduced (every PR's diff was Codex-audited or its CI ran banned-strings checks).
+* Truth contract preserved: `ReceiptCandidate.decisionGrade` is still the literal `false` and `proofTier` is still the literal `'receipt_candidate'` everywhere they appear.
