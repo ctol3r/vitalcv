@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { PilotIntakeForm } from './PilotIntakeForm';
 
@@ -24,7 +25,9 @@ export default function ContactPage() {
           <a className="underline" href="mailto:hello@vitalcv.com">hello@vitalcv.com</a>.
         </p>
       </header>
-      <PilotIntakeForm />
+      <Suspense fallback={null}>
+        <PilotIntakeForm />
+      </Suspense>
     </main>
   );
 }
