@@ -3,6 +3,7 @@
     "name": "VitalCV Wallet",
     "slug": "vitalcv-wallet",
     "scheme": "vitalcv",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#080e1a",
@@ -21,16 +22,31 @@
     ],
     "ios": {
       "bundleIdentifier": "com.vitalcv.wallet",
-      "supportsTablet": false
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "VitalCV Wallet uses Face ID to unlock your credentials and authorize verifier presentations.",
+        "NSCameraUsageDescription": "VitalCV Wallet uses the camera to scan verifier QR codes.",
+        "LSApplicationQueriesSchemes": ["openid-credential-offer", "openid4vp", "haip"]
+      },
+      "associatedDomains": ["applinks:vitalcv.com", "applinks:wallet.vitalcv.com"]
     },
     "android": {
       "package": "com.vitalcv.wallet",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#080e1a"
       }
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    },
+    "owner": "REPLACE_WITH_EXPO_ACCOUNT"
   }
 }
