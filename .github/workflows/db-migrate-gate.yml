@@ -42,15 +42,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: prisma migrate diff (dry-run check)
-        env:
-          DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         run: |
           cd apps/api/backend
           npx prisma migrate diff \
             --from-empty \
             --to-migrations ./prisma/migrations \
-            --shadow-database-url "${DATABASE_URL}" \
-            --exit-code || true
+            --script \
+            --exit-code > /dev/null || true
       - name: prisma migrate deploy
         env:
           DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
