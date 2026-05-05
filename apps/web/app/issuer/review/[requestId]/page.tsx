@@ -100,12 +100,44 @@ export default async function IssuerReviewPage({ params }: PageProps) {
     freeText: 'Confirmed completion of Internal Medicine residency 2018–2021.',
   };
 
+  // Build the candidate first as a demo-recorded shape so the page
+  // always renders even when the persistence writer is off or fails.
   const candidate = buildReceiptCandidateFromIssuerResponse(request, response, {
     receiptCandidateId: `rc-${requestId}`,
     claimId: `claim-${requestId}`,
     auditChannel: 'issuer_response_form',
     recordedBy: 'demo',
   });
+
+  // Attempt to persist. The writer is feature-flagged via
+  // ISSUER_PERSISTENCE_ENABLED — when off, writeOutcome.status is
+  // 'disabled' and recordedBy is 'demo'. When on and the write
+  // succeeds, recordedBy is 'system'. On a DB CHECK violation the
+  // outcome is 'tamper_detected'; on any other write failure the
+  // outcome is 'transient_error'.
+  //
+  // The writer module is loaded dynamically and inside try/catch so
+  // any failure path — module-load error, prisma client init error,
+  // env access error, internal writer throw, or DB error — degrades
+  // to a 'transient_error' demo render rather than 500-ing the
+  // surface. Together with the writer's own internal try/catch this
+  // gives the review page a strict no-crash invariant.
+  type WriteOutcome =
+    | { status: 'persisted'; recordedBy: 'system' }
+    | { status: 'disabled'; recordedBy: 'demo' }
+    | { status: 'tamper_detected'; recordedBy: 'demo' }
+    | { status: 'transient_error'; recordedBy: 'demo' };
+  let writeOutcome: WriteOutcome = { status: 'transient_error', recordedBy: 'demo' };
+  try {
+    const mod = await import('@/lib/issuer-verification/issuerPersistenceWriter');
+    writeOutcome = await mod.writeReceiptCandidateRow({
+      candidate,
+      surface: 'review_surface',
+    });
+  } catch {
+    // already initialized to transient_error/demo above
+  }
+  const persistedRecordedBy = writeOutcome.recordedBy;
 
   const reviewCopy = reviewStateCopy(
     candidate.reviewState ?? 'ready_for_policy_review',
@@ -119,6 +151,8 @@ export default async function IssuerReviewPage({ params }: PageProps) {
       data-review-state={candidate.reviewState}
       data-proof-tier={candidate.proofTier}
       data-decision-grade={String(candidate.decisionGrade)}
+      data-persistence-status={writeOutcome.status}
+      data-recorded-by={persistedRecordedBy}
     >
       <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
         <header className="space-y-1">
@@ -134,6 +168,42 @@ export default async function IssuerReviewPage({ params }: PageProps) {
           >
             This is a receipt candidate, not final verification.
           </p>
+          {writeOutcome.status === 'persisted' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700"
+              data-testid="persistence-banner"
+              data-banner-state="persisted"
+            >
+              Candidate row recorded (recordedBy: system)
+            </p>
+          )}
+          {writeOutcome.status === 'tamper_detected' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700"
+              data-testid="persistence-banner"
+              data-banner-state="tamper_detected"
+            >
+              Candidate row CHECK violation — render only (recordedBy: demo)
+            </p>
+          )}
+          {writeOutcome.status === 'transient_error' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-700"
+              data-testid="persistence-banner"
+              data-banner-state="transient_error"
+            >
+              Persistence unavailable — render only (recordedBy: demo)
+            </p>
+          )}
+          {writeOutcome.status === 'disabled' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600"
+              data-testid="persistence-banner"
+              data-banner-state="disabled"
+            >
+              Persistence disabled — render only (recordedBy: demo)
+            </p>
+          )}
         </header>
 
         <section
