@@ -8,6 +8,7 @@ import {
   ROLE_LANDING,
   type UserRoleType,
 } from '@/lib/auth/roles';
+import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
 
 /**
  * Role-based middleware for VitalCV.
@@ -105,6 +106,23 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
 });
 
 export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+  // CORS gate: /api/* routes require the Origin to be in the allowlist.
+  // An absent ALLOWED_CORS_ORIGINS env var means the allowlist is empty and
+  // all cross-origin API requests are blocked. Same-origin requests (no Origin
+  // header) pass through — browsers omit Origin on same-origin fetches.
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    const origin = req.headers.get('origin');
+    if (origin !== null) {
+      const cors = checkCorsAllowlist(origin, getAllowedOrigins());
+      if (!cors.allowed) {
+        return new NextResponse(null, {
+          status: 403,
+          headers: { 'x-cors-blocked': '1' },
+        });
+      }
+    }
+  }
+
   if (!CLERK_MIDDLEWARE_ENABLED) {
     if (isPublicRoute(req.nextUrl.pathname)) {
       return NextResponse.next();
