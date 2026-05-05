@@ -1,14 +1,23 @@
 import 'server-only';
 import { prisma } from '@/lib/db';
+import type { ReceiptCandidateReviewState } from '@/lib/issuer-verification/types';
 
-// ReceiptCandidate reviewState values that map to worklist status.
-// Rows with a NULL reviewState are included as 'pending'.
-const REVIEW_STATE_MAP: Record<string, WorklistReviewState> = {
-  pending_policy_review: 'pending',
-  in_review: 'in_review',
-  info_requested: 'info_requested',
-  accepted: 'acceptable_for_start',
+// WorklistReviewState is a UI-facing label space, not a parallel
+// truth-contract enum. Each label maps from one or more canonical
+// ReceiptCandidateReviewState values from
+// apps/web/lib/issuer-verification/types.ts. The mapping is explicit
+// here so the canonical type remains the single source of truth.
+//
+// Rows with a NULL reviewState are surfaced as 'pending'.
+const REVIEW_STATE_MAP: Record<ReceiptCandidateReviewState, WorklistReviewState> = {
+  review_required: 'pending',
+  ready_for_policy_review: 'in_review',
+  conflict_review_required: 'in_review',
+  release_required: 'info_requested',
+  reroute_required: 'info_requested',
   unable_to_verify: 'unable_to_verify',
+  expired: 'pending',
+  canceled: 'pending',
 };
 
 export type WorklistReviewState =
@@ -57,7 +66,7 @@ export async function getWorklist(
 
   const where =
     reviewState && reviewState !== 'all'
-      ? { reviewState: dbStateForFilter(reviewState) }
+      ? { reviewState: { in: dbStateForFilter(reviewState) } }
       : {};
 
   const rows = await prisma.receiptCandidate.findMany({
@@ -77,9 +86,10 @@ export async function getWorklist(
   return rows.map(mapRow);
 }
 
-function dbStateForFilter(state: WorklistReviewState): string {
-  const inverse = Object.entries(REVIEW_STATE_MAP).find(([, v]) => v === state);
-  return inverse ? inverse[0] : state;
+function dbStateForFilter(state: WorklistReviewState): string[] {
+  return (Object.entries(REVIEW_STATE_MAP) as [ReceiptCandidateReviewState, WorklistReviewState][])
+    .filter(([, label]) => label === state)
+    .map(([canonical]) => canonical);
 }
 
 function mapRow(row: {
@@ -102,5 +112,5 @@ function mapRow(row: {
 
 function toWorklistState(raw: string | null): WorklistReviewState {
   if (!raw) return 'pending';
-  return REVIEW_STATE_MAP[raw] ?? 'pending';
+  return REVIEW_STATE_MAP[raw as ReceiptCandidateReviewState] ?? 'pending';
 }

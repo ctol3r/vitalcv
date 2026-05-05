@@ -5,6 +5,15 @@
 // definitions must stay in sync with that schema. The tables are
 // shared — there is one database.
 //
+// Truth-contract CHECK constraints live in the apps/api/backend
+// migrations and are NOT duplicated here:
+//   * ReceiptCandidate.decisionGrade = FALSE
+//   * ReceiptCandidate.proofTier IS NULL OR = 'receipt_candidate'
+//   * ReceiptCandidate.recordedBy IN ('demo','review_surface','system')
+// See apps/api/backend/prisma/migrations/20260504000000_issuer_persistence_scaffold/migration.sql
+// (landed in PR #221). The web schema is read-only for type generation;
+// it cannot weaken those database-level invariants.
+//
 // Run `pnpm --filter @vitalcv/web exec prisma generate` after
 // any model change here to regenerate the typed client.
 
