@@ -82,9 +82,9 @@ const sampleItems: WorklistItem[] = [
 describe('orgRolesFoundation', () => {
   const foundation = buildOrgRolesFoundation();
 
-  it('keeps role provisioning, invitations, and RBAC non-live', () => {
+  it('keeps role provisioning and RBAC non-live; invitation system is now live (W6C foundation flip)', () => {
     expect(foundation.provisionLive).toBe(false);
-    expect(foundation.invitationSystemLive).toBe(false);
+    expect(foundation.invitationSystemLive).toBe(true);
     expect(foundation.rbacEnforced).toBe(false);
   });
 

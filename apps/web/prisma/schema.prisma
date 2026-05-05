@@ -1,0 +1,54 @@
+// apps/web Prisma schema — web-app-facing subset only.
+//
+// This schema mirrors the models that the web app reads directly.
+// Migrations are managed by apps/api/backend/prisma; these model
+// definitions must stay in sync with that schema.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// VerifierInvitation — verifier team invitation lifecycle.
+//
+// Truth contracts:
+//   - status transitions are forward-only:
+//       pending -> accepted | expired | revoked
+//     accepted, expired, and revoked are terminal.
+//   - acceptedAt and acceptedByUserId are immutable once set; a second
+//     accept attempt returns 409 Conflict and does NOT mutate the row.
+//   - emailSendChannel is 'clerk_magic_link' or 'shareable_url_only';
+//     no row may be created with a 'smtp' channel — Clerk is the only
+//     transport this codebase wires.
+model VerifierInvitation {
+  id String @id @default(cuid())
+
+  invitationCode String @unique
+
+  email String
+  role  String
+
+  orgId           String
+  invitedByUserId String
+
+  status String @default("pending")
+
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+
+  emailSendChannel String @default("shareable_url_only")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+}
