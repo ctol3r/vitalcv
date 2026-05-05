@@ -855,7 +855,7 @@ describe('employer action routes', () => {
 
     expect(response.body).toEqual({
       error: 'share_token_expired',
-      error_description: 'This review link has expired. Ask the clinician to generate a fresh share link.',
+      error_description: 'This review link has expired. Ask the clinician to share a fresh packet.',
     });
   });
 
