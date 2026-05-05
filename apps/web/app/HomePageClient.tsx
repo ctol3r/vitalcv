@@ -108,7 +108,7 @@ export default function HomePageClient() {
   }, []);
 
   return (
-    <div className="bg-[var(--vt-bg)] text-[var(--vt-text-primary)]">
+    <main id="main-content" className="bg-[var(--vt-bg)] text-[var(--vt-text-primary)]">
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
           <div className="border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-state-verified)_10%,transparent)] py-2.5 px-4 text-center">
@@ -420,6 +420,6 @@ export default function HomePageClient() {
           <div className="font-mono">© 2026 VitalCV, Inc. · Trust Registry Node 202 · ed25519</div>
         </footer>
       </div>
-    </div>
+    </main>
   );
 }
