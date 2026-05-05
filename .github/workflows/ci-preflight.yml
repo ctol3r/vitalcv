@@ -113,6 +113,24 @@ jobs:
           cd apps/api/backend
           npx prisma migrate deploy
 
+      # Production migrate-deploy. Only fires on push to main when the
+      # DATABASE_URL secret is present (it is provided by the deploy
+      # environment, not on PRs or feature branches). The deploy job
+      # is read-only on the schema files — the only state that changes
+      # is the production database itself, which is gated by the runbook
+      # at docs/ops/db-migrate-cutover-runbook.md.
+      - name: Production migrate deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.PROD_DATABASE_URL != ''
+        env:
+          PROD_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$PROD_DATABASE_URL" ]; then
+            echo "DATABASE_URL secret not set; skipping migrate-deploy."
+            exit 0
+          fi
+          cd apps/api/backend
+          DATABASE_URL="$PROD_DATABASE_URL" npx prisma migrate deploy
+
       - name: Smoke tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_preflight

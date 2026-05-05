@@ -1,4 +1,5 @@
 -- Wave 26/27: Multi-tenant scoping + monitoring trust ledger support
+-- migration-shape:allow-drop reason: pre-existing FK swap during multi-tenant refactor; grandfathered when the migration-shape gate landed (see docs/ops/db-migrate-cutover-runbook.md).
 ALTER TABLE "PilotPlan" ALTER COLUMN "organizationId" DROP NOT NULL;
 
 ALTER TABLE "PilotPlan" DROP CONSTRAINT "PilotPlan_organizationId_fkey";
