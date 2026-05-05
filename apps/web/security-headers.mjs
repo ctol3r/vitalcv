@@ -32,13 +32,20 @@ const STRIPE_HOSTS = "'self' https://js.stripe.com https://checkout.stripe.com";
 const VERCEL_LIVE_HOSTS = "'self' https://vercel.live";
 const SELF = "'self'";
 
+// Hotfix wave-3m: PostHog ingestion + asset hosts. The web app loads
+// posthog-js from the API host and POSTs telemetry to it; both must be
+// allow-listed in script-src and connect-src or the analytics SDK fails
+// silently with no console error.
+const POSTHOG_INGESTION = 'https://us.i.posthog.com';
+const POSTHOG_ASSETS = 'https://us-assets.i.posthog.com';
+
 const cspDirectives = [
   `default-src ${SELF}`,
-  `script-src ${SELF} 'unsafe-inline' 'unsafe-eval' ${STRIPE_HOSTS} ${VERCEL_LIVE_HOSTS} https://*.clerk.accounts.dev https://*.clerk.com`,
+  `script-src ${SELF} 'unsafe-inline' 'unsafe-eval' ${STRIPE_HOSTS} ${VERCEL_LIVE_HOSTS} https://*.clerk.accounts.dev https://*.clerk.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
   `style-src ${SELF} 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src ${SELF} data: https://fonts.gstatic.com`,
   `img-src ${SELF} data: blob: https:`,
-  `connect-src ${SELF} https://*.clerk.accounts.dev https://*.clerk.com https://api.stripe.com https://*.ingest.sentry.io wss://*.vitalcv.com`,
+  `connect-src ${SELF} https://*.clerk.accounts.dev https://*.clerk.com https://api.stripe.com https://*.ingest.sentry.io wss://*.vitalcv.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
   `frame-src ${STRIPE_HOSTS} https://*.clerk.accounts.dev`,
   `frame-ancestors 'none'`,
   `form-action ${SELF}`,

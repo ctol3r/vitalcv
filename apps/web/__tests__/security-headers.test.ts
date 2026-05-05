@@ -72,6 +72,24 @@ describe('security headers (SEC-HEADERS-1)', () => {
     expect(csp!.value).toContain('https://*.clerk.com');
   });
 
+  // Hotfix wave-3m: PostHog ingestion + assets must be allow-listed in
+  // both script-src (for posthog-js bundle load) and connect-src (for
+  // event POSTs). Without these, analytics fail silently in production.
+  it('CSP includes the two PostHog origins in both script-src and connect-src', () => {
+    const csp = securityHeaders.find((h: { key: string }) => h.key === 'Content-Security-Policy');
+    const value = csp!.value;
+
+    const scriptSrcMatch = value.match(/script-src[^;]*/);
+    const connectSrcMatch = value.match(/connect-src[^;]*/);
+    expect(scriptSrcMatch).not.toBeNull();
+    expect(connectSrcMatch).not.toBeNull();
+
+    for (const origin of ['https://us.i.posthog.com', 'https://us-assets.i.posthog.com']) {
+      expect(scriptSrcMatch![0], `script-src must include ${origin}`).toContain(origin);
+      expect(connectSrcMatch![0], `connect-src must include ${origin}`).toContain(origin);
+    }
+  });
+
   it('CSP does NOT include localhost or wildcard public origins', () => {
     const csp = securityHeaders.find((h: { key: string }) => h.key === 'Content-Security-Policy');
     expect(csp!.value).not.toContain('http://localhost');
