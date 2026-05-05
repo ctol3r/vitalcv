@@ -1,0 +1,54 @@
+name: Smoke — hero routes
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # 06:00 UTC daily
+    - cron: '0 6 * * *'
+
+jobs:
+  smoke:
+    name: Hero-route smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm turbo run build --filter @vitalcv/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Start production server
+        run: pnpm --filter @vitalcv/web exec next start --port 3000 &
+        env:
+          NODE_ENV: production
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for http://localhost:3000..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; then
+              echo "Server ready."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run hero-route smoke test
+        run: bash scripts/smoke-hero-routes.sh http://localhost:3000
