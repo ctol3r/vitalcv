@@ -1,0 +1,33 @@
+name: A11Y Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**/page.tsx'
+      - 'apps/web/app/**/layout.tsx'
+      - 'apps/web/components/**'
+      - 'apps/web/design-system/**'
+      - 'apps/web/__tests__/a11y/**'
+      - '.github/workflows/a11y-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  axe-wcag22:
+    name: axe WCAG 2.2 AA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Run axe WCAG 2.2 AA suite
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/a11y/hero-routes.test.tsx

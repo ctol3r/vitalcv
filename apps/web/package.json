@@ -80,6 +80,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.4",
+    "axe-core": "^4",
     "eslint-config-next": "^15.5.9",
     "jsdom": "^29.0.1",
     "postcss": "^8.5",
