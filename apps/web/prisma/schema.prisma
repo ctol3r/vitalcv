@@ -1,0 +1,110 @@
+// apps/web Prisma schema — web-app-facing subset only.
+//
+// This schema mirrors the models that the web app reads directly.
+// Migrations are managed by apps/api/backend/prisma; these model
+// definitions must stay in sync with that schema. The tables are
+// shared — there is one database.
+//
+// Run `pnpm --filter @vitalcv/web exec prisma generate` after
+// any model change here to regenerate the typed client.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model IssuerRequest {
+  id              String    @id @default(uuid()) @db.Uuid
+  requestId       String    @unique
+  claimType       String
+  claimSummary    String
+  issuerCandidate Json
+  route           Json
+  consent         Json
+  status          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime?
+
+  receiptCandidates ReceiptCandidate[]
+
+  @@index([requestId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReceiptCandidate {
+  id          String         @id @default(uuid()) @db.Uuid
+  candidateId String         @unique
+  requestId   String?
+  request     IssuerRequest? @relation(fields: [requestId], references: [requestId])
+
+  basis                  String
+  agentName              String?
+  sourceOrganizationName String
+
+  attributionStatus String
+
+  decisionGrade Boolean @default(false)
+  proofTier     String?
+
+  notes              String?
+  limitationNote     String?
+  responseStatus     String?
+  responseSummary    String?
+  responseReceivedAt DateTime?
+  reviewState        String?
+
+  recordedBy String @default("demo")
+
+  signedReceiptJwt String?
+
+  createdAt DateTime @default(now())
+
+  @@index([candidateId])
+  @@index([requestId])
+  @@index([reviewState])
+  @@index([createdAt])
+}
+
+// Truth contract:
+//   - decisionGrade is always false — no issuer policy review is
+//     decision-grade on its own; it produces only a candidate.
+//   - automatedPolicyEngine is always false — every row requires
+//     an explicit human reviewer action (reviewerActorId is required).
+//   - No row may be written without reviewerActorId.
+model PolicyReviewDecision {
+  id String @id @default(cuid())
+
+  decisionId         String @unique
+  receiptCandidateId String
+  requestId          String
+
+  action String
+  status String
+
+  decidedAt String
+
+  reviewerActorId     String
+  reviewerDisplayName String
+  reviewerRole        String
+  rationale           String?
+
+  // Literal false — a policy review decision is never decision-grade by itself.
+  decisionGrade Boolean @default(false)
+  // Literal false — no automated engine; every decision is human-initiated.
+  automatedPolicyEngine Boolean @default(false)
+
+  createdPsvReceiptCandidate Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([receiptCandidateId])
+  @@index([status])
+  @@index([createdAt])
+}

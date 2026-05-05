@@ -9,6 +9,7 @@ import {
   buildPolicyReviewDecision,
   canCreatePsvReceiptCandidate,
 } from '@/lib/issuer-verification/policyReview';
+import { POLICY_PERSISTENCE_STATE } from '@/lib/issuer-verification/policyDecisionRepo';
 import {
   POLICY_REVIEW_COPY,
   policyReviewCopy,
@@ -78,6 +79,7 @@ interface PageProps {
 
 export default async function PolicyReviewPage({ params }: PageProps) {
   const { requestId } = await params;
+  const isPersistenceEnabled = Boolean(process.env.ISSUER_PERSISTENCE_ENABLED);
 
   const claimType: VerificationClaimType = 'residency';
   const request: IssuerVerificationRequest = {
@@ -324,6 +326,31 @@ export default async function PolicyReviewPage({ params }: PageProps) {
             >
               PSV receipt candidate {dryRunAccept.psvReceiptCandidate.psvCandidateId}.
               Not final credentialing proof.
+            </p>
+          )}
+        </section>
+
+        <section
+          className="rounded-xl border border-border/50 bg-background/30 px-4 py-3 space-y-1"
+          aria-label="Persistence status"
+          data-testid="persistence-status"
+          data-persistence-enabled={String(isPersistenceEnabled)}
+          data-automated-policy-engine={String(POLICY_PERSISTENCE_STATE.automatedPolicyEngine)}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Decision persistence
+          </p>
+          {isPersistenceEnabled ? (
+            <p className="text-xs text-muted-foreground">
+              Persistence active — submitted decisions will be written to the
+              database via policyDecisionRepo. Every write requires an explicit
+              reviewer action; <strong>automatedPolicyEngine: {String(POLICY_PERSISTENCE_STATE.automatedPolicyEngine)}</strong>.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Persistence inactive (ISSUER_PERSISTENCE_ENABLED not set). This
+              surface is a demo render; decisions are not written to the database.
+              Set ISSUER_PERSISTENCE_ENABLED to enable policyDecisionRepo writes.
             </p>
           )}
         </section>
