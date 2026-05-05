@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import { CvUploadZone } from '@/components/upload/CvUploadZone';
 
 export const metadata: Metadata = {
   title: 'Clinician Import · VitalCV',
@@ -137,6 +138,14 @@ export default function ClinicianImportPage() {
 
       <div className="space-y-10">
         <CardGrid heading="Import" items={IMPORTS} headingId="import-section-heading" />
+
+        <section aria-labelledby="cv-upload-zone-heading" className="space-y-4">
+          <h2 id="cv-upload-zone-heading" className="text-lg font-semibold sm:text-xl">
+            Upload CV
+          </h2>
+          <CvUploadZone />
+        </section>
+
         <CardGrid heading="Export" items={EXPORTS} headingId="export-section-heading" />
       </div>
     </main>
