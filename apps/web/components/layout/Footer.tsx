@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation';
 const FOOTER_LINKS = [
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
+  { href: '/legal/dpa', label: 'DPA' },
+  { href: '/legal/cookies', label: 'Cookies' },
   { href: '/pilot', label: 'Start a Pilot' },
 ] as const;
 
