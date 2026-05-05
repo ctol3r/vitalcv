@@ -112,12 +112,42 @@ export default async function PolicyReviewPage({ params }: PageProps) {
     freeText: 'Confirmed completion of Internal Medicine residency 2018–2021.',
   };
 
+  // Build the candidate first as a demo-recorded shape so the page
+  // always renders even when the persistence writer is off or fails.
   const candidate = buildReceiptCandidateFromIssuerResponse(request, response, {
     receiptCandidateId: `rc-${requestId}`,
     claimId: `claim-${requestId}`,
     auditChannel: 'issuer_response_form',
     recordedBy: 'demo',
   });
+
+  // Attempt to persist the underlying ReceiptCandidate. This page is
+  // a dry-run for what each policy-review action WOULD do; nothing is
+  // submitted on render. But the candidate itself is the same one
+  // the /issuer/review surface (Phase 3a) already persists when the
+  // flag is on, so we surface the same persistence-state banner here.
+  // PolicyReviewDecision rows are NOT written by this page — those
+  // need a real POST submit handler, scheduled for Phase 3d.
+  //
+  // Strict no-crash: dynamic import + try/catch with a default
+  // outcome of transient_error/demo means any failure path renders
+  // a degraded banner rather than 500-ing the page.
+  type WriteOutcome =
+    | { status: 'persisted'; recordedBy: 'system' }
+    | { status: 'disabled'; recordedBy: 'demo' }
+    | { status: 'tamper_detected'; recordedBy: 'demo' }
+    | { status: 'transient_error'; recordedBy: 'demo' };
+  let writeOutcome: WriteOutcome = { status: 'transient_error', recordedBy: 'demo' };
+  try {
+    const mod = await import('@/lib/issuer-verification/issuerPersistenceWriter');
+    writeOutcome = await mod.writeReceiptCandidateRow({
+      candidate,
+      surface: 'review_surface',
+    });
+  } catch {
+    // already initialized to transient_error/demo above
+  }
+  const persistedRecordedBy = writeOutcome.recordedBy;
 
   // Demo dry-run: show what each action would produce, without
   // persisting anything. The applyPolicyReviewDecision call below is
@@ -152,6 +182,8 @@ export default async function PolicyReviewPage({ params }: PageProps) {
       data-proof-tier={candidate.proofTier}
       data-decision-grade={String(candidate.decisionGrade)}
       data-can-accept={String(acceptOutcome.createdPsvReceiptCandidate)}
+      data-persistence-status={writeOutcome.status}
+      data-recorded-by={persistedRecordedBy}
     >
       <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
         <header className="space-y-1">
@@ -169,6 +201,42 @@ export default async function PolicyReviewPage({ params }: PageProps) {
             receipt. The original issuer response remains evidence, even if the
             candidate is rejected.
           </p>
+          {writeOutcome.status === 'persisted' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700"
+              data-testid="persistence-banner"
+              data-banner-state="persisted"
+            >
+              Candidate row recorded (recordedBy: system)
+            </p>
+          )}
+          {writeOutcome.status === 'tamper_detected' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700"
+              data-testid="persistence-banner"
+              data-banner-state="tamper_detected"
+            >
+              Candidate row CHECK violation — render only (recordedBy: demo)
+            </p>
+          )}
+          {writeOutcome.status === 'transient_error' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-700"
+              data-testid="persistence-banner"
+              data-banner-state="transient_error"
+            >
+              Persistence unavailable — render only (recordedBy: demo)
+            </p>
+          )}
+          {writeOutcome.status === 'disabled' && (
+            <p
+              className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600"
+              data-testid="persistence-banner"
+              data-banner-state="disabled"
+            >
+              Persistence disabled — render only (recordedBy: demo)
+            </p>
+          )}
         </header>
 
         <section
