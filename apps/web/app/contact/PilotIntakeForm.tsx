@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { FormEvent } from 'react';
 
 import type { PilotIntakePersona } from '@/lib/pilot-intake/validate';
@@ -14,6 +15,10 @@ const PERSONA_OPTIONS: ReadonlyArray<{ value: PilotIntakePersona; label: string 
   { value: 'other', label: 'Other' },
 ];
 
+const ALLOWED_PERSONA_VALUES = new Set<PilotIntakePersona>(
+  PERSONA_OPTIONS.map((o) => o.value),
+);
+
 type Status =
   | { kind: 'idle' }
   | { kind: 'submitting' }
@@ -23,6 +28,12 @@ type Status =
 
 export function PilotIntakeForm() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const searchParams = useSearchParams();
+  const personaFromUrl = searchParams.get('persona');
+  const presetPersona =
+    personaFromUrl && ALLOWED_PERSONA_VALUES.has(personaFromUrl as PilotIntakePersona)
+      ? (personaFromUrl as PilotIntakePersona)
+      : '';
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,7 +142,9 @@ export function PilotIntakeForm() {
           id="persona"
           name="persona"
           required
-          defaultValue=""
+          defaultValue={presetPersona}
+          data-testid="persona-select"
+          data-preset-persona={presetPersona || 'none'}
           className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-foreground focus:outline-none"
         >
           <option value="" disabled>
