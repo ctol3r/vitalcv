@@ -5,6 +5,8 @@ import {
   buildStatusFoundationPlan,
   explainStatusSurfaceStatus,
 } from '@/lib/commercial/statusFoundation';
+import { SourceHealthPublicPanel } from '@/components/status/SourceHealthPublicPanel';
+import { getAllSnapshots } from '@/lib/source-health/store/snapshotStore';
 
 export const metadata: Metadata = {
   title: 'Status · VitalCV',
@@ -12,8 +14,24 @@ export const metadata: Metadata = {
     'Status surfaces are foundation previews. No uptime guarantee is implied.',
 };
 
+// The snapshot store is module-scope and ephemeral (cold-start resets);
+// the page always renders fresh state on each request rather than cache.
+export const dynamic = 'force-dynamic';
+
 export default function StatusPage() {
   const plan = buildStatusFoundationPlan();
+  // Read-only access to the in-memory snapshot store. Snapshots already
+  // contain only safe metadata (sourceId, state, reason, observedAt,
+  // lastSuccessAt, lastErrorAt, lastLatencyMs); no raw upstream payloads
+  // or PII are stored. If the probe has not run yet (cold-start case),
+  // snapshots is [] — the panel renders an honest empty state rather
+  // than fabricating green checks.
+  let snapshots: ReturnType<typeof getAllSnapshots> = [];
+  try {
+    snapshots = getAllSnapshots();
+  } catch {
+    snapshots = [];
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
@@ -29,6 +47,8 @@ export default function StatusPage() {
           {' '}Incident notices and public changelogs are planned surfaces. Neither is wired today.
         </p>
       </header>
+
+      <SourceHealthPublicPanel snapshots={snapshots} />
 
       <section
         aria-labelledby="invariants-heading"
