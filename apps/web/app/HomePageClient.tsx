@@ -73,7 +73,7 @@ interface TierRow {
 const TIER_LADDER: TierRow[] = [
   { tier: 'T1', blurb: 'Self-asserted by the clinician.', example: 'Manually entered employment history.' },
   { tier: 'T2', blurb: 'Inferred by AI from clinician artifacts.', example: 'Residency dates parsed from a CV.' },
-  { tier: 'T3', blurb: 'Source-checked against a federal/state registry.', example: 'NPPES · OIG/LEIE · PECOS · NPDB.' },
+  { tier: 'T3', blurb: 'Source-checked against a federal/state registry.', example: 'NPPES · OIG/LEIE · PECOS.' },
   { tier: 'T4', blurb: 'Cryptographically signed by the issuing authority.', example: 'Board-issued VC 2.0 receipt.' },
 ];
 
