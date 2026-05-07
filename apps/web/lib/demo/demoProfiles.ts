@@ -35,16 +35,21 @@ export interface DemoProfile {
 
 export const DEMO_PROFILES: Record<string, DemoProfile> = {
   '1003000126': {
+    // W1.1b — Sarah Chen previously rendered as DECISION_GRADE / score 87
+    // while Nursys + FSMB licensure sources were `access-required`. NPPES +
+    // OIG + PECOS by themselves do NOT verify state licensure, so a
+    // DECISION_GRADE label was a W1.1 violation. Capped to PARTIAL / 45 to
+    // honor the engine-level invariant: no L2+ without verified licensure.
     npi: '1003000126',
     name: 'Sarah Chen, MD',
     specialty: 'Internal Medicine',
-    readiness: 'DECISION_GRADE',
-    readinessScore: 87,
+    readiness: 'PARTIAL',
+    readinessScore: 45,
     verifiedItems: ['NPI identity checked', 'OIG / LEIE checked', 'Medicare enrolled'],
     missingItems: [],
     gatedItems: ['State license - Nursys (access required)', 'FSMB board history (access required)'],
     blockers: [],
-    estimatedStart: '7-14 days',
+    estimatedStart: '14-21 days (pending state license verification)',
     sources: {
       nppes: { status: 'checked', npiVerified: true },
       oigLeie: { status: 'checked', exclusionClear: true },
@@ -54,11 +59,14 @@ export const DEMO_PROFILES: Record<string, DemoProfile> = {
     },
   },
   '1942788324': {
+    // W1.1b — score lowered from 54 → 45 (L1 ceiling) to honor the
+    // licensure cap. Marcus's PECOS enrollment is missing AND Nursys/FSMB
+    // are access-required; either gap alone holds the cap engaged.
     npi: '1942788324',
     name: 'Marcus Williams, DO',
     specialty: 'Emergency Medicine',
     readiness: 'PARTIAL',
-    readinessScore: 54,
+    readinessScore: 45,
     verifiedItems: ['NPI identity checked', 'OIG / LEIE checked'],
     missingItems: ['Medicare enrollment not found - submit PECOS enrollment (45-60 days)'],
     gatedItems: ['State license - Nursys (access required)', 'FSMB board history (access required)'],

@@ -41,6 +41,7 @@ import {
 } from './evidenceIntegrity';
 import { buildReadinessNextActions, type ReadinessNextAction } from './readinessActions';
 import { syncBlockerEvents } from '../seal/sealEventCapture';
+import { applyReadinessLicensureCap } from './readinessLicensureCap';
 import {
   coverageSatisfiesDecisionGradeTruth,
   createCanonicalTruth,
@@ -348,6 +349,16 @@ function derivePassportReadinessLevel(
   }
   return 'L0';
 }
+
+/**
+ * W1.1b — readiness licensure cap. Helper lives in its own module so it
+ * can be tested in isolation. Re-exported here for callers that already
+ * import from passportService.
+ */
+export {
+  applyReadinessLicensureCap,
+  READINESS_LICENSURE_UNVERIFIED_CEILING,
+} from './readinessLicensureCap';
 
 function dedupeStrings(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) => left.localeCompare(right));
@@ -2224,7 +2235,18 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
       normalizedBlockers.length > 0 ? Math.min(baseScore, 20)
       : normalizedGaps.length > 0 ? Math.min(baseScore, 75)
       : baseScore;
-    return Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
+    let finalScore = Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
+    // W1.1b — licensure cap. Mirror of the engine-level invariant from
+    // packages/crs/CrsEngine.ts (CRS_LICENSURE_UNVERIFIED_CEILING = 45).
+    //
+    // NPPES presence enumerates an NPI registration; it does NOT verify
+    // that a clinician holds a current, unrevoked medical license. Live
+    // licensure sources (Nursys / FSMB / state-board) are gated or
+    // unintegrated for most jurisdictions today. Without verified
+    // licensure, readiness cannot exceed L1 (Provisional). The cap is a
+    // hard ceiling: Math.min only — never raises a lower score.
+    finalScore = applyReadinessLicensureCap(finalScore, standing.licensureStatus);
+    return finalScore;
   })();
   // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
   // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.

@@ -10,6 +10,10 @@ import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
+import {
+  applyLicensureCapToPassport,
+  readLicensureUiState,
+} from '@/lib/readiness/licensureCap';
 
 interface PassportEntityClientProps {
   entityId: string;
@@ -74,9 +78,26 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   // in classification — see lib/knowledge-inbox/classifyInboxItem.ts.
   const inboxItems: KnowledgeInboxItem[] = [];
 
+  // W1.1b — defense-in-depth licensure cap. The backend's
+  // applyReadinessLicensureCap (passportService.ts) is authoritative;
+  // this rim clamp is a no-op when the backend already capped, and a
+  // safety net when the surface is fed cached or demo data that bypassed
+  // the backend cap. Source-state distinction is preserved on the
+  // original passport object — only score / readiness_score / level are
+  // clamped.
+  const cappedPassport = applyLicensureCapToPassport(passport);
+  const licensureUi = readLicensureUiState(cappedPassport);
+
   return (
-    <div className="flex flex-col gap-8 pb-16">
-      <PassportWallet passport={passport} />
+    <div
+      className="flex flex-col gap-8 pb-16"
+      data-licensure-state={licensureUi.uiState}
+      data-licensure-raw={licensureUi.rawStatus}
+      data-licensure-cap-engaged={String(licensureUi.capEngaged)}
+      data-readiness-score={String(cappedPassport.readiness.score)}
+      data-readiness-level={cappedPassport.readiness.level}
+    >
+      <PassportWallet passport={cappedPassport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
         <section
           aria-label="Source health"
