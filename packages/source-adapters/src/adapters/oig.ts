@@ -1,7 +1,7 @@
 // ── OIG LEIE Source Adapter ───────────────────────────────────────
 // Exclusion lane. NEVER defaults to "clear". Unresolved ≠ Clear.
 
-import type { SourceAdapter, SourceCheckResult, SourceClaim, SourceLimitation, MatchResult, ErrorClass } from '../types';
+import type { SourceAdapter, SourceCheckResult, SourceClaim, SourceLimitation, MatchResult, MatchConfidence, ErrorClass } from '../types';
 import { SourceStatus } from '../types';
 import { sha256Sync } from '../utils/hash';
 
@@ -47,28 +47,10 @@ export class OigLeieAdapter implements SourceAdapter {
 
     const rawHash = this.hashRaw(raw);
     const normalized = this.normalize(raw);
-    const status = this.classify(normalized);
-    const claims = this.buildClaims(normalized);
-    const limitations = this.buildLimitations(normalized);
-
-    // CRITICAL: never default to "clear". Explicitly state match result.
-    const exclusionCount = (normalized.exclusions as any[])?.length || 0;
-    let matchConfidence: MatchResult['confidence'];
-    let explanation: string;
-
-    if (exclusionCount === 0) {
-      matchConfidence = 'exact';
-      explanation = `NPI ${npi} checked against OIG LEIE — 0 exclusion records found`;
-    } else {
-      matchConfidence = 'exact';
-      explanation = `NPI ${npi} has ${exclusionCount} exclusion record(s) in OIG LEIE`;
-    }
-
-    const matchBasis: MatchResult = {
-      mode: this.matchMode,
-      confidence: matchConfidence,
-      explanation,
-    };
+    const matchBasis = this.deriveMatchBasis(normalized, npi);
+    const status = this.classify(normalized, matchBasis.confidence);
+    const claims = this.buildClaims(normalized, matchBasis.confidence);
+    const limitations = this.buildLimitations(normalized, npi);
 
     return {
       sourceId: this.sourceId,
@@ -108,8 +90,80 @@ export class OigLeieAdapter implements SourceAdapter {
     };
   }
 
-  classify(normalized: Record<string, unknown>): SourceStatus {
+  /**
+   * W1.2 — derive a match-confidence value that distinguishes the three
+   * cases the audit found conflated:
+   *
+   *   no_match       — 0 records returned. ABSENCE of records — NOT a
+   *                    guarantee of clearance. Adverse data takes 30 days
+   *                    or more to land in LEIE; downstream copy must
+   *                    treat this as "no records on file at check time".
+   *
+   *   possible_match — records returned BUT none with an exact NPI match.
+   *                    The OIG endpoint is NPI-keyed, but legacy LEIE
+   *                    entries can land without an NPI (filed pre-NPI,
+   *                    or with name-only attribution). Returning records
+   *                    without NPI is signal — needs a human reviewer
+   *                    to reconcile whether the records describe the
+   *                    queried subject. Maps to REVIEW_REQUIRED.
+   *
+   *   exact          — at least one returned record has e.npi === npi.
+   *                    Severity then depends on `reinstatedDate` (handled
+   *                    in classify): active exclusion → BLOCKED_SIGNAL,
+   *                    fully reinstated → REVIEW_REQUIRED.
+   */
+  private deriveMatchBasis(normalized: Record<string, unknown>, queriedNpi: string): MatchResult {
+    const exclusions = (normalized.exclusions as any[]) ?? [];
+    const exclusionCount = exclusions.length;
+    const exactNpiMatches = exclusions.filter(
+      (e: any) => typeof e?.npi === 'string' && e.npi === queriedNpi,
+    ).length;
+    const ambiguousMatches = exclusionCount - exactNpiMatches;
+
+    if (exclusionCount === 0) {
+      return {
+        mode: this.matchMode,
+        confidence: 'no_match',
+        explanation:
+          `OIG LEIE returned 0 records for NPI ${queriedNpi}. ` +
+          `Absence of records on file at check time — not a guarantee of clearance.`,
+      };
+    }
+
+    if (exactNpiMatches > 0) {
+      return {
+        mode: this.matchMode,
+        confidence: 'exact',
+        explanation:
+          `OIG LEIE returned ${exactNpiMatches} NPI-exact record(s) for NPI ${queriedNpi}` +
+          (ambiguousMatches > 0
+            ? ` (plus ${ambiguousMatches} additional record(s) without an exact NPI match).`
+            : '.'),
+      };
+    }
+
+    return {
+      mode: this.matchMode,
+      confidence: 'possible_match',
+      explanation:
+        `OIG LEIE returned ${ambiguousMatches} record(s) for NPI ${queriedNpi} ` +
+        `but none with an exact NPI match. Possible name-only match — review required.`,
+    };
+  }
+
+  classify(
+    normalized: Record<string, unknown>,
+    matchConfidence: MatchConfidence = 'exact',
+  ): SourceStatus {
     const count = normalized.exclusionCount as number || 0;
+
+    // W1.2 — possible_match (records present but no exact NPI match) is a
+    // human-review signal, NOT a blocker. It must not flip to BLOCKED_SIGNAL
+    // because false-positive name matches in LEIE are a known limitation
+    // (see SOURCE_REGISTRY entry: 'Name variations may miss matches').
+    if (matchConfidence === 'possible_match') {
+      return SourceStatus.REVIEW_REQUIRED;
+    }
 
     if (count > 0) {
       // Check if all exclusions are reinstated
@@ -122,10 +176,17 @@ export class OigLeieAdapter implements SourceAdapter {
       return SourceStatus.BLOCKED_SIGNAL; // Active exclusion
     }
 
-    return SourceStatus.CHECKED; // 0 records = clear
+    // W1.2 — 0 records is `no_match` confidence (not `exact`). The
+    // SourceStatus stays CHECKED (the check completed) but the matchBasis
+    // confidence is what downstream surfaces should consult to render
+    // language. Never imply authoritative clearance from a `no_match`.
+    return SourceStatus.CHECKED;
   }
 
-  buildClaims(normalized: Record<string, unknown>): SourceClaim[] {
+  buildClaims(
+    normalized: Record<string, unknown>,
+    matchConfidence: MatchConfidence = 'exact',
+  ): SourceClaim[] {
     const exclusions = (normalized.exclusions as any[]) || [];
     const hasActiveExclusion = exclusions.some((e: any) => !e.reinstatedDate);
 
@@ -145,6 +206,13 @@ export class OigLeieAdapter implements SourceAdapter {
         value: hasActiveExclusion,
         present: true,
       },
+      // W1.2 — explicit match-confidence claim so downstream consumers
+      // can reason about it without re-deriving from the explanation.
+      {
+        key: 'oig_match_confidence',
+        value: matchConfidence,
+        present: true,
+      },
       {
         key: 'exclusions',
         value: exclusions,
@@ -153,11 +221,35 @@ export class OigLeieAdapter implements SourceAdapter {
     ];
   }
 
-  buildLimitations(normalized: Record<string, unknown>): SourceLimitation[] {
+  buildLimitations(
+    normalized: Record<string, unknown>,
+    queriedNpi?: string,
+  ): SourceLimitation[] {
     const exclusions = (normalized.exclusions as any[]) || [];
     const limitations: SourceLimitation[] = [];
 
     for (const exc of exclusions) {
+      // W1.2 — distinguish a name-only / no-NPI record from an NPI-exact
+      // exclusion. The former needs human reconciliation; the latter is
+      // an authoritative match (and may be active or reinstated).
+      const isNpiExact =
+        typeof queriedNpi === 'string' &&
+        typeof exc?.npi === 'string' &&
+        exc.npi === queriedNpi;
+
+      if (!isNpiExact) {
+        limitations.push({
+          code: 'OIG_POSSIBLE_NAME_MATCH',
+          description:
+            `Record returned without an exact NPI match` +
+            (exc.name ? ` (name: ${exc.name})` : '') +
+            `. Possible false-positive — review required before treating as adverse.`,
+          // Not adverse on its own — a human must reconcile.
+          adverse: false,
+        });
+        continue;
+      }
+
       if (exc.reinstatedDate) {
         limitations.push({
           code: 'OIG_REINSTATED',

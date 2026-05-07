@@ -12,7 +12,28 @@ export type LaneType = 'identity' | 'exclusion' | 'enrollment' | 'licensure' | '
 
 export type AuthMode = 'none' | 'api_key' | 'oauth' | 'basic' | 'certificate' | 'manual';
 
-export type MatchConfidence = 'exact' | 'strong' | 'partial' | 'unresolved' | 'no_match';
+/**
+ * Match confidence semantics (W1.2).
+ *
+ *   exact          — deterministic identifier match (e.g. NPI-keyed return).
+ *   strong         — multiple corroborating identifiers; near-deterministic.
+ *   partial        — single non-identifier signal (e.g. name only) plus context.
+ *   possible_match — adapter received records BUT none with an exact identifier
+ *                    match — name-only match suspected. NOT a blocking signal
+ *                    on its own; surfaces as `REVIEW_REQUIRED` so a human
+ *                    reconciles whether the records describe the subject.
+ *   no_match       — adapter returned 0 records. ABSENCE of records — NOT a
+ *                    guarantee of clearance. Downstream surfaces must not
+ *                    render `no_match` as authoritative-safe certainty.
+ *   unresolved     — the check could not complete (timeout / network / parser).
+ */
+export type MatchConfidence =
+  | 'exact'
+  | 'strong'
+  | 'partial'
+  | 'possible_match'
+  | 'no_match'
+  | 'unresolved';
 
 export type MatchMode = 'npi_exact' | 'name_dob' | 'name_npi' | 'custom';
 
