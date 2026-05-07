@@ -357,7 +357,7 @@ export function WalletPassport({
                   </div>
                   <div className="mt-3 grid gap-3 text-xs text-zinc-300 sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Verified</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Source-confirmed at</p>
                       <p className="mt-1">{formatDateTime(fact.verifiedAt)}</p>
                     </div>
                     <div>

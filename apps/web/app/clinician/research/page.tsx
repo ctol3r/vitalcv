@@ -57,7 +57,7 @@ export default function ClinicianResearchPage() {
             <dd className="mt-1 font-mono">{readiness.userEnteredCount}</dd>
           </div>
           <div>
-            <dt className="uppercase tracking-wider text-muted-foreground">Verified</dt>
+            <dt className="uppercase tracking-wider text-muted-foreground">Source-verified</dt>
             <dd className="mt-1 font-mono text-muted-foreground">0 (none — verification is a separate wave)</dd>
           </div>
         </dl>
