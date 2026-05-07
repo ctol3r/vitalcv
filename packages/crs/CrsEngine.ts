@@ -3,6 +3,26 @@ import { validateReceiptSet, type TrustStateReceiptRecord } from '@vitalcv/psv';
 
 export const CRS_START_THRESHOLD = 80;
 
+/**
+ * Maximum CRS score allowed when licensure verification cannot be sourced.
+ *
+ * Rationale: NPPES (the foundational identity source the engine sees most
+ * often) enumerates NPI registrations — presence in NPPES does NOT verify
+ * that the clinician holds a current, unrevoked medical license. Live
+ * licensure sources are Nursys / FSMB / state-board adapters, which today
+ * are gated, unsupported, or unintegrated for most jurisdictions.
+ *
+ * Without verified licensure evidence, the CRS cannot imply PSV-grade
+ * trust. The cap forces such records into the L1 (Provisional) band,
+ * signaling "manual review required before proceeding" rather than
+ * "ready to start."
+ *
+ * Aligned numerically with the existing missing-acceptance band (45) so
+ * the cap composes deterministically with other gates without inventing
+ * a new tier.
+ */
+export const CRS_LICENSURE_UNVERIFIED_CEILING = 45;
+
 export type CrsBand = 'GREEN' | 'YELLOW' | 'RED';
 
 export type CrsBlockingReason =
@@ -10,7 +30,40 @@ export type CrsBlockingReason =
   | 'EXPIRED_PSV'
   | 'REVOKED_PSV'
   | 'MISSING_ACCEPTANCE'
+  | 'LICENSURE_UNVERIFIED'
   | 'ACTIVE_DIVERGENCE';
+
+/**
+ * State a licensure-verification source can be in for a given clinician.
+ *
+ * Only `verified` lifts the licensure cap. Every other state — including
+ * `unchecked`, `unavailable`, `access_required` (Nursys/FSMB onboarding
+ * pending), `unsupported` (no integration), and `missing` (no source for
+ * the jurisdiction) — leaves the cap engaged.
+ */
+export type CrsLicensureSourceState =
+  | 'verified'
+  | 'unverified'
+  | 'unavailable'
+  | 'unchecked'
+  | 'access_required'
+  | 'unsupported'
+  | 'missing';
+
+export type CrsLicensureCheck = Readonly<{
+  /**
+   * True ONLY when at least one licensure source returned a `verified`
+   * state for this clinician. Identity-only sources (NPPES) do NOT
+   * satisfy this — they enumerate NPIs, they do not verify licensure.
+   */
+  hasVerifiedLicensure: boolean;
+  /**
+   * Per-source states observed during the licensure check. Engine reads
+   * only `hasVerifiedLicensure`; this field is preserved so the audit
+   * trail shows why the cap was engaged.
+   */
+  source_states: readonly CrsLicensureSourceState[];
+}>;
 
 export type CrsOutput = Readonly<{
   clinician_id: string;
@@ -35,6 +88,24 @@ export type CrsEngineDependencies = Readonly<{
       as_of: string,
     ): { penalty: number; hasBlocking: boolean } | Promise<{ penalty: number; hasBlocking: boolean }>;
   };
+  /**
+   * Optional licensure-verification check.
+   *
+   * When supplied AND `hasVerifiedLicensure === false`, the engine caps
+   * the score at `CRS_LICENSURE_UNVERIFIED_CEILING` (45) and surfaces
+   * `LICENSURE_UNVERIFIED` in `blocking_reasons`. The cap is a HARD
+   * CEILING — it strictly clamps the score, never raises it, and is
+   * applied AFTER all other gates so it cannot be undone by a later
+   * positive signal.
+   *
+   * When NOT supplied, behavior is unchanged from the YC-MVP frozen
+   * baseline — callers that have not yet integrated licensure-source
+   * state see no change. The cap is opt-in for callers; once integrated,
+   * it is a hard invariant.
+   */
+  licensure?: {
+    getForClinician(clinician_id: string): CrsLicensureCheck | Promise<CrsLicensureCheck>;
+  };
   now?: () => Date;
   missing_acceptance_band?: 'YELLOW' | 'RED';
 }>;
@@ -44,6 +115,7 @@ const BLOCKING_REASON_ORDER: readonly CrsBlockingReason[] = [
   'EXPIRED_PSV',
   'REVOKED_PSV',
   'MISSING_ACCEPTANCE',
+  'LICENSURE_UNVERIFIED',
 ] as const;
 
 function assertClinicianId(value: unknown): asserts value is string {
@@ -84,6 +156,10 @@ export class CrsEngine {
     const divergence = this.deps.divergence
       ? await this.deps.divergence.getForClinician(input.clinician_id, asOf)
       : { penalty: 0, hasBlocking: false };
+    const licensure = this.deps.licensure
+      ? await this.deps.licensure.getForClinician(input.clinician_id)
+      : null;
+    const licensureUnverified = licensure !== null && !licensure.hasVerifiedLicensure;
 
     const receiptSummary = validateReceiptSet(receipts, asOf);
 
@@ -92,6 +168,7 @@ export class CrsEngine {
     if (receiptSummary.has_expired) reasons.add('EXPIRED_PSV');
     if (receiptSummary.has_revoked) reasons.add('REVOKED_PSV');
     if (!hasAcceptance) reasons.add('MISSING_ACCEPTANCE');
+    if (licensureUnverified) reasons.add('LICENSURE_UNVERIFIED');
     if (divergence.hasBlocking) reasons.add('ACTIVE_DIVERGENCE');
 
     const orderedReasons = sortReasons(reasons);
@@ -122,6 +199,19 @@ export class CrsEngine {
     if (divergence.hasBlocking && band !== 'RED') {
       score = Math.min(score, 79);
       band = 'YELLOW';
+    }
+
+    // Licensure cap — final invariant.
+    //
+    // Applied AFTER every other gate so a later positive signal cannot
+    // lift a record above the L1 ceiling once licensure is unverified.
+    // The cap strictly clamps; it never raises. RED records stay RED;
+    // YELLOW stays YELLOW; GREEN drops to YELLOW.
+    if (licensureUnverified) {
+      score = Math.min(score, CRS_LICENSURE_UNVERIFIED_CEILING);
+      if (band !== 'RED') {
+        band = 'YELLOW';
+      }
     }
 
     return Object.freeze({
