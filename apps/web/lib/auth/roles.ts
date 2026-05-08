@@ -3,6 +3,22 @@
 // Canonical role definitions, route-role mappings, and post-login redirects.
 // Used by middleware, components, and tests.
 
+/**
+ * Clerk org-membership roles for verifier team access. Maps to the
+ * `team_role` claim in the Clerk JWT (`sessionClaims.vitalcv.team_role`).
+ *
+ * Privilege ascending: readonly < member < admin < owner.
+ *
+ * No implicit inheritance — `owner` does not get `member` permissions
+ * by inheritance. The role check in `checkVerifierPermission` is
+ * explicit (HTTP-method-based mutation gate, not role-tier-based).
+ *
+ * W2-PR1 — verifier RBAC foundation. Consumed by
+ * `apps/web/lib/auth/orgInvitations.ts` and `apps/web/middleware.ts`.
+ */
+export const VERIFIER_TEAM_ROLES = ['owner', 'admin', 'member', 'readonly'] as const;
+export type VerifierTeamRole = (typeof VERIFIER_TEAM_ROLES)[number];
+
 export const UserRole = {
   CLINICIAN: 'CLINICIAN',
   VERIFIER: 'VERIFIER',

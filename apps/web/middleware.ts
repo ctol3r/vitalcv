@@ -8,6 +8,10 @@ import {
   ROLE_LANDING,
   type UserRoleType,
 } from '@/lib/auth/roles';
+import {
+  checkVerifierPermission,
+  parseTeamRole,
+} from '@/lib/auth/orgInvitations';
 import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
 
 /**
@@ -32,10 +36,69 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
  * failures are caught and the request passes through to route handlers.
  */
 const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
+
+/**
+ * Verifier API namespace — Layer-1 RBAC gate.
+ *
+ * This pattern is intentionally precise. Do not broaden it. Adding new
+ * routes here is a security-sensitive change requiring founder review
+ * (`docs/ops/SECURITY_INVARIANTS.md` §7.1).
+ */
+const VERIFIER_API = /^\/api\/verifier(\/.*)?$/;
 const CLERK_MIDDLEWARE_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
+
+  // ── Step 0 — Verifier API RBAC (Layer-1 of two-layer tenant isolation) ────
+  //
+  // Intercepts /api/verifier/* BEFORE the /api/* public-route pass-through
+  // (PUBLIC_ROUTE_PATTERNS line for /api). Without this intercept, any /api/*
+  // route is exempted from the role-gate flow below; verifier routes would
+  // therefore inherit the public-default behavior and expose tenant data.
+  //
+  // LAYER 1 (this middleware):
+  //   Validates the caller's JWT org_id matches the org they claim to
+  //   represent via the `x-verifier-org` request header. Does NOT verify
+  //   that the resource named by the URL belongs to that org.
+  //
+  // LAYER 2 (route handler — deferred to subsequent W2 PRs):
+  //   Each /api/verifier/* route handler must additionally verify that
+  //   the resource named by its URL parameters belongs to the
+  //   requestingOrgId resolved here. Until Layer 2 lands per route, this
+  //   middleware provides identity coherence only — not full resource
+  //   ownership isolation.
+  //
+  // x-verifier-org is client-supplied. It is validated against the
+  // Clerk-signed JWT org_id (timing-safe compare in Gate 2 of
+  // checkVerifierPermission). It is NEVER accepted as a resource
+  // ownership claim. See docs/ops/SECURITY_INVARIANTS.md §1.3, §2.4.
+  if (VERIFIER_API.test(pathname)) {
+    const session = await auth();
+    if (!session.userId) {
+      // 403 not 401: /api/* is in PUBLIC_ROUTE_PATTERNS so the standard
+      // sign-in redirect path is not appropriate. The caller is asking for
+      // a restricted resource without establishing identity.
+      return new NextResponse(null, { status: 403 });
+    }
+    const claims = session.sessionClaims?.vitalcv as Record<string, unknown> | undefined;
+    const requestingOrgId =
+      typeof claims?.org_id === 'string' && claims.org_id.length > 0
+        ? claims.org_id
+        : null;
+    const teamRole = parseTeamRole(claims?.team_role);
+    const resourceOrgId = req.headers.get('x-verifier-org') ?? '';
+    const decision = checkVerifierPermission({
+      requestingOrgId,
+      teamRole,
+      resourceOrgId,
+      method: req.method,
+    });
+    if (!decision.permitted) {
+      return new NextResponse(null, { status: decision.statusCode });
+    }
+    return NextResponse.next();
+  }
 
   // 1. Public routes pass through
   if (isPublicRoute(pathname)) {
