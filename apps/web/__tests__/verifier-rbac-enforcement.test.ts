@@ -16,10 +16,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  checkVerifierFailClosed,
   checkVerifierPermission,
+  extractVerifierClaims,
+  isVerifierApiRoute,
+  parseTeamRole,
   rbacEnforced,
   timingSafeEqualStrings,
-  parseTeamRole,
 } from '../lib/auth/orgInvitations';
 import { VERIFIER_TEAM_ROLES } from '../lib/auth/roles';
 
@@ -274,6 +277,259 @@ describe('structural invariants', () => {
   it('parseTeamRole maps every known role to itself', () => {
     for (const role of VERIFIER_TEAM_ROLES) {
       expect(parseTeamRole(role)).toBe(role);
+    }
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// W2-PR1A — Fail-closed enforcement regression tests
+// ──────────────────────────────────────────────────────────────────────────
+
+describe('isVerifierApiRoute — namespace predicate', () => {
+  it('matches /api/verifier and any subpath', () => {
+    expect(isVerifierApiRoute('/api/verifier')).toBe(true);
+    expect(isVerifierApiRoute('/api/verifier/')).toBe(true);
+    expect(isVerifierApiRoute('/api/verifier/team')).toBe(true);
+    expect(isVerifierApiRoute('/api/verifier/team/roster')).toBe(true);
+    expect(isVerifierApiRoute('/api/verifier/packet/entity-123')).toBe(true);
+  });
+
+  it('does NOT match adjacent paths that could be confused for verifier', () => {
+    expect(isVerifierApiRoute('/api')).toBe(false);
+    expect(isVerifierApiRoute('/api/')).toBe(false);
+    expect(isVerifierApiRoute('/api/verifiers')).toBe(false); // plural
+    expect(isVerifierApiRoute('/api/verifier-api')).toBe(false);
+    expect(isVerifierApiRoute('/api/v/verifier')).toBe(false);
+    expect(isVerifierApiRoute('/verifier')).toBe(false); // missing /api prefix
+    expect(isVerifierApiRoute('/api/verify')).toBe(false); // /verify is public
+    expect(isVerifierApiRoute('/api/employer-review/anything')).toBe(false);
+  });
+
+  it('rejects empty / non-conforming pathnames safely', () => {
+    expect(isVerifierApiRoute('')).toBe(false);
+    expect(isVerifierApiRoute('/')).toBe(false);
+    expect(isVerifierApiRoute('verifier')).toBe(false); // no leading slash
+  });
+});
+
+describe('checkVerifierFailClosed — fail-closed pre-check (W2-PR1A)', () => {
+  it('returns failClosed for verifier route when Clerk is disabled', () => {
+    const r = checkVerifierFailClosed({
+      pathname: '/api/verifier/team/roster',
+      clerkEnabled: false,
+    });
+    expect(r.failClosed).toBe(true);
+    if (r.failClosed) {
+      expect(r.statusCode).toBe(503);
+      expect(r.reason).toBe('clerk_unavailable');
+    }
+  });
+
+  it('does NOT fire for verifier route when Clerk is enabled (normal flow takes over)', () => {
+    const r = checkVerifierFailClosed({
+      pathname: '/api/verifier/team/roster',
+      clerkEnabled: true,
+    });
+    expect(r.failClosed).toBe(false);
+  });
+
+  it('does NOT fire for non-verifier routes (Clerk disabled is OK for /api/health, etc.)', () => {
+    const r = checkVerifierFailClosed({
+      pathname: '/api/health',
+      clerkEnabled: false,
+    });
+    expect(r.failClosed).toBe(false);
+  });
+
+  it('does NOT fire for a route that LOOKS like verifier but has a different prefix', () => {
+    // Defense-in-depth: the predicate must match exactly the verifier
+    // namespace. Routes that share a substring (e.g. /api/verify or
+    // /api/verifiers) must not be exposed by mistake.
+    expect(checkVerifierFailClosed({ pathname: '/api/verify/npi/1234567890', clerkEnabled: false }).failClosed).toBe(false);
+    expect(checkVerifierFailClosed({ pathname: '/api/verifiers', clerkEnabled: false }).failClosed).toBe(false);
+  });
+
+  it('lock: 503 status code never widens to 200 / 401 / 404 — only fail-closed shape allowed', () => {
+    // A regression that flips this to 200 would expose verifier routes
+    // publicly when Clerk is unavailable. Lock the status code shape.
+    const r = checkVerifierFailClosed({
+      pathname: '/api/verifier/team',
+      clerkEnabled: false,
+    });
+    if (r.failClosed) {
+      const sc: 503 = r.statusCode; // type-level lock
+      expect(sc).toBe(503);
+    } else {
+      throw new Error('checkVerifierFailClosed regression — failed to fail closed');
+    }
+  });
+});
+
+describe('extractVerifierClaims — runtime claim validation (W2-PR1A)', () => {
+  it('extracts well-formed claims', () => {
+    const r = extractVerifierClaims({
+      vitalcv: { org_id: ORG_A, team_role: 'admin' },
+    });
+    expect(r.requestingOrgId).toBe(ORG_A);
+    expect(r.teamRole).toBe('admin');
+  });
+
+  it('returns null/null when sessionClaims itself is missing', () => {
+    expect(extractVerifierClaims(undefined)).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims(null)).toEqual({ requestingOrgId: null, teamRole: null });
+  });
+
+  it('returns null/null when sessionClaims is non-object (string/number/boolean)', () => {
+    expect(extractVerifierClaims('claims-token')).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims(42)).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims(true)).toEqual({ requestingOrgId: null, teamRole: null });
+  });
+
+  it('returns null/null when sessionClaims is an array (not a record)', () => {
+    expect(extractVerifierClaims([])).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims(['vitalcv'])).toEqual({ requestingOrgId: null, teamRole: null });
+  });
+
+  it('returns null/null when vitalcv claim is missing', () => {
+    expect(extractVerifierClaims({})).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims({ other: 'data' })).toEqual({ requestingOrgId: null, teamRole: null });
+  });
+
+  it('returns null/null when vitalcv claim is non-object', () => {
+    expect(extractVerifierClaims({ vitalcv: 'admin' })).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims({ vitalcv: 42 })).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims({ vitalcv: null })).toEqual({ requestingOrgId: null, teamRole: null });
+    expect(extractVerifierClaims({ vitalcv: ['admin'] })).toEqual({ requestingOrgId: null, teamRole: null });
+  });
+
+  it('returns null org_id when org_id is non-string', () => {
+    expect(extractVerifierClaims({ vitalcv: { org_id: 12345, team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+    expect(extractVerifierClaims({ vitalcv: { org_id: null, team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+    expect(extractVerifierClaims({ vitalcv: { org_id: { id: ORG_A }, team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+    expect(extractVerifierClaims({ vitalcv: { org_id: [ORG_A], team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+  });
+
+  it('returns null org_id when org_id is empty string', () => {
+    // Empty-string org_id never matches any non-empty resource org —
+    // would always cross_org → 404. We collapse to null here so the
+    // earlier Gate 1 (no_org_context) fires first, with the cleaner 403.
+    expect(extractVerifierClaims({ vitalcv: { org_id: '', team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+  });
+
+  it('returns null team_role when team_role is unknown', () => {
+    expect(extractVerifierClaims({ vitalcv: { org_id: ORG_A, team_role: 'superadmin' } })).toEqual({
+      requestingOrgId: ORG_A,
+      teamRole: null,
+    });
+  });
+
+  it('returns null team_role when team_role is non-string', () => {
+    expect(extractVerifierClaims({ vitalcv: { org_id: ORG_A, team_role: 1 } })).toEqual({
+      requestingOrgId: ORG_A,
+      teamRole: null,
+    });
+    expect(extractVerifierClaims({ vitalcv: { org_id: ORG_A, team_role: null } })).toEqual({
+      requestingOrgId: ORG_A,
+      teamRole: null,
+    });
+    expect(extractVerifierClaims({ vitalcv: { org_id: ORG_A, team_role: { name: 'admin' } } })).toEqual({
+      requestingOrgId: ORG_A,
+      teamRole: null,
+    });
+  });
+
+  it('partial JWT payload (org_id present, team_role missing) → null team_role only', () => {
+    // Defends against the partial-payload threat: Clerk publicMetadata
+    // not yet fully populated. extractVerifierClaims surfaces the
+    // partial nature; downstream Gate 1 fires (teamRole === null →
+    // no_org_context).
+    expect(extractVerifierClaims({ vitalcv: { org_id: ORG_A } })).toEqual({
+      requestingOrgId: ORG_A,
+      teamRole: null,
+    });
+  });
+
+  it('partial JWT payload (team_role present, org_id missing) → null org_id only', () => {
+    expect(extractVerifierClaims({ vitalcv: { team_role: 'admin' } })).toEqual({
+      requestingOrgId: null,
+      teamRole: 'admin',
+    });
+  });
+
+  it('does not throw on any input — function is total', () => {
+    // Hostile inputs: non-JSON-serializable, recursive, weird types
+    const recursive: Record<string, unknown> = {};
+    recursive.self = recursive;
+    expect(() => extractVerifierClaims(recursive)).not.toThrow();
+    expect(() => extractVerifierClaims(Symbol('x') as unknown)).not.toThrow();
+    expect(() => extractVerifierClaims(() => 0)).not.toThrow();
+  });
+});
+
+describe('integration: extractVerifierClaims composes with checkVerifierPermission for fail-closed Gate 1', () => {
+  it('malformed sessionClaims → no_org_context (403)', () => {
+    const { requestingOrgId, teamRole } = extractVerifierClaims('totally not an object');
+    const decision = checkVerifierPermission({
+      requestingOrgId,
+      teamRole,
+      resourceOrgId: ORG_A,
+      method: 'GET',
+    });
+    expect(decision.permitted).toBe(false);
+    if (!decision.permitted) {
+      expect(decision.statusCode).toBe(403);
+      expect(decision.reason).toBe('no_org_context');
+    }
+  });
+
+  it('non-string org_id with valid team_role → no_org_context (403, NOT cross_org)', () => {
+    // Prior to W2-PR1A this would trip a `as Record<string, unknown>`
+    // assertion that masked the type error; downstream typeof checks
+    // would still surface null org_id but with code-smell. After W2-PR1A
+    // the path is type-guarded end-to-end.
+    const { requestingOrgId, teamRole } = extractVerifierClaims({
+      vitalcv: { org_id: 999, team_role: 'admin' },
+    });
+    const decision = checkVerifierPermission({
+      requestingOrgId,
+      teamRole,
+      resourceOrgId: ORG_A,
+      method: 'POST',
+    });
+    expect(decision.permitted).toBe(false);
+    if (!decision.permitted) {
+      expect(decision.reason).toBe('no_org_context');
+    }
+  });
+
+  it('vitalcv claim is an array (attacker forging a payload shape) → no_org_context', () => {
+    const { requestingOrgId, teamRole } = extractVerifierClaims({
+      vitalcv: ['org_a', 'admin'],
+    });
+    const decision = checkVerifierPermission({
+      requestingOrgId,
+      teamRole,
+      resourceOrgId: ORG_A,
+      method: 'GET',
+    });
+    expect(decision.permitted).toBe(false);
+    if (!decision.permitted) {
+      expect(decision.reason).toBe('no_org_context');
     }
   });
 });

@@ -9,8 +9,10 @@ import {
   type UserRoleType,
 } from '@/lib/auth/roles';
 import {
+  checkVerifierFailClosed,
   checkVerifierPermission,
-  parseTeamRole,
+  extractVerifierClaims,
+  isVerifierApiRoute,
 } from '@/lib/auth/orgInvitations';
 import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
 
@@ -37,14 +39,6 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
  */
 const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
 
-/**
- * Verifier API namespace — Layer-1 RBAC gate.
- *
- * This pattern is intentionally precise. Do not broaden it. Adding new
- * routes here is a security-sensitive change requiring founder review
- * (`docs/ops/SECURITY_INVARIANTS.md` §7.1).
- */
-const VERIFIER_API = /^\/api\/verifier(\/.*)?$/;
 const CLERK_MIDDLEWARE_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
@@ -73,7 +67,7 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
   // Clerk-signed JWT org_id (timing-safe compare in Gate 2 of
   // checkVerifierPermission). It is NEVER accepted as a resource
   // ownership claim. See docs/ops/SECURITY_INVARIANTS.md §1.3, §2.4.
-  if (VERIFIER_API.test(pathname)) {
+  if (isVerifierApiRoute(pathname)) {
     const session = await auth();
     if (!session.userId) {
       // 403 not 401: /api/* is in PUBLIC_ROUTE_PATTERNS so the standard
@@ -81,12 +75,12 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
       // a restricted resource without establishing identity.
       return new NextResponse(null, { status: 403 });
     }
-    const claims = session.sessionClaims?.vitalcv as Record<string, unknown> | undefined;
-    const requestingOrgId =
-      typeof claims?.org_id === 'string' && claims.org_id.length > 0
-        ? claims.org_id
-        : null;
-    const teamRole = parseTeamRole(claims?.team_role);
+    // W2-PR1A — runtime claim validation. Replaces the prior `as` cast
+    // with full type-guarded extraction. Non-object vitalcv, non-string
+    // org_id, empty org_id, unknown team_role all collapse to null →
+    // Gate 1 fires → 403 no_org_context. No type assertion can mask a
+    // malformed claim into permission.
+    const { requestingOrgId, teamRole } = extractVerifierClaims(session.sessionClaims);
     const resourceOrgId = req.headers.get('x-verifier-org') ?? '';
     const decision = checkVerifierPermission({
       requestingOrgId,
@@ -184,6 +178,34 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
         });
       }
     }
+  }
+
+  // W2-PR1A — verifier-API fail-closed enforcement (security-critical).
+  //
+  // /api/verifier/* MUST never become public due to missing Clerk
+  // configuration. Without this check, the !CLERK_MIDDLEWARE_ENABLED
+  // branch below would evaluate isPublicRoute('/api/verifier/...'),
+  // which returns true (because /api/* is in PUBLIC_ROUTE_PATTERNS as
+  // a delegation contract), yielding NextResponse.next() and exposing
+  // verifier routes publicly.
+  //
+  // checkVerifierFailClosed runs FIRST in the outer middleware so it
+  // wins regardless of the Clerk-enabled / Clerk-disabled branch and
+  // regardless of the INTELLIGENCE_API graceful-degrade catch.
+  //
+  // Returns 503 (Service Unavailable): auth infrastructure is not
+  // available, no security decision can be made, the request is
+  // dropped. The header `x-rbac-fail-closed: clerk_unavailable`
+  // distinguishes this path from generic 503s for observability.
+  const verifierFailClosed = checkVerifierFailClosed({
+    pathname: req.nextUrl.pathname,
+    clerkEnabled: CLERK_MIDDLEWARE_ENABLED,
+  });
+  if (verifierFailClosed.failClosed) {
+    return new NextResponse(null, {
+      status: verifierFailClosed.statusCode,
+      headers: { 'x-rbac-fail-closed': verifierFailClosed.reason },
+    });
   }
 
   if (!CLERK_MIDDLEWARE_ENABLED) {
