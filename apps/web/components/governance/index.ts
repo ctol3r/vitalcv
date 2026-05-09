@@ -11,3 +11,7 @@ export { TrustClassBadge, type TrustClassBadgeProps } from "./TrustClassBadge";
 export { ReplayWarning, type ReplayWarningProps } from "./ReplayWarning";
 export { UnknownStateBanner, type UnknownStateBannerProps } from "./UnknownStateBanner";
 export { OverrideBanner, type OverrideBannerProps } from "./OverrideBanner";
+export {
+  InstitutionalMemoryPanel,
+  type InstitutionalMemoryPanelProps,
+} from "./InstitutionalMemoryPanel";

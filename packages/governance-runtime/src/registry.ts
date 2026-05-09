@@ -184,6 +184,26 @@ export {
   buildOverrideDisciplineReport,
 } from "./override-discipline.js";
 
+export {
+  type GovernanceEpoch,
+  type GovernanceLedger,
+  appendEpoch,
+  emptyLedger,
+  DRIFT_TRAJECTORY_TAGS,
+  type DriftTrajectoryTag,
+  type DriftTrajectoryFinding,
+  detectDriftTrajectories,
+  FATIGUE_SEVERITY,
+  type FatigueSeverity,
+  type FatigueMetrics,
+  deriveFatigueMetrics,
+  type HistoricalTrustModifier,
+  deriveHistoricalTrustModifier,
+  type InstitutionalDriftReport,
+  type DriftReportOptions,
+  buildInstitutionalDriftReport,
+} from "./longitudinal-memory.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
