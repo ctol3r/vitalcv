@@ -295,6 +295,20 @@ export {
   validateUxIntegrity,
 } from "./trust-ux.js";
 
+export {
+  GOVERNANCE_KERNEL_VERSION,
+  type GovernanceKernelVersion,
+  type FrozenKernelSurface,
+  captureLiveKernel,
+  type KernelStabilityFinding,
+  validateKernelStability,
+  type CompatibilityContract,
+  type CompatibilityViolation,
+  validateCompatibilityContract,
+  type KernelFreezeReport,
+  buildKernelFreezeReport,
+} from "./kernel-freeze.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

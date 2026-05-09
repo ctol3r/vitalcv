@@ -161,6 +161,9 @@ jobs:
       - name: Run external-trust-api self-audit (W2-PR37A)
         run: tsx scripts/governance/check-external-trust-api.ts
 
+      - name: Run kernel-freeze gate (W2-PR41A)
+        run: tsx scripts/governance/check-kernel-freeze.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
