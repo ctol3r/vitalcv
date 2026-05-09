@@ -339,6 +339,21 @@ export {
   buildVerifierWorkspaceReport,
 } from "./verifier-workspace.js";
 
+export {
+  ENTERPRISE_ROLES,
+  type EnterpriseRole,
+  ADMIN_ACTIONS,
+  type AdminAction,
+  parseEnterpriseRole,
+  type AuthorizationDecision,
+  decideAuthorization,
+  type OrgGovernancePolicy,
+  type PolicyValidationError,
+  validateOrgPolicy,
+  type EnterpriseGovernanceReport,
+  buildEnterpriseGovernanceReport,
+} from "./enterprise-admin.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
