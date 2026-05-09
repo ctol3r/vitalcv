@@ -16,7 +16,10 @@
     "test": "turbo test",
     "build": "pnpm turbo build",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
-    "test:backend:db": "bash scripts/backend-test-db.sh"
+    "test:backend:db": "bash scripts/backend-test-db.sh",
+    "governance:lexicon": "tsx scripts/governance/check-trust-lexicon.ts",
+    "governance:adoption": "tsx scripts/governance/check-adoption-coverage.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -46,6 +46,21 @@ jobs:
           path: trust-lexicon-report.json
           retention-days: 30
 
+      - name: Run governance adoption-coverage scan (W2-PR23A anti-bypass)
+        run: tsx scripts/governance/check-adoption-coverage.ts
+
+      - name: Run adoption-coverage scan (JSON report)
+        if: always()
+        run: tsx scripts/governance/check-adoption-coverage.ts --json > governance-adoption-report.json || true
+
+      - name: Upload adoption-coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-adoption-report
+          path: governance-adoption-report.json
+          retention-days: 30
+
   governance-runtime-tests:
     name: Governance Runtime Tests (W2-PR17A/18A/19A/20A)
     runs-on: ubuntu-latest
