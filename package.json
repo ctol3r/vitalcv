@@ -33,7 +33,8 @@
     "governance:identity-claims": "tsx scripts/governance/check-identity-claims.ts",
     "governance:verifier-workspace": "tsx scripts/governance/check-verifier-workspace.ts",
     "governance:enterprise-admin": "tsx scripts/governance/check-enterprise-admin.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin"
+    "governance:pilot-intel": "tsx scripts/governance/check-pilot-intelligence.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel"
   },
   "devDependencies": {
     "@types/node": "^20",

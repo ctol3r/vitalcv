@@ -354,6 +354,20 @@ export {
   buildEnterpriseGovernanceReport,
 } from "./enterprise-admin.js";
 
+export {
+  FUNNEL_STEPS,
+  type FunnelStep,
+  ABANDONMENT_REASONS,
+  type AbandonmentReason,
+  type PilotEvent,
+  type EventValidationError,
+  computeEventId,
+  validatePilotEvent,
+  type FunnelStepStats,
+  type PilotIntelligenceReport,
+  buildPilotIntelligenceReport,
+} from "./pilot-intelligence.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

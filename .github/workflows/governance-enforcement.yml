@@ -173,6 +173,9 @@ jobs:
       - name: Run enterprise-admin gate (W2-PR47A)
         run: tsx scripts/governance/check-enterprise-admin.ts
 
+      - name: Run pilot-intelligence gate (W2-PR51A)
+        run: tsx scripts/governance/check-pilot-intelligence.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
