@@ -399,6 +399,38 @@ export {
   buildWorkflowAutomationReport,
 } from "./workflow-automation.js";
 
+export {
+  NODE_HEALTH,
+  type NodeHealth,
+  type NodeObservation,
+  type QuorumConfig,
+  RESILIENCE_TIERS,
+  type ResilienceTier,
+  type ResilienceScore,
+  scoreDistributedResilience,
+  type DistributedResilienceReport,
+  buildDistributedResilienceReport,
+} from "./distributed-resilience.js";
+
+export {
+  ENTITY_KINDS,
+  type EntityKind,
+  type NetworkNode,
+  type TrustEdge,
+  type PropagatedTrust,
+  propagateNetworkTrust,
+  type EcosystemReport,
+  buildEcosystemReport,
+} from "./ecosystem-network.js";
+
+export {
+  type RevocationEvent,
+  type CascadeResult,
+  computeRevocationCascade,
+  type RevocationCascadeReport,
+  buildRevocationCascadeReport,
+} from "./revocation-cascade.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

@@ -182,6 +182,15 @@ jobs:
       - name: Run workflow-automation gate (W2-PR56A)
         run: tsx scripts/governance/check-workflow-automation.ts
 
+      - name: Run distributed-resilience gate (W2-PR59A)
+        run: tsx scripts/governance/check-distributed-resilience.ts
+
+      - name: Run ecosystem-network gate (W2-PR62A)
+        run: tsx scripts/governance/check-ecosystem-network.ts
+
+      - name: Run revocation-cascade gate (W2-PR63A)
+        run: tsx scripts/governance/check-revocation-cascade.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

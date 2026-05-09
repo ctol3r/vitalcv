@@ -1,0 +1,41 @@
+#!/usr/bin/env tsx
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  buildRevocationCascadeReport,
+  type DelegationGrant,
+  type RevocationEvent,
+} from "../../packages/governance-runtime/src/registry.js";
+
+interface CascadeFile { readonly grants: readonly DelegationGrant[]; readonly event: RevocationEvent; }
+
+function main(): void {
+  const argv = process.argv.slice(2);
+  const json = argv.includes("--json");
+  let inputPath = resolve(process.cwd(), "scripts/governance/revocation-event.json");
+  let nowIso = new Date().toISOString();
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--input" && i + 1 < argv.length) inputPath = resolve(process.cwd(), argv[++i]);
+    else if (argv[i] === "--now" && i + 1 < argv.length) nowIso = argv[++i];
+  }
+  if (!existsSync(inputPath)) {
+    if (json) process.stdout.write(JSON.stringify({ note: `no event at ${inputPath}`, hasCiGatingCondition: false }, null, 2) + "\n");
+    else console.log(`[check-revocation-cascade] No event at ${inputPath} — empty, exit 0.`);
+    process.exit(0);
+  }
+  let f: CascadeFile;
+  try {
+    f = JSON.parse(readFileSync(inputPath, "utf8")) as CascadeFile;
+  } catch (err) {
+    console.error(`[check-revocation-cascade] ${(err as Error).message}`);
+    process.exit(2);
+  }
+  const r = buildRevocationCascadeReport(f.grants, f.event, nowIso);
+  if (json) process.stdout.write(JSON.stringify(r, null, 2) + "\n");
+  else {
+    console.log(`[check-revocation-cascade] cascadeSize=${r.cascade.cascadeRevokedDescendants.length} blast=${r.cascade.blastRadiusScore}`);
+    for (const f of r.findings) console.log(`  ${JSON.stringify(f)}`);
+  }
+  process.exit(r.hasCiGatingCondition ? 1 : 0);
+}
+main();

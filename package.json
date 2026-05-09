@@ -36,7 +36,10 @@
     "governance:pilot-intel": "tsx scripts/governance/check-pilot-intelligence.ts",
     "governance:delegated-trust": "tsx scripts/governance/check-delegated-trust.ts",
     "governance:workflow-automation": "tsx scripts/governance/check-workflow-automation.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel && pnpm governance:delegated-trust && pnpm governance:workflow-automation"
+    "governance:distributed": "tsx scripts/governance/check-distributed-resilience.ts",
+    "governance:ecosystem": "tsx scripts/governance/check-ecosystem-network.ts",
+    "governance:revocation": "tsx scripts/governance/check-revocation-cascade.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel && pnpm governance:delegated-trust && pnpm governance:workflow-automation && pnpm governance:distributed && pnpm governance:ecosystem && pnpm governance:revocation"
   },
   "devDependencies": {
     "@types/node": "^20",
