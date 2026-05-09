@@ -23,6 +23,18 @@ export type ArtifactEventType =
   | 'ARTIFACT_EXPORTED'
   | 'BUNDLE_GENERATED';
 
+// ── Apply-with-VCV operational workflow (W2-PR46A) ───────────
+export type ApplyWorkflowEventType =
+  | 'APPLY_MANIFEST_COMPOSED'
+  | 'APPLY_MANIFEST_EXPORTED'
+  | 'APPLY_MANIFEST_VERIFIED'
+  | 'APPLY_MANIFEST_REJECTED'
+  | 'CREDENTIAL_SHARED'
+  | 'CREDENTIAL_SHARE_REVOKED'
+  | 'VERIFIER_REQUEST_ISSUED'
+  | 'VERIFIER_REQUEST_ACCEPTED'
+  | 'VERIFIER_REQUEST_DECLINED';
+
 // ── Employer review lifecycle ───────────────────────────────
 export type EmployerReviewEventType =
   | 'EMPLOYER_REVIEW_ACCEPTED'
@@ -61,6 +73,7 @@ export type AuditEventType =
   | VerificationEventType
   | MonitoringEventType
   | ArtifactEventType
+  | ApplyWorkflowEventType
   | EmployerReviewEventType
   | TrustChainEventType
   | OperationalEventType

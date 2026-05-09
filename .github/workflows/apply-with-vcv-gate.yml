@@ -1,0 +1,47 @@
+name: apply-with-vcv-gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api/backend/src/services/apply/**'
+      - 'apps/api/backend/src/services/distribution/**'
+      - 'apps/api/backend/src/routes/apply.ts'
+      - 'apps/web/components/apply/**'
+      - 'apps/web/app/api/apply/**'
+      - 'apps/web/app/apply/**'
+      - 'docs/ops/apply-with-vcv-operational-workflow.md'
+      - 'scripts/apply-with-vcv-banned-strings.mjs'
+      - '.github/workflows/apply-with-vcv-gate.yml'
+
+jobs:
+  banned-strings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Apply-with-VCV banned-string gate
+        run: node scripts/apply-with-vcv-banned-strings.mjs
+
+  workflow-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run applyOperationalWorkflow Jest suite
+        env:
+          DATABASE_URL: postgresql://stub:stub@localhost:5432/stub
+          NODE_ENV: test
+        run: |
+          cd apps/api/backend
+          npx jest --no-coverage --runInBand \
+            src/services/apply/__tests__/applyOperationalWorkflow.test.ts
