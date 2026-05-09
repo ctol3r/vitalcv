@@ -496,3 +496,118 @@ describe("causal lineage validation (W2-PR21A)", () => {
     expect(errors).toHaveLength(0);
   });
 });
+
+describe("cross-axis coherence (W2-PR22A)", () => {
+  it("detects integrity-vs-replay contradiction (CI-GREEN + R-AMBIGUOUS)", async () => {
+    const { detectCoherenceContradictions } = await import("../registry.js");
+    const errors = detectCoherenceContradictions({
+      integrity: "CI-GREEN",
+      containment: "CT-GREEN",
+      replay: "R-AMBIGUOUS",
+      trustClass: "C-1",
+      continuityConfidence: "STRONG",
+      causalConfidence: "PROBABLE",
+      hasEvidenceRef: true,
+    });
+    expect(errors.some((e) => e.tag === "integrity-vs-replay")).toBe(true);
+  });
+
+  it("detects containment-vs-integrity contradiction (CT-GREEN + CI-FRAGMENTED)", async () => {
+    const { detectCoherenceContradictions } = await import("../registry.js");
+    const errors = detectCoherenceContradictions({
+      integrity: "CI-FRAGMENTED",
+      containment: "CT-GREEN",
+      replay: "R-OBSERVED",
+      trustClass: "C-1",
+      continuityConfidence: "PARTIAL",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(errors.some((e) => e.tag === "containment-vs-integrity")).toBe(true);
+  });
+
+  it("detects T0-vs-STRONG-continuity contradiction", async () => {
+    const { detectCoherenceContradictions } = await import("../registry.js");
+    const errors = detectCoherenceContradictions({
+      integrity: "CI-DEGRADED",
+      containment: "CT-DEGRADED",
+      replay: "R-OBSERVED",
+      trustClass: "T0",
+      continuityConfidence: "STRONG",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(errors.some((e) => e.tag === "trust-class-vs-continuity")).toBe(true);
+  });
+
+  it("detects CONFIRMED-without-evidence contradiction", async () => {
+    const { detectCoherenceContradictions } = await import("../registry.js");
+    const errors = detectCoherenceContradictions({
+      integrity: "CI-DEGRADED",
+      containment: "CT-DEGRADED",
+      replay: "R-OBSERVED",
+      trustClass: "C-1",
+      continuityConfidence: "PARTIAL",
+      causalConfidence: "CONFIRMED",
+      hasEvidenceRef: false,
+    });
+    expect(errors.some((e) => e.tag === "confidence-vs-evidence")).toBe(true);
+  });
+
+  it("resolveSystemicState: contradictions → SYSTEMIC-AMBIGUOUS", async () => {
+    const { resolveSystemicState } = await import("../registry.js");
+    const result = resolveSystemicState({
+      integrity: "CI-GREEN",
+      containment: "CT-GREEN",
+      replay: "R-AMBIGUOUS",
+      trustClass: "C-1",
+      continuityConfidence: "STRONG",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(result.state).toBe("SYSTEMIC-AMBIGUOUS");
+    expect(result.contradictions.length).toBeGreaterThan(0);
+  });
+
+  it("resolveSystemicState: CI-UNKNOWN → SYSTEMIC-UNVERIFIED (fail-closed)", async () => {
+    const { resolveSystemicState } = await import("../registry.js");
+    const result = resolveSystemicState({
+      integrity: "CI-UNKNOWN",
+      containment: "CT-GREEN",
+      replay: "R-OBSERVED",
+      trustClass: "C-1",
+      continuityConfidence: "STRONG",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(result.state).toBe("SYSTEMIC-UNVERIFIED");
+  });
+
+  it("resolveSystemicState: trustClass null → SYSTEMIC-UNVERIFIED", async () => {
+    const { resolveSystemicState } = await import("../registry.js");
+    const result = resolveSystemicState({
+      integrity: "CI-GREEN",
+      containment: "CT-GREEN",
+      replay: "R-OBSERVED",
+      trustClass: null, // UNCLASSIFIED
+      continuityConfidence: "STRONG",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(result.state).toBe("SYSTEMIC-UNVERIFIED");
+  });
+
+  it("resolveSystemicState: CI-FRAGMENTED → SYSTEMIC-FRAGMENTED", async () => {
+    const { resolveSystemicState } = await import("../registry.js");
+    const result = resolveSystemicState({
+      integrity: "CI-FRAGMENTED",
+      containment: "CT-FRAGMENTING",
+      replay: "R-OBSERVED",
+      trustClass: "C-1",
+      continuityConfidence: "PARTIAL",
+      causalConfidence: "PARTIAL",
+      hasEvidenceRef: true,
+    });
+    expect(result.state).toBe("SYSTEMIC-FRAGMENTED");
+  });
+});

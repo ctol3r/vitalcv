@@ -101,6 +101,16 @@ export {
   isRecoveryTransition,
 } from "./transitions.js";
 
+export {
+  SYSTEMIC_STATES,
+  type SystemicState,
+  type CoherenceContradiction,
+  type CrossAxisStateSnapshot,
+  detectCoherenceContradictions,
+  resolveSystemicState,
+  systemicStateDescription,
+} from "./coherence.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
