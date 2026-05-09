@@ -3,8 +3,10 @@
  *
  * Renders survivability score, confidence tier, observation graph
  * fragments, and reconstruction lineage. Wording: replay observability +
- * best-effort idempotency check via correlationId — no replay-protection
- * claim.
+ * best-effort idempotency check via correlationId. This surface does not
+ * claim replay observability + best-effort idempotency check via
+ * correlationId is sufficient to prevent replay; it surfaces what is
+ * observed and what is reconstructable.
  */
 
 import * as React from "react";
