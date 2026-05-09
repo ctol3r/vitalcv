@@ -34,7 +34,8 @@
     "governance:verifier-workspace": "tsx scripts/governance/check-verifier-workspace.ts",
     "governance:enterprise-admin": "tsx scripts/governance/check-enterprise-admin.ts",
     "governance:pilot-intel": "tsx scripts/governance/check-pilot-intelligence.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel"
+    "governance:delegated-trust": "tsx scripts/governance/check-delegated-trust.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel && pnpm governance:delegated-trust"
   },
   "devDependencies": {
     "@types/node": "^20",

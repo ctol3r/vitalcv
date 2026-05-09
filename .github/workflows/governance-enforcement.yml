@@ -176,6 +176,9 @@ jobs:
       - name: Run pilot-intelligence gate (W2-PR51A)
         run: tsx scripts/governance/check-pilot-intelligence.ts
 
+      - name: Run delegated-trust gate (W2-PR53A)
+        run: tsx scripts/governance/check-delegated-trust.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

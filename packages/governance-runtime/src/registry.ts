@@ -368,6 +368,23 @@ export {
   buildPilotIntelligenceReport,
 } from "./pilot-intelligence.js";
 
+export {
+  DELEGATION_LIFECYCLE,
+  type DelegationLifecycle,
+  type DelegationGrant,
+  type DelegationValidationError,
+  MAX_DELEGATION_DURATION_MS,
+  MAX_DELEGATION_DEPTH,
+  computeGrantId,
+  validateDelegationGrant,
+  type SubGrantViolation,
+  validateSubGrant,
+  type DelegationDecision,
+  decideDelegationAccess,
+  type DelegatedTrustReport,
+  buildDelegatedTrustReport,
+} from "./delegated-trust.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
