@@ -15,3 +15,7 @@ export {
   InstitutionalMemoryPanel,
   type InstitutionalMemoryPanelProps,
 } from "./InstitutionalMemoryPanel";
+export {
+  LedgerIntegrityBanner,
+  type LedgerIntegrityBannerProps,
+} from "./LedgerIntegrityBanner";

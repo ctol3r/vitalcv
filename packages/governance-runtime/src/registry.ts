@@ -204,6 +204,27 @@ export {
   buildInstitutionalDriftReport,
 } from "./longitudinal-memory.js";
 
+export {
+  GENESIS_HASH,
+  canonicalize,
+  type SealedGovernanceEpoch,
+  type SealedGovernanceLedger,
+  emptySealedLedger,
+  computeEpochHash,
+  sealEpoch,
+  sealLedger,
+  unsealLedger,
+  type TamperFinding,
+  verifySealedChain,
+  type GovernanceSnapshot,
+  captureGovernanceSnapshot,
+  verifySnapshot,
+  type ReplayVerificationResult,
+  replayVerifyLedger,
+  type PersistenceIntegrityReport,
+  buildPersistenceIntegrityReport,
+} from "./tamper-evident-persistence.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

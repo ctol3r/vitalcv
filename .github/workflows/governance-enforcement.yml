@@ -115,6 +115,21 @@ jobs:
           path: governance-institutional-drift-report.json
           retention-days: 30
 
+      - name: Run persistence-integrity gate (W2-PR32A tamper-evidence)
+        run: tsx scripts/governance/check-persistence-integrity.ts
+
+      - name: Run persistence-integrity gate (JSON report)
+        if: always()
+        run: tsx scripts/governance/check-persistence-integrity.ts --json > governance-persistence-integrity-report.json || true
+
+      - name: Upload persistence-integrity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-persistence-integrity-report
+          path: governance-persistence-integrity-report.json
+          retention-days: 30
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
