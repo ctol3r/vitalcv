@@ -323,6 +323,22 @@ export {
   buildIdentityClaimReport,
 } from "./identity-claim.js";
 
+export {
+  REVIEW_ITEM_KINDS,
+  type ReviewItemKind,
+  REVIEW_PRIORITY,
+  type ReviewPriority,
+  REVIEW_LIFECYCLE,
+  type ReviewLifecycle,
+  type ReviewItem,
+  type ReviewValidationError,
+  validateReviewItem,
+  type QueueSummary,
+  summarizeQueue,
+  type VerifierWorkspaceReport,
+  buildVerifierWorkspaceReport,
+} from "./verifier-workspace.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

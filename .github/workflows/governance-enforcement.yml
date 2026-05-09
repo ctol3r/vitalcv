@@ -167,6 +167,9 @@ jobs:
       - name: Run identity-claims gate (W2-PR43A)
         run: tsx scripts/governance/check-identity-claims.ts
 
+      - name: Run verifier-workspace gate (W2-PR45A)
+        run: tsx scripts/governance/check-verifier-workspace.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
