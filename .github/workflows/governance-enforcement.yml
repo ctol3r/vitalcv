@@ -70,6 +70,36 @@ jobs:
       - name: Run semantic-mutation diff (W2-PR25A evolution safety)
         run: tsx scripts/governance/semantic-snapshot.ts diff --baseline scripts/governance/baseline-snapshot.json
 
+      - name: Run governance runtime verification (W2-PR26A invariants)
+        run: tsx scripts/governance/verify-runtime.ts
+
+      - name: Run governance runtime verification (JSON report)
+        if: always()
+        run: tsx scripts/governance/verify-runtime.ts --json > governance-verification-report.json || true
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-verification-report
+          path: governance-verification-report.json
+          retention-days: 30
+
+      - name: Run meta-verification (W2-PR27A blind-spot detection)
+        run: tsx scripts/governance/meta-verify.ts
+
+      - name: Run meta-verification (JSON report)
+        if: always()
+        run: tsx scripts/governance/meta-verify.ts --json > governance-meta-verification-report.json || true
+
+      - name: Upload meta-verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-meta-verification-report
+          path: governance-meta-verification-report.json
+          retention-days: 30
+
       - name: Capture current semantic snapshot (artifact)
         if: always()
         run: tsx scripts/governance/semantic-snapshot.ts capture --out current-semantic-snapshot.json || true

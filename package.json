@@ -21,7 +21,9 @@
     "governance:adoption": "tsx scripts/governance/check-adoption-coverage.ts",
     "governance:snapshot": "tsx scripts/governance/semantic-snapshot.ts capture",
     "governance:diff": "tsx scripts/governance/semantic-snapshot.ts diff --baseline scripts/governance/baseline-snapshot.json",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff"
+    "governance:verify": "tsx scripts/governance/verify-runtime.ts",
+    "governance:meta": "tsx scripts/governance/meta-verify.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta"
   },
   "devDependencies": {
     "@types/node": "^20",

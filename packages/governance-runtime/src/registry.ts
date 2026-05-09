@@ -134,6 +134,31 @@ export {
   maxEvolutionSeverity,
 } from "./semantic-snapshot.js";
 
+export {
+  type InvariantViolation,
+  type VerificationReport,
+  verifyFailClosedAxes,
+  verifyAmbiguityPreservation,
+  verifyContradictionDetection,
+  verifyChaosScenarios,
+  verifyRegistryConsistency,
+  runAllInvariants,
+} from "./verification.js";
+
+export {
+  GOVERNANCE_DOMAINS,
+  type GovernanceDomain,
+  type DomainCoverage,
+  DOMAIN_COVERAGE,
+  VERIFICATION_CONFIDENCE,
+  type VerificationConfidence,
+  type DomainConfidenceSummary,
+  type MetaVerificationReport,
+  buildMetaVerificationReport,
+  type InvariantInteractionViolation,
+  verifyInvariantInteractions,
+} from "./meta-verification.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

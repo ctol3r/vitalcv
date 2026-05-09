@@ -808,3 +808,207 @@ describe("semantic snapshot + mutation detection (W2-PR25A)", () => {
     expect(maxEvolutionSeverity(mutations)).toBe("SAFE");
   });
 });
+
+describe("governance runtime verification (W2-PR26A)", () => {
+  it("runAllInvariants returns VERIFIED for clean registry baseline", async () => {
+    const { runAllInvariants } = await import("../registry.js");
+    const report = runAllInvariants();
+    expect(report.summary.aggregateStatus).toBe("VERIFIED");
+    expect(report.violations).toHaveLength(0);
+    expect(report.invariantsChecked).toBeGreaterThan(80);
+  });
+
+  it("verifyFailClosedAxes catches adversarial inputs without coercing to healthy", async () => {
+    const { verifyFailClosedAxes } = await import("../registry.js");
+    const violations = verifyFailClosedAxes();
+    expect(violations).toHaveLength(0);
+  });
+
+  it("verifyAmbiguityPreservation: replay + telemetry absence preserve ambiguity", async () => {
+    const { verifyAmbiguityPreservation } = await import("../registry.js");
+    const violations = verifyAmbiguityPreservation();
+    expect(violations).toHaveLength(0);
+  });
+
+  it("verifyContradictionDetection: all 4 contradictory snapshots detected", async () => {
+    const { verifyContradictionDetection } = await import("../registry.js");
+    const violations = verifyContradictionDetection();
+    expect(violations).toHaveLength(0);
+  });
+
+  it("verifyChaosScenarios: telemetry absence + missing trust class fail closed", async () => {
+    const { verifyChaosScenarios } = await import("../registry.js");
+    const violations = verifyChaosScenarios();
+    expect(violations).toHaveLength(0);
+  });
+
+  it("verifyRegistryConsistency: all canonical states roundtrip", async () => {
+    const { verifyRegistryConsistency } = await import("../registry.js");
+    const violations = verifyRegistryConsistency();
+    expect(violations).toHaveLength(0);
+  });
+
+  it("severity ordering invariant: CI-UNKNOWN > CI-GREEN (fail-closed)", async () => {
+    const { integritySeverity } = await import("../registry.js");
+    expect(integritySeverity("CI-UNKNOWN")).toBeGreaterThan(integritySeverity("CI-GREEN"));
+  });
+
+  it("FUZZ: 100 random adversarial inputs across 4 axes never produce healthy state", async () => {
+    const { failClosedIntegrity, failClosedContainment, failClosedReplayState, failClosedTrustClass } =
+      await import("../registry.js");
+
+    const samples: unknown[] = [];
+    for (let i = 0; i < 100; i++) {
+      samples.push(
+        Math.random() < 0.5 ? Math.random().toString(36) : { malformed: i },
+      );
+    }
+    samples.push(null, undefined, NaN, Infinity, -Infinity, 0n);
+
+    for (const sample of samples) {
+      // Skip the rare case where the random string actually IS a valid state
+      const intResult = failClosedIntegrity(sample);
+      if (intResult === "CI-GREEN") {
+        // verify it's actually the literal string
+        expect(sample).toBe("CI-GREEN");
+      }
+      const ctResult = failClosedContainment(sample);
+      if (ctResult === "CT-GREEN") {
+        expect(sample).toBe("CT-GREEN");
+      }
+      const replayResult = failClosedReplayState(sample);
+      // replay state for unknown is R-AMBIGUOUS — never silently classified
+      if (replayResult !== "R-AMBIGUOUS") {
+        expect(["R-OBSERVED", "R-DENIED", "R-ACCEPTED", "R-COLLAPSED"]).toContain(replayResult);
+        // and the sample must equal the parsed value (round-trip)
+        expect(sample).toBe(replayResult);
+      }
+      const tcResult = failClosedTrustClass(sample);
+      if (tcResult !== null) {
+        expect(["C-1", "C-2", "T0", "R0", "D0"]).toContain(tcResult);
+        expect(sample).toBe(tcResult);
+      }
+    }
+  });
+
+  it("CROSS-AXIS EXPLOSION: contradictions detected across 60 snapshots", async () => {
+    const { detectCoherenceContradictions, INTEGRITY_STATES, CONTAINMENT_STATES, REPLAY_STATES } =
+      await import("../registry.js");
+
+    let contradictionsTotal = 0;
+    let snapshotsTested = 0;
+    for (const integrity of INTEGRITY_STATES) {
+      for (const replay of REPLAY_STATES) {
+        // Test 4 representative containment states with each (integrity, replay)
+        for (const containment of (["CT-GREEN", "CT-DEGRADED", "CT-FRAGMENTING", "CT-VIOLATION"] as const)) {
+          snapshotsTested++;
+          const errors = detectCoherenceContradictions({
+            integrity,
+            containment,
+            replay,
+            trustClass: "C-1",
+            continuityConfidence: "PARTIAL",
+            causalConfidence: "PARTIAL",
+            hasEvidenceRef: true,
+          });
+          contradictionsTotal += errors.length;
+
+          // Specific assertion: CI-GREEN + R-AMBIGUOUS MUST contradict
+          if (integrity === "CI-GREEN" && replay === "R-AMBIGUOUS") {
+            expect(errors.some((e) => e.tag === "integrity-vs-replay")).toBe(true);
+          }
+          // CT-GREEN + (CI-FRAGMENTED OR CI-VIOLATION) MUST contradict
+          if (containment === "CT-GREEN" && (integrity === "CI-FRAGMENTED" || integrity === "CI-VIOLATION")) {
+            expect(errors.some((e) => e.tag === "containment-vs-integrity")).toBe(true);
+          }
+        }
+      }
+    }
+    expect(snapshotsTested).toBeGreaterThanOrEqual(60);
+  });
+
+  it("MUTATION ATTACK: removing CI-UNKNOWN from snapshot is detected as BREAKING", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const attacked = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    (attacked.stateSets as { integrity: string[] }).integrity = attacked.stateSets.integrity.filter(
+      (s) => s !== "CI-UNKNOWN",
+    );
+    const mutations = diffSemanticSnapshots(baseline, attacked);
+    const severity = maxEvolutionSeverity(mutations);
+    expect(severity).toBe("BREAKING");
+  });
+
+  it("MUTATION ATTACK: relaxing CI-VIOLATION→CI-GREEN evidence is detected as CRITICAL", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const attacked = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    // Add the IMPOSSIBLE jump CI-VIOLATION → CI-GREEN
+    (attacked.transitions.integrity as Array<{ from: string; to: string; evidenceRequired: string | null }>).push({
+      from: "CI-VIOLATION",
+      to: "CI-GREEN",
+      evidenceRequired: null,
+    });
+    const mutations = diffSemanticSnapshots(baseline, attacked);
+    const severity = maxEvolutionSeverity(mutations);
+    expect(severity).toBe("CRITICAL");
+  });
+
+  it("MUTATION ATTACK: inflating MAX_RENEWALS is detected as CRITICAL", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const attacked = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    (attacked.overrideRules as { maxRenewals: number }).maxRenewals = 999;
+    const mutations = diffSemanticSnapshots(baseline, attacked);
+    expect(mutations.some((m) => m.tag === "max-renewal-relaxed")).toBe(true);
+    expect(maxEvolutionSeverity(mutations)).toBe("CRITICAL");
+  });
+});
+
+describe("meta-verification (W2-PR27A)", () => {
+  it("buildMetaVerificationReport surfaces per-domain coverage", async () => {
+    const { buildMetaVerificationReport, runAllInvariants, GOVERNANCE_DOMAINS } = await import("../registry.js");
+    const inv = runAllInvariants();
+    const report = buildMetaVerificationReport(inv);
+    expect(report.domainSummaries.length).toBe(GOVERNANCE_DOMAINS.length);
+    expect(report.totalInvariants).toBeGreaterThan(20);
+    expect(report.aggregateConfidence).not.toBe("VERIFIED"); // we have known assumptions
+  });
+
+  it("aggregate confidence is PARTIALLY-VERIFIED — completeness inflation forbidden", async () => {
+    const { buildMetaVerificationReport, runAllInvariants } = await import("../registry.js");
+    const report = buildMetaVerificationReport(runAllInvariants());
+    // Per W2-PR27A rule #6: completeness inflation is forbidden. We have explicit
+    // blind spots + assumptions, so aggregate cannot be "VERIFIED".
+    expect(["PARTIALLY-VERIFIED", "ASSUMED", "UNVERIFIED"]).toContain(report.aggregateConfidence);
+  });
+
+  it("every governance domain is represented in DOMAIN_COVERAGE", async () => {
+    const { GOVERNANCE_DOMAINS, DOMAIN_COVERAGE } = await import("../registry.js");
+    const covered = new Set(DOMAIN_COVERAGE.map((d) => d.domain));
+    for (const domain of GOVERNANCE_DOMAINS) {
+      expect(covered.has(domain)).toBe(true);
+    }
+  });
+
+  it("verifyInvariantInteractions returns no collisions on current registry", async () => {
+    const { verifyInvariantInteractions } = await import("../registry.js");
+    const collisions = verifyInvariantInteractions();
+    expect(collisions).toHaveLength(0);
+  });
+
+  it("DOMAIN_COVERAGE entries declare blind spots + assumptions explicitly (no hidden trust)", async () => {
+    const { DOMAIN_COVERAGE } = await import("../registry.js");
+    for (const domain of DOMAIN_COVERAGE) {
+      // Every domain must declare invariants AND blind-spots/assumptions explicitly
+      // (per W2-PR27A rule #2: unverified assumptions must remain visible).
+      expect(domain.invariantsVerified.length).toBeGreaterThan(0);
+      // Most domains should have at least 1 blind spot or assumption documented
+      // (declaring "0 blind spots / 0 assumptions" would be completeness inflation
+      // unless the domain is genuinely simple).
+      const declaredAny =
+        domain.knownBlindSpots.length > 0 || domain.assumptionsRequired.length > 0;
+      expect(declaredAny).toBe(true);
+    }
+  });
+});
