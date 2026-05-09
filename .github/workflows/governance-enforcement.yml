@@ -61,6 +61,27 @@ jobs:
           path: governance-adoption-report.json
           retention-days: 30
 
+      - name: Install workspace deps for semantic-snapshot diff
+        run: pnpm install --frozen-lockfile
+
+      - name: Build governance-runtime (semantic-snapshot dep)
+        run: pnpm --filter @vitalcv/governance-runtime build
+
+      - name: Run semantic-mutation diff (W2-PR25A evolution safety)
+        run: tsx scripts/governance/semantic-snapshot.ts diff --baseline scripts/governance/baseline-snapshot.json
+
+      - name: Capture current semantic snapshot (artifact)
+        if: always()
+        run: tsx scripts/governance/semantic-snapshot.ts capture --out current-semantic-snapshot.json || true
+
+      - name: Upload current semantic snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-semantic-snapshot
+          path: current-semantic-snapshot.json
+          retention-days: 30
+
   governance-runtime-tests:
     name: Governance Runtime Tests (W2-PR17A/18A/19A/20A)
     runs-on: ubuntu-latest

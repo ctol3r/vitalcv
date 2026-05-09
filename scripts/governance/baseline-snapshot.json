@@ -1,0 +1,439 @@
+{
+  "version": 1,
+  "capturedAt": "2026-05-09T05:37:07.029Z",
+  "trustClasses": [
+    {
+      "cls": "C-1",
+      "profile": {
+        "trustClass": "C-1",
+        "lineageDurability": "STRONG",
+        "replaySurvivability": "PARTIAL",
+        "attributionDurability": "STRONG",
+        "exportDurability": "PARTIAL",
+        "denialSurvivability": "STRONG",
+        "asyncSurvivability": "PARTIAL",
+        "forensicSurvivability": "PARTIAL"
+      }
+    },
+    {
+      "cls": "C-2",
+      "profile": {
+        "trustClass": "C-2",
+        "lineageDurability": "PARTIAL",
+        "replaySurvivability": "WEAK",
+        "attributionDurability": "STRONG",
+        "exportDurability": "PARTIAL",
+        "denialSurvivability": "PARTIAL",
+        "asyncSurvivability": "n/a",
+        "forensicSurvivability": "WEAK"
+      }
+    },
+    {
+      "cls": "T0",
+      "profile": {
+        "trustClass": "T0",
+        "lineageDurability": "WEAK",
+        "replaySurvivability": "FRAGILE",
+        "attributionDurability": "WEAK",
+        "exportDurability": "PARTIAL",
+        "denialSurvivability": "WEAK",
+        "asyncSurvivability": "n/a",
+        "forensicSurvivability": "WEAK"
+      }
+    },
+    {
+      "cls": "R0",
+      "profile": {
+        "trustClass": "R0",
+        "lineageDurability": "STRONG",
+        "replaySurvivability": "STRONG",
+        "attributionDurability": "STRONG",
+        "exportDurability": "PARTIAL",
+        "denialSurvivability": "STRONG",
+        "asyncSurvivability": "n/a",
+        "forensicSurvivability": "PARTIAL"
+      }
+    },
+    {
+      "cls": "D0",
+      "profile": {
+        "trustClass": "D0",
+        "lineageDurability": "STRONG",
+        "replaySurvivability": "STRONG",
+        "attributionDurability": "STRONG",
+        "exportDurability": "PARTIAL",
+        "denialSurvivability": "STRONG",
+        "asyncSurvivability": "n/a",
+        "forensicSurvivability": "PARTIAL"
+      }
+    }
+  ],
+  "stateSets": {
+    "integrity": [
+      "CI-GREEN",
+      "CI-DEGRADED",
+      "CI-DRIFT",
+      "CI-FRAGMENTED",
+      "CI-VIOLATION",
+      "CI-UNKNOWN"
+    ],
+    "containment": [
+      "CT-GREEN",
+      "CT-DEGRADED",
+      "CT-FRAGMENTING",
+      "CT-ESCALATING",
+      "CT-VIOLATION",
+      "CT-UNKNOWN"
+    ],
+    "replay": [
+      "R-OBSERVED",
+      "R-DENIED",
+      "R-ACCEPTED",
+      "R-COLLAPSED",
+      "R-AMBIGUOUS"
+    ],
+    "systemic": [
+      "SYSTEMIC-RECOVERING",
+      "SYSTEMIC-DEGRADED",
+      "SYSTEMIC-FRAGMENTED",
+      "SYSTEMIC-AMBIGUOUS",
+      "SYSTEMIC-UNVERIFIED"
+    ],
+    "continuityConfidence": [
+      "STRONG",
+      "PARTIAL",
+      "LIMITED",
+      "NONE"
+    ],
+    "causalConfidence": [
+      "CONFIRMED",
+      "PROBABLE",
+      "PARTIAL",
+      "AMBIGUOUS",
+      "UNVERIFIED"
+    ]
+  },
+  "transitions": {
+    "integrity": [
+      {
+        "from": "CI-GREEN",
+        "to": "CI-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-GREEN",
+        "to": "CI-DEGRADED",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-GREEN",
+        "to": "CI-DRIFT",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-GREEN",
+        "to": "CI-FRAGMENTED",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-GREEN",
+        "to": "CI-VIOLATION",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DEGRADED",
+        "to": "CI-DRIFT",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DEGRADED",
+        "to": "CI-FRAGMENTED",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DEGRADED",
+        "to": "CI-VIOLATION",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DRIFT",
+        "to": "CI-FRAGMENTED",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DRIFT",
+        "to": "CI-VIOLATION",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-FRAGMENTED",
+        "to": "CI-VIOLATION",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DEGRADED",
+        "to": "CI-GREEN",
+        "evidenceRequired": "remediation-verified per recovery-confidence tier (canonical-query verification)"
+      },
+      {
+        "from": "CI-DRIFT",
+        "to": "CI-DEGRADED",
+        "evidenceRequired": "drift-source remediated; lexicon enforcement re-tightened"
+      },
+      {
+        "from": "CI-DRIFT",
+        "to": "CI-GREEN",
+        "evidenceRequired": "drift-source remediated AND verified clean across 7-PR rolling window"
+      },
+      {
+        "from": "CI-FRAGMENTED",
+        "to": "CI-DEGRADED",
+        "evidenceRequired": "cross-source variance closed; Q-CANON verification"
+      },
+      {
+        "from": "CI-FRAGMENTED",
+        "to": "CI-GREEN",
+        "evidenceRequired": "cross-source variance closed AND sustained over 7-day window"
+      },
+      {
+        "from": "CI-VIOLATION",
+        "to": "CI-FRAGMENTED",
+        "evidenceRequired": "violation contained; root cause identified; remediation in progress"
+      },
+      {
+        "from": "CI-VIOLATION",
+        "to": "CI-DEGRADED",
+        "evidenceRequired": "violation remediated; founder-approved closure; Codex re-audit clean"
+      },
+      {
+        "from": "CI-UNKNOWN",
+        "to": "CI-GREEN",
+        "evidenceRequired": "telemetry restored AND nominal"
+      },
+      {
+        "from": "CI-UNKNOWN",
+        "to": "CI-DEGRADED",
+        "evidenceRequired": "telemetry restored; degradation observed"
+      },
+      {
+        "from": "CI-UNKNOWN",
+        "to": "CI-DRIFT",
+        "evidenceRequired": "telemetry restored; drift observed"
+      },
+      {
+        "from": "CI-UNKNOWN",
+        "to": "CI-FRAGMENTED",
+        "evidenceRequired": "telemetry restored; fragmentation observed"
+      },
+      {
+        "from": "CI-UNKNOWN",
+        "to": "CI-VIOLATION",
+        "evidenceRequired": "telemetry restored; violation observed"
+      },
+      {
+        "from": "CI-DEGRADED",
+        "to": "CI-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-DRIFT",
+        "to": "CI-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-FRAGMENTED",
+        "to": "CI-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CI-VIOLATION",
+        "to": "CI-UNKNOWN",
+        "evidenceRequired": null
+      }
+    ],
+    "containment": [
+      {
+        "from": "CT-GREEN",
+        "to": "CT-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-GREEN",
+        "to": "CT-DEGRADED",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-DEGRADED",
+        "to": "CT-FRAGMENTING",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-FRAGMENTING",
+        "to": "CT-ESCALATING",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-ESCALATING",
+        "to": "CT-VIOLATION",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-DEGRADED",
+        "to": "CT-GREEN",
+        "evidenceRequired": "containment playbook applied; verification per recovery-confidence tier"
+      },
+      {
+        "from": "CT-FRAGMENTING",
+        "to": "CT-DEGRADED",
+        "evidenceRequired": "fragmentation scope reduced to single-handler; investigation ongoing"
+      },
+      {
+        "from": "CT-FRAGMENTING",
+        "to": "CT-GREEN",
+        "evidenceRequired": "fragmentation fully contained AND root cause remediated"
+      },
+      {
+        "from": "CT-ESCALATING",
+        "to": "CT-FRAGMENTING",
+        "evidenceRequired": "escalation contained; founder coordination active"
+      },
+      {
+        "from": "CT-ESCALATING",
+        "to": "CT-DEGRADED",
+        "evidenceRequired": "escalation contained AND scope reduced"
+      },
+      {
+        "from": "CT-VIOLATION",
+        "to": "CT-ESCALATING",
+        "evidenceRequired": "violation incident-response active; remediation in progress"
+      },
+      {
+        "from": "CT-UNKNOWN",
+        "to": "CT-GREEN",
+        "evidenceRequired": "containment telemetry restored AND nominal"
+      },
+      {
+        "from": "CT-UNKNOWN",
+        "to": "CT-DEGRADED",
+        "evidenceRequired": "telemetry restored; degradation observed"
+      },
+      {
+        "from": "CT-UNKNOWN",
+        "to": "CT-FRAGMENTING",
+        "evidenceRequired": "telemetry restored; fragmentation observed"
+      },
+      {
+        "from": "CT-UNKNOWN",
+        "to": "CT-ESCALATING",
+        "evidenceRequired": "telemetry restored; escalation observed"
+      },
+      {
+        "from": "CT-UNKNOWN",
+        "to": "CT-VIOLATION",
+        "evidenceRequired": "telemetry restored; violation observed"
+      },
+      {
+        "from": "CT-DEGRADED",
+        "to": "CT-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-FRAGMENTING",
+        "to": "CT-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-ESCALATING",
+        "to": "CT-UNKNOWN",
+        "evidenceRequired": null
+      },
+      {
+        "from": "CT-VIOLATION",
+        "to": "CT-UNKNOWN",
+        "evidenceRequired": null
+      }
+    ],
+    "replay": [
+      {
+        "from": "R-AMBIGUOUS",
+        "to": "R-OBSERVED",
+        "evidenceRequired": "IDEMPOTENT_REPLAY audit row found for the (actor, correlationId) pair"
+      },
+      {
+        "from": "R-AMBIGUOUS",
+        "to": "R-DENIED",
+        "evidenceRequired": "<base>.duplicate_request OR <base>.already_accepted denied audit row found"
+      },
+      {
+        "from": "R-AMBIGUOUS",
+        "to": "R-COLLAPSED",
+        "evidenceRequired": "CONCURRENCY_GUARD_TRIGGERED audit row found"
+      },
+      {
+        "from": "R-AMBIGUOUS",
+        "to": "R-ACCEPTED",
+        "evidenceRequired": "payloadHash clustering reveals replay-as-new (capture-replay forensic detection)"
+      },
+      {
+        "from": "R-OBSERVED",
+        "to": "R-AMBIGUOUS",
+        "evidenceRequired": "additional row contradicts prior classification"
+      },
+      {
+        "from": "R-DENIED",
+        "to": "R-AMBIGUOUS",
+        "evidenceRequired": "additional row contradicts prior classification"
+      },
+      {
+        "from": "R-COLLAPSED",
+        "to": "R-AMBIGUOUS",
+        "evidenceRequired": "additional row contradicts prior classification"
+      },
+      {
+        "from": "R-ACCEPTED",
+        "to": "R-AMBIGUOUS",
+        "evidenceRequired": "additional row contradicts prior classification"
+      },
+      {
+        "from": "R-OBSERVED",
+        "to": "R-DENIED",
+        "evidenceRequired": "re-investigation: row was actually denied, not observed"
+      },
+      {
+        "from": "R-DENIED",
+        "to": "R-OBSERVED",
+        "evidenceRequired": "re-investigation: row was actually processed, not denied"
+      },
+      {
+        "from": "R-OBSERVED",
+        "to": "R-ACCEPTED",
+        "evidenceRequired": "re-investigation reveals capture-replay (not idempotent)"
+      },
+      {
+        "from": "R-ACCEPTED",
+        "to": "R-OBSERVED",
+        "evidenceRequired": "re-investigation reveals idempotent processing (not capture-replay)"
+      }
+    ]
+  },
+  "overrideRules": {
+    "classes": [
+      "OV-1",
+      "OV-2",
+      "OV-3",
+      "OV-4"
+    ],
+    "statuses": [
+      "ACTIVE",
+      "EXPIRED",
+      "RENEWED",
+      "CLOSED"
+    ],
+    "renewalPolicies": [
+      "auto-expire",
+      "renewal-required"
+    ],
+    "maxRenewals": 3,
+    "maxDurationMs": 2592000000
+  }
+}

@@ -111,6 +111,29 @@ export {
   systemicStateDescription,
 } from "./coherence.js";
 
+export {
+  EXCEPTION_SEVERITY,
+  type ExceptionSeverity,
+  EXCEPTION_KIND,
+  type ExceptionKind,
+  type GovernanceException,
+  type ExceptionValidationError,
+  MAX_EXCEPTION_DURATION_DAYS,
+  validateException,
+  defaultSeverityForTag,
+  remediationGuidance,
+} from "./exception-registry.js";
+
+export {
+  type SemanticSnapshot,
+  EVOLUTION_SEVERITY,
+  type EvolutionSeverity,
+  type SemanticMutation,
+  buildSemanticSnapshot,
+  diffSemanticSnapshots,
+  maxEvolutionSeverity,
+} from "./semantic-snapshot.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

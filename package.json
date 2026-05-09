@@ -19,7 +19,9 @@
     "test:backend:db": "bash scripts/backend-test-db.sh",
     "governance:lexicon": "tsx scripts/governance/check-trust-lexicon.ts",
     "governance:adoption": "tsx scripts/governance/check-adoption-coverage.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption"
+    "governance:snapshot": "tsx scripts/governance/semantic-snapshot.ts capture",
+    "governance:diff": "tsx scripts/governance/semantic-snapshot.ts diff --baseline scripts/governance/baseline-snapshot.json",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff"
   },
   "devDependencies": {
     "@types/node": "^20",

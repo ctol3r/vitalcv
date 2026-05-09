@@ -611,3 +611,200 @@ describe("cross-axis coherence (W2-PR22A)", () => {
     expect(result.state).toBe("SYSTEMIC-FRAGMENTED");
   });
 });
+
+describe("governance exception registry (W2-PR24A)", () => {
+  it("validates a complete exception with empty errors", async () => {
+    const { validateException } = await import("../registry.js");
+    const errors = validateException(
+      {
+        id: "EXC-2026-001",
+        kind: "lexicon-allowlist",
+        severity: "LEGACY",
+        scopePath: "packages/audit/AuditEvent.ts",
+        scopeLabel: "non-repudiation",
+        justification: "Frozen YC MVP — Set literal of audit event types",
+        expiresAt: "2026-07-08",
+        owner: "audit-team",
+        approver: "founder",
+        approvedAt: "2026-05-08",
+      },
+      "2026-05-08T00:00:00.000Z",
+    );
+    expect(errors).toHaveLength(0);
+  });
+
+  it("rejects expired exception", async () => {
+    const { validateException } = await import("../registry.js");
+    const errors = validateException(
+      {
+        id: "EXC-2026-002",
+        kind: "lexicon-allowlist",
+        severity: "LEGACY",
+        scopePath: "packages/foo",
+        scopeLabel: "*",
+        justification: "test",
+        expiresAt: "2025-01-01",
+        owner: "alice",
+        approver: "founder",
+        approvedAt: "2024-10-01",
+      },
+      "2026-05-08T00:00:00.000Z",
+    );
+    expect(errors.some((e) => e.tag === "expired")).toBe(true);
+  });
+
+  it("rejects expiration > 90 days from approval", async () => {
+    const { validateException, MAX_EXCEPTION_DURATION_DAYS } = await import("../registry.js");
+    const errors = validateException(
+      {
+        id: "EXC-2026-003",
+        kind: "lexicon-allowlist",
+        severity: "LEGACY",
+        scopePath: "packages/foo",
+        scopeLabel: "*",
+        justification: "test",
+        expiresAt: "2026-12-08", // ~7 months
+        owner: "alice",
+        approver: "founder",
+        approvedAt: "2026-05-08",
+      },
+      "2026-05-08T00:00:00.000Z",
+    );
+    expect(errors.some((e) => e.tag === "expiration-too-far-out")).toBe(true);
+    expect(MAX_EXCEPTION_DURATION_DAYS).toBe(90);
+  });
+
+  it("rejects malformed exception ID", async () => {
+    const { validateException } = await import("../registry.js");
+    const errors = validateException(
+      {
+        id: "not-an-id",
+        kind: "lexicon-allowlist",
+        severity: "LEGACY",
+        scopePath: "packages/foo",
+        scopeLabel: "*",
+        justification: "test",
+        expiresAt: "2026-08-08",
+        owner: "alice",
+        approver: "founder",
+        approvedAt: "2026-05-08",
+      },
+      "2026-05-08T00:00:00.000Z",
+    );
+    expect(errors.some((e) => e.tag === "invalid-id-format")).toBe(true);
+  });
+
+  it("defaultSeverityForTag classifies common tags", async () => {
+    const { defaultSeverityForTag } = await import("../registry.js");
+    expect(defaultSeverityForTag("missing-registry-import")).toBe("BLOCKING");
+    expect(defaultSeverityForTag("ad-hoc-rendering")).toBe("BLOCKING");
+    expect(defaultSeverityForTag("lexicon-violation")).toBe("BLOCKING");
+    expect(defaultSeverityForTag("migration-surface")).toBe("WARNING");
+    expect(defaultSeverityForTag("legacy-grandfathered")).toBe("LEGACY");
+    expect(defaultSeverityForTag("experimental")).toBe("EXPERIMENTAL");
+    expect(defaultSeverityForTag("unknown-tag")).toBe("WARNING");
+  });
+
+  it("remediationGuidance produces actionable suggestions", async () => {
+    const { remediationGuidance } = await import("../registry.js");
+    const missing = remediationGuidance("missing-registry-import");
+    expect(missing).toContain("@vitalcv/governance-runtime");
+    const adHoc = remediationGuidance("ad-hoc-rendering");
+    expect(adHoc).toContain("IntegrityBadge");
+    const lexicon = remediationGuidance("lexicon-violation", { phrase: "replay protected" });
+    expect(lexicon).toContain("replay protected");
+  });
+});
+
+describe("semantic snapshot + mutation detection (W2-PR25A)", () => {
+  it("produces a deterministic snapshot", async () => {
+    const { buildSemanticSnapshot } = await import("../registry.js");
+    const a = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const b = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  it("detects state removal as BREAKING", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutated = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    // Remove CI-UNKNOWN
+    (mutated.stateSets as { integrity: string[] }).integrity = mutated.stateSets.integrity.filter(
+      (s) => s !== "CI-UNKNOWN",
+    );
+    const mutations = diffSemanticSnapshots(baseline, mutated);
+    expect(mutations.some((m) => m.tag === "state-removed" && m.state === "CI-UNKNOWN")).toBe(true);
+    expect(maxEvolutionSeverity(mutations)).toBe("BREAKING");
+  });
+
+  it("detects transition addition as CRITICAL", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutated = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    // Add an impossible jump: CI-VIOLATION → CI-GREEN (currently NOT in graph)
+    (mutated.transitions.integrity as Array<{ from: string; to: string; evidenceRequired: string | null }>).push({
+      from: "CI-VIOLATION",
+      to: "CI-GREEN",
+      evidenceRequired: null,
+    });
+    const mutations = diffSemanticSnapshots(baseline, mutated);
+    expect(
+      mutations.some(
+        (m) => m.tag === "transition-added" && m.from === "CI-VIOLATION" && m.to === "CI-GREEN",
+      ),
+    ).toBe(true);
+    expect(maxEvolutionSeverity(mutations)).toBe("CRITICAL");
+  });
+
+  it("detects evidence relaxation on transitions", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutated = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    // Relax CI-DEGRADED → CI-GREEN evidence requirement
+    const idx = mutated.transitions.integrity.findIndex(
+      (t) => t.from === "CI-DEGRADED" && t.to === "CI-GREEN",
+    );
+    if (idx !== -1) {
+      (mutated.transitions.integrity as Array<{ from: string; to: string; evidenceRequired: string | null }>)[idx].evidenceRequired = null;
+    }
+    const mutations = diffSemanticSnapshots(baseline, mutated);
+    expect(
+      mutations.some(
+        (m) => m.tag === "transition-evidence-relaxed" && m.from === "CI-DEGRADED" && m.to === "CI-GREEN",
+      ),
+    ).toBe(true);
+  });
+
+  it("detects trust-class strength inflation as HIGH-RISK", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutated = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    // Inflate T0's lineageDurability from WEAK to STRONG
+    const t0 = mutated.trustClasses.find((p) => p.cls === "T0");
+    if (t0 !== undefined) {
+      (t0.profile as { lineageDurability: string }).lineageDurability = "STRONG";
+    }
+    const mutations = diffSemanticSnapshots(baseline, mutated);
+    expect(mutations.some((m) => m.tag === "trust-class-strength-inflated" && m.cls === "T0")).toBe(true);
+    expect(maxEvolutionSeverity(mutations)).toBe("HIGH-RISK");
+  });
+
+  it("detects max-renewal relaxation as CRITICAL", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const baseline = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutated = JSON.parse(JSON.stringify(baseline)) as typeof baseline;
+    (mutated.overrideRules as { maxRenewals: number }).maxRenewals = 10;
+    const mutations = diffSemanticSnapshots(baseline, mutated);
+    expect(mutations.some((m) => m.tag === "max-renewal-relaxed")).toBe(true);
+    expect(maxEvolutionSeverity(mutations)).toBe("CRITICAL");
+  });
+
+  it("returns SAFE for identical snapshots", async () => {
+    const { buildSemanticSnapshot, diffSemanticSnapshots, maxEvolutionSeverity } = await import("../registry.js");
+    const a = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const b = buildSemanticSnapshot("2026-05-08T00:00:00.000Z");
+    const mutations = diffSemanticSnapshots(a, b);
+    expect(mutations).toHaveLength(0);
+    expect(maxEvolutionSeverity(mutations)).toBe("SAFE");
+  });
+});
