@@ -225,6 +225,23 @@ export {
   buildPersistenceIntegrityReport,
 } from "./tamper-evident-persistence.js";
 
+export {
+  type ReplayObservationNode,
+  type ContinuityEdgeKind,
+  type ReplayContinuityEdge,
+  type ReplayReconstructionGraph,
+  buildReplayReconstructionGraph,
+  RECONSTRUCTION_CONFIDENCE,
+  type ReconstructionConfidence,
+  type ReplaySurvivabilityScore,
+  scoreReplaySurvivability,
+  type ReconstructionLineage,
+  deriveReconstructionLineage,
+  type ReplaySurvivabilityFinding,
+  type ReplaySurvivabilityReport,
+  buildReplaySurvivabilityReport,
+} from "./replay-survivability.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

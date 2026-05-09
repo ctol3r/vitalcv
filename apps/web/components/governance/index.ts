@@ -19,3 +19,7 @@ export {
   LedgerIntegrityBanner,
   type LedgerIntegrityBannerProps,
 } from "./LedgerIntegrityBanner";
+export {
+  ReplaySurvivabilityPanel,
+  type ReplaySurvivabilityPanelProps,
+} from "./ReplaySurvivabilityPanel";

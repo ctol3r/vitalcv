@@ -130,6 +130,20 @@ jobs:
           path: governance-persistence-integrity-report.json
           retention-days: 30
 
+      - name: Run replay-survivability gate (W2-PR33A)
+        run: tsx scripts/governance/check-replay-survivability.ts
+
+      - name: Upload replay-survivability report
+        if: always()
+        run: tsx scripts/governance/check-replay-survivability.ts --json > governance-replay-survivability-report.json || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: governance-replay-survivability-report
+          path: governance-replay-survivability-report.json
+          retention-days: 30
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
