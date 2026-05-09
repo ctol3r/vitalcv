@@ -285,6 +285,16 @@ export {
   runExternalApiSelfAudit,
 } from "./external-trust-api.js";
 
+export {
+  TRUST_TRAJECTORY_TIERS,
+  type TrustTrajectoryTier,
+  type UxSummary,
+  type UxSummaryInputs,
+  deriveUxSummary,
+  type UxIntegrityViolation,
+  validateUxIntegrity,
+} from "./trust-ux.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
