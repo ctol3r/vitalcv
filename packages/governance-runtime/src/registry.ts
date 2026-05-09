@@ -264,6 +264,27 @@ export {
   buildIncidentGovernanceReport,
 } from "./incident-governance.js";
 
+export {
+  EXTERNAL_TRUST_API_VERSION,
+  type ExternalTrustApiVersion,
+  type ExternalResponseEnvelope,
+  wrapResponse,
+  type GovernanceStateExport,
+  exportGovernanceState,
+  type ReplayVerificationExport,
+  exportReplayVerification,
+  type AuditReceiptInput,
+  type AuditReceipt,
+  buildAuditReceipt,
+  type ExternalLineageManifest,
+  buildExternalLineageManifest,
+  verifyExternalLineageManifest,
+  type ApiContractError,
+  validateExternalEnvelope,
+  type ExternalApiAuditReport,
+  runExternalApiSelfAudit,
+} from "./external-trust-api.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
