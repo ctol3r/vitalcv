@@ -192,10 +192,12 @@ export function validateOrgPolicy(p: Partial<OrgGovernancePolicy>): readonly Pol
   if (typeof p.criticalOverrideMinReviewers === "number" && p.criticalOverrideMinReviewers < 2) {
     errors.push({ tag: "critical-min-reviewers-too-low", value: p.criticalOverrideMinReviewers });
   }
-  if (p.testOverrideAllowedInProduction === true) {
+  // Cast through unknown so we can detect the rule violation regardless of
+  // declared TypeScript type — callers may forge `true` at runtime.
+  if ((p.testOverrideAllowedInProduction as unknown) === true) {
     errors.push({ tag: "test-override-in-production-not-allowed" });
   }
-  if (p.ambiguitySuppressionAllowed === true) {
+  if ((p.ambiguitySuppressionAllowed as unknown) === true) {
     errors.push({ tag: "ambiguity-suppression-not-allowed" });
   }
   return errors;
