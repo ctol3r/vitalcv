@@ -179,6 +179,9 @@ jobs:
       - name: Run delegated-trust gate (W2-PR53A)
         run: tsx scripts/governance/check-delegated-trust.ts
 
+      - name: Run workflow-automation gate (W2-PR56A)
+        run: tsx scripts/governance/check-workflow-automation.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

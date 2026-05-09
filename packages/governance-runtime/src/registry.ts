@@ -385,6 +385,20 @@ export {
   buildDelegatedTrustReport,
 } from "./delegated-trust.js";
 
+export {
+  WORKFLOW_STEP_KINDS,
+  type WorkflowStepKind,
+  WORKFLOW_OUTCOMES,
+  type WorkflowOutcome,
+  type WorkflowStepReceipt,
+  type WorkflowValidationError,
+  computeStepReceiptId,
+  validateStepReceipt,
+  computeRunHash,
+  type WorkflowAutomationReport,
+  buildWorkflowAutomationReport,
+} from "./workflow-automation.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
