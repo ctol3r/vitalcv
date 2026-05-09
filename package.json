@@ -30,7 +30,8 @@
     "governance:incidents": "tsx scripts/governance/check-incident-governance.ts",
     "governance:external-api": "tsx scripts/governance/check-external-trust-api.ts",
     "governance:kernel-freeze": "tsx scripts/governance/check-kernel-freeze.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze"
+    "governance:identity-claims": "tsx scripts/governance/check-identity-claims.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims"
   },
   "devDependencies": {
     "@types/node": "^20",

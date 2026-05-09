@@ -164,6 +164,9 @@ jobs:
       - name: Run kernel-freeze gate (W2-PR41A)
         run: tsx scripts/governance/check-kernel-freeze.ts
 
+      - name: Run identity-claims gate (W2-PR43A)
+        run: tsx scripts/governance/check-identity-claims.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

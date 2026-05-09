@@ -309,6 +309,20 @@ export {
   buildKernelFreezeReport,
 } from "./kernel-freeze.js";
 
+export {
+  IDENTITY_LIFECYCLE,
+  type IdentityLifecycle,
+  IDENTITY_TRANSITIONS,
+  isAllowedIdentityTransition,
+  type IdentityClaim,
+  type IdentityValidationError,
+  computeClaimReceiptId,
+  validateIdentityClaim,
+  hasReclaimCycle,
+  type IdentityClaimReport,
+  buildIdentityClaimReport,
+} from "./identity-claim.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
