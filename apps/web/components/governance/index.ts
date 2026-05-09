@@ -23,3 +23,4 @@ export {
   ReplaySurvivabilityPanel,
   type ReplaySurvivabilityPanelProps,
 } from "./ReplaySurvivabilityPanel";
+export { IncidentBanner, type IncidentBannerProps } from "./IncidentBanner";

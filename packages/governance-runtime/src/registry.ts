@@ -242,6 +242,28 @@ export {
   buildReplaySurvivabilityReport,
 } from "./replay-survivability.js";
 
+export {
+  SEV_LEVELS,
+  type SevLevel,
+  sevSeverity,
+  maxSev,
+  INCIDENT_KINDS,
+  type IncidentKind,
+  kindSevFloor,
+  INCIDENT_LIFECYCLE_STATES,
+  type IncidentLifecycleState,
+  INCIDENT_TRANSITIONS,
+  isAllowedIncidentTransition,
+  type GovernanceIncident,
+  type IncidentValidationError,
+  validateIncident,
+  type IncidentBlastRadius,
+  computeIncidentBlastRadius,
+  type IncidentFinding,
+  type IncidentGovernanceReport,
+  buildIncidentGovernanceReport,
+} from "./incident-governance.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

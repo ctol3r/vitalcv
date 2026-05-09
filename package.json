@@ -27,7 +27,8 @@
     "governance:drift": "tsx scripts/governance/check-institutional-drift.ts",
     "governance:persistence": "tsx scripts/governance/check-persistence-integrity.ts",
     "governance:replay-survivability": "tsx scripts/governance/check-replay-survivability.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability"
+    "governance:incidents": "tsx scripts/governance/check-incident-governance.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents"
   },
   "devDependencies": {
     "@types/node": "^20",
