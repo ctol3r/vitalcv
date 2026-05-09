@@ -1,0 +1,77 @@
+name: governance-enforcement
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  trust-lexicon-scan:
+    name: Trust Lexicon Scan (CI Drift Enforcement)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+          run_install: false
+
+      - name: Install tsx (no full workspace install — fast scan)
+        run: npm install -g tsx@4
+
+      - name: Run trust-lexicon scan
+        run: tsx scripts/governance/check-trust-lexicon.ts
+
+      - name: Run trust-lexicon scan (JSON report)
+        if: always()
+        run: tsx scripts/governance/check-trust-lexicon.ts --json > trust-lexicon-report.json || true
+
+      - name: Upload trust-lexicon report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trust-lexicon-report
+          path: trust-lexicon-report.json
+          retention-days: 30
+
+  governance-runtime-tests:
+    name: Governance Runtime Tests (W2-PR17A/18A/19A/20A)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+          run_install: false
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck @vitalcv/governance-runtime
+        run: pnpm --filter @vitalcv/governance-runtime typecheck
+
+      - name: Test @vitalcv/governance-runtime
+        run: pnpm --filter @vitalcv/governance-runtime test
+
+      - name: Build @vitalcv/governance-runtime
+        run: pnpm --filter @vitalcv/governance-runtime build

@@ -40,6 +40,7 @@
     "@trustgraph/react-provider": "^1.4.0",
     "@trustgraph/react-state": "^1.6.1",
     "@vitalcv/crs": "workspace:*",
+    "@vitalcv/governance-runtime": "workspace:*",
     "@vitalcv/ingest": "workspace:*",
     "@vitalcv/issuer-sdk": "workspace:*",
     "@vitalcv/psv": "workspace:*",

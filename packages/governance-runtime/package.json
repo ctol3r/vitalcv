@@ -1,0 +1,27 @@
+{
+  "name": "@vitalcv/governance-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VitalCV constitutional governance runtime primitives. Trust classes, integrity states, replay states, containment states, override audit, fail-closed helpers. Doc-aligned with docs/ops/trust-class-taxonomy.md and docs/ops/TRUST_GUARANTEE_LEXICON.md.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "echo 'governance-runtime lint: noop (typecheck covers)'"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
