@@ -1,0 +1,50 @@
+name: Credential Lifecycle Integrity Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/src/services/credentialLifecycle/**'
+      - 'apps/api/backend/src/utils/lifecycleState.ts'
+      - 'apps/api/backend/src/services/credentialStatusEngine.ts'
+      - 'apps/api/backend/src/services/expirationForecastEngine.ts'
+      - '.github/workflows/lifecycle-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  lifecycle-integrity:
+    name: Credential lifecycle integrity tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (required for ts-jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate --schema prisma/schema.prisma
+
+      - name: Run lifecycle unit tests (pure transforms, no DB)
+        working-directory: apps/api/backend
+        run: |
+          pnpm exec jest \
+            --testPathPattern 'src/services/credentialLifecycle/__tests__' \
+            --runInBand \
+            --colors
+
+      - name: Run lifecycle chaos simulations
+        working-directory: apps/api/backend
+        run: |
+          pnpm exec jest \
+            --testPathPattern 'src/services/credentialLifecycle/__tests__/lifecycleChaos\.test\.ts' \
+            --runInBand \
+            --colors
