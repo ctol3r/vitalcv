@@ -85,6 +85,21 @@ jobs:
           path: governance-verification-report.json
           retention-days: 30
 
+      - name: Run override-discipline gate (W2-PR29A human-override integrity)
+        run: tsx scripts/governance/check-override-discipline.ts
+
+      - name: Run override-discipline gate (JSON report)
+        if: always()
+        run: tsx scripts/governance/check-override-discipline.ts --json > governance-override-discipline-report.json || true
+
+      - name: Upload override-discipline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-override-discipline-report
+          path: governance-override-discipline-report.json
+          retention-days: 30
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

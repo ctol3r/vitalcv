@@ -159,6 +159,31 @@ export {
   verifyInvariantInteractions,
 } from "./meta-verification.js";
 
+export {
+  HUMAN_OVERRIDE_KINDS,
+  type HumanOverrideKind,
+  OVERRIDE_RISK_LEVELS,
+  type OverrideRiskLevel,
+  overrideRiskSeverity,
+  type OverrideKindProfile,
+  getOverrideKindProfile,
+  parseHumanOverrideKind,
+  type HumanOverrideRecord,
+  type OverrideIntegrityError,
+  MAX_HUMAN_OVERRIDE_RENEWALS,
+  validateHumanOverride,
+  detectRecursiveOverrideChains,
+  type OverrideBlastRadius,
+  computeOverrideBlastRadius,
+  OVERRIDE_DECAY_STATES,
+  type OverrideDecayState,
+  type OverrideDecayResult,
+  computeOverrideDecay,
+  type OverrideDisciplineFinding,
+  type OverrideDisciplineReport,
+  buildOverrideDisciplineReport,
+} from "./override-discipline.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
