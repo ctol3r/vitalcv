@@ -447,6 +447,18 @@ export {
   buildEvidenceDurabilityReport,
 } from "./evidence-durability.js";
 
+export {
+  COMPRESSION_CONFIDENCE,
+  type CompressionConfidence,
+  type EvidenceSummary,
+  type CompressionInput,
+  buildEvidenceSummary,
+  type CompressionFinding,
+  verifyEvidenceSummary,
+  type EvidenceCompressionReport,
+  buildEvidenceCompressionReport,
+} from "./evidence-compression.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

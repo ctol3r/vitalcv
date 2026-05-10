@@ -194,6 +194,9 @@ jobs:
       - name: Run evidence-durability gate (W2-PR66A)
         run: tsx scripts/governance/check-evidence-durability.ts
 
+      - name: Run evidence-compression gate (W2-PR69A)
+        run: tsx scripts/governance/check-evidence-compression.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
