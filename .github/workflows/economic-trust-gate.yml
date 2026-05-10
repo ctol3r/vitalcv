@@ -1,0 +1,99 @@
+name: Economic Trust Gate (W2-PR60A)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/economic-trust/**'
+      - '.github/workflows/economic-trust-gate.yml'
+  pull_request:
+    paths:
+      - 'apps/api/backend/src/services/economic-trust/**'
+      - '.github/workflows/economic-trust-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  economic-trust-gate:
+    name: Economic Trust Scale + Chaos Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.6.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Pure-function module — no DATABASE_URL fetch needed; fixture-driven.
+      # We pin a synthetic DATABASE_URL only because backend's jest.setup.ts
+      # calls loadEnv(), which expects the var to be present.
+      - name: Run economic-trust scale + chaos suites
+        env:
+          DATABASE_URL: postgres://gate:gate@localhost:5432/gate_unused
+          NODE_ENV: test
+        working-directory: apps/api/backend
+        run: |
+          set -o pipefail
+          npx jest \
+            --testPathPattern="services/economic-trust" \
+            --no-coverage \
+            --colors=false \
+            2>&1 | tee /tmp/economic-trust-gate.log
+
+      - name: Extract and verify [economic-trust-board] line
+        run: |
+          set -e
+          BOARD_LINE=$(grep -E '\[economic-trust-board\]' /tmp/economic-trust-gate.log | head -1 || true)
+          if [ -z "$BOARD_LINE" ]; then
+            echo "::error::Scale test did not emit [economic-trust-board] line — gate cannot validate ROI semantics."
+            exit 1
+          fi
+          echo "Captured: $BOARD_LINE"
+          echo "$BOARD_LINE" | sed 's/.*\[economic-trust-board\] //' > /tmp/board.json
+          # Fail the gate if the verdict is FAIL_CLOSED or INCONCLUSIVE on the
+          # clean 1000-replay synthetic baseline. Either is a structural regression.
+          VERDICT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('/tmp/board.json','utf8')).verdict)")
+          echo "Verdict: $VERDICT"
+          case "$VERDICT" in
+            PROVEN|PROBABLE)
+              echo "::notice::Economic trust gate verdict: $VERDICT"
+              ;;
+            *)
+              echo "::error::Economic trust gate verdict $VERDICT on clean baseline — regression."
+              exit 1
+              ;;
+          esac
+          # Verify ambiguity is preserved: low < high on operationalSavings.
+          node -e "
+            const b = JSON.parse(require('fs').readFileSync('/tmp/board.json','utf8'));
+            if (b.savingsLowUsd >= b.savingsHighUsd) {
+              console.error('::error::Operational savings range collapsed (low >= high). Gate failing closed.');
+              process.exit(1);
+            }
+            if (b.savingsConfidence > 1 || b.savingsConfidence < 0) {
+              console.error('::error::Confidence out of [0,1].');
+              process.exit(1);
+            }
+          "
+
+      - name: Upload board artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: economic-trust-board
+          path: |
+            /tmp/board.json
+            /tmp/economic-trust-gate.log
+          retention-days: 30
