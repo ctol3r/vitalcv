@@ -200,6 +200,9 @@ jobs:
       - name: Run constitutional-convergence gate (W2-PR72A capstone)
         run: tsx scripts/governance/check-constitutional-convergence.ts
 
+      - name: Run replay-cognition gate (W2-PR73A)
+        run: tsx scripts/governance/check-replay-cognition.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

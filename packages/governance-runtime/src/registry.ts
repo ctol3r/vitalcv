@@ -468,6 +468,17 @@ export {
   synthesizeConstitutionalIntegrity,
 } from "./constitutional-convergence.js";
 
+export {
+  REPLAY_ABSTRACTION_LEVELS,
+  type ReplayAbstractionLevel,
+  type OperatorReplayDigest,
+  buildOperatorReplayDigest,
+  type CognitionViolation,
+  validateOperatorReplayDigest,
+  type ReplayCognitionReport,
+  buildReplayCognitionReport,
+} from "./replay-cognition.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

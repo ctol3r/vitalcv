@@ -42,7 +42,8 @@
     "governance:durability": "tsx scripts/governance/check-evidence-durability.ts",
     "governance:compression": "tsx scripts/governance/check-evidence-compression.ts",
     "governance:convergence": "tsx scripts/governance/check-constitutional-convergence.ts",
-    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel && pnpm governance:delegated-trust && pnpm governance:workflow-automation && pnpm governance:distributed && pnpm governance:ecosystem && pnpm governance:revocation && pnpm governance:durability && pnpm governance:compression && pnpm governance:convergence"
+    "governance:cognition": "tsx scripts/governance/check-replay-cognition.ts",
+    "governance:check": "pnpm governance:lexicon && pnpm governance:adoption && pnpm governance:diff && pnpm governance:verify && pnpm governance:meta && pnpm governance:overrides && pnpm governance:drift && pnpm governance:persistence && pnpm governance:replay-survivability && pnpm governance:incidents && pnpm governance:external-api && pnpm governance:kernel-freeze && pnpm governance:identity-claims && pnpm governance:verifier-workspace && pnpm governance:enterprise-admin && pnpm governance:pilot-intel && pnpm governance:delegated-trust && pnpm governance:workflow-automation && pnpm governance:distributed && pnpm governance:ecosystem && pnpm governance:revocation && pnpm governance:durability && pnpm governance:compression && pnpm governance:convergence && pnpm governance:cognition"
   },
   "devDependencies": {
     "@types/node": "^20",
