@@ -562,6 +562,36 @@ export {
   buildProductionSnapshotReport,
 } from "./production-snapshot.js";
 
+export {
+  DEPLOYMENT_EVENT_KINDS,
+  type DeploymentEventKind,
+  type DeploymentEvent,
+  type DeploymentTelemetryViolation,
+  computeDeploymentEventId,
+  validateDeploymentEvent,
+  type DeploymentAnomaly,
+  type DeploymentTelemetryReport,
+  buildDeploymentTelemetryReport,
+} from "./deployment-telemetry.js";
+
+export {
+  type SlaThresholds,
+  DEFAULT_SLA_THRESHOLDS,
+  SLA_BREACH_SEVERITY,
+  type SlaBreachSeverity,
+  type SlaBreach,
+  type SlaEnforcementReport,
+  enforceSlas,
+} from "./sla-enforcement.js";
+
+export {
+  PRODUCTIONIZATION_VERDICTS,
+  type ProductionizationVerdict,
+  type ProductionizationViolation,
+  type ProductionizationReport,
+  buildProductionizationReport,
+} from "./productionization-convergence.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
