@@ -1,0 +1,232 @@
+name: SAFE Audit Convergence Gate (W2-PR124A)
+
+# Blocks merge if any SAFE audit convergence invariant fails.
+# Required checks:
+#   - safe-convergence-ci-gate   (structural CI gate tests)
+#   - safe-chaos-sim             (chaos simulation suite)
+#   - safe-overclaim-scan        (banned-string scan on new audit files)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/src/services/audit/**'
+      - '.github/workflows/safe-audit-convergence-gate.yml'
+
+jobs:
+  safe-convergence-ci-gate:
+    name: SAFE Convergence CI Gate (GATE-1 through GATE-10)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run SAFE convergence CI gate tests
+        run: |
+          pnpm --filter chai-vc-platform-backend exec \
+            jest src/services/audit/__tests__/safeConvergence.ci.gate.test.ts \
+            --verbose
+        env:
+          NODE_ENV: test
+
+      - name: Upload gate test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-convergence-gate-results
+          path: apps/api/backend/test-results/
+          retention-days: 14
+
+  safe-chaos-sim:
+    name: SAFE Chaos Simulation Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run SAFE chaos simulation tests
+        run: |
+          pnpm --filter chai-vc-platform-backend exec \
+            jest src/services/audit/__tests__/safeChaosSim.test.ts \
+            --verbose
+        env:
+          NODE_ENV: test
+
+      - name: Upload chaos sim results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-chaos-sim-results
+          path: apps/api/backend/test-results/
+          retention-days: 14
+
+  safe-overclaim-scan:
+    name: SAFE Audit Overclaim Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan new audit files for banned strings
+        run: |
+          BANNED=(
+            "automatically verified"
+            "guaranteed verification"
+            "complete credentialing"
+            "instant credentialing"
+            "legally accepted"
+            "risk transferred"
+            "HIPAA compliant"
+            "SOC2 certified"
+            "certified compliant"
+            "final verification without review"
+            "source confirmed before response"
+          )
+
+          FOUND=0
+          for TERM in "${BANNED[@]}"; do
+            HITS=$(grep -rIn --include="*.ts" "$TERM" \
+              apps/api/backend/src/services/audit/ 2>/dev/null | \
+              grep -v "\.test\." | grep -v "__tests__" || true)
+            if [ -n "$HITS" ]; then
+              echo "BANNED STRING FOUND: '$TERM'"
+              echo "$HITS"
+              FOUND=1
+            fi
+          done
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo ""
+            echo "FAIL: Banned strings detected in SAFE audit services."
+            echo "Remove overclaiming copy before merging."
+            exit 1
+          fi
+
+          echo "CLEAN: No banned strings detected in SAFE audit services."
+
+      - name: Verify ambiguityPreserved is never set to false in service code
+        run: |
+          HITS=$(grep -rIn "ambiguityPreserved.*false\|false.*ambiguityPreserved" \
+            apps/api/backend/src/services/audit/ 2>/dev/null | \
+            grep -v "\.test\." | grep -v "__tests__" || true)
+
+          if [ -n "$HITS" ]; then
+            echo "FAIL: ambiguityPreserved is being set to false in service code."
+            echo "The SAFE adapter must always set ambiguityPreserved: true."
+            echo "$HITS"
+            exit 1
+          fi
+          echo "CLEAN: ambiguityPreserved is not hardcoded to false in service code."
+
+      - name: Verify SENTINEL class is used for structural gaps (not silent omission)
+        run: |
+          # Ensure safeClass SENTINEL appears in safeAuditAdapters (confirms fail-closed path exists)
+          if ! grep -q "SENTINEL" apps/api/backend/src/services/audit/safeAuditAdapters.ts; then
+            echo "FAIL: SENTINEL safeClass is missing from safeAuditAdapters.ts"
+            echo "Fail-closed sentinel path must be implemented."
+            exit 1
+          fi
+          echo "CLEAN: SENTINEL safeClass present in safeAuditAdapters."
+
+  safe-audit-survivability-threshold:
+    name: SAFE Audit Maturity Baseline Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [safe-convergence-ci-gate, safe-chaos-sim]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify survivability scorer covers all 6 dimensions
+        run: |
+          DIMS=(
+            "REPLAY_INTEGRITY"
+            "EVIDENCE_CONTINUITY"
+            "LINEAGE_RECONSTRUCTABILITY"
+            "AMBIGUITY_SATURATION"
+            "TEMPORAL_COVERAGE"
+            "INSTITUTIONAL_READINESS"
+          )
+
+          MISSING=0
+          for DIM in "${DIMS[@]}"; do
+            if ! grep -q "$DIM" apps/api/backend/src/services/audit/auditSurvivabilityScorer.ts; then
+              echo "MISSING DIMENSION: $DIM"
+              MISSING=1
+            fi
+          done
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "FAIL: One or more required survivability dimensions are missing."
+            exit 1
+          fi
+          echo "CLEAN: All 6 required survivability dimensions present."
+
+      - name: Verify SAFE maturity levels are complete
+        run: |
+          LEVELS=("L0_NONE" "L1_BASIC" "L2_STRUCTURED" "L3_VERIFIABLE" "L4_AUDITABLE")
+          MISSING=0
+          for LEVEL in "${LEVELS[@]}"; do
+            if ! grep -q "$LEVEL" apps/api/backend/src/services/audit/auditSurvivabilityScorer.ts; then
+              echo "MISSING MATURITY LEVEL: $LEVEL"
+              MISSING=1
+            fi
+          done
+          if [ "$MISSING" -eq 1 ]; then
+            echo "FAIL: SAFE maturity levels incomplete."
+            exit 1
+          fi
+          echo "CLEAN: All 5 SAFE maturity levels present (L0–L4)."
+
+      - name: Verify lineage manifest schema constant is stable
+        run: |
+          EXPECTED="vitalcv.audit-lineage-manifest/v1"
+          FOUND=$(grep -o "vitalcv.audit-lineage-manifest/v[0-9]*" \
+            apps/api/backend/src/services/audit/auditLineageManifest.ts | head -1)
+          if [ "$FOUND" != "$EXPECTED" ]; then
+            echo "FAIL: Lineage manifest schema changed without updating CI gate."
+            echo "Expected: $EXPECTED"
+            echo "Found: $FOUND"
+            exit 1
+          fi
+          echo "CLEAN: Lineage manifest schema matches expected value."
+
+      - name: Verify institutional package schema constant is stable
+        run: |
+          EXPECTED="vitalcv.institutional-evidence-package/v1"
+          FOUND=$(grep -o "vitalcv.institutional-evidence-package/v[0-9]*" \
+            apps/api/backend/src/services/audit/institutionalEvidencePackager.ts | head -1)
+          if [ "$FOUND" != "$EXPECTED" ]; then
+            echo "FAIL: Institutional package schema changed without updating CI gate."
+            echo "Expected: $EXPECTED"
+            echo "Found: $FOUND"
+            exit 1
+          fi
+          echo "CLEAN: Institutional package schema matches expected value."
