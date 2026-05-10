@@ -209,6 +209,9 @@ jobs:
       - name: Run five-wave bundle gate (W2-PR79A/82A/83A/86A/89A)
         run: tsx scripts/governance/check-five-wave-bundle.ts
 
+      - name: Run deployment-reality gate (W2-PR92A meta-capstone)
+        run: tsx scripts/governance/check-deployment-reality.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

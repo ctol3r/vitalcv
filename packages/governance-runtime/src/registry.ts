@@ -536,6 +536,14 @@ export {
   buildExceptionGovernanceReport,
 } from "./exception-governance.js";
 
+export {
+  DEPLOYMENT_VERDICTS,
+  type DeploymentVerdict,
+  type DeploymentRealityViolation,
+  type DeploymentRealityReport,
+  buildDeploymentRealityReport,
+} from "./deployment-reality.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
