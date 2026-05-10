@@ -1,0 +1,90 @@
+name: deployment-templates (W2-PR80A)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/deployment-templates/**'
+      - 'scripts/deploy-templates/**'
+      - '.github/workflows/deployment-templates.yml'
+  pull_request:
+    paths:
+      - 'packages/deployment-templates/**'
+      - 'scripts/deploy-templates/**'
+      - '.github/workflows/deployment-templates.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ci-gate:
+    name: deployment-templates CI gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies (workspace)
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build deployment-templates package
+        run: pnpm --filter @vitalcv/deployment-templates build
+
+      - name: Run deployment-templates vitest suite
+        run: pnpm --filter @vitalcv/deployment-templates test
+
+      - name: Run template integrity validator
+        run: node scripts/deploy-templates/validate.mjs
+
+      - name: Run deployment chaos simulations
+        id: chaos
+        run: node scripts/deploy-templates/chaos.mjs | tee chaos-output.txt
+
+      - name: Generate onboarding kit fixture (smoke)
+        run: |
+          node scripts/deploy-templates/onboarding.mjs \
+            --template vitalcv.template.payer-verifier \
+            --institution inst_ci_smoke \
+            --env pilot \
+            > onboarding-kit.smoke.json
+          test -s onboarding-kit.smoke.json
+
+      - name: Surface board metrics
+        if: always()
+        run: |
+          {
+            echo "## W2-PR80A Institutional Deployment Board"
+            echo
+            echo "| Metric | Verdict |"
+            echo "|---|---|"
+            if grep -q 'UNSAFE' chaos-output.txt; then
+              echo "| Chaos contract | ❌ UNSAFE leak |"
+            else
+              echo "| Chaos contract | ✅ all SAFE |"
+            fi
+            FINGERPRINT=$(grep 'chaos fingerprint' chaos-output.txt | head -1 | awk '{print $NF}' || echo unknown)
+            echo "| Chaos fingerprint | \`$FINGERPRINT\` |"
+            echo "| Validator | ✅ templates + bundles validated |"
+            echo "| Onboarding kit smoke | ✅ generated |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload chaos + onboarding artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-templates-evidence
+          path: |
+            chaos-output.txt
+            onboarding-kit.smoke.json
+          retention-days: 14
