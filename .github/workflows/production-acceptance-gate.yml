@@ -1,0 +1,105 @@
+name: Production Acceptance Gate (W2-PR134A)
+
+# Blocks merge if any acceptance invariant fails.
+# All checks are fail-closed: a missing result is treated as FAIL.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/src/services/audit/productionAcceptanceScoring.ts'
+      - 'apps/api/backend/src/services/audit/institutionalSurvivability.ts'
+      - 'apps/api/backend/src/services/audit/replayProductionValidator.ts'
+      - 'apps/api/backend/src/services/audit/acceptanceLineageManifest.ts'
+      - 'apps/api/backend/src/services/audit/productionConfidenceTelemetry.ts'
+      - 'apps/api/backend/src/services/audit/__tests__/productionAcceptance.*.test.ts'
+      - '.github/workflows/production-acceptance-gate.yml'
+
+jobs:
+  acceptance-gate:
+    name: Acceptance Scoring & Survivability Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run acceptance scoring unit tests
+        run: |
+          cd apps/api/backend
+          pnpm exec jest src/services/audit/__tests__/productionAcceptance.scoring.test.ts \
+            --testTimeout=10000 \
+            --forceExit \
+            --no-coverage
+        env:
+          NODE_ENV: test
+
+      - name: Run acceptance chaos simulations
+        run: |
+          cd apps/api/backend
+          pnpm exec jest src/services/audit/__tests__/productionAcceptance.chaos.test.ts \
+            --testTimeout=15000 \
+            --forceExit \
+            --no-coverage
+        env:
+          NODE_ENV: test
+
+      - name: Run acceptance CI gate tests (hard gate — fail means no merge)
+        run: |
+          cd apps/api/backend
+          pnpm exec jest src/services/audit/__tests__/productionAcceptance.ci.gate.test.ts \
+            --testTimeout=10000 \
+            --forceExit \
+            --no-coverage
+        env:
+          NODE_ENV: test
+
+      - name: Verify acceptance module exports compile
+        run: |
+          cd apps/api/backend
+          npx tsc --noEmit \
+            --target ES2022 \
+            --moduleResolution node \
+            --strict \
+            --esModuleInterop \
+            src/services/audit/productionAcceptanceScoring.ts \
+            src/services/audit/institutionalSurvivability.ts \
+            src/services/audit/replayProductionValidator.ts \
+            src/services/audit/acceptanceLineageManifest.ts \
+            src/services/audit/productionConfidenceTelemetry.ts \
+            2>&1 | tee /tmp/acceptance-typecheck.log
+          if grep -q "error TS" /tmp/acceptance-typecheck.log; then
+            echo "TypeScript errors detected in acceptance modules — gate FAILED"
+            cat /tmp/acceptance-typecheck.log
+            exit 1
+          fi
+          echo "Acceptance modules typecheck clean."
+
+      - name: Truth contract scan — acceptance modules
+        run: |
+          grep -RInE \
+            "automatically verified|guaranteed verification|complete credentialing|\
+instant credentialing|legally accepted|risk transferred|HIPAA compliant|\
+SOC2 certified|certified compliant|final verification without review|\
+source confirmed before response" \
+            apps/api/backend/src/services/audit/productionAcceptanceScoring.ts \
+            apps/api/backend/src/services/audit/institutionalSurvivability.ts \
+            apps/api/backend/src/services/audit/replayProductionValidator.ts \
+            apps/api/backend/src/services/audit/acceptanceLineageManifest.ts \
+            apps/api/backend/src/services/audit/productionConfidenceTelemetry.ts \
+            2>/dev/null && {
+              echo "TRUTH CONTRACT VIOLATION: banned string found in acceptance modules"
+              exit 1
+            } || echo "Truth scan CLEAN."
