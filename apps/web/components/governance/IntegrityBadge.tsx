@@ -19,6 +19,7 @@
  * @vitalcv/governance-runtime registry; no local literals.
  */
 
+import * as React from "react";
 import {
   type IntegrityState,
   failClosedIntegrity,
@@ -64,7 +65,7 @@ function styleForState(state: IntegrityState): {
   }
 }
 
-export function IntegrityBadge(props: IntegrityBadgeProps): JSX.Element {
+export function IntegrityBadge(props: IntegrityBadgeProps): React.ReactElement {
   const state = failClosedIntegrity(props.state);
   const style = styleForState(state);
   const description = integrityStateDescription(state);

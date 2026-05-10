@@ -14,6 +14,8 @@
  * which may be absent / stale / unavailable.
  */
 
+import * as React from "react";
+
 export interface UnknownStateBannerProps {
   /** Why telemetry is absent (operator-readable). */
   readonly reason: string;
@@ -31,7 +33,7 @@ const AXIS_LABEL: Readonly<Record<NonNullable<UnknownStateBannerProps["axis"]>, 
   "trust-class": "Trust-class assignment",
 });
 
-export function UnknownStateBanner(props: UnknownStateBannerProps): JSX.Element {
+export function UnknownStateBanner(props: UnknownStateBannerProps): React.ReactElement {
   const axisLabel = props.axis != null ? AXIS_LABEL[props.axis] : "Telemetry";
 
   return (

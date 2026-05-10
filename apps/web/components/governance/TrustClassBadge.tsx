@@ -11,6 +11,7 @@
  * NEVER silently maps to C-1 or any other class.
  */
 
+import * as React from "react";
 import {
   type TrustClass,
   failClosedTrustClass,
@@ -40,7 +41,7 @@ function styleForClass(cls: TrustClass): { readonly emoji: string; readonly labe
   }
 }
 
-export function TrustClassBadge(props: TrustClassBadgeProps): JSX.Element {
+export function TrustClassBadge(props: TrustClassBadgeProps): React.ReactElement {
   const cls = failClosedTrustClass(props.trustClass);
 
   if (cls === null) {

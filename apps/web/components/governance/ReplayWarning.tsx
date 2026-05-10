@@ -15,6 +15,7 @@
  * are FORBIDDEN. This component uses ONLY allowed wording.
  */
 
+import * as React from "react";
 import {
   type ReplayState,
   failClosedReplayState,
@@ -59,7 +60,7 @@ const PREVENTION_DISCLAIMER =
 const FORENSIC_CAUTION =
   "Cross-actor replay (stolen JWT) and long-window replay (>24h) are NOT defended.";
 
-export function ReplayWarning(props: ReplayWarningProps): JSX.Element {
+export function ReplayWarning(props: ReplayWarningProps): React.ReactElement {
   const mode = props.mode ?? "full";
   const state = failClosedReplayState(props.currentState ?? null);
   const pill = statePill(state);
