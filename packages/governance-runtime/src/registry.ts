@@ -544,6 +544,24 @@ export {
   buildDeploymentRealityReport,
 } from "./deployment-reality.js";
 
+export {
+  ROOT_PRODUCTION_PARENT,
+  type ProductionSnapshot,
+  type SnapshotChain,
+  emptySnapshotChain,
+  computeProductionSnapshotId,
+  buildProductionSnapshot,
+  appendProductionSnapshot,
+  findRestorationCheckpoint,
+  type SnapshotDrift,
+  detectSnapshotDrift,
+  type RestorationPlan,
+  planRestoration,
+  type SnapshotChainViolation,
+  type ProductionSnapshotReport,
+  buildProductionSnapshotReport,
+} from "./production-snapshot.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

@@ -212,6 +212,9 @@ jobs:
       - name: Run deployment-reality gate (W2-PR92A meta-capstone)
         run: tsx scripts/governance/check-deployment-reality.ts
 
+      - name: Run production-snapshot gate (W2-PR103A)
+        run: tsx scripts/governance/check-production-snapshot.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
