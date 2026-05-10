@@ -607,6 +607,45 @@ export {
   buildReplayLoadReport,
 } from "./replay-load.js";
 
+export {
+  DRILL_OUTCOMES,
+  type DrillOutcome,
+  type RecoveryDrill,
+  type DrillExecutionInput,
+  executeRecoveryDrill,
+  type RecoveryDrillReport,
+  buildRecoveryDrillReport,
+} from "./recovery-drills.js";
+
+export {
+  BURNOUT_TIERS,
+  type BurnoutTier,
+  type OperatorActivity,
+  type OperatorHealthScore,
+  deriveOperatorHealth,
+  type BurnoutProtectionReport,
+  buildBurnoutProtectionReport,
+} from "./operator-burnout.js";
+
+export {
+  REPUTATION_TIERS,
+  type ReputationTier,
+  type ReputationLineage,
+  type TrustReputation,
+  type ReputationInput,
+  deriveTrustReputation,
+  type TrustReputationReport,
+  buildTrustReputationReport,
+} from "./trust-reputation.js";
+
+export {
+  PMF_FINALIZATION_VERDICTS,
+  type PmfFinalizationVerdict,
+  type PmfFinalizationViolation,
+  type PmfFinalizationReport,
+  buildPmfFinalizationReport,
+} from "./pmf-finalization.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
