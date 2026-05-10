@@ -1,0 +1,54 @@
+name: Human-AI Integrity Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/src/services/humanAiIntegrity/**'
+      - 'apps/api/backend/src/types/auditEventTypes.ts'
+      - 'docs/ops/human-ai-integrity-governance.md'
+      - '.github/workflows/human-ai-integrity-gate.yml'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  human-ai-integrity:
+    name: Human-AI integrity invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The humanAiIntegrity service is a pure transform module — no DB
+      # required. Run jest directly with a path filter so we don't pull in
+      # the DB-backed test harness for these invariants.
+      - name: Run human-AI integrity test suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          YC_DEMO_MODE: 'false'
+          DATABASE_URL: 'postgresql://stub:stub@localhost:5432/stub_for_pure_transform_tests'
+        run: |
+          pnpm exec jest \
+            --testPathPattern 'services/humanAiIntegrity/__tests__/.*\.test\.ts$' \
+            --runInBand \
+            --colors
+
+      - name: Typecheck humanAiIntegrity module
+        working-directory: apps/api/backend
+        run: |
+          pnpm exec tsc --noEmit \
+            -p tsconfig.json \
+            2>&1 | tee tsc.log
+          if grep -E "src/services/humanAiIntegrity/" tsc.log >/dev/null; then
+            echo "::error::Type errors detected inside humanAiIntegrity module"
+            grep -E "src/services/humanAiIntegrity/" tsc.log || true
+            exit 1
+          fi

@@ -56,6 +56,18 @@ export type ResearchEventType =
   | 'RESEARCH_SCORE_COMPUTED'
   | 'RESEARCH_DISCLOSURE_UPDATED';
 
+// ── Human-AI integrity (W2-PR57A) ────────────────────────────
+// Additive lineage events. Every AI recommendation that influences a human
+// decision MUST emit at least an EMITTED + a resolution event.
+export type HumanAiIntegrityEventType =
+  | 'AI_RECOMMENDATION_EMITTED'
+  | 'AI_RECOMMENDATION_DISPLAYED'
+  | 'AI_RECOMMENDATION_OVERRIDDEN'
+  | 'AI_RECOMMENDATION_ACCEPTED'
+  | 'AI_RECOMMENDATION_DEFERRED'
+  | 'REVIEWER_CONFIDENCE_RECORDED'
+  | 'AUTOMATION_BIAS_FINDING_RAISED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -64,4 +76,5 @@ export type AuditEventType =
   | EmployerReviewEventType
   | TrustChainEventType
   | OperationalEventType
-  | ResearchEventType;
+  | ResearchEventType
+  | HumanAiIntegrityEventType;
