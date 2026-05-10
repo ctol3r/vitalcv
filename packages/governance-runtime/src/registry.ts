@@ -431,6 +431,22 @@ export {
   buildRevocationCascadeReport,
 } from "./revocation-cascade.js";
 
+export {
+  ARCHIVAL_SCHEMA_VERSION,
+  type ArchivalSchemaVersion,
+  type MigrationStep,
+  type ArchivedEpochEnvelope,
+  type MigrationRecipe,
+  MIGRATION_RECIPES,
+  lookupRecipe,
+  buildArchivalEnvelope,
+  type DurabilityFinding,
+  verifyArchivalEnvelope,
+  replayMigrationLineage,
+  type EvidenceDurabilityReport,
+  buildEvidenceDurabilityReport,
+} from "./evidence-durability.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *

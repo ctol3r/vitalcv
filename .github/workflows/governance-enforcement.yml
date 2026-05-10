@@ -191,6 +191,9 @@ jobs:
       - name: Run revocation-cascade gate (W2-PR63A)
         run: tsx scripts/governance/check-revocation-cascade.ts
 
+      - name: Run evidence-durability gate (W2-PR66A)
+        run: tsx scripts/governance/check-evidence-durability.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
