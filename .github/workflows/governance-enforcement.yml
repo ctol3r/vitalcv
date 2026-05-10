@@ -221,6 +221,9 @@ jobs:
       - name: Run replay-load gate (W2-PR113A)
         run: tsx scripts/governance/check-replay-load.ts
 
+      - name: Run final bundle gate (W2-PR116A/119A/121A/122A)
+        run: tsx scripts/governance/check-final-bundle.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 
