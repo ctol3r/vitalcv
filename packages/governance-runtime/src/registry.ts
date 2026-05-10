@@ -493,6 +493,49 @@ export {
   buildReplaySearchReport,
 } from "./replay-search.js";
 
+export {
+  type SurfaceObservation,
+  type UxConsistencyViolation,
+  type UxConsistencyReport,
+  validateUxConsistency,
+} from "./ux-consistency.js";
+
+export {
+  PMF_TIERS,
+  type PmfTier,
+  type PmfReadinessReport,
+  buildPmfReadinessReport,
+} from "./pmf-compression.js";
+
+export {
+  SURFACE_MESSAGE_KINDS,
+  type SurfaceMessageKind,
+  type SurfaceMessage,
+  type CognitiveSafetyViolation,
+  type VerifierCognitiveSafetyReport,
+  validateVerifierCognitiveSafety,
+} from "./verifier-cognitive-safety.js";
+
+export {
+  ACTIVATION_TIERS,
+  type ActivationTier,
+  type SubjectActivation,
+  deriveSubjectActivations,
+  type PilotAccelerationReport,
+  buildPilotAccelerationReport,
+} from "./pilot-acceleration.js";
+
+export {
+  EXCEPTION_LIFECYCLE,
+  type ExceptionLifecycle,
+  type ExceptionApplication,
+  type ExceptionViolation,
+  computeExceptionReceiptId,
+  validateExceptionApplication,
+  type ExceptionGovernanceReport,
+  buildExceptionGovernanceReport,
+} from "./exception-governance.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
