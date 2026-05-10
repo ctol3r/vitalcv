@@ -203,6 +203,9 @@ jobs:
       - name: Run replay-cognition gate (W2-PR73A)
         run: tsx scripts/governance/check-replay-cognition.ts
 
+      - name: Run replay-search gate (W2-PR76A)
+        run: tsx scripts/governance/check-replay-search.ts
+
       - name: Run meta-verification (W2-PR27A blind-spot detection)
         run: tsx scripts/governance/meta-verify.ts
 

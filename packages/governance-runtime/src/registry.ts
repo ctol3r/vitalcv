@@ -479,6 +479,20 @@ export {
   buildReplayCognitionReport,
 } from "./replay-cognition.js";
 
+export {
+  type ReplaySearchIndex,
+  type IndexEntry,
+  buildReplaySearchIndex,
+  type ReplaySearchQuery,
+  type ReplaySearchResult,
+  searchReplay,
+  type SearchViolation,
+  verifySearchResult,
+  verifyReplaySearchIndex,
+  type ReplaySearchReport,
+  buildReplaySearchReport,
+} from "./replay-search.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
