@@ -1,0 +1,92 @@
+name: Simplicity CI Gate — W2-PR127A
+
+on:
+  push:
+    branches:
+      - main
+      - 'w2-pr127a/**'
+      - 'wave-*/simplicity*'
+  pull_request:
+    paths:
+      - 'apps/api/backend/src/services/simplicity/**'
+      - 'apps/api/backend/src/services/audit/replayEngine.ts'
+      - 'apps/api/backend/src/services/entity/employerReviewActions.ts'
+      - 'apps/api/backend/src/routes/employerActions.ts'
+
+jobs:
+  simplicity-chaos-gate:
+    name: Simplicity Chaos Simulations
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Run simplicity chaos simulations
+        run: pnpm exec vitest run src/services/simplicity/__tests__/simplicityChaosSimulations.test.ts
+
+      - name: Assert chaos suite passed (fail-closed)
+        if: failure()
+        run: |
+          echo "::error::Simplicity chaos simulations failed — simplicity regressions are not allowed to merge."
+          exit 1
+
+  simplicity-drift-check:
+    name: Simplicity Drift Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check simplicity module imports remain self-contained
+        run: |
+          # No simplicity module may import from product routes — they are pure transforms
+          if grep -r "from '../../routes" apps/api/backend/src/services/simplicity/ 2>/dev/null; then
+            echo "::error::Simplicity service imports product routes — architectural violation."
+            exit 1
+          fi
+          echo "Simplicity module boundary: OK"
+
+      - name: Check banned strings absent from simplicity modules
+        run: |
+          BANNED="automatically verified|guaranteed verification|complete credentialing|instant credentialing|legally accepted|risk transferred|HIPAA compliant|SOC2 certified|certified compliant|final verification without review"
+          if grep -rEin "$BANNED" apps/api/backend/src/services/simplicity/ 2>/dev/null; then
+            echo "::error::Banned truth-contract string found in simplicity module."
+            exit 1
+          fi
+          echo "Truth contract scan: CLEAN"
+
+      - name: Check ambiguity-preservation invariant (never flatten ambiguity)
+        run: |
+          # The simplicity layer must never set ambiguityPreserved=false explicitly
+          if grep -rn "ambiguityPreserved.*false" apps/api/backend/src/services/simplicity/ 2>/dev/null; then
+            echo "::error::Ambiguity preservation explicitly set to false — invariant violated."
+            exit 1
+          fi
+          echo "Ambiguity preservation invariant: OK"
+
+      - name: Verify simplicity scoring has no placeholder values
+        run: |
+          if grep -rEn "TBD|N/A|Keep current|Mixed baseline|Need board lookup" apps/api/backend/src/services/simplicity/ 2>/dev/null; then
+            echo "::error::Placeholder value found in simplicity scoring module."
+            exit 1
+          fi
+          echo "Placeholder scan: CLEAN"
