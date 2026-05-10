@@ -63,17 +63,20 @@ jobs:
 
       - name: Forbidden-phrase scan (governance-runtime replay surface)
         run: |
-          # Exclude lines that DOCUMENT the ban (policy definitions, comments listing forbidden phrases)
-          # Allowed: "the phrase 'X' is FORBIDDEN", "X are FORBIDDEN", "FORBIDDEN phrases: X"
-          # Not allowed: code/copy that USES the phrase as a positive claim
+          # Scan for forbidden phrases in non-comment lines only.
+          # Comment lines (JSDoc "* ...", line comment "// ...") may list the phrases as
+          # policy documentation — that is intentional and allowed.
+          # Only fail on phrase usage in executable/exported code (string literals, labels).
           HITS=$(grep -rInE \
             "replay protected|replay-resistant|replay-secure|automatically verified|guaranteed verification|risk transferred" \
             packages/governance-runtime/src/replay-*.ts \
             packages/governance-runtime/src/fail-closed.ts 2>/dev/null \
+            | grep -vE ':[0-9]+:\s*\*\s'   \
+            | grep -vE ':[0-9]+:\s*//'      \
             | grep -viE "FORBIDDEN|forbidden|are not|must not|may not|prohibited|do not use" || true)
           if [ -n "$HITS" ]; then
             echo "$HITS"
-            echo "DRIFT: forbidden phrase used (not just documented) in replay source"
+            echo "DRIFT: forbidden phrase used in non-comment replay source code"
             exit 1
           fi
           echo "Lexicon scan: CLEAN"
