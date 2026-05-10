@@ -592,6 +592,21 @@ export {
   buildProductionizationReport,
 } from "./productionization-convergence.js";
 
+export {
+  type OrgWorkload,
+  type SystemCapacity,
+  type OrgLoadResult,
+  SATURATION_LEVELS,
+  type SaturationLevel,
+  type ReplayLoadSimulation,
+  simulateReplayLoad,
+  type ContentionMap,
+  deriveContentionMap,
+  type ReplayLoadFinding,
+  type ReplayLoadReport,
+  buildReplayLoadReport,
+} from "./replay-load.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
