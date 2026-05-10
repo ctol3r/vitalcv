@@ -459,6 +459,15 @@ export {
   buildEvidenceCompressionReport,
 } from "./evidence-compression.js";
 
+export {
+  CONSTITUTIONAL_VERDICTS,
+  type ConstitutionalVerdict,
+  type CrossWaveInvariantViolation,
+  type ConstitutionalConvergenceInput,
+  type ConstitutionalConvergenceReport,
+  synthesizeConstitutionalIntegrity,
+} from "./constitutional-convergence.js";
+
 /**
  * Lexicon-forbidden phrases per docs/ops/TRUST_GUARANTEE_LEXICON.md §1.
  *
