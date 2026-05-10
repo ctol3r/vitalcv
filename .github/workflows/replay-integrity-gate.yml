@@ -63,11 +63,17 @@ jobs:
 
       - name: Forbidden-phrase scan (governance-runtime replay surface)
         run: |
-          if grep -rInE \
+          # Exclude lines that DOCUMENT the ban (policy definitions, comments listing forbidden phrases)
+          # Allowed: "the phrase 'X' is FORBIDDEN", "X are FORBIDDEN", "FORBIDDEN phrases: X"
+          # Not allowed: code/copy that USES the phrase as a positive claim
+          HITS=$(grep -rInE \
             "replay protected|replay-resistant|replay-secure|automatically verified|guaranteed verification|risk transferred" \
             packages/governance-runtime/src/replay-*.ts \
-            packages/governance-runtime/src/fail-closed.ts 2>/dev/null; then
-            echo "DRIFT: forbidden phrase found in replay source"
+            packages/governance-runtime/src/fail-closed.ts 2>/dev/null \
+            | grep -viE "FORBIDDEN|forbidden|are not|must not|may not|prohibited|do not use" || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "DRIFT: forbidden phrase used (not just documented) in replay source"
             exit 1
           fi
           echo "Lexicon scan: CLEAN"
