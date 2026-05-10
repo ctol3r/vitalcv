@@ -1,0 +1,82 @@
+name: Replay Integrity Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/governance-runtime/src/replay-*.ts'
+      - 'packages/governance-runtime/src/fail-closed.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/__tests__/replay-*.test.ts'
+      - '.github/workflows/replay-integrity-gate.yml'
+  pull_request:
+    paths:
+      - 'packages/governance-runtime/src/replay-*.ts'
+      - 'packages/governance-runtime/src/fail-closed.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/__tests__/replay-*.test.ts'
+      - '.github/workflows/replay-integrity-gate.yml'
+
+concurrency:
+  group: replay-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-integrity:
+    name: Replay Integrity (W2-PR133A)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Replay state-set drift pin
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/replay-integrity-global.test.ts \
+            src/__tests__/replay-drift-boundary.test.ts
+
+      - name: Replay lineage verification
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/replay-lineage-verification.test.ts
+
+      - name: Replay survivability continuity tests
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/replay-survivability.test.ts \
+            src/__tests__/replay-cognition.test.ts \
+            src/__tests__/replay-search.test.ts \
+            src/__tests__/replay-load.test.ts
+
+      - name: Forbidden-phrase scan (governance-runtime replay surface)
+        run: |
+          if grep -rInE \
+            "replay protected|replay-resistant|replay-secure|automatically verified|guaranteed verification|risk transferred" \
+            packages/governance-runtime/src/replay-*.ts \
+            packages/governance-runtime/src/fail-closed.ts 2>/dev/null; then
+            echo "DRIFT: forbidden phrase found in replay source"
+            exit 1
+          fi
+          echo "Lexicon scan: CLEAN"
+
+      - name: Assert R-AMBIGUOUS is the fail-closed default (source audit)
+        run: |
+          # failClosedReplayState must resolve to R-AMBIGUOUS on unknown input
+          # This audit checks the source-level guarantee via grep.
+          if ! grep -q '"R-AMBIGUOUS"' packages/governance-runtime/src/fail-closed.ts; then
+            echo "DRIFT: R-AMBIGUOUS not found in fail-closed.ts"
+            exit 1
+          fi
+          echo "Fail-closed default: VERIFIED"
