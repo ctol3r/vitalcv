@@ -38,7 +38,9 @@ jobs:
         working-directory: .
 
       - name: Run simplicity chaos simulations
-        run: pnpm exec vitest run src/services/simplicity/__tests__/simplicityChaosSimulations.test.ts
+        run: |
+          DATABASE_URL="postgresql://ci:ci@localhost:5432/ci" \
+            npx jest --testPathPattern="simplicityChaosSimulations" --no-coverage
 
       - name: Assert chaos suite passed (fail-closed)
         if: failure()
@@ -68,7 +70,11 @@ jobs:
       - name: Check banned strings absent from simplicity modules
         run: |
           BANNED="automatically verified|guaranteed verification|complete credentialing|instant credentialing|legally accepted|risk transferred|HIPAA compliant|SOC2 certified|certified compliant|final verification without review"
-          if grep -rEin "$BANNED" apps/api/backend/src/services/simplicity/ 2>/dev/null; then
+          # Exempt: institutionalUxHarmonizer.ts (policy-definition constant) and test assertions
+          if grep -rEin "$BANNED" apps/api/backend/src/services/simplicity/ \
+              --exclude="institutionalUxHarmonizer.ts" \
+              --exclude="simplicityChaosSimulations.test.ts" \
+              2>/dev/null; then
             echo "::error::Banned truth-contract string found in simplicity module."
             exit 1
           fi
