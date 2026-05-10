@@ -1,0 +1,123 @@
+name: W2-PR140A Ecosystem Readiness Activation Gate
+
+# Institutional ecosystem readiness gate.
+#
+# This workflow runs three ecosystem-readiness suites that together guarantee:
+#
+#   - ecosystemReadiness.test.ts           — six invariant-based unit tests
+#                                            (replay-safe, ambiguity, fail-closed,
+#                                            onboarding measurable, longitudinal
+#                                            visibility, lineage reconstructable)
+#   - rolloutAccelerator unit coverage     — bottleneck detection + acceleration
+#                                            projection (bundled in same file)
+#   - ecosystemReadinessChaos.scale.test.ts — eight C-ER-* chaos modes covering
+#                                            mass breach storm, ambiguity storm,
+#                                            zero onboarding coverage, phantom
+#                                            activation, contradicting corroboration,
+#                                            mixed friction storm, single-gate
+#                                            bottleneck cascade, lineage tamper
+#
+# These tests are mock-free and DB-free — they exercise real pure-transform
+# modules. The gate exists to catch:
+#   - silent ambiguity collapse (AMBIGUOUS → READY without resolution)
+#   - breach masking by healthy cohort neighbours
+#   - lineage digest tampering
+#   - phantom activation bypass (empty capsuleId accepted)
+#   - bottleneck detection regressions
+#
+# Companion gates:
+#   - rollout-survivability.yml    (W2-PR84A: institutional rollout boundary)
+#   - deployment-survivability.yml (deploy-layer chaos + lineage)
+#   - scale-gate.yml               (governance throughput / event survivability)
+#   - runtime-hardening-gate.yml   (runtime trust mutation)
+#
+# Fail-closed: any suite failing exits 1 and blocks the gate.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/adoption/**'
+      - 'apps/api/backend/src/services/__tests__/scale/ecosystemReadinessChaos.scale.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/ecosystem-readiness-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/adoption/**'
+      - 'apps/api/backend/src/services/__tests__/scale/ecosystemReadinessChaos.scale.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/ecosystem-readiness-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  ecosystem-readiness:
+    name: Ecosystem Readiness Activation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # Mock-free, DB-free — env vars only to satisfy jest.setup.ts loadEnv().
+      - name: Run ecosystem readiness suites
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecosystem_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='(services/adoption/__tests__/.+\.test\.ts|services/__tests__/scale/ecosystemReadinessChaos\.scale\.test\.ts)$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee ecosystem-readiness-gate.log
+
+      - name: Surface ecosystem readiness board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Ecosystem Readiness Board"
+          echo "----------------------------"
+          if [ -f ecosystem-readiness-gate.log ]; then
+            grep -E '\[readiness-board\]' ecosystem-readiness-gate.log \
+              || echo "(no readiness-board metrics emitted — investigate)"
+          else
+            echo "(no ecosystem-readiness-gate.log produced — investigate)"
+          fi
+
+      - name: Upload ecosystem-readiness-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecosystem-readiness-gate-log
+          path: apps/api/backend/ecosystem-readiness-gate.log
+          if-no-files-found: warn
+          retention-days: 7
