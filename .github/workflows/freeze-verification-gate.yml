@@ -1,0 +1,112 @@
+name: Freeze Verification Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/governance-runtime/src/kernel-freeze.ts'
+      - 'packages/governance-runtime/src/tamper-evident-persistence.ts'
+      - 'packages/governance-runtime/src/replay-state.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/integrity-state.ts'
+      - 'packages/governance-runtime/src/containment-state.ts'
+      - 'packages/governance-runtime/src/trust-class.ts'
+      - 'packages/governance-runtime/src/__tests__/runtime-freeze-validators.test.ts'
+      - 'packages/governance-runtime/src/__tests__/freeze-chaos-simulations.test.ts'
+      - 'packages/governance-runtime/src/__tests__/replay-freeze-integrity.test.ts'
+      - '.github/workflows/freeze-verification-gate.yml'
+  pull_request:
+    paths:
+      - 'packages/governance-runtime/src/kernel-freeze.ts'
+      - 'packages/governance-runtime/src/tamper-evident-persistence.ts'
+      - 'packages/governance-runtime/src/replay-state.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/integrity-state.ts'
+      - 'packages/governance-runtime/src/containment-state.ts'
+      - 'packages/governance-runtime/src/trust-class.ts'
+      - 'packages/governance-runtime/src/__tests__/runtime-freeze-validators.test.ts'
+      - 'packages/governance-runtime/src/__tests__/freeze-chaos-simulations.test.ts'
+      - 'packages/governance-runtime/src/__tests__/replay-freeze-integrity.test.ts'
+      - '.github/workflows/freeze-verification-gate.yml'
+
+concurrency:
+  group: freeze-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  freeze-verification:
+    name: Constitutional Runtime Freeze (W2-PR143A)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Runtime freeze validators (deep-freeze + mutation rejection)
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/runtime-freeze-validators.test.ts
+
+      - name: Freeze chaos simulations
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/freeze-chaos-simulations.test.ts
+
+      - name: Replay-freeze integrity
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/replay-freeze-integrity.test.ts
+
+      - name: Existing kernel-freeze unit tests
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/kernel-freeze.test.ts
+
+      - name: Existing tamper-evident-persistence tests
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/tamper-evident-persistence.test.ts
+
+      - name: GOVERNANCE_KERNEL_VERSION major-version pin (source audit)
+        run: |
+          # Verify the kernel version is still on major 1 (no accidental bump)
+          VERSION=$(grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' \
+            packages/governance-runtime/src/kernel-freeze.ts | head -1 | tr -d '"')
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          if [ "$MAJOR" != "1" ]; then
+            echo "FREEZE DRIFT: GOVERNANCE_KERNEL_VERSION major is $MAJOR (expected 1)"
+            echo "A major-version bump requires founder + Codex SAFE per the kernel update protocol."
+            exit 1
+          fi
+          echo "Kernel major version: $MAJOR — OK"
+
+      - name: R-AMBIGUOUS fail-closed default audit (source-level)
+        run: |
+          if ! grep -q '"R-AMBIGUOUS"' packages/governance-runtime/src/fail-closed.ts; then
+            echo "FREEZE DRIFT: R-AMBIGUOUS not found in fail-closed.ts — fail-closed default may have drifted"
+            exit 1
+          fi
+          echo "R-AMBIGUOUS fail-closed default: PRESENT"
+
+      - name: Forbidden freeze-bypass phrases scan
+        run: |
+          if grep -rInE \
+            "Object\.freeze.*false|skipFreeze|noFreeze|mutable kernel|unfreeze" \
+            packages/governance-runtime/src/kernel-freeze.ts \
+            packages/governance-runtime/src/tamper-evident-persistence.ts 2>/dev/null; then
+            echo "FREEZE DRIFT: potential freeze-bypass pattern detected in kernel source"
+            exit 1
+          fi
+          echo "Freeze-bypass scan: CLEAN"
