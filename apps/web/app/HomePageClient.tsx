@@ -132,7 +132,7 @@ export default function HomePageClient() {
           <div className="col-span-12 lg:col-span-7">
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)] mb-6 flex items-center gap-2">
               <span className="h-px w-6 bg-[var(--vt-border)] inline-block" aria-hidden="true" />
-              <span>Credential readiness infrastructure</span>
+              <span>Replay-anchored credential infrastructure</span>
             </div>
 
             <h1 className="text-[clamp(44px,7vw,68px)] leading-[0.98] font-semibold tracking-[-0.025em] text-[var(--vt-text-primary)]">
@@ -141,11 +141,11 @@ export default function HomePageClient() {
             </h1>
 
             <p className="mt-7 text-[17px] leading-[1.55] text-[var(--vt-text-secondary)] max-w-[640px]">
-              Enter your NPI to see a source-backed credential readiness snapshot from federal sources&nbsp;
+              Institutional credential evidence, source-checked against federal registries&nbsp;
               <span className="font-mono text-[14.5px] text-[var(--vt-text-primary)]">
                 (NPPES, OIG/LEIE, PECOS)
               </span>
-              . Know what&apos;s ready, and what&apos;s missing — before the paperwork starts.
+              {' '}and replayed on every share. What&apos;s checked is checked; what&apos;s gated stays ambiguous until evidence lands.
             </p>
 
             {/* NPI input */}
