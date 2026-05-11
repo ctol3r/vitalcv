@@ -10,6 +10,7 @@ import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
+import { ProofManifestPanel } from '@/components/proof/ProofManifestPanel';
 
 interface PassportEntityClientProps {
   entityId: string;
@@ -83,6 +84,30 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
           data-testid="passport-lane-health-mount"
         >
           <LaneHealthMount heading="Source health" />
+        </section>
+        <section
+          aria-label="Proof manifest"
+          data-testid="passport-proof-manifest-mount"
+        >
+          {/*
+            W4-PR249A — wire ProofManifestPanel into /passport/[id].
+            Consumes the panel shipped in #309. PassportData on origin/main
+            does not yet carry a `manifest` field — the backend wiring
+            (proposed W3-PR212A / W3-PR213A or a sibling) needs to attach
+            it to /api/passport/[npi]/route.ts responses. Until then,
+            the panel reads `(passport as { manifest?: unknown }).manifest`
+            which resolves to undefined, and the panel renders its
+            ambiguity-visible "manifest incomplete" state.
+
+            That is the correct fail-closed behavior: a verifier reading
+            this surface today sees "Manifest incomplete — ambiguity
+            preserved" rather than a fabricated manifest. When the
+            backend attaches a real manifest, this surface activates
+            without further wiring.
+          */}
+          <ProofManifestPanel
+            manifest={(passport as { manifest?: unknown }).manifest}
+          />
         </section>
         <section
           className="rounded-2xl border border-border bg-background/60 p-5 sm:p-6"
