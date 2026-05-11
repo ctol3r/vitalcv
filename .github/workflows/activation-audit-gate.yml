@@ -1,0 +1,122 @@
+name: Activation Audit Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/governance-runtime/src/coherence.ts'
+      - 'packages/governance-runtime/src/meta-verification.ts'
+      - 'packages/governance-runtime/src/fail-closed.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/replay-state.ts'
+      - 'packages/governance-runtime/src/integrity-state.ts'
+      - 'packages/governance-runtime/src/containment-state.ts'
+      - 'packages/governance-runtime/src/trust-class.ts'
+      - 'packages/governance-runtime/src/__tests__/activation-coherence-audit.test.ts'
+      - 'packages/governance-runtime/src/__tests__/ambiguity-suppression-prevention.test.ts'
+      - 'packages/governance-runtime/src/__tests__/meta-verification-audit.test.ts'
+      - '.github/workflows/activation-audit-gate.yml'
+  pull_request:
+    paths:
+      - 'packages/governance-runtime/src/coherence.ts'
+      - 'packages/governance-runtime/src/meta-verification.ts'
+      - 'packages/governance-runtime/src/fail-closed.ts'
+      - 'packages/governance-runtime/src/transitions.ts'
+      - 'packages/governance-runtime/src/replay-state.ts'
+      - 'packages/governance-runtime/src/integrity-state.ts'
+      - 'packages/governance-runtime/src/containment-state.ts'
+      - 'packages/governance-runtime/src/trust-class.ts'
+      - 'packages/governance-runtime/src/__tests__/activation-coherence-audit.test.ts'
+      - 'packages/governance-runtime/src/__tests__/ambiguity-suppression-prevention.test.ts'
+      - 'packages/governance-runtime/src/__tests__/meta-verification-audit.test.ts'
+      - '.github/workflows/activation-audit-gate.yml'
+
+concurrency:
+  group: activation-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  activation-audit:
+    name: Constitutional Runtime Activation Audit (W2-PR153A)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cross-axis coherence audit (contradiction detection + systemic resolution)
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/activation-coherence-audit.test.ts
+
+      - name: Ambiguity suppression prevention
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/ambiguity-suppression-prevention.test.ts
+
+      - name: Meta-verification coverage audit
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run \
+            src/__tests__/meta-verification-audit.test.ts
+
+      - name: Full governance-runtime suite (activation readiness)
+        run: |
+          pnpm --filter @vitalcv/governance-runtime exec vitest run
+
+      - name: Assert SYSTEMIC-GREEN is absent from systemic-state vocabulary (source audit)
+        run: |
+          if grep -rn '"SYSTEMIC-GREEN"' \
+            packages/governance-runtime/src/coherence.ts 2>/dev/null; then
+            echo "ACTIVATION DRIFT: SYSTEMIC-GREEN found in coherence.ts — vocabulary is intentionally degradation-focused"
+            exit 1
+          fi
+          echo "SYSTEMIC-GREEN vocabulary audit: CLEAN"
+
+      - name: Assert R-AMBIGUOUS is the fail-closed replay default (source audit)
+        run: |
+          if ! grep -q '"R-AMBIGUOUS"' packages/governance-runtime/src/fail-closed.ts; then
+            echo "ACTIVATION DRIFT: R-AMBIGUOUS not found in fail-closed.ts"
+            exit 1
+          fi
+          echo "R-AMBIGUOUS fail-closed default: PRESENT"
+
+      - name: Assert DOMAIN_COVERAGE has 11 entries (meta-verification completeness pin)
+        run: |
+          COUNT=$(grep -c 'domain:' packages/governance-runtime/src/meta-verification.ts || true)
+          # 11 domains + header comment occurrences; require at least 11 domain: lines
+          if [ "$COUNT" -lt 11 ]; then
+            echo "ACTIVATION DRIFT: DOMAIN_COVERAGE appears to have fewer than 11 domains (found $COUNT domain: lines)"
+            exit 1
+          fi
+          echo "DOMAIN_COVERAGE domain count: $COUNT — OK (≥11)"
+
+      - name: Forbidden activation phrases scan
+        run: |
+          # Scan for phrases that would overclaim activation completeness.
+          # Comment lines (JSDoc or //) are excluded from failure.
+          HITS=$(grep -rInE \
+            "fully verified|activation complete|zero blind spots|all axes green|SYSTEMIC-GREEN" \
+            packages/governance-runtime/src/coherence.ts \
+            packages/governance-runtime/src/meta-verification.ts \
+            packages/governance-runtime/src/fail-closed.ts 2>/dev/null \
+            | grep -vE ':[0-9]+:\s*\*\s' \
+            | grep -vE ':[0-9]+:\s*//' \
+            | grep -viE "FORBIDDEN|forbidden|are not|must not|may not|prohibited|do not use" || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "ACTIVATION DRIFT: overclaim phrase detected in activation audit source"
+            exit 1
+          fi
+          echo "Activation lexicon scan: CLEAN"
