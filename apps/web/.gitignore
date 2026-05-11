@@ -19,6 +19,10 @@ yarn-error.log*
 
 # env files
 .env*
+# But DO commit the .env.example template (operator-facing scaffold,
+# no secrets). The template lives at apps/web/.env.example and is
+# pinned by apps/web/__tests__/env-example-template.test.ts.
+!.env.example
 
 # vercel
 .vercel
