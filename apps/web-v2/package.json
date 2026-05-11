@@ -1,0 +1,24 @@
+{
+  "name": "@vitalcv/web-v2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sandbox Next 15 app for exploring UI directions outside the main apps/web surface. Inherits the VitalCV truth contract and banned-strings rules — see CLAUDE.md.",
+  "scripts": {
+    "dev": "next dev -p 3100",
+    "build": "next build",
+    "start": "next start -p 3100",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "15.2.8",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
