@@ -3732,3 +3732,156 @@ model ReceiptCandidate {
   @@index([reviewState])
   @@index([createdAt])
 }
+
+// ─── DURABILITY-1 PR345A — durable schema additions ─────────────────
+//
+// The DURABILITY-1 brief asked for 5 tables; 3 already exist
+// (ClinicianIdentity, IngestEvent, VerifierNonce). The 2 below close
+// the actually-missing surface.
+//
+// Operational migration step (required to land these against a real
+// database; cannot be performed from agent context):
+//   pnpm --filter vitalcv-backend exec prisma migrate dev \
+//     --name durability_pr345a_status_and_audit_export
+//
+// Truth-contract invariants:
+//   - CredentialStatus: REVOKED rows are sticky (revokedAt is set,
+//     never cleared except via an explicit unrevoke row in
+//     CredentialStatusHistory).
+//   - AuditExport: signature column nullable (envelopes from #318
+//     support `signed: false`); digest is REQUIRED and indexed for
+//     tamper-detection lookups by digest.
+
+/// Persistent backing for apps/status-api credential revocation.
+/// Replaces the in-memory Map at apps/status-api/src/routes/statusList.ts
+/// flagged in PR #317 as the "in production, use database" gap.
+model CredentialStatus {
+  /// Stable credential identifier — same value used to mint the
+  /// credentialStatusUrl() in apps/issuer-api/src/services/credentialStatus.ts.
+  credentialId String   @id
+
+  /// Current lifecycle state. Mirrors the CredentialStatus enum on
+  /// the issuer-api side ('active' | 'revoked' | 'suspended' | ...).
+  state        String
+
+  /// True iff state is the literal 'revoked'. Denormalized for fast
+  /// status-bit lookups by verifiers consuming the StatusList2021
+  /// bitstring endpoint.
+  revoked      Boolean  @default(false)
+
+  /// Sticky timestamp set when state first transitions to revoked.
+  /// Subsequent unrevoke flows MUST go through CredentialStatusHistory
+  /// rather than nulling this field — preserves audit lineage.
+  revokedAt    DateTime?
+
+  /// Operator-supplied reason. Optional but recommended.
+  reason       String?
+
+  /// Issuer identifier the credential was minted under. Used to
+  /// scope status lookups per issuer; verifiers reading the status
+  /// list filter by this column.
+  issuerId     String
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  history      CredentialStatusHistory[]
+
+  @@index([issuerId])
+  @@index([revoked])
+  @@index([revokedAt])
+  @@index([state])
+}
+
+/// Append-only history of state transitions on a CredentialStatus row.
+/// Required so unrevoke operations preserve the original revoke event
+/// in the lineage rather than overwriting it.
+model CredentialStatusHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+
+  /// FK to CredentialStatus.credentialId.
+  credentialId String
+  status       CredentialStatus @relation(fields: [credentialId], references: [credentialId], onDelete: Cascade)
+
+  /// State the row transitioned TO at this event.
+  state        String
+
+  /// Operator-supplied reason for this transition.
+  reason       String?
+
+  /// SHA-256 digest of canonical-JSON({credentialId, state, reason,
+  /// observedAt}). Same digest scheme as #312/#313/#318. Allows the
+  /// status row to participate in a replay lineage without re-implementing
+  /// the canonicalization rule.
+  eventDigest  String
+
+  /// Optional binding to an IngestEvent runId — when the status
+  /// transition was driven by an external source (e.g., OIG exclusion
+  /// observed via SSE), this links back to the source-of-truth events.
+  ingestRunId  String?  @db.Uuid
+
+  /// Optional Clerk user id of the actor who initiated this transition.
+  /// Nullable for system-driven transitions; required for human-driven
+  /// transitions by application policy (enforced in the route handler).
+  actorClerkId String?
+
+  observedAt   DateTime @default(now())
+
+  @@index([credentialId, observedAt])
+  @@index([state])
+  @@index([ingestRunId])
+  @@index([eventDigest])
+}
+
+/// Durable record of every export packet produced by the
+/// /api/export/packet family of routes. Pairs with the
+/// signedExportEnvelope primitive shipped in PR #318 so a verifier
+/// can be served a historical export by digest, or so a clinician can
+/// audit which exports of their data have been issued.
+model AuditExport {
+  /// SHA-256 digest of canonical-JSON(payload). Primary key — same
+  /// digest two identical exports produce → idempotent. 64 lowercase
+  /// hex chars (computeExportDigest output).
+  digest        String   @id
+
+  /// Clerk user id of the requesting actor. Required — all export
+  /// routes already gate on auth().userId, so unauthenticated exports
+  /// have no row here.
+  actorClerkId  String
+
+  /// NPI the export is about. Subject of the packet.
+  subjectNpi    String
+
+  /// Schema pin from signedExportEnvelope.ts — currently the literal
+  /// 'vitalcv.export.envelope.v1'. Future schema versions write
+  /// new rows; old rows are never rewritten.
+  envelopeSchema String
+
+  /// True when the envelope carried a signature at seal time. Mirrors
+  /// SignedExportEnvelope.signed; never inferred.
+  signed        Boolean  @default(false)
+
+  /// Optional kid of the signing key at seal time. Lets a verifier
+  /// look up the correct public JWK from /.well-known/jwks.json.
+  kid           String?
+
+  /// Optional ES256 detached JWS over the digest. Null when signed=false.
+  signature     String?
+
+  /// Optional FK back to a CredentialStatusHistory.id if this export
+  /// was triggered by a status transition (e.g., revocation receipt).
+  statusHistoryId String? @db.Uuid
+
+  /// Optional binding to an IngestEvent runId for full lineage chaining.
+  ingestRunId   String?  @db.Uuid
+
+  sealedAt      DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([actorClerkId, sealedAt])
+  @@index([subjectNpi, sealedAt])
+  @@index([signed])
+  @@index([ingestRunId])
+  @@index([statusHistoryId])
+  @@index([envelopeSchema])
+}
