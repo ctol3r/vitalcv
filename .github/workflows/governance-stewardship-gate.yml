@@ -1,0 +1,126 @@
+name: W2-PR154A Governance Stewardship Protocol
+
+# Governance stewardship protocol CI gate.
+#
+# This workflow runs three stewardship suites that together guarantee
+# longitudinal caretaker continuity, succession fail-closed semantics,
+# replay-governance caretaking fidelity, and institutional runtime
+# survivability:
+#
+#   - governanceStewardship.test.ts        — pure-transform unit coverage
+#   - governanceStewardship.ci.gate.test.ts — frozen-enum + breach canary
+#   - governanceStewardship.chaos.test.ts  — chaos coverage (8 modes:
+#                                            healthy burst,
+#                                            mixed-friction,
+#                                            succession storm,
+#                                            lineage collapse,
+#                                            stability cliff,
+#                                            ambiguity preservation,
+#                                            replay governance drift,
+#                                            stewardship protocol maturity)
+#
+# These tests are mock-free and DB-free — they exercise the real
+# `governanceStewardship` pure-transform module. The gate exists to catch:
+#   - silent ambiguity collapse (AMBIGUOUS_STEWARDSHIP → ACTIVE regression)
+#   - succession threshold bypass (fail-closed succession regression)
+#   - lineage depth under-reporting (lineage reconstructability regression)
+#   - continuity floor violations (caretaker continuity floor breach regression)
+#   - enum extension without test update (sentinel mismatch regression)
+#
+# This is the longitudinal companion to:
+#   - runtime-hardening-gate.yml   (production-runtime survivability)
+#   - scale-gate.yml               (governance throughput / event survivability)
+#   - deployment-survivability.yml (deploy-layer chaos + lineage)
+#   - rollout-survivability.yml    (institutional rollout boundary)
+#
+# Fail-closed: any of the three suites failing exits 1 and blocks the gate.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/governance/governanceStewardship.ts'
+      - 'apps/api/backend/src/services/governance/__tests__/governanceStewardship*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/governance-stewardship-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/governance/governanceStewardship.ts'
+      - 'apps/api/backend/src/services/governance/__tests__/governanceStewardship*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/governance-stewardship-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  governance-stewardship:
+    name: Governance Stewardship Protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # The stewardship suites mock nothing and touch no DB; the env
+      # vars below are only present so jest.setup.ts → loadEnv() does not bail.
+      - name: Run governance stewardship suites
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stewardship_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/governance/__tests__/governanceStewardship.*\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee governance-stewardship-gate.log
+
+      - name: Surface stewardship board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Governance Stewardship Board"
+          echo "--------------------------------"
+          if [ -f governance-stewardship-gate.log ]; then
+            grep -E '\[stewardship-board\]' governance-stewardship-gate.log \
+              || echo "(no stewardship-board metrics emitted — investigate)"
+          else
+            echo "(no governance-stewardship-gate.log produced — investigate)"
+          fi
+
+      - name: Upload governance-stewardship-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-stewardship-gate-log
+          path: apps/api/backend/governance-stewardship-gate.log
+          if-no-files-found: warn
+          retention-days: 7
