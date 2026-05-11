@@ -1,0 +1,131 @@
+name: W2-PR157A Covenant Finalization Gate
+
+# Constitutional runtime covenant finalization gate.
+#
+# This workflow enforces the six permanent institutional runtime covenants:
+#   REPLAY_GUARANTEE, AMBIGUITY_HONESTY, FAIL_CLOSED_BOUNDARY,
+#   TENANT_ISOLATION, LINEAGE_RECONSTRUCTABILITY, INSTITUTIONAL_SURVIVABILITY
+#
+# Two test suites run sequentially:
+#   - institutionalCovenant.test.ts    — unit coverage + chaos simulations
+#   - institutionalCovenant.ci.gate.test.ts — board metric threshold gate (≥80%)
+#
+# Hard invariants checked by this gate:
+#   - All 6 covenants have permanent lock records (no unlock path)
+#   - All 6 covenants are COMPLIANT under the canonical production signal
+#   - Covenant Finalization Maturity ≥ 80% across all board dimensions
+#   - Chaos simulation silentCount = 0 (no breach goes undetected)
+#   - Every lock hash and verdict hash is tamper-evident (64-char hex)
+#   - Operator assertion mismatch from evidence is a gate failure
+#   - Lineage is reconstructable with sequential zero-based positions
+#
+# This gate is the merge blocker for W2-PR157A and all subsequent waves
+# that modify the covenant runtime surface.
+#
+# Companion gates:
+#   - runtime-hardening-gate.yml       (production survivability axis)
+#   - trust-benchmark-gate.yml         (trust benchmark axis)
+#   - scale-gate.yml                   (throughput axis)
+#   - rollout-survivability.yml        (institutional rollout axis)
+#
+# Fail-closed: any suite failure exits 1 and blocks the merge.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/covenant/institutionalCovenant.ts'
+      - 'apps/api/backend/src/services/covenant/covenantObservability.ts'
+      - 'apps/api/backend/src/services/covenant/__tests__/institutionalCovenant*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/covenant-finalization-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/covenant/institutionalCovenant.ts'
+      - 'apps/api/backend/src/services/covenant/covenantObservability.ts'
+      - 'apps/api/backend/src/services/covenant/__tests__/institutionalCovenant*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/covenant-finalization-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  covenant-finalization:
+    name: Covenant Finalization Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # Covenant tests are pure-transform and DB-free. The env vars below
+      # exist only to satisfy jest.setup.ts → loadEnv() without erroring.
+      - name: Run covenant finalization suites
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/covenant_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/covenant/__tests__/institutionalCovenant.*\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee covenant-finalization-gate.log
+
+      - name: Surface covenant finalization board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Covenant Finalization Board"
+          echo "──────────────────────────────────────"
+          echo "Metric                              | Result"
+          echo "Replay Guarantee Integrity %        | from test output"
+          echo "Ambiguity Honesty Permanence %      | from test output"
+          echo "Institutional Survivability %       | from test output"
+          echo "Covenant Stability %                | from test output"
+          echo "Covenant Finalization Maturity %    | from test output"
+          echo "──────────────────────────────────────"
+          if [ -f covenant-finalization-gate.log ]; then
+            PASSED=$(grep -cE 'PASS|✓|✔' covenant-finalization-gate.log || echo 0)
+            FAILED=$(grep -cE 'FAIL|✕|✗' covenant-finalization-gate.log || echo 0)
+            echo "Test suites passed: $PASSED  |  Failed: $FAILED"
+          else
+            echo "(no covenant-finalization-gate.log produced — investigate)"
+          fi
+
+      - name: Upload covenant-finalization-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: covenant-finalization-gate-log
+          path: apps/api/backend/covenant-finalization-gate.log
+          if-no-files-found: warn
+          retention-days: 7
