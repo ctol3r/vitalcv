@@ -1,0 +1,79 @@
+name: Wallet Activation Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/wallet-sdk/**'
+      - '.github/workflows/wallet-activation-gate.yml'
+  pull_request:
+    paths:
+      - 'packages/wallet-sdk/**'
+      - '.github/workflows/wallet-activation-gate.yml'
+
+concurrency:
+  group: wallet-activation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wallet-activation:
+    name: Wallet Activation Reality (W3-PR200A)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wallet activation reality tests
+        run: pnpm --filter @vitalcv/wallet-sdk test
+
+      - name: Build wallet-sdk (type check + bundle)
+        run: pnpm --filter @vitalcv/wallet-sdk build
+
+      - name: Assert real diagnostic surface (no stub-ok regression)
+        run: |
+          # The pre-W3-PR200A diagnostics hardcoded check names that
+          # referenced methods (`hasStoreFn`, `hasListFn`) that the SDK
+          # never exposed. This source-level audit prevents a silent
+          # regression to that stub.
+          if grep -q "hasStoreFn" packages/wallet-sdk/src/diagnostics.ts; then
+            echo "DRIFT: hasStoreFn reintroduced — diagnostics stub regression"
+            exit 1
+          fi
+          if grep -q "hasListFn" packages/wallet-sdk/src/diagnostics.ts; then
+            echo "DRIFT: hasListFn reintroduced — diagnostics stub regression"
+            exit 1
+          fi
+          if ! grep -q "WalletSurfaceProbe" packages/wallet-sdk/src/diagnostics.ts; then
+            echo "DRIFT: WalletSurfaceProbe removed — diagnostics no longer introspect surface"
+            exit 1
+          fi
+          if ! grep -q "assertWalletActivationReality" packages/wallet-sdk/src/diagnostics.ts; then
+            echo "DRIFT: assertWalletActivationReality removed — CI gate has nothing to assert"
+            exit 1
+          fi
+          echo "Diagnostic surface audit: CLEAN"
+
+      - name: Assert replay-safe semantics in source (anti-bypass)
+        run: |
+          # replaySafe must be derived from probe.respondToOID4VPRequest
+          # AND probe.createOfflinePresentation — never hardcoded true.
+          if grep -E "replaySafe\s*[:=]\s*true" packages/wallet-sdk/src/diagnostics.ts | \
+             grep -v "replaySafe: replaySafe" | \
+             grep -v "expect(.*replaySafe.*).toBe(true)" >/dev/null; then
+            echo "DRIFT: replaySafe hardcoded to true — fail-closed semantics violated"
+            exit 1
+          fi
+          echo "Replay-safe semantic audit: CLEAN"

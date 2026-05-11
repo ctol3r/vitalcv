@@ -14,12 +14,14 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "keywords": ["vitalcv", "wallet", "credential", "healthcare", "vc", "holder"],
   "license": "MIT",
   "devDependencies": {
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.0"
   }
 }
