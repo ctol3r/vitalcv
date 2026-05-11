@@ -77,9 +77,14 @@ jobs:
 
       - name: Assert SYSTEMIC-GREEN is absent from systemic-state vocabulary (source audit)
         run: |
-          if grep -rn '"SYSTEMIC-GREEN"' \
-            packages/governance-runtime/src/coherence.ts 2>/dev/null; then
-            echo "ACTIVATION DRIFT: SYSTEMIC-GREEN found in coherence.ts — vocabulary is intentionally degradation-focused"
+          # Exclude comment lines — comment-only documentation of the absence is allowed.
+          HITS=$(grep -rn '"SYSTEMIC-GREEN"' \
+            packages/governance-runtime/src/coherence.ts 2>/dev/null \
+            | grep -vE ':[0-9]+:\s*\*\s' \
+            | grep -vE ':[0-9]+:\s*//' || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "ACTIVATION DRIFT: SYSTEMIC-GREEN found in non-comment coherence.ts source — vocabulary is intentionally degradation-focused"
             exit 1
           fi
           echo "SYSTEMIC-GREEN vocabulary audit: CLEAN"
