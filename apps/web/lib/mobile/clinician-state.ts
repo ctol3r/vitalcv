@@ -90,6 +90,12 @@ export interface ClinicianMobileData extends MobileDashboardData {
   activeApplications: MobileApplication[];
   availableOpportunities: MobileOpportunityCard[];
   recommendedAction: RecommendedMobileAction | null;
+  /**
+   * W4-PR216A — per-channel hydration status. Optional so existing
+   * consumers compile; new consumers (and tests) read this to render
+   * an ambiguity banner when upstream calls failed.
+   */
+  hydrationStatus?: import('./hydrationStatus').DashboardHydrationStatus;
 }
 
 type BlockerSeed = {

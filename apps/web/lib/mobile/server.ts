@@ -10,6 +10,12 @@ import {
 } from '@/lib/mobile/dashboard';
 import type { ClinicianProofPayload } from '@/lib/proof/types';
 import { MARKETPLACE_BACKEND, buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
+import {
+  buildHydrationStatus,
+  classifyFetchOutcome,
+  type ChannelStatusEntry,
+  type DashboardChannelId,
+} from '@/lib/mobile/hydrationStatus';
 
 type AuthSession = Awaited<ReturnType<typeof auth>>;
 
@@ -69,6 +75,10 @@ function normalizeWorkspace(raw: unknown): MobileDashboardData['workspace'] {
   };
 }
 
+function entry(channel: DashboardChannelId, signedIn: boolean, raw: unknown, attempted: boolean): ChannelStatusEntry {
+  return { channel, status: classifyFetchOutcome(signedIn, raw, attempted) };
+}
+
 export async function loadClinicianMobileData(session: AuthSession): Promise<ClinicianMobileData> {
   const signedIn = Boolean(session.userId);
   const marketplaceHeaders = buildMarketplaceHeaders(session);
@@ -113,6 +123,28 @@ export async function loadClinicianMobileData(session: AuthSession): Promise<Cli
   const trustState = normalizeMobileTrustState(trustRaw);
   const matchPayload = normalizeMatchPayload(matchRaw);
 
+  const channels: ChannelStatusEntry[] = [
+    entry('workspace', signedIn, workspaceRaw, signedIn),
+    entry('applications', signedIn, applicationsRaw, signedIn),
+    // opportunities is fetched even when signed-out — classify on raw result.
+    {
+      channel: 'opportunities',
+      status: opportunityPayload === null || opportunityPayload === undefined ? 'failed' : 'ok',
+    },
+    entry('profileCompleteness', signedIn, profileCompletenessRaw, signedIn),
+    entry('proof', signedIn, proofRaw, signedIn),
+    entry('trustState', signedIn, trustRaw, npi !== null),
+    entry('trustHistory', signedIn, trustHistoryRaw, npi !== null),
+    entry('matcha', signedIn, matchRaw, npi !== null),
+  ];
+  const hydrationStatus = buildHydrationStatus(channels);
+
+  // refreshedAt remains a real timestamp (consumers may parse it as a
+  // Date). Hydration honesty is conveyed via hydrationStatus.aggregate
+  // and hydrationStatus.anyChannelOk so a degraded/failed dashboard is
+  // distinguishable without breaking date-parsing consumers.
+  const refreshedAt = new Date().toISOString();
+
   const base: MobileDashboardData = {
     signedIn,
     workspace,
@@ -126,13 +158,15 @@ export async function loadClinicianMobileData(session: AuthSession): Promise<Cli
       state: workspace?.personProfile?.stateOfPractice ?? null,
     }),
     missingForHigherMatches: matchPayload?.missingForHigherMatches ?? [],
-    refreshedAt: new Date().toISOString(),
+    refreshedAt,
   };
 
-  return buildClinicianMobileData({
+  const built = buildClinicianMobileData({
     base,
     profileCompleteness: normalizeProfileCompleteness(profileCompletenessRaw),
     rawTrustHistory: trustHistoryRaw,
     proof: proofRaw,
   });
+
+  return { ...built, hydrationStatus };
 }
