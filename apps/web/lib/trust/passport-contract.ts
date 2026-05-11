@@ -14,6 +14,10 @@ import {
   normalizeTrustContainerManifestView,
   type TrustContainerManifestView,
 } from '@/lib/trust/trust-container-view';
+import {
+  normalizeReplayLineage,
+  type ReplayLineage,
+} from '@/lib/trust/replay-lineage';
 
 export type ReadinessStatus = ReadinessState;
 export type PassportTrustPostureState =
@@ -207,6 +211,14 @@ export interface PassportData {
    * typed structurally rather than nominally.
    */
   trustContainer?: TrustContainerManifestView | null;
+  /**
+   * W3-PR210A — passport replay lineage. Optional so existing
+   * consumers compile; when present, carries the ordered SSE event
+   * sequence that produced this passport plus a deterministic
+   * SHA-256 digest. Enables a verifier to prove from the artifact
+   * alone that readiness was derived from real source events.
+   */
+  replayLineage?: ReplayLineage | null;
 }
 
 export interface PassportDivergence {
@@ -510,6 +522,14 @@ export function normalizePassportData(value: unknown): PassportData | null {
     typeof passport.trustContainer === 'undefined'
       ? undefined
       : normalizeTrustContainerManifestView(passport.trustContainer);
+  // W3-PR210A — preserve replayLineage through the normalizer rather
+  // than silently dropping it at the boundary. Malformed lineage
+  // resolves to null (ambiguity-visible) rather than being silently
+  // synthesized.
+  const normalizedReplayLineage =
+    typeof (passport as { replayLineage?: unknown }).replayLineage === 'undefined'
+      ? undefined
+      : normalizeReplayLineage((passport as { replayLineage?: unknown }).replayLineage);
   const normalized: PassportData = {
     ...passport,
     readiness: {
@@ -526,6 +546,9 @@ export function normalizePassportData(value: unknown): PassportData | null {
     ...(typeof normalizedTrustContainer === 'undefined'
       ? {}
       : { trustContainer: normalizedTrustContainer }),
+    ...(typeof normalizedReplayLineage === 'undefined'
+      ? {}
+      : { replayLineage: normalizedReplayLineage }),
   };
 
   normalized.truth = resolvePassportTruthSet(normalized);
