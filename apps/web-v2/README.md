@@ -32,6 +32,34 @@ pnpm --filter @vitalcv/web-v2 build
 pnpm --filter @vitalcv/web-v2 typecheck
 ```
 
+## Auth (Clerk)
+
+This sandbox uses [Clerk](https://clerk.com) for authentication, mirroring the
+pattern in `apps/web`. Required env vars (set in `.env.local`, gitignored):
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_... | pk_live_...
+CLERK_SECRET_KEY=sk_test_... | sk_live_...
+```
+
+Optional overrides:
+
+```
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+```
+
+**Fail-closed behavior:** When `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is missing,
+`<ClerkProvider>` is not mounted; the middleware short-circuits to a no-op
+pass-through; `/sign-in` renders an explicit "not configured" message. The
+sandbox stays usable for non-auth UI work rather than crashing.
+
+**Google OAuth** (or any other IdP) is configured inside the Clerk Dashboard,
+not in this repo. The mounted `<SignIn />` widget honors whatever providers
+are enabled on the Clerk instance.
+
 ## Adding features
 
 One PR per feature, same rules as anything else in the monorepo. Do not bundle
