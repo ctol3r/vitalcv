@@ -114,9 +114,9 @@ export function EmployerSummaryCard({
         <div className={`grid gap-4 ${gridClass}`}>
           <SummaryGroup
             icon={<CheckIcon />}
-            title="Verified"
+            title="Confirmed by employer"
             items={verifiedItems}
-            emptyLabel="No verified items included yet."
+            emptyLabel="No items the employer has accepted yet."
           />
           <SummaryGroup
             icon={<CircleIcon />}

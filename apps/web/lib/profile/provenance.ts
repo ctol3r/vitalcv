@@ -36,7 +36,7 @@ export interface ProvenanceMeta {
 
 export const PROVENANCE_META: Record<ProfileProvenance, ProvenanceMeta> = {
   VERIFIED: {
-    label: 'Verified',
+    label: 'Source-confirmed',
     description:
       'Backed by a source-of-record check (e.g., NPPES identity, OIG LEIE federal exclusion, PECOS public enrollment).',
     badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600',

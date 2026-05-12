@@ -86,7 +86,7 @@ function formatStatusLabel(value: string): string {
 function licensureLabel(value: LicensureStatus): string {
   switch (value) {
     case 'verified':
-      return 'Verified';
+      return 'Issuer-confirmed';
     case 'pending':
       return 'Pending review';
     case 'expired':
@@ -314,7 +314,7 @@ export function WalletPassport({
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Identity</p>
-            <p className="mt-2 text-sm text-foreground">{trustState.identityVerified ? 'Verified' : 'Needs review'}</p>
+            <p className="mt-2 text-sm text-foreground">{trustState.identityVerified ? 'Identity confirmed by issuer' : 'Identity needs review'}</p>
           </div>
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Licensure</p>
@@ -357,7 +357,7 @@ export function WalletPassport({
                   </div>
                   <div className="mt-3 grid gap-3 text-xs text-zinc-300 sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Verified</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Last confirmed</p>
                       <p className="mt-1">{formatDateTime(fact.verifiedAt)}</p>
                     </div>
                     <div>

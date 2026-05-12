@@ -14,7 +14,7 @@ interface CredentialInspectorProps {
 export function CredentialInspector({ node, onClose }: CredentialInspectorProps) {
   if (!node) return null;
 
-  const isVerified = node.trustState === 'GREEN' || node.status === 'Verified';
+  const isVerified = node.trustState === 'GREEN';
 
   // Mocking some verification steps based on the node for demonstration
   const getMockSteps = () => [
