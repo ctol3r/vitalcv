@@ -5,7 +5,7 @@ import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
-import { TrustHeader, RecentNpis } from '@/components/trust';
+import { TrustHeader, RecentNpis, ReplayIntegrityPanel } from '@/components/trust';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { useRecentNpis } from '@/lib/hooks/useRecentNpis';
@@ -156,6 +156,31 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
           data-testid="passport-recent-npis-mount"
         >
           <RecentNpis items={recentNpis} currentNpi={passport.identity.npi} />
+        </section>
+        <section
+          aria-label="Replay integrity"
+          data-testid="passport-replay-integrity-mount"
+        >
+          <ReplayIntegrityPanel
+            evidence={{
+              entityId: passport.identity.npi ?? passport.entityId,
+              lastCheckedAt: passport.lastCheckedAt,
+              // Lane B audits showed that PassportData doesn't yet carry
+              // per-artifact checksums on the web type. We pass the
+              // verification-artifact IDs surfaced by Wave 10 (#343)
+              // via passport.replay when present; otherwise the panel
+              // computes from entityId + lastCheckedAt alone, which
+              // still gives a coherent lineage check.
+              artifactChecksums: undefined,
+              channel: passport.sources?.checked?.[0] ?? null,
+            }}
+            declared={(passport as PassportData & {
+              replay?: { lineageKey: string; runId: string; schemeVersion: 'v1' };
+            }).replay ?? null}
+            history={recentNpis
+              .filter((entry) => entry.npi === passport.identity.npi)
+              .map((entry) => ({ checkedAt: entry.lastCheckedAt ?? null, runId: entry.runId }))}
+          />
         </section>
       </div>
     </div>

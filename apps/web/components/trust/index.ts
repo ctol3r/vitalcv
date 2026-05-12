@@ -68,3 +68,7 @@ export {
   RecentNpis,
   type RecentNpisProps,
 } from './RecentNpis';
+export {
+  ReplayIntegrityPanel,
+  type ReplayIntegrityPanelProps,
+} from './ReplayIntegrityPanel';
