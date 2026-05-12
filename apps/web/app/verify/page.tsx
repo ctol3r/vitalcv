@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface VerifyResult {
   verified: boolean;
@@ -16,7 +17,9 @@ interface VerifyResult {
 }
 
 export default function VerifyPage() {
+  const router = useRouter();
   const [token, setToken] = useState('');
+  const [receiptIdInput, setReceiptIdInput] = useState('');
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -67,6 +70,15 @@ export default function VerifyPage() {
       >
         {loading ? 'Verifying…' : 'Verify'}
       </button>
+
+      <ReceiptReplaySection
+        receiptIdInput={receiptIdInput}
+        setReceiptIdInput={setReceiptIdInput}
+        onNavigate={() => {
+          const id = receiptIdInput.trim();
+          if (id) router.push(`/verify/receipt/${encodeURIComponent(id)}`);
+        }}
+      />
 
       {result !== null && (
         <div
@@ -131,6 +143,47 @@ export default function VerifyPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function ReceiptReplaySection({
+  receiptIdInput,
+  setReceiptIdInput,
+  onNavigate,
+}: {
+  receiptIdInput: string;
+  setReceiptIdInput: (v: string) => void;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="mt-10 border-t border-gray-200 pt-8">
+      <h2 className="mb-2 text-xl font-bold tracking-tight">Inspect Receipt Replay</h2>
+      <p className="mb-5 text-gray-500 text-sm">
+        Enter a VitalCV receipt ID (<code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">rcpt_…</code> or{' '}
+        <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">rec-…</code>) to view its replay
+        chain, degradation ownership, and survivability score.
+      </p>
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={receiptIdInput}
+          onChange={(e) => setReceiptIdInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && receiptIdInput.trim() && onNavigate()}
+          placeholder="rcpt_1234567890_1234567890123"
+          className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <button
+          onClick={onNavigate}
+          disabled={!receiptIdInput.trim()}
+          className="inline-flex items-center rounded-md bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+        >
+          Inspect
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] text-gray-400">
+        Opens <code className="font-mono">/verify/receipt/{'{receiptId}'}</code> — public, no auth required.
+      </p>
+    </div>
   );
 }
 
