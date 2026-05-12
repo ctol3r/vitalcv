@@ -24,7 +24,9 @@ export interface TrustRegisterRowProps {
   noAdverseFindings?: boolean;
 }
 
-const PLACEHOLDER = '─ ─ ─';
+const NullSlot = () => (
+  <span className="font-mono text-gray-300 select-none">─ ─ ─</span>
+);
 
 export function TrustRegisterRow({
   object,
@@ -38,86 +40,64 @@ export function TrustRegisterRow({
   adverse = false,
   noAdverseFindings = false,
 }: TrustRegisterRowProps) {
-  // Determine wrapper classes based on state + flags
   const wrapperClass = (() => {
     if (noAdverseFindings) {
-      return 'trust-register-success rounded-md border border-green-300 bg-green-50 p-3';
+      return 'border border-green-400 bg-green-50 p-3 min-h-[40px]';
     }
     if (adverse) {
-      return 'rounded-md border border-red-300 bg-red-50 p-3';
+      return 'border border-red-300 bg-red-50 p-3 min-h-[40px]';
     }
     if (state === 'anonymous') {
-      return 'trust-register-dashed rounded-md bg-stone-50 p-3';
+      return 'bg-stone-50 border border-dashed border-gray-200 p-3 min-h-[40px]';
     }
     if (state === 'signed') {
-      return 'trust-register-cryptoplane rounded-md border border-gray-700 bg-gray-900 p-3';
+      return 'bg-gray-900 border border-gray-700 p-3 min-h-[40px]';
     }
     // owned
-    return 'rounded-md border border-gray-200 bg-white p-3';
+    return 'bg-white border border-gray-200 p-3 min-h-[40px]';
   })();
 
-  const labelClass = (() => {
-    if (state === 'signed' && !noAdverseFindings && !adverse) {
-      return 'text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-0.5';
-    }
-    return 'text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-0.5';
+  // Bloomberg header label style — uniform across all states
+  const labelClass =
+    'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-0.5';
+
+  const baseValueClass = (() => {
+    if (state === 'signed' && !noAdverseFindings && !adverse) return 'text-gray-100';
+    if (noAdverseFindings) return 'text-green-800';
+    if (adverse) return 'text-red-800';
+    return 'text-gray-800';
   })();
 
-  const valueClass = (() => {
-    if (state === 'signed' && !noAdverseFindings && !adverse) {
-      return 'text-xs text-gray-100';
-    }
-    if (noAdverseFindings) {
-      return 'text-xs text-green-800';
-    }
-    if (adverse) {
-      return 'text-xs text-red-800';
-    }
-    return 'text-xs text-gray-800';
-  })();
-
-  const monoClass = 'trust-register-mono ' + valueClass;
+  const textClass = `text-sm ${baseValueClass}`;
+  const monoClass = `text-sm font-mono ${baseValueClass}`;
 
   const slots = [
     {
       label: 'OBJECT',
       value: noAdverseFindings ? '✓ No Adverse Findings' : object,
       mono: false,
+      nullable: false,
     },
-    {
-      label: 'OWNERSHIP',
-      value: ownership ?? PLACEHOLDER,
-      mono: true,
-    },
-    {
-      label: 'CHECKED_AT',
-      value: checkedAt ?? PLACEHOLDER,
-      mono: true,
-    },
-    {
-      label: 'CHANNEL',
-      value: channel,
-      mono: false,
-    },
-    {
-      label: 'REPLAY',
-      value: replay ?? PLACEHOLDER,
-      mono: true,
-    },
-    {
-      label: 'RUN_ID',
-      value: runId,
-      mono: true,
-    },
+    { label: 'OWNERSHIP', value: ownership, mono: true, nullable: true },
+    { label: 'CHECKED_AT', value: checkedAt, mono: true, nullable: true },
+    { label: 'CHANNEL', value: channel, mono: false, nullable: false },
+    { label: 'REPLAY', value: replay, mono: true, nullable: true },
+    { label: 'RUN_ID', value: runId, mono: true, nullable: false },
   ];
 
   return (
     <div className={wrapperClass}>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
-        {slots.map(({ label, value, mono }) => (
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+        {slots.map(({ label, value, mono, nullable }) => (
           <div key={label} className="min-w-0">
             <div className={labelClass}>{label}</div>
-            <div className={mono ? monoClass : valueClass + ' break-all'}>{value}</div>
+            <div className={`${mono ? monoClass : textClass} break-all`}>
+              {nullable && (value === null || value === undefined) ? (
+                <NullSlot />
+              ) : (
+                value
+              )}
+            </div>
           </div>
         ))}
       </div>

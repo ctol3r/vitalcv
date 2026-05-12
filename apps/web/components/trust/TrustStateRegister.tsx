@@ -141,69 +141,72 @@ export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12 space-y-10">
-      {/* Page header */}
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+    <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
+      {/* Page header — Bloomberg-style label, not a hero h1 */}
+      <header className="space-y-1">
+        <h1 className="text-sm font-semibold uppercase tracking-[0.08em] text-gray-400">
           Trust State Register
         </h1>
-        <p className="mt-1.5 text-gray-500 text-sm">
+        <p className="text-xs text-gray-400">
           Institutional trust surface for VitalCV credential verification
         </p>
-        <div className="mt-2 text-xs text-gray-400">
+        <div className="text-[10px] text-gray-400 font-mono pt-0.5">
           Doctrine v{snapshot.doctrineVersion} · {snapshot.environment} ·{' '}
-          <span className="trust-register-mono">{snapshot.issuerDid}</span>
+          {snapshot.issuerDid}
         </div>
       </header>
 
       {/* Legend */}
       <TrustRegisterLegend />
 
-      {/* State A */}
-      <TrustRegisterCard
-        state="anonymous"
-        title="Anonymous Preview"
-        description="Exploratory view — no ownership attribution, no lineage, no replay. All slots are unbound."
-        runId="──────"
-        checkedAt={null}
-        rows={stateARows}
-        replayAvailable={false}
-      />
+      {/* State cards — gap-px creates hairline dividers via bg-gray-200 bleed */}
+      <div className="grid gap-px bg-gray-200">
+        {/* State A */}
+        <TrustRegisterCard
+          state="anonymous"
+          title="Anonymous Preview"
+          description="Exploratory view — no ownership attribution, no lineage, no replay. All slots are unbound."
+          runId="──────"
+          checkedAt={null}
+          rows={stateARows}
+          replayAvailable={false}
+        />
 
-      {/* State B */}
-      <TrustRegisterCard
-        state="owned"
-        title="Owned Snapshot"
-        description="Attributed to vcv-system. Lineage is visible; replay is tracked. Source checks applied."
-        runId={runId}
-        checkedAt={checkedAt}
-        rows={stateBRows}
-        replayAvailable
-        priorRunId={null}
-      />
+        {/* State B */}
+        <TrustRegisterCard
+          state="owned"
+          title="Owned Snapshot"
+          description="Attributed to vcv-system. Lineage is visible; replay is tracked. Source checks applied."
+          runId={runId}
+          checkedAt={checkedAt}
+          rows={stateBRows}
+          replayAvailable
+          priorRunId={null}
+        />
 
-      {/* State C */}
-      <TrustRegisterCard
-        state="signed"
-        title="Signed Institutional Artifact"
-        description="Cryptographic plane. Issuer-signed, T4 capable, replay survivable. Full lineage chain."
-        runId={runId}
-        checkedAt={checkedAt}
-        issuerDid={snapshot.issuerDid}
-        signingKeyId={snapshot.signingKeyId ?? undefined}
-        jwksUri={snapshot.jwksUri}
-        rows={stateCRows}
-        replayAvailable
-        priorRunId={null}
-      />
+        {/* State C */}
+        <TrustRegisterCard
+          state="signed"
+          title="Signed Institutional Artifact"
+          description="Cryptographic plane. Issuer-signed, T4 capable, replay survivable. Full lineage chain."
+          runId={runId}
+          checkedAt={checkedAt}
+          issuerDid={snapshot.issuerDid}
+          signingKeyId={snapshot.signingKeyId ?? undefined}
+          jwksUri={snapshot.jwksUri}
+          rows={stateCRows}
+          replayAvailable
+          priorRunId={null}
+        />
+      </div>
 
       {/* Machine-readable link */}
-      <div className="border-t border-gray-200 pt-6">
-        <p className="text-xs text-gray-400">
-          Machine-readable:{' '}
+      <div className="border-t border-gray-100 pt-4">
+        <p className="font-mono text-[10px] text-gray-400">
+          machine-readable:{' '}
           <a
             href="/.well-known/trust-register"
-            className="trust-register-mono text-blue-600 hover:underline"
+            className="hover:text-gray-600 underline underline-offset-2"
           >
             /.well-known/trust-register
           </a>

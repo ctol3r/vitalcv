@@ -19,31 +19,34 @@ export interface TrustRegisterCardProps {
 
 const STATE_CONFIG = {
   anonymous: {
-    headerLabel: 'ANONYMOUS PREVIEW — EXPLORATORY',
-    wrapperClass: 'trust-register-dashed rounded-xl bg-stone-50 overflow-hidden',
-    headerClass: 'px-5 py-3 border-b border-dashed border-gray-300 bg-stone-100',
-    headerLabelClass: 'text-[10px] font-bold uppercase tracking-widest text-gray-400',
-    titleClass: 'text-base font-semibold text-gray-600 mt-0.5',
-    descClass: 'text-sm text-gray-500',
-    bodyClass: 'px-5 py-4 space-y-3',
+    headerLabel: 'ANONYMOUS PREVIEW',
+    wrapperClass: 'border border-dashed border-gray-200 bg-stone-50 overflow-hidden rounded',
+    headerClass: 'px-4 py-2.5 border-b border-dashed border-gray-200 bg-stone-50',
+    headerLabelClass:
+      'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400',
+    titleClass: 'text-sm font-semibold text-gray-600 mt-0.5',
+    descClass: 'text-xs text-gray-500 truncate',
+    bodyClass: 'px-4 py-3 space-y-3',
   },
   owned: {
-    headerLabel: 'OWNED SNAPSHOT — ATTRIBUTED',
-    wrapperClass: 'rounded-xl border border-gray-300 bg-white overflow-hidden',
-    headerClass: 'px-5 py-3 border-b border-gray-200 bg-gray-50',
-    headerLabelClass: 'text-[10px] font-bold uppercase tracking-widest text-gray-400',
-    titleClass: 'text-base font-semibold text-gray-800 mt-0.5',
-    descClass: 'text-sm text-gray-600',
-    bodyClass: 'px-5 py-4 space-y-3',
+    headerLabel: 'OWNED SNAPSHOT',
+    wrapperClass: 'border border-gray-200 bg-white overflow-hidden rounded',
+    headerClass: 'px-4 py-2.5 border-b border-gray-200 bg-gray-50',
+    headerLabelClass:
+      'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-600',
+    titleClass: 'text-sm font-semibold text-gray-800 mt-0.5',
+    descClass: 'text-xs text-gray-500 truncate',
+    bodyClass: 'px-4 py-3 space-y-3',
   },
   signed: {
-    headerLabel: 'SIGNED INSTITUTIONAL ARTIFACT — CRYPTOGRAPHIC PLANE',
-    wrapperClass: 'trust-register-cryptoplane rounded-xl border border-gray-700 bg-gray-900 overflow-hidden',
-    headerClass: 'px-5 py-3 border-b border-gray-700 bg-gray-800',
-    headerLabelClass: 'text-[10px] font-bold uppercase tracking-widest text-green-400',
-    titleClass: 'text-base font-semibold text-gray-100 mt-0.5',
-    descClass: 'text-sm text-gray-400',
-    bodyClass: 'px-5 py-4 space-y-3',
+    headerLabel: 'SIGNED INSTITUTIONAL ARTIFACT',
+    wrapperClass: 'bg-gray-900 border border-gray-700 overflow-hidden rounded',
+    headerClass: 'px-4 py-2.5 border-b border-gray-700 bg-gray-900',
+    headerLabelClass:
+      'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-300',
+    titleClass: 'text-sm font-semibold text-gray-100 mt-0.5',
+    descClass: 'text-xs text-gray-400 truncate',
+    bodyClass: 'px-4 py-3 space-y-3',
   },
 };
 
@@ -82,14 +85,16 @@ export function TrustRegisterCard({
 
         {/* Replay continuity indicator */}
         {replayAvailable && (
-          <div className={`mt-2 rounded border px-3 py-2 text-xs ${
-            state === 'signed'
-              ? 'border-blue-700 bg-blue-900/40 text-blue-300'
-              : 'border-blue-200 bg-blue-50 text-blue-700'
-          }`}>
+          <div
+            className={`mt-2 rounded border px-3 py-2 text-xs ${
+              state === 'signed'
+                ? 'border-blue-700 bg-blue-900/40 text-blue-300'
+                : 'border-blue-200 bg-blue-50 text-blue-700'
+            }`}
+          >
             <span className="font-semibold">REPLAY CONTINUITY</span>
             {priorRunId ? (
-              <span className="trust-register-mono ml-2">{priorRunId}</span>
+              <span className="font-mono ml-2">{priorRunId}</span>
             ) : (
               <span className="ml-2 opacity-60">first run — no prior lineage</span>
             )}
