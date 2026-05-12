@@ -10,7 +10,17 @@ export async function GET(
 ) {
   try {
     const { npi } = await params;
-    const upstream = await fetch(`${BACKEND_URL}/api/passport/${encodeURIComponent(npi)}`, {
+    // Backend exposes two passport routes with divergent shapes:
+    //   /api/passport/:npi       — public/wallet/selective NPI-shape from
+    //                              routes/passport.ts (loadPassportData)
+    //   /api/passport/npi/:npi   — entity-shape from routes/passportEntity.ts
+    //                              (buildPassportDataByNpi)
+    // The proxy validator (`assertPassportData`) expects the entity-shape:
+    // top-level `entityId`, `identity`, `authority`, `training`, `standing`,
+    // `readiness`, `sources`, `sourceCoverage`, `lastCheckedAt`, `trustPosture`.
+    // Calling the NPI-shape route returned a different payload and produced
+    // the `502 invalid_upstream_payload` we saw against seeded NPIs.
+    const upstream = await fetch(`${BACKEND_URL}/api/passport/npi/${encodeURIComponent(npi)}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

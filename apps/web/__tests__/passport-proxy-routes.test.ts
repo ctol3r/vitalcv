@@ -199,6 +199,24 @@ describe('passport proxy routes', () => {
     }));
   });
 
+  it('/api/passport/[npi] proxies to the entity-shape backend route (/api/passport/npi/:npi)', async () => {
+    // Pins the upstream URL so a regression that re-routes back to
+    // /api/passport/:npi (NPI-shape) can't silently reintroduce the
+    // `invalid_upstream_payload` 502.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildPassportPayload()));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { GET } = await import('../app/api/passport/[npi]/route');
+    const response = await GET(new Request('http://localhost/api/passport/1234567890') as never, {
+      params: Promise.resolve({ npi: '1234567890' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetchMock.mock.calls[0]?.[0] as string) ?? '';
+    expect(calledUrl).toBe('http://backend.test/api/passport/npi/1234567890');
+  });
+
   it('rejects invalid readiness posture instead of proxying synthetic completeness', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPassportPayload({
       readiness: {
