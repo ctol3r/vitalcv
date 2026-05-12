@@ -172,6 +172,13 @@ function readLookbackDays(value: unknown): number | undefined {
 
 export function registerPilotOpsRoutes(app: Express): void {
   app.post('/api/pilot-ops/events', async (req: Request, res: Response) => {
+    // ── Actor continuity enforcement ───────────────────────────────────────
+    // Verified actor_id is required. Anonymous pilot event writes are rejected.
+    // The frontend proxy enforces Clerk auth before reaching this handler.
+    // This second-layer check ensures the backend never persists unattributed events.
+    const actorId = requireClerkUserId(req, res);
+    if (!actorId) return;
+
     try {
       const eventType = readTrimmedString(req.body?.eventType);
       const route = readTrimmedString(req.body?.route);

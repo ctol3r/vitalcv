@@ -39,12 +39,54 @@ describe('/api/pilot-ops/events route', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('passes if no other tests are active', () => {
-    expect(true).toBe(true);
+  it('returns 401 for anonymous requests (no userId)', async () => {
+    authMock.mockResolvedValueOnce({ userId: null, sessionClaims: null, orgId: null });
+
+    const { POST } = await import('../app/api/pilot-ops/events/route');
+    const { NextRequest } = await import('next/server');
+
+    const req = new NextRequest('http://localhost/api/pilot-ops/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType: 'page_loaded', route: '/test' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Unauthorized');
   });
 
-  // This test needs route to handle auth errors gracefully
-  // Skipping until route is updated
+  it('forwards authenticated events with actor header', async () => {
+    authMock.mockResolvedValueOnce({
+      userId: 'user_test123',
+      sessionClaims: { email: 'test@example.com', vitalcv: null },
+      orgId: null,
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: true }, 201) as never);
+
+    const { POST } = await import('../app/api/pilot-ops/events/route');
+    const { NextRequest } = await import('next/server');
+
+    const req = new NextRequest('http://localhost/api/pilot-ops/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType: 'page_loaded', route: '/test' }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(options.headers as HeadersInit);
+    expect(headers.get('x-clerk-user-id')).toBe('user_test123');
+  });
+
+  // Legacy: forwarding anonymous events is no longer allowed.
+  // Kept as a documentation anchor for the attribution-continuity contract.
   // it('forwards anonymous events when Clerk auth is unavailable', async () => {
   //   authMock.mockRejectedValueOnce(new Error('clerk unavailable'));
   //   fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: true }) as never);
