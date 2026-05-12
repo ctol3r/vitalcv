@@ -1,5 +1,6 @@
 import cors from 'cors';
 import type { Express, Request, Response } from 'express';
+import { buildCorsOriginCallback } from './utils/originAllowlist';
 import express from 'express';
 import helmet from 'helmet';
 import fs from 'node:fs';
@@ -3434,14 +3435,19 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS
+// CORS — origin continuity enforcement
+// Uses canonical normalizeOrigin() + structured allowlist evaluation.
+// Rejects are logged with reason; same-origin / server-to-server always pass.
 const corsOrigin = env().CORS_ORIGIN?.trim() || '*';
 if (process.env.NODE_ENV === 'production' && corsOrigin === '*') {
   throw new Error('CORS_ORIGIN must not be "*" in production');
 }
+
+const _nodeEnv = (process.env.NODE_ENV ?? 'development') as 'development' | 'production' | 'test';
+
 app.use(
   cors({
-    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()),
+    origin: buildCorsOriginCallback(corsOrigin, _nodeEnv),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
