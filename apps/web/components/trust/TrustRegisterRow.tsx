@@ -6,10 +6,15 @@ export interface TrustRegisterRowProps {
   // The 6 slots (fixed order: OBJECT → OWNERSHIP → CHECKED_AT → CHANNEL → REPLAY → RUN_ID)
   object: string;
   ownership: string | null;
+  // ownership type: 'actor' = Clerk userId, 'system' = infra, null = unbound
+  ownershipType?: 'actor' | 'system' | null;
   checkedAt: string | null;
   channel: string;
   replay: string | null;
   runId: string;
+
+  // Lineage key: {laneId}:{providerId}
+  lineageKey?: string | null;
 
   // State type affects visual treatment
   state: 'anonymous' | 'owned' | 'signed';
@@ -25,16 +30,18 @@ export interface TrustRegisterRowProps {
 }
 
 const NullSlot = () => (
-  <span className="vcv-null-slot">─ ─ ─</span>
+  <span className="font-mono text-gray-200 select-none tracking-[0.15em]">─ ─ ─</span>
 );
 
 export function TrustRegisterRow({
   object,
   ownership,
+  ownershipType = null,
   checkedAt,
   channel,
   replay,
   runId,
+  lineageKey,
   state,
   tier,
   adverse = false,
@@ -61,45 +68,78 @@ export function TrustRegisterRow({
   const labelClass =
     'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-0.5';
 
-  const baseValueClass = (() => {
-    if (state === 'signed' && !noAdverseFindings && !adverse) return 'text-gray-100';
-    if (noAdverseFindings) return 'text-green-800';
-    if (adverse) return 'text-red-800';
-    return 'text-gray-800';
+  // Ownership color based on hierarchy level
+  const ownershipClass = (() => {
+    if (!ownership) return 'font-mono text-xs text-gray-300 italic';
+    if (ownershipType === 'actor') return 'font-mono text-xs text-gray-900';
+    if (ownershipType === 'system') return 'font-mono text-xs text-gray-500';
+    return 'font-mono text-xs text-gray-500';
   })();
-
-  const textClass = `text-sm ${baseValueClass}`;
-  const monoClass = `text-sm font-mono ${baseValueClass}`;
-
-  const slots = [
-    {
-      label: 'OBJECT',
-      value: noAdverseFindings ? '✓ No Adverse Findings' : object,
-      mono: false,
-      nullable: false,
-    },
-    { label: 'OWNERSHIP', value: ownership, mono: true, nullable: true },
-    { label: 'CHECKED_AT', value: checkedAt, mono: true, nullable: true },
-    { label: 'CHANNEL', value: channel, mono: false, nullable: false },
-    { label: 'REPLAY', value: replay, mono: true, nullable: true },
-    { label: 'RUN_ID', value: runId, mono: true, nullable: false },
-  ];
 
   return (
     <div className={wrapperClass}>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
-        {slots.map(({ label, value, mono, nullable }) => (
-          <div key={label} className="min-w-0">
-            <div className={labelClass}>{label}</div>
-            <div className={`${mono ? monoClass : textClass} break-all`}>
-              {nullable && (value === null || value === undefined) ? (
-                <NullSlot />
-              ) : (
-                value
-              )}
-            </div>
+
+        {/* OBJECT — prose label */}
+        <div className="min-w-0">
+          <div className={labelClass}>OBJECT</div>
+          <div className="text-xs text-gray-900 break-all">
+            {noAdverseFindings ? '✓ No Adverse Findings' : object}
           </div>
-        ))}
+          {lineageKey && (
+            <details className="inline mt-0.5">
+              <summary className="text-[9px] font-mono text-gray-300 cursor-pointer hover:text-gray-500 list-none">key</summary>
+              <code className="text-[9px] font-mono bg-gray-50 px-1 text-gray-500">{lineageKey}</code>
+            </details>
+          )}
+        </div>
+
+        {/* OWNERSHIP — machine truth, 3-level hierarchy */}
+        <div className="min-w-0">
+          <div className={labelClass}>OWNERSHIP</div>
+          <div className={`${ownershipClass} break-all`}>
+            {ownership ?? <NullSlot />}
+          </div>
+        </div>
+
+        {/* CHECKED_AT — machine truth, tabular-nums */}
+        <div className="min-w-0">
+          <div className={labelClass}>CHECKED_AT</div>
+          <div className="font-mono text-xs text-gray-500 tabular-nums break-all">
+            {checkedAt ?? <NullSlot />}
+          </div>
+        </div>
+
+        {/* CHANNEL — prose (source name) */}
+        <div className="min-w-0">
+          <div className={labelClass}>CHANNEL</div>
+          <div className="text-xs text-gray-600 break-all">
+            {channel}
+          </div>
+        </div>
+
+        {/* REPLAY — machine truth if present */}
+        <div className="min-w-0">
+          <div className={labelClass}>REPLAY</div>
+          <div className="font-mono text-xs text-gray-400 break-all">
+            {replay ?? <NullSlot />}
+          </div>
+        </div>
+
+        {/* RUN_ID — machine truth, run: prefix */}
+        <div className="min-w-0">
+          <div className={labelClass}>RUN_ID</div>
+          <div className="font-mono text-xs text-gray-900 tabular-nums break-all">
+            {runId ? (
+              <span className="font-mono text-xs text-gray-900 tabular-nums">
+                run:{runId.startsWith('run:') ? runId.slice(4) : runId}
+              </span>
+            ) : (
+              <NullSlot />
+            )}
+          </div>
+        </div>
+
       </div>
       <div className="mt-2">
         <TrustTierBadge tier={tier} />

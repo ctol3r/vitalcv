@@ -121,7 +121,7 @@ export function ReplayChronologyPanel({
                 {/* Run block */}
                 <div
                   className={cn(
-                    'p-3',
+                    'py-1.5 px-3',
                     isLast ? 'border-b-0' : 'border-b border-gray-100',
                   )}
                 >
@@ -154,14 +154,14 @@ export function ReplayChronologyPanel({
                     </span>
                   </div>
 
-                  {/* Line 4: chain link */}
+                  {/* Line 4: chain link — run: prefix disambiguates from receipt IDs */}
                   {isLast ? (
                     <div className="font-mono text-xs text-gray-300 mt-0.5 ml-2">
                       ↳ genesis
                     </div>
                   ) : (
                     <div className="font-mono text-xs text-gray-400 mt-0.5 ml-2">
-                      ↳ prior: {shortId(nextEv?.receiptId, 8)}
+                      ↳ prior: run:{shortId(nextEv?.receiptId, 8)}
                     </div>
                   )}
                 </div>

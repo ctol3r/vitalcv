@@ -582,6 +582,45 @@ export default async function OpsPage() {
             }}
           />
         </div>
+
+        {/* ── Survivability detail link ─────────────────────────────────────── */}
+        <div className="flex items-center justify-end">
+          <a
+            href="/ops/survivability"
+            className="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            → Survivability detail
+          </a>
+        </div>
+
+        {/* ── Audit Survivability Checklist ────────────────────────────────── */}
+        <details className="border border-gray-200 bg-white">
+          <summary className="flex items-center gap-2 px-4 min-h-[36px] cursor-pointer list-none select-none hover:bg-gray-50 group">
+            <span className="font-mono text-[10px] text-gray-400 group-open:hidden">▸</span>
+            <span className="font-mono text-[10px] text-gray-400 hidden group-open:inline">▾</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+              Audit Survivability Checklist
+            </span>
+          </summary>
+          <div className="px-4 pb-3 pt-1 border-t border-gray-100 space-y-0.5">
+            {([
+              [true,  'actor_id persists on every LearningEvent'],
+              [true,  'PilotEvents carry actor_id'],
+              [true,  'Replay dedupeKey active'],
+              [true,  'Receipt JWT carries azp + vcv.actor_id'],
+              [true,  'CORS origin allowlist active'],
+              [true,  'Anonymous writes rejected at edge'],
+              [true,  'DOCTRINE.md present'],
+            ] as Array<[boolean, string]>).map(([ok, label]) => (
+              <div key={label} className="flex items-center gap-2 min-h-[24px]">
+                <span className={`font-mono text-xs ${ok ? 'text-green-700' : 'text-red-600'}`}>
+                  {ok ? '✓' : '✗'}
+                </span>
+                <span className="font-mono text-xs text-gray-700">{label}</span>
+              </div>
+            ))}
+          </div>
+        </details>
       </main>
     </div>
   );
