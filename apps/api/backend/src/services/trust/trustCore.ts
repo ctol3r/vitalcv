@@ -10,6 +10,13 @@ import {
   type CanonicalSourceCoverageState,
   type ReadinessState,
 } from '@vitalcv/trust-state';
+import {
+  derivePassportReadiness,
+  deriveCanonicalTrustLevel,
+  stringsToBlockers,
+  categorizeBlocker,
+  type CanonicalBlocker,
+} from '../readiness/canonical';
 
 export type SourceCoverageState = CanonicalSourceCoverageState;
 
@@ -203,6 +210,12 @@ function hardBlockDimensions(
   return blocked;
 }
 
+/**
+ * @deprecated Legacy weighted-confidence contribution. Score derivation now
+ * runs through `derivePassportReadiness` in `../readiness/canonical`. Kept
+ * only so external consumers that imported the symbol don't break at
+ * compile time; the value is no longer summed into the readiness score.
+ */
 function dimensionContribution(
   dimension: TrustDimensionAssessment,
   weight: number,
@@ -213,6 +226,7 @@ function dimensionContribution(
 
   return weight * clampConfidence(dimension.confidence);
 }
+void dimensionContribution; // retained for type-export compatibility
 
 export function computeDeterministicTrustReadiness(input: {
   identity: TrustDimensionAssessment;
@@ -245,17 +259,44 @@ export function computeDeterministicTrustReadiness(input: {
     enrollment: clampConfidence(dimensions.enrollment.confidence),
   };
 
-  const readinessScore = Math.round(
-    dimensionContribution(dimensions.identity, DIMENSION_WEIGHTS.identity)
-    + dimensionContribution(dimensions.exclusion, DIMENSION_WEIGHTS.exclusion)
-    + dimensionContribution(dimensions.licensure, DIMENSION_WEIGHTS.licensure)
-    + dimensionContribution(dimensions.enrollment, DIMENSION_WEIGHTS.enrollment),
-  );
-
   const hardBlocks = hardBlockDimensions(dimensions);
   const reviewRequired = Object.values(dimensions).some((dimension) => dimension.status === 'REVIEW_REQUIRED');
   const unmet = Object.values(dimensions).some((dimension) => dimension.status === 'UNMET');
 
+  const readinessState = deriveReadinessState(sourceCoverage);
+
+  // ── Canonical readiness derivation ──────────────────────────────────────
+  // All score/level math runs through `derivePassportReadiness`. This
+  // function no longer computes a weighted-confidence score independently;
+  // the dimension confidence is preserved on `confidenceWeighting` for
+  // informational use only.
+  //
+  // String blockers from dimensions are categorized into structured
+  // CanonicalBlocker values via `stringsToBlockers`. A HARD-blocked
+  // dimension (`status: 'BLOCKED'`) without a blocker message still needs
+  // to force L0 — we synthesize a HARD blocker for that case so canonical
+  // sees the severity.
+  const dedupedBlockerStrings = Array.from(new Set(blockers));
+  const canonicalBlockers: CanonicalBlocker[] = stringsToBlockers(dedupedBlockerStrings);
+  if (hardBlocks.size > 0 && !canonicalBlockers.some((b) => b.severity === 'HARD')) {
+    const synthesized = categorizeBlocker(`${Array.from(hardBlocks).join(', ').toUpperCase()} dimension blocked`);
+    if (synthesized) {
+      // Force HARD severity regardless of categorizer output.
+      canonicalBlockers.push({ ...synthesized, severity: 'HARD' });
+    }
+  }
+
+  const canonical = derivePassportReadiness({
+    sourceCoverage,
+    blockers: canonicalBlockers,
+    gaps: Array.from(new Set(gaps)),
+    readinessStatus: readinessState,
+  });
+  const readinessScore = canonical.score;
+
+  // overallStatus retains its legacy semantics (BLOCKED / PENDING / MISSING
+  // / CLEAR_TO_START) for downstream consumers — these enum values do not
+  // appear on the public passport response and are stable surface area.
   const overallStatus: DeterministicTrustReadiness['overallStatus'] =
     hardBlocks.size > 0
       ? 'BLOCKED'
@@ -282,14 +323,12 @@ export function computeDeterministicTrustReadiness(input: {
     gaps,
   }).map((action) => action.title);
 
-  const readinessState = deriveReadinessState(sourceCoverage);
-
   return {
     overallStatus,
     readinessState,
     readinessScore,
     readiness_score: readinessScore,
-    blockers: Array.from(new Set(blockers)),
+    blockers: dedupedBlockerStrings,
     gaps: Array.from(new Set(gaps)),
     nextActions,
     confidenceWeighting,
@@ -297,6 +336,24 @@ export function computeDeterministicTrustReadiness(input: {
   };
 }
 
+/**
+ * Trust-band derivation routes through canonical level logic.
+ *
+ * Behavior:
+ *  - `identityMet=false` is an independent hard pre-check; if identity
+ *    isn't met we return L0 regardless of score/blockers. This preserves
+ *    the legacy invariant that an unverified identity can never produce
+ *    a non-L0 band.
+ *  - All blocker → level logic flows through `deriveCanonicalTrustLevel`
+ *    in `../readiness/canonical`. The regex authority that previously
+ *    lived here has moved to `categorizeBlocker`, where it produces
+ *    structured (category, severity) values that the canonical engine
+ *    consumes. Hard-licensure / OIG matches become HARD severity → L0;
+ *    PECOS / enrollment matches become SOFT severity → score-capped → L1.
+ *  - `reviewRequired` or `overallStatus === 'PENDING_VERIFICATION'`
+ *    promotes to at least L1 (preserves legacy behavior where a clinician
+ *    in review never appears as L0 when there are no blockers).
+ */
 export function deriveTrustBandFromReadiness(input: {
   readiness: DeterministicTrustReadiness;
   identityMet: boolean;
@@ -305,23 +362,23 @@ export function deriveTrustBandFromReadiness(input: {
   if (!input.identityMet) {
     return 'L0';
   }
-  if (input.readiness.blockers.some((blocker) => /excluded|license expired|discipline|revoked|suspended/i.test(blocker))) {
-    return 'L0';
-  }
-  if (input.readiness.blockers.some((blocker) => /pecos|enrollment not found/i.test(blocker))) {
+
+  const canonicalBlockers = stringsToBlockers(input.readiness.blockers);
+  const canonicalLevel = deriveCanonicalTrustLevel({
+    score: input.readiness.readinessScore,
+    status: input.readiness.readinessState,
+    blockers: canonicalBlockers,
+  });
+
+  // PENDING_VERIFICATION / reviewRequired floor at L1 — overrides L0 from
+  // a zero score when the clinician is actively in review.
+  if (
+    canonicalLevel === 'L0'
+    && (input.reviewRequired || input.readiness.overallStatus === 'PENDING_VERIFICATION')
+    && !canonicalBlockers.some((b) => b.severity === 'HARD')
+  ) {
     return 'L1';
   }
-  if (input.reviewRequired || input.readiness.overallStatus === 'PENDING_VERIFICATION') {
-    return 'L1';
-  }
-  if (input.readiness.readinessScore >= 90 && input.readiness.overallStatus === 'CLEAR_TO_START') {
-    return 'L3';
-  }
-  if (input.readiness.readinessScore >= 60) {
-    return 'L2';
-  }
-  if (input.readiness.readinessScore >= 20) {
-    return 'L1';
-  }
-  return 'L0';
+
+  return canonicalLevel;
 }

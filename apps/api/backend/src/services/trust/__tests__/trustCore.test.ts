@@ -44,7 +44,11 @@ describe('trust core readiness', () => {
 
     expect(readiness.overallStatus).toBe('CLEAR_TO_START');
     expect(readiness.readinessState).toBe('DECISION_GRADE');
-    expect(readiness.readinessScore).toBe(96);
+    // Canonical score (trust-convergence migration): 4 launch-spine sources
+    // checked × 25 = 100, no blocker/gap cap. Previously 96 under the
+    // weighted-confidence formula in trustCore. Score now matches what
+    // `derivePassportReadiness` returns for the same coverage.
+    expect(readiness.readinessScore).toBe(100);
     expect(readiness.blockers).toEqual([]);
     expect(readiness.gaps).toEqual([]);
     expect(readiness.confidenceWeighting.identity).toBe(0.99);
@@ -80,7 +84,9 @@ describe('trust core readiness', () => {
 
     expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
     expect(readiness.readinessState).toBe('PARTIAL');
-    expect(readiness.readinessScore).toBe(67);
+    // Canonical: 3 of 4 spine sources checked × 25 = 75; gap-only caps at
+    // 75 (no-op here). Previously 67 under the weighted formula.
+    expect(readiness.readinessScore).toBe(75);
     expect(readiness.blockers).toEqual([]);
     expect(readiness.gaps).toContain('licensure stale');
   });
@@ -117,7 +123,9 @@ describe('trust core readiness', () => {
 
     expect(readiness.overallStatus).toBe('MISSING_CREDENTIALS');
     expect(readiness.readinessState).toBe('PARTIAL');
-    expect(readiness.readinessScore).toBe(48);
+    // Canonical: 2 of 4 spine sources checked × 25 = 50; gaps present
+    // (cap at 75) does not lower 50. Previously 48 under weighted formula.
+    expect(readiness.readinessScore).toBe(50);
     expect(readiness.nextActions).toContain('Refresh licensure proof');
     expect(readiness.sourceCoverage).toEqual(
       expect.arrayContaining([

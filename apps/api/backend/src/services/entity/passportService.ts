@@ -23,6 +23,11 @@ import {
   getCachedTrustState,
   type ClinicianTrustState,
 } from '../trust/trustStateEngine';
+import {
+  derivePassportReadiness,
+  deriveCanonicalTrustLevel,
+  stringsToBlockers,
+} from '../readiness/canonical';
 import { detectDivergence } from '../identity/divergenceEngine';
 import {
   daysUntilExpiry,
@@ -330,23 +335,21 @@ const ESTIMATED_START_DAYS: Record<string, number> = {
   BLOCKED:        null as unknown as number,
 };
 
+/**
+ * Backward-compat shim: routes through the canonical engine so any caller
+ * of the file-local helper produces the same level as canonical. New code
+ * should call `deriveCanonicalTrustLevel` directly with structured blockers.
+ */
 function derivePassportReadinessLevel(
   score: number,
   status: ReadinessState,
+  blockers: readonly string[] = [],
 ): string {
-  if (status === 'BLOCKED') {
-    return 'L0';
-  }
-  if (score >= 80 && status === 'DECISION_GRADE') {
-    return 'L3';
-  }
-  if (score >= 60) {
-    return 'L2';
-  }
-  if (score > 0) {
-    return 'L1';
-  }
-  return 'L0';
+  return deriveCanonicalTrustLevel({
+    score,
+    status,
+    blockers: stringsToBlockers(blockers),
+  });
 }
 
 function dedupeStrings(values: readonly string[]): string[] {
@@ -2208,24 +2211,20 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
   const normalizedBlockers = dedupeStrings(blockers).filter(isReadinessBlockingFinding);
   const normalizedGaps = dedupeStrings(gaps);
 
-  // Derive readiness from actual source coverage — not from blocker/gap string lists.
+  // Canonical readiness derivation. ALL score/level/band math routes
+  // through `derivePassportReadiness` in ../readiness/canonical. This
+  // function (`buildPassport`) is the canonical caller; trustCore and
+  // trustStateEngine route their derivations through the same engine
+  // via the same module.
   const readinessStatus: ReadinessState = deriveReadinessState(sourceCoverage.checks);
-  // Derive readiness score from source coverage rather than hardcoding.
-  // Each checked launch-spine source contributes 25 points (4 sources × 25 = 100 max).
-  // Non-checked sources contribute 0. This ensures the score reflects real source state.
-  const spineChecks = sourceCoverage.checks.filter(
-    (check) => LAUNCH_SPINE_SOURCE_IDS.includes(check.sourceId as LaunchSpineSourceId),
-  );
-  const checkedCount = spineChecks.filter((check) => check.state === 'checked').length;
-  const baseScore = checkedCount * 25;
-  const readinessScore = (() => {
-    // Blockers cap score at 20 max; gaps cap at 75 max.
-    const cappedScore =
-      normalizedBlockers.length > 0 ? Math.min(baseScore, 20)
-      : normalizedGaps.length > 0 ? Math.min(baseScore, 75)
-      : baseScore;
-    return Math.max(0, cappedScore - (divergence?.totalPenalty ?? 0));
-  })();
+  const canonicalReadiness = derivePassportReadiness({
+    sourceCoverage: sourceCoverage.checks,
+    blockers: stringsToBlockers(normalizedBlockers),
+    gaps: normalizedGaps,
+    divergencePenalty: divergence?.totalPenalty ?? 0,
+    readinessStatus,
+  });
+  const readinessScore = canonicalReadiness.score;
   // KPI: sync blocker lifecycle events (fire-and-forget — never blocks passport build).
   // This populates blocker_resolution_events so /pilot-ops blocker metrics are live.
   // syncBlockerEvents opens new blockers and auto-resolves blockers no longer present.
@@ -2243,7 +2242,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     status:             readinessStatus,
     score:              readinessScore,
     readiness_score:    readinessScore,
-    level:              derivePassportReadinessLevel(readinessScore, readinessStatus),
+    level:              canonicalReadiness.level,
     blockers:           normalizedBlockers,
     gaps:               normalizedGaps,
     nextActions,
