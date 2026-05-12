@@ -5,9 +5,10 @@ import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
-import { TrustHeader } from '@/components/trust';
+import { TrustHeader, RecentNpis } from '@/components/trust';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import { useRecentNpis } from '@/lib/hooks/useRecentNpis';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
@@ -19,6 +20,7 @@ interface PassportEntityClientProps {
 export default function PassportEntityClient({ entityId }: PassportEntityClientProps) {
   const [passport, setPassport] = useState<PassportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { items: recentNpis, recordRecentNpi } = useRecentNpis();
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +40,27 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
       cancelled = true;
     };
   }, [entityId]);
+
+  // Record this inspection in the client's replay memory once the
+  // passport resolves. The hook handles dedupe + replayCount increment.
+  useEffect(() => {
+    if (!passport) return;
+    const npi = passport.identity.npi;
+    if (!npi || !/^\d{10}$/.test(npi)) return;
+    // Wave 10 (#343) adds `replay.runId` + `replay.lineageKey` on
+    // PassportData; until that lands, the optional cast reads them
+    // when present and silently omits them when not.
+    const replay = (passport as PassportData & {
+      replay?: { runId: string; lineageKey: string; schemeVersion: 'v1' };
+    }).replay;
+    recordRecentNpi({
+      npi,
+      displayName: passport.identity.displayName,
+      lastCheckedAt: passport.lastCheckedAt,
+      runId: replay?.runId,
+      lineageKey: replay?.lineageKey,
+    });
+  }, [passport, recordRecentNpi]);
 
   if (loading) {
     return <PassportWallet loading />;
@@ -127,6 +150,12 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
             </p>
           </header>
           <KnowledgeInboxPanel items={inboxItems} />
+        </section>
+        <section
+          aria-label="Recent NPI inspections"
+          data-testid="passport-recent-npis-mount"
+        >
+          <RecentNpis items={recentNpis} currentNpi={passport.identity.npi} />
         </section>
       </div>
     </div>

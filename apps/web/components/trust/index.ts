@@ -64,3 +64,7 @@ export {
   type TrustHeaderOwnership,
   type TrustHeaderReplay,
 } from './TrustHeader';
+export {
+  RecentNpis,
+  type RecentNpisProps,
+} from './RecentNpis';
