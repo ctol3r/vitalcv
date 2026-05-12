@@ -59,8 +59,33 @@ function sha256OfJson(value: unknown): string {
   return createHash('sha256').update(canonicalize(value)).digest('hex');
 }
 
+/**
+ * Returns the Clerk user id from the `x-clerk-user-id` header. The web
+ * proxy attaches this header from `auth().userId` on every authenticated
+ * request; an empty/missing value means the caller is unauthenticated.
+ * `/api/audit/decision` writes to the non-repudiable audit chain — every
+ * row must carry a real actor identity, never an organization id alone.
+ */
+function readActorId(req: Request): string | null {
+  const raw = req.headers['x-clerk-user-id'];
+  const v = typeof raw === 'string' ? raw.trim() : '';
+  return v.length > 0 ? v : null;
+}
+
 export function registerAuditDecisionRoutes(app: Express): void {
   app.post('/api/audit/decision', async (req: Request, res: Response) => {
+    // Audit-chain integrity contract: a decision row without an
+    // attributable individual actor is unverifiable on replay. Reject
+    // anonymous writes BEFORE any DB mutation.
+    const actorId = readActorId(req);
+    if (!actorId) {
+      res.status(401).json({
+        error: 'unauthenticated',
+        detail: 'x-clerk-user-id header required; audit-decision writes the non-repudiable audit chain.',
+      });
+      return;
+    }
+
     const body = (req.body ?? {}) as Record<string, unknown>;
 
     const clinicianId = typeof body.clinicianId === 'string' ? body.clinicianId.trim() : '';
@@ -111,9 +136,13 @@ export function registerAuditDecisionRoutes(app: Express): void {
       // history on client retries. `$transaction` guarantees all-or-nothing.
       //
       // AuditEvent has no dedicated actor column; organizationId already
-      // carries the employer id, and the actor is additionally mirrored
-      // into metadata.actorId so downstream consumers can read it without
-      // inferring actor === organization.
+      // carries the employer id, and the Clerk user id of the individual
+      // operator is mirrored into metadata.actorId so downstream
+      // consumers can attribute the decision to a named person, not
+      // just the org. Before this change the field carried employerId
+      // verbatim, which collapsed person-level attribution into
+      // organization-level — replay could not tell who at the employer
+      // made the call. The 401 gate above guarantees actorId is set.
       const [auditEvent, capsule] = await prisma.$transaction([
         prisma.auditEvent.create({
           data: {
@@ -123,7 +152,8 @@ export function registerAuditDecisionRoutes(app: Express): void {
             clinicianId,
             organizationId: employerId,
             metadata: {
-              actorId: employerId,
+              actorId,
+              employerId,
               role,
               decisionOutcome,
               timeToDecision,
@@ -146,11 +176,14 @@ export function registerAuditDecisionRoutes(app: Express): void {
       // In-memory SIEM ledger — best-effort, in-process only. Fires AFTER
       // the transaction commits so the ledger never reflects a decision
       // that was rolled back.
+      // In-memory SIEM ledger gets the individual actor as `actor`; the
+      // organization id moves to requestFields so downstream consumers
+      // can tell person from org without inference.
       appendAuditEvent({
         category: 'DECISION',
-        actor: employerId,
+        actor: actorId,
         resource: clinicianId,
-        requestFields: { role, decisionOutcome, timeToDecision },
+        requestFields: { employerId, role, decisionOutcome, timeToDecision },
         resultFields: { passportSnapshotHash: snapshotHash, auditEventId: auditEvent.id },
         severity: 'INFO',
       });

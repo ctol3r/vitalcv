@@ -61,7 +61,7 @@ describe('POST /api/audit/decision', () => {
   });
 
   it('records a learning capsule and a standard audit event', async () => {
-    const res = await request(app).post('/api/audit/decision').send(validBody);
+    const res = await request(app).post('/api/audit/decision').set('x-clerk-user-id', 'user_test_actor_1').send(validBody);
 
     expect(res.status).toBe(201);
     expect(res.body.capsuleId).toBe('capsule-1');
@@ -86,6 +86,7 @@ describe('POST /api/audit/decision', () => {
     for (const outcome of outcomes) {
       const res = await request(app)
         .post('/api/audit/decision')
+        .set('x-clerk-user-id', 'user_test_actor_1')
         .send({ ...validBody, decisionOutcome: outcome });
       expect(res.status).toBe(201);
     }
@@ -94,6 +95,7 @@ describe('POST /api/audit/decision', () => {
   it('rejects an invalid decisionOutcome', async () => {
     const res = await request(app)
       .post('/api/audit/decision')
+      .set('x-clerk-user-id', 'user_test_actor_1')
       .send({ ...validBody, decisionOutcome: 'YOLO' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/decisionOutcome/);
@@ -103,6 +105,7 @@ describe('POST /api/audit/decision', () => {
   it('rejects a non-UUID clinicianId', async () => {
     const res = await request(app)
       .post('/api/audit/decision')
+      .set('x-clerk-user-id', 'user_test_actor_1')
       .send({ ...validBody, clinicianId: 'not-a-uuid' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/clinicianId/);
@@ -111,14 +114,14 @@ describe('POST /api/audit/decision', () => {
 
   it('rejects missing timeToDecision', async () => {
     const { timeToDecision: _ignored, ...withoutTime } = validBody;
-    const res = await request(app).post('/api/audit/decision').send(withoutTime);
+    const res = await request(app).post('/api/audit/decision').set('x-clerk-user-id', 'user_test_actor_1').send(withoutTime);
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/timeToDecision/);
   });
 
   it('rejects missing passportSnapshot', async () => {
     const { passportSnapshot: _ignored, ...withoutSnap } = validBody;
-    const res = await request(app).post('/api/audit/decision').send(withoutSnap);
+    const res = await request(app).post('/api/audit/decision').set('x-clerk-user-id', 'user_test_actor_1').send(withoutSnap);
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/passportSnapshot/);
   });
@@ -133,8 +136,42 @@ describe('POST /api/audit/decision', () => {
     (prisma.decisionLearningCapsule.create as jest.Mock).mockRejectedValueOnce(
       new Error('DB down'),
     );
-    const res = await request(app).post('/api/audit/decision').send(validBody);
+    const res = await request(app).post('/api/audit/decision').set('x-clerk-user-id', 'user_test_actor_1').send(validBody);
     expect(res.status).toBe(500);
     expect(res.body.error).toMatch(/Failed/);
+  });
+
+  // ── Anonymous-write extinction (Wave audit-chain hardening) ────────────────
+
+  it('rejects requests with no x-clerk-user-id header (401)', async () => {
+    const res = await request(app).post('/api/audit/decision').send(validBody);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('unauthenticated');
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+    expect(prisma.decisionLearningCapsule.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects requests with empty x-clerk-user-id header (401)', async () => {
+    const res = await request(app)
+      .post('/api/audit/decision')
+      .set('x-clerk-user-id', '   ')
+      .send(validBody);
+    expect(res.status).toBe(401);
+    expect(prisma.auditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('records the Clerk user id (not the employer id) as metadata.actorId', async () => {
+    await request(app)
+      .post('/api/audit/decision')
+      .set('x-clerk-user-id', 'user_test_actor_1')
+      .send(validBody);
+
+    const auditArgs = (prisma.auditEvent.create as jest.Mock).mock.calls[0][0];
+    expect(auditArgs.data.metadata.actorId).toBe('user_test_actor_1');
+    // The employer id is still captured, but as a distinct field.
+    expect(auditArgs.data.metadata.employerId).toBe(EMPLOYER_ID);
+    expect(auditArgs.data.organizationId).toBe(EMPLOYER_ID);
+    // Critically, actorId is NOT collapsed to employerId anymore.
+    expect(auditArgs.data.metadata.actorId).not.toBe(auditArgs.data.organizationId);
   });
 });

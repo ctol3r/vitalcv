@@ -21,11 +21,38 @@ export const employerActionRouter = Router();
 type ActionType = 'accept_head_start' | 'request_refresh';
 
 /**
+ * Returns the Clerk user id from the `x-clerk-user-id` header, or null if
+ * absent / empty. The web proxy attaches this header from `auth().userId`
+ * on every authenticated request; an absent or empty value means the
+ * caller is unauthenticated. Audit-chain writes require an attributable
+ * actor — see the 401 enforcement at the top of the handler.
+ */
+function readActorId(req: Request): string | null {
+  const raw = req.headers['x-clerk-user-id'];
+  const v = typeof raw === 'string' ? raw.trim() : '';
+  return v.length > 0 ? v : null;
+}
+
+/**
  * POST /api/employer-action
  * Body: { npi, employerId, action, loopId?, notes? }
+ *
+ * Writes to the `EmployerAcceptance` table and the non-repudiable
+ * `AuditEvent` table. Requires a Clerk-authenticated actor: every audit
+ * row carries `actor_id` so the replay engine can attribute the decision
+ * to the named operator who took it. Anonymous writes are rejected with
+ * 401 before any DB mutation.
  */
 employerActionRouter.post('/', async (req: Request, res: Response) => {
   try {
+    const actorId = readActorId(req);
+    if (!actorId) {
+      return res.status(401).json({
+        error: 'unauthenticated',
+        detail: 'x-clerk-user-id header required; employer-action writes the non-repudiable audit chain.',
+      });
+    }
+
     const {
       npi,
       employerId,
@@ -76,7 +103,7 @@ employerActionRouter.post('/', async (req: Request, res: Response) => {
         acceptanceId = acceptance.id;
       }
 
-      // Write non-repudiable audit event
+      // Write non-repudiable audit event with attributable actor identity.
       await prisma.auditEvent.create({
         data: {
           type:        'employer.accept_head_start',
@@ -86,6 +113,7 @@ employerActionRouter.post('/', async (req: Request, res: Response) => {
           organizationId: employerId,
           metadata: {
             action,
+            actorId,
             loopId:       loopId ?? null,
             acceptanceId,
             timestamp:    now.toISOString(),
@@ -97,6 +125,7 @@ employerActionRouter.post('/', async (req: Request, res: Response) => {
         action,
         loopId,
         acceptanceId,
+        actorId,
       });
 
       return res.json({
@@ -121,6 +150,7 @@ employerActionRouter.post('/', async (req: Request, res: Response) => {
           organizationId: employerId,
           metadata: {
             action,
+            actorId,
             loopId:    loopId ?? null,
             requestId: actionId,
             timestamp: now.toISOString(),
@@ -129,7 +159,7 @@ employerActionRouter.post('/', async (req: Request, res: Response) => {
         },
       });
 
-      log('info', 'employer_action_taken', { action, loopId });
+      log('info', 'employer_action_taken', { action, loopId, actorId });
 
       return res.json({
         success:       true,
