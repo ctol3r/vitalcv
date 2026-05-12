@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { VerifierOnboardingGuide } from '@/components/verifier/VerifierOnboardingGuide';
 
 interface VerifyResult {
   verified: boolean;
@@ -44,6 +46,19 @@ export default function VerifyPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
+      {/* Verifier onboarding guide — collapsed by default */}
+      <div className="mb-8">
+        <VerifierOnboardingGuide collapsible compact={false} />
+        <div className="mt-1.5 text-right">
+          <Link
+            href="/verify/guide"
+            className="text-[11px] text-blue-500 hover:text-blue-700 underline underline-offset-2"
+          >
+            Full guide + offline verification →
+          </Link>
+        </div>
+      </div>
+
       <h1 className="mb-2 text-3xl font-bold tracking-tight">Credential Verifier</h1>
       <p className="mb-8 text-gray-500">
         Paste a VitalCV JWT to verify its cryptographic signature and inspect its claims.
