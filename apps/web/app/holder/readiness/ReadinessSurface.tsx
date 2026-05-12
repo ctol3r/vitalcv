@@ -17,6 +17,7 @@ import { ProofSplitPane } from '@/components/proof/LanePanel';
 import { LiveStateLog, buildStateLog } from '@/components/proof/LiveStateLog';
 import { PostureBadge, ProofTierBadge, MetricBadge } from '@/components/proof/TrustLabel';
 import type { ReadinessSnapshot, StateLogEntry, LaneSnapshot } from '@/components/proof/trust-types';
+import { TrustHeader } from '@/components/trust';
 
 // ─── Demo/fallback state for when no API is wired ─────────────────
 // Replace with real API call in production
@@ -102,14 +103,20 @@ export default function ReadinessSurface() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Posture header */}
+        {/* Canonical TrustHeader — institutional reading order on the
+            readiness surface. PREVIEW variant because this surface
+            renders a public/anonymous exploration view before claim. */}
         {snapshot && (
-          <div className="flex flex-wrap items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">{snapshot.name}</h1>
-              <p className="font-mono text-sm text-slate-500 mt-0.5 tracking-wide">NPI {snapshot.npi}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 ml-auto">
+          <>
+            <TrustHeader
+              variant="PREVIEW"
+              object={{ id: snapshot.npi, label: snapshot.name, kind: 'clinician' }}
+              ownership={{ state: 'UNCLAIMED' }}
+              checkedAt={new Date(snapshot.generatedAt).toISOString()}
+              channel={snapshot.lanes.find((l) => l.status === 'verified')?.source ?? 'preview'}
+              runId={`readiness-${snapshot.generatedAt}`}
+            />
+            <div className="flex flex-wrap items-center gap-2">
               <PostureBadge posture={snapshot.posture} size="md" />
               <ProofTierBadge tier={snapshot.proofTier} />
               {snapshot.score !== null
@@ -117,7 +124,7 @@ export default function ReadinessSurface() {
                 : <MetricBadge label="score unavailable" type="unverified" />
               }
             </div>
-          </div>
+          </>
         )}
 
         {/* Live state log */}

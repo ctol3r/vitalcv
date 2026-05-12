@@ -5,6 +5,7 @@ import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
+import { TrustHeader } from '@/components/trust';
 import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
@@ -74,8 +75,30 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   // in classification — see lib/knowledge-inbox/classifyInboxItem.ts.
   const inboxItems: KnowledgeInboxItem[] = [];
 
+  // Canonical TrustHeader — single source for the institutional reading
+  // order on the passport surface. Adopts Lane B primitives without
+  // changing the existing PassportWallet rendering below.
+  // Channel = the first checked launch-spine source; ownership and runId
+  // are stubbed where data isn't threaded yet (Lane D plumbing).
+  const channel = passport.sources?.checked?.[0] ?? 'unknown';
+  const ownershipClaimant = passport.identity.displayName;
+
   return (
     <div className="flex flex-col gap-8 pb-16">
+      <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full">
+        <TrustHeader
+          variant="SNAPSHOT"
+          object={{
+            id: passport.identity.npi ?? passport.entityId,
+            label: passport.identity.displayName,
+            kind: passport.identity.entityType.toLowerCase(),
+          }}
+          ownership={{ state: 'UNCLAIMED', claimant: ownershipClaimant }}
+          checkedAt={passport.lastCheckedAt}
+          channel={channel}
+          runId={passport.entityId}
+        />
+      </div>
       <PassportWallet passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
         <section

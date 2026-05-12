@@ -14,6 +14,7 @@ import type {
 } from '@/components/review/EmployerDecisionConsole';
 import type { LaneSnapshot, ReadinessPosture } from '@/components/proof/trust-types';
 import { normalizeTrustContainerManifestView } from '@/lib/trust/trust-container-view';
+import { TrustHeader } from '@/components/trust';
 
 // ─── Data adapter ─────────────────────────────────────────────────
 
@@ -205,5 +206,29 @@ export default function ConsoleWrapper({ entityId }: { entityId: string }) {
     );
   }
 
-  return <EmployerDecisionConsole {...data} onAction={handleAction} />;
+  // Canonical TrustHeader at the top of the review surface. Channel is
+  // derived from the first verified lane; runId uses the loopId thread
+  // that the audit pipeline keys on. Ownership defaults to UNCLAIMED
+  // because employer-review entry points don't currently thread the
+  // claim state (Lane D plumbing).
+  const channel = data.lanes.find((l) => l.status === 'verified')?.source ?? 'review';
+  const earliestCheck = data.lanes
+    .map((l) => l.checkedAt)
+    .filter((t): t is number => typeof t === 'number')
+    .sort((a, b) => b - a)[0];
+  const checkedAtIso = earliestCheck ? new Date(earliestCheck).toISOString() : null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <TrustHeader
+        variant="SNAPSHOT"
+        object={{ id: data.entityId, label: data.name, kind: 'clinician' }}
+        ownership={{ state: 'UNCLAIMED', claimant: data.name }}
+        checkedAt={checkedAtIso}
+        channel={channel}
+        runId={data.loopId ?? data.entityId}
+      />
+      <EmployerDecisionConsole {...data} onAction={handleAction} />
+    </div>
+  );
 }

@@ -12,6 +12,7 @@ import {
   STATUS_COLORS, STATUS_EXPLANATIONS, KNOWN_LANES,
   type LaneSnapshot, type SourceStatus,
 } from './trust-types';
+import { CheckedAtStamp, RunIdentity } from '@/components/trust';
 
 // ─── Split-Pane Layout ────────────────────────────────────────────
 
@@ -144,17 +145,24 @@ function LaneDetail({
         <MetaRow label="Lane ID"       value={lane.laneId}    mono />
         <MetaRow label="Freshness"     value={def.freshnessWindowLabel} />
         {lane.checkedAt && (
-          <MetaRow
-            label="Checked at"
-            value={new Date(lane.checkedAt).toLocaleString()}
-            mono
-          />
+          <div className="flex items-center justify-between py-1">
+            <span className="text-xs text-slate-500">Checked at</span>
+            <CheckedAtStamp
+              checkedAt={new Date(lane.checkedAt).toISOString()}
+              label=""
+              format="long"
+              className="text-xs"
+            />
+          </div>
         )}
         {lane.value && (
           <MetaRow label="Value"       value={lane.value} />
         )}
         {lane.receiptId && (
-          <MetaRow label="Receipt ID"  value={lane.receiptId} mono />
+          <div className="flex items-center justify-between py-1">
+            <span className="text-xs text-slate-500">Receipt ID</span>
+            <RunIdentity runId={lane.receiptId} label="receipt" className="text-xs" />
+          </div>
         )}
       </div>
 
@@ -165,7 +173,17 @@ function LaneDetail({
           <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 font-mono text-xs text-slate-600 space-y-1">
             <div className="flex justify-between"><span>receipt_id</span><span className="text-slate-400">{lane.receiptId.slice(0, 16)}…</span></div>
             <div className="flex justify-between"><span>source</span><span className="text-slate-400">{def.source}</span></div>
-            {lane.checkedAt && <div className="flex justify-between"><span>checked_at</span><span className="text-slate-400">{lane.checkedAt}</span></div>}
+            {lane.checkedAt && (
+              <div className="flex justify-between items-center">
+                <span>checked_at</span>
+                <CheckedAtStamp
+                  checkedAt={new Date(lane.checkedAt).toISOString()}
+                  label=""
+                  format="iso"
+                  className="text-slate-400"
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (

@@ -40,6 +40,7 @@ import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture
 import { useTrackEvent } from '@/lib/learning/useTrackEvent';
 import { EvidenceDisclosureCard } from '@/components/trust/EvidenceDisclosureCard';
 import { PassportSourceCoveragePanel } from '@/components/trust/PassportSourceCoveragePanel';
+import { CheckedAtStamp } from '@/components/trust';
 import { SharePacketModal } from '@/components/passport/SharePacketModal';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { DivergenceSummaryCard } from '@/components/trust/DivergenceSummaryCard';
@@ -171,7 +172,10 @@ function buildIdentitySection(passport: PassportData): AccordionItem {
         <DetailRow label="NPI"        value={identity.npi} />
         <DetailRow label="Type"       value={identity.entityType === 'PERSON' ? 'Individual provider' : 'Organization'} />
         <DetailRow label="Source"     value="CMS NPPES" />
-        <DetailRow label="Last check" value={new Date(lastCheckedAt).toLocaleDateString()} />
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-muted-foreground">Last check</span>
+          <CheckedAtStamp checkedAt={lastCheckedAt} label="" format="long" />
+        </div>
       </div>
     ),
   };
