@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   PARTNER_CATEGORY_LABEL,
@@ -242,5 +243,45 @@ describe('Issuer Verification — Banned Strings', () => {
     for (const banned of BANNED) {
       expect(blob).not.toContain(banned.toLowerCase());
     }
+  });
+});
+
+describe('receiptCandidate.ts — purity guard (no I/O, no DB, no audit writes)', () => {
+  it('source contains no fetch / axios / network / db / audit-writer tokens', () => {
+    const src = readFileSync(
+      new URL(
+        '../lib/issuer-verification/receiptCandidate.ts',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    const banned = [
+      'fetch(',
+      'axios',
+      'XMLHttpRequest',
+      'navigator.sendBeacon',
+      'prisma.',
+      'recordAudit',
+      'recordAuditEvent',
+      "import('@/",
+      'require(',
+    ];
+    for (const phrase of banned) {
+      expect(src).not.toContain(phrase);
+    }
+  });
+
+  it('does not statically import any backend module', () => {
+    const src = readFileSync(
+      new URL(
+        '../lib/issuer-verification/receiptCandidate.ts',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    expect(src).not.toMatch(/from ['"]apps\/api/);
+    expect(src).not.toMatch(/from ['"]@vitalcv\/psv['"]/);
+    expect(src).not.toMatch(/from ['"][^'"]*prisma_client['"]/);
+    expect(src).not.toMatch(/from ['"][^'"]*psvReceipts\.repo['"]/);
   });
 });
