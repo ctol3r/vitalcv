@@ -7,7 +7,10 @@
  * a link to /.well-known/did.json for issuer verification.
  *
  * Design: Bloomberg header style, fixed-width label column, monospaced values.
+ * wave-receipt-elevation: Full kid display, EC P-256 label, verify → link.
  */
+
+import { CopyableDID } from '@/components/trust/CopyableDID';
 
 interface IssuerContinuityPanelProps {
   /** Override if needed; defaults to the canonical VitalCV DID */
@@ -25,7 +28,7 @@ export function IssuerContinuityPanel({
   signingKeyId,
 }: IssuerContinuityPanelProps) {
   return (
-    <div className="border border-gray-200 overflow-hidden rounded">
+    <div className="border border-gray-200 overflow-hidden rounded-none">
       {/* Header — Bloomberg style */}
       <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
@@ -36,7 +39,7 @@ export function IssuerContinuityPanel({
       <div className="divide-y divide-gray-100">
         {/* Issuer DID */}
         <IssuerRow label="Issuer">
-          <span className="text-xs font-mono text-gray-800 break-all">{did}</span>
+          <CopyableDID did={did} />
         </IssuerRow>
 
         {/* JWKS URI */}
@@ -52,14 +55,29 @@ export function IssuerContinuityPanel({
         </IssuerRow>
 
         {/* Key fingerprint */}
-        <IssuerRow label="Key fingerprint">
-          <span className="text-xs font-mono text-gray-800 break-all">
-            {signingKeyId ?? <span className="font-mono text-gray-300 select-none">─ ─ ─</span>}
-          </span>
+        <IssuerRow label="Key Fingerprint">
+          {signingKeyId ? (
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-gray-800 break-all">{signingKeyId}</span>
+                <a
+                  href={JWKS_URI}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[9px] font-mono text-blue-600 hover:underline flex-shrink-0"
+                >
+                  verify →
+                </a>
+              </div>
+              <span className="text-[10px] text-gray-400">EC P-256 · ES256 · Active</span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-gray-400 italic">No key bound (dev mode)</span>
+          )}
         </IssuerRow>
 
         {/* Key rotation */}
-        <IssuerRow label="Last key rotation">
+        <IssuerRow label="Last Rotation">
           <span className="text-xs font-mono text-gray-500">N/A</span>
         </IssuerRow>
       </div>
@@ -90,8 +108,8 @@ function IssuerRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 min-h-[32px]">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[140px] flex-shrink-0">
+    <div className="flex items-start gap-3 px-3 min-h-[32px] py-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[120px] flex-shrink-0 pt-0.5">
         {label}
       </span>
       <div className="flex-1 min-w-0">{children}</div>

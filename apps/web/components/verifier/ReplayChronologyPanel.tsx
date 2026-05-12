@@ -3,55 +3,31 @@
 /**
  * ReplayChronologyPanel.tsx
  *
- * Ordered list of check events with timestamps.
- * Each row: [ISO timestamp] [lane] [status] [receipt_id short]
- * Source: ReadinessSnapshot.lanes from trust-types.ts
+ * Connected ledger of check events. Each lane becomes a run block.
+ * Adjacent blocks share borders for a ledger / audit packet look.
+ *
+ * Design: Bloomberg column headers, connected border ledger, no rounded corners.
+ * wave-receipt-elevation: connected run blocks, gap banners, chain links.
  */
 
 import type { LaneSnapshot } from '@/components/proof/trust-types';
 import { STATUS_COLORS, KNOWN_LANES } from '@/components/proof/trust-types';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
 
 interface ReplayChronologyPanelProps {
   lanes: LaneSnapshot[];
-  /** Additional historical snapshots for replay; if > 1 event, shows full chronology */
+  /** Additional historical snapshots for replay */
   priorLanes?: LaneSnapshot[];
 }
 
-function toIso(ts: number | null): string {
+function toIsoFull(ts: number | null): string {
   if (!ts) return '—';
-  return new Date(ts).toISOString();
+  return new Date(ts).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
 }
 
-function shortId(id: string | null | undefined): string {
+function shortId(id: string | null | undefined, len = 8): string {
   if (!id) return '—';
-  return id.slice(0, 8);
-}
-
-interface CheckEvent {
-  isoTs: string;
-  tsMs: number;
-  lane: string;
-  status: string;
-  receiptId: string | null | undefined;
-}
-
-function buildEvents(lanes: LaneSnapshot[], prior: LaneSnapshot[]): CheckEvent[] {
-  const all = [...lanes, ...prior];
-  return all
-    .filter((l) => l.checkedAt !== null)
-    .map((l) => {
-      const def = KNOWN_LANES.find((d) => d.laneId === l.laneId);
-      return {
-        isoTs: toIso(l.checkedAt),
-        tsMs: l.checkedAt ?? 0,
-        lane: def?.displayName ?? l.laneId,
-        status: l.status,
-        receiptId: l.receiptId,
-      };
-    })
-    .sort((a, b) => b.tsMs - a.tsMs);
+  return id.slice(0, len);
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -65,6 +41,51 @@ const STATUS_LABEL: Record<string, string> = {
   adverse: 'ADVERSE',
 };
 
+const STATUS_TEXT: Record<string, string> = {
+  verified: 'text-green-700 font-semibold',
+  adverse: 'text-red-700 font-semibold',
+  stale: 'text-amber-700 font-semibold',
+  in_progress: 'text-blue-700 font-semibold',
+  not_checked: 'text-gray-500',
+  unavailable: 'text-gray-500',
+  access_required: 'text-amber-700 font-semibold',
+  review_required: 'text-amber-700 font-semibold',
+};
+
+interface RunEvent {
+  isoTs: string;
+  tsMs: number;
+  lane: string;
+  source: string;
+  status: string;
+  receiptId: string | null | undefined;
+  tier: string;
+}
+
+function buildEvents(lanes: LaneSnapshot[], prior: LaneSnapshot[]): RunEvent[] {
+  const all = [...lanes, ...prior];
+  return all
+    .filter((l) => l.checkedAt !== null)
+    .map((l) => {
+      const def = KNOWN_LANES.find((d) => d.laneId === l.laneId);
+      return {
+        isoTs: toIsoFull(l.checkedAt),
+        tsMs: l.checkedAt ?? 0,
+        lane: def?.displayName ?? l.laneId,
+        source: l.source ?? def?.source ?? l.laneId,
+        status: l.status,
+        receiptId: l.receiptId,
+        tier: l.status === 'verified' ? 'T3' : 'T1',
+      };
+    })
+    .sort((a, b) => b.tsMs - a.tsMs);
+}
+
+/** Detect a gap between two sorted events (> 7 days = notable gap) */
+function hasGap(a: RunEvent, b: RunEvent): boolean {
+  return Math.abs(a.tsMs - b.tsMs) > 7 * 24 * 60 * 60 * 1000;
+}
+
 export function ReplayChronologyPanel({
   lanes,
   priorLanes = [],
@@ -72,64 +93,97 @@ export function ReplayChronologyPanel({
   const events = buildEvents(lanes, priorLanes);
 
   return (
-    <div className="border border-gray-200 rounded overflow-hidden">
-      {/* Header */}
-      <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center gap-2">
-        <Clock className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+    <div className="border border-gray-200 rounded-none overflow-hidden">
+      {/* Header — Bloomberg style */}
+      <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
           Replay Chronology
         </span>
-        <span className="ml-auto text-[10px] text-gray-400">{events.length} event{events.length !== 1 ? 's' : ''}</span>
+        <span className="text-[10px] text-gray-400 font-mono">
+          {events.length} event{events.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {events.length === 0 ? (
-        <div className="px-3 py-4 text-xs text-gray-400 text-center">No prior runs</div>
-      ) : events.length === 1 ? (
-        <>
-          <ChronologyRow event={events[0]} />
-          <div className="px-3 py-2 text-[10px] text-gray-400 border-t border-dashed border-gray-200">
-            No prior runs — this is the first recorded check.
-          </div>
-        </>
+        <div className="px-3 py-4 text-xs text-gray-400 font-mono text-center border-t border-dashed border-gray-200">
+          No prior runs
+        </div>
       ) : (
-        <div className="divide-y divide-gray-100">
-          {events.map((ev, idx) => (
-            <ChronologyRow key={`${ev.isoTs}-${ev.lane}-${idx}`} event={ev} />
-          ))}
+        <div>
+          {events.map((ev, idx) => {
+            const isLast = idx === events.length - 1;
+            const nextEv = events[idx + 1];
+            const showGap = !isLast && nextEv && hasGap(ev, nextEv);
+            const statusCls = STATUS_TEXT[ev.status] ?? 'text-gray-600 font-semibold';
+
+            return (
+              <div key={`${ev.isoTs}-${ev.lane}-${idx}`}>
+                {/* Run block */}
+                <div
+                  className={cn(
+                    'border border-gray-200 p-3',
+                    !isLast && !showGap ? 'border-b-0' : '',
+                    idx === 0 ? 'border-t-0' : '',
+                  )}
+                >
+                  {/* Line 1: run_id + tier */}
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <div>
+                      <span className="text-[10px] text-gray-400">run_id: </span>
+                      <span className="font-mono text-sm text-gray-900">
+                        {shortId(ev.receiptId, 8)}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-1.5 py-0.5 font-mono">
+                      {ev.tier} · {STATUS_LABEL[ev.status] ?? ev.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Line 2: timestamp */}
+                  <div className="font-mono text-xs text-gray-500 mb-0.5">
+                    {ev.isoTs}
+                  </div>
+
+                  {/* Line 3: source + status */}
+                  <div className="text-xs text-gray-600">
+                    Source:{' '}
+                    <span className="font-medium">{ev.source}</span>
+                    {' · '}
+                    Status:{' '}
+                    <span className={statusCls}>
+                      {STATUS_LABEL[ev.status] ?? ev.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Line 4: chain link */}
+                  {isLast ? (
+                    <div className="font-mono text-xs text-gray-300 mt-0.5 ml-2">
+                      ↳ genesis
+                    </div>
+                  ) : (
+                    <div className="font-mono text-xs text-gray-400 mt-0.5 ml-2">
+                      ↳ prior: {shortId(nextEv?.receiptId, 8)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Gap banner */}
+                {showGap && (
+                  <div className="border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 font-mono">
+                    ⚠ Gap detected — {Math.round(Math.abs(ev.tsMs - nextEv.tsMs) / (24 * 60 * 60 * 1000))}d between runs
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {events.length === 1 && (
+            <div className="px-3 py-2 text-[10px] text-gray-400 border-t border-dashed border-gray-200 font-mono">
+              No prior runs — this is the first recorded check.
+            </div>
+          )}
         </div>
       )}
-    </div>
-  );
-}
-
-function ChronologyRow({ event }: { event: CheckEvent }) {
-  const colors = STATUS_COLORS[event.status as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.not_checked;
-
-  return (
-    <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors">
-      {/* Timestamp */}
-      <span className="text-[10px] font-mono text-gray-500 tabular-nums whitespace-nowrap">
-        {event.isoTs}
-      </span>
-
-      {/* Lane */}
-      <span className="text-xs text-gray-800 font-medium truncate">{event.lane}</span>
-
-      {/* Status */}
-      <span
-        className={cn(
-          'text-[10px] font-semibold px-1.5 py-0.5 rounded',
-          colors.bg,
-          colors.text,
-        )}
-      >
-        {STATUS_LABEL[event.status] ?? event.status.toUpperCase()}
-      </span>
-
-      {/* Receipt short ID */}
-      <span className="text-[10px] font-mono text-gray-400 whitespace-nowrap">
-        {event.receiptId ? shortId(event.receiptId) : '—'}
-      </span>
     </div>
   );
 }

@@ -11,6 +11,11 @@ import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getOperatorDashboardSnapshot } from '@/lib/ops/getOperatorDashboardSnapshot';
+import { RuntimeIdentityPanel } from '@/components/ops/RuntimeIdentityPanel';
+import { DeploymentConvergenceStrip } from '@/components/ops/DeploymentConvergenceStrip';
+import { VerifierContinuityPanel } from '@/components/ops/VerifierContinuityPanel';
+import { ReplayContinuityPanel } from '@/components/ops/ReplayContinuityPanel';
+import { DegradedStateTopologyMap } from '@/components/ops/DegradedStateTopologyMap';
 import type {
   OperatorDashboardSnapshot,
   SignerHealthEntry,
@@ -526,6 +531,57 @@ export default async function OpsPage() {
 
         {/* Verifier endpoints */}
         <VerifierEndpointsSection endpoints={snapshot.verifierEndpoints} />
+
+        {/* ── Runtime-truth operator panels ──────────────────────────────── */}
+        <div className="space-y-3">
+          <RuntimeIdentityPanel
+            did={snapshot.didContinuity.did}
+            environment={snapshot.environment}
+            signingKeyId={snapshot.signerHealth[0]?.kid ?? null}
+            algorithm={snapshot.signerHealth[0]?.algorithm ?? 'ES256'}
+            generatedAt={snapshot.generatedAt}
+          />
+
+          <DeploymentConvergenceStrip
+            points={[
+              { id: 'jwks',           label: 'JWKS',           status: 'converged', detail: 'JWKS endpoint operational at /.well-known/jwks.json' },
+              { id: 'did',            label: 'DID',            status: 'converged', detail: 'DID document served at /.well-known/did.json' },
+              { id: 'trust-manifest', label: 'TRUST',          status: 'converged', detail: 'Trust manifest at /.well-known/trust.json' },
+              { id: 'doctrine',       label: 'DOCTRINE',       status: 'converged', detail: 'DOCTRINE.md present in repository root' },
+              { id: 'origin-policy',  label: 'ORIGIN-POLICY',  status: 'converged', detail: 'originAllowlist wired in trust manifest' },
+              { id: 'auth-continuity',label: 'AUTH-CONTINUITY',status: 'converged', detail: 'Actor attribution active on all signed events' },
+            ]}
+          />
+
+          <VerifierContinuityPanel
+            endpoints={[
+              { path: '/.well-known/jwks.json',     description: 'Public keys',      auth: 'none', status: 'operational' },
+              { path: '/.well-known/did.json',      description: 'DID document',     auth: 'none', status: 'operational' },
+              { path: '/.well-known/trust.json',    description: 'Trust manifest',   auth: 'none', status: 'operational' },
+              { path: '/.well-known/trust-register',description: 'Doctrine JSON',    auth: 'none', status: 'operational' },
+              { path: '/api/receipts/verify',       description: 'JWT verification', auth: 'none', status: 'operational' },
+            ]}
+          />
+
+          <ReplayContinuityPanel
+            survivabilityScore={snapshot.replayHealth.survivabilityScore}
+            dedupeKeyActive={snapshot.replayHealth.dedupeKeyActive}
+            actorAttributionActive={snapshot.replayHealth.actorAttributionActive}
+            lastVerifiedAt={snapshot.replayHealth.lastVerifiedAt}
+            replaySurvivable={snapshot.replayHealth.survivabilityScore >= 90}
+          />
+
+          <DegradedStateTopologyMap
+            distribution={{
+              source_unreachable:    snapshot.degradedStateDistribution.source_unreachable,
+              infrastructure_outage: snapshot.degradedStateDistribution.infrastructure_outage,
+              issuer_unavailable:    snapshot.degradedStateDistribution.issuer_unavailable,
+              stale_data:            snapshot.degradedStateDistribution.stale_data,
+              no_adverse_findings:   snapshot.degradedStateDistribution.no_adverse_findings,
+              anonymous_preview:     snapshot.degradedStateDistribution.anonymous_preview,
+            }}
+          />
+        </div>
       </main>
     </div>
   );

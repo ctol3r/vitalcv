@@ -25,7 +25,7 @@ export interface TrustRegisterRowProps {
 }
 
 const NullSlot = () => (
-  <span className="font-mono text-gray-300 select-none">─ ─ ─</span>
+  <span className="vcv-null-slot">─ ─ ─</span>
 );
 
 export function TrustRegisterRow({
