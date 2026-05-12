@@ -28,3 +28,40 @@
   background-color: #f0fdf4; /* green-50 */
   border-color: #86efac; /* green-300 */
 }
+
+/* ─── Print stylesheet — offline verifier artifact ─────────────────────────── */
+@media print {
+  .receipt-print-hide {
+    display: none !important;
+  }
+
+  .receipt-print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  /* Preserve dark masthead in print */
+  .receipt-masthead {
+    background: #111827 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Expand <details> for print */
+  details[open],
+  details {
+    display: block;
+  }
+
+  details > summary {
+    display: none;
+  }
+
+  details > :not(summary) {
+    display: block !important;
+  }
+}
