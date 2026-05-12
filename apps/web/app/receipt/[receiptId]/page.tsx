@@ -115,25 +115,25 @@ function ZoneMasthead({
   issuerDid: string;
 }) {
   return (
-    <div className="receipt-masthead bg-gray-900 text-white px-6 py-5">
+    <div className="receipt-masthead bg-gray-900 text-white border border-gray-700 px-6 py-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white">
             VitalCV Trust Receipt
           </h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mt-0.5">
             Institutional verification artifact — cryptographic plane
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <TrustTierBadge tier={tier} />
-          <code className="font-mono text-[10px] text-gray-400 bg-gray-800 px-2 py-1 select-all">
+          <code className="font-mono text-xs text-gray-300 select-all">
             {receiptId}
           </code>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1.5 text-[11px]">
+      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1.5">
         <MastheadRow label="Issued by" value={issuerDid} mono />
         <MastheadRow
           label="Key"
@@ -141,7 +141,7 @@ function ZoneMasthead({
           mono
         />
         <MastheadRow label="Run" value={runId} mono />
-        <MastheadRow label="Checked" value={checkedAt} />
+        <MastheadRow label="Checked" value={checkedAt} dimmed />
       </div>
     </div>
   );
@@ -215,7 +215,7 @@ function ZoneSignature({
             href={jwksUri}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs text-gray-500 hover:text-gray-900 transition-colors"
+            className="font-mono text-xs text-blue-600 hover:underline"
           >
             Verify signature →
           </a>
@@ -240,15 +240,17 @@ function MastheadRow({
   label,
   value,
   mono = false,
+  dimmed = false,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  dimmed?: boolean;
 }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-gray-500 w-16 flex-shrink-0">{label}:</span>
-      <span className={mono ? 'font-mono text-gray-300 break-all' : 'text-gray-300'}>
+    <div className="flex items-baseline gap-x-4">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 w-16 flex-shrink-0">{label}</span>
+      <span className={mono ? `font-mono text-xs break-all ${dimmed ? 'text-gray-500' : 'text-gray-300'}` : `text-xs ${dimmed ? 'text-gray-500' : 'text-gray-300'}`}>
         {value}
       </span>
     </div>
@@ -637,7 +639,7 @@ export default async function ReceiptPage({
           </div>
 
           {/* ── ZONE 6: Download Actions ──────────────────────────────────── */}
-          <div className="vcv-receipt-section bg-white px-4 py-3 flex flex-wrap gap-3 receipt-print-hide border-gray-200">
+          <div className="vcv-receipt-section bg-gray-50 px-4 py-3 flex flex-wrap gap-3 receipt-print-hide border-gray-200">
             <DownloadReceiptButton
               receiptId={receipt.receipt_id}
               vcJson={vcJson}

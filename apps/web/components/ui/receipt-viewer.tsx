@@ -184,7 +184,7 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
                   href={jwksUri}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs text-gray-500 hover:text-gray-900 transition-colors"
+                  className="font-mono text-xs text-blue-600 hover:underline"
                 >
                   Verify signature →
                 </a>

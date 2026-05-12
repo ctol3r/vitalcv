@@ -43,14 +43,14 @@ const TIER_BADGE: Record<string, { label: string; cls: string }> = {
 export function ProvenanceStrip({ lanes }: ProvenanceStripProps) {
   if (!lanes || lanes.length === 0) {
     return (
-      <div className="text-xs text-gray-500 py-2 px-3 border border-dashed border-gray-200 rounded">
+      <div className="text-xs text-gray-500 py-2 px-3 border border-dashed border-gray-300">
         No lane data available.
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-gray-100 border border-gray-200 rounded overflow-hidden">
+    <div className="divide-y divide-gray-100 border border-gray-200 overflow-hidden">
       {/* Column headers — Bloomberg style */}
       <div className="grid grid-cols-4 gap-2 px-3 py-1.5 bg-gray-50">
         {['Source', 'Checked At', 'Receipt ID', 'Tier'].map((col) => (
@@ -88,7 +88,7 @@ export function ProvenanceStrip({ lanes }: ProvenanceStripProps) {
             </div>
 
             {/* Checked At */}
-            <div className="text-xs font-mono text-gray-700 tabular-nums">
+            <div className="font-mono text-xs text-gray-500 tabular-nums">
               {formatCheckedAt(lane.checkedAt)}
             </div>
 
@@ -97,7 +97,7 @@ export function ProvenanceStrip({ lanes }: ProvenanceStripProps) {
               <span
                 className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', colors.dot)}
               />
-              <span className="text-xs font-mono text-gray-600 truncate">
+              <span className="font-mono text-xs text-gray-900 truncate">
                 {shortId(lane.receiptId)}
               </span>
             </div>

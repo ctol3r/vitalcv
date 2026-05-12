@@ -121,16 +121,15 @@ export function ReplayChronologyPanel({
                 {/* Run block */}
                 <div
                   className={cn(
-                    'border border-gray-200 p-3',
-                    !isLast && !showGap ? 'border-b-0' : '',
-                    idx === 0 ? 'border-t-0' : '',
+                    'p-3',
+                    isLast ? 'border-b-0' : 'border-b border-gray-100',
                   )}
                 >
                   {/* Line 1: run_id + tier */}
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <div>
                       <span className="text-[10px] text-gray-400">run_id: </span>
-                      <span className="font-mono text-sm text-gray-900">
+                      <span className="font-mono text-xs text-gray-900">
                         {shortId(ev.receiptId, 8)}
                       </span>
                     </div>
@@ -182,6 +181,17 @@ export function ReplayChronologyPanel({
               No prior runs — this is the first recorded check.
             </div>
           )}
+
+          {/* Survivability footer */}
+          <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+              Chain integrity
+            </span>
+            <span className="font-mono text-[10px] text-gray-500">
+              {events.length} event{events.length !== 1 ? 's' : ''}
+              {events.length > 1 && events.every((e, i) => i === 0 || !hasGap(events[i - 1], e)) ? ' · no gaps' : ''}
+            </span>
+          </div>
         </div>
       )}
     </div>

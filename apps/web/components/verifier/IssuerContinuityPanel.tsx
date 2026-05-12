@@ -109,7 +109,7 @@ function IssuerRow({
 }) {
   return (
     <div className="flex items-start gap-3 px-3 min-h-[32px] py-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[120px] flex-shrink-0 pt-0.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[140px] flex-shrink-0 pt-0.5">
         {label}
       </span>
       <div className="flex-1 min-w-0">{children}</div>
