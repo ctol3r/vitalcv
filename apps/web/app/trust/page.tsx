@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
 import { TrustStateRegister } from '@/components/trust/TrustStateRegister';
+import { TrustRegistryFooter } from '@/components/trust/TrustRegistryFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,5 +13,10 @@ export const metadata: Metadata = {
 
 export default async function TrustPage() {
   const snapshot = await getTrustRegisterSnapshot();
-  return <TrustStateRegister snapshot={snapshot} />;
+  return (
+    <div>
+      <TrustStateRegister snapshot={snapshot} />
+      <TrustRegistryFooter />
+    </div>
+  );
 }
