@@ -23,10 +23,28 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
 }
 
+function readClerkUserId(req: Request): string | null {
+  const value = req.headers['x-clerk-user-id'];
+  if (typeof value === 'string') return value.trim() || null;
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0].trim() || null;
+  return null;
+}
+
 export function registerLearningTrackRoutes(app: Express): void {
   app.post(
     '/api/learning/track',
     asyncHandler(async (req, res) => {
+      // ── Actor continuity enforcement ────────────────────────────────
+      // No durable learning event write may occur without an attributable actor.
+      // All callers must route through an auth-injecting proxy (e.g. /api/track/apply).
+      const actorId = readClerkUserId(req);
+      if (!actorId) {
+        return void res.status(401).json({
+          error: 'Unauthorized',
+          error_description: 'x-clerk-user-id header is required. Route all tracking calls through an authenticated proxy.',
+        });
+      }
+
       const { type, providerId, jobId, employerId, metadata } = req.body as {
         type?: string;
         providerId?: string;
@@ -49,14 +67,20 @@ export function registerLearningTrackRoutes(app: Express): void {
         });
       }
 
+      // Attach actor_id to metadata for replay lineage and snapshot attribution.
+      const enrichedMetadata: Record<string, unknown> = {
+        ...(metadata ?? {}),
+        actor_id: actorId,
+      };
+
       emitLearningEvent({
         type,
         timestamp: new Date(),
         providerId: providerId.trim(),
         jobId: jobId?.trim() ?? '',
         employerId: employerId?.trim() ?? '',
-        metadata: metadata ?? {},
-        payload: metadata ?? {},
+        metadata: enrichedMetadata,
+        payload: enrichedMetadata,
       });
 
       return void res.status(202).json({ ok: true });

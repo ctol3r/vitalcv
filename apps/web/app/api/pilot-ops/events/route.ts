@@ -7,6 +7,17 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
+
+  // ── Actor continuity enforcement ──────────────────────────────────────────
+  // No durable write may occur without attributable actor continuity.
+  // Anonymous requests are rejected at the edge — never forwarded to the backend.
+  if (!session.userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized', error_description: 'Authenticated actor required for pilot event writes.' },
+      { status: 401 },
+    );
+  }
+
   const body = await req.text();
   const headers = buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',
