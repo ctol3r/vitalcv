@@ -11,6 +11,7 @@ import {
   type PassportSourceCoverageCheck,
 } from '@/lib/trust/source-coverage';
 import { mapSourceCoverageStateToTrustStatus } from '@/lib/trust/status-language';
+import { TrustTierBadgeFromCheck } from '@/components/proof/TrustTierBadge';
 
 void React;
 
@@ -66,6 +67,8 @@ export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
           <span>{check.checkedAt ? `Checked ${formatProofDate(check.checkedAt)}` : 'Not yet checked'}</span>
           {check.artifactId ? <span>Artifact {check.artifactId}</span> : null}
         </div>
+        {/* Trust tier badge — every fact must carry a tier */}
+        <TrustTierBadgeFromCheck check={check} />
       </div>
       <TrustStatusBadge
         status={badge.status}

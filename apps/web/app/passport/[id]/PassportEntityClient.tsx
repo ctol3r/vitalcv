@@ -11,6 +11,144 @@ import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInbox
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 
+// ── Replay Continuity ────────────────────────────────────────────────────────
+
+/**
+ * Deterministically derives a short run_id from NPI + checkedAt timestamp.
+ * Survives refresh — same inputs → same id.
+ */
+function deriveRunId(npi: string, checkedAt: string): string {
+  // Simple deterministic hash: djb2-style on the combined string
+  const input = `${npi}:${checkedAt}`;
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+    hash = hash >>> 0; // keep unsigned 32-bit
+  }
+  return hash.toString(16).padStart(8, '0').slice(0, 8);
+}
+
+/**
+ * Formats a unix-ms or ISO timestamp as "YYYY-MM-DD HH:mm:ss UTC".
+ */
+function formatUtcTimestamp(ts: string | number | null | undefined): string {
+  if (ts == null) return '—';
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+  if (isNaN(d.getTime())) return String(ts);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
+    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`
+  );
+}
+
+/**
+ * Returns true if the timestamp is older than 24 hours.
+ */
+function isStale(ts: string | null | undefined): boolean {
+  if (!ts) return false;
+  const d = new Date(ts);
+  return !isNaN(d.getTime()) && Date.now() - d.getTime() > 24 * 60 * 60 * 1000;
+}
+
+interface ReplayHeaderProps {
+  passport: PassportData;
+}
+
+function ReplayHeader({ passport }: ReplayHeaderProps) {
+  const npi = passport.npi ?? passport.identity.npi ?? passport.entityId;
+  const checkedAt = passport.lastCheckedAt ?? null;
+  const runId = checkedAt ? deriveRunId(npi, checkedAt) : null;
+
+  // Prior run_id — use trustContainer issuedAt as alternate epoch when available
+  const priorCheckedAt = passport.trustContainer?.issuedAt ?? null;
+  const priorRunId =
+    priorCheckedAt && priorCheckedAt !== checkedAt
+      ? deriveRunId(npi, priorCheckedAt)
+      : null;
+
+  // Per-lane check timestamps (chronologically ordered)
+  const laneTimestamps: Array<{ sourceId: string; checkedAt: string }> = (
+    passport.sourceCoverage?.checks ?? []
+  )
+    .filter((c) => typeof c.checkedAt === 'string' && c.checkedAt)
+    .map((c) => ({ sourceId: c.sourceId, checkedAt: c.checkedAt as string }))
+    .sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime());
+
+  const stale = isStale(checkedAt);
+
+  return (
+    <div
+      className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full"
+      data-testid="replay-header"
+    >
+      <div className="rounded-2xl border border-border bg-background/60 p-4 sm:p-5 space-y-3">
+        {/* Eyebrow */}
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-semibold">
+          Replay continuity
+        </p>
+
+        {/* checked_at + STALE badge */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Checked at:</span>
+          <span className="text-xs font-mono text-foreground/80">
+            {checkedAt ? formatUtcTimestamp(checkedAt) : '—'}
+          </span>
+          {stale && (
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200">
+              STALE
+            </span>
+          )}
+        </div>
+
+        {/* run_id */}
+        {runId && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Run ID:</span>
+            <span className="text-xs font-mono text-foreground/90 bg-muted px-1.5 py-0.5 rounded">
+              {runId}
+            </span>
+          </div>
+        )}
+
+        {/* Replay lineage chain */}
+        {priorRunId && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">↳ replays run_id:</span>
+            <span className="text-xs font-mono text-foreground/70 bg-muted px-1.5 py-0.5 rounded">
+              {priorRunId}
+            </span>
+            <span className="text-[10px] text-muted-foreground/60">
+              ({formatUtcTimestamp(priorCheckedAt)})
+            </span>
+          </div>
+        )}
+
+        {/* Per-lane check timestamps */}
+        {laneTimestamps.length > 0 && (
+          <details className="group">
+            <summary className="cursor-pointer text-[10px] text-muted-foreground/70 uppercase tracking-widest select-none">
+              Lane chronology ({laneTimestamps.length})
+            </summary>
+            <ol className="mt-2 space-y-1 pl-2 border-l border-border">
+              {laneTimestamps.map((lt) => (
+                <li key={lt.sourceId} className="flex items-center gap-2 text-[11px]">
+                  <span className="text-muted-foreground/70 w-28 shrink-0 font-mono">
+                    {lt.sourceId}
+                  </span>
+                  <span className="text-foreground/70 font-mono">
+                    {formatUtcTimestamp(lt.checkedAt)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface PassportEntityClientProps {
   entityId: string;
 }
@@ -77,6 +215,7 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   return (
     <div className="flex flex-col gap-8 pb-16">
       <PassportWallet passport={passport} />
+      <ReplayHeader passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
         <section
           aria-label="Source health"
