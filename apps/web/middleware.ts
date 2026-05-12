@@ -115,10 +115,36 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
     if (origin !== null) {
       const cors = checkCorsAllowlist(origin, getAllowedOrigins());
       if (!cors.allowed) {
-        return new NextResponse(null, {
-          status: 403,
-          headers: { 'x-cors-blocked': '1' },
-        });
+        // STRUCTURED-CORS-REJECTION:
+        // Previously this returned an empty 403 body. Clients couldn't
+        // distinguish CORS rejection from auth rejection, source outage,
+        // or rate limiting — all surfaced as opaque 403/empty.
+        // Now we emit structured JSON so the client can branch on
+        // `reason` and decide whether to retry, prompt for re-auth,
+        // or surface a configuration message.
+        //
+        // `retryable: false` because allowlist drift is operator
+        // config, not a transient condition. A retry against the same
+        // origin will hit the same gate.
+        const reasonByCheck: Record<typeof cors.reason, string> = {
+          no_origin_header: 'no_origin_header',
+          allowlist_empty: 'allowlist_not_configured',
+          origin_not_in_allowlist: 'origin_not_allowlisted',
+        };
+        return new NextResponse(
+          JSON.stringify({
+            error: 'origin_blocked',
+            reason: reasonByCheck[cors.reason],
+            retryable: false,
+          }),
+          {
+            status: 403,
+            headers: {
+              'content-type': 'application/json',
+              'x-cors-blocked': '1',
+            },
+          },
+        );
       }
     }
   }
