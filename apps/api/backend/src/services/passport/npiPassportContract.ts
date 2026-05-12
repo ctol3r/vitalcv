@@ -34,6 +34,7 @@ import {
 } from '../../routes/passport';
 import prisma from '../../graphql/prisma_client';
 import { unacknowledgedCount } from '../alerts/trustAlerts';
+import { computeReplayIdentity } from '../replay/replayIdentity';
 
 type PassportCredentialSummary = {
   id: string;
@@ -46,6 +47,18 @@ type PassportCredentialSummary = {
 
 export type PassportDataContract = TrustPassport & {
   credentials: PassportCredentialSummary[];
+  /**
+   * Canonical replay identity for this snapshot (Wave 10).
+   * - `lineageKey`: stable per entity across all runs.
+   * - `runId`: stable per evidence-snapshot; changes when evidence does.
+   * Both survive refresh/restart/deploy because they're pure functions
+   * over persisted inputs (entityId + lastCheckedAt + artifact checksums).
+   */
+  replay: {
+    lineageKey: string;
+    runId: string;
+    schemeVersion: 'v1';
+  };
 };
 
 function dedupeStrings(values: readonly string[]): string[] {
@@ -647,6 +660,16 @@ export async function buildPassportDataByNpi(
   // Wave 245: Build monitoring status
   const monitoring = await buildMonitoringStatus(npi);
 
+  // Wave 10: deterministic replay identity. Inputs are stable, persisted
+  // fields (entityId, computed checked-at, artifact checksums from the
+  // legacy load), so the same evidence produces the same runId on every
+  // request — refresh / restart / deploy all yield identical ids.
+  const replay = computeReplayIdentity({
+    entityId,
+    lastCheckedAt: computedLastCheckedAt,
+    artifactChecksums: collectReplayArtifactChecksums(legacy),
+  });
+
   return {
     entityId,
     npi,
@@ -663,5 +686,25 @@ export async function buildPassportDataByNpi(
     decisionPosture,
     lastCheckedAt: computedLastCheckedAt,
     monitoring,
+    replay,
   };
+}
+
+/**
+ * Collects stable per-artifact checksums that contributed to this
+ * passport snapshot. Order is normalized inside `computeRunId`; we
+ * just pass whatever checksums we can find. A missing/empty list is
+ * acceptable — it yields a distinct "degraded" runId (see
+ * replayIdentity.test.ts: "degraded-run distinguishability").
+ */
+function collectReplayArtifactChecksums(legacy: LoadedPassportData): string[] {
+  const out: string[] = [];
+  for (const cred of legacy.passport.credentials) {
+    // Legacy PassportCredential carries an `id` (the VerificationArtifact
+    // primary key) — that is itself stable per artifact and persisted.
+    if (typeof cred.id === 'string' && cred.id.length > 0) {
+      out.push(cred.id);
+    }
+  }
+  return out;
 }

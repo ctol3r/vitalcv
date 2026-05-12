@@ -207,6 +207,19 @@ export interface PassportData {
    * typed structurally rather than nominally.
    */
   trustContainer?: TrustContainerManifestView | null;
+  /**
+   * Wave 10: Canonical replay identity. Deterministic over stable
+   * persisted inputs (entityId + lastCheckedAt + artifact checksums),
+   * so the same evidence-snapshot yields the same runId across refresh,
+   * restart, and deploy. `lineageKey` is stable per entity for life.
+   */
+  replay?: PassportReplayIdentity;
+}
+
+export interface PassportReplayIdentity {
+  lineageKey: string;
+  runId: string;
+  schemeVersion: 'v1';
 }
 
 export interface PassportDivergence {
@@ -496,7 +509,18 @@ export function isPassportData(value: unknown): value is PassportData {
       typeof value.trustContainer === 'undefined'
       || value.trustContainer === null
       || normalizeTrustContainerManifestView(value.trustContainer) !== null
+    )
+    && (
+      typeof value.replay === 'undefined'
+      || isPassportReplayIdentity(value.replay)
     );
+}
+
+function isPassportReplayIdentity(value: unknown): value is PassportReplayIdentity {
+  return isRecord(value)
+    && isString(value.lineageKey)
+    && isString(value.runId)
+    && value.schemeVersion === 'v1';
 }
 
 export function normalizePassportData(value: unknown): PassportData | null {
