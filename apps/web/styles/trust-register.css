@@ -110,6 +110,21 @@
   color: #9ca3af;
 }
 
+/* ── Receipt trust rhythm ────────────────────────────────────────── */
+.vcv-receipt-section {
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-top: none;
+}
+
+.vcv-receipt-section:first-child {
+  border-top: 1px solid #e5e7eb;
+}
+
+.vcv-receipt-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 0; /* no radius on audit artifacts */
+}
+
 /* ─── Print stylesheet — offline verifier artifact ─────────────────────────── */
 @media print {
   .receipt-print-hide {

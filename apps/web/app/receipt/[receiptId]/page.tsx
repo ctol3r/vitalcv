@@ -17,6 +17,7 @@ import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPan
 import { TrustTierBadge, type TrustTier } from '@/components/proof/TrustTierBadge';
 import { DownloadReceiptButton } from '@/components/receipt/DownloadReceiptButton';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
+import { CopyableDID } from '@/components/trust/CopyableDID';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,9 +127,9 @@ function ZoneMasthead({
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <TrustTierBadge tier={tier} />
-          <span className="font-mono text-[10px] text-gray-400 bg-gray-800 rounded px-2 py-1">
+          <code className="font-mono text-[10px] text-gray-400 bg-gray-800 px-2 py-1 select-all">
             {receiptId}
-          </span>
+          </code>
         </div>
       </div>
 
@@ -142,6 +143,95 @@ function ZoneMasthead({
         <MastheadRow label="Run" value={runId} mono />
         <MastheadRow label="Checked" value={checkedAt} />
       </div>
+    </div>
+  );
+}
+
+function ZoneSignature({
+  algorithm,
+  signingKeyId,
+  issuerDid,
+  signedAt,
+  expiresAt,
+  jwksUri,
+}: {
+  algorithm: string | null;
+  signingKeyId: string | null;
+  issuerDid: string;
+  signedAt: number | null;
+  expiresAt: number | null;
+  jwksUri: string | null;
+}) {
+  function formatIso(unix: number): string {
+    return new Date(unix * 1000)
+      .toISOString()
+      .replace('T', ' ')
+      .replace(/\.\d+Z$/, ' UTC');
+  }
+
+  function truncateKeyId(kid: string, maxLen = 24): string {
+    if (kid.length <= maxLen) return kid;
+    return kid.slice(0, maxLen) + '\u2026';
+  }
+
+  const hasAny = algorithm || signingKeyId || issuerDid || signedAt;
+  if (!hasAny) return null;
+
+  return (
+    <div className="vcv-receipt-section bg-white">
+      <div className="vcv-anchor-band">
+        <span className="vcv-label">Signature</span>
+      </div>
+      <div className="px-4 py-0">
+        {algorithm && (
+          <SigRow label="Algorithm">
+            <span className="font-mono text-xs text-gray-900">{algorithm}</span>
+          </SigRow>
+        )}
+        {signingKeyId && (
+          <SigRow label="Key ID">
+            <span className="font-mono text-xs text-gray-900">{truncateKeyId(signingKeyId)}</span>
+          </SigRow>
+        )}
+        {issuerDid && (
+          <SigRow label="Issuer DID">
+            <CopyableDID did={issuerDid} />
+          </SigRow>
+        )}
+        {signedAt && (
+          <SigRow label="Signed at">
+            <span className="font-mono text-xs text-gray-900">{formatIso(signedAt)}</span>
+          </SigRow>
+        )}
+        {expiresAt && (
+          <SigRow label="Expires">
+            <span className="font-mono text-xs text-gray-900">{formatIso(expiresAt)}</span>
+          </SigRow>
+        )}
+      </div>
+      {jwksUri && (
+        <div className="px-4 pb-2">
+          <a
+            href={jwksUri}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-xs text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            Verify signature →
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SigRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center min-h-[32px] border-b border-gray-100 last:border-b-0">
+      <span className="w-[120px] flex-shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
+        {label}
+      </span>
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }
@@ -177,7 +267,7 @@ function ZoneOwnershipStatus({
   survivabilityScore: number;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 bg-gray-50 border-b border-gray-200 text-sm">
+    <div className="vcv-receipt-section flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 bg-gray-50 text-sm">
       <StatusItem label="Owner" value={actorId} />
       <StatusItem
         label="Status"
@@ -235,11 +325,9 @@ function ZoneReplayChain({
   signingKeyId: string | null;
 }) {
   return (
-    <div className="border border-gray-200 rounded overflow-hidden h-full">
-      <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-          Replay Chain
-        </span>
+    <div className="border border-gray-200 rounded-none overflow-hidden h-full">
+      <div className="vcv-anchor-band">
+        <span className="vcv-label">Replay Chain</span>
       </div>
       <div className="divide-y divide-gray-100">
         <ReplayRow ts={checkedAt} lane={lane} status="verified" receiptId={shortId(receiptId)} />
@@ -252,7 +340,7 @@ function ZoneReplayChain({
           />
         )}
       </div>
-      <div className="px-3 py-2 bg-gray-50 border-t border-gray-200">
+      <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
         <p className="text-[10px] text-gray-400">
           Source: <span className="font-mono">{source || lane}</span>
         </p>
@@ -309,9 +397,9 @@ function ZoneProvenanceStrip({
   return (
     <div
       className={[
-        'rounded border px-4 py-3',
+        'border-x border-gray-200 px-4 py-3',
         isSuccess
-          ? 'trust-register-success border-green-300 bg-green-50'
+          ? 'trust-register-success border-y-green-300 bg-green-50'
           : 'border-amber-200 bg-amber-50',
       ].join(' ')}
     >
@@ -360,7 +448,7 @@ function ZoneVerificationInstructions({
   signingKeyId: string | null;
 }) {
   return (
-    <details className="border border-gray-200 rounded overflow-hidden receipt-print-hide">
+    <details className="vcv-receipt-section border-gray-200 overflow-hidden receipt-print-hide">
       <summary className="bg-gray-50 px-4 py-2.5 cursor-pointer text-sm font-semibold text-gray-700 hover:bg-gray-100 select-none">
         Offline Verification Instructions
       </summary>
@@ -476,70 +564,94 @@ export default async function ReceiptPage({
         {/* This block is only visible when printing */}
       </div>
 
-      <main className="min-h-screen bg-white">
-        {/* ── ZONE 1: Institutional Masthead ─────────────────────────────── */}
-        <ZoneMasthead
-          receiptId={receipt.receipt_id}
-          tier={tier}
-          signingKeyId={signingKeyId}
-          runId={runId}
-          checkedAt={checkedAt}
-          issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
-        />
-
-        {/* ── ZONE 2: Ownership + Status Bar ─────────────────────────────── */}
-        <ZoneOwnershipStatus
-          actorId="System"
-          tier={tier}
-          source={receipt.source}
-          survivabilityScore={survivabilityScore}
-        />
-
-        {/* ── ZONE 3 + 4: Replay Chain + Issuer Continuity ───────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-6 py-4">
-          <ZoneReplayChain
-            lane={receipt.lane}
-            source={receipt.source}
-            checkedAt={checkedAt}
+      <main className="min-h-screen bg-gray-100 py-6 px-4">
+        <div className="vcv-receipt-wrapper max-w-4xl mx-auto">
+          {/* ── ZONE 1: Institutional Masthead ────────────────────────────── */}
+          <ZoneMasthead
             receiptId={receipt.receipt_id}
+            tier={tier}
             signingKeyId={signingKeyId}
-          />
-          <IssuerContinuityPanel
-            did={receipt.issuer_did ?? snapshot.issuerDid}
-            signingKeyId={signingKeyId}
-          />
-        </div>
-
-        {/* ── ZONE 5: Provenance Strip ────────────────────────────────────── */}
-        <div className="px-6 pb-4">
-          <ZoneProvenanceStrip
-            receiptId={receipt.receipt_id}
-            lane={receipt.lane}
-            source={receipt.source}
+            runId={runId}
             checkedAt={checkedAt}
             issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
-            signingKeyId={signingKeyId}
+          />
+
+          {/* ── ZONE 2: Ownership + Status Bar ───────────────────────────── */}
+          <ZoneOwnershipStatus
+            actorId="System"
             tier={tier}
+            source={receipt.source}
+            survivabilityScore={survivabilityScore}
           />
-        </div>
 
-        {/* ── ZONE 6: Download Actions ─────────────────────────────────────── */}
-        <div className="px-6 pb-4 flex flex-wrap gap-3 receipt-print-hide">
-          <DownloadReceiptButton
-            receiptId={receipt.receipt_id}
-            vcJson={vcJson}
-            label="Download VC 2.0 JSON"
-            filename={`vcv-receipt-${receipt.receipt_id}.vc.json`}
+          {/* ── ZONE 3: Signature ─────────────────────────────────────────── */}
+          <ZoneSignature
+            algorithm={receipt.signed_payload?.algorithm ?? null}
+            signingKeyId={signingKeyId}
+            issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
+            signedAt={receipt.signed_payload?.signed_at ?? null}
+            expiresAt={receipt.signed_payload?.expires_at ?? null}
+            jwksUri={receipt.jwks_uri ?? null}
           />
-          <DownloadReceiptButton
-            receiptId={receipt.receipt_id}
-            label="Download Verifier PDF"
-            printMode
-          />
-        </div>
 
-        {/* ── ZONE 7: Verification Instructions ──────────────────────────── */}
-        <div className="px-6 pb-8">
+          {/* ── ZONE 4: Provenance Strip ──────────────────────────────────── */}
+          <div className="vcv-receipt-section">
+            <div className="vcv-anchor-band">
+              <span className="vcv-label">Provenance</span>
+            </div>
+            <div className="bg-white">
+              <ZoneProvenanceStrip
+                receiptId={receipt.receipt_id}
+                lane={receipt.lane}
+                source={receipt.source}
+                checkedAt={checkedAt}
+                issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
+                signingKeyId={signingKeyId}
+                tier={tier}
+              />
+            </div>
+          </div>
+
+          {/* ── ZONE 5: Replay + Issuer Continuity ───────────────────────── */}
+          <div className="vcv-receipt-section">
+            <div className="vcv-anchor-band">
+              <span className="vcv-label">Replay</span>
+            </div>
+            <div className="bg-white grid grid-cols-1 lg:grid-cols-2 border-x border-gray-200">
+              <div className="border-r border-gray-200">
+                <ZoneReplayChain
+                  lane={receipt.lane}
+                  source={receipt.source}
+                  checkedAt={checkedAt}
+                  receiptId={receipt.receipt_id}
+                  signingKeyId={signingKeyId}
+                />
+              </div>
+              <div>
+                <IssuerContinuityPanel
+                  did={receipt.issuer_did ?? snapshot.issuerDid}
+                  signingKeyId={signingKeyId}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── ZONE 6: Download Actions ──────────────────────────────────── */}
+          <div className="vcv-receipt-section bg-white px-4 py-3 flex flex-wrap gap-3 receipt-print-hide border-gray-200">
+            <DownloadReceiptButton
+              receiptId={receipt.receipt_id}
+              vcJson={vcJson}
+              label="Download VC 2.0 JSON"
+              filename={`vcv-receipt-${receipt.receipt_id}.vc.json`}
+            />
+            <DownloadReceiptButton
+              receiptId={receipt.receipt_id}
+              label="Download Verifier PDF"
+              printMode
+            />
+          </div>
+
+          {/* ── ZONE 7: Verification Instructions ────────────────────────── */}
           <ZoneVerificationInstructions signingKeyId={signingKeyId} />
         </div>
       </main>
