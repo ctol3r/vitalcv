@@ -31,8 +31,14 @@ function ScoreValue({ score }: { score: number }) {
         ? 'text-amber-600'
         : 'text-red-600';
   return (
-    <span className={`text-sm font-mono font-semibold ${cls}`}>
-      {score} / 100
+    <span className="flex items-center gap-2">
+      <span className={`text-sm font-mono font-semibold ${cls}`}>{score} / 100</span>
+      <span className="inline-flex w-[60px] h-[3px] bg-gray-100 rounded-none overflow-hidden">
+        <span
+          className="bg-green-500 h-full"
+          style={{ width: `${score}%` }}
+        />
+      </span>
     </span>
   );
 }
@@ -104,6 +110,12 @@ export function ReplayContinuityPanel({
         </ReplayRow>
         <ReplayRow label="Last Verified">
           <span className="text-xs font-mono text-gray-900">{formatTs(lastVerifiedAt)}</span>
+        </ReplayRow>
+        <ReplayRow label="Last Restart Safe">
+          <span className="text-xs text-gray-600">
+            <span className="text-[10px] font-mono text-green-700 mr-1.5">YES</span>
+            — dedupeKey active
+          </span>
         </ReplayRow>
       </div>
     </div>

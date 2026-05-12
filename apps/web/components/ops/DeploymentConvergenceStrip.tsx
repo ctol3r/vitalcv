@@ -32,13 +32,21 @@ function ConvergenceCell({ point }: { point: ConvergencePoint }) {
   const icon =
     status === 'converged' ? '✓' : status === 'diverged' ? '✕' : '?';
 
+  const statusStr =
+    status === 'converged' ? 'CONVERGED' : status === 'diverged' ? 'DIVERGED' : 'UNKNOWN';
+
   return (
     <div
-      className="px-3 py-1.5 border-r border-gray-200 last:border-r-0 flex items-center gap-1 shrink-0"
+      className="px-3 py-1.5 border-r border-gray-200 last:border-r-0 flex flex-col shrink-0 min-w-[80px]"
       title={detail ?? undefined}
     >
-      <span className={textCls}>{label}</span>
-      <span className={textCls}>{icon}</span>
+      <div className="flex items-center gap-1">
+        <span className={textCls}>{icon} {statusStr}</span>
+      </div>
+      <div className="text-[10px] font-mono text-gray-500 mt-0.5">{label}</div>
+      {detail && (
+        <div className="text-[9px] text-gray-400 mt-0.5 leading-tight">{detail}</div>
+      )}
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function DegradedStateTopologyMap({ distribution }: DegradedStateTopology
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-[16px_1fr_24px_120px] gap-3 items-center px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+      <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 border-b border-gray-100">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">#</span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">State</span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 text-right">N</span>
@@ -65,7 +65,7 @@ export function DegradedStateTopologyMap({ distribution }: DegradedStateTopology
           return (
             <div
               key={row.id}
-              className="grid grid-cols-[16px_1fr_24px_120px] gap-3 items-center px-3 min-h-[32px] border-b border-gray-100 last:border-b-0"
+              className="flex items-center gap-3 px-3 py-1.5 border-b border-gray-100 last:border-b-0"
             >
               {/* Letter */}
               <span className="text-[10px] font-mono text-gray-400">{row.letter}</span>
@@ -76,12 +76,20 @@ export function DegradedStateTopologyMap({ distribution }: DegradedStateTopology
               </span>
 
               {/* Count */}
-              <span className="text-xs font-mono text-gray-700 text-right tabular-nums">
-                {count}
+              <span
+                className={`text-xs font-mono w-[24px] text-right tabular-nums ${
+                  count === 0
+                    ? 'text-[10px] text-gray-300'
+                    : row.isSuccess
+                      ? 'text-green-700 font-semibold'
+                      : 'text-gray-700'
+                }`}
+              >
+                {count === 0 ? '—' : count}
               </span>
 
               {/* Proportional bar */}
-              <div className="w-[120px] h-[3px] bg-gray-100 overflow-hidden">
+              <div className="inline-flex w-[100px] h-[3px] bg-gray-100 overflow-hidden">
                 {count > 0 && (
                   <div
                     className={`h-full ${row.isSuccess ? 'bg-green-400' : 'bg-gray-300'}`}

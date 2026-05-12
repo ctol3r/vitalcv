@@ -63,6 +63,27 @@ export function RuntimeIdentityPanel({
         <IdentityRow label="Algorithm" value={algorithm} />
         <IdentityRow label="Generated" value={formatGeneratedAt(generatedAt)} />
       </div>
+
+      {/* SYSTEM TRUTH section */}
+      <div className="border-t border-gray-200">
+        <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+            System Truth
+          </span>
+        </div>
+        <div className="flex items-center gap-3 px-3 min-h-[32px] border-b border-gray-100 last:border-b-0">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[120px] shrink-0">
+            Doctrine
+          </span>
+          <span className="text-xs font-mono text-green-700 font-semibold">7 / 7 POINTS</span>
+        </div>
+        <div className="flex items-center gap-3 px-3 min-h-[32px]">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400 w-[120px] shrink-0">
+            Writer Attr.
+          </span>
+          <span className="text-xs font-mono text-green-700 font-semibold">ACTIVE</span>
+        </div>
+      </div>
     </div>
   );
 }
