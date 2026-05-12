@@ -1,0 +1,30 @@
+/**
+ * trust-register.css — Supplementary styles for Trust State Register
+ *
+ * Only CSS that Tailwind cannot express cleanly.
+ * Primary styling remains in component JSX via Tailwind utilities.
+ */
+
+/* Monospaced fact slot — letter-spacing for readability */
+.trust-register-mono {
+  font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas',
+    'Liberation Mono', 'Courier New', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Cryptographic plane — dark background surface */
+.trust-register-cryptoplane {
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+}
+
+/* Dashed border pattern — unowned / anonymous state */
+.trust-register-dashed {
+  border: 1.5px dashed #d1d5db; /* gray-300 */
+}
+
+/* No adverse findings — explicit success surface */
+.trust-register-success {
+  background-color: #f0fdf4; /* green-50 */
+  border-color: #86efac; /* green-300 */
+}
