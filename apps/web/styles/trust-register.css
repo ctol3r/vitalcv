@@ -161,3 +161,47 @@
     display: block !important;
   }
 }
+
+/* ── Chronology rail ─────────────────────────────────────────── */
+.vcv-rail {
+  border-left: 1px solid #e5e7eb; /* gray-200 */
+  margin-left: 7px;
+  padding-left: 16px;
+}
+
+.vcv-rail-gap {
+  border-left: 1px dashed #d1d5db; /* gray-300 */
+  margin-left: 7px;
+  padding-left: 16px;
+}
+
+.vcv-rail-node {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #9ca3af; /* gray-400 */
+  background: white;
+  margin-left: -20px; /* pull left into rail */
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.vcv-rail-node--active {
+  background: #22c55e; /* green-500 */
+  border-color: #22c55e;
+}
+
+.vcv-rail-node--stale {
+  background: #fbbf24; /* amber-400 */
+  border-color: #fbbf24;
+}
+
+.vcv-rail-node--unavailable {
+  background: #e5e7eb; /* gray-200 */
+  border-color: #d1d5db;
+}
+
+.vcv-rail-node--adverse {
+  background: #ef4444; /* red-500 */
+  border-color: #ef4444;
+}

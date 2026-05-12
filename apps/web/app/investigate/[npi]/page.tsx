@@ -9,7 +9,6 @@
 import type { Metadata } from 'next';
 import { EvidenceTimeline } from '@/components/investigation/EvidenceTimeline';
 import { SourceChronology } from '@/components/investigation/SourceChronology';
-import { ReplayChainExplorer } from '@/components/investigation/ReplayChainExplorer';
 import { SignerTransitionView } from '@/components/investigation/SignerTransitionView';
 import { DegradedStateLineageView } from '@/components/investigation/DegradedStateLineageView';
 import { EvidenceConflictViewer } from '@/components/investigation/EvidenceConflictViewer';
@@ -17,6 +16,13 @@ import type { EvidenceEvent } from '@/components/investigation/EvidenceTimeline'
 import type { DegradedTransition } from '@/components/investigation/DegradedStateLineageView';
 import type { EvidenceConflict } from '@/components/investigation/EvidenceConflictViewer';
 import type { SignerEntry } from '@/components/investigation/SignerTransitionView';
+import { ChronologyRail } from '@/components/chronology/ChronologyRail';
+import type { ChronologyNode } from '@/components/chronology/ChronologyRail';
+import { ReplayEvidenceStack } from '@/components/chronology/ReplayEvidenceStack';
+import { StateTransitionTimeline } from '@/components/chronology/StateTransitionTimeline';
+import type { StateTransition } from '@/components/chronology/StateTransitionTimeline';
+import { DegradedContinuityView } from '@/components/chronology/DegradedContinuityView';
+import { ReplaySurvivabilityMasthead } from '@/components/chronology/ReplaySurvivabilityMasthead';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +66,9 @@ async function getInvestigationData(npi: string): Promise<{
   signers: SignerEntry[];
   degradedTransitions: DegradedTransition[];
   conflicts: EvidenceConflict[];
+  chronologyNodes: ChronologyNode[];
+  stateTransitions: StateTransition[];
+  survivabilityScore: number;
 }> {
   // Derive a deterministic run ID from NPI
   let hash = 0;
@@ -138,7 +147,43 @@ async function getInvestigationData(npi: string): Promise<{
   const degradedTransitions: DegradedTransition[] = [];
   const conflicts: EvidenceConflict[] = [];
 
-  return { events, eventsByLane, runs, signers, degradedTransitions, conflicts };
+  // ── Chronology nodes derived from runs ──────────────────────────────────────
+  const chronologyNodes: ChronologyNode[] = runs.map((r, idx) => ({
+    nodeId: r.runId,
+    ts: r.checkedAt,
+    label: r.laneId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    status: r.status,
+    tier: r.tier,
+    detail: idx === 0 ? `Active NPI confirmed for provider ${npi}.` : null,
+    receiptId: idx === 0 ? `rec-nppes-identity-${runId}` : null,
+    priorNodeId: r.priorRunId,
+    signerKid: r.signerKid ?? kid,
+  }));
+
+  // ── State transitions derived from events ────────────────────────────────────
+  const stateTransitions: StateTransition[] = events.map((e) => ({
+    ts: e.ts,
+    fromStatus: 'not_checked',
+    toStatus: e.status,
+    laneId: e.laneId,
+    trigger: 'check' as const,
+    ownership: 'infrastructure' as const,
+  }));
+
+  const survivabilityScore =
+    runs.filter((r) => r.status === 'verified').length > 0 ? 95 : 0;
+
+  return {
+    events,
+    eventsByLane,
+    runs,
+    signers,
+    degradedTransitions,
+    conflicts,
+    chronologyNodes,
+    stateTransitions,
+    survivabilityScore,
+  };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -176,6 +221,17 @@ export default async function InvestigatePage({
         </div>
       </header>
 
+      {/* Replay Survivability Masthead */}
+      <ReplaySurvivabilityMasthead
+        survivabilityScore={data.survivabilityScore}
+        runCount={data.runs.length}
+        signerCount={data.signers.length}
+        gapCount={0}
+        latestCheckedAt={data.runs[0]?.checkedAt ?? '—'}
+        latestRunId={data.runs[0]?.runId ?? '—'}
+        issuerDid="did:web:vitalcv.com"
+      />
+
       <main className="mx-auto max-w-4xl px-6 py-6 space-y-4">
         {/* Evidence Timeline */}
         <section>
@@ -187,9 +243,24 @@ export default async function InvestigatePage({
           <SourceChronology eventsByLane={data.eventsByLane} />
         </section>
 
-        {/* Replay Chain Explorer */}
+        {/* Chronology Rail + Replay Evidence Stack (replaces ReplayChainExplorer) */}
         <section>
-          <ReplayChainExplorer runs={data.runs} />
+          <ChronologyRail nodes={data.chronologyNodes} title="Replay Chronology" />
+        </section>
+
+        <section>
+          <ReplayEvidenceStack
+            runs={data.runs.map((r) => ({
+              runId: r.runId,
+              checkedAt: r.checkedAt,
+              source: r.source,
+              status: r.status,
+              tier: r.tier,
+              receiptId: null,
+              priorRunId: r.priorRunId,
+            }))}
+            survivabilityScore={data.survivabilityScore}
+          />
         </section>
 
         {/* Signer Transition View */}
@@ -197,9 +268,19 @@ export default async function InvestigatePage({
           <SignerTransitionView signers={data.signers} />
         </section>
 
+        {/* State Transition Timeline */}
+        <section>
+          <StateTransitionTimeline transitions={data.stateTransitions} />
+        </section>
+
         {/* Degraded State Lineage */}
         <section>
           <DegradedStateLineageView transitions={data.degradedTransitions} />
+        </section>
+
+        {/* Degraded Continuity View */}
+        <section>
+          <DegradedContinuityView nodes={data.chronologyNodes} />
         </section>
 
         {/* Evidence Conflicts */}
