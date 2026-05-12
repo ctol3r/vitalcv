@@ -126,6 +126,53 @@ describe('signIssuerReceipt', () => {
     expect(vcv.status).toBe('confirmed');
     expect(vcv.observed_at).toBe('2026-01-15T10:00:00Z');
     expect(vcv.raw_hash).toBe('abc123');
+    expect(vcv.provider_id).toBe('npi-1234567890');
+    // No actorId passed — vcv.actor_id and azp must be absent
+    expect(vcv.actor_id).toBeUndefined();
+    expect((payload as Record<string, unknown>).azp).toBeUndefined();
+  });
+
+  it('embeds actorId as azp and vcv.actor_id when provided', async () => {
+    const response = makeResponse();
+    const { jwt } = await signIssuerReceipt(response, {
+      providerId: 'npi-1234567890',
+      claimId: 'claim-001',
+      source: 'State University',
+      rawHash: 'abc123',
+      actorId: 'user_clerk_abc123',
+    });
+
+    const publicJwk = await getPublicKeyJwk();
+    const publicKey = await importJWK(publicJwk, 'ES256');
+    const { payload } = await jwtVerify(jwt, publicKey, { algorithms: ['ES256'] });
+
+    // sub still = NPI (subject = provider identity)
+    expect(payload.sub).toBe('npi-1234567890');
+    // azp = Clerk userId (RFC 9068 authorized party)
+    expect((payload as Record<string, unknown>).azp).toBe('user_clerk_abc123');
+    // vcv.actor_id = same Clerk userId for replay lineage
+    const vcv = payload.vcv as Record<string, unknown>;
+    expect(vcv.actor_id).toBe('user_clerk_abc123');
+    expect(vcv.provider_id).toBe('npi-1234567890');
+  });
+
+  it('omits azp and actor_id when actorId is null', async () => {
+    const response = makeResponse();
+    const { jwt } = await signIssuerReceipt(response, {
+      providerId: 'npi-111',
+      claimId: 'claim-002',
+      source: 'Test Org',
+      rawHash: 'deadbeef',
+      actorId: null,
+    });
+
+    const publicJwk = await getPublicKeyJwk();
+    const publicKey = await importJWK(publicJwk, 'ES256');
+    const { payload } = await jwtVerify(jwt, publicKey, { algorithms: ['ES256'] });
+
+    expect((payload as Record<string, unknown>).azp).toBeUndefined();
+    const vcv = payload.vcv as Record<string, unknown>;
+    expect(vcv.actor_id).toBeUndefined();
   });
 
   it('sets exp roughly 90 days after iat', async () => {
@@ -157,6 +204,7 @@ describe('buildAndSignReceiptCandidate', () => {
       providerId: 'npi-1234567890',
       source: 'State University',
       rawHash: 'sha256-abc',
+      actorId: 'user_clerk_test456',
     });
 
     expect(candidate.signedReceiptJwt).toBeDefined();
@@ -166,6 +214,15 @@ describe('buildAndSignReceiptCandidate', () => {
     // Truth contract invariants must hold
     expect(candidate.decisionGrade).toBe(false);
     expect(candidate.proofTier).toBe('receipt_candidate');
+
+    // Actor attribution must be embedded in the signed JWT
+    const publicJwk = await getPublicKeyJwk();
+    const publicKey = await importJWK(publicJwk, 'ES256');
+    const { payload } = await jwtVerify(candidate.signedReceiptJwt!, publicKey, { algorithms: ['ES256'] });
+    expect((payload as Record<string, unknown>).azp).toBe('user_clerk_test456');
+    const vcv = payload.vcv as Record<string, unknown>;
+    expect(vcv.actor_id).toBe('user_clerk_test456');
+    expect(vcv.provider_id).toBe('npi-1234567890');
   });
 
   it('does NOT attach signedReceiptJwt for non-confirmed statuses', async () => {

@@ -31,6 +31,13 @@ interface BuildAndSignOptions {
    * issuer response before passing it here.
    */
   rawHash: string;
+  /**
+   * Clerk userId of the authenticated actor who triggered this signing.
+   * Embedded in the JWT as `azp` (RFC 9068) and `vcv.actor_id`.
+   * Pass the Clerk session userId from the calling route handler.
+   * When absent, no actor claim is added — never invent a fake actor.
+   */
+  actorId?: string | null;
   auditChannel?: 'issuer_response_form' | 'partner_response' | 'manual_entry';
   recordedBy?: 'demo' | 'review_surface' | 'system';
 }
@@ -63,6 +70,7 @@ export async function buildAndSignReceiptCandidate(
     claimId: options.claimId,
     source: options.source,
     rawHash: options.rawHash,
+    actorId: options.actorId ?? null,
   });
 
   return { ...candidate, signedReceiptJwt: jwt };

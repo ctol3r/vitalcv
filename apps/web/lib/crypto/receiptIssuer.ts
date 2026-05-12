@@ -98,6 +98,12 @@ export async function signIssuerReceipt(
     claimId: string;
     source: string;
     rawHash: string;
+    /**
+     * Clerk userId of the authenticated actor who triggered issuance.
+     * Embedded in the JWT vcv.actor_id claim and as azp for RFC 9068 compliance.
+     * When absent (system-initiated or pre-auth path), no actor claim is added.
+     */
+    actorId?: string | null;
   },
 ): Promise<SignedIssuerReceipt> {
   const { privateKey, kid } = await getOrInitKeypair();
@@ -110,17 +116,30 @@ export async function signIssuerReceipt(
 
   const jti = `rcpt_${response.responseId}_${Date.now()}`;
 
+  // Actor attribution: embed Clerk userId when present.
+  // azp (authorized party) — RFC 9068 §2.2 — identifies the actor who triggered issuance.
+  // vcv.actor_id — VitalCV claim block — actor attribution for replay lineage.
+  const vcvClaims: Record<string, unknown> = {
+    claimId: context.claimId,
+    source: context.source,
+    status: 'confirmed',
+    observed_at: response.respondedAt,
+    raw_hash: context.rawHash,
+    // NPI binding — identifies the subject provider, distinct from the actor
+    provider_id: context.providerId,
+  };
+  if (context.actorId) {
+    vcvClaims.actor_id = context.actorId;
+  }
+
   const payload: JWTPayload & { vcv: object } = {
     iss: issuerUrl,
+    // sub = NPI (subject — the credential is about this provider)
     sub: context.providerId,
+    // azp = Clerk userId (actor — who triggered this issuance)
+    ...(context.actorId ? { azp: context.actorId } : {}),
     jti,
-    vcv: {
-      claimId: context.claimId,
-      source: context.source,
-      status: 'confirmed',
-      observed_at: response.respondedAt,
-      raw_hash: context.rawHash,
-    },
+    vcv: vcvClaims,
   };
 
   const jwt = await new SignJWT(payload)
