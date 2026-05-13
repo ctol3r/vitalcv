@@ -70,6 +70,10 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
         headers: {
           'x-clerk-user-id': session.userId,
         },
+        // Bound the round-trip so a slow resolve-role upstream can't hang
+        // the middleware for the full Vercel function timeout; an abort
+        // falls through to the /auth/error redirect via the catch below.
+        signal: AbortSignal.timeout(8000),
       });
 
       if (resolveRes.ok) {
@@ -77,7 +81,7 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
         userRole = data.role as UserRoleType;
       }
     } catch {
-      // Fallback failed — redirect to error page (circuit breaker)
+      // Fallback failed (network error or AbortError) — redirect to error page (circuit breaker)
     }
 
     if (!userRole) {
