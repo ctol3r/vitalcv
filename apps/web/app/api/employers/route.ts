@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const qs = searchParams.toString();
   const url = `${BACKEND}/api/employers${qs ? `?${qs}` : ''}`;
   try {
-    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json', 'x-org-id': 'vcv-system' } });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {

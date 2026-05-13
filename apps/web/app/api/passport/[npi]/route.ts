@@ -10,7 +10,13 @@ export async function GET(
 ) {
   try {
     const { npi } = await params;
-    const upstream = await fetch(`${BACKEND_URL}/api/passport/${encodeURIComponent(npi)}`, {
+    // Backend has two passport routes with divergent shapes:
+    //   /api/passport/:npi       — public/wallet/selective NPI-shape (different contract)
+    //   /api/passport/npi/:npi   — entity-shape that this proxy's validator
+    //                              (assertPassportData) expects.
+    // The proxy targets the entity-shape route so PassportData validation
+    // does not 502.
+    const upstream = await fetch(`${BACKEND_URL}/api/passport/npi/${encodeURIComponent(npi)}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

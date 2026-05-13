@@ -1,16 +1,31 @@
 /**
- * Health route — Wave 136: includes Clerk production-readiness signal.
+ * Health route — Wave 136+: includes Clerk production-readiness signal
+ * and backend connectivity probe.
  */
 export const runtime = 'nodejs';
+import { BACKEND_URL as B } from '@/lib/backend-url';
 
 export async function GET() {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+
+  // Probe backend connectivity (non-blocking — degraded, not failed)
+  let backendStatus: 'ok' | 'degraded' | 'unreachable' = 'unreachable';
+  try {
+    const probe = await fetch(`${B}/api/health`, {
+      signal: AbortSignal.timeout(3000),
+      headers: { 'x-org-id': 'vcv-system' },
+    });
+    backendStatus = probe.ok ? 'ok' : 'degraded';
+  } catch {
+    backendStatus = 'unreachable';
+  }
 
   return Response.json(
     {
       status: 'ok',
       service: 'web',
       timestamp: new Date().toISOString(),
+      backend: { url: B, status: backendStatus },
       config: {
         apiBase: Boolean(process.env.NEXT_PUBLIC_API_BASE),
         clerk: {

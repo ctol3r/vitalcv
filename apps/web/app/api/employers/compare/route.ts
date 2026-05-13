@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const slugs = req.nextUrl.searchParams.get('slugs') ?? '';
   try {
     const res = await fetch(`${BACKEND}/api/employers/compare?slugs=${encodeURIComponent(slugs)}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-org-id': 'vcv-system' },
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });

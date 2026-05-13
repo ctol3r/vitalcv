@@ -13,7 +13,7 @@ export async function GET(
   const { slug } = await params;
   try {
     const res = await fetch(`${BACKEND}/api/employers/${encodeURIComponent(slug)}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-org-id': 'vcv-system' },
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });

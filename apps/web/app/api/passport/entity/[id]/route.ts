@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL as B } from '@/lib/backend-url';
 import { assertPassportData } from '@/lib/trust/passport-contract';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 export const runtime = 'nodejs';
 
 /**
@@ -17,9 +18,13 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
     : `${B}/api/passport/entity/${id}`;
 
   try {
-    const res = await fetch(upstream, {
+    const res = await fetchWithRetry(upstream, {
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-org-id': 'vcv-system',
+      },
     });
     const payload = await res.json().catch(() => null);
 
@@ -35,12 +40,19 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
 
     return NextResponse.json(assertPassportData(payload), { status: res.status });
   } catch (error) {
+    const isNetworkError = error instanceof TypeError && (error as TypeError).message.includes('fetch failed');
+    console.error('[passport-entity-proxy]', { id, upstream, isNetworkError, error: String(error) });
     return NextResponse.json(
       {
-        error: error instanceof Error && error.message.startsWith('Invalid passport payload')
-          ? 'invalid_upstream_payload'
-          : 'Passport unavailable',
-        detail: String(error),
+        error: isNetworkError
+          ? 'upstream_unreachable'
+          : error instanceof Error && error.message.startsWith('Invalid passport payload')
+            ? 'invalid_upstream_payload'
+            : 'Passport unavailable',
+        detail: isNetworkError
+          ? `Backend at ${B} is unreachable. Ensure BACKEND_URL is set and the API server is running.`
+          : String(error),
+        upstream: B,
       },
       { status: error instanceof Error && error.message.startsWith('Invalid passport payload') ? 502 : 503 },
     );
