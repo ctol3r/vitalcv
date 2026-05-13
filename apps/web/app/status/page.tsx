@@ -7,6 +7,7 @@
  */
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
 import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
 import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
@@ -94,12 +95,12 @@ export default function StatusPage() {
               External observability surface — independently verifiable
             </p>
           </div>
-          <a
+          <Link
             href="/"
             className="text-[10px] text-gray-500 hover:text-gray-300 underline underline-offset-2"
           >
             ← vitalcv.com
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -152,7 +153,7 @@ export default function StatusPage() {
         {/* Footer note */}
         <p className="text-[9px] text-gray-700 text-center">
           All endpoints are public. No authentication required for verification.
-          Source of truth: <a href="/api/status" className="underline hover:text-gray-500">/api/status</a>
+          Source of truth: <Link href="/api/status" className="underline hover:text-gray-500">/api/status</Link>
         </p>
       </main>
     </div>

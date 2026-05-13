@@ -32,9 +32,9 @@ const LANE_RECEIPT_IDS = (npi: string): string[] => [
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { npi: string } },
+  { params }: { params: Promise<{ npi: string }> },
 ) {
-  const { npi } = params;
+  const { npi } = await params;
 
   // Validate NPI format (10 digits)
   if (!/^\d{10}$/.test(npi)) {
