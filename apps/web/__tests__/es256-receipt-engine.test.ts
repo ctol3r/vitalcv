@@ -108,7 +108,8 @@ describe('signIssuerReceipt', () => {
     });
 
     expect(typeof jwt).toBe('string');
-    expect(jti).toMatch(/^rcpt_resp-001_/);
+    // jti is deterministic: `rcpt_${responseId}` (no Date.now() suffix).
+    expect(jti).toBe('rcpt_resp-001');
 
     // Verify the JWT with the public key from getPublicKeyJwk
     const publicJwk = await getPublicKeyJwk();
@@ -238,6 +239,110 @@ describe('buildAndSignReceiptCandidate', () => {
         rawHash: 'no-hash',
       });
       expect(candidate.signedReceiptJwt).toBeUndefined();
+    }
+  });
+});
+
+describe('getOrInitKeypair — production fail-closed', () => {
+  // The production fail-closed guard prevents `vcv-es256-dev` / generated
+  // ephemeral keys from leaking onto the runtime trust anchor. Tests stub
+  // env vars + vi.resetModules() to force re-import of the module-level
+  // singleton; otherwise the lazy-initialized _keypairPromise from earlier
+  // tests would short-circuit the new env-var read.
+
+  const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+  const ORIGINAL_PRIVATE_JWK = process.env.RECEIPT_PRIVATE_KEY_JWK;
+  const ORIGINAL_KID = process.env.RECEIPT_KID;
+
+  function restoreEnv(): void {
+    if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+    if (ORIGINAL_PRIVATE_JWK === undefined) delete process.env.RECEIPT_PRIVATE_KEY_JWK;
+    else process.env.RECEIPT_PRIVATE_KEY_JWK = ORIGINAL_PRIVATE_JWK;
+    if (ORIGINAL_KID === undefined) delete process.env.RECEIPT_KID;
+    else process.env.RECEIPT_KID = ORIGINAL_KID;
+  }
+
+  it('throws when NODE_ENV=production AND RECEIPT_PRIVATE_KEY_JWK is missing', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    process.env.NODE_ENV = 'production';
+    delete process.env.RECEIPT_PRIVATE_KEY_JWK;
+    delete process.env.RECEIPT_KID;
+    try {
+      const mod = await import('../lib/crypto/receiptIssuer');
+      await expect(mod.getOrInitKeypair()).rejects.toThrow(
+        /RECEIPT_PRIVATE_KEY_JWK is required in production/,
+      );
+    } finally {
+      restoreEnv();
+      vi.resetModules();
+    }
+  });
+
+  it('throws when NODE_ENV=production AND RECEIPT_KID is missing but RECEIPT_PRIVATE_KEY_JWK is set', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    // Generate a valid private JWK first using the ephemeral generator
+    // (this happens in non-production mode), then re-import in production
+    // mode with only RECEIPT_PRIVATE_KEY_JWK set.
+    const { generateReceiptKeypair } = await import('../lib/crypto/receiptIssuer');
+    const kp = await generateReceiptKeypair();
+    const { exportJWK } = await import('jose');
+    const jwk = await exportJWK(kp.privateKey);
+    const fullJwk = { ...jwk, kid: kp.kid, alg: 'ES256', use: 'sig' };
+    vi.resetModules();
+    process.env.NODE_ENV = 'production';
+    process.env.RECEIPT_PRIVATE_KEY_JWK = JSON.stringify(fullJwk);
+    delete process.env.RECEIPT_KID;
+    try {
+      const mod = await import('../lib/crypto/receiptIssuer');
+      await expect(mod.getOrInitKeypair()).rejects.toThrow(
+        /RECEIPT_KID is required in production/,
+      );
+    } finally {
+      restoreEnv();
+      vi.resetModules();
+    }
+  });
+
+  it('succeeds when NODE_ENV=production AND both env vars are set, and the kid is the env value (no dev prefix)', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    const { generateReceiptKeypair } = await import('../lib/crypto/receiptIssuer');
+    const kp = await generateReceiptKeypair();
+    const { exportJWK } = await import('jose');
+    const jwk = await exportJWK(kp.privateKey);
+    const fullJwk = { ...jwk, kid: 'vcv-es256-1', alg: 'ES256', use: 'sig' };
+    vi.resetModules();
+    process.env.NODE_ENV = 'production';
+    process.env.RECEIPT_PRIVATE_KEY_JWK = JSON.stringify(fullJwk);
+    process.env.RECEIPT_KID = 'vcv-es256-1';
+    try {
+      const mod = await import('../lib/crypto/receiptIssuer');
+      const out = await mod.getOrInitKeypair();
+      expect(out.kid).toBe('vcv-es256-1');
+      expect(out.kid).not.toMatch(/dev/);
+    } finally {
+      restoreEnv();
+      vi.resetModules();
+    }
+  });
+
+  it('preserves dev ephemeral fallback when NODE_ENV is NOT production', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    process.env.NODE_ENV = 'test';
+    delete process.env.RECEIPT_PRIVATE_KEY_JWK;
+    delete process.env.RECEIPT_KID;
+    try {
+      const mod = await import('../lib/crypto/receiptIssuer');
+      const out = await mod.getOrInitKeypair();
+      // Default dev kid is 'vcv-es256-dev' (RECEIPT_KID_DEV ?? 'vcv-es256-dev').
+      expect(out.kid).toBe('vcv-es256-dev');
+    } finally {
+      restoreEnv();
+      vi.resetModules();
     }
   });
 });

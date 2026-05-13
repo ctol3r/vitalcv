@@ -14,7 +14,12 @@ import { getPublicKeyJwk } from '@/lib/crypto/receiptIssuer';
 
 export const runtime = 'nodejs';
 
-export const revalidate = 3600;
+// Force runtime evaluation. Prerendering this route at build time would
+// invoke getPublicKeyJwk() under NODE_ENV=production without the prod
+// signing env vars set, which (correctly) throws via the fail-closed
+// guard in receiptIssuer.ts. Marking dynamic keeps the guard intact for
+// runtime requests while not blocking the build pipeline.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const publicKeyJwk = await getPublicKeyJwk();
