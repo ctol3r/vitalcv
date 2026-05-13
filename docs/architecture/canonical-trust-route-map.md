@@ -1,32 +1,60 @@
 # Canonical Trust Route Map
 
-**Status**: pinned by tests in `apps/web/__tests__/well-known-surfaces.test.ts` and
-`apps/web/__tests__/verifier-continuity-completion.test.ts`. Any change here MUST
-update the corresponding test assertion.
+**Status — read this first.**
 
-This document is the single source of truth for the **canonical public paths**
-an institutional verifier (hospital CVO, NCQA, Joint Commission, NPPES auditor)
-uses to discover, inspect, and validate VitalCV trust infrastructure. Every
-route below is owned by `apps/web` (the Next 15 App Router runtime that serves
-apex `vitalcv.com`, per `docs/architecture/apex-deployment-forensics.md`).
+This document describes the **target** canonical-path topology for VitalCV's
+institutional verifier surfaces. As of the latest `origin/main` HEAD, **only
+two of the rows below correspond to handlers that have actually shipped**
+(`/api/.well-known/jwks.json` legacy mirror and the OS-association manifests).
+The remaining canonical paths are mounted by handlers that live on the
+following unmerged PRs:
 
-## Route table
+- `wave/verify-runtime-w9` (#345) — `/verify`
+- `wave/well-known-surfaces-w9` (#349) — `/.well-known/{jwks,did,openid-credential-issuer,trust-register}.json`, `/api/receipt/[npi]`
+- `wave/verifier-continuity-completion` (#355) — `/.well-known/openid-configuration`, `/trust`, `/api/receipt/by-lineage/[lineageKey]`
 
-| Canonical path | Handler module | Method | Content-Type | Auth | Owning PR |
+Until those PRs merge into `main` AND the apex Vercel project redeploys with
+the required env vars (see §"Operator promotion checklist"), an external
+verifier hitting any of the canonical paths below other than the legacy
+mirror will receive 404 from production.
+
+The corresponding pinning tests (`apps/web/__tests__/well-known-surfaces.test.ts`,
+`apps/web/__tests__/verifier-continuity-completion.test.ts`) and companion
+forensics docs (`docs/architecture/apex-deployment-forensics.md`,
+`docs/architecture/build-artifact-verification.md`) also ship on those
+unmerged PRs — they are not on `origin/main` either.
+
+This document is the **single source of truth for the route contract** the
+unmerged PRs converge on. Any change to the contract MUST update both this
+document AND the corresponding test assertion in the PR that owns the
+handler.
+
+## Route table (target topology)
+
+The "Lives on" column attributes each handler to the branch where the file
+currently exists. Rows marked "origin/main" already ship today; all others
+require the named PR to merge.
+
+| Canonical path | Handler module | Method | Content-Type | Auth | Lives on |
 |---|---|---|---|---|---|
-| `/.well-known/jwks.json` | `apps/web/app/.well-known/jwks.json/route.ts` | GET | `application/jwk-set+json` | public | #349 |
-| `/.well-known/did.json` | `apps/web/app/.well-known/did.json/route.ts` | GET | `application/did+json` | public | #349 |
-| `/.well-known/openid-credential-issuer` | `apps/web/app/.well-known/openid-credential-issuer/route.ts` | GET | `application/json` | public | #349 |
-| `/.well-known/openid-configuration` | `apps/web/app/.well-known/openid-configuration/route.ts` | GET | `application/json` | public | #355 |
-| `/.well-known/trust-register` | `apps/web/app/.well-known/trust-register/route.ts` | GET | `application/json` | public | #349 |
-| `/trust` | `apps/web/app/trust/page.tsx` | GET (server component) | `text/html` | public | #355 |
-| `/verify` | `apps/web/app/verify/page.tsx` | GET (server component) | `text/html` | public | #345 (parallel stack) |
-| `/api/receipt/[npi]` | `apps/web/app/api/receipt/[npi]/route.ts` | GET | `application/jwt` | public | #349 |
-| `/api/receipt/by-lineage/[lineageKey]` | `apps/web/app/api/receipt/by-lineage/[lineageKey]/route.ts` | GET | `application/jwt` | public | #355 |
+| `/.well-known/jwks.json` | `apps/web/app/.well-known/jwks.json/route.ts` | GET | `application/jwk-set+json` | public | #349 (not yet on main) |
+| `/.well-known/did.json` | `apps/web/app/.well-known/did.json/route.ts` | GET | `application/did+json` | public | #349 (not yet on main) |
+| `/.well-known/openid-credential-issuer` | `apps/web/app/.well-known/openid-credential-issuer/route.ts` | GET | `application/json` | public | #349 (not yet on main) |
+| `/.well-known/openid-configuration` | `apps/web/app/.well-known/openid-configuration/route.ts` | GET | `application/json` | public | #355 (not yet on main) |
+| `/.well-known/trust-register` | `apps/web/app/.well-known/trust-register/route.ts` | GET | `application/json` | public | #349 (not yet on main) |
+| `/trust` | `apps/web/app/trust/page.tsx` | GET (server component) | `text/html` | public | #355 (not yet on main) |
+| `/verify` | `apps/web/app/verify/page.tsx` | GET (server component) | `text/html` | public | #345 (not yet on main) |
+| `/api/receipt/[npi]` | `apps/web/app/api/receipt/[npi]/route.ts` | GET | `application/jwt` | public | #349 (not yet on main) |
+| `/api/receipt/by-lineage/[lineageKey]` | `apps/web/app/api/receipt/by-lineage/[lineageKey]/route.ts` | GET | `application/jwt` | public | #355 (not yet on main) |
 
-**Non-canonical legacy mirror** (kept for back-compat with internal callers):
-`/api/.well-known/jwks.json` still returns the same JWK set via the same
-`getPublicKeyJwk()` helper, but it is NOT the path verifiers should consume.
+**Legacy mirror that DOES ship on `origin/main` today**:
+`apps/web/app/api/.well-known/jwks.json/route.ts` returns a JWK set under the
+namespaced path `/api/.well-known/jwks.json`. This is kept as a back-compat
+surface for internal callers; it is NOT the path institutional verifiers
+should consume (which expect the bare `/.well-known/jwks.json` root per
+RFC 8615). Note that the current legacy handler emits `Content-Type:
+application/json` rather than the RFC-correct `application/jwk-set+json` —
+the canonical handler on #349 corrects this.
 
 ## Why a "canonical" path matters
 
