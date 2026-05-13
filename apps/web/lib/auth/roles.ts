@@ -95,6 +95,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/intake(\/.*)?$/,
   /^\/review(\/.*)?$/, // public review packet links
   /^\/verify(\/.*)?$/,
+  /^\/trust(\/.*)?$/, // institutional trust overview — verifier-facing, public-by-design
   /^\/trust-state(\/.*)?$/,
   /^\/compliance(\/.*)?$/, // compliance & security posture
   /^\/clip(\/.*)?$/, // App Clip zero-install verification receipts

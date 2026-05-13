@@ -167,18 +167,32 @@ mobile-linking routes are not modified.
 
 ### 5.5 Auth-boundary regressions
 
+**VERIFIED** against `origin/main` `apps/web/lib/auth/roles.ts`:
+
+| New surface | Matched by | Reachable post-merge? |
+|---|---|---|
+| `/.well-known/jwks.json` | `/^\/\.well-known(\/.*)?$/` | ✅ already public |
+| `/.well-known/did.json` | same | ✅ already public |
+| `/.well-known/openid-credential-issuer` | same | ✅ already public |
+| `/.well-known/openid-configuration` | same | ✅ already public |
+| `/.well-known/trust-register` | same | ✅ already public |
+| `/api/receipt/[npi]` | `/^\/api(\/.*)?$/` ("API routes handle their own auth") | ✅ pass-through |
+| `/api/receipt/by-lineage/[lineageKey]` | same | ✅ pass-through |
+| `/verify` | `/^\/verify(\/.*)?$/` | ✅ already public |
+| `/trust` | **fall-through (not in either list)** | ⚠️ reachable but implicit — this PR adds an explicit pattern + test row so the intent is documented |
+
+Other auth-boundary concerns:
+
 | Concern | Status |
 |---|---|
-| Clerk middleware allowlist | well-known surfaces under `/.well-known/*` and `/api/.well-known/*` are public; `/trust`, `/verify`, `/api/receipt/*` should be public-by-design (verifier-facing). **Recommend verifying `apps/web/lib/auth/roles.ts:isPublicRoute()` allows these.** |
-| Audit-chain anonymous writes | #348 closes `/api/audit/decision` + `/api/employer-action`. **Existing tests on origin/main that POST to these without `x-clerk-user-id` will start failing post-merge.** None known. |
-| Pilot/track anonymous writes | #347 closes `/api/pilot-ops/events` + adds `/api/track/apply`. **Browser tabs open during deploy may send `APPLY_CLICKED` to the deprecated path.** Low risk. |
-| Public read surfaces | all `.well-known/*` + `/trust` + `/verify` + `/api/receipt/*` are read-only public. Recommend Clerk middleware matcher exempts them. |
+| Audit-chain anonymous writes | #348 closes `/api/audit/decision` + `/api/employer-action`. Existing tests on origin/main that POST to these without `x-clerk-user-id` will start failing post-merge. None known. |
+| Pilot/track anonymous writes | #347 closes `/api/pilot-ops/events` + adds `/api/track/apply`. Browser tabs open during deploy may send `APPLY_CLICKED` to the deprecated path. Low risk. |
 
-**Risk: MEDIUM** — confirm `isPublicRoute()` covers all new public
-verifier surfaces before #349 + #355 merge. If not, add to allowlist in
-a small follow-up; the routes themselves work either way (Clerk
-middleware would just 401 them, which is wrong for public verifier
-endpoints).
+**Risk: LOW** (was MEDIUM, now resolved). This PR ships the
+defensive `/^\/trust(\/.*)?$/` pattern in `apps/web/lib/auth/roles.ts`
+plus 8 new rows in `apps/web/__tests__/middleware.test.ts` covering
+every verifier-continuity surface so a future allowlist regression
+fails CI.
 
 ### 5.6 Build-order failures
 
@@ -210,7 +224,7 @@ endpoints).
 
 | Blocker | Severity | Affects | Mitigation |
 |---|---|---|---|
-| `isPublicRoute()` allowlist may not cover new well-known + /trust + /verify + receipt routes | MEDIUM | #349, #345, #355 | verify on canonical runtime BEFORE merging; if blocked, add a 5-line PR to `apps/web/lib/auth/roles.ts` |
+| ~~`isPublicRoute()` allowlist may not cover new well-known + /trust + /verify + receipt routes~~ | ~~MEDIUM~~ **RESOLVED in this PR** | #349, #345, #355 | this PR adds explicit `/trust` pattern + 8 test rows covering every verifier surface; verified all other new surfaces are already covered by existing patterns |
 | #339 scoring math change invalidates `getCachedTrustState` cache rows post-deploy | MEDIUM | #339 | run `DELETE FROM verification_artifact WHERE source='TRUST_STATE_ENGINE'` against Railway DB after the backend deploy completes |
 | #348 changes `metadata.actorId` shape: previously `employerId`, now Clerk user id | MEDIUM | downstream analytics consumers reading `AuditEvent.metadata.actorId` | grep for `metadata.actorId` reads before merge; #348 also adds `metadata.employerId` so org-level joins still work |
 | #347 `useTrackEvent` client cache during deploy | LOW | open browser tabs sending APPLY_CLICKED to deprecated path | acceptable telemetry-class drop; no user-facing impact |
