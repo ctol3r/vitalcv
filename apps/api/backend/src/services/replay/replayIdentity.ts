@@ -199,6 +199,17 @@ export interface ReplayEventRecord {
   createdAt: Date;
 }
 
+export async function findReplayRunsByEntityId(
+  entityId: string,
+): Promise<ReplayRunRecord[]> {
+  // Newest-first ordering for operator-facing discovery endpoints.
+  const rows = await prisma.replayRun.findMany({
+    where: { entityId },
+    orderBy: [{ checkedAt: 'desc' }, { createdAt: 'desc' }],
+  });
+  return rows as unknown as ReplayRunRecord[];
+}
+
 export async function findReplayEventsForRun(
   replayRunId: string,
 ): Promise<ReplayEventRecord[]> {

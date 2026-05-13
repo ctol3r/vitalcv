@@ -30,10 +30,68 @@ import {
   RUN_PREFIX,
   findReplayEventsForRun,
   findReplayRunByRunId,
+  findReplayRunsByEntityId,
   findReplayRunsByLineageKey,
   verifyReplayRunIntegrity,
+  type ReplayRunRecord,
 } from '../services/replay/replayIdentity';
+import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
+
+const NPI_RE = /^\d{10}$/;
+
+function isValidNpi(value: string): boolean {
+  return NPI_RE.test(value);
+}
+
+// Decode the canonical artifact-checksum encoding from
+// `services/replay/replayWriterIngest.ts`. Pure best-effort decode:
+// rows whose checksums don't match the expected colon-delimited shape
+// return null entries so the caller can still render the raw string.
+function parseArtifactChecksum(checksum: string): {
+  sourceId: string;
+  status: string;
+  claimCount: number | null;
+  credentialCount: number | null;
+} | null {
+  const parts = checksum.split(':');
+  if (parts.length !== 4) return null;
+  const claimCount = Number.parseInt(parts[2], 10);
+  const credentialCount = Number.parseInt(parts[3], 10);
+  return {
+    sourceId: parts[0],
+    status: parts[1],
+    claimCount: Number.isFinite(claimCount) ? claimCount : null,
+    credentialCount: Number.isFinite(credentialCount) ? credentialCount : null,
+  };
+}
+
+// Run-level status derived from the per-source statuses in the
+// artifactChecksums array. The derivation is honest about
+// missing or unparseable checksums.
+function deriveRunStatus(checksums: ReadonlyArray<string>): string {
+  const parsed = checksums.map(parseArtifactChecksum);
+  if (parsed.length === 0) return 'UNKNOWN';
+  const statuses = parsed.map((p) => (p ? p.status : 'UNKNOWN'));
+  if (statuses.every((s) => s === 'DONE')) return 'DONE';
+  if (statuses.some((s) => s === 'ERROR')) return 'PARTIAL_ERROR';
+  if (statuses.some((s) => s === 'UNKNOWN')) return 'UNKNOWN';
+  return 'MIXED';
+}
+
+function renderRunSummary(row: ReplayRunRecord): Record<string, unknown> {
+  return {
+    runId: row.runId,
+    lineageKey: row.lineageKey,
+    checkedAt: row.checkedAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    status: deriveRunStatus(row.artifactChecksums),
+    sourceSummary: row.artifactChecksums.map((c) => {
+      const parsed = parseArtifactChecksum(c);
+      return parsed ?? { raw: c };
+    }),
+  };
+}
 
 const RUN_ID_RE = /^run_v1_[0-9a-f]{16}$/;
 const LINEAGE_KEY_RE = /^lin_v1_[0-9a-f]{16}$/;
@@ -76,7 +134,140 @@ function isValidLineageKey(value: string): boolean {
   return LINEAGE_KEY_RE.test(value);
 }
 
+// ── NPI-keyed discoverability surfaces ─────────────────────────────────────
+
+interface VcvEntityLookup {
+  id: string;
+  npi: string | null;
+  entityType: string;
+}
+
+async function findVcvEntityForNpi(npi: string): Promise<VcvEntityLookup | null> {
+  // findFirst because `npi` is indexed but not unique on VcvEntity
+  // (the unique key is `canonicalId`). Newest entity wins if multiple
+  // rows somehow exist.
+  const row = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    select: { id: true, npi: true, entityType: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return row as VcvEntityLookup | null;
+}
+
 export function registerReplayRoutes(app: Express): void {
+  app.get(
+    '/api/replay/runs/by-npi/:npi',
+    async (req: Request, res: Response) => {
+      const { npi } = req.params;
+      if (!isValidNpi(npi)) {
+        res.status(400).json({
+          error: 'invalid_npi',
+          expected: '10 digits',
+        });
+        return;
+      }
+
+      try {
+        const entity = await findVcvEntityForNpi(npi);
+        if (!entity) {
+          // No entity yet — respond with an empty-runs shape rather than
+          // 404 so callers can render "no observations yet" uniformly.
+          res.status(200).json({ npi, entityId: null, runs: [] });
+          return;
+        }
+
+        const runs = await findReplayRunsByEntityId(entity.id);
+        res.status(200).json({
+          npi,
+          entityId: entity.id,
+          runs: runs.map(renderRunSummary),
+        });
+      } catch (err) {
+        if (isPrismaTableMissingError(err)) {
+          sendReplayInfrastructureUnavailable(res, err);
+          return;
+        }
+        log('error', 'replay_runs_by_npi_failed', { npi, error: String(err) });
+        res.status(500).json({ error: 'internal_error' });
+      }
+    },
+  );
+
+  app.get(
+    '/api/replay/chain/:npi',
+    async (req: Request, res: Response) => {
+      const { npi } = req.params;
+      if (!isValidNpi(npi)) {
+        res.status(400).json({
+          error: 'invalid_npi',
+          expected: '10 digits',
+        });
+        return;
+      }
+
+      try {
+        const entity = await findVcvEntityForNpi(npi);
+        if (!entity) {
+          res.status(200).json({ npi, entityId: null, lineages: [] });
+          return;
+        }
+
+        const runs = await findReplayRunsByEntityId(entity.id);
+        // Group by lineageKey while preserving newest-first run order
+        // within each lineage. The first run encountered for a given
+        // lineageKey is therefore the latest.
+        const byLineage = new Map<string, ReplayRunRecord[]>();
+        for (const r of runs) {
+          const bucket = byLineage.get(r.lineageKey);
+          if (bucket) {
+            bucket.push(r);
+          } else {
+            byLineage.set(r.lineageKey, [r]);
+          }
+        }
+
+        // The latest lineage overall is the one that contains the
+        // newest run. Because `runs` is already sorted newest-first,
+        // the first key inserted into the map IS the latest lineage.
+        const lineageKeysInLatestOrder = Array.from(byLineage.keys());
+        const latestLineage = lineageKeysInLatestOrder[0] ?? null;
+
+        const lineages = lineageKeysInLatestOrder.map((lineageKey) => {
+          const bucket = byLineage.get(lineageKey) as ReplayRunRecord[];
+          const latest = bucket[0];
+          const isCurrent = lineageKey === latestLineage;
+          const continuityState: 'stable' | 'extended' | 'diverged' =
+            !isCurrent
+              ? 'diverged'
+              : bucket.length === 1
+                ? 'stable'
+                : 'extended';
+          return {
+            lineageKey,
+            historyCount: bucket.length,
+            latestRunId: latest.runId,
+            latestCheckedAt: latest.checkedAt.toISOString(),
+            continuityState,
+          };
+        });
+
+        res.status(200).json({
+          npi,
+          entityId: entity.id,
+          lineages,
+        });
+      } catch (err) {
+        if (isPrismaTableMissingError(err)) {
+          sendReplayInfrastructureUnavailable(res, err);
+          return;
+        }
+        log('error', 'replay_chain_by_npi_failed', { npi, error: String(err) });
+        res.status(500).json({ error: 'internal_error' });
+      }
+    },
+  );
+
+
   app.get('/api/replay/runs/:runId', async (req: Request, res: Response) => {
     const { runId } = req.params;
     if (!isValidRunId(runId)) {
