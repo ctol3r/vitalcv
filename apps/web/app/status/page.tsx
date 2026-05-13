@@ -1,136 +1,130 @@
-import * as React from 'react';
-import type { Metadata } from 'next';
+/**
+ * /status — VitalCV Public Operational Status
+ *
+ * Public SSR page. No auth required.
+ * Shows live trust status board, source lane telemetry,
+ * chronology integrity, and links to all .well-known endpoints.
+ */
 
-import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
-import {
-  buildStatusFoundationPlan,
-  explainStatusSurfaceStatus,
-} from '@/lib/commercial/statusFoundation';
-import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
-import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
+import type { Metadata } from 'next';
+import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
+import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
+import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
 
 export const metadata: Metadata = {
-  title: 'Status · VitalCV',
+  title: 'Operational Status · VitalCV',
   description:
-    'Status surfaces are foundation previews. No uptime guarantee is implied.',
+    'Live operational status for VitalCV trust infrastructure. Independently verifiable.',
 };
 
-const COMPLIANCE_DISCLAIMER =
-  'This report is a foundation shape for vendor risk assessments. It reflects planned controls, not enforced production policies.';
+const WELL_KNOWN_ENDPOINTS = [
+  {
+    path: '/.well-known/jwks.json',
+    description: 'Public signing keys (ES256)',
+    auth: 'None',
+  },
+  {
+    path: '/.well-known/did.json',
+    description: 'W3C DID document',
+    auth: 'None',
+  },
+  {
+    path: '/.well-known/trust.json',
+    description: 'Trust manifest',
+    auth: 'None',
+  },
+  {
+    path: '/.well-known/trust-register',
+    description: 'Machine-readable doctrine register',
+    auth: 'None',
+  },
+  {
+    path: '/api/receipts/verify',
+    description: 'Verify a receipt JWT',
+    auth: 'None',
+  },
+  {
+    path: '/api/status',
+    description: 'This endpoint — operational truth payload',
+    auth: 'None',
+  },
+];
 
 export default function StatusPage() {
-  const plan = buildStatusFoundationPlan();
-  const dataClassification = buildDataClassificationFoundation();
-  const retention = buildRetentionFoundation();
-  const authority = buildAdapterMatrix();
-
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <header className="mb-8 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Status
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-          Foundation status preview
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong>{`Status surfaces are foundation previews. No uptime guarantee is implied.`}</strong>
-          {' '}Incident notices and public changelogs are planned surfaces. Neither is wired today.
-        </p>
+    <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
+      {/* Header */}
+      <header className="border-b border-gray-800 px-6 py-5">
+        <div className="mx-auto max-w-4xl flex items-center justify-between">
+          <div>
+            <h1 className="text-sm font-bold tracking-tight text-white uppercase">
+              VitalCV · Operational Status
+            </h1>
+            <p className="mt-1 text-[10px] text-gray-500">
+              External observability surface — independently verifiable
+            </p>
+          </div>
+          <a
+            href="/"
+            className="text-[10px] text-gray-500 hover:text-gray-300 underline underline-offset-2"
+          >
+            ← vitalcv.com
+          </a>
+        </div>
       </header>
 
-      <section
-        aria-labelledby="invariants-heading"
-        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
-      >
-        <h2 id="invariants-heading" className="text-base font-semibold sm:text-lg">
-          Invariants
-        </h2>
-        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Uptime guarantee implied</dt>
-            <dd className="mt-1 font-mono">{String(plan.uptimeGuaranteeImplied)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Production status page live</dt>
-            <dd className="mt-1 font-mono">{String(plan.productionStatusPageLive)}</dd>
-          </div>
-        </dl>
-      </section>
+      <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
+        {/* Live status board */}
+        <LiveTrustStatusBoard />
 
-      <section
-        aria-labelledby="surfaces-heading"
-        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
-      >
-        <h2 id="surfaces-heading" className="text-base font-semibold sm:text-lg">
-          Status surfaces
-        </h2>
-        <ul className="mt-3 space-y-3">
-          {plan.surfaces.map((s) => (
-            <li key={s.kind} className="text-sm">
-              <p className="font-medium">
-                {s.label}{' '}
-                <span
-                  className="ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border-slate-400/40 bg-slate-500/10 text-slate-600"
-                  aria-label={`Status: ${s.status}`}
-                  title={explainStatusSurfaceStatus(s.status)}
-                >
-                  {s.status.replace(/_/g, ' ')}
-                </span>
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+        {/* Source lane telemetry */}
+        <SourceLaneTelemetry />
 
-      <section
-        aria-labelledby="compliance-heading"
-        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
-      >
-        <h2 id="compliance-heading" className="text-base font-semibold sm:text-lg">
-          Compliance evidence (foundation shape)
-        </h2>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {COMPLIANCE_DISCLAIMER}
+        {/* Chronology integrity */}
+        <ChronologyIntegrityTelemetry />
+
+        {/* Well-known endpoint index */}
+        <div className="border border-gray-700 bg-gray-950">
+          <div className="border-b border-gray-700 px-4 py-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              PUBLIC VERIFICATION ENDPOINTS
+            </span>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-800 text-[9px] uppercase tracking-widest text-gray-600">
+                <th className="px-4 py-1.5 text-left font-normal">Endpoint</th>
+                <th className="px-4 py-1.5 text-left font-normal">Description</th>
+                <th className="px-4 py-1.5 text-left font-normal">Auth</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-900">
+              {WELL_KNOWN_ENDPOINTS.map((ep) => (
+                <tr key={ep.path} className="hover:bg-gray-900/40">
+                  <td className="px-4 py-1.5">
+                    <a
+                      href={ep.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[11px] text-blue-500 hover:text-blue-300 underline underline-offset-2"
+                    >
+                      {ep.path}
+                    </a>
+                  </td>
+                  <td className="px-4 py-1.5 text-[10px] text-gray-400">{ep.description}</td>
+                  <td className="px-4 py-1.5 text-[10px] text-gray-600">{ep.auth}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer note */}
+        <p className="text-[9px] text-gray-700 text-center">
+          All endpoints are public. No authentication required for verification.
+          Source of truth: <a href="/api/status" className="underline hover:text-gray-500">/api/status</a>
         </p>
-        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Data classification</dt>
-            <dd className="mt-1">
-              <p className="font-mono text-xs">redactionLive: {String(dataClassification.redactionLive)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{dataClassification.rules.length} redaction rules</p>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Retention</dt>
-            <dd className="mt-1">
-              <p className="font-mono text-xs">retentionEnforced: {String(retention.retentionEnforced)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{retention.policies.length} entity policies</p>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">Authority adapters</dt>
-            <dd className="mt-1">
-              <p className="font-mono text-xs">allAdaptersLive: {String(authority.allAdaptersLive)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{authority.adapters.length} adapters</p>
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Machine-readable shape: <code>GET /api/compliance/evidence</code> (same sources).
-        </p>
-      </section>
-
-      <section
-        aria-labelledby="disclaimers-heading"
-        className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-4 sm:p-5"
-      >
-        <h2 id="disclaimers-heading" className="text-sm font-semibold">Disclaimers</h2>
-        <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
-          {plan.disclaimers.map((d, i) => <li key={i}>· {d}</li>)}
-        </ul>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }

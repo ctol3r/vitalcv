@@ -16,6 +16,9 @@ import { DeploymentConvergenceStrip } from '@/components/ops/DeploymentConvergen
 import { VerifierContinuityPanel } from '@/components/ops/VerifierContinuityPanel';
 import { ReplayContinuityPanel } from '@/components/ops/ReplayContinuityPanel';
 import { DegradedStateTopologyMap } from '@/components/ops/DegradedStateTopologyMap';
+import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
+import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
+import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
 import type {
   OperatorDashboardSnapshot,
   SignerHealthEntry,
@@ -474,6 +477,9 @@ export default async function OpsPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      {/* Live Trust Status Board — top of page */}
+      <LiveTrustStatusBoard />
+
       {/* Operator header */}
       <header className="bg-gray-900 border-b border-gray-700 px-6 py-5">
         <div className="mx-auto max-w-7xl flex items-start justify-between gap-4 flex-wrap">
@@ -581,6 +587,10 @@ export default async function OpsPage() {
               anonymous_preview:     snapshot.degradedStateDistribution.anonymous_preview,
             }}
           />
+
+          <SourceLaneTelemetry />
+
+          <ChronologyIntegrityTelemetry />
         </div>
 
         {/* ── Survivability detail link ─────────────────────────────────────── */}

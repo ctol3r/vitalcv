@@ -183,6 +183,24 @@ export function TrustRegistryFooter() {
         </div>
       </section>
 
+      {/* ── Section 4.5: Operational Status Link ──────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between border border-gray-200 rounded px-4 py-3 bg-gray-50">
+          <div>
+            <p className="text-xs font-semibold text-gray-700">Live Operational Status</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Independently verifiable. No auth required.
+            </p>
+          </div>
+          <a
+            href="/status"
+            className="text-xs font-mono text-blue-700 hover:text-blue-900 underline underline-offset-2"
+          >
+            /status →
+          </a>
+        </div>
+      </section>
+
       {/* ── Section 4: Machine-Readable Links ────────────────────────────── */}
       <section>
         <SectionHeading>Machine-Readable Endpoints</SectionHeading>
