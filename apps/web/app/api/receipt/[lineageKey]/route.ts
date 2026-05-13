@@ -111,9 +111,9 @@ export async function GET(
       tier: 'T3',
       ownership: 'vcv-system',
       receipt: {
-        receiptId: `rcpt_${providerId}_${now}`,
+        receiptId: `rcpt_${providerId}`,
         source: lane?.source ?? laneId,
-        signingKeyId: `vcv-signing-key-${Date.now()}`,
+        signingKeyId: 'vcv-es256-dev',
         issuerDid: ISSUER_DID,
         jwksUri: JWKS_URI,
       },

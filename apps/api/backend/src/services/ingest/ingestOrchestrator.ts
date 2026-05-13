@@ -56,8 +56,8 @@ async function persistRunIdOnSourceRun(
       select: { runId: true },
     });
     priorRunId = priorRun?.runId ?? null;
-  } catch {
-    // Non-fatal — chain link is supplemental
+  } catch (e) {
+    log('warn', 'replay_chain_lookup_failed', { sourceRunId, npi, error: String(e) });
   }
 
   try {
@@ -65,8 +65,8 @@ async function persistRunIdOnSourceRun(
       where: { id: sourceRunId },
       data: { runId, priorRunId },
     });
-  } catch {
-    // Non-fatal — runId is supplemental for replay persistence
+  } catch (e) {
+    log('warn', 'replay_writer_failed', { sourceRunId, npi, runId, error: String(e) });
   }
 }
 
