@@ -184,9 +184,9 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
                   href={jwksUri}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs text-blue-600 hover:underline"
+                  className="font-mono text-[10px] uppercase tracking-[0.06em] text-blue-600 hover:underline"
                 >
-                  Verify signature →
+                  VERIFY SIGNATURE →
                 </a>
               </div>
             )}
@@ -195,10 +195,10 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
 
         {/* ── PAYLOAD ──────────────────────────────────────────────────────── */}
         <div className="vcv-receipt-section">
-          <AnchorBand label="Payload" />
-          <ScrollArea className="h-48 sm:h-64 bg-gray-900 p-3 sm:p-4 text-[11px] leading-relaxed">
-            <pre className="whitespace-pre-wrap break-words text-gray-100">
-              <code>{formattedPayload}</code>
+          <AnchorBand label="PAYLOAD" />
+          <ScrollArea className="h-48 sm:h-64 bg-gray-50 border border-gray-100 p-3 sm:p-4 leading-relaxed">
+            <pre className="whitespace-pre-wrap break-words">
+              <code className="font-mono text-[10px] text-gray-700">{formattedPayload}</code>
             </pre>
           </ScrollArea>
         </div>

@@ -15,6 +15,8 @@ interface DownloadReceiptButtonProps {
   filename?: string;
   /** If true, triggers window.print() instead of file download */
   printMode?: boolean;
+  /** If true, renders as a plain text link instead of a bordered button */
+  textLink?: boolean;
   className?: string;
 }
 
@@ -24,6 +26,7 @@ export function DownloadReceiptButton({
   label,
   filename,
   printMode = false,
+  textLink = false,
   className = '',
 }: DownloadReceiptButtonProps) {
   const handleClick = () => {
@@ -45,6 +48,25 @@ export function DownloadReceiptButton({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  if (textLink) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className={[
+          'font-mono text-[10px] uppercase tracking-[0.06em]',
+          'text-gray-600 hover:text-gray-900 transition-colors',
+          'bg-transparent border-none p-0 cursor-pointer',
+          className,
+        ]
+          .join(' ')
+          .trim()}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <button

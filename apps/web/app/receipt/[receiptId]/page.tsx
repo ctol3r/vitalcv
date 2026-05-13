@@ -5,10 +5,11 @@
  *
  * 7 visual zones:
  *   1. Institutional Masthead (dark bg-gray-900)
- *   2. Ownership + Status Bar
- *   3. Replay Chain + 4. Issuer Continuity (side by side)
- *   5. Provenance Strip (full width)
- *   6. Download Actions
+ *   2. Signature
+ *   3. Source Provenance (table)
+ *   4. Replay Chronology
+ *   5. Issuer Continuity
+ *   6. Export (text links)
  *   7. Verification Instructions (collapsible)
  */
 
@@ -102,7 +103,7 @@ function survivabilityColor(score: number): string {
 function ZoneMasthead({
   receiptId,
   tier,
-  signingKeyId,
+  signingKeyId: _signingKeyId,
   runId,
   checkedAt,
   issuerDid,
@@ -115,33 +116,23 @@ function ZoneMasthead({
   issuerDid: string;
 }) {
   return (
-    <div className="receipt-masthead bg-gray-900 text-white border border-gray-700 px-6 py-5">
+    <div className="bg-gray-900 text-white border border-gray-700 px-6 py-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-bold tracking-tight text-white">
-            VitalCV Trust Receipt
-          </h1>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mt-0.5">
-            Institutional verification artifact — cryptographic plane
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <TrustTierBadge tier={tier} />
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+            TRUST RECEIPT
+          </span>
           <code className="font-mono text-xs text-gray-300 select-all">
             {receiptId}
           </code>
+          <span className="font-mono text-xs text-gray-400">{issuerDid}</span>
+          <span className="font-mono text-xs text-gray-400">
+            Run: {runId}&nbsp;&nbsp;·&nbsp;&nbsp;Checked: {checkedAt}
+          </span>
         </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1.5">
-        <MastheadRow label="Issued by" value={issuerDid} mono />
-        <MastheadRow
-          label="Key"
-          value={signingKeyId ?? '—'}
-          mono
-        />
-        <MastheadRow label="Run" value={runId} mono />
-        <MastheadRow label="Checked" value={checkedAt} dimmed />
+        <div className="flex-shrink-0">
+          <TrustTierBadge tier={tier} />
+        </div>
       </div>
     </div>
   );
@@ -180,7 +171,7 @@ function ZoneSignature({
   return (
     <div className="vcv-receipt-section bg-white">
       <div className="vcv-anchor-band">
-        <span className="vcv-label">Signature</span>
+        <span className="vcv-label">SIGNATURE</span>
       </div>
       <div className="px-4 py-0">
         {algorithm && (
@@ -215,9 +206,9 @@ function ZoneSignature({
             href={jwksUri}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs text-blue-600 hover:underline"
+            className="font-mono text-[10px] uppercase tracking-[0.06em] text-blue-600 hover:underline"
           >
-            Verify signature →
+            VERIFY SIGNATURE →
           </a>
         </div>
       )}
@@ -236,82 +227,6 @@ function SigRow({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-function MastheadRow({
-  label,
-  value,
-  mono = false,
-  dimmed = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  dimmed?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline gap-x-4">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 w-16 flex-shrink-0">{label}</span>
-      <span className={mono ? `font-mono text-xs break-all ${dimmed ? 'text-gray-500' : 'text-gray-300'}` : `text-xs ${dimmed ? 'text-gray-500' : 'text-gray-300'}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function ZoneOwnershipStatus({
-  actorId,
-  tier,
-  source,
-  survivabilityScore,
-}: {
-  actorId: string;
-  tier: TrustTier;
-  source: string;
-  survivabilityScore: number;
-}) {
-  return (
-    <div className="vcv-receipt-section flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 bg-gray-50 text-sm">
-      <StatusItem label="Owner" value={actorId} />
-      <StatusItem
-        label="Status"
-        value={
-          <TrustTierBadge tier={tier} />
-        }
-      />
-      <StatusItem label="Source" value={source || '—'} />
-      <StatusItem
-        label="Survivability"
-        value={
-          <span className={`font-semibold ${survivabilityColor(survivabilityScore)}`}>
-            {survivabilityScore}/100
-          </span>
-        }
-      />
-    </div>
-  );
-}
-
-function StatusItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-        {label}
-      </span>
-      <span className="text-gray-800">
-        {typeof value === 'string' ? (
-          <span className="text-sm text-gray-700">{value}</span>
-        ) : (
-          value
-        )}
-      </span>
-    </div>
-  );
-}
 
 function ZoneReplayChain({
   lane,
@@ -327,24 +242,41 @@ function ZoneReplayChain({
   signingKeyId: string | null;
 }) {
   return (
-    <div className="border border-gray-200 rounded-none overflow-hidden h-full">
+    <div className="bg-white">
       <div className="vcv-anchor-band">
-        <span className="vcv-label">Replay Chain</span>
+        <span className="vcv-label">REPLAY CHRONOLOGY</span>
+      </div>
+      {/* Column headers */}
+      <div className="grid grid-cols-4 px-3 py-1 border-b border-gray-100">
+        {['TIMESTAMP', 'LANE', 'STATUS', 'RUN'].map((h) => (
+          <span
+            key={h}
+            className="text-[9px] font-semibold uppercase tracking-[0.08em] text-gray-400"
+          >
+            {h}
+          </span>
+        ))}
       </div>
       <div className="divide-y divide-gray-100">
-        <ReplayRow ts={checkedAt} lane={lane} status="verified" receiptId={shortId(receiptId)} />
+        <ReplayRow
+          ts={checkedAt}
+          lane={lane}
+          status="GENESIS"
+          receiptId={shortId(receiptId)}
+          isGenesis
+        />
         {signingKeyId && (
           <ReplayRow
             ts={checkedAt}
             lane="cryptographic_seal"
-            status="signed"
+            status="SIGNED"
             receiptId={signingKeyId.slice(-8)}
           />
         )}
       </div>
-      <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
-        <p className="text-[10px] text-gray-400">
-          Source: <span className="font-mono">{source || lane}</span>
+      <div className="px-3 py-2 border-t border-gray-100">
+        <p className="font-mono text-[10px] text-gray-400">
+          source: {source || lane}
         </p>
       </div>
     </div>
@@ -356,23 +288,26 @@ function ReplayRow({
   lane,
   status,
   receiptId,
+  isGenesis = false,
 }: {
   ts: string;
   lane: string;
   status: string;
   receiptId: string;
+  isGenesis?: boolean;
 }) {
-  const statusColor =
-    status === 'verified' || status === 'signed'
-      ? 'text-green-600'
-      : 'text-gray-500';
-
   return (
-    <div className="flex items-center gap-3 px-3 py-2 text-xs">
-      <span className="font-mono text-gray-400 text-[10px] w-36 flex-shrink-0">{ts}</span>
-      <span className="text-gray-700 flex-1">{lane}</span>
-      <span className={`font-semibold uppercase text-[10px] ${statusColor}`}>{status}</span>
-      <span className="font-mono text-[10px] text-gray-400">{receiptId}</span>
+    <div className="grid grid-cols-4 items-center px-3 py-2">
+      <span className="font-mono text-[10px] text-gray-500">{ts}</span>
+      <span className="text-xs text-gray-600">{lane}</span>
+      <span
+        className={`font-mono text-[10px] uppercase ${
+          isGenesis ? 'text-gray-400' : 'text-green-700'
+        }`}
+      >
+        {status}
+      </span>
+      <span className="font-mono text-[9px] text-gray-400">{receiptId}</span>
     </div>
   );
 }
@@ -382,8 +317,6 @@ function ZoneProvenanceStrip({
   lane,
   source,
   checkedAt,
-  issuerDid,
-  signingKeyId,
   tier,
 }: {
   receiptId: string;
@@ -394,50 +327,29 @@ function ZoneProvenanceStrip({
   signingKeyId: string | null;
   tier: TrustTier;
 }) {
-  const isSuccess = tier === 'T3' || tier === 'T4';
-
   return (
-    <div
-      className={[
-        'border-x border-gray-200 px-4 py-3',
-        isSuccess
-          ? 'trust-register-success border-y-green-300 bg-green-50'
-          : 'border-amber-200 bg-amber-50',
-      ].join(' ')}
-    >
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">
-            Provenance
-          </p>
-          {isSuccess && (
-            <p className="text-sm font-semibold text-green-700 mb-1">
-              ✓ No adverse findings — Source checked, no exclusions, revocations, or sanctions found
-            </p>
-          )}
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600">
-            <span>
-              Receipt: <span className="font-mono">{receiptId}</span>
-            </span>
-            <span>
-              Lane: <span className="font-mono">{lane}</span>
-            </span>
-            <span>
-              Source: <span className="font-mono">{source}</span>
-            </span>
-            <span>
-              Issuer: <span className="font-mono">{issuerDid}</span>
-            </span>
-            {signingKeyId && (
-              <span>
-                Key: <span className="font-mono">{signingKeyId}</span>
-              </span>
-            )}
-            <span>
-              Checked: <span className="font-mono">{checkedAt}</span>
-            </span>
-          </div>
-        </div>
+    <div className="bg-white">
+      <div className="vcv-anchor-band">
+        <span className="vcv-label">SOURCE PROVENANCE</span>
+      </div>
+      {/* Column headers */}
+      <div className="grid grid-cols-4 px-3 py-1 border-b border-gray-100">
+        {['SOURCE', 'CHECKED AT', 'RECEIPT', 'TIER'].map((h) => (
+          <span
+            key={h}
+            className="text-[9px] font-semibold uppercase tracking-[0.08em] text-gray-400"
+          >
+            {h}
+          </span>
+        ))}
+      </div>
+      {/* Data row */}
+      <div className="grid grid-cols-4 items-center px-3 py-2">
+        <span className="text-xs text-gray-600">{source || lane}</span>
+        <span className="font-mono text-xs text-gray-900">{checkedAt}</span>
+        <span className="font-mono text-[9px] text-gray-400 select-all">
+          {receiptId.slice(0, 12)}
+        </span>
         <TrustTierBadge tier={tier} />
       </div>
     </div>
@@ -527,7 +439,7 @@ export default async function ReceiptPage({
   }
 
   const tier = deriveTier(receipt);
-  const survivabilityScore = deriveSurvivabilityScore(receipt);
+  void deriveSurvivabilityScore(receipt); // retained for future use
   const checkedAt = formatCheckedAt(receipt.checked_at);
   const signingKeyId =
     receipt.signed_payload?.signing_key_id ?? receipt.key_fingerprint ?? null;
@@ -578,15 +490,7 @@ export default async function ReceiptPage({
             issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
           />
 
-          {/* ── ZONE 2: Ownership + Status Bar ───────────────────────────── */}
-          <ZoneOwnershipStatus
-            actorId="System"
-            tier={tier}
-            source={receipt.source}
-            survivabilityScore={survivabilityScore}
-          />
-
-          {/* ── ZONE 3: Signature ─────────────────────────────────────────── */}
+          {/* ── ZONE 2: Signature ─────────────────────────────────────────── */}
           <ZoneSignature
             algorithm={receipt.signed_payload?.algorithm ?? null}
             signingKeyId={signingKeyId}
@@ -596,61 +500,63 @@ export default async function ReceiptPage({
             jwksUri={receipt.jwks_uri ?? null}
           />
 
-          {/* ── ZONE 4: Provenance Strip ──────────────────────────────────── */}
+          {/* ── ZONE 3: Source Provenance ─────────────────────────────────── */}
+          <div className="vcv-receipt-section">
+            <ZoneProvenanceStrip
+              receiptId={receipt.receipt_id}
+              lane={receipt.lane}
+              source={receipt.source}
+              checkedAt={checkedAt}
+              issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
+              signingKeyId={signingKeyId}
+              tier={tier}
+            />
+          </div>
+
+          {/* ── ZONE 4: Replay Chronology ─────────────────────────────────── */}
+          <div className="vcv-receipt-section">
+            <ZoneReplayChain
+              lane={receipt.lane}
+              source={receipt.source}
+              checkedAt={checkedAt}
+              receiptId={receipt.receipt_id}
+              signingKeyId={signingKeyId}
+            />
+          </div>
+
+          {/* ── ZONE 5: Issuer Continuity ─────────────────────────────────── */}
           <div className="vcv-receipt-section">
             <div className="vcv-anchor-band">
-              <span className="vcv-label">Provenance</span>
+              <span className="vcv-label">ISSUER CONTINUITY</span>
             </div>
             <div className="bg-white">
-              <ZoneProvenanceStrip
-                receiptId={receipt.receipt_id}
-                lane={receipt.lane}
-                source={receipt.source}
-                checkedAt={checkedAt}
-                issuerDid={receipt.issuer_did ?? snapshot.issuerDid}
+              <IssuerContinuityPanel
+                did={receipt.issuer_did ?? snapshot.issuerDid}
                 signingKeyId={signingKeyId}
-                tier={tier}
               />
             </div>
           </div>
 
-          {/* ── ZONE 5: Replay + Issuer Continuity ───────────────────────── */}
-          <div className="vcv-receipt-section">
+          {/* ── ZONE 6: Export ─────────────────────────────────────────────── */}
+          <div className="vcv-receipt-section bg-gray-50 border-t border-gray-200 receipt-print-hide">
             <div className="vcv-anchor-band">
-              <span className="vcv-label">Replay</span>
+              <span className="vcv-label">EXPORT</span>
             </div>
-            <div className="bg-white grid grid-cols-1 lg:grid-cols-2 border-x border-gray-200">
-              <div className="border-r border-gray-200">
-                <ZoneReplayChain
-                  lane={receipt.lane}
-                  source={receipt.source}
-                  checkedAt={checkedAt}
-                  receiptId={receipt.receipt_id}
-                  signingKeyId={signingKeyId}
-                />
-              </div>
-              <div>
-                <IssuerContinuityPanel
-                  did={receipt.issuer_did ?? snapshot.issuerDid}
-                  signingKeyId={signingKeyId}
-                />
-              </div>
+            <div className="px-3 py-2 flex flex-wrap gap-x-6 gap-y-2">
+              <DownloadReceiptButton
+                receiptId={receipt.receipt_id}
+                vcJson={vcJson}
+                label="DOWNLOAD VC 2.0 JSON →"
+                filename={`vcv-receipt-${receipt.receipt_id}.vc.json`}
+                textLink
+              />
+              <DownloadReceiptButton
+                receiptId={receipt.receipt_id}
+                label="DOWNLOAD VERIFIER PDF →"
+                printMode
+                textLink
+              />
             </div>
-          </div>
-
-          {/* ── ZONE 6: Download Actions ──────────────────────────────────── */}
-          <div className="vcv-receipt-section bg-gray-50 px-4 py-3 flex flex-wrap gap-3 receipt-print-hide border-gray-200">
-            <DownloadReceiptButton
-              receiptId={receipt.receipt_id}
-              vcJson={vcJson}
-              label="Download VC 2.0 JSON"
-              filename={`vcv-receipt-${receipt.receipt_id}.vc.json`}
-            />
-            <DownloadReceiptButton
-              receiptId={receipt.receipt_id}
-              label="Download Verifier PDF"
-              printMode
-            />
           </div>
 
           {/* ── ZONE 7: Verification Instructions ────────────────────────── */}
