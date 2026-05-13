@@ -16,6 +16,8 @@ import { RuntimeConvergencePanel } from '@/components/survivability/RuntimeConve
 import { TrustSurfaceIntegrityMonitor } from '@/components/survivability/TrustSurfaceIntegrityMonitor';
 import type { ConvergenceItem } from '@/components/survivability/RuntimeConvergencePanel';
 import type { TrustSurface } from '@/components/survivability/TrustSurfaceIntegrityMonitor';
+import { RuntimeActivationBoard } from '@/components/ops/RuntimeActivationBoard';
+import { getRuntimeActivationState } from '@/lib/runtime/getRuntimeActivationState';
 
 export const metadata: Metadata = {
   title: 'Survivability Detail · VitalCV Ops',
@@ -213,6 +215,12 @@ export default async function SurvivabilityPage() {
         <div>
           <AnchorBand title="Trust Surface Integrity" />
           <TrustSurfaceIntegrityMonitor surfaces={trustSurfaces} />
+        </div>
+
+        {/* Runtime Activation */}
+        <div>
+          <AnchorBand title="Runtime Activation" />
+          <RuntimeActivationBoard state={getRuntimeActivationState()} />
         </div>
 
       </main>
