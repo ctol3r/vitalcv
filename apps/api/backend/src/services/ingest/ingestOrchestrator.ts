@@ -24,6 +24,33 @@ import {
   updateIngestSourceRun,
 } from './ingestEventStore';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function deriveRunId(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8);
+}
+
+async function persistRunIdOnSourceRun(
+  sourceRunId: string | null | undefined,
+  npi: string,
+  startedAt: Date,
+): Promise<void> {
+  if (!sourceRunId || !UUID_RE.test(sourceRunId)) return;
+  const runId = deriveRunId(`${npi}:${startedAt.toISOString()}`);
+  try {
+    await prisma.sourceRun.update({
+      where: { id: sourceRunId },
+      data: { runId },
+    });
+  } catch {
+    // Non-fatal — runId is supplemental for replay persistence
+  }
+}
+
 function mapPipelineSourceId(source: string): IngestSourceId | null {
   if (source === 'NPPES_API') return 'nppes';
   if (source === 'OIG_LEIE') return 'oig';
@@ -170,6 +197,7 @@ async function finalizeSourceResult(
 }
 
 async function runPipeline(runId: string, npi: string): Promise<void> {
+  const pipelineStartedAt = new Date();
   await markIngestRunStarted(runId);
 
   try {
@@ -368,6 +396,11 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
         checkedAt: new Date().toISOString(),
       },
     });
+
+    // Persist runId on each SourceRun for replay persistence alpha
+    for (const [, result] of resultBySource) {
+      await persistRunIdOnSourceRun(result.sourceRunId, npi, pipelineStartedAt);
+    }
 
     log('info', 'ingest_run_done', {
       runId,

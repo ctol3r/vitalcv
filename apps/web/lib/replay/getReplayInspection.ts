@@ -6,6 +6,7 @@
  */
 
 import { getPublicKeyJwk } from '@/lib/crypto/receiptIssuer';
+import { getBackendBase } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,8 +103,9 @@ function deriveRunId(receiptId: string): string {
   return Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8);
 }
 
+/** ISO 8601 Z-suffix — canonical format per design spec (R-06). */
 function formatCheckedAt(ts: number): string {
-  return new Date(ts).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  return new Date(ts).toISOString().slice(0, 19) + 'Z';
 }
 
 /** Parse embedded NPI from rcpt_ receipts: rcpt_{npi}_{timestamp} or similar. */
@@ -146,6 +148,66 @@ function parseRecReceiptId(receiptId: string): { laneId: string; ts: number } {
 export async function getReplayInspection(
   receiptId: string,
 ): Promise<ReplayInspection | null> {
+  // ── DB-first: try backend for persisted run data ─────────────────────────
+  try {
+    const backendBase = getBackendBase();
+    const resp = await fetch(
+      `${backendBase}/api/replay/runs/${encodeURIComponent(receiptId)}`,
+      { cache: 'no-store', signal: AbortSignal.timeout(4_000) },
+    );
+    if (resp.ok) {
+      const run = (await resp.json()) as {
+        runId: string;
+        npi: string;
+        laneId: string;
+        checkedAt: string;
+        status: string;
+        tier: 'T1' | 'T2' | 'T3' | 'T4';
+        receiptId: string | null;
+        priorRunId: string | null;
+      };
+      const lane = LANE_META[run.laneId] ?? { displayName: run.laneId, source: run.laneId, sourceId: run.laneId };
+      const signerHistoryDb: SignerRotationEntry[] = [
+        { kid: 'unknown', algorithm: 'ES256', activeFrom: 'genesis', activeTo: null },
+      ];
+      const dbRun: ReplayRunEntry = {
+        runId: run.runId,
+        checkedAt: run.checkedAt,
+        source: lane.source,
+        laneId: run.laneId,
+        status: run.status,
+        tier: run.tier,
+        receiptId: run.receiptId ?? receiptId,
+        priorRunId: run.priorRunId,
+      };
+      return {
+        receiptId,
+        lineageKey: `${run.laneId}:${run.npi}`,
+        runId: run.runId,
+        checkedAt: run.checkedAt,
+        issuerDid: ISSUER_DID,
+        signingKeyId: null,
+        jwksUri: JWKS_URI,
+        runs: [dbRun],
+        gaps: [],
+        signerHistory: signerHistoryDb,
+        survivabilityScore: 80,
+        survivabilityRationale: 'Run data retrieved from durable storage.',
+        degradationOwnership: 'no_adverse_findings',
+        degradationExplanation: 'Persisted run record found. Replay data is DB-backed.',
+        sourceContinuity: {
+          sourceId: lane.sourceId,
+          displayName: lane.displayName,
+          lifecycle: 'active',
+          lastChecked: run.checkedAt,
+        },
+      };
+    }
+    // 404 or other non-2xx: fall through to synthetic logic
+  } catch {
+    // Backend unreachable or timeout — fall through to synthetic logic
+  }
+
   // Validate format
   const isRcpt = receiptId.startsWith('rcpt_');
   const isRec = receiptId.startsWith('rec-');
