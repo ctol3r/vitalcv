@@ -103,6 +103,7 @@ export async function signIssuerReceipt(
   const { privateKey, kid } = await getOrInitKeypair();
 
   const issuerUrl =
+    process.env.VITALCV_ISSUER_URL ??
     process.env.VITACV_ISSUER_URL ??
     (process.env.NEXT_PUBLIC_APP_URL
       ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')

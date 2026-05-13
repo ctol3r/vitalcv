@@ -37,6 +37,8 @@ describe('Route role mapping', () => {
     { path: '/review', role: null, expected: 'allow' },
     { path: '/review/entity-1', role: null, expected: 'allow' },
     { path: '/verify/1234567890', role: null, expected: 'allow' },
+    { path: '/trust', role: null, expected: 'allow' },
+    { path: '/trust/doctrine', role: null, expected: 'allow' },
     { path: '/trust-state/abc-123', role: null, expected: 'allow' },
     { path: '/auth/error', role: null, expected: 'allow' },
     { path: '/intelligence', role: 'AUTHENTICATED', expected: 'allow' },
