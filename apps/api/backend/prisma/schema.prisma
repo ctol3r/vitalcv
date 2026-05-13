@@ -688,6 +688,7 @@ model SourceRun {
   personProfileId             String?                      @map("person_profile_id") @db.Uuid
   idempotencyKey              String                       @unique @map("idempotency_key")
   runId                       String?                      @unique @map("run_id")
+  priorRunId                  String?                      @map("prior_run_id")
   status                      SourceRunStatus              @default(QUEUED)
   runSummary                  Json?                        @map("run_summary")
   lastError                   String?                      @map("last_error")

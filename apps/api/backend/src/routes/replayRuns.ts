@@ -42,6 +42,7 @@ export function registerReplayRunRoutes(app: Express): void {
         select: {
           id: true,
           runId: true,
+          priorRunId: true,
           sourceId: true,
           subjectNpi: true,
           status: true,
@@ -65,7 +66,7 @@ export function registerReplayRunRoutes(app: Express): void {
           status: sourceRun.status,
           tier: 'T3',
           receiptId,
-          priorRunId: null,
+          priorRunId: sourceRun.priorRunId ?? null,
         });
         return;
       }
@@ -105,6 +106,70 @@ export function registerReplayRunRoutes(app: Express): void {
         error: err instanceof Error ? err.message : String(err),
       });
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+}
+
+/**
+ * GET /api/replay/runs/by-npi/:npi
+ *
+ * Returns all SourceRun records for a given NPI, ordered startedAt ASC.
+ * Includes runId + priorRunId for chain traversal.
+ * Public — registered before org-context middleware.
+ */
+export function registerReplayByNpiRoute(app: import('express').Express): void {
+  app.get('/api/replay/runs/by-npi/:npi', async (req: import('express').Request, res: import('express').Response) => {
+    const { npi } = req.params;
+
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      res.status(400).json({ error: 'Invalid NPI' });
+      return;
+    }
+
+    try {
+      const runs = await prisma.sourceRun.findMany({
+        where: { subjectNpi: npi, runId: { not: null } },
+        orderBy: [{ sourceId: 'asc' }, { startedAt: 'asc' }],
+        select: {
+          runId: true,
+          priorRunId: true,
+          sourceId: true,
+          subjectNpi: true,
+          status: true,
+          startedAt: true,
+          completedAt: true,
+          verificationReceiptRecords: {
+            select: { receiptId: true },
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      const chain = runs.map((run, idx) => ({
+        runId: run.runId,
+        priorRunId: run.priorRunId,
+        npi: run.subjectNpi,
+        laneId: run.sourceId,
+        status: run.status,
+        checkedAt: (run.completedAt ?? run.startedAt).toISOString(),
+        receiptId: run.verificationReceiptRecords[0]?.receiptId ?? null,
+        chainPosition: idx,
+        isHead: idx === runs.length - 1,
+      }));
+
+      res.json({
+        npi,
+        totalRuns: chain.length,
+        chainedRuns: chain.filter((r) => r.priorRunId !== null).length,
+        headRunId: chain[chain.length - 1]?.runId ?? null,
+        originRunId: chain[0]?.runId ?? null,
+        chain,
+        reconstructedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      log('error', 'replay_by_npi_failed', { npi, error: String(e) });
+      res.status(500).json({ error: 'Internal error' });
     }
   });
 }

@@ -185,7 +185,7 @@ import { registerVerifyProfessionalRoutes } from './routes/verifyProfessional'; 
 import { registerDeploymentRoutes } from './routes/deployment';                    // Wave: Deployable Workforce
 import { registerWorkforceIntelligenceRoutes } from './routes/workforceIntelligence'; // Wave: Workforce Intelligence
 import { registerAuditReplayRoutes } from './routes/auditReplay';                       // Wave: Decision Accountability
-import { registerReplayRunRoutes } from './routes/replayRuns';                         // Replay Persistence Alpha
+import { registerReplayRunRoutes, registerReplayByNpiRoute } from './routes/replayRuns'; // Replay Persistence Alpha
 import { registerCryptoProtocolRoutes } from './routes/cryptoProtocol';               // Wave: PQC Trust Protocol
 import { registerProtocolRoutes } from './routes/protocol';                            // Wave: Open Trust Protocol
 import { registerDomainRoutes } from './routes/domains';                               // Wave: Universal Authority
@@ -3466,9 +3466,10 @@ app.use(
   }),
 );
 
-// Public replay lookup endpoint — registered before org-context middleware.
-// /api/replay/runs/:runId is a public verifier surface (no auth required).
+// Public replay lookup endpoints — registered before org-context middleware.
+// /api/replay/runs/:runId and /api/replay/runs/by-npi/:npi are public verifier surfaces.
 registerReplayRunRoutes(app);
+registerReplayByNpiRoute(app);
 
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.

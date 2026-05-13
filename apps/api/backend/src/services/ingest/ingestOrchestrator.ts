@@ -41,10 +41,29 @@ async function persistRunIdOnSourceRun(
 ): Promise<void> {
   if (!sourceRunId || !UUID_RE.test(sourceRunId)) return;
   const runId = deriveRunId(`${npi}:${startedAt.toISOString()}`);
+
+  // Chain linker: find the most recent prior run for the same NPI + source
+  // to establish replay continuity: new_run.priorRunId = latest_prior.runId
+  let priorRunId: string | null = null;
+  try {
+    const priorRun = await prisma.sourceRun.findFirst({
+      where: {
+        subjectNpi: npi,
+        id: { not: sourceRunId },
+        runId: { not: null },
+      },
+      orderBy: { startedAt: 'desc' },
+      select: { runId: true },
+    });
+    priorRunId = priorRun?.runId ?? null;
+  } catch {
+    // Non-fatal — chain link is supplemental
+  }
+
   try {
     await prisma.sourceRun.update({
       where: { id: sourceRunId },
-      data: { runId },
+      data: { runId, priorRunId },
     });
   } catch {
     // Non-fatal — runId is supplemental for replay persistence
