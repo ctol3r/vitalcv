@@ -23,6 +23,8 @@ import {
   updateIngestRun,
   updateIngestSourceRun,
 } from './ingestEventStore';
+import { recordReplayRun } from '../replay/replayIdentity';
+import { buildReplayWriterInputFromIngest } from '../replay/replayWriterIngest';
 
 function mapPipelineSourceId(source: string): IngestSourceId | null {
   if (source === 'NPPES_API') return 'nppes';
@@ -354,6 +356,33 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
       status: 'DONE',
       entityId: entityRecord.entity.id,
     });
+
+    // REPLAY-PERSIST-β — fire-and-forget replay-run record.
+    //
+    // Purely additive observability: writes the canonical
+    // (lineageKey, runId) row for this ingest run if the replay
+    // tables exist AND a coherent passport was built (so we have a
+    // stable lastCheckedAt to bind into the runId). The call is
+    // wrapped in .catch so a Prisma failure (e.g., migration not yet
+    // applied → P2021, or DB disconnect) NEVER propagates into the
+    // ingest flow. The ingest run is already marked DONE above; this
+    // side effect cannot change that.
+    if (passport) {
+      recordReplayRun(
+        buildReplayWriterInputFromIngest(
+          { entityId: entityRecord.entity.id, lastCheckedAt: passport.lastCheckedAt },
+          sourceSummary,
+        ),
+      ).catch((replayWriterError) => {
+        log('warn', 'replay_writer_failed', {
+          runId,
+          npi,
+          entityId: entityRecord.entity.id,
+          error: String(replayWriterError),
+        });
+      });
+    }
+
     await appendIngestEvent({
       runId,
       type: 'done',
