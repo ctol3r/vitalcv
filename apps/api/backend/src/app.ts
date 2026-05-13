@@ -3466,6 +3466,10 @@ app.use(
   }),
 );
 
+// Public replay lookup endpoint — registered before org-context middleware.
+// /api/replay/runs/:runId is a public verifier surface (no auth required).
+registerReplayRunRoutes(app);
+
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
 app.use(requireTenantContextOrReadAccess);
@@ -3630,7 +3634,6 @@ registerVerifyProfessionalRoutes(app);     // Wave: AI Professional Verification
 registerDeploymentRoutes(app);             // Wave: Credential-based deployment matching
 registerWorkforceIntelligenceRoutes(app);  // Wave: Workforce intelligence layer
 registerAuditReplayRoutes(app);            // Wave: Decision accountability layer
-registerReplayRunRoutes(app);              // Replay Persistence Alpha — runId lookup endpoint
 registerCryptoProtocolRoutes(app);         // Wave: PQC crypto suite + resign pipeline
 registerProtocolRoutes(app);               // Wave: open protocol spec + conformance + discovery
 registerDomainRoutes(app);                 // Wave: universal domain authority registry

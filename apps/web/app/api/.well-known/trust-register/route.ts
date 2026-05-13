@@ -52,7 +52,8 @@ export async function GET() {
 
   return NextResponse.json(body, {
     headers: {
-      'Cache-Control': 'no-store',
+      // Discovery document — 5min TTL matches trust.json; stale-while-revalidate for edge freshness.
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
     },
   });
 }

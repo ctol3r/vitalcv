@@ -16,16 +16,18 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Known lane IDs and their rec- prefix slugs
-const LANE_RECEIPT_IDS = (npi: string, now: number): string[] => [
-  // nppes_identity uses rcpt_ format (T4 issuer-signed path)
-  `rcpt_v1_${npi}_${now}`,
-  // All other lanes use rec- format with 13-digit epoch
-  `rec-oig-exclusions-${now}-${npi}`,
-  `rec-state-license-${now}-${npi}`,
-  `rec-employment-history-${now}-${npi}`,
-  `rec-board-cert-${now}-${npi}`,
-  `rec-pecos-enrollment-${now}-${npi}`,
+// Known lane IDs — deterministic receipt IDs keyed on NPI only (no timestamp).
+// Using NPI-only seed ensures replay_deterministic=true across repeated calls.
+// Timestamps in Date.now() would make runIds differ between calls — that was the bug.
+const LANE_RECEIPT_IDS = (npi: string): string[] => [
+  // nppes_identity: stable probe receipt
+  `rcpt_probe_${npi}`,
+  // Other lanes: stable rec- probes (no timestamp in key)
+  `rec-oig-exclusions-probe-${npi}`,
+  `rec-state-license-probe-${npi}`,
+  `rec-employment-history-probe-${npi}`,
+  `rec-board-cert-probe-${npi}`,
+  `rec-pecos-enrollment-probe-${npi}`,
 ];
 
 export async function GET(
@@ -45,8 +47,7 @@ export async function GET(
     );
   }
 
-  const now = Date.now();
-  const receiptIds = LANE_RECEIPT_IDS(npi, now);
+  const receiptIds = LANE_RECEIPT_IDS(npi);
 
   // Fetch inspection data for each lane in parallel
   const inspections = await Promise.all(

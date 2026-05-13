@@ -50,10 +50,14 @@ const STATUS_TEXT: Record<string, string> = {
   review_required: 'text-amber-700 font-semibold',
 };
 
-function truncateId(id: string, len = 8): string {
-  if (id.length <= len) return id;
-  return id.slice(0, len);
+/** Canonical short-hash: first 4 chars + … + last 4 chars. Matches design spec. */
+function shortHash(id: string): string {
+  const clean = id.replace(/^(run:|rcpt_)/, '');
+  if (clean.length <= 9) return clean;
+  return `${clean.slice(0, 4)}…${clean.slice(-4)}`;
 }
+/** @deprecated use shortHash */
+function truncateId(id: string): string { return shortHash(id); }
 
 /** Detect notable gap between two ISO timestamps (> 7 days) */
 function hasGap(a: string, b: string): boolean {

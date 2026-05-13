@@ -29,6 +29,13 @@ export interface TrustRegisterRowProps {
   noAdverseFindings?: boolean;
 }
 
+/** Canonical short-hash: 4… 4 format per design spec. */
+function shortHash(id: string): string {
+  const clean = id.replace(/^(run:|rcpt_)/, '');
+  if (clean.length <= 9) return clean;
+  return `${clean.slice(0, 4)}…${clean.slice(-4)}`;
+}
+
 const NullSlot = () => (
   <span className="font-mono text-gray-200 select-none tracking-[0.15em]">─ ─ ─</span>
 );
@@ -132,7 +139,7 @@ export function TrustRegisterRow({
           <div className="font-mono text-xs text-gray-900 tabular-nums break-all">
             {runId ? (
               <span className="font-mono text-xs text-gray-900 tabular-nums">
-                run:{runId.startsWith('run:') ? runId.slice(4) : runId}
+                {shortHash(runId)}
               </span>
             ) : (
               <NullSlot />

@@ -65,8 +65,9 @@ function shortKeyId(keyId: string | undefined | null): string | null {
   return `vcv-signing-key-${keyId.slice(-8)}`;
 }
 
+/** ISO 8601 Z-suffix — canonical format per design spec (R-06). */
 function formatCheckedAt(ts: number): string {
-  return new Date(ts).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  return new Date(ts).toISOString().slice(0, 19) + 'Z';
 }
 
 /** Deterministic 8-char run ID. */
