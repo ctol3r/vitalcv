@@ -3732,3 +3732,60 @@ model ReceiptCandidate {
   @@index([reviewState])
   @@index([createdAt])
 }
+
+// REPLAY-PERSIST-α — durable replay-run record.
+//
+// A ReplayRun row is the deterministic identity of one run for one
+// entity at one point in time. Two runs with the same entityId +
+// channel + sorted artifactChecksums produce the same lineageKey
+// (content-addressed lineage identity). Two runs that additionally
+// share the same checkedAt produce the same runId. The pair
+// (lineageKey, runId) is the canonical replay identity scheme v1 —
+// both share the prefix convention lin_v1_ / run_v1_ enforced at the
+// application layer (not in the DB).
+//
+// Pure-additive: this model is new and unreferenced by any existing
+// model. Empty until a writer integration ships.
+model ReplayRun {
+  id                String   @id @default(uuid()) @db.Uuid
+  runId             String   @unique
+  lineageKey        String
+  entityId          String
+  channel           String
+  checkedAt         DateTime
+  artifactChecksums String[]
+  payloadDigest     String
+  recordedBy        String   @default("system")
+  createdAt         DateTime @default(now())
+
+  events ReplayEvent[]
+
+  @@index([lineageKey])
+  @@index([entityId])
+  @@index([checkedAt])
+}
+
+// REPLAY-PERSIST-α — ordered event within a replay run.
+//
+// Each ReplayEvent is one observation within a ReplayRun. The
+// composite unique (replayRunId, sequenceNumber) enforces deterministic
+// chronology ordering within a run; the (replayRunId, sequenceNumber)
+// pair is the canonical event identity. `occurredAt` is the observed
+// time; chronology re-derivation MUST sort by sequenceNumber, not by
+// occurredAt, so that two events sharing a millisecond have a
+// deterministic order.
+model ReplayEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  replayRunId    String   @db.Uuid
+  replayRun      ReplayRun @relation(fields: [replayRunId], references: [id], onDelete: Cascade)
+  sequenceNumber Int
+  eventType      String
+  checksum       String
+  occurredAt     DateTime
+  payload        Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([replayRunId, sequenceNumber])
+  @@index([replayRunId])
+  @@index([eventType])
+}

@@ -184,6 +184,7 @@ import { registerVerifyProfessionalRoutes } from './routes/verifyProfessional'; 
 import { registerDeploymentRoutes } from './routes/deployment';                    // Wave: Deployable Workforce
 import { registerWorkforceIntelligenceRoutes } from './routes/workforceIntelligence'; // Wave: Workforce Intelligence
 import { registerAuditReplayRoutes } from './routes/auditReplay';                       // Wave: Decision Accountability
+import { registerReplayRoutes } from './routes/replay';                                 // REPLAY-PERSIST-α: durable replay readers
 import { registerCryptoProtocolRoutes } from './routes/cryptoProtocol';               // Wave: PQC Trust Protocol
 import { registerProtocolRoutes } from './routes/protocol';                            // Wave: Open Trust Protocol
 import { registerDomainRoutes } from './routes/domains';                               // Wave: Universal Authority
@@ -3623,6 +3624,7 @@ registerVerifyProfessionalRoutes(app);     // Wave: AI Professional Verification
 registerDeploymentRoutes(app);             // Wave: Credential-based deployment matching
 registerWorkforceIntelligenceRoutes(app);  // Wave: Workforce intelligence layer
 registerAuditReplayRoutes(app);            // Wave: Decision accountability layer
+registerReplayRoutes(app);                 // REPLAY-PERSIST-α: durable replay-run readers
 registerCryptoProtocolRoutes(app);         // Wave: PQC crypto suite + resign pipeline
 registerProtocolRoutes(app);               // Wave: open protocol spec + conformance + discovery
 registerDomainRoutes(app);                 // Wave: universal domain authority registry
