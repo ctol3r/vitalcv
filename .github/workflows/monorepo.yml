@@ -89,6 +89,23 @@ jobs:
         # this file only builds the backend, it does not test it.
         run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
 
+      - name: Scale integrity gate (W2-PR38A)
+        # Mock-based scale + throughput suite for the replay engine and
+        # runtime trust cohesion. Does NOT need a database — runs Jest
+        # directly with mocked prisma + capsuleEngine. Guards against
+        # silent throughput collapse, governance classification drift,
+        # tamper-evidence regressions, and audit-bundle partial-failure
+        # invisibility. Suite lives under apps/api/backend/src/**/__tests__/scale/.
+        run: pnpm --filter chai-vc-platform-backend run test:scale
+
+      - name: NCQA + regulatory operationalization gate (W2-PR40A)
+        # Pure-function NCQA validation suite. Asserts the regulatory-export
+        # modules uphold their NCQA semantics: 120-day window constant,
+        # determinism, tamper-detection, traceability coverage, banned-string
+        # absence, and completeness semantics. Fails CI on any drift.
+        # Suite lives in apps/api/backend/src/services/audit/regulatoryExports/.
+        run: pnpm --filter chai-vc-platform-backend run ncqa:validate
+
   deploy-api:
     name: Deploy API
     needs: build

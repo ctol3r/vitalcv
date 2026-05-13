@@ -238,7 +238,11 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/request-refresh', {
       method: 'POST',
       body: JSON.stringify({ staleSources: ['CMS PECOS'] }),
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-correlation-id': 'corr-runtime-1',
+        'x-verifier-team-role': 'readonly',
+      },
     }) as never, {
       params: Promise.resolve({ entityId: 'entity-1', action: 'request-refresh' }),
     });
@@ -254,6 +258,8 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
     expect(init.headers['x-clerk-user-id']).toBe('clerk-user-1');
+    expect(init.headers['x-correlation-id']).toBe('corr-runtime-1');
+    expect(init.headers['x-verifier-team-role']).toBe('readonly');
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({
@@ -432,10 +438,11 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://backend.test/api/employer-review/entity-1/status?organizationContextId=org-1&bundleId=bundle-1',
       expect.objectContaining({
-        headers: {
+        headers: expect.objectContaining({
           Accept: 'application/json',
           'x-clerk-user-id': 'clerk-user-1',
-        },
+          'x-correlation-id': expect.any(String),
+        }),
         cache: 'no-store',
       }),
     );
@@ -495,9 +502,10 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://backend.test/api/employer-review/entity-1/acceptance-history',
       expect.objectContaining({
-        headers: {
+        headers: expect.objectContaining({
           Accept: 'application/json',
-        },
+          'x-correlation-id': expect.any(String),
+        }),
       }),
     );
 

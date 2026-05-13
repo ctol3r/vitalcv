@@ -174,6 +174,12 @@ function runPrismaMigrateDeploy(): void {
 // ── Application bootstrap ───────────────────────────────────
 
 async function bootstrapApp() {
+  // Hydrate process.env from .env.local / .env before any module reads it.
+  // Real environment values (Railway, Render, shell) always win — dotenv
+  // is configured with override:false in loadDotenv().
+  const { loadDotenv } = await import('./config/loadDotenv');
+  loadDotenv();
+
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');

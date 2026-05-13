@@ -11,8 +11,10 @@
     "build": "bash ../../../scripts/prisma-generate-locked.sh --schema prisma/schema.prisma && tsc && pnpm exec ts-node src/qa/runQaSuite.ts",
     "graph:bench": "pnpm exec ts-node src/tools/graphBench.ts",
     "manual:audit-bundle": "pnpm exec ts-node src/tools/generateManualAuditBundle.ts",
+    "ncqa:validate": "pnpm exec ts-node src/tools/runNcqaValidationGate.ts",
     "start": "node -r ./register-workspace-paths.js dist/apps/api/backend/src/server.js",
     "test": "bash ../../../scripts/backend-test-db.sh",
+    "test:scale": "DATABASE_URL=${DATABASE_URL:-postgresql://scale-mock@localhost:5432/scale-mock} jest --testPathPattern='__tests__/scale/' --runInBand --no-coverage",
     "seed": "pnpm exec prisma migrate deploy && ts-node -P tsconfig.seed.json prisma/seed.ts",
     "seed:opportunities": "ts-node -P tsconfig.seed.json prisma/seed-opportunities.ts",
     "seed:demo-accounts": "ts-node -P tsconfig.seed.json prisma/seed-demo-accounts.ts",
@@ -43,6 +45,7 @@
     "@vitalcv/domain-core": "workspace:*",
     "@vitalcv/domain-events": "workspace:*",
     "@vitalcv/haip-config": "workspace:*",
+    "@vitalcv/ingest": "workspace:*",
     "@vitalcv/poe-engine": "workspace:*",
     "@vitalcv/psv": "workspace:*",
     "@vitalcv/psv-adapters": "workspace:*",
@@ -53,6 +56,7 @@
     "archiver": "^7.0.1",
     "cheerio": "^1.1.2",
     "did-resolver": "^4.1.0",
+    "dotenv": "^17.4.2",
     "ethers": "^6.15.0",
     "ethr-did-resolver": "^11.0.4",
     "express": "^4.19.2",
@@ -68,8 +72,7 @@
     "supercluster": "^7.1.3",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
-    "web-did-resolver": "^2.0.30",
-    "@vitalcv/ingest": "workspace:*"
+    "web-did-resolver": "^2.0.30"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

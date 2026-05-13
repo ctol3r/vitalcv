@@ -39,8 +39,38 @@ const WELL_KNOWN_ENDPOINTS = [
     auth: 'None',
   },
   {
+    path: '/.well-known/openid-configuration',
+    description: 'OID4VCI discovery alias',
+    auth: 'None',
+  },
+  {
+    path: '/trust/graph',
+    description: 'Verifier-readable trust graph',
+    auth: 'None',
+  },
+  {
+    path: '/trust/schema',
+    description: 'Trust schema reference',
+    auth: 'None',
+  },
+  {
+    path: '/trust/doctrine',
+    description: 'Replay contract doctrine',
+    auth: 'None',
+  },
+  {
     path: '/api/receipts/verify',
     description: 'Verify a receipt JWT',
+    auth: 'None',
+  },
+  {
+    path: '/api/replay/[runId]',
+    description: 'Replay inspection payload',
+    auth: 'None',
+  },
+  {
+    path: '/api/receipt/[lineageKey]',
+    description: 'Receipt continuity payload',
     auth: 'None',
   },
   {

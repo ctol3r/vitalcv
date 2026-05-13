@@ -18,6 +18,31 @@ import { createHash } from 'crypto';
 import prisma from '../../graphql/prisma_client';
 import { capsuleEngine } from '../decision/capsuleEngine';
 import { log } from '../../obs/logger';
+import {
+  buildRuntimeReplayMetadata,
+  type RuntimeReplayMetadata,
+} from '../runtimeTrustCohesion';
+import {
+  assertTenantScope,
+  scopeRelatedDecisions,
+  normalizeTenantId,
+  type TenantId,
+  type TenantScope,
+} from '../multi-tenant/tenantIsolation';
+import {
+  computeContainmentBoundary,
+  evaluateContainment,
+  quarantineReplay,
+  traceCorruptionLineage,
+  type ContainmentBoundary,
+  type CorruptionLineage,
+  type IntegritySignal,
+  type ReplayQuarantineRecord,
+} from './replayCorruptionContainment';
+import {
+  syncReplayConfidence,
+  type CalibratedConfidenceScore,
+} from './confidenceCalibration';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -130,6 +155,19 @@ export interface DecisionReplay {
     action: string | null;
   }>;
 
+  replayMetadata: RuntimeReplayMetadata;
+  tenantScope: TenantScope;
+  /** W2-PR64A — per-replay corruption containment record (always present). */
+  containment: ReplayQuarantineRecord;
+  /**
+   * W2-PR130A — evidence-derived confidence calibration record.
+   *
+   * Production confidence is derived strictly from replay evidence. The
+   * `score.point` value is the calibrated estimate; `evidenceCeiling` is the
+   * hard maximum this replay's evidence can support. Any external claim that
+   * exceeds `evidenceCeiling` is flagged in `overconfidence`.
+   */
+  confidenceCalibration: CalibratedConfidenceScore;
   replayedAt: string;
 }
 
@@ -161,6 +199,21 @@ export interface AuditBundle {
     timestamp: string;
     actor: string;
   }>;
+
+  /**
+   * W2-PR64A — bundle-wide replay corruption containment report.
+   *
+   * `boundary` aggregates the verdicts of every replay in the bundle plus a
+   * synthetic CONTAINMENT_BREACH entry per failed replay. `lineages` tracks
+   * the contamination edges from each quarantined root through the bundle's
+   * surviving replays.
+   */
+  containment: {
+    schema: 'vitalcv.replay-containment-report.v1';
+    boundary: ContainmentBoundary;
+    quarantines: ReplayQuarantineRecord[];
+    lineages: CorruptionLineage[];
+  };
 }
 
 // ── Source metadata ───────────────────────────────────────────────────────────
@@ -234,14 +287,60 @@ function sha256(input: string): string {
   return createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readRuntimeString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function runtimeSeedFromMetadata(meta: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(meta.runtimeTrust)) {
+    return meta.runtimeTrust;
+  }
+
+  if (isRecord(meta.employerReviewAction)) {
+    if (isRecord(meta.employerReviewAction.runtimeTrust)) {
+      return meta.employerReviewAction.runtimeTrust;
+    }
+    return meta.employerReviewAction;
+  }
+
+  return meta;
+}
+
 // ── Core replay function ──────────────────────────────────────────────────────
 
-export async function replayDecision(capsuleId: string): Promise<DecisionReplay> {
+export async function replayDecision(
+  capsuleId: string,
+  options: { requesterTenantId?: TenantId | null } = {},
+): Promise<DecisionReplay> {
   const capsule = await capsuleEngine.getCapsuleById(capsuleId);
   if (!capsule) throw new Error(`Capsule not found: ${capsuleId}`);
 
+  const capsuleTenantId = normalizeTenantId(capsule.verifierOrgId);
+  const requesterTenantId = normalizeTenantId(options.requesterTenantId ?? null);
+  // Fail-closed: throws TenantIsolationError on cross-tenant or ambiguous reads.
+  const tenantScope = assertTenantScope({
+    capsuleId,
+    capsuleTenantId,
+    requesterTenantId,
+  });
+
   const meta = (capsule.metadata ?? {}) as Record<string, unknown>;
   const replayedAt = new Date().toISOString();
+  const runtimeSeed = runtimeSeedFromMetadata(meta);
+  const replayMetadata = buildRuntimeReplayMetadata({
+    capsuleId,
+    correlationId: readRuntimeString(runtimeSeed.correlationId),
+    payloadHash: readRuntimeString(runtimeSeed.payloadHash),
+    mutationFingerprint: readRuntimeString(runtimeSeed.mutationFingerprint),
+    // W2-PR36A: bind replay fingerprint to capsule's tenant so two tenants
+    // replaying the same capsuleId (e.g. via a regression in capsule id
+    // collision) cannot produce identical fingerprints.
+    tenantId: capsuleTenantId,
+  });
 
   // ── Evidence reconstruction ────────────────────────────────────────────────
   const artifacts = capsule.credentialIds.length > 0
@@ -347,6 +446,46 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
           : 'Decision capsule replay validation failed.',
   };
 
+  // ── Containment classification (W2-PR64A) ──────────────────────────────────
+  // Pure transform — never throws, always produces a record. CLEAN replays
+  // get a zero-corruption record so downstream code can rely on the field.
+  const integritySignal: IntegritySignal = {
+    hashMatch:               integrity.hashMatch,
+    storedHash:              integrity.storedHash,
+    recomputedHash:          integrity.recomputedHash,
+    tamperEvidence:          integrity.tamperEvidence,
+    evidenceSpineExpected:   replayResult.expectedEvidenceSpineDigest ?? null,
+    evidenceSpineActual:     replayResult.actualEvidenceSpineDigest ?? null,
+  };
+  const containment = quarantineReplay({
+    capsuleId,
+    integrity: integritySignal,
+    lineageHints: {
+      subjectNpi:        capsule.subjectNpi,
+      credentialIds:     capsule.credentialIds,
+      sourceReferenceId: capsule.sourceReferenceId,
+    },
+  });
+
+  // ── Confidence calibration (W2-PR130A) ────────────────────────────────────
+  // Derived after containment so the containment verdict can gate the ceiling.
+  const confidenceCalibration = syncReplayConfidence({
+    capsuleId:           capsuleId,
+    sourcesConsulted:    sourcesConsulted.map(s => ({
+      source:     s.source,
+      outcome:    s.outcome,
+      confidence: s.confidence,
+    })),
+    trustScore:          trustState.trustScore,
+    integrityHashMatch:  integrity.hashMatch,
+    tamperEvidence:      integrity.tamperEvidence,
+    evidenceSpineDrifted: replayResult.expectedEvidenceSpineDigest !== replayResult.actualEvidenceSpineDigest
+      && replayResult.expectedEvidenceSpineDigest !== undefined
+      && replayResult.actualEvidenceSpineDigest   !== undefined,
+    containmentVerdict:  containment.verdict,
+    ambiguous:           containment.ambiguous,
+  });
+
   // ── Verifier identity ──────────────────────────────────────────────────────
   const verifierIdentity: VerifierIdentity = {
     type: capsule.verifierOrgId ? 'ORGANIZATION'
@@ -446,17 +585,28 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
   });
 
   // ── Related decisions (timeline) ──────────────────────────────────────────
-  const related = await prisma.decisionCapsule.findMany({
+  // Tenant-scoped at the query layer AND post-filtered for defense-in-depth.
+  // Previously this returned every decision for the NPI across all tenants —
+  // a cross-tenant governance bleedover. See multi-tenant/tenantIsolation.ts.
+  // Prisma column is `organizationId`; capsuleEngine surfaces it as
+  // `verifierOrgId` on the engine type. Both names refer to the same tenant id.
+  const relatedRaw = await prisma.decisionCapsule.findMany({
     where: {
-      subjectNpi: capsule.subjectNpi,
-      id:         { not: capsuleId },
+      subjectNpi:     capsule.subjectNpi,
+      id:             { not: capsuleId },
+      organizationId: capsuleTenantId,
     },
     select: {
       id: true, decisionType: true, decisionTimestamp: true, status: true, metadata: true,
+      organizationId: true,
     },
     orderBy: { decisionTimestamp: 'desc' },
     take: 10,
   });
+  const related = scopeRelatedDecisions(
+    relatedRaw.map(r => ({ ...r, verifierOrgId: r.organizationId })),
+    capsuleTenantId,
+  );
   const relatedDecisions = related.map(r => {
     const rm = (r.metadata ?? {}) as Record<string, unknown>;
     return {
@@ -505,6 +655,10 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
     integrity,
     authorityChain:   chain,
     relatedDecisions,
+    replayMetadata,
+    tenantScope,
+    containment,
+    confidenceCalibration,
     replayedAt,
   };
 }
@@ -513,14 +667,23 @@ export async function replayDecision(capsuleId: string): Promise<DecisionReplay>
 
 export async function buildAuditBundle(
   npi: string,
-  options: { types?: string[]; maxCapsules?: number } = {},
+  options: {
+    types?: string[];
+    maxCapsules?: number;
+    requesterTenantId?: TenantId | null;
+  } = {},
 ): Promise<AuditBundle> {
   const { createHash: ch } = await import('crypto');
+
+  const requesterTenantId = normalizeTenantId(options.requesterTenantId ?? null);
 
   const capsules = await prisma.decisionCapsule.findMany({
     where: {
       subjectNpi: npi,
       ...(options.types?.length ? { decisionType: { in: options.types } } : {}),
+      // Tenant-scoped at the query layer when a requester tenant is provided.
+      // Prisma column is `organizationId` (same value as the engine's verifierOrgId).
+      ...(requesterTenantId ? { organizationId: requesterTenantId } : {}),
     },
     orderBy: { decisionTimestamp: 'desc' },
     take: options.maxCapsules ?? 50,
@@ -528,11 +691,38 @@ export async function buildAuditBundle(
   });
 
   const replays: DecisionReplay[] = [];
+  const failures: Array<{ capsuleId: string; error: string; failedAt: string }> = [];
+  // W2-PR64A: every replay outcome — including failures — produces a quarantine
+  // record so the bundle's containment boundary covers the full surface, not
+  // only the survivors.
+  const quarantines: ReplayQuarantineRecord[] = [];
   for (const { id } of capsules) {
     try {
-      replays.push(await replayDecision(id));
+      // Defense-in-depth: each replay re-asserts tenant scope, so a query-
+      // layer regression cannot leak a cross-tenant capsule into the bundle.
+      const replay = await replayDecision(id, { requesterTenantId });
+      replays.push(replay);
+      quarantines.push(replay.containment);
     } catch (err) {
-      log('error', 'replayEngine: buildAuditBundle capsule failed', { id, error: String(err) });
+      const failedAt = new Date().toISOString();
+      const error = String(err);
+      failures.push({ capsuleId: id, error, failedAt });
+      log('error', 'replayEngine: buildAuditBundle capsule failed', { id, error });
+      // Synthesize a STRUCTURAL_CORRUPTION quarantine so the failed replay
+      // counts toward partial survivability (it surfaced as an actionable
+      // record) rather than vanishing from the boundary entirely. No stored
+      // hash is available, so both hashes use the empty-digest sentinel.
+      quarantines.push(evaluateContainment({
+        capsuleId: id,
+        integrity: {
+          hashMatch: false,
+          storedHash: '',
+          recomputedHash: '',
+          tamperEvidence: error,
+        },
+        forcedKind: 'STRUCTURAL_CORRUPTION',
+        forcedReason: `Replay raised before containment classification could complete: ${error.slice(0, 160)}`,
+      }));
     }
   }
 
@@ -542,6 +732,31 @@ export async function buildAuditBundle(
   // Compute bundle hash over all replay data (excluding bundleHash itself)
   const bundleContent = JSON.stringify({ bundleId, exportedAt, replays });
   const bundleHash = ch('sha256').update(bundleContent, 'utf8').digest('hex');
+
+  // ── Containment boundary + lineage (W2-PR64A) ────────────────────────────
+  const containmentBoundary = computeContainmentBoundary({
+    totalReplayed: capsules.length,
+    quarantines,
+  });
+
+  // Trace lineage from every quarantined / contaminated / breached root
+  // through the surviving replays. Clean replays act as candidate downstream
+  // capsules: if they share a lineage hint with a corrupt root, the lineage
+  // record exposes the contamination edge.
+  const corruptRoots = quarantines.filter(q =>
+    q.verdict === 'QUARANTINED' || q.verdict === 'AMBIGUOUS' || q.verdict === 'CONTAINMENT_BREACH',
+  );
+  const lineageCandidates = replays.map(r => ({
+    capsuleId: r.capsuleId,
+    hints: r.containment.lineageHints,
+  }));
+  const lineages: CorruptionLineage[] = corruptRoots.map(root =>
+    traceCorruptionLineage({
+      rootCapsuleId: root.capsuleId,
+      rootHints: root.lineageHints,
+      candidates: lineageCandidates,
+    }),
+  );
 
   // Get the first capsule's DID (or derive from NPI)
   const subjectDid = replays[0]?.subjectDid ?? `did:vitalcv:${npi}`;
@@ -565,8 +780,36 @@ export async function buildAuditBundle(
     },
     custodyLog: [
       { event: 'BUNDLE_CREATED', timestamp: exportedAt, actor: 'VitalCV/replayEngine@v1' },
+      // Operator-visible saturation: every replay failure surfaces as its own
+      // custody entry so a partial bundle is never indistinguishable from a
+      // clean one. Format: REPLAY_FAILED:{capsuleId}:{error-summary}
+      ...failures.map(f => ({
+        event: `REPLAY_FAILED:${f.capsuleId}:${f.error.slice(0, 120)}`,
+        timestamp: f.failedAt,
+        actor: 'VitalCV/replayEngine@v1',
+      })),
+      // W2-PR64A: every non-clean containment verdict surfaces as a custody
+      // entry. CLEAN verdicts are not logged — they are the implicit baseline.
+      // Format: CONTAINMENT_{VERDICT}:{capsuleId}:{kind}
+      ...quarantines
+        .filter(q => q.verdict !== 'CLEAN')
+        .map(q => ({
+          event: `CONTAINMENT_${q.verdict}:${q.capsuleId}:${q.kind ?? 'UNKNOWN'}`,
+          timestamp: q.isolatedAt,
+          actor: 'VitalCV/replayEngine@v1',
+        })),
+      { event: `CONTAINMENT_BOUNDARY_${containmentBoundary.partitioned ? 'INTACT' : 'BREACHED'}:${containmentBoundary.partialSurvivabilityPct.toFixed(2)}%`,
+        timestamp: exportedAt,
+        actor: 'VitalCV/replayEngine@v1' },
       { event: 'HASH_COMPUTED',  timestamp: exportedAt, actor: 'VitalCV/replayEngine@v1' },
     ],
+
+    containment: {
+      schema: 'vitalcv.replay-containment-report.v1',
+      boundary: containmentBoundary,
+      quarantines,
+      lineages,
+    },
   };
 }
 

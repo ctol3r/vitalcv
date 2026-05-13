@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeScript } from '../components/marketing/ThemeScript';
 import SiteChrome from '../components/site/SiteChrome';
@@ -26,12 +25,6 @@ const structuredData = {
     description: 'Free NPI preview',
   },
 };
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
 
 export const metadata: Metadata = {
   title: siteTitle,
@@ -92,7 +85,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={`${inter.variable} font-sans`}>
+      <body className="font-sans">
         <PilotBanner />
         <SiteChrome>{children}</SiteChrome>
       </body>

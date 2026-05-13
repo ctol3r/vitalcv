@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL as BACKEND } from '@/lib/backend-url';
@@ -348,6 +349,16 @@ function resolveProxyUrl(
   return `${BACKEND}/api/employer-review/${encodeURIComponent(entityId)}/${action}${search}`;
 }
 
+function resolveCorrelationId(req: NextRequest): string {
+  const candidate = req.headers.get('x-correlation-id')?.trim();
+  return candidate && candidate.length <= 120 ? candidate : randomUUID();
+}
+
+function optionalVerifierRoleHeader(req: NextRequest): Record<string, string> {
+  const role = req.headers.get('x-verifier-team-role')?.trim();
+  return role ? { 'x-verifier-team-role': role } : {};
+}
+
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ entityId: string; action: string }> },
@@ -383,6 +394,8 @@ export async function POST(
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'x-correlation-id': resolveCorrelationId(req),
+        ...optionalVerifierRoleHeader(req),
         ...(userId ? { 'x-clerk-user-id': userId } : {}),
       },
       body: JSON.stringify(sanitizedBody),
@@ -455,6 +468,8 @@ export async function GET(
     response = await fetch(resolveProxyUrl(entityId, action, req), {
       headers: {
         Accept: req.headers.get('accept') ?? 'application/json',
+        'x-correlation-id': resolveCorrelationId(req),
+        ...optionalVerifierRoleHeader(req),
         ...(userId ? { 'x-clerk-user-id': userId } : {}),
       },
       cache: 'no-store',

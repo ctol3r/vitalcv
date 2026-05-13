@@ -83,6 +83,7 @@ import {
   resolvePublicWedgeSurfaceStateFromAccordionStatus,
   resolvePublicWedgeSurfaceStateFromTruth,
 } from '@/lib/trust/public-wedge-parity';
+import { resolveEmployerPacketExportGate } from '@/lib/export/export-gating';
 import {
   buildEmployerProofPacketDownloadUrl,
   employerProofPacketFilename,
@@ -1065,6 +1066,8 @@ function ReviewClientLoaded({
             ? 'Preview. Switch into an employer workspace to persist decisions.'
             : null;
   const canPersistActions = previewOnlyMessage === null;
+  const exportGate = resolveEmployerPacketExportGate(passport);
+  const canExportPacket = canPersistActions && exportGate.allowed;
   const authState = resolveLivePathAuthState({ isLoaded, isSignedIn, isEmployer });
   // Wave-1 P0: confirm-start must be reachable *both* after an in-session accept
   // and when the reviewer returns to a previously-accepted review (persisted state).
@@ -1310,10 +1313,44 @@ function ReviewClientLoaded({
   }
 
   async function handleDownloadPacket() {
-    if (!canPersistActions || actionInFlightRef.current) return;
+    if (!canPersistActions || !exportGate.allowed || actionInFlightRef.current) {
+      trackUxEvent({
+        event_name: 'export_gate_blocked',
+        component_id: 'employer_review_export_gate',
+        metadata: {
+          auth_state: authState,
+          interaction_result: 'blocked',
+          source_mode: 'live',
+          export_gate_status: exportGate.status,
+          export_gate_score: exportGate.survivabilityScore,
+          export_gate_blockers: exportGate.blockers.map((blocker) => blocker.code),
+          replay_attribution: exportGate.replayAttribution.lineageKey,
+        },
+      });
+      if (canPersistActions && mountedRef.current) {
+        setActionState({
+          phase: 'error',
+          intent: 'review',
+          message: exportGate.summary,
+        });
+      }
+      return;
+    }
     if (mountedRef.current) {
       setActionState({ phase: 'downloading' });
     }
+    const startedAt = performance.now();
+    trackUxEvent({
+      event_name: 'export_gate_started',
+      component_id: 'employer_review_export_gate',
+      metadata: {
+        auth_state: authState,
+        interaction_result: 'started',
+        source_mode: 'live',
+        export_gate_score: exportGate.survivabilityScore,
+        replay_attribution: exportGate.replayAttribution.lineageKey,
+      },
+    });
     try {
       const npi = passport.identity.npi ?? passport.npi;
       if (!npi) {
@@ -1338,7 +1375,32 @@ function ReviewClientLoaded({
       a.click();
       document.body.removeChild(a);
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      trackUxEvent({
+        event_name: 'export_gate_result',
+        component_id: 'employer_review_export_gate',
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          auth_state: authState,
+          interaction_result: 'success',
+          source_mode: 'live',
+          export_gate_score: exportGate.survivabilityScore,
+          replay_attribution: exportGate.replayAttribution.lineageKey,
+        },
+      });
     } catch (error) {
+      trackUxEvent({
+        event_name: 'export_gate_result',
+        component_id: 'employer_review_export_gate',
+        duration_ms: performance.now() - startedAt,
+        metadata: {
+          auth_state: authState,
+          interaction_result: 'error',
+          source_mode: 'live',
+          export_gate_score: exportGate.survivabilityScore,
+          replay_attribution: exportGate.replayAttribution.lineageKey,
+          error_message: error instanceof Error ? error.message : 'Export failed.',
+        },
+      });
       if (mountedRef.current) {
         setActionState({
           phase: 'error',
@@ -1882,11 +1944,13 @@ function ReviewClientLoaded({
             action={(
               <Button
                 onClick={handleDownloadPacket}
-                disabled={!canPersistActions || actionState.phase === 'downloading'}
+                disabled={!canExportPacket || actionState.phase === 'downloading'}
                 variant="outline"
                 title={
                   !canPersistActions
                     ? (previewOnlyMessage ?? 'Sign in with an employer workspace to export')
+                    : !exportGate.allowed
+                      ? exportGate.summary
                     : undefined
                 }
                 className="h-9 rounded-xl border-border px-4 py-2 text-[11px] font-medium text-foreground hover:border-border hover:text-foreground/70"
@@ -1905,6 +1969,27 @@ function ReviewClientLoaded({
               entry={passport.trustContainer ?? null}
               className="mt-4"
             />
+            <div
+              role={exportGate.allowed ? 'status' : 'alert'}
+              className={`mt-4 rounded-xl border px-4 py-3 text-xs leading-relaxed ${
+                exportGate.allowed
+                  ? 'border-emerald-400/20 bg-emerald-400/5 text-emerald-100/80'
+                  : 'border-amber-400/20 bg-amber-400/5 text-amber-100/85'
+              }`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70">
+                Export gate
+              </p>
+              <p className="mt-1">
+                {exportGate.allowed
+                  ? 'Ready to export with decision-grade launch-spine evidence.'
+                  : exportGate.summary}
+              </p>
+              <p className="mt-1 opacity-70">
+                Runtime gating stability {exportGate.survivabilityScore}% · replay attribution{' '}
+                <span className="break-all">{exportGate.replayAttribution.lineageKey}</span>
+              </p>
+            </div>
           </EvidenceDisclosureCard>
         )}
 

@@ -2,6 +2,10 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL as BACKEND } from '@/lib/backend-url';
 import {
+  resolveEmployerPacketExportGate,
+  type ExportGateEvaluation,
+} from '@/lib/export/export-gating';
+import {
   employerProofPacketFilename,
 } from '@/lib/export/employer-proof-packet';
 import { renderEmployerProofPacketPdf } from '@/lib/export/employer-proof-packet-pdf';
@@ -16,6 +20,38 @@ function unauthorizedResponse() {
       error_description: 'Sign in with an employer workspace to continue.',
     },
     { status: 401 },
+  );
+}
+
+function exportGateHeaders(gate: ExportGateEvaluation): HeadersInit {
+  return {
+    'X-VitalCV-Export-Gate': gate.status,
+    'X-VitalCV-Export-Gate-Score': String(gate.survivabilityScore),
+    'X-VitalCV-Replay-Attribution': gate.replayAttribution.lineageKey,
+  };
+}
+
+function blockedExportResponse(gate: ExportGateEvaluation) {
+  return NextResponse.json(
+    {
+      error: 'export_not_ready',
+      error_description: gate.summary,
+      exportGating: {
+        schema: gate.schema,
+        status: gate.status,
+        readinessStatus: gate.readinessStatus,
+        derivedReadinessStatus: gate.derivedReadinessStatus,
+        ambiguityLevel: gate.ambiguityLevel,
+        survivabilityScore: gate.survivabilityScore,
+        blockers: gate.blockers,
+        warnings: gate.warnings,
+        replayAttribution: gate.replayAttribution,
+      },
+    },
+    {
+      status: 409,
+      headers: exportGateHeaders(gate),
+    },
   );
 }
 
@@ -64,6 +100,11 @@ export async function GET(req: NextRequest) {
     }
 
     const passport = assertPassportData(payload, 'passport payload');
+    const exportGate = resolveEmployerPacketExportGate(passport);
+    if (!exportGate.allowed) {
+      return blockedExportResponse(exportGate);
+    }
+
     const pdf = await renderEmployerProofPacketPdf(passport);
 
     return new NextResponse(new Uint8Array(pdf), {
@@ -73,6 +114,7 @@ export async function GET(req: NextRequest) {
         'Content-Disposition': `attachment; filename="${employerProofPacketFilename(npi)}"`,
         'Content-Length': String(pdf.length),
         'Cache-Control': 'no-store',
+        ...exportGateHeaders(exportGate),
       },
     });
   } catch (error) {

@@ -469,6 +469,16 @@ describe('employer action routes', () => {
                 eligibility: 'PENDING',
               }),
             }),
+            correlationId: expect.any(String),
+            mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+            actor: {
+              actorId: 'employer-1',
+              actorType: 'human',
+              attributionSource: 'x-clerk-user-id',
+            },
+            mutationClassification: 'TRUST_ACCEPTANCE',
+            replayCategory: 'R-CAT-1',
+            payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
           }),
         }),
       }),
@@ -700,7 +710,26 @@ describe('employer action routes', () => {
       acceptanceId: 'accept-existing',
     });
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'already_accepted',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+            payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+            readonly: {
+              attemptedByReadonly: false,
+              source: null,
+            },
+          }),
+        }),
+      }),
+    }));
     expect(prismaMock.outboxEvent.upsert).not.toHaveBeenCalled();
     expect(captureEmployerDecisionMock).not.toHaveBeenCalled();
   });
@@ -728,7 +757,21 @@ describe('employer action routes', () => {
       missingSources: ['OIG_LEIE'],
     });
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'acceptance_blocked',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+          }),
+        }),
+      }),
+    }));
   });
 
   it('generates share-packet bearer tokens with crypto randomness and stores only the token hash', async () => {
@@ -756,6 +799,11 @@ describe('employer action routes', () => {
       bundleId: 'bundle-1',
       shareTokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
       expiresAt: expect.any(String),
+      correlationId: expect.any(String),
+      mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      mutationClassification: 'TRUST_PACKET_SHARE',
+      replayCategory: 'R-CAT-3',
+      payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     }));
     expect(metadata.shareToken).toBeUndefined();
     expect(metadata.shareUrl).toBeUndefined();
@@ -769,7 +817,21 @@ describe('employer action routes', () => {
       .send({ npi: '9999999999' })
       .expect(400);
 
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'npi_mismatch',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+          }),
+        }),
+      }),
+    }));
   });
 
   it('resolves valid share tokens to scoped review targets', async () => {
@@ -1164,6 +1226,11 @@ describe('employer action routes', () => {
         referenceId: 'entity-1',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
+          correlationId: expect.any(String),
+          mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+          mutationClassification: 'TRUST_PACKET_EXPORT',
+          replayCategory: 'R-CAT-3',
+          payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
           trustContainer: expect.objectContaining({
             trustContainerId: 'mock_vc_route_fixture', credentialEnvelopeId: "audit-hash-fixture",
             provider: 'mock',
@@ -1228,7 +1295,21 @@ describe('employer action routes', () => {
       missingSources: ['STATE_BOARD'],
     });
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'acceptance_blocked',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+          }),
+        }),
+      }),
+    }));
   });
 
   it('generates secure share tokens without storing the raw token in audit metadata', async () => {
@@ -1262,6 +1343,11 @@ describe('employer action routes', () => {
       shareTokenHash: expect.any(String),
       sharedAt: expect.any(String),
       expiresAt: expect.any(String),
+      correlationId: expect.any(String),
+      mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      mutationClassification: 'TRUST_PACKET_SHARE',
+      replayCategory: 'R-CAT-3',
+      payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     }));
     expect(JSON.stringify(metadata)).not.toContain(token);
     expect(JSON.stringify(metadata)).not.toContain(response.body.shareUrl);
@@ -1274,7 +1360,21 @@ describe('employer action routes', () => {
       .send({ npi: '1111111111' })
       .expect(400);
 
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'npi_mismatch',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+          }),
+        }),
+      }),
+    }));
   });
 
   it('resolves a valid share token to the review target and scoped context', async () => {
@@ -1311,7 +1411,7 @@ describe('employer action routes', () => {
       clinicianNpi: '1234567890',
       organizationContextId: 'ctx-1',
       bundleId: 'bundle-1',
-      reviewHref: '/review/entity-1',
+      reviewHref: '/review/entity-1?contextId=ctx-1&bundleId=bundle-1',
       shareEventAuditId: 'share-audit-1',
       sharedAt: '2026-03-23T18:00:00.000Z',
       expiresAt: '2099-03-24T18:00:00.000Z',
@@ -1356,7 +1456,21 @@ describe('employer action routes', () => {
       .expect(409);
 
     expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
-    expect(prismaMock.auditEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: 'entity-1',
+        clinicianId: '1234567890',
+        metadata: expect.objectContaining({
+          runtimeTrust: expect.objectContaining({
+            outcome: 'denied',
+            denialReason: 'missing_acceptance',
+            mutationClassification: 'DENIED_MUTATION',
+            replayCategory: 'R-CAT-5',
+          }),
+        }),
+      }),
+    }));
   });
 
   it('scopes explicit confirm-start acceptance IDs to the reviewed clinician NPI', async () => {
@@ -1397,5 +1511,17 @@ describe('employer action routes', () => {
       auditEventId: expect.any(String),
       startedAt: '2026-03-25T18:00:00.000Z',
     });
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'START_ATTESTED',
+        metadata: expect.objectContaining({
+          correlationId: expect.any(String),
+          mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+          mutationClassification: 'TRUST_START_ATTESTATION',
+          replayCategory: 'R-CAT-4',
+          payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+      }),
+    }));
   });
 });

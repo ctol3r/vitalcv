@@ -46,8 +46,38 @@ export async function GET() {
           public: true,
           status: 'operational',
         },
+        trust_graph: {
+          path: '/trust/graph',
+          public: true,
+          status: 'operational',
+        },
+        trust_schema: {
+          path: '/trust/schema',
+          public: true,
+          status: 'operational',
+        },
+        trust_doctrine: {
+          path: '/trust/doctrine',
+          public: true,
+          status: 'operational',
+        },
+        openid_configuration: {
+          path: '/.well-known/openid-configuration',
+          public: true,
+          status: 'operational',
+        },
         receipt_verify: {
           path: '/api/receipts/verify',
+          public: true,
+          status: 'operational',
+        },
+        replay_inspection: {
+          path: '/api/replay/[runId]',
+          public: true,
+          status: 'operational',
+        },
+        receipt_lookup: {
+          path: '/api/receipt/[lineageKey]',
           public: true,
           status: 'operational',
         },

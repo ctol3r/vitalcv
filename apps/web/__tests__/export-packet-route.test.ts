@@ -71,20 +71,21 @@ function buildPassportPayload(overrides: Record<string, unknown> = {}) {
       negativeFindings: [],
     },
     readiness: {
-      status: 'PARTIAL',
-      score: 82,
-      level: 'L2',
+      status: 'DECISION_GRADE',
+      score: 92,
+      level: 'L3',
       blockers: [],
       gaps: [],
       estimatedStartDays: 10,
       nextActions: [],
     },
     sources: {
-      checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'],
+      checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'STATE_BOARD'],
       lastFetch: {
         NPPES_API: '2026-03-23T12:00:00.000Z',
         OIG_LEIE: '2026-03-23T12:00:00.000Z',
         PECOS_PUBLIC: '2026-03-20T00:00:00.000Z',
+        STATE_BOARD: '2026-03-22T00:00:00.000Z',
       },
     },
     sourceCoverage: {
@@ -106,6 +107,12 @@ function buildPassportPayload(overrides: Record<string, unknown> = {}) {
           state: 'checked',
           reason: 'PECOS quarterly enrollment checked',
           checkedAt: '2026-03-20T00:00:00.000Z',
+        },
+        {
+          sourceId: 'STATE_BOARD',
+          state: 'checked',
+          reason: 'State board authority checked',
+          checkedAt: '2026-03-22T00:00:00.000Z',
         },
       ],
     },
@@ -193,8 +200,113 @@ describe('/api/export/packet', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('application/pdf');
     expect(response.headers.get('content-disposition')).toContain('vitalcv-employer-packet-1234567890.pdf');
+    expect(response.headers.get('x-vitalcv-export-gate')).toBe('allowed');
+    expect(response.headers.get('x-vitalcv-export-gate-score')).toBe('100');
+    expect(response.headers.get('x-vitalcv-replay-attribution')).toContain('vitalcv.export-gating.v1');
     const body = Buffer.from(await response.arrayBuffer()).toString('utf8');
     expect(body).toContain('%PDF-1.4 employer packet');
+  });
+
+  it('fails closed when readiness is not export-grade', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    renderEmployerProofPacketPdfMock.mockResolvedValue(Buffer.from('%PDF-1.4 employer packet'));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPassportPayload({
+      readiness: {
+        status: 'PARTIAL',
+        score: 82,
+        level: 'L2',
+        blockers: [],
+        gaps: ['State board authority is pending.'],
+        estimatedStartDays: 10,
+        nextActions: [],
+      },
+      sourceCoverage: {
+        checks: [
+          {
+            sourceId: 'NPPES_API',
+            state: 'checked',
+            reason: 'NPPES identity checked',
+            checkedAt: '2026-03-23T12:00:00.000Z',
+          },
+          {
+            sourceId: 'OIG_LEIE',
+            state: 'checked',
+            reason: 'OIG LEIE check clear',
+            checkedAt: '2026-03-23T12:00:00.000Z',
+          },
+          {
+            sourceId: 'PECOS_PUBLIC',
+            state: 'checked',
+            reason: 'PECOS quarterly enrollment checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          },
+          {
+            sourceId: 'STATE_BOARD',
+            state: 'pending',
+            reason: 'State board authority pending',
+            checkedAt: null,
+          },
+        ],
+      },
+    }))));
+
+    const { GET } = await import('../app/api/export/packet/route');
+    const response = await GET(new NextRequest('http://localhost/api/export/packet?npi=1234567890'));
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get('x-vitalcv-export-gate')).toBe('blocked');
+    expect(renderEmployerProofPacketPdfMock).not.toHaveBeenCalled();
+    const body = await response.json();
+    expect(body.error).toBe('export_not_ready');
+    expect(body.exportGating.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'SOURCE_NOT_DECISION_GRADE', sourceId: 'STATE_BOARD' }),
+      expect.objectContaining({ code: 'READINESS_NOT_DECISION_GRADE' }),
+    ]));
+    expect(body.exportGating.replayAttribution.lineageKey).toContain('STATE_BOARD:pending');
+  });
+
+  it('blocks preview-only evidence instead of exporting fake readiness', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(buildPassportPayload({
+      sourceCoverage: {
+        checks: [
+          {
+            sourceId: 'NPPES_API',
+            state: 'previewOnly',
+            reason: 'Synthetic preview source',
+            checkedAt: null,
+          },
+          {
+            sourceId: 'OIG_LEIE',
+            state: 'checked',
+            reason: 'OIG LEIE check clear',
+            checkedAt: '2026-03-23T12:00:00.000Z',
+          },
+          {
+            sourceId: 'PECOS_PUBLIC',
+            state: 'checked',
+            reason: 'PECOS quarterly enrollment checked',
+            checkedAt: '2026-03-20T00:00:00.000Z',
+          },
+          {
+            sourceId: 'STATE_BOARD',
+            state: 'checked',
+            reason: 'State board authority checked',
+            checkedAt: '2026-03-22T00:00:00.000Z',
+          },
+        ],
+      },
+    }))));
+
+    const { GET } = await import('../app/api/export/packet/route');
+    const response = await GET(new NextRequest('http://localhost/api/export/packet?npi=1234567890'));
+
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body.error).toBe('export_not_ready');
+    expect(body.exportGating.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'SOURCE_PREVIEW_ONLY', sourceId: 'NPPES_API' }),
+    ]));
   });
 
   it('surfaces upstream passport failures instead of returning a broken pdf', async () => {

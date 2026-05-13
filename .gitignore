@@ -86,3 +86,7 @@ node_modules/
 dist/
 .cache/
 
+# Deployment + playbook lineage manifests (CI uploads as artifacts; never commit)
+.deployment-lineage/
+.playbook-lineage/
+

@@ -17,6 +17,13 @@ import {
   normalizeEmployerReviewAttribution,
   resolveEmployerReviewAttribution,
 } from './employerReviewAttribution';
+import {
+  buildRuntimeMutationMetadata,
+  type RuntimeTrustActor,
+  type RuntimeTrustMetadata,
+  type RuntimeMutationClassification,
+  type RuntimeReplayCategory,
+} from '../runtimeTrustCohesion';
 
 export type EmployerReviewActionIntent = 'accept' | 'refresh' | 'review';
 export type EmployerReviewPriority = 'LOW' | 'NORMAL' | 'HIGH';
@@ -274,6 +281,13 @@ interface EmployerReviewActionAuditMetadata {
   entityId: string;
   clinicianNpi: string;
   requestId: string;
+  correlationId: string;
+  mutationFingerprint: string;
+  actor: RuntimeTrustActor;
+  mutationClassification: RuntimeMutationClassification;
+  replayCategory: RuntimeReplayCategory;
+  payloadHash: string;
+  runtimeTrust: RuntimeTrustMetadata;
   persistence: EmployerReviewActionPersistence;
   summary: EmployerReviewActionSummary;
   details: EmployerReviewActionDetails;
@@ -515,12 +529,48 @@ function readMetadata(metadata: unknown): EmployerReviewActionAuditMetadata | nu
     return null;
   }
 
+  const fallbackRuntime = buildEmployerActionRuntimeTrust({
+    action: record.action,
+    employerId: record.employerId,
+    entityId: record.entityId,
+    clinicianNpi: record.clinicianNpi,
+    requestId: typeof record.requestId === 'string' ? record.requestId : 'unknown',
+  });
+
   return {
     action: record.action,
     employerId: record.employerId,
     entityId: record.entityId,
     clinicianNpi: record.clinicianNpi,
     requestId: typeof record.requestId === 'string' ? record.requestId : 'unknown',
+    correlationId:
+      typeof record.correlationId === 'string'
+        ? record.correlationId
+        : fallbackRuntime.correlationId,
+    mutationFingerprint:
+      typeof record.mutationFingerprint === 'string'
+        ? record.mutationFingerprint
+        : fallbackRuntime.mutationFingerprint,
+    actor:
+      record.actor && typeof record.actor === 'object'
+        ? record.actor as RuntimeTrustActor
+        : fallbackRuntime.actor,
+    mutationClassification:
+      typeof record.mutationClassification === 'string'
+        ? record.mutationClassification as RuntimeMutationClassification
+        : fallbackRuntime.mutationClassification,
+    replayCategory:
+      typeof record.replayCategory === 'string'
+        ? record.replayCategory as RuntimeReplayCategory
+        : fallbackRuntime.replayCategory,
+    payloadHash:
+      typeof record.payloadHash === 'string'
+        ? record.payloadHash
+        : fallbackRuntime.payloadHash,
+    runtimeTrust:
+      record.runtimeTrust && typeof record.runtimeTrust === 'object'
+        ? record.runtimeTrust as RuntimeTrustMetadata
+        : fallbackRuntime.runtimeTrust,
     persistence: {
       ...record.persistence,
       outboxEventId: record.persistence.outboxEventId ?? null,
@@ -584,6 +634,58 @@ function buildAcceptanceHistoryOrgLabel(input: {
   };
 }
 
+function runtimeActionForEmployerAction(action: EmployerReviewActionIntent) {
+  switch (action) {
+    case 'accept':
+      return 'accept';
+    case 'refresh':
+      return 'request-refresh';
+    case 'review':
+      return 'route-to-review';
+    default:
+      return 'denied-mutation';
+  }
+}
+
+function buildEmployerActionRuntimeTrust(input: {
+  action: EmployerReviewActionIntent;
+  employerId: string;
+  entityId: string;
+  clinicianNpi: string;
+  requestId: string;
+  correlationId?: string | null;
+  payload?: unknown;
+}): Pick<
+  EmployerReviewActionAuditMetadata,
+  | 'correlationId'
+  | 'mutationFingerprint'
+  | 'actor'
+  | 'mutationClassification'
+  | 'replayCategory'
+  | 'payloadHash'
+  | 'runtimeTrust'
+> {
+  const runtimeTrust = buildRuntimeMutationMetadata({
+    action: runtimeActionForEmployerAction(input.action),
+    actorId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    correlationId: input.correlationId ?? input.requestId,
+    payload: input.payload ?? {},
+    outcome: 'allowed',
+  });
+
+  return {
+    correlationId: runtimeTrust.correlationId,
+    mutationFingerprint: runtimeTrust.mutationFingerprint,
+    actor: runtimeTrust.actor,
+    mutationClassification: runtimeTrust.mutationClassification,
+    replayCategory: runtimeTrust.replayCategory,
+    payloadHash: runtimeTrust.payloadHash,
+    runtimeTrust,
+  };
+}
+
 function buildEmployerReviewOutboxPayload(
   metadata: EmployerReviewActionAuditMetadata,
 ): Prisma.InputJsonValue {
@@ -594,6 +696,13 @@ function buildEmployerReviewOutboxPayload(
     entityId: metadata.entityId,
     clinicianNpi: metadata.clinicianNpi,
     requestId: metadata.requestId,
+    correlationId: metadata.correlationId,
+    mutationFingerprint: metadata.mutationFingerprint,
+    actor: metadata.actor,
+    mutationClassification: metadata.mutationClassification,
+    replayCategory: metadata.replayCategory,
+    payloadHash: metadata.payloadHash,
+    runtimeTrust: metadata.runtimeTrust,
     summary: metadata.summary,
     details: metadata.details,
     context: metadata.context,
@@ -693,6 +802,7 @@ export async function recordEmployerReviewAcceptance(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  correlationId?: string | null;
   organizationContextId?: unknown;
   bundleId?: unknown;
   role?: unknown;
@@ -725,6 +835,23 @@ export async function recordEmployerReviewAcceptance(input: {
 
   // ── Capture trust snapshot BEFORE transaction — immutable audit record ──
   const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
+  const runtimeTrust = buildEmployerActionRuntimeTrust({
+    action: 'accept',
+    employerId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    requestId,
+    correlationId: input.correlationId,
+    payload: {
+      organizationContextId: input.organizationContextId,
+      bundleId: input.bundleId,
+      role: input.role,
+      facility: input.facility,
+      notes: input.notes,
+      acceptanceScope: input.acceptanceScope,
+      acceptanceReason: input.acceptanceReason,
+    },
+  });
 
   const persistenceBase: EmployerReviewActionPersistence = {
     mode: 'durable_record',
@@ -762,6 +889,7 @@ export async function recordEmployerReviewAcceptance(input: {
           entityId: input.entityId,
           clinicianNpi: input.clinicianNpi,
           requestId,
+          ...runtimeTrust,
           persistence: seededPersistence,
           summary: buildActionSummary('accept', seededPersistence),
           details: buildEmptyDetails(),
@@ -783,6 +911,7 @@ export async function recordEmployerReviewAcceptance(input: {
       entityId: input.entityId,
       clinicianNpi: input.clinicianNpi,
       requestId,
+      ...runtimeTrust,
       persistence,
       summary: buildActionSummary('accept', persistence),
       details: buildEmptyDetails(),
@@ -815,6 +944,7 @@ export async function recordEmployerReviewRefreshRequest(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  correlationId?: string | null;
   organizationContextId?: unknown;
   bundleId?: unknown;
   staleSources?: unknown;
@@ -834,6 +964,21 @@ export async function recordEmployerReviewRefreshRequest(input: {
     missingDomains: sanitizeStringList(input.missingDomains),
     reason: sanitizeString(input.message, 500),
   });
+  const runtimeTrust = buildEmployerActionRuntimeTrust({
+    action: 'refresh',
+    employerId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    requestId,
+    correlationId: input.correlationId,
+    payload: {
+      organizationContextId: input.organizationContextId,
+      bundleId: input.bundleId,
+      staleSources: details.staleSources,
+      missingDomains: details.missingDomains,
+      message: input.message,
+    },
+  });
   const basePersistence: EmployerReviewActionPersistence = {
     mode: 'durable_record',
     target: 'outbox_event',
@@ -850,6 +995,7 @@ export async function recordEmployerReviewRefreshRequest(input: {
       entityId: input.entityId,
       clinicianNpi: input.clinicianNpi,
       requestId,
+      ...runtimeTrust,
       persistence: basePersistence,
       summary: buildActionSummary('refresh', basePersistence),
       details,
@@ -904,6 +1050,7 @@ export async function recordEmployerReviewRouting(input: {
   entityId: string;
   employerId: string;
   clinicianNpi: string;
+  correlationId?: string | null;
   organizationContextId?: unknown;
   bundleId?: unknown;
   reason?: unknown;
@@ -923,6 +1070,20 @@ export async function recordEmployerReviewRouting(input: {
 
   // Capture snapshot before transaction
   const trustSnapshot = await buildDecisionTrustSnapshot(input.clinicianNpi);
+  const runtimeTrust = buildEmployerActionRuntimeTrust({
+    action: 'review',
+    employerId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    requestId,
+    correlationId: input.correlationId,
+    payload: {
+      organizationContextId: input.organizationContextId,
+      bundleId: input.bundleId,
+      reason: normalizedReason,
+      priority: normalizedPriority,
+    },
+  });
 
   const { auditEvent, metadata } = await prisma.$transaction(async (tx) => {
     let reviewItemId: string | null = null;
@@ -960,6 +1121,7 @@ export async function recordEmployerReviewRouting(input: {
       entityId: input.entityId,
       clinicianNpi: input.clinicianNpi,
       requestId,
+      ...runtimeTrust,
       persistence: seededPersistence,
       summary: buildActionSummary('review', seededPersistence),
       details: buildEmptyDetails({

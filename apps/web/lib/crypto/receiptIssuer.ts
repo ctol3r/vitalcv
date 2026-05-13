@@ -64,8 +64,9 @@ export async function getOrInitKeypair(): Promise<ReceiptKeypair> {
       return { privateKey: privateKey as CryptoKey, publicKey: publicKey as CryptoKey, kid };
     }
 
-    // Dev: ephemeral keypair.
-    return generateReceiptKeypair();
+    // Dev: ephemeral keypair with stable kid (RECEIPT_KID_DEV || 'vcv-es256-dev').
+    const kp = await generateReceiptKeypair();
+    return { ...kp, kid: process.env.RECEIPT_KID_DEV ?? 'vcv-es256-dev' };
   })();
 
   return _keypairPromise;
@@ -114,7 +115,9 @@ export async function signIssuerReceipt(
       ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
       : 'https://vitalcv.com');
 
-  const jti = `rcpt_${response.responseId}_${Date.now()}`;
+  // Deterministic jti: keyed on responseId only so replay detection is
+  // idempotent across retries. Date.now() suffix was non-deterministic.
+  const jti = `rcpt_${response.responseId}`;
 
   // Actor attribution: embed Clerk userId when present.
   // azp (authorized party) — RFC 9068 §2.2 — identifies the actor who triggered issuance.

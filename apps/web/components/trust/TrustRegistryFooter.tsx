@@ -90,6 +90,21 @@ const ENDPOINTS: EndpointRow[] = [
     auth: 'None',
   },
   {
+    path: '/trust/graph',
+    description: 'Verifier-readable trust graph',
+    auth: 'None',
+  },
+  {
+    path: '/trust/schema',
+    description: 'Trust graph schema reference',
+    auth: 'None',
+  },
+  {
+    path: '/trust/doctrine',
+    description: 'Replay contract doctrine',
+    auth: 'None',
+  },
+  {
     path: '/api/receipts/verify',
     description: 'Verify a receipt JWT',
     auth: 'None',
@@ -238,6 +253,29 @@ export function TrustRegistryFooter() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      {/* ── Section 5: Human-Readable Trust Surfaces ─────────────────────── */}
+      <section>
+        <SectionHeading>Human-Readable Trust Surfaces</SectionHeading>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[
+            { href: '/trust/graph', label: '/trust/graph', note: 'Verifier-readable graph explorer' },
+            { href: '/trust/schema', label: '/trust/schema', note: 'Schema and field order reference' },
+            { href: '/trust/doctrine', label: '/trust/doctrine', note: 'Replay and chronology doctrine' },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="border border-gray-200 rounded px-3 py-2 hover:bg-gray-50 transition-colors"
+            >
+              <div className="font-mono text-[11px] text-blue-700 underline underline-offset-2">
+                {item.label}
+              </div>
+              <div className="mt-0.5 text-[10px] text-gray-500">{item.note}</div>
+            </a>
+          ))}
         </div>
       </section>
     </div>

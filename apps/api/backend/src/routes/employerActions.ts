@@ -46,6 +46,11 @@ import {
   recordEmployerReviewRouting,
   resolveEmployerReviewSubject,
 } from '../services/entity/employerReviewActions';
+import {
+  buildRuntimeMutationMetadata,
+  type RuntimeReadonlyIndicator,
+  type RuntimeTrustMetadata,
+} from '../services/runtimeTrustCohesion';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -83,6 +88,92 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function resolveCorrelationId(req: Request): string {
+  const candidate = req.get('x-correlation-id')?.trim();
+  return candidate && candidate.length <= 120 ? candidate : randomUUID();
+}
+
+function resolveReadonlyIndicator(req: Request): RuntimeReadonlyIndicator {
+  const role = req.get('x-verifier-team-role')?.trim().toLowerCase();
+  if (role === 'readonly') {
+    return {
+      attemptedByReadonly: true,
+      source: 'x-verifier-team-role',
+    };
+  }
+  return {
+    attemptedByReadonly: false,
+    source: null,
+  };
+}
+
+function runtimeFields(metadata: RuntimeTrustMetadata): Record<string, unknown> {
+  return {
+    correlationId: metadata.correlationId,
+    mutationFingerprint: metadata.mutationFingerprint,
+    actor: metadata.actor,
+    mutationClassification: metadata.mutationClassification,
+    replayCategory: metadata.replayCategory,
+    payloadHash: metadata.payloadHash,
+    runtimeTrust: metadata,
+  };
+}
+
+async function writeDeniedEmployerReviewMutation(input: {
+  req: Request;
+  actorId: string;
+  entityId: string;
+  clinicianNpi: string;
+  denialReason: string;
+  payload?: unknown;
+}): Promise<void> {
+  const runtimeTrust = buildRuntimeMutationMetadata({
+    action: 'denied-mutation',
+    actorId: input.actorId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    correlationId: resolveCorrelationId(input.req),
+    payload: input.payload ?? { denialReason: input.denialReason },
+    outcome: 'denied',
+    denialReason: input.denialReason,
+    readonly: resolveReadonlyIndicator(input.req),
+  });
+  const metadata = {
+    schema: 'vitalcv.employer-review.denied-mutation.v1',
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    denialReason: input.denialReason,
+    ...runtimeFields(runtimeTrust),
+  };
+
+  await prisma.auditEvent.create({
+    data: {
+      id: randomUUID(),
+      type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+      hash: sha256ForPayload({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        referenceId: input.entityId,
+        runtimeTrust,
+      }),
+      referenceId: input.entityId,
+      clinicianId: input.clinicianNpi,
+      anchored: false,
+      metadata: toJsonValue(metadata),
+    },
+  });
+
+  log('warn', 'employer_review_mutation_denied', {
+    entityId: input.entityId,
+    actorId: input.actorId,
+    denialReason: input.denialReason,
+    correlationId: runtimeTrust.correlationId,
+    mutationFingerprint: runtimeTrust.mutationFingerprint,
+    mutationClassification: runtimeTrust.mutationClassification,
+    replayCategory: runtimeTrust.replayCategory,
+    readonly: runtimeTrust.readonly,
+  });
 }
 
 const SHARE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
@@ -177,6 +268,17 @@ export function registerEmployerActionRoutes(app: Express): void {
         select: { id: true },
       });
       if (existing) {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'already_accepted',
+          payload: {
+            body: req.body ?? {},
+            existingAcceptanceId: existing.id,
+          },
+        });
         return void res.status(409).json({
           error:             'already_accepted',
           error_description: 'An active acceptance already exists for this employer/NPI pair.',
@@ -190,9 +292,29 @@ export function registerEmployerActionRoutes(app: Express): void {
       // not in a decision-grade state.
       const passport = await buildPassport(entityId);
       if (!passport) {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'passport_unavailable',
+          payload: req.body ?? {},
+        });
         throw new HttpError(422, 'Cannot accept: passport data is not available for this entity.');
       }
       if (passport.decisionPosture.status === 'BLOCKED') {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'acceptance_blocked',
+          payload: {
+            body: req.body ?? {},
+            blockers: passport.decisionPosture.blockers,
+            missingSources: passport.decisionPosture.missing.map((s) => s.sourceId),
+          },
+        });
         return void res.status(422).json({
           error: 'acceptance_blocked',
           error_description: 'Cannot accept: one or more critical source checks are blocking readiness.',
@@ -215,6 +337,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        correlationId: resolveCorrelationId(req),
         organizationContextId: req.body?.organizationContextId,
         bundleId: req.body?.bundleId,
         role,
@@ -320,6 +443,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        correlationId: resolveCorrelationId(req),
         organizationContextId: req.body?.organizationContextId,
         bundleId: req.body?.bundleId,
         staleSources,
@@ -422,6 +546,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         entityId,
         employerId,
         clinicianNpi: subject.clinicianNpi,
+        correlationId: resolveCorrelationId(req),
         organizationContextId: req.body?.organizationContextId,
         bundleId: req.body?.bundleId,
         reason,
@@ -586,6 +711,22 @@ export function registerEmployerActionRoutes(app: Express): void {
         employerId,
         trustContainer: trustContainerEntry,
       });
+      const runtimeTrust = buildRuntimeMutationMetadata({
+        action: 'packet-export',
+        actorId: employerId,
+        entityId,
+        clinicianNpi,
+        correlationId: resolveCorrelationId(req),
+        payload: {
+          format,
+          sourceIds: packet.manifest.sources.map((source) => source.sourceId),
+          receiptReferenceCount: packet.receiptReferences.length,
+          artifactReferenceCount: packet.artifactReferences.length,
+          manifestHash: sha256ForPayload(packet.manifest),
+        },
+        outcome: 'allowed',
+        readonly: resolveReadonlyIndicator(req),
+      });
       const auditMetadata = toJsonValue(JSON.parse(JSON.stringify({
         schema: 'vitalcv.employer.packet-export.v1',
         exportType: 'EMPLOYER_PACKET',
@@ -593,6 +734,7 @@ export function registerEmployerActionRoutes(app: Express): void {
         employerId,
         entityId,
         clinicianNpi,
+        ...runtimeFields(runtimeTrust),
         exportedAt: packet.exportedAt,
         manifestHash: sha256ForPayload(packet.manifest),
         sourceIds: packet.manifest.sources.map((source) => source.sourceId),
@@ -675,6 +817,14 @@ export function registerEmployerActionRoutes(app: Express): void {
       };
       const clinicianNpi = bodyNpi?.trim() ?? subject.clinicianNpi;
       if (clinicianNpi !== subject.clinicianNpi) {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'npi_mismatch',
+          payload: req.body ?? {},
+        });
         throw new HttpError(400, 'Share packet NPI does not match the reviewed clinician.');
       }
 
@@ -683,12 +833,27 @@ export function registerEmployerActionRoutes(app: Express): void {
       const shareToken = buildShareToken();
       const shareTokenHash = hashShareToken(shareToken);
       const shareUrl = `${resolveAppOrigin()}/review/${shareToken}`;
+      const runtimeTrust = buildRuntimeMutationMetadata({
+        action: 'share-packet',
+        actorId: employerId,
+        entityId,
+        clinicianNpi,
+        correlationId: resolveCorrelationId(req),
+        payload: {
+          organizationContextId: readOptionalString(organizationContextId),
+          bundleId: readOptionalString(bundleId),
+          expiresAt: expiresAt.toISOString(),
+        },
+        outcome: 'allowed',
+        readonly: resolveReadonlyIndicator(req),
+      });
 
       const auditMetadata = toJsonValue({
         schema: 'vitalcv.employer.packet-shared.v1',
         employerId,
         entityId,
         clinicianNpi,
+        ...runtimeFields(runtimeTrust),
         organizationContextId: readOptionalString(organizationContextId),
         bundleId: readOptionalString(bundleId),
         shareTokenHash,
@@ -769,21 +934,36 @@ export function registerEmployerActionRoutes(app: Express): void {
       }
 
       const metadata = metadataRecord(shareEvent.metadata);
+      const resolvedEntityId = shareEvent.referenceId ?? readOptionalString(metadata.entityId);
+      const resolvedClinicianNpi = shareEvent.clinicianId ?? readOptionalString(metadata.clinicianNpi);
       const expiresAt = readOptionalString(metadata.expiresAt);
+      if (!resolvedEntityId || !resolvedClinicianNpi) {
+        return void res.status(410).json({
+          error: 'share_token_unresolved',
+          error_description: 'This review link no longer resolves to a review target.',
+        });
+      }
       if (!expiresAt || Date.parse(expiresAt) <= Date.now()) {
         return void res.status(410).json({
           error: 'share_token_expired',
-          error_description: 'This review link has expired. Ask the clinician to share a fresh packet.',
+          error_description: 'This review link has expired. Ask the clinician to generate a fresh share link.',
         });
       }
 
+      const contextId = readOptionalString(metadata.organizationContextId);
+      const bundleId = readOptionalString(metadata.bundleId);
+      const reviewParams = new URLSearchParams();
+      if (contextId) reviewParams.set('contextId', contextId);
+      if (bundleId) reviewParams.set('bundleId', bundleId);
+      const reviewQuery = reviewParams.toString();
+
       return void res.status(200).json({
         ok: true,
-        entityId: shareEvent.referenceId,
-        clinicianNpi: shareEvent.clinicianId,
-        organizationContextId: readOptionalString(metadata.organizationContextId),
-        bundleId: readOptionalString(metadata.bundleId),
-        reviewHref: `/review/${shareEvent.referenceId}`,
+        entityId: resolvedEntityId,
+        clinicianNpi: resolvedClinicianNpi,
+        organizationContextId: contextId,
+        bundleId,
+        reviewHref: `/review/${resolvedEntityId}${reviewQuery ? `?${reviewQuery}` : ''}`,
         shareEventAuditId: shareEvent.id,
         sharedAt: shareEvent.createdAt.toISOString(),
         expiresAt,
@@ -839,9 +1019,31 @@ export function registerEmployerActionRoutes(app: Express): void {
       );
 
       if (!acceptance) {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'missing_acceptance',
+          payload: {
+            body: req.body ?? {},
+            requestedAcceptanceId: bodyAcceptanceId ?? null,
+          },
+        });
         throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
       }
       if (acceptance.clinicianNpi !== subject.clinicianNpi) {
+        await writeDeniedEmployerReviewMutation({
+          req,
+          actorId: employerId,
+          entityId,
+          clinicianNpi: subject.clinicianNpi,
+          denialReason: 'acceptance_npi_mismatch',
+          payload: {
+            body: req.body ?? {},
+            acceptanceId: acceptance.id,
+          },
+        });
         throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
       }
 
@@ -856,6 +1058,22 @@ export function registerEmployerActionRoutes(app: Express): void {
         startedAt: startDate.toISOString(),
         role,
         facility,
+      });
+      const runtimeTrust = buildRuntimeMutationMetadata({
+        action: 'confirm-start',
+        actorId: employerId,
+        entityId,
+        clinicianNpi: acceptance.clinicianNpi,
+        correlationId: resolveCorrelationId(req),
+        payload: {
+          attestationId,
+          acceptanceId: acceptance.id,
+          startedAt: startDate.toISOString(),
+          role,
+          facility,
+        },
+        outcome: 'allowed',
+        readonly: resolveReadonlyIndicator(req),
       });
 
       // AUDIT: START_ATTESTED is one of the 5 canonical non-repudiation events.
@@ -884,6 +1102,7 @@ export function registerEmployerActionRoutes(app: Express): void {
               acceptanceId: acceptance.id,
               entityId,
               employerId,
+              ...runtimeFields(runtimeTrust),
               startedAt:   startDate.toISOString(),
               role,
               facility,

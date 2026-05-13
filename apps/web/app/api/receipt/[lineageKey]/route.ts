@@ -56,7 +56,7 @@ function isDev(): boolean {
 }
 
 function resolveIssuerDid(): string {
-  return process.env.ISSUER_DID ?? (isDev() ? 'mock (dev)' : ISSUER_DID);
+  return process.env.ISSUER_DID ?? ISSUER_DID;
 }
 
 function shortKeyId(keyId: string | undefined | null): string | null {
@@ -167,8 +167,8 @@ export async function GET(
         signed_at: Math.floor(Date.now() / 1000),
         expires_at: Math.floor(Date.now() / 1000) + 86400,
       },
-      key_fingerprint: 'vcv-signing-key-devmock0',
-      issuer_did: 'mock (dev)',
+      key_fingerprint: null,
+      issuer_did: ISSUER_DID,
       jwks_uri: `${req.nextUrl.origin}/.well-known/jwks.json`,
     };
     return NextResponse.json(mockReceipt, { status: 200 });

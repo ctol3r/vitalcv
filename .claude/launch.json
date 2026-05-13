@@ -19,6 +19,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@vitalcv/api", "dev"],
       "port": 4000
+    },
+    {
+      "name": "web-dev-w12a",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-l", "-c", "cd /tmp/vitalcv-wave-12a && PORT=3010 pnpm --filter @vitalcv/web exec next dev -p 3010"],
+      "port": 3010
     }
   ]
 }

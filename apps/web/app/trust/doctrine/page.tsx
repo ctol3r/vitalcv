@@ -70,7 +70,7 @@ const EXAMPLE_NODES: AnnotatedNode[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function DoctrineePage() {
+export default async function DoctrinePage() {
   const snapshot = await getTrustRegisterSnapshot();
 
   // Derive survivability from snapshot

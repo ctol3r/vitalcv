@@ -30,6 +30,23 @@ export async function GET() {
       },
     ],
     authentication: ['did:web:vitalcv.com#vcv-signing-key-1'],
+    service: [
+      {
+        id: 'did:web:vitalcv.com#credential-issuer',
+        type: 'CredentialIssuer',
+        serviceEndpoint: 'https://vitalcv.com/api/credentials/issue',
+      },
+      {
+        id: 'did:web:vitalcv.com#receipt-verifier',
+        type: 'ReceiptVerifier',
+        serviceEndpoint: 'https://vitalcv.com/api/receipts/verify',
+      },
+      {
+        id: 'did:web:vitalcv.com#openid-credential-issuer',
+        type: 'OID4VCIIssuer',
+        serviceEndpoint: 'https://vitalcv.com/.well-known/openid-credential-issuer',
+      },
+    ],
   };
 
   return NextResponse.json(didDocument, {
