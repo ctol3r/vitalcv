@@ -29,6 +29,7 @@ const nextConfig = {
       { source: '/.well-known/trust.json', destination: '/api/.well-known/trust.json' },
       { source: '/.well-known/trust-register', destination: '/api/.well-known/trust-register' },
       { source: '/.well-known/openid-configuration', destination: '/api/.well-known/openid-credential-issuer' },
+      { source: '/.well-known/verifier-manifest.json', destination: '/api/.well-known/verifier-manifest.json' },
     ];
   },
   async redirects() {
