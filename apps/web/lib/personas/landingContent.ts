@@ -11,7 +11,7 @@ import type { PilotIntakePersona } from '@/lib/pilot-intake/validate';
  *     <value> is a literal PilotIntakePersona that the form's
  *     validate helper accepts directly.
  *
- * No banned phrases per CLAUDE.md. No bare 'Verified' status label.
+ * No banned phrases per CLAUDE.md. No bare-word status label per the rule.
  */
 
 export interface PersonaLandingValueProp {

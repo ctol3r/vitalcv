@@ -13,7 +13,7 @@
  *     the last N days.
  *   - Privilege / payer / onboarding status labels are operational
  *     labels (Granted, Enrolled, In Progress, etc.) — none are the
- *     bare word "Verified" which CLAUDE.md bans for status labels.
+ *     bare-word status label CLAUDE.md bans.
  *   - Real payer integrations (PECOS, Medicaid, commercial carriers)
  *     are vendor-gated and out of scope for this surface; the demo
  *     describes the tracking shape, not active integrations.

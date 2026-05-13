@@ -125,7 +125,7 @@ export function HeroAppPreview() {
             {/* Footer stat bar */}
             <div className="flex items-center gap-6 border-t border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-5 py-2.5">
               {[
-                { icon: CheckCircle2, label: '3 Verified',   color: 'text-[var(--vt-status-resolved)]' },
+                { icon: CheckCircle2, label: '3 Issuer-confirmed', color: 'text-[var(--vt-status-resolved)]' },
                 { icon: Clock,        label: '1 Expiring',   color: 'text-[var(--vt-severity-high)]'   },
                 { icon: CheckCircle2, label: '↓ 88% faster', color: 'text-[var(--vt-text-muted)]'    },
               ].map(({ icon: Icon, label, color }) => (

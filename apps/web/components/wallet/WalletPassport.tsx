@@ -374,7 +374,7 @@ export function WalletPassport({
           </div>
         ) : (
           <p className="mt-3 text-sm leading-6 text-zinc-300">
-            Verified facts will populate here as your credentials are corroborated.
+            Source-confirmed facts will populate here as your credentials are corroborated.
           </p>
         )}
       </section>
