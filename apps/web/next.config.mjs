@@ -21,6 +21,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      { source: '/.well-known/jwks.json', destination: '/api/.well-known/jwks.json' },
+      { source: '/.well-known/did.json', destination: '/api/.well-known/did.json' },
+      { source: '/.well-known/openid-credential-issuer', destination: '/api/.well-known/openid-credential-issuer' },
+      { source: '/.well-known/trust.json', destination: '/api/.well-known/trust.json' },
+      { source: '/.well-known/trust-register', destination: '/api/.well-known/trust-register' },
+      { source: '/.well-known/openid-configuration', destination: '/api/.well-known/openid-credential-issuer' },
+    ];
+  },
   async redirects() {
     return [
       { source: '/dashboard', destination: '/intelligence?view=dashboard', permanent: false },
