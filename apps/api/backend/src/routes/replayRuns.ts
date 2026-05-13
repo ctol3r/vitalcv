@@ -118,18 +118,31 @@ export function registerReplayRunRoutes(app: Express): void {
  * Public — registered before org-context middleware.
  */
 export function registerReplayByNpiRoute(app: import('express').Express): void {
+  /**
+   * GET /api/replay/runs/by-npi/:npi
+   *
+   * Returns all SourceRun records for a given NPI.
+   * Newest-first ordering. Includes entityId, sourceSummary, chronologyIndex.
+   * Public — no auth required.
+   */
   app.get('/api/replay/runs/by-npi/:npi', async (req: import('express').Request, res: import('express').Response) => {
     const { npi } = req.params;
 
     if (!npi || !/^\d{10}$/.test(npi)) {
-      res.status(400).json({ error: 'Invalid NPI' });
+      res.status(400).json({ error: 'Invalid NPI. Must be exactly 10 digits.' });
       return;
     }
 
     try {
+      // Resolve entity
+      const entity = await prisma.vcvEntity.findFirst({
+        where: { npi },
+        select: { id: true, displayName: true, npiType: true },
+      });
+
       const runs = await prisma.sourceRun.findMany({
         where: { subjectNpi: npi, runId: { not: null } },
-        orderBy: [{ sourceId: 'asc' }, { startedAt: 'asc' }],
+        orderBy: [{ startedAt: 'desc' }],  // newest-first
         select: {
           runId: true,
           priorRunId: true,
@@ -139,36 +152,132 @@ export function registerReplayByNpiRoute(app: import('express').Express): void {
           startedAt: true,
           completedAt: true,
           verificationReceiptRecords: {
-            select: { receiptId: true },
-            take: 1,
+            select: { receiptId: true, trustTier: true, sourceSystem: true },
+            take: 3,
             orderBy: { createdAt: 'desc' },
           },
         },
       });
 
-      const chain = runs.map((run, idx) => ({
+      // Chronology index: oldest=0, newest=N-1 (compute from startedAt ascending)
+      const sorted = [...runs].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+      const chronoMap = new Map<string, number>();
+      sorted.forEach((r, i) => { if (r.runId) chronoMap.set(r.runId, i); });
+
+      const enrichedRuns = runs.map((run) => ({
         runId: run.runId,
         priorRunId: run.priorRunId,
-        npi: run.subjectNpi,
-        laneId: run.sourceId,
-        status: run.status,
+        lineageKey: `${run.sourceId}:${run.subjectNpi}`,
         checkedAt: (run.completedAt ?? run.startedAt).toISOString(),
-        receiptId: run.verificationReceiptRecords[0]?.receiptId ?? null,
-        chainPosition: idx,
-        isHead: idx === runs.length - 1,
+        createdAt: run.startedAt.toISOString(),
+        status: run.status,
+        sourceSummary: run.verificationReceiptRecords.map((r) => ({
+          receiptId: r.receiptId,
+          trustTier: r.trustTier,
+          sourceSystem: r.sourceSystem,
+        })),
+        chronologyIndex: run.runId ? (chronoMap.get(run.runId) ?? 0) : 0,
       }));
 
       res.json({
         npi,
-        totalRuns: chain.length,
-        chainedRuns: chain.filter((r) => r.priorRunId !== null).length,
-        headRunId: chain[chain.length - 1]?.runId ?? null,
-        originRunId: chain[0]?.runId ?? null,
-        chain,
+        entityId: entity?.id ?? null,
+        displayName: entity?.displayName ?? null,
+        totalRuns: enrichedRuns.length,
+        chainedRuns: enrichedRuns.filter((r) => r.priorRunId !== null).length,
+        headRunId: sorted[sorted.length - 1]?.runId ?? null,
+        originRunId: sorted[0]?.runId ?? null,
+        runs: enrichedRuns,
         reconstructedAt: new Date().toISOString(),
       });
     } catch (e) {
       log('error', 'replay_by_npi_failed', { npi, error: String(e) });
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  /**
+   * GET /api/replay/chain/:npi
+   *
+   * Continuity summary — grouped by lineageKey (sourceId:npi).
+   * Returns per-lineage continuity state, history count, and latest/first timestamps.
+   * Public — no auth required.
+   */
+  app.get('/api/replay/chain/:npi', async (req: import('express').Request, res: import('express').Response) => {
+    const { npi } = req.params;
+
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      res.status(400).json({ error: 'Invalid NPI. Must be exactly 10 digits.' });
+      return;
+    }
+
+    try {
+      const entity = await prisma.vcvEntity.findFirst({
+        where: { npi },
+        select: { id: true, displayName: true },
+      });
+
+      const runs = await prisma.sourceRun.findMany({
+        where: { subjectNpi: npi, runId: { not: null } },
+        orderBy: { startedAt: 'asc' },
+        select: {
+          runId: true,
+          priorRunId: true,
+          sourceId: true,
+          status: true,
+          startedAt: true,
+          completedAt: true,
+        },
+      });
+
+      // Group by sourceId (= lineageKey prefix)
+      const groups: Record<string, typeof runs> = {};
+      for (const run of runs) {
+        const key = `${run.sourceId}:${npi}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(run);
+      }
+
+      const lineages = Object.entries(groups).map(([lineageKey, lineageRuns]) => {
+        const first = lineageRuns[0];
+        const last = lineageRuns[lineageRuns.length - 1];
+        const chainedCount = lineageRuns.filter((r) => r.priorRunId !== null).length;
+
+        // continuityState:
+        // stable = all runs chained correctly (chainedCount === runs.length - 1)
+        // extended = chain exists but has gaps (some priorRunId null on non-origin runs)
+        // diverged = unexpected status patterns or orphaned runs
+        let continuityState: 'stable' | 'extended' | 'diverged' = 'stable';
+        if (lineageRuns.length > 1 && chainedCount < lineageRuns.length - 1) {
+          continuityState = 'extended';
+        }
+        const hasOrphan = lineageRuns.some(
+          (r, i) => i > 0 && r.priorRunId !== null &&
+            !lineageRuns.some((prev) => prev.runId === r.priorRunId),
+        );
+        if (hasOrphan) continuityState = 'diverged';
+
+        return {
+          lineageKey,
+          historyCount: lineageRuns.length,
+          latestRunId: last?.runId ?? null,
+          latestCheckedAt: (last?.completedAt ?? last?.startedAt)?.toISOString() ?? null,
+          continuityState,
+          firstObservedAt: first?.startedAt?.toISOString() ?? null,
+          lastObservedAt: (last?.completedAt ?? last?.startedAt)?.toISOString() ?? null,
+        };
+      });
+
+      res.json({
+        npi,
+        entityId: entity?.id ?? null,
+        displayName: entity?.displayName ?? null,
+        lineages,
+        totalRuns: runs.length,
+        reconstructedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      log('error', 'replay_chain_failed', { npi, error: String(e) });
       res.status(500).json({ error: 'Internal error' });
     }
   });

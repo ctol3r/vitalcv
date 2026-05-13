@@ -2,10 +2,8 @@
  * GET /api/replay/chain/[npi]
  *
  * Public, no auth, no-store.
- * Returns the full reconstructed replay chain for a given NPI
- * from durable DB state via the backend reconstructor.
- *
- * Response shape mirrors ReplayChainReport from replayReconstructor.ts.
+ * Proxies to backend /api/replay/chain/:npi for continuity summary.
+ * Returns per-lineage continuity state — no SQL access required.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,11 +23,10 @@ export async function GET(
   }
 
   try {
-    // Fetch all source runs for this NPI from backend, build chain client-side
-    const backendUrl = apiUrl(`/api/replay/runs/by-npi/${encodeURIComponent(npi)}`);
+    const backendUrl = apiUrl(`/api/replay/chain/${encodeURIComponent(npi)}`);
     const res = await fetch(backendUrl, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-org-id': 'vcv-system' },
       signal: AbortSignal.timeout(6000),
     });
 
@@ -43,22 +40,16 @@ export async function GET(
 
     if (res.status === 404) {
       return NextResponse.json(
-        { npi, chain: [], totalRuns: 0, message: 'No runs found for this NPI' },
+        { npi, lineages: [], totalRuns: 0, message: 'No runs found for this NPI' },
         { status: 200, headers: { 'Cache-Control': 'no-store' } },
       );
     }
   } catch {
-    // Backend unreachable — return empty chain with disclosure
+    // Backend unreachable
   }
 
   return NextResponse.json(
-    {
-      npi,
-      chain: [],
-      totalRuns: 0,
-      message: 'Backend unavailable — chain not retrievable',
-      degraded: true,
-    },
+    { npi, lineages: [], totalRuns: 0, degraded: true, message: 'Backend unavailable' },
     { status: 200, headers: { 'Cache-Control': 'no-store' } },
   );
 }
