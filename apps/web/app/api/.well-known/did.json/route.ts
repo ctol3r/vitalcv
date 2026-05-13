@@ -13,7 +13,10 @@ import { getPublicKeyJwk } from '@/lib/crypto/receiptIssuer';
 
 export const runtime = 'nodejs';
 
-export const revalidate = 3600;
+// Force runtime evaluation — same rationale as the sibling JWKS route.
+// Prerendering would invoke the production-only signing guard at build
+// time and fail with no env vars present.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const publicKeyJwk = await getPublicKeyJwk();

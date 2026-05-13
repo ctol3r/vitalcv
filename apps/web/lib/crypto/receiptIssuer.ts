@@ -43,17 +43,54 @@ export async function generateReceiptKeypair(): Promise<ReceiptKeypair> {
 
 /**
  * Returns the singleton keypair for this process.
- * In production, imports from RECEIPT_PRIVATE_KEY_JWK + RECEIPT_KID env vars.
- * In dev/test, generates a fresh ephemeral keypair once.
+ *
+ * Production (NODE_ENV === 'production') — fail-closed:
+ *   Both RECEIPT_PRIVATE_KEY_JWK and RECEIPT_KID MUST be set. If either
+ *   is missing, this function throws. Refusing to silently fall back to
+ *   a dev-prefixed kid (`vcv-es256-dev`, `vcv-es256-dev-<ts>`) or to an
+ *   ephemeral generated keypair is the load-bearing invariant that
+ *   prevents dev signing identity from leaking onto the production
+ *   runtime trust anchor.
+ *
+ * Dev / test (NODE_ENV !== 'production'):
+ *   If RECEIPT_PRIVATE_KEY_JWK is present, it is imported; the kid
+ *   resolves to RECEIPT_KID, or `vcv-es256-dev-<timestamp>` if absent
+ *   (preserves the prior dev-preview behavior without affecting
+ *   production).
+ *   If RECEIPT_PRIVATE_KEY_JWK is absent, a fresh ephemeral keypair is
+ *   minted and given the stable kid RECEIPT_KID_DEV or `vcv-es256-dev`.
  */
 export async function getOrInitKeypair(): Promise<ReceiptKeypair> {
   if (_keypairPromise) return _keypairPromise;
 
   _keypairPromise = (async () => {
     const privateJwkEnv = process.env.RECEIPT_PRIVATE_KEY_JWK;
-    const kid = process.env.RECEIPT_KID ?? `vcv-es256-dev-${Date.now()}`;
+    const kidEnv = process.env.RECEIPT_KID;
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Production fail-closed: refuse to leak any dev-prefixed signing identity.
+    if (isProduction) {
+      if (!privateJwkEnv) {
+        throw new Error(
+          'receiptIssuer: RECEIPT_PRIVATE_KEY_JWK is required in production. ' +
+            'Refusing to mint an ephemeral dev keypair on a production runtime.',
+        );
+      }
+      if (!kidEnv) {
+        throw new Error(
+          'receiptIssuer: RECEIPT_KID is required in production when ' +
+            'RECEIPT_PRIVATE_KEY_JWK is set. Refusing to fall back to a ' +
+            'dev-prefixed kid on a production runtime.',
+        );
+      }
+    }
 
     if (privateJwkEnv) {
+      // Both envs set (production) OR only RECEIPT_PRIVATE_KEY_JWK set in
+      // dev (kid falls back to a dev-prefixed timestamp string — only
+      // reachable here when isProduction is false because the guard
+      // above already threw).
+      const kid = kidEnv ?? `vcv-es256-dev-${Date.now()}`;
       const jwk = JSON.parse(privateJwkEnv) as object;
       const privateKey = await importJWK(jwk, 'ES256');
 
@@ -65,6 +102,7 @@ export async function getOrInitKeypair(): Promise<ReceiptKeypair> {
     }
 
     // Dev: ephemeral keypair with stable kid (RECEIPT_KID_DEV || 'vcv-es256-dev').
+    // Unreachable in production because the guard above already threw.
     const kp = await generateReceiptKeypair();
     return { ...kp, kid: process.env.RECEIPT_KID_DEV ?? 'vcv-es256-dev' };
   })();

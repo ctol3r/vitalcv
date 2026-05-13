@@ -113,7 +113,11 @@ export async function GET(
       receipt: {
         receiptId: `rcpt_${providerId}`,
         source: lane?.source ?? laneId,
-        signingKeyId: 'vcv-es256-dev',
+        // Resolve the canonical kid from env so this metadata matches
+        // the actual signing kid published in /.well-known/jwks.json.
+        // Falls back to 'vcv-es256-dev' only outside production.
+        signingKeyId: process.env.RECEIPT_KID
+          ?? (process.env.NODE_ENV === 'production' ? 'vcv-es256-1' : 'vcv-es256-dev'),
         issuerDid: ISSUER_DID,
         jwksUri: JWKS_URI,
       },
