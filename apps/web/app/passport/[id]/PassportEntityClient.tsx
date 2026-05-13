@@ -5,7 +5,8 @@ import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
-import { fetchPassportEntity } from '@/lib/api';
+import { fetchPassportEntity, fetchNppesIdentityProbe } from '@/lib/api';
+import { buildDegradedPassportStub } from '@/lib/trust/buildDegradedPassportStub';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
@@ -156,25 +157,46 @@ interface PassportEntityClientProps {
 export default function PassportEntityClient({ entityId }: PassportEntityClientProps) {
   const [passport, setPassport] = useState<PassportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [degradedMode, setDegradedMode] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
       setLoading(true);
+      setDegradedMode(false);
       const result = await fetchPassportEntity(entityId);
-      if (cancelled) {
-        return;
-      }
+      if (cancelled) return;
 
-      setPassport(result.ok ? result.body : null);
+      if (result.ok && result.body) {
+        // Happy path — full passport data
+        setPassport(result.body);
+      } else {
+        // Degraded path — attempt NPPES fallback for 10-digit NPIs
+        const isNpi = /^\d{10}$/.test(entityId);
+        if (isNpi) {
+          const probe = await fetchNppesIdentityProbe(entityId);
+          if (cancelled) return;
+          if (probe.ok && probe.nppesData) {
+            const stub = buildDegradedPassportStub(entityId, probe.nppesData);
+            setPassport(stub as PassportData);
+            setDegradedMode(true);
+          } else {
+            // Only truly null if even NPPES fails
+            setPassport(null);
+          }
+        } else {
+          setPassport(null);
+        }
+      }
       setLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [entityId]);
+  }, [entityId, retryCount]);
 
   if (loading) {
     return <PassportWallet loading />;
@@ -214,6 +236,22 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
 
   return (
     <div className="flex flex-col gap-8 pb-16">
+      {degradedMode && (
+        <div className="border border-dashed border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-amber-500">DEGRADED MODE</span>
+          <span>Backend unavailable — displaying NPPES identity only. Source verification pending.</span>
+          <button
+            onClick={() => {
+              setDegradedMode(false);
+              setLoading(true);
+              setRetryCount(c => c + 1);
+            }}
+            className="ml-auto font-mono text-[10px] uppercase tracking-[0.08em] text-amber-600 hover:text-amber-900"
+          >
+            Retry →
+          </button>
+        </div>
+      )}
       <PassportWallet passport={passport} />
       <ReplayHeader passport={passport} />
       <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">

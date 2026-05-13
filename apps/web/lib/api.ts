@@ -139,6 +139,30 @@ export async function fetchPassportEntity(
   };
 }
 
+/**
+ * Minimal NPPES identity probe — fetches raw NPI data directly from CMS.
+ * Returns partial NPPES data sufficient for degraded passport rendering.
+ * Used when the backend passport endpoint is unreachable.
+ */
+export async function fetchNppesIdentityProbe(npi: string): Promise<{
+  ok: boolean;
+  partial: boolean;
+  nppesData: Record<string, unknown> | null;
+}> {
+  try {
+    const response = await fetch(
+      `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1&limit=1`,
+      { cache: 'no-store', signal: AbortSignal.timeout(8_000) }
+    );
+    if (!response.ok) return { ok: false, partial: false, nppesData: null };
+    const data = await response.json().catch(() => null);
+    const results = (data?.results ?? []) as Array<Record<string, unknown>>;
+    return { ok: results.length > 0, partial: true, nppesData: results[0] ?? null };
+  } catch {
+    return { ok: false, partial: false, nppesData: null };
+  }
+}
+
 export async function fetchReviewAcceptanceHistory(
   entityId: string,
 ): Promise<{
