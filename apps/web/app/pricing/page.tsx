@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import {
@@ -6,6 +7,8 @@ import {
   explainPricingPlanStatus,
   type PricingPlanStatus,
 } from '@/lib/commercial/pricingFoundation';
+import { ctaForPricingPlan } from '@/lib/commercial/pricingCta';
+import { CalendarBookingEmbed } from '@/components/pricing/CalendarBookingEmbed';
 
 export const metadata: Metadata = {
   title: 'Pricing Foundation | VitalCV',
@@ -66,10 +69,54 @@ export default function PricingFoundationPage() {
                 {String(plan.checkoutIntegrationLive)}. Subscription active:{' '}
                 {String(plan.subscriptionActive)}.
               </p>
+              <PlanCta planKind={plan.kind} />
             </li>
           ))}
         </ul>
       </section>
+
+      <CalendarBookingEmbed />
     </main>
+  );
+}
+
+function PlanCta({
+  planKind,
+}: {
+  planKind: ReturnType<typeof buildPricingFoundationPlan>[number]['kind'];
+}) {
+  // Resolve the CTA from the canonical helper so the page never
+  // hardcodes a checkout/payment claim.
+  const cta = ctaForPricingPlan({ kind: planKind } as Parameters<typeof ctaForPricingPlan>[0]);
+
+  if (cta.href === null) {
+    return (
+      <p
+        className="mt-4 text-xs text-muted-foreground"
+        data-testid="plan-cta"
+        data-cta-kind={cta.kind}
+        data-opens-paid-checkout={String(cta.opensPaidCheckout)}
+      >
+        {cta.label}. {cta.rationale}
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className="mt-4"
+      data-testid="plan-cta"
+      data-cta-kind={cta.kind}
+      data-cta-href={cta.href}
+      data-opens-paid-checkout={String(cta.opensPaidCheckout)}
+    >
+      <Link
+        href={cta.href}
+        className="inline-flex items-center justify-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90"
+      >
+        {cta.label} →
+      </Link>
+      <p className="mt-2 text-[11px] text-muted-foreground">{cta.rationale}</p>
+    </div>
   );
 }

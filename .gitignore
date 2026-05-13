@@ -90,3 +90,4 @@ dist/
 .deployment-lineage/
 .playbook-lineage/
 
+apps/web/lib/generated/

@@ -3663,3 +3663,74 @@ model StartAttestation {
   @@index([acceptanceId])
   @@map("start_attestations")
 }
+
+// ---- TRUST-PERSIST-1 — Issuer-verification persistence scaffold (schema-only) ----
+//
+// Adds the database tables that mirror the issuer-verification TypeScript
+// types (apps/web/lib/issuer-verification/types.ts). No writer is wired
+// in this PR. Default behavior is unchanged: existing demo renders
+// continue to render with `recordedBy: 'demo'` and no row is inserted.
+// A subsequent PR introduces the feature flag and the Postgres writer
+// that fills these tables.
+//
+// Truth invariants enforced at the database level (CHECK constraints in
+// the migration):
+//   - ReceiptCandidate.decisionGrade is the literal `false` in TS;
+//     the SQL CHECK enforces decision_grade = false.
+//   - ReceiptCandidate.proofTier when present is the literal
+//     'receipt_candidate'; the SQL CHECK enforces this.
+//   - ReceiptCandidate.recordedBy is one of 'demo' | 'review_surface'
+//     | 'system' (mirrors ReceiptCandidateAuditMetadata.recordedBy).
+model IssuerRequest {
+  id              String    @id @default(uuid()) @db.Uuid
+  requestId       String    @unique
+  claimType       String
+  claimSummary    String
+  issuerCandidate Json
+  route           Json
+  consent         Json
+  status          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime?
+
+  receiptCandidates ReceiptCandidate[]
+
+  @@index([requestId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReceiptCandidate {
+  id          String         @id @default(uuid()) @db.Uuid
+  candidateId String         @unique
+  requestId   String?
+  request     IssuerRequest? @relation(fields: [requestId], references: [requestId])
+
+  basis                  String
+  agentName              String?
+  sourceOrganizationName String
+
+  attributionStatus String
+
+  decisionGrade Boolean @default(false)
+  proofTier     String?
+
+  notes              String?
+  limitationNote     String?
+  responseStatus     String?
+  responseSummary    String?
+  responseReceivedAt DateTime?
+  reviewState        String?
+
+  recordedBy String @default("demo")
+
+  signedReceiptJwt String?
+
+  createdAt DateTime @default(now())
+
+  @@index([candidateId])
+  @@index([requestId])
+  @@index([reviewState])
+  @@index([createdAt])
+}

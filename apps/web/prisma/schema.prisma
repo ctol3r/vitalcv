@@ -1,0 +1,82 @@
+// apps/web Prisma schema — web-app-facing subset only.
+//
+// This schema mirrors the models that the web app reads directly.
+// Migrations are managed by apps/api/backend/prisma; these model
+// definitions must stay in sync with that schema. The tables are
+// shared — there is one database.
+//
+// Truth-contract CHECK constraints live in the apps/api/backend
+// migrations and are NOT duplicated here:
+//   * ReceiptCandidate.decisionGrade = FALSE
+//   * ReceiptCandidate.proofTier IS NULL OR = 'receipt_candidate'
+//   * ReceiptCandidate.recordedBy IN ('demo','review_surface','system')
+// See apps/api/backend/prisma/migrations/20260504000000_issuer_persistence_scaffold/migration.sql
+// (landed in PR #221). The web schema is read-only for type generation;
+// it cannot weaken those database-level invariants.
+//
+// Run `pnpm --filter @vitalcv/web exec prisma generate` after
+// any model change here to regenerate the typed client.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model IssuerRequest {
+  id              String    @id @default(uuid()) @db.Uuid
+  requestId       String    @unique
+  claimType       String
+  claimSummary    String
+  issuerCandidate Json
+  route           Json
+  consent         Json
+  status          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime?
+
+  receiptCandidates ReceiptCandidate[]
+
+  @@index([requestId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReceiptCandidate {
+  id          String         @id @default(uuid()) @db.Uuid
+  candidateId String         @unique
+  requestId   String?
+  request     IssuerRequest? @relation(fields: [requestId], references: [requestId])
+
+  basis                  String
+  agentName              String?
+  sourceOrganizationName String
+
+  attributionStatus String
+
+  decisionGrade Boolean @default(false)
+  proofTier     String?
+
+  notes              String?
+  limitationNote     String?
+  responseStatus     String?
+  responseSummary    String?
+  responseReceivedAt DateTime?
+  reviewState        String?
+
+  recordedBy String @default("demo")
+
+  signedReceiptJwt String?
+
+  createdAt DateTime @default(now())
+
+  @@index([candidateId])
+  @@index([requestId])
+  @@index([reviewState])
+  @@index([createdAt])
+}

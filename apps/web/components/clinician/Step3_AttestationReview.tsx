@@ -246,7 +246,7 @@ export function Step3_AttestationReview({
                             }
                           >
                             {req.status === 'COMPLETE'
-                              ? 'Verified'
+                              ? 'Issuer-confirmed'
                               : req.status === 'PENDING'
                                 ? 'Pending'
                                 : 'Failed'}

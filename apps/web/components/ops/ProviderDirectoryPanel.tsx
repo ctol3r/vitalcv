@@ -65,7 +65,7 @@ type LoadState = 'idle' | 'loading' | 'done' | 'error';
 
 function healthBadge(health: DirectoryEntry['credentialHealth']) {
   const map = {
-    VERIFIED: { color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', label: 'Verified' },
+    VERIFIED: { color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', label: 'Issuer-confirmed' },
     EXPIRED:  { color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', label: 'Expired' },
     REVOKED:  { color: 'text-red-400 bg-red-500/10 border-red-500/20', label: 'Revoked' },
     PENDING:  { color: 'text-slate-400 bg-slate-500/10 border-slate-500/20', label: 'Pending' },
@@ -351,7 +351,7 @@ export default function ProviderDirectoryPanel() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Total', value: summary.totalProviders, icon: Users, color: 'text-infra-text' },
-              { label: 'Verified', value: healthCounts.verified, icon: CheckCircle, color: 'text-emerald-400' },
+              { label: 'Issuer-confirmed providers', value: healthCounts.verified, icon: CheckCircle, color: 'text-emerald-400' },
               { label: 'Expired', value: healthCounts.expired, icon: AlertTriangle, color: 'text-amber-400' },
               { label: 'Revoked', value: healthCounts.revoked, icon: AlertTriangle, color: 'text-red-400' },
             ].map(({ label, value, icon: Icon, color }) => (

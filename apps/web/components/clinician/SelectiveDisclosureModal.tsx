@@ -246,7 +246,7 @@ export function SelectiveDisclosureModal({
                   {disclosureLevel === 'full' ? (
                     <span className="text-xs text-muted-foreground">{cred.issuer}</span>
                   ) : (
-                    <span className="text-xs text-[var(--trust-green)]">Verified</span>
+                    <span className="text-xs text-[var(--trust-green)]">Issuer-confirmed</span>
                   )}
                 </div>
               ))

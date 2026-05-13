@@ -37,19 +37,27 @@ describe('status page — compliance evidence (DOCS-STATUS-1)', () => {
   it('renders data classification status from the foundation module', () => {
     expect(html).toContain('Data classification');
     expect(html).toContain('redactionLive: false');
-    expect(html).toMatch(/\d+ redaction rules/);
+    // Per Codex P2 review on PR #230: `\d+` matches `0`, so an empty
+    // foundation list would silently pass. Require at least one rule.
+    const m = html.match(/(\d+) redaction rules/);
+    expect(m).not.toBeNull();
+    expect(Number(m?.[1] ?? '0')).toBeGreaterThan(0);
   });
 
   it('renders retention status from the foundation module', () => {
     expect(html).toContain('Retention');
     expect(html).toContain('retentionEnforced: false');
-    expect(html).toMatch(/\d+ entity policies/);
+    const m = html.match(/(\d+) entity policies/);
+    expect(m).not.toBeNull();
+    expect(Number(m?.[1] ?? '0')).toBeGreaterThan(0);
   });
 
   it('renders authority adapter status from the foundation module', () => {
     expect(html).toContain('Authority adapters');
     expect(html).toMatch(/allAdaptersLive: (true|false)/);
-    expect(html).toMatch(/\d+ adapters/);
+    const m = html.match(/(\d+) adapters/);
+    expect(m).not.toBeNull();
+    expect(Number(m?.[1] ?? '0')).toBeGreaterThan(0);
   });
 
   it('points users at the machine-readable shape', () => {

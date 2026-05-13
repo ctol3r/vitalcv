@@ -221,7 +221,7 @@ export default function ClinicianPassport({ trustState, npi, clinicianName, erro
                   <div className="text-sm font-mono">{profileData.email}</div>
                   {isEmailVerified ? (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-green-600 bg-green-600/10 px-2 py-1 rounded-full flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Verified
+                      <CheckCircle2 className="w-3 h-3" /> Email confirmed
                     </span>
                   ) : (
                     <div className="flex items-center gap-2">

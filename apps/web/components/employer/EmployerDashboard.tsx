@@ -232,7 +232,7 @@ function ApplicationRow({
             {readiness?.readinessLevel === 'L3' && (
               <div className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
                 <ShieldCheck className="h-3 w-3" />
-                Verified
+                Issuer-confirmed
               </div>
             )}
           </div>

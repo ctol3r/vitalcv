@@ -62,7 +62,7 @@ const MONITORING_META = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  Verified: 'text-foreground/70',
+  'Source-backed': 'text-foreground/70',
   Active: 'text-foreground',
   Pending: 'text-foreground',
   Unavailable: 'text-muted-foreground',
@@ -138,7 +138,7 @@ export function ApplyBundleView({ bundle }: Props) {
   const monitorMeta = MONITORING_META[bundle.monitoringStatus];
   const verifiedItems = uniqueStrings(
     bundle.credentials
-      .filter((credential) => canonicalCredStatus(credential.status) === 'Verified')
+      .filter((credential) => canonicalCredStatus(credential.status) === 'Source-backed')
       .map((credential) => credentialTypeLabel(credential.type)),
   );
   const missingItems = uniqueStrings(
@@ -230,7 +230,7 @@ export function ApplyBundleView({ bundle }: Props) {
                     </span>
                     {cred.verifiedAt && (
                       <p className="mt-0.5 text-[10px] text-muted-foreground/40">
-                        Verified {formatDate(cred.verifiedAt)}
+                        Last confirmed {formatDate(cred.verifiedAt)}
                       </p>
                     )}
                   </div>

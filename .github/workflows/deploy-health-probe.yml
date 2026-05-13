@@ -1,0 +1,34 @@
+name: Deploy health probe
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Don't run two probes against prod simultaneously
+  group: deploy-health-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Source-health snapshot probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait 60s for deploy to settle
+        run: sleep 60
+
+      - name: Probe source-health snapshots
+        env:
+          # Token is passed via env, NEVER as a shell argument; never echoed.
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET secret is not configured for this workflow."
+            exit 1
+          fi
+          bash scripts/deploy-health-probe.sh https://vitalcv.com

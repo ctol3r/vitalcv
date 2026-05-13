@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation';
 const FOOTER_LINKS = [
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
+  { href: '/legal/dpa', label: 'DPA' },
+  { href: '/legal/cookies', label: 'Cookies' },
   { href: '/pilot', label: 'Start a Pilot' },
 ] as const;
 
@@ -34,12 +36,12 @@ export default function Footer() {
                 {link.label}
               </Link>
             ))}
-            <a
-              href="mailto:hello@vitalcv.com"
+            <Link
+              href="/contact"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Contact
-            </a>
+            </Link>
           </nav>
         </div>
       </div>

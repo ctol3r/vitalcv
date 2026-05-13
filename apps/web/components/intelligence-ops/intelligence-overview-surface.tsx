@@ -353,7 +353,7 @@ export function IntelligenceOverviewSurface() {
                     <p className={`text-2xl font-semibold tabular-nums ${trustScoreColor(provider.trustScore)}`}>
                       {provider.trustScore}
                     </p>
-                    <TimestampPair label="Verified" value={provider.lastVerifiedAt} />
+                    <TimestampPair label="Last confirmed" value={provider.lastVerifiedAt} />
                   </div>
                 </button>
               ))}

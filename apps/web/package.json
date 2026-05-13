@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "build-storybook": "storybook build",
     "dev": "node --experimental-strip-types ../../scripts/runtime/assert-canonical-runtime.ts --role web --deployment-mode local --env-label dev --port 3030 -- pnpm exec next dev -p 3030",
     "dev:e2e": "node --experimental-strip-types ../../scripts/runtime/assert-canonical-runtime.ts --role web --deployment-mode local --env-label e2e --port 3030 -- pnpm exec next dev -H 127.0.0.1 -p 3030",
@@ -19,6 +20,7 @@
     "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.2",
     "@blueprintjs/core": "^6.10.0",
     "@blueprintjs/icons": "^6.7.0",
     "@blueprintjs/table": "^6.0.19",
@@ -71,12 +73,14 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "prisma": "^6.19.2",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.4",
+    "axe-core": "^4",
     "eslint-config-next": "^15.5.9",
     "jsdom": "^29.0.1",
     "postcss": "^8.5",

@@ -1,6 +1,6 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-03 (PR-C clinician rescue + PR-E design-system v2 rescue)
+Last updated: 2026-05-07 (Waves B/D/E/F/H — 14 PRs landed; all 6 design surfaces foundationed)
 Source branch: `rescue/ops-docs-foundation`
 
 ## Full-Scope Coverage Rule
@@ -325,3 +325,200 @@ RELIABILITY-1 (#186) and RELIABILITY-2 (#187) shipped `SourceHealthState`, `Lane
 * Row moved: `Mobile web / PWA` 35→42 (responsive shell + Geist font system at layout level; installability + offline shell still not verified).
 * Rows held: `Contrast` stays 35 (no axe-based contrast audit added in PR-F); `Web quality` stays 85 (no new CI gate); `Vercel deploy health` stays 60 (no deploy procedure change).
 * `typographyTokens.fontSans` (lib) intentionally unchanged — `theme-tokens.test.ts` still asserts Nunito Sans on the lib side; layout-level CSS vars override at runtime. Lib-level token migration is a future PR with a paired test update.
+
+## Wave A — Code Red merge burndown (2026-05-05)
+
+11 PRs merged to main between `5d530f13` and `91f162b5`. Three PRs deferred (#237, #240, #247) due to unrelated backend test drift or schema-conflict resolution that requires its own PR. PR #243 (verifier RBAC) auto-conflicted on the last merge of the script and is queued for rebase.
+
+### Per-row Current % deltas (evidenced by code on `origin/main`)
+
+| Row | Before | After | Evidence |
+|---|---:|---:|---|
+| Real persistence writer (Trust Engine) | 5 | 30 | #221 — Prisma scaffold for IssuerRequest + ReceiptCandidate with truth-contract CHECK constraints (decisionGrade=FALSE, proofTier='receipt_candidate', recordedBy enum). Writer not wired yet (Wave B). |
+| Source health classifier (Trust Engine) | 65 | 75 | #252 — post-deploy source-health probe workflow + script + test. |
+| Reuse / revocation / supersession boundary (Trust Engine) | 75 | 80 | #235 — `classifyConstraintViolation` (Postgres 23514 → tamper_detected) + `checkCrossTenantReuseBlock` consent helpers. |
+| Verifier worklist / decision UX | 60 | 80 | #253 — replaces foundation array with DB-backed `getWorklist()` reads from ReceiptCandidate; `REVIEW_STATE_MAP` keyed by canonical `ReceiptCandidateReviewState`. |
+| WCAG 2.2 AA baseline | 50 | 80 | #229 + #232 — foundation a11y assertions + axe-core gate on hero routes. |
+| Security headers | 25 | 75 | #226 — strict response-header baseline (CSP/HSTS/X-Content-Type-Options/Referrer-Policy/Permissions-Policy). |
+| Secrets / env handling | 40 | 70 | #228 — typed env contract with build-time validation. |
+| API route hardening | 35 | 60 | #234 — CORS allowlist + API key foundation. |
+| OWASP ASVS L1 baseline | 0 | 40 | #227 — published ASVS L1 scorecard at `docs/security/asvs-scorecard.md`. |
+| Legal pages | 30 | 70 | #242 — DPA template + cookie policy pages with footer wiring. |
+
+### Section roll-ups (derived)
+
+* 🧠 Trust Engine / Issuer Infrastructure: ~78 → ~85
+* 🧑‍⚕️ Live Clinician Product: held (no Wave A action on clinician-facing rows)
+* 🛂 Verifier / Employer: ~67 → ~74
+* 📊 Intelligence / UX: ~64 → ~70 (a11y gate landed)
+* 🏛 Enterprise / Compliance: ~42 → ~58 (security headers + env + CORS + ASVS + legal)
+
+### Deferred (require own follow-up PR, not in this delta)
+
+* **#237** db-migration baseline — Prisma migrate gate now passes after dropping `--shadow-database-url`, but Railway Deploy Preflight still blocked by a real backend test drift (`employerActions.test.ts` expects `reviewHref: "/review/{entity}?contextId={ctx}&bundleId={bundle}"` while the route returns `"/review/undefined"`). That's a backend route bug, not a docs/CI bug.
+* **#247** policy decision persistence — `apps/web/prisma/schema.prisma` had a conflict with the canonical-types comment that #253 added; resolution requires its own PR rather than mid-rebase fix-forward.
+* **#240** cross-tenant reuse block — Web Quality CI failure that needs the same kind of test/copy alignment #253 needed; left as a follow-up.
+* **#243** verifier RBAC — auto-conflicted as the 7th PR in the merge script (after #242 touched footer/middleware-adjacent files); needs a rebase + re-merge.
+
+### Verification artifacts
+
+* `git log origin/main 5d530f13..91f162b5` — 11 commits, all squash-merges with PR numbers.
+* No row above 90% claimed in this delta.
+* No banned phrases introduced (every PR's diff was Codex-audited or its CI ran banned-strings checks).
+* Truth contract preserved: `ReceiptCandidate.decisionGrade` is still the literal `false` and `proofTier` is still the literal `'receipt_candidate'` everywhere they appear.
+
+## Waves B/D/E/F/H — Code Red continuation (2026-05-05 → 2026-05-07)
+
+14 PRs merged to main between `a35747bd` (post Wave A board delta #254) and
+`39e00696` (post Wave E Phase 2 Dossier #273). This brings the full Code Red
+loop to a structural close: every issuer surface persists candidates behind a
+feature flag, the GTM funnel is closed, and **all 6 missing design surfaces
+from the Claude Design zip have foundations on main**.
+
+### Wave B Phase 2-3c — Persistence cutover (4 PRs)
+
+ReceiptCandidate writer landed and wired into 3 of 4 issuer surfaces. Default
+behavior unchanged (`ISSUER_PERSISTENCE_ENABLED` unset in prod); flipping the
+flag in production env causes those pages to write real audit rows on visit
+without a redeploy.
+
+| PR | Surface | Effect |
+|---|---|---|
+| #255 | writer module | feature-flagged ReceiptCandidate writer with strict no-crash invariant + 6-test suite |
+| #256 | `/issuer/review/[requestId]` | dynamic-import + try/catch wrapped writer call; persistence-status banner system (4 outcome states) |
+| #257 | `/issuer/policy-review/[requestId]` | same wiring; dry-run UX preserved |
+| #258 | `/issuer/psv-receipt/[requestId]` | same wiring; PSV promotion literals untouched |
+
+`/issuer/psv-reuse/[receiptId]` is intentionally NOT wired — it operates on
+PSVReceipt + PSVReceiptReuseDecision (different entities, different writers).
+A follow-up phase adds those.
+
+### Wave H — GTM funnel (4 PRs)
+
+Buyer journey closed end-to-end: lands → reads persona page → picks plan →
+clicks pilot CTA → fills intake form → submission posts to Slack (or stdout).
+
+| PR | Surface | Effect |
+|---|---|---|
+| #259 | `/contact` + `/api/pilot-intake` | real intake form, Slack hand-off when env URL set, 33 tests |
+| #260 | `/for/cvo` `/for/payer` `/for/staffing-exchange` | 3 persona landing pages + form preselect via `?persona=` |
+| #261 | `/status` | public source-health panel (NPPES/OIG/PECOS/state-board) wired to in-memory snapshot store from #187/#252; honest empty-state |
+| #262 | `/pricing` | per-plan CTAs routing to `/contact?persona=...`; optional Cal.com booking embed gated on `NEXT_PUBLIC_CALENDLY_URL` (host-allowlisted to cal.com / calendly.com) |
+
+### Waves D/E/F — Design surfaces (6 PRs, all 6 surfaces)
+
+Every Claude Design surface now has a foundation on main. Each renders a demo
+banner so a viewer cannot mistake the surface for a real production state. Real
+DB reads, OCR, classification engines, EdDSA signing, and live action endpoints
+are explicitly Phase 2 work per surface — Phase 1 establishes the route, the
+data shape, the truth-contract enforcement, and the test coverage.
+
+| PR | Surface | Route |
+|---|---|---|
+| #263 | File | `/file/[fileId]` — 8-section TOC + sticky sidebar + IntersectionObserver |
+| #265 | ROI | `/roi` — KPI strip + DTS table + blocker funnel + compliance grid + financial impact |
+| #268 | Inbox | `/inbox` — document list + extractions with provenance + suggestions + provenance legend |
+| #270 | Activation | `/activation/[caseId]` — burn-down + critical path + privileges + payer matrix + onboarding + handoffs |
+| #271 | Autopilot | `/autopilot` — trust score (composite + factors) + renewal radar + NBA queue + portability map + drift monitor |
+| #273 | Dossier | `/dossier/[receiptId]` — 11-row custody ledger + receipt envelope + reg mapping + 3 export options |
+
+### Per-row Current % deltas (evidenced by code on `origin/main`)
+
+| Row | Before | After | Evidence |
+|---|---:|---:|---|
+| Real persistence writer (Trust Engine) | 30 | 70 | #255 (writer) + #256/#257/#258 (3 of 4 issuer surfaces wired) |
+| Issuer review surface | 80 | 90 | #256 — persistence banner system + strict no-crash dynamic import |
+| Policy review surface | 85 | 90 | #257 — same wiring |
+| PSV receipt promotion surface | 70 | 80 | #258 — underlying ReceiptCandidate persisted |
+| Contact / pilot intake | 0 | 80 | #259 — form + POST + Slack wrapper, 33 tests |
+| Persona-routed landing pages | 30 | 75 | #260 — 3 persona pages + form preselect |
+| Public status surface | 60 | 85 | #261 — source-health panel wired to snapshot store |
+| Pricing surface | 50 | 75 | #262 — per-plan CTAs + booking embed |
+| Credentialing file packet (UI) | 0 | 30 | #263 — foundation shell, all 8 sections |
+| Executive ROI dashboard (UI) | 0 | 30 | #265 — foundation shell, KPI/DTS/funnel/grid/financial |
+| AI Knowledge Inbox (UI) | 0 | 25 | #268 — foundation shell, 5 docs, provenance legend |
+| Start-Activation Console (UI) | 0 | 30 | #270 — foundation shell, 4 stages + 5 priv + 8 payers + 10 tasks |
+| Career Autopilot (UI) | 0 | 25 | #271 — foundation shell, 9 renewals + NBA + portability + drift |
+| Cryptographic Proof Dossier (UI) | 0 | 25 | #273 — foundation shell, 11-row ledger + envelope + reg mapping |
+
+### Section roll-ups (derived)
+
+* 🧠 Trust Engine / Issuer Infrastructure: ~85 → ~90 (writer landed + 3 surfaces wired)
+* 🧑‍⚕️ Live Clinician Product: held (no clinician-facing rows touched in this window)
+* 🛂 Verifier / Employer: ~74 → ~78 (Activation Console foundation + persistence wiring)
+* 📊 Intelligence / UX: ~70 → ~85 (5 net-new design surfaces foundationed: File, ROI, Inbox, Autopilot, Dossier)
+* 🏛 Enterprise / Compliance: ~58 → ~62 (Dossier reg mapping + ROI compliance alignment grid)
+* 🛒 Commercial / GTM: ~40 → ~80 (Wave H closed the buyer funnel)
+
+### Truth-contract enforcement during this delta
+
+A standing rename pattern emerged across the design-surface foundations: the
+design source's strongest provenance label is the bare word **"Verified"**
+(or **"VERIFIED"** in the Dossier). CLAUDE.md bans bare "Verified" status
+labels. Every surface that imported a "verified" provenance from the design
+source renames it to **"Source-confirmed"** with a typed key like
+`source_confirmed`. Tests on each surface assert no status meta uses bare
+"Verified" / "VERIFIED" and the rendered HTML contains zero bare
+`>Verified<` or `>VERIFIED<` tags.
+
+A second standing pattern: specific upstream vendor names that the design
+source uses to make examples concrete (NPPES, OIG/LEIE, SAM.gov, NPDB,
+AAMC, NCCPA, CA DCA, DEA, CAQH, Aetna, UnitedHealthcare, Anthem, Kaiser,
+Cigna, Cedar, etc.) are all **vendor-gated** in our reality and have NO
+real integration. Each design surface PR replaces those names with
+vendor-neutral controls ("home-state professional licensing board",
+"federal controlled-substance authority", "issuing certification board",
+"Commercial Carrier 1..5", etc.) so a viewer cannot read the demo as
+implying a real integration. Tests assert vendor-name absence with
+word-boundary regex to prevent false positives like `sam` matching inside
+"same day".
+
+### Test coverage added in this delta
+
+| PR | Test count |
+|---|---:|
+| #255 | 6 (writer module) |
+| #256 | 6 (issuer review wiring) |
+| #257 | 7 (policy review wiring) |
+| #258 | 6 (psv receipt wiring) |
+| #259 | 33 (validate + slack + route) |
+| #260 | 17 (persona pages + form preselect) |
+| #261 | 7 (source-health public panel) |
+| #262 | 15 (pricing CTAs + booking embed) |
+| #263 | 17 (file foundation) |
+| #265 | 27 (ROI foundation) |
+| #268 | 23 (inbox foundation) |
+| #270 | 27 (activation foundation) |
+| #271 | 26 (autopilot foundation) |
+| #273 | 28 (dossier foundation) |
+| **Total** | **245 new test cases** |
+
+### Verification artifacts
+
+* `git log origin/main a35747bd..39e00696` — 14 squash-merges with PR numbers.
+* Every PR was end-to-end verified against a local `next start` build (auth-
+  gated issuer surfaces relied on unit tests since auth blocks browser entry).
+* No row above 90% claimed in this delta.
+* No banned phrases introduced — every PR's diff was Codex-audited (3-pass:
+  implementation / diff safety / banned strings).
+* Truth contract preserved across all 14 PRs: `ReceiptCandidate.decisionGrade`
+  is still the literal `false`, `proofTier` is still the literal
+  `'receipt_candidate'`, and no file under `apps/web/lib/issuer-verification/`
+  was touched by any of the design-surface PRs.
+
+### Deferred / not in scope
+
+* **Wave B Phase 3d** — `PolicyReviewDecision` schema + writer + POST handler.
+  The PolicyReviewDecision Prisma model from the original deferred PR #247
+  still needs its own follow-up PR; the policy-review page in #257 only
+  persists the underlying ReceiptCandidate.
+* **Wave B Phase 3e** — `/issuer/psv-reuse/[receiptId]` writer wiring.
+  Operates on PSVReceipt + PSVReceiptReuseDecision (different entities).
+* **Phase 2 work per design surface** — interactive upload (Inbox), real DB
+  reads (Activation/Autopilot), real EdDSA signing + signed-PDF export
+  (Dossier), SVG sparkline charts (ROI/Activation/Autopilot), accept-into-
+  profile flow (Inbox suggestions), real action endpoints (Autopilot NBA).
+* **Wave A leftovers** — #237 (DB migrate), #240 (cross-tenant reuse), #243
+  (verifier RBAC), #247 (policy decision persistence) all still open.
+* **Wave G** — enterprise architecture hardening (HIPAA / SOC2 docs / PWA /
+  CI gates) not yet started.

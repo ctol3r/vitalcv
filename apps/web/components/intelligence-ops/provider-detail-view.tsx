@@ -215,7 +215,7 @@ export function ProviderDetailView({
                     </div>
                     <p className="mt-3 text-sm text-[var(--vt-text-2)]">{credential.name}</p>
                     <div className="mt-2 flex flex-wrap gap-3">
-                      <TimestampPair label="Verified" value={credential.verifiedAt} />
+                      <TimestampPair label="Last confirmed" value={credential.verifiedAt} />
                       <TimestampPair label="Expires" value={credential.expiresAt} />
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export function ProviderDetailView({
                     <div className="flex flex-wrap items-center gap-2">
                       <OpsBadge label={artifact.issuer} />
                       <OpsBadge label={artifact.status} tone={severityTone(artifact.status)} />
-                      <TimestampPair label="Verified" value={artifact.verifiedAt} />
+                      <TimestampPair label="Last confirmed" value={artifact.verifiedAt} />
                     </div>
                     <div className="mt-3 space-y-1 text-sm text-[var(--vt-text-2)]">
                       <p>Lifecycle {artifact.lifecycleState}</p>
