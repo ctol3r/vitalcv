@@ -202,7 +202,7 @@ export function ProvidersSurface() {
                 <div className="space-y-1 text-sm text-[var(--vt-text-2)]">
                   <p className="font-mono text-sm text-[var(--vt-text-3)]">NPI {provider.npi}</p>
                   <p>{provider.activeCredentials}/{provider.credentialCount} active credentials</p>
-                  <TimestampPair label="Verified" value={provider.lastVerifiedAt} />
+                  <TimestampPair label="Last confirmed" value={provider.lastVerifiedAt} />
                 </div>
               </div>
             )}

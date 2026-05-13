@@ -31,7 +31,7 @@ export function NodeDetailPanel({
   const isVerified = trustState === 'VERIFIED';
   
   const statusConfig = {
-    VERIFIED: { icon: CheckCircle2, label: 'Verified', class: 'text-black' },
+    VERIFIED: { icon: CheckCircle2, label: 'Trust-state confirmed', class: 'text-black' },
     PENDING: { icon: Clock, label: 'Pending Verification', class: 'text-neutral-500' },
     REJECTED: { icon: ShieldX, label: 'Verification Failed', class: 'text-black' },
     UNKNOWN: { icon: AlertCircle, label: 'Unknown State', class: 'text-neutral-400' },

@@ -10,10 +10,10 @@ import { Shield, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 // ── Mock data rows ────────────────────────────────────────────────────────
 
 const MOCK_ROWS = [
-  { name: 'Dr. Sarah Chen',    specialty: 'Cardiology',       score: 95, band: 'GREEN',  status: 'Verified' },
+  { name: 'Dr. Sarah Chen',    specialty: 'Cardiology',       score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
   { name: 'Dr. Marcus Webb',   specialty: 'Emergency Med.',   score: 88, band: 'GREEN',  status: 'Monitoring' },
   { name: 'Dr. Priya Nair',    specialty: 'Internal Med.',    score: 80, band: 'YELLOW', status: 'Expiring' },
-  { name: 'Dr. James Okafor',  specialty: 'Neurology',        score: 95, band: 'GREEN',  status: 'Verified' },
+  { name: 'Dr. James Okafor',  specialty: 'Neurology',        score: 95, band: 'GREEN',  status: 'Issuer-confirmed' },
 ] as const;
 
 const BAND_COLORS = {
@@ -125,7 +125,7 @@ export function HeroAppPreview() {
             {/* Footer stat bar */}
             <div className="flex items-center gap-6 border-t border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-5 py-2.5">
               {[
-                { icon: CheckCircle2, label: '3 Verified',   color: 'text-[var(--vt-status-resolved)]' },
+                { icon: CheckCircle2, label: '3 Issuer-confirmed', color: 'text-[var(--vt-status-resolved)]' },
                 { icon: Clock,        label: '1 Expiring',   color: 'text-[var(--vt-severity-high)]'   },
                 { icon: CheckCircle2, label: '↓ 88% faster', color: 'text-[var(--vt-text-muted)]'    },
               ].map(({ icon: Icon, label, color }) => (

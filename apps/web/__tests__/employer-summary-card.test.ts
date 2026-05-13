@@ -15,7 +15,7 @@ describe('employer summary card wording', () => {
   });
 
   it('keeps blocker, verified, and missing buckets explicit in the buyer surface', () => {
-    expect(employerSummaryCardSource).toContain('title="Verified"');
+    expect(employerSummaryCardSource).toContain('title="Confirmed by employer"');
     expect(employerSummaryCardSource).toContain('title="Missing"');
     expect(employerSummaryCardSource).toContain('title="Blocked"');
     expect(employerSummaryCardSource).toContain('emptyLabel="No current blockers."');

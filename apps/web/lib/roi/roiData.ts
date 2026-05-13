@@ -11,7 +11,7 @@
  *     verbatim on the page so a viewer can see where each number
  *     comes from and that a confidence range is applied.
  *   - No banned overclaim copy is used (no "automatically verified",
- *     no bare "Verified" status, etc.). DTS = days-to-start, a
+ *     no bare-word status label per CLAUDE.md, etc.). DTS = days-to-start, a
  *     credentialing operations metric — not a verification claim.
  */
 

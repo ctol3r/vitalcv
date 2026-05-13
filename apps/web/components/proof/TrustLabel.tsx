@@ -99,7 +99,7 @@ export function ProofTierBadge({ tier }: { tier: 'none' | 'partial' | 'decision_
 
 function formatStatus(status: SourceStatus): string {
   return {
-    verified:        'Verified',
+    verified:        'Source-confirmed',
     in_progress:     'Checking…',
     not_checked:     'Not Checked',
     stale:           'Stale',

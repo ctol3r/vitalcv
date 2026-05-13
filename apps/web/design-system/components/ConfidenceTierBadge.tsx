@@ -24,7 +24,7 @@ interface ConfidenceTierMeta {
 
 export const CONFIDENCE_TIER_META: Record<ConfidenceTier, ConfidenceTierMeta> = {
   verified: {
-    label: 'Verified',
+    label: 'High-confidence tier',
     glyph: '✔',
     description: 'Checked against a primary source of truth.',
   },

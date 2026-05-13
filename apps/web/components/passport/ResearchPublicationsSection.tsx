@@ -8,7 +8,7 @@ import { formatProofDate } from '@/lib/trust/proof-language';
 void React;
 
 const ORCID_STATUS_BADGE = {
-  VERIFIED: { status: 'checked' as const, label: 'Verified' },
+  VERIFIED: { status: 'checked' as const, label: 'Source-confirmed' },
   PENDING: { status: 'stale' as const, label: 'Pending' },
   UNLINKED: { status: 'unavailable' as const, label: 'Not linked' },
 } as const;

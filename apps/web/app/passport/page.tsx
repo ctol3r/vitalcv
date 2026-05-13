@@ -149,7 +149,7 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
     case 'No profile yet':
       surfaceState = 'unavailable';
       break;
-    case 'Verified':
+    case 'Source-confirmed':
     case 'Clear':
     case 'Enrolled':
     case 'Checked':

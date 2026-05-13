@@ -12,9 +12,9 @@
  *     primary-source confirmations. The "source_confirmed" provenance
  *     is the strongest possible state and means a primary-source
  *     authority confirmed the field during ingest. We do NOT use the
- *     bare label "Verified" anywhere — CLAUDE.md bans bare "Verified"
- *     status labels — so the design's `verified` provenance maps to
- *     `source_confirmed` here, with a label "Source-confirmed".
+ *     bare-word status label banned by CLAUDE.md anywhere — so the
+ *     design's `verified` provenance maps to `source_confirmed` here,
+ *     with a label "Source-confirmed".
  *   - The page that renders this data always carries a
  *     "Demo intake — illustrative only" banner. data-is-demo is the
  *     literal `true`.
@@ -31,8 +31,8 @@ export type InboxProvenance =
   | 'contradicted';
 
 export interface InboxProvenanceMeta {
-  /** Visible label. We intentionally do not use the bare word
-   *  "Verified" anywhere — see CLAUDE.md banned-status-labels. */
+  /** Visible label. We intentionally do not use the bare-word
+   *  status label banned by CLAUDE.md — see banned-status-labels. */
   label: string;
   description: string;
   glyph: string;
