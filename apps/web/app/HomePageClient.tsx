@@ -1,81 +1,14 @@
 'use client';
 
-/**
- * HomePageClient — public homepage wedge (Bundle B26).
- *
- * Ports the prototype `view-home.jsx` into Next.js App Router. The NPI
- * submit flow routes to `/passport?npi={npi}`, where the existing
- * `useIngestStream` SSE pipeline takes over and hydrates progressively.
- *
- * Visual aesthetic: editorial / minimal — Geist sans, generous white,
- * mono accents, brutalist near-sharp corners (`--radius: 0.125rem`).
- */
-
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SignedIn } from '@clerk/nextjs';
-import {
-  Activity,
-  ArrowRight,
-  Fingerprint,
-  Layers,
-  ShieldCheck,
-  Stamp,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
-import {
-  LaneStateBadge,
-  TrustTierBadge,
-  type LaneState,
-  type TrustTier,
-} from '@/design-system/components';
+import { ArrowRight, Fingerprint, Zap } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
-
-const DEMO_NPI = '1346053246'; // Macie Miller, PA-C — the prototype's walking scenario.
-
-interface SourceRow {
-  code: string;
-  name: string;
-  authority: string;
-  state: LaneState;
-  chip: string;
-  freshness: string;
-}
-
-const SOURCES: SourceRow[] = [
-  { code: 'NPPES',    name: 'Identity registry',         authority: 'CMS · Federal',         state: 'verified', chip: 'Live',  freshness: 'Updated hourly' },
-  { code: 'OIG/LEIE', name: 'Exclusion list',            authority: 'HHS OIG · Federal',     state: 'verified', chip: 'Live',  freshness: 'Refreshed monthly' },
-  { code: 'PECOS',    name: 'Medicare enrollment',       authority: 'CMS · Federal',         state: 'verified', chip: 'Live',  freshness: 'Updated daily' },
-  { code: 'CA-PA',    name: 'Physician Assistant Board', authority: 'State of California',   state: 'access',   chip: 'Gated', freshness: 'Employer-gated PSV' },
-];
-
-interface Step {
-  Icon: LucideIcon;
-  title: string;
-  body: string;
-}
-
-const STEPS: Step[] = [
-  { Icon: Fingerprint, title: 'Enter your NPI',           body: 'We resolve your identity against public federal enumeration. No PII required, no account.' },
-  { Icon: Layers,      title: 'Fan out to sources',       body: 'We query authoritative registries in parallel and stamp each result with a verifiable receipt.' },
-  { Icon: Stamp,       title: 'Carry your packet forward', body: 'Share a cryptographically-signed snapshot with any employer, CVO, or locum tenens partner.' },
-];
-
-interface TierRow {
-  tier: TrustTier;
-  blurb: string;
-  example: string;
-}
-
-const TIER_LADDER: TierRow[] = [
-  { tier: 'T1', blurb: 'Self-asserted by the clinician.', example: 'Manually entered employment history.' },
-  { tier: 'T2', blurb: 'Inferred by AI from clinician artifacts.', example: 'Residency dates parsed from a CV.' },
-  { tier: 'T3', blurb: 'Source-checked against a federal/state registry.', example: 'NPPES · OIG/LEIE · PECOS.' },
-  { tier: 'T4', blurb: 'Cryptographically signed by the issuing authority.', example: 'Board-issued VC 2.0 receipt.' },
-];
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -83,6 +16,21 @@ function formatNpi(value: string): string {
   if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
 }
+
+const PREVIEW_STEPS = [
+  {
+    title: 'Recognized',
+    body: 'One NPI opens a source-backed snapshot.',
+  },
+  {
+    title: 'Clarified',
+    body: 'Readiness posture stays readable at a glance.',
+  },
+  {
+    title: 'Moving forward',
+    body: 'Onboarding continues without repeating the setup.',
+  },
+] as const;
 
 export default function HomePageClient() {
   const router = useRouter();
@@ -95,322 +43,159 @@ export default function HomePageClient() {
 
   const handleSubmit = React.useCallback(() => {
     if (!isFull) {
-      setError('NPI must be 10 digits.');
+      setError('Enter a full 10-digit NPI.');
       return;
     }
+
     setError(null);
+    try {
+      window.sessionStorage.setItem('onboarding_npi', digits);
+      window.localStorage.setItem('onboarding_npi', digits);
+    } catch {
+      // Keep the handoff continuous when storage is available.
+    }
     router.push(`/passport?npi=${digits}`);
   }, [digits, isFull, router]);
 
-  const handleDemo = React.useCallback(() => {
-    setRaw(DEMO_NPI);
-    setError(null);
-  }, []);
-
   return (
-    <div className="bg-[var(--vt-bg)] text-[var(--vt-text-primary)]">
+    <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(15,118,110,0.08),_transparent_50%),linear-gradient(180deg,var(--vt-bg)_0%,color-mix(in_oklab,var(--vt-bg)_94%,white)_100%)] text-[var(--vt-text-primary)]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_62%)]"
+      />
+
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
-          <div className="border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-state-verified)_10%,transparent)] py-2.5 px-4 text-center">
-            <p className="text-[12px] font-medium text-[var(--vt-state-verified)] flex items-center justify-center gap-2">
-              <Zap className="w-3.5 h-3.5" aria-hidden="true" />
+          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-state-verified)_10%,transparent)] px-4 py-2.5 text-center">
+            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-state-verified)]">
+              <Zap className="h-3.5 w-3.5" aria-hidden="true" />
               You are signed in securely.
               <Link
                 href="/holder"
-                className="underline font-semibold ml-2 hover:opacity-80 transition-opacity"
+                className="ml-1 font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
               >
-                Go to Workspace →
+                Go to Workspace
               </Link>
             </p>
           </div>
         </SignedIn>
       )}
 
-      <div className="max-w-[1400px] mx-auto px-6">
-        {/* ── Hero ─────────────────────────────────────── */}
-        <section className="pt-24 pb-20 grid grid-cols-12 gap-6 items-start">
-          <div className="col-span-12 lg:col-span-7">
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)] mb-6 flex items-center gap-2">
-              <span className="h-px w-6 bg-[var(--vt-border)] inline-block" aria-hidden="true" />
-              <span>Credential readiness infrastructure</span>
-            </div>
-
-            <h1 className="text-[clamp(44px,7vw,68px)] leading-[0.98] font-semibold tracking-[-0.025em] text-[var(--vt-text-primary)]">
-              Stop starting<br />
-              over. Start ready.
+      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16 sm:py-20">
+        <div className="w-full max-w-3xl">
+          <div className="space-y-6">
+            <h1 className="max-w-2xl text-[clamp(3rem,7.5vw,5rem)] leading-[0.92] font-semibold tracking-[-0.06em] text-[var(--vt-text-primary)]">
+              Enter your NPI.
+              <br />
+              See what already recognizes you.
             </h1>
 
-            <p className="mt-7 text-[17px] leading-[1.55] text-[var(--vt-text-secondary)] max-w-[640px]">
-              Enter your NPI to see a source-backed credential readiness snapshot from federal sources&nbsp;
-              <span className="font-mono text-[14.5px] text-[var(--vt-text-primary)]">
-                (NPPES, OIG/LEIE, PECOS)
-              </span>
-              . Know what&apos;s ready, and what&apos;s missing — before the paperwork starts.
+            <p className="max-w-xl text-[18px] leading-[1.65] text-[var(--vt-text-secondary)]">
+              VitalCV turns one NPI into a calm, source-backed snapshot of what is already verified, what still needs attention, and what helps you move forward now.
             </p>
+          </div>
 
-            {/* NPI input */}
-            <div className="mt-10 max-w-[640px]">
-              <div className="flex items-center justify-between mb-2">
+          <Card className="mt-10 max-w-2xl border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] shadow-[0_1px_0_rgba(255,255,255,0.72),0_18px_48px_rgba(15,23,42,0.05)]">
+            <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+              <form
+                className="space-y-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleSubmit();
+                }}
+              >
                 <label
                   htmlFor="npi"
-                  className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)]"
+                  className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]"
                 >
-                  Your NPI · 10-digit National Provider Identifier
+                  NPI
                 </label>
-                <button
-                  type="button"
-                  onClick={handleDemo}
-                  className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] underline-offset-2 hover:underline transition-colors"
-                  title="Preview with a real PA-C profile"
-                >
-                  See a live example →
-                </button>
-              </div>
 
-              <div
-                className={cn(
-                  'flex items-stretch border rounded-[var(--vt-radius-sm)] bg-[var(--vt-surface)] transition-colors',
-                  focused
-                    ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
-                    : 'border-[var(--vt-border)]',
-                )}
-              >
-                <div className="flex items-center px-4 border-r border-[var(--vt-border-subtle)] text-[var(--vt-text-muted)]">
-                  <Fingerprint size={18} aria-hidden="true" />
-                </div>
-                <input
-                  id="npi"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="— — —  — — —  — — — —"
-                  value={formatNpi(raw)}
-                  onChange={(e) => {
-                    setRaw(e.target.value);
-                    setError(null);
-                  }}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                  className="font-mono flex-1 bg-transparent h-16 px-4 text-[22px] tracking-[0.14em] text-[var(--vt-text-primary)] placeholder:text-[var(--vt-text-muted)]/40 outline-none"
-                />
-                <button
-                  onClick={handleSubmit}
-                  disabled={!isFull}
-                  type="button"
+                <div
                   className={cn(
-                    'flex items-center gap-2 px-6 text-[13px] font-medium tracking-tightish transition-colors',
-                    isFull
-                      ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:opacity-90'
-                      : 'bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)] cursor-not-allowed',
+                    'flex flex-col overflow-hidden rounded-[1.5rem] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
+                    focused
+                      ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
+                      : 'border-[var(--vt-border)]',
                   )}
                 >
-                  <span>Check Credential Readiness</span>
-                  <ArrowRight size={16} aria-hidden="true" />
-                </button>
-              </div>
-
-              <div className="mt-2 h-5 flex items-center justify-between text-[11.5px]">
-                <span
-                  className={cn(
-                    'font-mono uppercase tracking-[0.12em]',
-                    error ? 'text-[var(--vt-state-blocked)]' : 'text-[var(--vt-text-muted)]',
-                  )}
-                  role={error ? 'alert' : undefined}
-                >
-                  {error ?? (isFull ? '10 / 10 digits' : `${digits.length} / 10 digits`)}
-                </span>
-                <span className="text-[var(--vt-text-muted)]">
-                  No account required · Nothing stored without your consent
-                </span>
-              </div>
-            </div>
-
-            {/* Trust strip */}
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[var(--vt-text-secondary)]">
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-[var(--vt-state-verified)]" aria-hidden="true" />
-                <span>VC 2.0 compatible</span>
-              </span>
-              <span className="h-3 w-px bg-[var(--vt-border-subtle)]" aria-hidden="true" />
-              <span className="inline-flex items-center gap-1.5">
-                <Layers size={14} className="text-[var(--vt-text-muted)]" aria-hidden="true" />
-                <span>OpenID4VCI aligned</span>
-              </span>
-              <span className="h-3 w-px bg-[var(--vt-border-subtle)]" aria-hidden="true" />
-              <span className="inline-flex items-center gap-1.5">
-                <Stamp size={14} className="text-[var(--vt-text-muted)]" aria-hidden="true" />
-                <span>Audit-ready receipts</span>
-              </span>
-            </div>
-          </div>
-
-          {/* ── Right: data provenance panel ──────────────── */}
-          <div className="col-span-12 lg:col-span-5 lg:pl-10 mt-4 lg:mt-0">
-            <section className="border border-[var(--vt-border)] rounded-[var(--vt-radius-sm)] bg-[var(--vt-surface)] overflow-hidden">
-              <header className="px-5 py-3 border-b border-[var(--vt-border-subtle)] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity size={14} className="text-[var(--vt-text-muted)]" aria-hidden="true" />
-                  <span className="text-[12.5px] font-medium text-[var(--vt-text-primary)]">
-                    Authoritative sources, never scraped
-                  </span>
-                </div>
-                <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
-                  Live
-                </span>
-              </header>
-              <ul className="divide-y divide-[var(--vt-border-subtle)]">
-                {SOURCES.map((source) => (
-                  <li
-                    key={source.code}
-                    className="px-5 py-3.5 flex items-center justify-between hover:bg-[var(--vt-surface-subtle)] transition-colors"
+                  <div className="flex items-center gap-3 px-4 pt-4 text-[var(--vt-text-muted)] sm:pt-0">
+                    <Fingerprint size={18} aria-hidden="true" />
+                  </div>
+                  <Input
+                    id="npi"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Enter 10-digit NPI"
+                    value={formatNpi(raw)}
+                    onChange={(event) => {
+                      setRaw(event.target.value);
+                      setError(null);
+                    }}
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? 'home-npi-error' : undefined}
+                    className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!isFull}
+                    className={cn(
+                      'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
+                      isFull
+                        ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
+                        : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                    )}
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] text-[var(--vt-text-muted)] uppercase tracking-[0.1em]">
-                          {source.code}
-                        </span>
-                        <span className="text-[13px] font-medium text-[var(--vt-text-primary)] truncate">
-                          {source.name}
-                        </span>
-                      </div>
-                      <div className="text-[11.5px] text-[var(--vt-text-muted)] mt-0.5">
-                        {source.authority}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <LaneStateBadge state={source.state} size="sm" label={source.chip} />
-                      <div className="font-mono text-[10.5px] text-[var(--vt-text-muted)] mt-1">
-                        {source.freshness}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <footer className="px-5 py-3 border-t border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] flex items-center justify-between text-[11.5px] text-[var(--vt-text-muted)]">
-                <span>4 federal + state sources wired in</span>
-                <Link
-                  href="/passport"
-                  className="inline-flex items-center gap-1 text-[var(--vt-text-secondary)] hover:text-[var(--vt-text-primary)] transition-colors"
+                    Open passport
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              </form>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                <span
+                  className={error ? 'text-[var(--vt-state-blocked)]' : undefined}
+                  role={error ? 'alert' : undefined}
+                  id={error ? 'home-npi-error' : undefined}
                 >
-                  <span>Full source registry</span>
-                  <ArrowRight size={12} aria-hidden="true" />
-                </Link>
-              </footer>
-            </section>
-
-            <blockquote className="mt-5 text-[12.5px] text-[var(--vt-text-secondary)] leading-[1.5] border-l-2 border-[var(--vt-border)] pl-4">
-              &ldquo;Credentialing eats{' '}
-              <span className="text-[var(--vt-text-primary)] font-medium">90–180 days</span> per hire.
-              Most of that is re-collecting evidence that&apos;s already public.&rdquo;
-              <footer className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)] mt-2">
-                Why VitalCV exists
-              </footer>
-            </blockquote>
-          </div>
-        </section>
-
-        {/* ── How it works strip ────────────────────────── */}
-        <section className="border-t border-[var(--vt-border-subtle)] pt-10 pb-16">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-3">
-              <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)] mb-2">
-                Protocol
-              </div>
-              <h3 className="text-[22px] font-semibold tracking-tightish text-[var(--vt-text-primary)] leading-[1.15]">
-                One NPI in.
-                <br />
-                A defensible packet out.
-              </h3>
-            </div>
-            <ol className="col-span-12 lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--vt-border-subtle)] border border-[var(--vt-border-subtle)] rounded-[var(--vt-radius-sm)] overflow-hidden">
-              {STEPS.map((step, index) => {
-                const StepIcon = step.Icon;
-                return (
-                  <li key={step.title} className="bg-[var(--vt-surface)] p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-mono text-[11px] text-[var(--vt-text-muted)] uppercase tracking-[0.14em]">
-                        Step {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <StepIcon size={16} className="text-[var(--vt-text-muted)]" aria-hidden="true" />
-                    </div>
-                    <div className="text-[14px] font-semibold text-[var(--vt-text-primary)] mb-1.5">
-                      {step.title}
-                    </div>
-                    <div className="text-[12.5px] text-[var(--vt-text-secondary)] leading-[1.5]">
-                      {step.body}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </section>
-
-        {/* ── Trust Tier Ladder ─────────────────────────── */}
-        <section className="border-t border-[var(--vt-border-subtle)] pt-12 pb-16">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-4">
-              <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)] mb-3">
-                §2 · Authority framework
-              </div>
-              <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--vt-text-primary)] leading-[1.2]">
-                A published ladder of trust.
-                <br />
-                <span className="text-[var(--vt-text-secondary)]">Every observation is tiered.</span>
-              </h3>
-              <p className="mt-4 text-[13px] leading-[1.6] text-[var(--vt-text-secondary)] max-w-[420px]">
-                Not all sources are equal, and we refuse to pretend otherwise. Every fact on the
-                passport is tagged with a tier from T1 to T4 so downstream auditors know exactly how
-                much confidence to extend. T4 records are signed by the issuing authority itself —
-                no further verification required.
-              </p>
-              <div className="mt-5 flex items-center gap-2 text-[11.5px] text-[var(--vt-text-muted)]">
-                <ShieldCheck size={13} className="text-[var(--vt-text-muted)]" aria-hidden="true" />
-                <span>
-                  Conforms to{' '}
-                  <span className="font-mono text-[var(--vt-text-secondary)]">NCQA CR §3</span>,{' '}
-                  <span className="font-mono text-[var(--vt-text-secondary)]">W3C VC 2.0</span>,{' '}
-                  <span className="font-mono text-[var(--vt-text-secondary)]">OpenID4VCI</span>
+                  {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
                 </span>
+                <span className="text-[var(--vt-border)]" aria-hidden="true">
+                  ·
+                </span>
+                <span>No account required</span>
+                <span className="text-[var(--vt-border)]" aria-hidden="true">
+                  ·
+                </span>
+                <span>Public source checks only</span>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="col-span-12 lg:col-span-8">
-              <p className="text-[14px] text-[var(--vt-text-secondary)] leading-[1.55] max-w-[640px]">
-                Every result is source-checked against federal registries — not scraped, not estimated.
-                NPPES confirms your NPI. OIG/LEIE checks for exclusions. PECOS verifies Medicare enrollment.
-              </p>
-            </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {PREVIEW_STEPS.map((step) => (
+              <div
+                key={step.title}
+                className="rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_92%,white)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                  {step.title}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--vt-text-secondary)]">
+                  {step.body}
+                </p>
+              </div>
+            ))}
           </div>
-        </section>
 
-        {/* ── Pilot anchor + footer ─────────────────────── */}
-        <section className="border-t border-[var(--vt-border-subtle)] py-6 px-4">
-          <div className="max-w-lg mx-auto text-center">
-            <Link
-              href="/p/norcal-pa-pilot-1"
-              className="inline-flex items-center gap-2 text-sm text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] transition-colors group"
-            >
-              <span className="w-2 h-2 rounded-full bg-[var(--vt-state-verified)] animate-pulse" aria-hidden="true" />
-              View a pilot session — readiness to employer action in 1.8 min
-              <span className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true">→</span>
-            </Link>
-          </div>
-        </section>
-
-        <footer className="border-t border-[var(--vt-border-subtle)] py-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-[11.5px] text-[var(--vt-text-muted)]">
-          <div className="flex items-center gap-3">
-            <span className="font-semibold tracking-tightish text-[var(--vt-text-primary)]">
-              VitalCV
-              <span className="text-[var(--vt-text-muted)] font-normal">/</span>
-              <span className="text-[var(--vt-text-secondary)] font-normal">trust</span>
-            </span>
-            <span className="text-[var(--vt-border)]">|</span>
-            <span>Delegated credential verification infrastructure · NCQA CR §3 · §4.2</span>
-          </div>
-          <div className="font-mono">© 2026 VitalCV, Inc. · Trust Registry Node 202 · ed25519</div>
-        </footer>
-      </div>
+          <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[var(--vt-text-muted)]">
+            The first result is a passport snapshot. Onboarding continues without re-entering what VitalCV already knows.
+          </p>
+        </div>
+      </main>
     </div>
   );
 }

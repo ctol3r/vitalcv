@@ -3,10 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PassportPage from '../app/passport/page';
 import { createInitialIngestStreamState, type IngestStreamState } from '../hooks/ingestStreamState';
-import {
-  buildEmployerReviewHref,
-  buildPassportEntityHref,
-} from '../lib/trust/public-wedge-parity';
+import { buildPassportEntityHref } from '../lib/trust/public-wedge-parity';
 
 const useIngestStreamMock = vi.fn();
 const searchParamsState = { npi: null as string | null };
@@ -84,7 +81,7 @@ describe('/passport ingest page', () => {
       },
     }));
 
-    expect(markup).toContain('Checking primary sources…');
+    expect(markup).toContain('Recognizing your NPI…');
     expect(markup).toContain('NPPES');
     expect(markup).toContain('OIG / LEIE');
     expect(markup).toContain('CMS PECOS');
@@ -100,7 +97,7 @@ describe('/passport ingest page', () => {
       npi: '1234567890',
     }));
 
-    expect(markup).toContain('Connecting to primary sources…');
+    expect(markup).toContain('Opening your passport…');
     expect(markup).toContain('Pending');
     expect(markup).not.toContain('Check your readiness');
   });
@@ -128,8 +125,8 @@ describe('/passport ingest page', () => {
 
     expect(markup).toContain('View full passport');
     expect(markup).toContain(buildPassportEntityHref('entity-1'));
-    expect(markup).toContain('View as employer');
-    expect(markup).toContain(buildEmployerReviewHref('entity-1'));
+    expect(markup).toContain('Continue activation');
+    expect(markup).toContain('/onboarding');
   });
 
   it('renders an honest no-profile state when NPPES did not return an authoritative record', () => {

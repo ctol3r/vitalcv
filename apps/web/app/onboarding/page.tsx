@@ -1,67 +1,114 @@
-import * as React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowRight, Fingerprint } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import {
-  buildOnboardingFoundationPlan,
-  explainOnboardingMilestoneStatus,
-  type OnboardingMilestoneStatus,
-} from '@/lib/commercial/onboardingFoundation';
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Onboarding Foundation | VitalCV',
-  description: 'Onboarding summarizes readiness and next steps; it does not complete credentialing.',
+  title: 'Activation Continuation | VitalCV',
+  description:
+    'Continue the path already started in passport. Onboarding refines activation without restarting the work.',
 };
 
-const STATUS_CLASS: Record<OnboardingMilestoneStatus, string> = {
-  foundation_available: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
-  preview_only: 'border-sky-500/40 bg-sky-500/10 text-sky-700',
-  planned: 'border-slate-400/40 bg-slate-500/10 text-slate-600',
-};
+const CONTINUATION_POINTS = [
+  {
+    title: 'Identity stays anchored',
+    body: 'Your NPI remains the anchor. Nothing here asks you to re-enter what VitalCV already recognized.',
+  },
+  {
+    title: 'Momentum stays visible',
+    body: 'The path reads as continuation, not setup bureaucracy.',
+  },
+  {
+    title: 'Progress stays calm',
+    body: 'One screen, one primary action, and a clear handoff into the next step.',
+  },
+] as const;
 
-export default function OnboardingPage() {
-  const plan = buildOnboardingFoundationPlan();
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const { returnTo } = await searchParams;
+  const returnHref = typeof returnTo === 'string' && returnTo.startsWith('/') ? returnTo : '/passport';
+  const continueHref =
+    typeof returnTo === 'string' && returnTo.startsWith('/')
+      ? `/clinician/onboarding?returnTo=${encodeURIComponent(returnTo)}`
+      : '/clinician/onboarding';
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <header className="mb-8 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Onboarding foundation
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-          Readiness and next steps
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong>{`Onboarding summarizes readiness and next steps; it does not complete credentialing.`}</strong>{' '}
-          This foundation keeps profile, import, readiness, and proof-pack preview states separate from verifier
-          acceptance.
-        </p>
-      </header>
+    <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16 sm:py-20">
+      <div className="w-full max-w-3xl">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_84%,transparent)] px-3 py-1 text-[11px] font-medium text-[var(--vt-text-muted)]">
+          <Fingerprint className="h-3.5 w-3.5" aria-hidden="true" />
+          Activation continuation
+        </div>
 
-      <section
-        aria-labelledby="milestones-heading"
-        className="rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
-      >
-        <h2 id="milestones-heading" className="text-base font-semibold sm:text-lg">
-          Milestones
-        </h2>
-        <ul className="mt-4 space-y-3">
-          {plan.milestones.map((milestone) => (
-            <li key={milestone.kind} className="text-sm">
-              <p className="font-medium">
-                {milestone.label}{' '}
-                <span
-                  className={`ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${STATUS_CLASS[milestone.status]}`}
-                  aria-label={`Status: ${milestone.status}`}
-                  title={explainOnboardingMilestoneStatus(milestone.status)}
-                >
-                  {milestone.status.replace(/_/g, ' ')}
-                </span>
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{milestone.description}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <div className="mt-8 space-y-6">
+          <h1 className="max-w-2xl text-[clamp(2.8rem,7vw,4.6rem)] leading-[0.94] font-semibold tracking-[-0.05em] text-[var(--vt-text-primary)]">
+            Keep the momentum going.
+          </h1>
+
+          <p className="max-w-xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]">
+            You are already recognized. Onboarding continues the motion from the
+            passport snapshot without asking you to start over.
+          </p>
+        </div>
+
+        <Card className="mt-10 max-w-2xl border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-none">
+          <CardHeader className="border-b border-[var(--vt-border-subtle)] px-5 py-5 sm:px-6">
+            <CardTitle className="text-base font-semibold text-[var(--vt-text-primary)]">
+              Continue without resetting
+            </CardTitle>
+            <CardDescription className="text-sm leading-relaxed text-[var(--vt-text-muted)]">
+              This is a continuation surface. It keeps the work moving while
+              preserving the snapshot already shown in passport.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+            <div className="space-y-4">
+              {CONTINUATION_POINTS.map((point) => (
+                <div key={point.title} className="space-y-1.5">
+                  <p className="text-sm font-medium text-[var(--vt-text-primary)]">
+                    {point.title}
+                  </p>
+                  <p className="text-sm leading-relaxed text-[var(--vt-text-muted)]">
+                    {point.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild variant="success" className="h-11 rounded-full px-5 text-sm font-medium">
+                <Link href={continueHref}>
+                  Continue to onboarding
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 rounded-full px-5 text-sm font-medium">
+                <Link href={returnHref}>Open passport</Link>
+              </Button>
+            </div>
+          </CardContent>
+
+          <CardFooter className="border-t border-[var(--vt-border-subtle)] px-5 py-4 sm:px-6">
+            <p className="text-xs leading-relaxed text-[var(--vt-text-muted)]">
+              Onboarding summarizes the continuation path. It does not complete credentialing.
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </main>
   );
 }

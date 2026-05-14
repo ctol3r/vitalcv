@@ -439,7 +439,9 @@ describe('post-release truth cleanup', () => {
     const navbarMarkup = renderToStaticMarkup(<Navbar />);
     const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
 
-    expect(homepageMarkup).toContain('Stop starting over.');
+    expect(homepageMarkup).toContain('Enter your NPI.');
+    expect(homepageMarkup).toContain('See what already recognizes you.');
+    expect(homepageMarkup).toContain('Open passport');
     
     
     

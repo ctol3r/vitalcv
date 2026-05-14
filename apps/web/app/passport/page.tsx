@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 /**
  * /passport — Passport entry + live ingest hydration
  *
- * Flow: TYPE → SEE → TRUST → SHARE
+ * Flow: TYPE → SEE → TRUST → CONTINUE
  *
  * 1. User enters NPI
  * 2. POST /api/ingest/:npi → runId
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  *    - Sanctions status next (OIG, ~2s)
  *    - Enrollment next (PECOS, ~3s)
  *    - Readiness recalculates on claim_update
- * 4. Done → [View full passport] or [View as employer]
+ * 4. Done → [View full passport] or [Continue activation]
  *
  * No polling. No full-page reload. No fake refresh.
  */
@@ -25,14 +25,11 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck } from 'lucide-react';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
-import { WhatsNextPanel } from '@/components/passport/WhatsNextPanel';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
-  buildEmployerReviewHref,
   buildPassportEntityHref,
   getPublicWedgeSurfaceBadgeMeta,
   resolvePublicWedgeSurfaceStateFromDisplayLabel,
@@ -57,13 +54,6 @@ function isValidNpiChecksum(npi: string): boolean {
   }
   return sum % 10 === 0;
 }
-
-const SOURCE_EXPLANATIONS = [
-  { id: 'nppes', name: 'NPPES', description: 'Identity verification from the National Plan and Provider Enumeration System', locked: false },
-  { id: 'oig', name: 'OIG / LEIE', description: 'Exclusion check against the Office of Inspector General\u2019s List of Excluded Individuals', locked: false },
-  { id: 'pecos', name: 'CMS PECOS', description: 'Medicare enrollment verification from Provider Enrollment, Chain, and Ownership System', locked: false },
-  { id: 'fsmb', name: 'FSMB / State Board', description: 'State medical board licensure verification via the Federation of State Medical Boards', locked: true },
-];
 
 // ── Status label helper ────────────────────────────────────────────────────────
 
@@ -104,8 +94,8 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
 
 const PHASE_LABEL: Record<StreamPhase, string> = {
   idle:       '',
-  starting:   'Connecting to federal registries…',
-  nppes:      'Confirming your identity…',
+  starting:   'Opening your passport…',
+  nppes:      'Recognizing your NPI…',
   sanctions:  'Checking exclusion status…',
   enrollment: 'Checking Medicare enrollment…',
   done:       'Identity confirmed',
@@ -332,6 +322,15 @@ function readHomepagePreview(npi: string) {
   }
 }
 
+function persistOnboardingNpi(npi: string) {
+  if (typeof window === 'undefined' || !/^\d{10}$/.test(npi)) {
+    return;
+  }
+
+  window.sessionStorage.setItem('onboarding_npi', npi);
+  window.localStorage.setItem('onboarding_npi', npi);
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function PassportPageContent({
@@ -388,6 +387,13 @@ function PassportPageContent({
     });
   }, []);
 
+  useEffect(() => {
+    const currentNpi = state.npi ?? initialNpi ?? '';
+    if (/^\d{10}$/.test(currentNpi)) {
+      persistOnboardingNpi(currentNpi);
+    }
+  }, [initialNpi, state.npi]);
+
   const isActive = state.phase !== 'idle';
   const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
   const anchorEntityId = state.anchorEntityId ?? state.identity.entityId;
@@ -413,6 +419,9 @@ function PassportPageContent({
     && !noProfileYet;
   const isRunning = isActive && !hasTerminalState && !canViewPassport && !disconnected;
   const retryNpi = state.npi ?? npi.trim();
+  const continueToOnboardingHref = /^\d{10}$/.test(retryNpi)
+    ? `/onboarding?returnTo=${encodeURIComponent(`/passport?npi=${retryNpi}`)}`
+    : '/onboarding';
   const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
   const displayRole = roleContext.roleTitle ?? (roleContext.roleId ? humanizeContextToken(roleContext.roleId) : null);
   const displayEmployer = roleContext.employerName ?? (roleContext.employerSlug ? humanizeContextToken(roleContext.employerSlug) : null);
@@ -469,7 +478,7 @@ function PassportPageContent({
 
   return (
     <main className="bg-background px-4 pt-16 sm:pt-20 pb-24">
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-4xl">
 
         {/* Role context banner */}
         {readinessContext ? (
@@ -481,145 +490,91 @@ function PassportPageContent({
           </div>
         ) : null}
 
-        {/* Idle state — two-column layout */}
+        {/* Idle state — calm single-column layout */}
         {!isActive && (
-          <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:items-start">
-            {/* Left column: heading + form + source explanations */}
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-foreground text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
-                  Check Your Readiness
-                </h1>
-                <p className="text-muted-foreground text-sm sm:text-base mt-3 leading-relaxed max-w-xl">
-                  Enter your NPI to start a source-backed readiness check across identity,
-                  sanctions, enrollment, and configured state-board sources. Results appear in seconds when sources respond.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <label htmlFor="npi-input" className="sr-only">Enter your 10-digit NPI number</label>
-                <div className="flex gap-3 sm:items-center flex-col sm:flex-row">
-                  <div className="relative flex-1">
-                    <Input
-                      id="npi-input"
-                      name="npi"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="\d{10}"
-                      maxLength={10}
-                      autoComplete="off"
-                      aria-label="Enter your 10-digit NPI number"
-                      aria-invalid={!!inputError}
-                      aria-describedby={inputError ? 'npi-error' : undefined}
-                      value={npi}
-                      onChange={e => setNpi(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Enter 10-digit NPI"
-                      className="h-14 w-full rounded-none border-border bg-card px-4 text-lg font-mono tracking-widest text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
-                    />
-                    {/* NPI input length + checksum feedback */}
-                    {npi.length > 0 && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground/50">
-                        {npi.length}/10
-                        {npiValid && (npiChecksumOk
-                          ? <span className="ml-1.5 text-trust-green">✓</span>
-                          : <span className="ml-1.5 text-trust-red">✗</span>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={!npiValid}
-                    className="h-14 rounded-none bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
-                  >
-                    See my readiness
-                  </Button>
-                </div>
-                {inputError && (
-                  <p id="npi-error" role="alert" className="text-destructive text-xs mt-1">{inputError}</p>
-                )}
-              </form>
-
-              {/* Source explanations */}
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Sources checked
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {SOURCE_EXPLANATIONS.map(src => (
-                    <div key={src.id} className="flex gap-3 rounded-none border border-border bg-card p-3.5">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-[10px] font-bold text-muted-foreground">
-                        {src.id === 'nppes' ? 'NP' : src.id === 'oig' ? 'OI' : src.id === 'pecos' ? 'PE' : 'SB'}
-                      </span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-foreground">{src.name}</p>
-                          {src.locked && <span className="rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground flex items-center gap-1"><svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Access Required</span>}
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{src.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground/60 leading-relaxed">
-                VitalCV only checks publicly available data. No PHI is stored. No signup required to preview.
+          <div className="max-w-2xl space-y-6">
+            <div>
+              <h1 className="text-foreground text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+                Your passport starts with a single NPI.
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Enter it once. VitalCV resolves the source-backed snapshot and shows
+                what is already clear, what still needs attention, and what helps you
+                keep moving into onboarding.
               </p>
             </div>
 
-            {/* Right column: sample readiness card */}
-            <div className="hidden lg:block">
-              <div className="rounded-none border border-border bg-card p-6 space-y-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Sample readiness snapshot
-                </p>
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold text-foreground">[Your Name]</p>
-                  <p className="text-sm text-muted-foreground">[Specialty] · NPI [Your NPI]</p>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { label: 'NPPES', status: 'Checked', tone: 'text-trust-green' },
-                    { label: 'OIG / LEIE', status: 'Checked', tone: 'text-trust-green' },
-                    { label: 'CMS PECOS', status: 'Enrolled', tone: 'text-trust-green' },
-                    { label: 'State Board', status: 'Access required', tone: 'text-trust-yellow' },
-                  ].map(s => (
-                    <div key={s.label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                      <span className="text-sm text-muted-foreground">{s.label}</span>
-                      <span className={`text-xs font-medium ${s.tone}`}>{s.status}</span>
+            <Card className="gap-0 rounded-2xl border-border bg-card py-0 shadow-none">
+              <div className="px-5 py-5 sm:px-6 sm:py-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <label htmlFor="npi-input" className="sr-only">
+                    Enter your 10-digit NPI number
+                  </label>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="relative flex-1">
+                      <Input
+                        id="npi-input"
+                        name="npi"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="\d{10}"
+                        maxLength={10}
+                        autoComplete="off"
+                        aria-label="Enter your 10-digit NPI number"
+                        aria-invalid={!!inputError}
+                        aria-describedby={inputError ? 'npi-error' : undefined}
+                        value={npi}
+                        onChange={(e) => setNpi(e.target.value.replace(/\D/g, ''))}
+                        placeholder="Enter 10-digit NPI"
+                        className="h-14 w-full rounded-2xl border-border bg-[var(--vt-bg)] px-4 text-base font-mono tracking-[0.16em] text-foreground placeholder:text-muted-foreground/30 shadow-none focus-visible:ring-ring"
+                      />
+                      {npi.length > 0 && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground/50">
+                          {npi.length}/10
+                          {npiValid ? (
+                            npiChecksumOk ? (
+                              <span className="ml-1.5 text-trust-green">✓</span>
+                            ) : (
+                              <span className="ml-1.5 text-trust-red">✗</span>
+                            )
+                          ) : null}
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
-                <div className="rounded-none border border-border bg-background p-4 relative overflow-hidden  bg-[var(--vt-surface)] border-[var(--vt-border)] ">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Readiness Index</span>
-                    <span className="text-xs font-bold text-trust-green flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> DECISION GRADE</span>
+                    <Button
+                      type="submit"
+                      disabled={!npiValid}
+                      variant="success"
+                      className="h-14 w-full rounded-2xl px-6 text-sm font-semibold sm:w-auto"
+                    >
+                      Open passport
+                    </Button>
                   </div>
-                  
-                  <div className="flex items-end gap-3 mt-3">
-                    <div className="relative w-16 h-16">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                        <path className="text-white/10" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path className="text-trust-green" strokeDasharray="82, 100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-lg font-bold tabular-nums">82</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 space-y-1.5 text-xs">
-                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Coverage</span><span className="font-mono text-foreground">3/3</span></div>
-                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Receipts</span><span className="font-mono text-foreground">3</span></div>
-                      <div className="flex justify-between items-center"><span className="text-muted-foreground">Adverse</span><span className="font-mono text-emerald-500">0</span></div>
-                    </div>
-                  </div>
+                  {inputError && (
+                    <p id="npi-error" role="alert" className="text-xs text-destructive">
+                      {inputError}
+                    </p>
+                  )}
+                </form>
+
+                <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                  <span>No account required</span>
+                  <span className="text-[var(--vt-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>Public source checks only</span>
+                  <span className="text-[var(--vt-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>Nothing stored without consent</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground/50 text-center">
-                  This is a sample — enter your NPI to see real results
-                </p>
               </div>
-            </div>
+            </Card>
+
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              The first result is a passport snapshot. The next step is onboarding,
+              without re-entering what VitalCV already knows.
+            </p>
           </div>
         )}
 
@@ -729,11 +684,6 @@ function PassportPageContent({
                     View full passport
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="h-14 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/70 hover:border-border hover:bg-card hover:text-foreground">
-                  <Link href={buildEmployerReviewHref(anchorEntityId)}>
-                    View as employer
-                  </Link>
-                </Button>
                 <button
                   type="button"
                   onClick={() => {
@@ -743,16 +693,25 @@ function PassportPageContent({
                       setTimeout(() => startIngest(retry), 50);
                     }
                   }}
-                  className="h-10 w-full rounded-full border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+                  className="h-10 w-full rounded-full border border-border text-sm text-muted-foreground transition-colors hover:bg-muted"
                 >
                   Re-check sources
                 </button>
               </div>
             )}
 
-            {/* What's Next — actionable uploads after readiness snapshot */}
             {canViewPassport && (
-              <WhatsNextPanel state={state} />
+            <TrustStateCard
+              eyebrow="Next step"
+              title="Continue activation"
+              description="The passport is ready. Keep the momentum going into onboarding without starting over."
+              tone="success"
+              actions={(
+                <Button asChild variant="outline" className="h-11 w-full rounded-full border-border bg-card text-sm font-medium text-foreground/80 hover:border-border hover:bg-card hover:text-foreground">
+                  <Link href={continueToOnboardingHref}>Continue to onboarding</Link>
+                </Button>
+              )}
+            />
             )}
 
             {/* Source operational state — provenance-safe; reports lane health only */}

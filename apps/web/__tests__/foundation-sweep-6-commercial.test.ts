@@ -166,7 +166,7 @@ describe('commercial route copy invariants', () => {
 
   it('onboarding route includes the required credentialing safety copy', () => {
     const src = readRoute('onboarding/page.tsx');
-    expect(src).toContain('Onboarding summarizes readiness and next steps; it does not complete credentialing.');
+    expect(src).toContain('Onboarding summarizes the continuation path. It does not complete credentialing.');
   });
 
   it('commercial routes avoid positive live payment, proofing, and acceptance claims', () => {
