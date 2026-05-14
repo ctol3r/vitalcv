@@ -144,13 +144,13 @@ function buildBlocker(lane: LaneSnapshot): BlockerItem {
 }
 
 function deriveNextAction(posture: ReadinessPosture, blockers: BlockerItem[]): string {
-  if (posture === 'blocked') return 'Manual review required — adverse finding present.';
-  if (posture === 'decision_grade') return 'All required sources verified. Proceed with credentialing.';
+  if (posture === 'blocked') return 'Adverse finding detected. Manual review required before proceeding.';
+  if (posture === 'decision_grade') return 'Credentials verified. Clear to proceed.';
   const topBlocker = blockers[0];
   if (topBlocker?.status === 'access_required') {
-    return `Request ${topBlocker.displayName} verification or proceed with head start.`;
+    return 'Primary identity verified. Additional sources pending — proceed with head start or wait.';
   }
-  return 'Review source coverage below and choose an action.';
+  return 'Source data is being checked. You can proceed with a head start.';
 }
 
 // ─── Component ────────────────────────────────────────────────────
