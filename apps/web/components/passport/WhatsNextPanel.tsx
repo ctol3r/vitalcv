@@ -228,7 +228,7 @@ function PilotReadinessBar({ percent }: { percent: number }) {
           Profile completeness
         </span>
         <span className="text-sm font-semibold tabular-nums text-foreground">
-          {percent}% Pilot-Ready
+          {percent}% complete
         </span>
       </div>
       <div className="h-2 w-full rounded-full bg-border/40 overflow-hidden">
@@ -355,7 +355,7 @@ export function WhatsNextPanel({ state }: WhatsNextPanelProps) {
             <div>
               <p className="text-sm font-semibold text-foreground">Profile complete</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                All system checks and required documents are in place. You are Pilot-Ready.
+                All system checks and required documents are in place. Ready to share with employers.
               </p>
             </div>
           </div>

@@ -161,9 +161,9 @@ export default function HomePageClient() {
                   type="button"
                   onClick={handleDemo}
                   className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] underline-offset-2 hover:underline transition-colors"
-                  title="Use the demo NPI for Macie Miller, PA-C"
+                  title="Preview with a real PA-C profile"
                 >
-                  Use demo NPI ↑
+                  See a live example →
                 </button>
               </div>
 
@@ -376,19 +376,10 @@ export default function HomePageClient() {
             </div>
 
             <div className="col-span-12 lg:col-span-8">
-              <ul className="border border-[var(--vt-border-subtle)] rounded-[var(--vt-radius-sm)] divide-y divide-[var(--vt-border-subtle)] overflow-hidden bg-[var(--vt-surface)]">
-                {TIER_LADDER.map((row) => (
-                  <li key={row.tier} className="px-5 py-4 flex items-start gap-4">
-                    <TrustTierBadge tier={row.tier} variant="long" size="md" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-[var(--vt-text-primary)]">{row.blurb}</div>
-                      <div className="font-mono text-[11px] text-[var(--vt-text-muted)] mt-1">
-                        {row.example}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <p className="text-[14px] text-[var(--vt-text-secondary)] leading-[1.55] max-w-[640px]">
+                Every result is source-checked against federal registries — not scraped, not estimated.
+                NPPES confirms your NPI. OIG/LEIE checks for exclusions. PECOS verifies Medicare enrollment.
+              </p>
             </div>
           </div>
         </section>

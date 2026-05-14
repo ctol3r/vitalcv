@@ -645,6 +645,10 @@ function PassportPageContent({
                   <p className="text-muted-foreground text-sm mt-0.5">{identity.specialty}</p>
                 )}
                 <p className="text-muted-foreground/50 text-xs mt-1">NPI {state.npi}</p>
+                {/* Value translation — makes identity confirmation feel meaningful */}
+                <p className="text-muted-foreground/70 text-xs mt-2 leading-relaxed">
+                  Your NPI is active and federally confirmed.
+                </p>
               </Card>
             )}
 
