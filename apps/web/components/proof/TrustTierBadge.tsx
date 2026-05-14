@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 /**
  * TrustTierBadge — wave-139: Trust Tier Semantics
  *
@@ -14,6 +16,8 @@
  */
 
 import type { PassportSourceCoverageCheck } from '@/lib/trust/source-coverage';
+
+void React;
 
 // ─── Tier type ────────────────────────────────────────────────────────────────
 

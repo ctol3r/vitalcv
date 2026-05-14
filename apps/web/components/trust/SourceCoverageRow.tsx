@@ -48,33 +48,36 @@ export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
   const statusDescriptor = getTrustStatusDescriptor(badge.status, badge.label);
 
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium text-foreground/70">{check.sourceId}</p>
+          <p className="text-sm font-medium text-foreground/80">{check.sourceId}</p>
           <Badge
             variant="outline"
-            className="rounded-full border-border bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            className="rounded-full border-border bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground"
           >
             {decisionGrade ? 'Decision grade' : 'Not decision grade'}
           </Badge>
         </div>
         {statusDescriptor ? (
-          <p className="text-[11px] leading-relaxed text-muted-foreground/40">{statusDescriptor}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{statusDescriptor}</p>
         ) : null}
         <p className="text-xs leading-relaxed text-muted-foreground">{check.reason}</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground/30">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span>{check.checkedAt ? `Checked ${formatProofDate(check.checkedAt)}` : 'Not yet checked'}</span>
           {check.artifactId ? <span>Artifact {check.artifactId}</span> : null}
         </div>
         {/* Trust tier badge — every fact must carry a tier */}
-        <TrustTierBadgeFromCheck check={check} />
+        <TrustTierBadgeFromCheck
+          check={check}
+          className="rounded-full border-border bg-background px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-muted-foreground"
+        />
       </div>
       <TrustStatusBadge
         status={badge.status}
         label={badge.label}
         size="sm"
-        className="shrink-0"
+        className="shrink-0 self-start"
       />
     </div>
   );

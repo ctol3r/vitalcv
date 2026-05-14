@@ -23,10 +23,9 @@ import Link from 'next/link';
  *   - Touch targets ≥ 44px, font-size ≥ 16px
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { CLERK_PROVIDER_ENABLED, CLERK_SIGN_IN_URL } from '@/lib/auth/clerkConfig';
-import { SectionReveal } from '@/components/motion/ScrollMotion';
 import { resolveLivePathReadinessStatus } from '@/lib/live-path/contracts';
 import { Accordion } from '@/components/ui/accordion';
 import type { AccordionItem } from '@/components/ui/accordion';
@@ -34,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrustStatusBadge } from '@/components/ui/trust-status-badge';
-import type { PassportData, ReadinessStatus } from '@/lib/trust/passport-contract';
+import type { PassportData } from '@/lib/trust/passport-contract';
 import { PassportAdvisoryPanel } from '@/components/advisory/AdvisoryPanel';
 import { PassportTrustPosture } from '@/components/passport/PassportTrustPosture';
 import { useTrackEvent } from '@/lib/learning/useTrackEvent';
@@ -61,19 +60,6 @@ import {
 import type { VdsTrustStatus } from '@/lib/trust/status-language';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
-// ── Status configuration ──────────────────────────────────────────────────────
-// NO colour on status. Hierarchy via opacity only.
-
-const STATUS_CONFIG: Record<ReadinessStatus, {
-  cardBorder:   string;
-  cardBg:       string;
-}> = {
-  DECISION_GRADE: { cardBorder: 'border-border', cardBg: 'bg-muted' },
-  CHECKING:       { cardBorder: 'border-border', cardBg: 'bg-card' },
-  PARTIAL:        { cardBorder: 'border-border', cardBg: 'bg-card' },
-  BLOCKED:        { cardBorder: 'border-white/8', cardBg: 'bg-card' },
-};
-
 const SOURCE_COVERAGE_ORDER: Record<string, number> = {
   checked: 0,
   stale: 1,
@@ -85,6 +71,12 @@ const SOURCE_COVERAGE_ORDER: Record<string, number> = {
   unavailable: 4,
   previewOnly: 4,
 };
+
+function SectionReveal({ children }: { children: ReactNode; delay?: number }) {
+  // Passport is an institutional trust surface; render sections immediately so
+  // full-page capture and slow hydration never show invisible reserved space.
+  return <>{children}</>;
+}
 
 function sortPassportSourceCoverageChecks(
   checks: PassportSourceCoverageCheck[],
@@ -108,21 +100,21 @@ function PassportFreshnessCard({
         : { status: 'pending' as const, label: 'Partial' };
 
   return (
-    <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
+    <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Freshness</p>
-          <p className="mt-1 text-sm text-foreground/60">{freshness.label}</p>
+          <p className="text-xs font-medium text-muted-foreground">Freshness</p>
+          <p className="mt-1 text-sm text-foreground/80">{freshness.label}</p>
         </div>
         <TrustStatusBadge status={summaryBadge.status} label={summaryBadge.label} size="sm" />
       </div>
-      <div className="space-y-2 border-t border-white/6 pt-3">
+      <div className="space-y-2 border-t border-border pt-4">
         {freshness.items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-white/6 bg-muted px-3 py-3">
+          <div key={item.id} className="rounded-xl border border-border bg-background px-3 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-foreground/70">{item.label}</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{item.note}</p>
+                <p className="text-sm font-medium text-foreground/80">{item.label}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.note}</p>
               </div>
               <TrustStatusBadge
                 status={item.state === 'current' ? 'checked' : item.state === 'stale' ? 'stale' : 'pending'}
@@ -131,7 +123,7 @@ function PassportFreshnessCard({
                 className="shrink-0"
               />
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground/30">
+            <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
               <span>{item.source}</span>
               <span>{item.checkedAt ? `Checked ${formatProofDate(item.checkedAt)}` : 'Not yet checked'}</span>
             </div>
@@ -147,7 +139,7 @@ function PassportFreshnessCard({
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
+    <div className="flex justify-between border-b border-border py-1.5 text-xs last:border-0">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-foreground/60">{value}</span>
     </div>
@@ -192,7 +184,7 @@ interface AuthorityRowProps {
 
 function AuthorityRow({ title, status, sourceLabel, checkedAt, confidence, freshness, note }: AuthorityRowProps) {
   return (
-    <div className="py-1.5 border-b border-white/5 last:border-0">
+    <div className="border-b border-border py-1.5 last:border-0">
       <div className="flex justify-between text-xs">
         <span className="text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
@@ -256,7 +248,7 @@ function buildAuthoritySection(passport: PassportData): AccordionItem {
         {authority.summary.missing
           .filter(d => !['IDENTITY', 'EXCLUSION_CHECK'].includes(d))
           .map(d => (
-            <div key={d} className="flex items-center justify-between gap-2 py-1.5 border-b border-white/5 last:border-0">
+            <div key={d} className="flex items-center justify-between gap-2 border-b border-border py-1.5 last:border-0">
               <span className="text-xs text-muted-foreground/40">{d.replace(/_/g, ' ').toLowerCase()}</span>
               <TrustStatusBadge status="blocked" size="sm" />
             </div>
@@ -283,7 +275,7 @@ function TrainingRow({ record }: { record: TrainingRecord }) {
     : 'Profile-entered training context. Not primary source verified.';
 
   return (
-    <div className="py-1.5 border-b border-white/5 last:border-0">
+    <div className="border-b border-border py-1.5 last:border-0">
       <div className="flex justify-between gap-3 text-xs">
         <span className="text-foreground/60">{title}</span>
         <TrustStatusBadge
@@ -366,7 +358,7 @@ function buildStandingSection(passport: PassportData): AccordionItem {
         <DetailRow label="Confidence"        value={standing.exclusionConfidenceLabel} />
         <DetailRow label="License"           value={licensureLabel} />
         {safetyNegative.map((f, i) => (
-          <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-white/5 last:border-0">
+          <div key={i} className="flex items-center gap-2 border-b border-border py-1.5 text-xs last:border-0">
             <span className="text-muted-foreground/50 select-none">⚠</span>
             <span className="text-foreground/70">{f}</span>
           </div>
@@ -396,7 +388,7 @@ function EligibilityRow({
   title, status, sourceLabel, checkedAt, dataVersion, freshness, confidence, note,
 }: EligibilityRowProps) {
   return (
-    <div className="py-1.5 border-b border-white/5 last:border-0">
+    <div className="border-b border-border py-1.5 last:border-0">
       <div className="flex justify-between text-xs gap-2">
         <span className="flex items-center gap-1.5 text-foreground/60">{title}</span>
         <TrustStatusBadge status={status} size="sm" />
@@ -497,14 +489,15 @@ type Props = PassportWalletLoadedProps | PassportWalletLoadingProps;
 
 function PassportWalletLoadingShell() {
   return (
-    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-12 sm:pt-16 pb-24">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <span className="text-muted-foreground/60 text-xs tracking-widest uppercase">VitalCV</span>
+    <main className="min-h-screen bg-background px-4 py-12 text-foreground sm:py-16">
+      <div className="mx-auto w-full max-w-2xl space-y-5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">VitalCV</span>
+          <span className="text-xs text-muted-foreground">Clinician passport</span>
         </div>
 
-        <Card className="gap-0 rounded-2xl border border-border bg-muted px-5 py-5 shadow-none">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50">Passport</p>
+        <Card className="gap-0 rounded-2xl border-border bg-card px-6 py-6 shadow-none">
+          <p className="text-xs font-medium text-muted-foreground">Passport</p>
           <Skeleton className="mt-3 h-7 w-40 rounded-full" />
           <Skeleton className="mt-2 h-4 w-28 rounded-full" />
           <div className="mt-4">
@@ -515,15 +508,15 @@ function PassportWalletLoadingShell() {
           </p>
         </Card>
 
-        <Card className="gap-3 rounded-2xl border-white/8 bg-card px-5 py-4 shadow-none">
+        <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-muted-foreground/60 text-[10px] uppercase tracking-widest">Summary</p>
-              <p className="mt-1 text-sm text-foreground/70">READY / PARTIAL / BLOCKED</p>
+              <p className="text-xs font-medium text-muted-foreground">Source coverage</p>
+              <p className="mt-1 text-sm text-foreground/80">Resolving current lane state</p>
             </div>
             <TrustStatusBadge status="pending" label="Pending" size="sm" />
           </div>
-          <div className="space-y-3 border-t border-white/6 pt-3">
+          <div className="space-y-3 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">NPPES</span>
               <TrustStatusBadge status="pending" label="Pending" size="sm" />
@@ -543,13 +536,13 @@ function PassportWalletLoadingShell() {
           </div>
         </Card>
 
-        <Card className="gap-4 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-5 shadow-none">
+        <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
           <div className="space-y-2">
             <Skeleton className="h-4 w-36 rounded-full" />
             <Skeleton className="h-3 w-full rounded-full" />
             <Skeleton className="h-3 w-[88%] rounded-full" />
           </div>
-          <div className="space-y-3 border-t border-white/6 pt-3">
+          <div className="space-y-3 border-t border-border pt-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="flex items-center justify-between gap-3">
                 <Skeleton className="h-3 w-28 rounded-full" />
@@ -599,7 +592,6 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   const canShare    = !CLERK_PROVIDER_ENABLED || isSignedIn;
 
   const { identity, readiness, trustPosture } = passport;
-  const cfg = STATUS_CONFIG[readiness.status];
   const sourceCoverageChecks = sortPassportSourceCoverageChecks(
     normalizePassportSourceCoverageChecks(passport.sourceCoverage),
   );
@@ -661,61 +653,59 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
   }
 
   return (
-    <main className="min-h-screen bg-vt-surface-ops-base flex flex-col items-center px-4 pt-8 sm:pt-12 pb-24">
-      <div className="w-full max-w-2xl space-y-6">
+    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-14">
+      <div className="mx-auto w-full max-w-3xl space-y-8">
 
-        {/* ── Header — brutalist minimal ─────────────────────────────────────── */}
-        <div className="flex items-center justify-between border-b border-[var(--vt-border)] pb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-foreground flex items-center justify-center text-background text-xs font-bold tracking-tight">V</div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">VitalCV · Clinician Passport</span>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">VitalCV</p>
+            <p className="text-xs text-muted-foreground">Clinician passport</p>
           </div>
-          <Link href="/passport" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 hover:text-foreground transition-colors">
+          <Link href="/passport" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             View another NPI
           </Link>
         </div>
 
         {/* ── Employer refresh request notification ─────────────────────────── */}
         {pendingRefreshCount > 0 && (
-          <div className="border border-amber-500/40 bg-amber-500/8 px-4 py-3">
-            <p className="text-amber-400 text-xs font-bold uppercase tracking-widest">
+          <div className="rounded-2xl border border-border bg-card px-5 py-4">
+            <p className="text-sm font-medium text-foreground">
               {pendingRefreshCount === 1
                 ? 'An employer has requested updated credentials.'
                 : `${pendingRefreshCount} employers have requested updated credentials.`}
             </p>
-            <p className="text-amber-300/60 text-[10px] mt-1 font-mono">
+            <p className="mt-1 text-xs text-muted-foreground">
               Run a new NPI check to refresh your credential data.
             </p>
           </div>
         )}
 
-        {/* ── Passport card — brutalist header block ────────────────────────── */}
-        <div className="border border-[var(--vt-border)] bg-card px-6 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Clinician</p>
-              <h1 className="text-foreground text-4xl font-bold tracking-tight leading-none uppercase">
+        <Card className="gap-0 rounded-2xl border-border bg-card px-6 py-7 shadow-none sm:px-7">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Clinician</p>
+              <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
                 {identity.displayName}
               </h1>
               {identity.specialty && (
-                <p className="text-muted-foreground text-sm mt-2 font-mono">{identity.specialty}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{identity.specialty}</p>
               )}
               {passport.npi && (
-                <p className="text-muted-foreground/40 text-xs mt-1 font-mono">NPI {passport.npi}</p>
+                <p className="mt-1 text-xs text-muted-foreground">NPI {passport.npi}</p>
               )}
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-2">Readiness</p>
-              <div className="text-5xl font-bold tracking-tighter font-mono text-foreground">
+            <div className="shrink-0 rounded-xl border border-border bg-background px-4 py-3 sm:min-w-48">
+              <p className="text-xs font-medium text-muted-foreground">Readiness score</p>
+              <div className="mt-1 text-3xl font-semibold tabular-nums text-foreground">
                 {showReadinessScore ? readiness.score : 'Withheld'}
-                {showReadinessScore ? <span className="text-2xl text-muted-foreground/40">/100</span> : null}
+                {showReadinessScore ? <span className="text-sm font-medium text-muted-foreground"> / 100</span> : null}
               </div>
               {!showReadinessScore ? (
-                <p className="mt-2 text-[10px] text-muted-foreground/40 uppercase tracking-widest">
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                   Score appears after source-backed claims attach
                 </p>
               ) : null}
-              <div className="mt-2">
+              <div className="mt-3">
                 <TrustStatusBadge
                   status={resolveLivePathReadinessStatus(readiness.status)}
                   size="sm"
@@ -723,7 +713,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* ── Trust Summary — at-a-glance posture ───────────────────────── */}
         <SectionReveal delay={0}>
@@ -738,35 +728,35 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {/* ── Wave 245: Continuous Monitoring Status ─────────────────────── */}
         {passport.monitoring?.active && (
           <SectionReveal delay={0.02}>
-            <div className="border border-[var(--vt-border)] bg-card px-5 py-4">
+            <div className="rounded-2xl border border-border bg-card px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">
+                  <p className="text-sm font-medium text-foreground/80">
                     Continuously Monitored
                   </p>
                 </div>
                 {passport.monitoring.activeAlertCount > 0 && (
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                  <span className="text-xs font-medium text-[var(--vt-risk-medium)]">
                     {passport.monitoring.activeAlertCount} alert{passport.monitoring.activeAlertCount !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
               {passport.monitoring.lastCheckAt && (
-                <p className="mt-1 text-[10px] text-muted-foreground/40 font-mono">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Last check: {formatProofDate(passport.monitoring.lastCheckAt)}
                 </p>
               )}
               {passport.monitoring.monitoredSources.length > 0 && (
-                <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
+                <div className="mt-4 space-y-2 border-t border-border pt-4">
                   {passport.monitoring.monitoredSources.map((source) => (
                     <div key={source.sourceId} className="flex items-center justify-between text-[10px]">
-                      <span className="text-muted-foreground/60 font-mono">{source.sourceLabel}</span>
+                      <span className="text-muted-foreground/60">{source.sourceLabel}</span>
                       <div className="flex items-center gap-1.5">
                         {source.lastCheckAt && (
                           <span className="text-muted-foreground/30">{formatProofDate(source.lastCheckAt)}</span>
                         )}
-                        <div className={`w-1.5 h-1.5 rounded-full ${
+                        <div className={`h-1.5 w-1.5 rounded-full ${
                           source.status === 'active' ? 'bg-emerald-500' :
                           source.status === 'paused' ? 'bg-amber-500' :
                           'bg-red-500'
@@ -783,7 +773,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {/* ── NPI disclaimer — identity anchor clarification ─────────────── */}
         {passport.npi && (
           <SectionReveal delay={0.05}>
-            <p className="text-muted-foreground/40 text-[10px] font-mono text-left leading-relaxed border border-[var(--vt-border-subtle)] px-4 py-2.5 uppercase tracking-widest">
+            <p className="rounded-xl border border-border bg-card px-4 py-3 text-xs leading-relaxed text-muted-foreground">
               NPI {passport.npi} confirms identity only — does not confirm licensure, enrollment, or credential status.
             </p>
           </SectionReveal>
@@ -821,7 +811,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             eyebrow="Proof"
             title="View source-backed evidence by section"
             description="Each disclosure keeps trust-core proof, contextual notes, and gaps explicit."
-            className="rounded-2xl border-white/8 bg-white/[0.03]"
+            className="rounded-2xl border-border bg-card"
             contentClassName="px-5 py-1"
           >
             <Accordion items={accordionItems} />
@@ -831,14 +821,14 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {/* ── Next actions (from readiness engine) ──────────────────────────── */}
         {readiness.nextActions.length > 0 && (
           <SectionReveal delay={0.25}>
-            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-              <p className="text-foreground/70 text-sm font-medium">What should happen next</p>
+            <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
+              <p className="text-sm font-medium text-foreground/80">What should happen next</p>
               {readiness.nextActions.slice(0, 4).map((action) => (
                 <div key={action.id} className="flex items-start gap-3">
                   <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
                   <div>
-                    <p className="text-foreground/70 text-sm">{action.title}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{action.detail}</p>
+                    <p className="text-sm text-foreground/80">{action.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{action.detail}</p>
                   </div>
                 </div>
               ))}
@@ -849,27 +839,27 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {/* ── Explicit missing items ─────────────────────────────────────── */}
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
           <SectionReveal delay={0.28}>
-            <Card className="gap-3 rounded-2xl border-white/8 bg-white/[0.03] px-5 py-4 shadow-none">
-              <p className="text-white/50 text-sm font-medium">Data not yet available</p>
-              <p className="text-white/25 text-xs leading-relaxed">
+            <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
+              <p className="text-sm font-medium text-foreground/80">Data not yet available</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 These items are not covered in this snapshot. They require additional source access or have not been checked.
               </p>
               <div className="space-y-2 mt-1">
                 {trustPosture.missingItems.map((item) => (
                   <div key={item} className="flex items-start gap-2">
-                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <span className="mt-0.5 select-none text-xs text-muted-foreground">—</span>
                     <div>
-                      <p className="text-white/55 text-xs">{item}</p>
-                      <p className="text-white/25 text-[10px] mt-0.5">Missing — not yet checked</p>
+                      <p className="text-xs text-foreground/75">{item}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">Missing - not yet checked</p>
                     </div>
                   </div>
                 ))}
                 {trustPosture.gatedItems.map((item) => (
                   <div key={item} className="flex items-start gap-2">
-                    <span className="text-white/20 mt-0.5 select-none text-xs">—</span>
+                    <span className="mt-0.5 select-none text-xs text-muted-foreground">—</span>
                     <div>
-                      <p className="text-white/55 text-xs">{item}</p>
-                      <p className="text-white/25 text-[10px] mt-0.5">Gated — requires institutional access</p>
+                      <p className="text-xs text-foreground/75">{item}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">Gated - requires institutional access</p>
                     </div>
                   </div>
                 ))}
@@ -888,13 +878,13 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
               <>
                 {isAuthReady && !canShare ? (
                   /* Unauthenticated — show sign-in prompt, never a click-then-fail button */
-                  <div className="rounded-xl border border-border bg-card px-4 py-4 space-y-3 text-center">
+                  <div className="space-y-3 rounded-2xl border border-border bg-card px-4 py-4 text-center">
                     <p className="text-foreground text-sm leading-relaxed">
                       Sign in to generate a shareable passport link.
                     </p>
                     <Link
                       href={`${CLERK_SIGN_IN_URL}?redirect_url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                      className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-black hover:bg-emerald-400 transition-colors"
+                      className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-black transition-colors hover:bg-emerald-400"
                     >
                       Sign in to share
                     </Link>
@@ -905,7 +895,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                       onClick={() => setShareModalOpen(true)}
                       disabled={sharing || !isAuthReady}
                       variant="success"
-                      className="h-14 w-full rounded-none text-xs font-bold uppercase tracking-widest"
+                      className="h-12 w-full rounded-xl text-sm font-semibold"
                       aria-label="Generate shareable passport link"
                     >
                       {sharing ? 'Generating link…' : 'Share with employer'}

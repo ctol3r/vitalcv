@@ -27,12 +27,12 @@ export function PassportSourceCoveragePanel({
   }
 
   return (
-    <Card className="gap-0 rounded-2xl border-white/8 bg-white/[0.03] py-0 shadow-none">
-      <CardHeader className="border-b border-white/6 px-5 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
+    <Card className="gap-0 rounded-2xl border-border bg-card py-0 shadow-none">
+      <CardHeader className="border-b border-border px-5 py-5">
+        <p className="text-xs font-medium text-muted-foreground">
           {PASSPORT_SOURCE_COVERAGE_TITLE}
         </p>
-        <CardTitle className="text-sm font-semibold text-foreground/80">
+        <CardTitle className="text-base font-semibold text-foreground/85">
           Trust-core coverage and contextual gaps
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed text-muted-foreground">
@@ -43,7 +43,7 @@ export function PassportSourceCoveragePanel({
         {checks.map((check, index) => (
           <div
             key={check.sourceId}
-            className={index === checks.length - 1 ? '' : 'border-b border-white/6'}
+            className={index === checks.length - 1 ? '' : 'border-b border-border'}
           >
             <SourceCoverageRow check={check} />
           </div>

@@ -1,11 +1,11 @@
 import type { PassportData } from './passport-contract';
+import { buildPassportRuntimeMetadata } from './passport-runtime-metadata';
+import { resolvePassportTruthSet } from './passport-truth-set';
 
 /**
  * Builds a minimal PassportData stub for degraded rendering.
- * Used when the backend is unreachable but NPPES is reachable.
- * All lanes except nppes_identity are marked `pending`.
- * No lane is ever `checked` by this stub — degraded mode cannot
- * substitute for a real source verification run.
+ * Used when NPPES is reachable but the passport is still incomplete.
+ * The shape stays stable so degraded and hydrated payloads render identically.
  */
 export function buildDegradedPassportStub(
   npi: string,
@@ -21,19 +21,7 @@ export function buildDegradedPassportStub(
 
   const now = new Date().toISOString();
 
-  const summaryEmpty = {
-    checked: [] as readonly string[],
-    stale: [] as readonly string[],
-    pending: [npi] as readonly string[],
-    gated: [] as readonly string[],
-    unavailable: [] as readonly string[],
-    accessRequired: [] as readonly string[],
-    reviewRequired: [] as readonly string[],
-    notDecisionGrade: [] as readonly string[],
-    previewOnly: [] as readonly string[],
-  } as const;
-
-  return {
+  const passport = {
     entityId: npi,
     npi,
     identity: {
@@ -56,21 +44,21 @@ export function buildDegradedPassportStub(
     },
     standing: {
       exclusionClear: false,
-      exclusionStatus: 'UNCHECKED',
-      licensureStatus: 'unknown',
-      deaStatus: 'unknown',
-      pecosStatus: 'unknown',
-      pecosEnrollmentStatus: 'UNKNOWN',
-      enrollmentSourceLabel: 'Degraded mode — backend unavailable',
+      exclusionStatus: 'UNCHECKED' as const,
+      licensureStatus: 'unknown' as const,
+      deaStatus: 'unknown' as const,
+      pecosStatus: 'unknown' as const,
+      pecosEnrollmentStatus: 'UNKNOWN' as const,
+      enrollmentSourceLabel: 'Eligibility source pending',
       enrollmentDataFreshness: 'unknown',
       enrollmentNote: null,
       negativeFindings: [],
     },
     readiness: {
-      status: 'CHECKING',
+      status: 'CHECKING' as const,
       score: 0,
       level: 'unknown',
-      blockers: ['Backend unavailable — source checks pending'],
+      blockers: ['Safety, authority, and eligibility sources are pending'],
       gaps: [],
       estimatedStartDays: null,
       nextActions: [],
@@ -83,60 +71,108 @@ export function buildDegradedPassportStub(
       checks: [
         {
           sourceId: 'nppes_identity',
-          state: 'checked',
-          reason: 'Identity confirmed via NPPES (degraded mode — backend unavailable)',
+          state: 'checked' as const,
+          reason: 'Identity is checked against CMS NPPES. Safety, authority, and eligibility are pending.',
           checkedAt: now,
+        },
+        {
+          sourceId: 'oig_leie',
+          state: 'pending' as const,
+          reason: 'Safety source is pending.',
+          checkedAt: null,
+        },
+        {
+          sourceId: 'state_board',
+          state: 'pending' as const,
+          reason: 'Authority source is pending.',
+          checkedAt: null,
+        },
+        {
+          sourceId: 'pecos_public',
+          state: 'pending' as const,
+          reason: 'Eligibility source is pending.',
+          checkedAt: null,
         },
       ],
       summary: {
-        ...summaryEmpty,
-        checked: ['nppes_identity'] as readonly string[],
-        pending: [] as readonly string[],
+        checked: ['nppes_identity'],
+        stale: [],
+        pending: ['oig_leie', 'state_board', 'pecos_public'],
+        gated: [],
+        unavailable: [],
+        accessRequired: [],
+        reviewRequired: [],
+        notDecisionGrade: [],
+        previewOnly: [],
       },
     },
     trustPosture: {
       band: 'degraded',
-      bandLabel: 'Degraded',
+      bandLabel: 'Source incomplete',
       score: 0,
       dimensions: [
         {
           id: 'identity',
           label: 'Identity',
-          state: 'missing',
-          detail: 'NPPES identity confirmed; full verification pending backend recovery.',
+          state: 'current',
+          detail: 'Identity is checked against CMS NPPES. Other readiness sources are pending.',
+          checkedAt: now,
         },
         {
           id: 'safety',
           label: 'Safety',
-          state: 'missing',
-          detail: 'Backend unavailable — safety checks pending.',
+          state: 'pending',
+          detail: 'Safety source is pending.',
         },
         {
           id: 'authority',
           label: 'Authority',
-          state: 'missing',
-          detail: 'Backend unavailable — authority checks pending.',
+          state: 'pending',
+          detail: 'Authority source is pending.',
         },
         {
           id: 'eligibility',
           label: 'Eligibility',
-          state: 'missing',
-          detail: 'Backend unavailable — eligibility checks pending.',
+          state: 'pending',
+          detail: 'Eligibility source is pending.',
         },
       ],
       freshness: {
-        state: 'stale',
-        label: 'Degraded mode',
+        state: 'partial',
+        label: 'Source coverage incomplete',
         items: [],
       },
-      safeToRelyOnNow: [],
-      missingItems: ['identity', 'safety', 'authority', 'eligibility'],
+      safeToRelyOnNow: ['Identity confirmed via NPPES'],
+      missingItems: [],
       gatedItems: [],
       reviewRequiredItems: [],
       staleItems: [],
-      blockers: ['Backend unavailable — operating in degraded mode'],
+      blockers: ['Safety, authority, and eligibility sources are pending'],
     },
     lastCheckedAt: now,
+    ...buildPassportRuntimeMetadata(npi, {
+      checkedAt: now,
+      replayPosture: {
+        status: 'degraded',
+        label: 'Replay Partially Available',
+        detail: 'The NPPES identity check is replayable. Safety, authority, and eligibility are pending.',
+      },
+      continuityPosture: {
+        status: 'degraded',
+        label: 'Continuity Partially Available',
+        detail: 'NPPES identity is source-backed. Safety, authority, and eligibility are pending.',
+      },
+      issuerPosture: {
+        status: 'verified',
+        label: 'Source Issuer Available',
+        detail: 'CMS NPPES returned the identity source record.',
+      },
+    }),
     _degraded: true,
   };
+
+  return {
+    ...passport,
+    truth: resolvePassportTruthSet(passport as PassportData),
+  } as PassportData & { _degraded: boolean };
 }

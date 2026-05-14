@@ -26,10 +26,10 @@ export function TrustSummarySection({
   const showScore = currentCount > 0;
 
   const toneClass: Record<string, string> = {
-    success: 'border-emerald-500/15 bg-emerald-500/[0.05]',
-    default: 'border-white/8 bg-white/[0.03]',
-    warning: 'border-amber-500/15 bg-amber-500/[0.05]',
-    critical: 'border-rose-500/15 bg-rose-500/[0.06]',
+    success: 'border-border bg-card',
+    default: 'border-border bg-card',
+    warning: 'border-border bg-card',
+    critical: 'border-border bg-card',
   };
 
   const summaryStatus =
@@ -46,41 +46,43 @@ export function TrustSummarySection({
         toneClass[tone] ?? toneClass.default,
       ].join(' ')}
     >
-      <div className="px-5 py-4">
-        <div className="flex items-start justify-between gap-4">
+      <div className="px-5 py-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/40">
+            <p className="text-xs font-medium text-muted-foreground">
               Trust summary
             </p>
             <p className="text-base font-semibold text-foreground/85">{posture.bandLabel}</p>
             <p className="text-xs text-muted-foreground">
-              {currentCount}/{totalCount} dimensions verified · {posture.freshness.label}
+              {currentCount}/{totalCount} dimensions source-backed · {posture.freshness.label}
             </p>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+          <div className="flex shrink-0 items-center justify-between gap-4 sm:block sm:text-right">
+            <p className="text-2xl font-semibold tabular-nums text-foreground">
               {showScore ? posture.score : '—'}
             </p>
-            <TrustStatusBadge status={summaryStatus} size="sm" />
+            <div className="sm:mt-2">
+              <TrustStatusBadge status={summaryStatus} size="sm" />
+            </div>
           </div>
         </div>
 
         {posture.blockers.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/6 pt-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-200/60">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <span className="text-xs font-medium text-[var(--vt-severity-critical)]">
               {posture.blockers.length} blocker{posture.blockers.length === 1 ? '' : 's'}
             </span>
             {posture.blockers.slice(0, 2).map((blocker) => (
               <Badge
                 key={blocker}
                 variant="outline"
-                className="rounded-full border-rose-500/20 bg-rose-500/8 px-2 py-0.5 text-[10px] text-rose-200"
+                className="rounded-full border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground/70"
               >
                 {blocker}
               </Badge>
             ))}
             {posture.blockers.length > 2 && (
-              <span className="text-[10px] text-muted-foreground/40">
+              <span className="text-xs text-muted-foreground">
                 +{posture.blockers.length - 2} more
               </span>
             )}
@@ -88,8 +90,8 @@ export function TrustSummarySection({
         )}
 
         {posture.safeToRelyOnNow.length > 0 && posture.blockers.length === 0 && (
-          <div className="mt-3 border-t border-white/6 pt-3">
-            <p className="text-[10px] text-muted-foreground/40">
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">
               {posture.safeToRelyOnNow.length} source-backed signal{posture.safeToRelyOnNow.length === 1 ? '' : 's'} attached
             </p>
           </div>

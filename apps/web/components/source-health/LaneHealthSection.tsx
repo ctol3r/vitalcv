@@ -23,16 +23,21 @@ export function LaneHealthSection({
   return (
     <section
       aria-label="Source operational state"
-      className="rounded-lg border border-border/40 bg-card/40 p-4"
+      className="rounded-2xl border border-border bg-card p-5"
     >
-      <header className="flex items-center justify-between gap-3 mb-3">
-        <h3 className="text-sm font-semibold text-foreground">{heading}</h3>
+      <header className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-foreground/85">{heading}</h3>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Operational source state for this snapshot.
+          </p>
+        </div>
         <span className="text-xs text-muted-foreground">
           {allHealthy ? 'All lanes responding' : 'Some lanes are not live'}
         </span>
       </header>
 
-      <ul className="flex flex-wrap gap-2 mb-3" role="list">
+      <ul className="mb-4 grid gap-2 sm:grid-cols-2" role="list">
         {snapshots.map((snap) => (
           <li key={snap.sourceId}>
             <LaneHealthBadge snapshot={snap} />
@@ -43,20 +48,20 @@ export function LaneHealthSection({
       {unavailableLanes.length > 0 && (
         <ul
           role="list"
-          className="space-y-2 border-t border-border/40 pt-3"
+          className="space-y-3 border-t border-border pt-4"
           aria-label="Lanes that are not currently live"
         >
           {unavailableLanes.map((lane) => (
             <li
               key={lane.sourceId}
-              className="text-xs text-muted-foreground leading-relaxed"
+              className="rounded-xl border border-border bg-background px-3 py-3 text-xs leading-relaxed text-muted-foreground"
               data-unavailable-source={lane.sourceId}
               data-unavailable-state={lane.state}
             >
               <span className="font-medium text-foreground">
                 {lane.sourceId}
               </span>
-              <span aria-hidden="true"> — </span>
+              <span aria-hidden="true"> - </span>
               <span>{lane.userFacingMessage}</span>
               {lane.retryPolicy.canRetryNow ? (
                 <span className="ml-1 italic">

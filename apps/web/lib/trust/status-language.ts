@@ -87,7 +87,7 @@ const SAFE_DISPLAY_LABELS: Record<TrustUiStatus, readonly string[]> = {
   checked: ['Checked', 'Source-backed'],
   pending: ['Pending'],
   stale: ['Stale'],
-  unavailable: ['Unavailable'],
+  unavailable: ['Unavailable', 'Cannot verify'],
   access_required: ['Access required'],
   review_required: ['Review required'],
   demo: ['Preview', 'Preview only'],

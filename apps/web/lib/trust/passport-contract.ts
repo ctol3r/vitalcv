@@ -14,12 +14,18 @@ import {
   normalizeTrustContainerManifestView,
   type TrustContainerManifestView,
 } from '@/lib/trust/trust-container-view';
+import type {
+  PassportRuntimePosture,
+} from '@/lib/trust/passport-runtime-metadata';
 
 export type ReadinessStatus = ReadinessState;
 export type PassportTrustPostureState =
   | 'current'
   | 'stale'
+  | 'pending'
   | 'gated'
+  | 'unavailable'
+  | 'unverifiable'
   | 'review_required'
   | 'blocked'
   | 'missing';
@@ -90,13 +96,13 @@ export interface DecisionPosture {
 
 export interface PassportData {
   entityId:    string;
-  npi?:        string;
+  npi?:        string | null;
   identity: {
     displayName: string;
     specialty?:  string;
     entityType:  string;
     status:      string;
-    npi?:        string;
+    npi?:        string | null;
   };
   authority: {
     credentials: Array<{
@@ -194,6 +200,11 @@ export interface PassportData {
   truth?: CanonicalTruthSet;
   trustPosture: PassportTrustPosture;
   decisionPosture?: DecisionPosture;
+  checkedAt?: string;
+  lineageKey?: string;
+  replayPosture?: PassportRuntimePosture;
+  continuityPosture?: PassportRuntimePosture;
+  issuerPosture?: PassportRuntimePosture;
   lastCheckedAt: string;
   divergence?: PassportDivergence;
   /** Wave 245: Continuous monitoring status */
