@@ -102,6 +102,9 @@ export function EmployerDecisionConsole({
   const [actionLog, setActionLog] = useState<StateLogEntry[]>([]);
   const [auditOpen, setAuditOpen] = useState(false);
 
+  const verifiedCount = lanes.filter(l => l.status === 'verified').length;
+  const totalLanes = lanes.length;
+
   const handleAction = useCallback(async (
     action: Parameters<NonNullable<typeof onAction>>[0],
     label: string
@@ -146,10 +149,23 @@ export function EmployerDecisionConsole({
               <PostureBadge posture={posture} />
               <ProofTierBadge tier={proofTier} />
             </div>
-            {score !== null
-              ? <p className="font-mono text-xl font-black text-slate-600 tabular-nums">{score}<span className="text-xs font-normal text-slate-400 ml-0.5">%</span></p>
-              : <p className="text-xs text-slate-400 italic">Score unavailable</p>
-            }
+            {score !== null ? (
+              <div className="flex flex-col items-end gap-0.5">
+                <p className="font-mono text-xl font-black text-slate-600 tabular-nums">
+                  {score}<span className="text-xs font-normal text-slate-400 ml-0.5">% verified</span>
+                </p>
+                {totalLanes > 0 && (
+                  <p className="text-[10px] text-slate-400">{verifiedCount} of {totalLanes} sources checked</p>
+                )}
+              </div>
+            ) : verifiedCount > 0 ? (
+              <div className="flex flex-col items-end gap-0.5">
+                <p className="text-sm font-semibold text-slate-600">Identity confirmed</p>
+                <p className="text-[10px] text-slate-400">{verifiedCount} of {totalLanes} sources checked</p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">Score unavailable</p>
+            )}
           </div>
         </div>
       </div>

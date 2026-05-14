@@ -10,7 +10,7 @@ import type {
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { PUBLIC_WEDGE_ROUTE_TARGETS } from '@/lib/trust/public-wedge-parity';
 
-const DEFAULT_REVIEW_ERROR = 'Employer review is unavailable for this packet.';
+const DEFAULT_REVIEW_ERROR = 'Review data unavailable.';
 
 function buildEmptyAcceptanceHistory(): EmployerAcceptanceHistoryResponse {
   return {
@@ -147,8 +147,8 @@ export default async function ReviewPageClient({
               title="Review link unavailable"
               description={
                 isExpired
-                  ? 'This review link has expired. Ask the clinician to share a fresh packet.'
-                  : 'This review link is missing, expired, or no longer maps to an active packet.'
+                  ? 'This review link has expired. Ask the clinician to generate a new review link.'
+                  : 'This review link is missing, expired, or no longer maps to an active credential record.'
               }
               tone="warning"
               centered
