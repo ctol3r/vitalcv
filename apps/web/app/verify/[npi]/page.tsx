@@ -195,10 +195,8 @@ export default async function VerifierPage({
                 Verdict
               </span>
               <span className="text-sm font-mono font-semibold text-white">
-                {proofTier === 'DECISION_GRADE' || proofTier === 'decision_grade'
-                  ? 'Verifiable'
-                  : proofTier === 'PARTIAL' || proofTier === 'partial'
-                  ? 'Partial coverage'
+                {String(proofTier).toLowerCase().includes('decision') ? 'Verifiable'
+                  : String(proofTier).toLowerCase().includes('partial') ? 'Partial coverage'
                   : 'Pending'}
               </span>
             </div>
