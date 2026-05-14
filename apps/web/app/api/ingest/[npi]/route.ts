@@ -34,8 +34,8 @@ export const runtime = 'nodejs';
 
 const FALLBACK_LANES = [
   { source: 'NPPES', state: 'pending', detail: 'Identity check pending upstream response.' },
-  { source: 'OIG_LEIE', state: 'pending', detail: 'Federal exclusion check pending upstream response.' },
-  { source: 'PECOS_PUBLIC', state: 'pending', detail: 'Medicare public enrollment posture pending.' },
+  { source: 'OIG_LEIE', state: 'pending', detail: 'Federal exclusion check in progress.' },
+  { source: 'PECOS_PUBLIC', state: 'pending', detail: 'Medicare enrollment check in progress.' },
   { source: 'STATE_BOARD', state: 'access_required', detail: 'State board lane requires institutional access; not a clinician defect.' },
 ] as const;
 
