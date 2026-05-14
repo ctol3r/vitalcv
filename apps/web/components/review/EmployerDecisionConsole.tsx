@@ -324,7 +324,6 @@ function BlockerRow({ blocker }: { blocker: BlockerItem }) {
         <span className="text-sm font-bold text-slate-800">{blocker.displayName}</span>
         <StatusBadge status={blocker.status} />
       </div>
-      <p className="text-xs text-slate-600 mb-1">{blocker.reason}</p>
       <p className={`text-xs font-semibold ${isAdverse ? 'text-red-700' : 'text-amber-700'}`}>
         → {blocker.requiredAction}
       </p>

@@ -265,24 +265,26 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
           <LaneHealthMount heading="Source health" />
         </section>
         <ReplayHeader passport={passport} />
-        <section
-          className="rounded-2xl border border-border bg-card p-4 shadow-none sm:p-5"
-          aria-label="Knowledge Inbox"
-          data-testid="passport-knowledge-inbox-mount"
-        >
-          <header className="mb-4 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              Captured evidence
-            </p>
-            <h3 className="text-base font-semibold text-foreground">
-              Pending verification
-            </h3>
-            <p className="text-xs text-muted-foreground/80">
-              Items here are staged, not yet source-verified.
-            </p>
-          </header>
-          <KnowledgeInboxPanel items={inboxItems} />
-        </section>
+        {inboxItems.length > 0 && (
+          <section
+            className="rounded-2xl border border-border bg-card p-4 shadow-none sm:p-5"
+            aria-label="Knowledge Inbox"
+            data-testid="passport-knowledge-inbox-mount"
+          >
+            <header className="mb-4 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                Captured evidence
+              </p>
+              <h3 className="text-base font-semibold text-foreground">
+                Pending verification
+              </h3>
+              <p className="text-xs text-muted-foreground/80">
+                Items here are staged, not yet source-verified.
+              </p>
+            </header>
+            <KnowledgeInboxPanel items={inboxItems} />
+          </section>
+        )}
       </div>
     </div>
   );

@@ -217,7 +217,12 @@ export default async function VerifierPage({
         <div className="border border-gray-200 rounded-lg p-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{displayName}</h1>
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-lg font-semibold text-gray-900">{displayName}</h1>
+                {passport.lastCheckedAt && (
+                  <span className="text-[11px] font-mono text-gray-400">{formatUtc(passport.lastCheckedAt)}</span>
+                )}
+              </div>
               <div className="mt-1 flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-gray-500">NPI: <span className="font-mono text-gray-700">{npi}</span></span>
                 {passport.identity?.specialty && (
@@ -244,16 +249,7 @@ export default async function VerifierPage({
             </div>
           </div>
 
-          {/* Last checked timestamps */}
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-gray-500">
-            <TimestampField label="Last checked" value={formatUtc(passport.lastCheckedAt)} />
-            {passport.trustContainer?.issuedAt && (
-              <TimestampField label="Container issued" value={formatUtc(passport.trustContainer.issuedAt)} />
-            )}
-            {passport.standing?.exclusionCheckedAt && (
-              <TimestampField label="Exclusion checked" value={formatUtc(passport.standing.exclusionCheckedAt)} />
-            )}
-          </div>
+
         </div>
 
         {/* ── Section: Provenance Strip ──────────────────────────────────── */}
