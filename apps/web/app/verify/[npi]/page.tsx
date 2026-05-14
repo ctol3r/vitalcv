@@ -177,7 +177,7 @@ export default async function VerifierPage({
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-semibold text-gray-700">
-              Verifier View — Read-Only Access
+              Credential Verification
             </span>
           </div>
           <span className="text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded">
@@ -187,6 +187,32 @@ export default async function VerifierPage({
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Verdict bar — per design R-01: verdict before content */}
+        <div className="border border-gray-900 bg-gray-900 rounded-lg">
+          <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono font-medium text-white/60 uppercase tracking-widest">
+                Verdict
+              </span>
+              <span className="text-sm font-mono font-semibold text-white">
+                {proofTier === 'DECISION_GRADE' || proofTier === 'decision_grade'
+                  ? 'Verifiable'
+                  : proofTier === 'PARTIAL' || proofTier === 'partial'
+                  ? 'Partial coverage'
+                  : 'Pending'}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60 font-mono">
+              {lanes.filter(l => l.status === 'verified').length > 0 && (
+                <span>{lanes.filter(l => l.status === 'verified').length} of {lanes.length} sources confirmed</span>
+              )}
+              {passport.lastCheckedAt && (
+                <><span className="text-white/30">|</span><span>checked {formatUtc(passport.lastCheckedAt)}</span></>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* ── Identity + Proof Tier Hero ─────────────────────────────────── */}
         <div className="border border-gray-200 rounded-lg p-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -205,7 +231,7 @@ export default async function VerifierPage({
 
             <div className="flex flex-col items-end gap-2">
               <span
-                className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold ${tierConfig.cls}`}
+                className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-mono font-semibold bg-gray-900 text-white"
               >
                 {tierConfig.label}
               </span>
@@ -231,12 +257,12 @@ export default async function VerifierPage({
         </div>
 
         {/* ── Section: Provenance Strip ──────────────────────────────────── */}
-        <Section title="Lane Coverage">
+        <Section title="Source coverage">
           <ProvenanceStrip lanes={lanes} />
         </Section>
 
         {/* ── Section: Receipt Verification ─────────────────────────────── */}
-        <Section title="Receipt Verification">
+        <Section title="Verification receipt">
           {firstReceiptLane ? (
             <ReceiptVerificationPane
               receiptId={firstReceiptLane.receiptId!}
@@ -259,7 +285,7 @@ export default async function VerifierPage({
         </Section>
 
         {/* ── Section: Issuer Continuity ─────────────────────────────────── */}
-        <Section title="Issuer Continuity">
+        <Section title="Issuer">
           <IssuerContinuityPanel
             did="did:web:vitalcv.com"
             signingKeyId="vcv-es256-1"
@@ -267,7 +293,7 @@ export default async function VerifierPage({
         </Section>
 
         {/* ── Section: Replay Chronology ─────────────────────────────────── */}
-        <Section title="Replay Chronology">
+        <Section title="Verification history">
           <ReplayChronologyPanel lanes={lanes} />
         </Section>
       </div>
