@@ -16,7 +16,11 @@
     "test": "turbo test",
     "build": "pnpm turbo build",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
-    "test:backend:db": "bash scripts/backend-test-db.sh"
+    "test:backend:db": "bash scripts/backend-test-db.sh",
+    "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
+    "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
+    "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
+    "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
   },
   "devDependencies": {
     "@types/node": "^20",

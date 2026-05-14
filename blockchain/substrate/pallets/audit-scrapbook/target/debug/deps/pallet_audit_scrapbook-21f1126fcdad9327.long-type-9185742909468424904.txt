@@ -1,2 +1,0 @@
-u32: frame_support::dispatch::PaysFee<(&std::vec::Vec<(ActionType, std::vec::Vec<u8>, std::vec::Vec<u8>, std::vec::Vec<u8>)>,)>
-&dyn frame_support::dispatch::PaysFee<(&std::vec::Vec<(ActionType, std::vec::Vec<u8>, std::vec::Vec<u8>, std::vec::Vec<u8>)>,)>

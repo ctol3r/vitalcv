@@ -1,1 +1,0 @@
-frame_support::pallet_prelude::StorageMap<_GeneratedPrefixForStorageAuditRecordsByActor<T>, frame_support::Blake2_128Concat, std::vec::Vec<u8>, std::vec::Vec<u64>, frame_support::pallet_prelude::ValueQuery>
