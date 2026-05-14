@@ -917,14 +917,14 @@ describe('live path regression hardening', () => {
     const view = await renderNode(<ReviewClient passport={passport} contextId="ctx_truth" />);
 
     expect(textContent(view.container)).toContain('Passport truth in this review');
-    expect(textContent(view.container)).toContain('Source-backed now');
+    expect(textContent(view.container)).toContain('Source-backed in this review');
     expect(textContent(view.container)).toContain('Identity Verification');
     expect(textContent(view.container)).toContain('Contextual only');
     expect(textContent(view.container)).toContain('Enrollment / Eligibility');
     expect(textContent(view.container)).toContain('Missing or access required');
     expect(textContent(view.container)).toContain('DEA / Controlled Substance');
-    expect(textContent(view.container)).toContain('Sources checked');
-    expect(textContent(view.container)).toContain('Only checked sources are decision-grade.');
+    expect(textContent(view.container)).toContain('Source coverage');
+    expect(textContent(view.container)).toContain('Checked sources can be relied on for this snapshot.');
 
     await view.unmount();
   });
@@ -1239,7 +1239,7 @@ describe('live path regression hardening', () => {
     });
     const view = await renderNode(<ReviewClient passport={passport} />);
 
-    expect(textContent(view.container)).toContain('Source-backed now');
+    expect(textContent(view.container)).toContain('Source-backed in this review');
     expect(textContent(view.container)).toContain('Nursing license (OR)');
     expect(textContent(view.container)).toContain('Missing or access required');
     expect(textContent(view.container)).toContain('License verification — manual lane only (TX)');

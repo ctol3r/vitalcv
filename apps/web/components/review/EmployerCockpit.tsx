@@ -89,16 +89,16 @@ function resolveDecisionPosture(passport: PassportData): DecisionPosture {
   return {
     status,
     headline:
-      status === 'DECISION_GRADE' ? 'All decision-grade sources checked. Safe to proceed.'
-        : status === 'BLOCKED' ? 'Critical blockers present. Do not proceed.'
-          : 'Some sources pending or incomplete. Proceed with caution.',
+      status === 'DECISION_GRADE' ? 'All decision-grade sources are attached for employer review.'
+        : status === 'BLOCKED' ? 'Critical blockers are attached. Resolve them before acceptance.'
+          : 'Some sources are pending or incomplete. Use only as a head start.',
     proven: [],
     missing: [],
     blockers: passport.readiness.blockers,
     freshness: passport.trustPosture.freshness,
     nextAction:
       status === 'DECISION_GRADE' ? 'Accept as head start and move to privileging.'
-        : status === 'BLOCKED' ? 'Do not hire until blockers are resolved.'
+        : status === 'BLOCKED' ? 'Do not record acceptance until blockers are resolved.'
           : 'Route to credentialing team for gap resolution.',
   };
 }

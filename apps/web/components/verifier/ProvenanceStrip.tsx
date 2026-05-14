@@ -30,7 +30,7 @@ function shortId(id: string | null | undefined): string {
 }
 
 const TIER_BADGE: Record<string, { label: string; cls: string }> = {
-  verified:        { label: 'Verified',    cls: 'bg-green-100 text-green-800 border border-green-300' },
+  verified:        { label: 'Source-backed', cls: 'bg-green-100 text-green-800 border border-green-300' },
   in_progress:     { label: 'In Progress', cls: 'bg-blue-100 text-blue-800 border border-blue-300' },
   not_checked:     { label: 'Not Checked', cls: 'bg-gray-100 text-gray-600 border border-gray-300' },
   stale:           { label: 'Stale',       cls: 'bg-amber-100 text-amber-800 border border-amber-300' },

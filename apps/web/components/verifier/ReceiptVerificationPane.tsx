@@ -109,7 +109,7 @@ export function ReceiptVerificationPane({
           ) : status === 'verified' ? (
             <>
               <CheckCircle className="w-3 h-3" />
-              Verified
+              Signature valid
             </>
           ) : (
             'Verify signature'
