@@ -5,8 +5,7 @@ import Link from 'next/link';
 import PassportWallet from '@/components/passport/PassportWallet';
 import { Button } from '@/components/ui/button';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
-import { fetchPassportEntity, fetchNppesIdentityProbe } from '@/lib/api';
-import { buildDegradedPassportStub } from '@/lib/trust/buildDegradedPassportStub';
+import { fetchPassportEntity } from '@/lib/api';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import { KnowledgeInboxPanel } from '@/components/knowledge-inbox/KnowledgeInboxPanel';
 import type { KnowledgeInboxItem } from '@/lib/knowledge-inbox/types';
@@ -52,98 +51,83 @@ function isStale(ts: string | null | undefined): boolean {
   return !isNaN(d.getTime()) && Date.now() - d.getTime() > 24 * 60 * 60 * 1000;
 }
 
+function postureTone(status?: string): string {
+  switch (status) {
+    case 'verified':
+      return 'border-border bg-background text-[var(--vt-status-resolved)]';
+    case 'degraded':
+      return 'border-border bg-background text-[var(--vt-risk-medium)]';
+    case 'pending':
+      return 'border-blue-100 bg-blue-50/40 text-blue-700';   // intentional / in-progress
+    case 'unavailable':
+      return 'border-border bg-background text-muted-foreground';  // gray / absent
+    case 'unverifiable':
+      return 'border-border bg-background text-muted-foreground';
+    default:
+      return 'border-border bg-background text-muted-foreground';
+  }
+}
+
+function runtimeStatusLabel(status: string): string {
+  switch (status) {
+    case 'verified':      return 'Confirmed';
+    case 'degraded':      return 'Partial';
+    case 'pending':       return 'Checking';
+    case 'unavailable':   return 'Not checked';
+    case 'unverifiable':  return 'Not available';
+    default:              return status;
+  }
+}
+
 interface ReplayHeaderProps {
   passport: PassportData;
 }
 
 function ReplayHeader({ passport }: ReplayHeaderProps) {
   const npi = passport.npi ?? passport.identity.npi ?? passport.entityId;
-  const checkedAt = passport.lastCheckedAt ?? null;
+  const checkedAt = passport.lastCheckedAt ?? passport.checkedAt ?? null;
   const runId = checkedAt ? deriveRunId(npi, checkedAt) : null;
+  const lineageKey = passport.lineageKey ?? null;
 
-  // Prior run_id — use trustContainer issuedAt as alternate epoch when available
-  const priorCheckedAt = passport.trustContainer?.issuedAt ?? null;
-  const priorRunId =
-    priorCheckedAt && priorCheckedAt !== checkedAt
-      ? deriveRunId(npi, priorCheckedAt)
-      : null;
-
-  // Per-lane check timestamps (chronologically ordered)
-  const laneTimestamps: Array<{ sourceId: string; checkedAt: string }> = (
-    passport.sourceCoverage?.checks ?? []
-  )
-    .filter((c) => typeof c.checkedAt === 'string' && c.checkedAt)
-    .map((c) => ({ sourceId: c.sourceId, checkedAt: c.checkedAt as string }))
-    .sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime());
+  // Source count + latest check time
+  const laneChecks = (passport.sourceCoverage?.checks ?? []).filter(
+    (c) => typeof c.checkedAt === 'string' && c.checkedAt,
+  );
+  const sourceCount = laneChecks.length;
+  const latestLaneCheck = laneChecks
+    .map((c) => new Date(c.checkedAt as string).getTime())
+    .sort((a, b) => b - a)[0];
+  const latestLaneUtc = latestLaneCheck
+    ? new Date(latestLaneCheck).toISOString().slice(11, 16) + ' UTC'
+    : null;
 
   const stale = isStale(checkedAt);
 
+  // Build compact strip parts
+  const parts: string[] = [];
+  if (runId) parts.push(runId);
+  if (checkedAt) parts.push(formatUtcTimestamp(checkedAt));
+  if (lineageKey) parts.push(lineageKey);
+
   return (
     <div
-      className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full"
+      className="mx-auto w-full max-w-3xl px-4"
       data-testid="replay-header"
     >
-      <div className="rounded-2xl border border-border bg-background/60 p-4 sm:p-5 space-y-3">
-        {/* Eyebrow */}
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-semibold">
-          Replay continuity
-        </p>
-
-        {/* checked_at + STALE badge */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Checked at:</span>
-          <span className="text-xs font-mono text-foreground/80">
-            {checkedAt ? formatUtcTimestamp(checkedAt) : '—'}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-mono text-[11px] text-muted-foreground/60">
+          {parts.join(' · ') || '—'}
+        </span>
+        {stale && (
+          <span className="inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-[var(--vt-risk-medium)]">
+            STALE
           </span>
-          {stale && (
-            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200">
-              STALE
-            </span>
-          )}
-        </div>
-
-        {/* run_id */}
-        {runId && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Run ID:</span>
-            <span className="text-xs font-mono text-foreground/90 bg-muted px-1.5 py-0.5 rounded">
-              {runId}
-            </span>
-          </div>
         )}
-
-        {/* Replay lineage chain */}
-        {priorRunId && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">↳ replays run_id:</span>
-            <span className="text-xs font-mono text-foreground/70 bg-muted px-1.5 py-0.5 rounded">
-              {priorRunId}
-            </span>
-            <span className="text-[10px] text-muted-foreground/60">
-              ({formatUtcTimestamp(priorCheckedAt)})
-            </span>
-          </div>
-        )}
-
-        {/* Per-lane check timestamps */}
-        {laneTimestamps.length > 0 && (
-          <details className="group">
-            <summary className="cursor-pointer text-[10px] text-muted-foreground/70 uppercase tracking-widest select-none">
-              Lane chronology ({laneTimestamps.length})
-            </summary>
-            <ol className="mt-2 space-y-1 pl-2 border-l border-border">
-              {laneTimestamps.map((lt) => (
-                <li key={lt.sourceId} className="flex items-center gap-2 text-[11px]">
-                  <span className="text-muted-foreground/70 w-28 shrink-0 font-mono">
-                    {lt.sourceId}
-                  </span>
-                  <span className="text-foreground/70 font-mono">
-                    {formatUtcTimestamp(lt.checkedAt)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </details>
+        {sourceCount > 0 && (
+          <span className="text-[11px] text-muted-foreground/50">
+            {sourceCount} source{sourceCount !== 1 ? 's' : ''}
+            {latestLaneUtc ? ` · ${latestLaneUtc}` : ''}
+          </span>
         )}
       </div>
     </div>
@@ -170,25 +154,12 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
       if (cancelled) return;
 
       if (result.ok && result.body) {
-        // Happy path — full passport data
+        // Canonical App Router path now returns either hydrated or degraded
+        // passport truth directly, without relying on a backend proxy.
         setPassport(result.body);
+        setDegradedMode(Boolean((result.body as PassportData & { _degraded?: boolean })._degraded));
       } else {
-        // Degraded path — attempt NPPES fallback for 10-digit NPIs
-        const isNpi = /^\d{10}$/.test(entityId);
-        if (isNpi) {
-          const probe = await fetchNppesIdentityProbe(entityId);
-          if (cancelled) return;
-          if (probe.ok && probe.nppesData) {
-            const stub = buildDegradedPassportStub(entityId, probe.nppesData);
-            setPassport(stub as PassportData);
-            setDegradedMode(true);
-          } else {
-            // Only truly null if even NPPES fails
-            setPassport(null);
-          }
-        } else {
-          setPassport(null);
-        }
+        setPassport(null);
       }
       setLoading(false);
     })();
@@ -235,39 +206,48 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   const inboxItems: KnowledgeInboxItem[] = [];
 
   return (
-    <div className="flex flex-col gap-8 pb-16">
+    <div className="flex flex-col gap-10 bg-background pb-16">
       {degradedMode && (
-        <div className="border border-dashed border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-700 flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-amber-500">DEGRADED MODE</span>
-          <span>Backend unavailable — displaying NPPES identity only. Source verification pending.</span>
-          <button
-            onClick={() => {
-              setDegradedMode(false);
-              setLoading(true);
-              setRetryCount(c => c + 1);
-            }}
-            className="ml-auto font-mono text-[10px] uppercase tracking-[0.08em] text-amber-600 hover:text-amber-900"
+        <div className="mx-auto w-full max-w-3xl px-4">
+          <div
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground sm:flex-row sm:items-center"
+            role="status"
           >
-            Retry →
-          </button>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground">Source data loading</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Primary identity confirmed. Readiness lanes are completing in the background.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setDegradedMode(false);
+                setLoading(true);
+                setRetryCount(c => c + 1);
+              }}
+              className="self-start rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:self-center"
+            >
+              Check again
+            </button>
+          </div>
         </div>
       )}
       <PassportWallet passport={passport} />
-      <ReplayHeader passport={passport} />
-      <div className="mx-auto max-w-[480px] sm:max-w-[640px] md:max-w-3xl lg:max-w-4xl px-4 w-full space-y-8">
+      <div className="mx-auto w-full max-w-3xl space-y-10 px-4">
         <section
           aria-label="Source health"
           data-testid="passport-lane-health-mount"
         >
           <LaneHealthMount heading="Source health" />
         </section>
+        <ReplayHeader passport={passport} />
         <section
-          className="rounded-2xl border border-border bg-background/60 p-5 sm:p-6"
+          className="rounded-2xl border border-border bg-card p-5 shadow-none sm:p-6"
           aria-label="Knowledge Inbox"
           data-testid="passport-knowledge-inbox-mount"
         >
           <header className="mb-4 space-y-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            <p className="text-xs font-medium text-muted-foreground">
               Knowledge Inbox
             </p>
             <h3 className="text-base font-semibold text-foreground">
