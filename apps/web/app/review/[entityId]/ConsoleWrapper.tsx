@@ -193,14 +193,14 @@ export default function ConsoleWrapper({ entityId }: { entityId: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <p className="font-mono text-sm text-slate-400 animate-pulse">Loading decision console…</p>
+        <p className="font-mono text-sm text-slate-400 animate-pulse">Reviewing source data…</p>
       </div>
     );
   }
   if (error || !data) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700">
-        {error ?? 'Review data unavailable.'}
+      <div className="bg-muted border border-border rounded-xl px-5 py-4 text-sm text-muted-foreground">
+        {error ?? 'Source data unavailable at this time.'}
       </div>
     );
   }

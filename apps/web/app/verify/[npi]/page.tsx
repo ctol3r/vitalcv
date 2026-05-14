@@ -36,7 +36,7 @@ function formatUtc(ts: string | number | null | undefined): string {
   if (ts == null || ts === '') return '—';
   const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
   if (isNaN(d.getTime())) return String(ts);
-  return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  return d.toISOString().slice(0, 19) + 'Z';
 }
 
 const TIER_CONFIG: Record<string, { label: string; cls: string }> = {
