@@ -79,6 +79,23 @@ function runtimeStatusLabel(status: string): string {
   }
 }
 
+function humanizeLineageKey(key: string | null): string | null {
+  if (!key) return null;
+  const [source] = key.split(':');
+  const labels: Record<string, string> = {
+    NPPES_API: 'Identity',
+    OIG_LEIE: 'Exclusion check',
+    PECOS_PUBLIC: 'Medicare enrollment',
+    nppes_identity: 'Identity',
+    oig_exclusions: 'Exclusion check',
+    state_license: 'State license',
+    employment_history: 'Employment',
+    board_cert: 'Board certification',
+    pecos_enrollment: 'Medicare enrollment',
+  };
+  return labels[source] ?? key;
+}
+
 interface ReplayHeaderProps {
   passport: PassportData;
 }
@@ -105,15 +122,21 @@ function ReplayHeader({ passport }: ReplayHeaderProps) {
 
   // Build compact strip parts
   const parts: string[] = [];
-  if (runId) parts.push(runId);
+  if (runId) parts.push(`ref:${runId}`);
   if (checkedAt) parts.push(formatUtcTimestamp(checkedAt));
-  if (lineageKey) parts.push(lineageKey);
+  if (lineageKey) {
+    const label = humanizeLineageKey(lineageKey);
+    if (label) parts.push(label);
+  }
 
   return (
     <div
       className="mx-auto w-full max-w-3xl px-4"
       data-testid="replay-header"
     >
+      <p className="text-[11px] text-muted-foreground/50 mb-1">
+        Verification record
+      </p>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-mono text-[11px] text-muted-foreground/60">
           {parts.join(' · ') || '—'}
@@ -236,28 +259,26 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
       <div className="mx-auto w-full max-w-3xl space-y-10 px-4">
         <section
           aria-label="Source health"
+          className="border-t border-border/40 pt-6"
           data-testid="passport-lane-health-mount"
         >
           <LaneHealthMount heading="Source health" />
         </section>
         <ReplayHeader passport={passport} />
         <section
-          className="rounded-2xl border border-border bg-card p-5 shadow-none sm:p-6"
+          className="rounded-2xl border border-border bg-card p-4 shadow-none sm:p-5"
           aria-label="Knowledge Inbox"
           data-testid="passport-knowledge-inbox-mount"
         >
           <header className="mb-4 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">
-              Knowledge Inbox
+              Captured evidence
             </p>
             <h3 className="text-base font-semibold text-foreground">
-              Captured but not yet source-verified
+              Pending verification
             </h3>
             <p className="text-xs text-muted-foreground/80">
-              The inbox is where new clinician-supplied evidence is staged.
-              Items here are user-entered or inferred; nothing is
-              automatically marked verified, and classification runs
-              deterministically without external model calls.
+              Items here are staged, not yet source-verified.
             </p>
           </header>
           <KnowledgeInboxPanel items={inboxItems} />

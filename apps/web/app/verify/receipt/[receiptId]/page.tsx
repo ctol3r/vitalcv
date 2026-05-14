@@ -69,6 +69,25 @@ export default async function ReplayInspectionPage({ params }: PageProps) {
   );
 }
 
+// ─── Lineage Key Humanizer ───────────────────────────────────────────────────
+
+function humanizeLineageKey(key: string | null | undefined): string {
+  if (!key) return '—';
+  const [source] = key.split(':');
+  const labels: Record<string, string> = {
+    NPPES_API: 'Identity',
+    OIG_LEIE: 'Exclusion check',
+    PECOS_PUBLIC: 'Medicare enrollment',
+    nppes_identity: 'Identity',
+    oig_exclusions: 'Exclusion check',
+    state_license: 'State license',
+    employment_history: 'Employment',
+    board_cert: 'Board certification',
+    pecos_enrollment: 'Medicare enrollment',
+  };
+  return labels[source] ?? key;
+}
+
 // ─── Lineage Header ───────────────────────────────────────────────────────────
 
 function LineageHeader({ inspection }: { inspection: ReplayInspection }) {
@@ -98,7 +117,12 @@ function LineageHeader({ inspection }: { inspection: ReplayInspection }) {
 
         <div className="mt-3 flex items-center gap-4">
           <HeaderField label="Lineage Key">
-            <span className="font-mono text-[11px] text-gray-300">{inspection.lineageKey}</span>
+            <span className="font-mono text-[11px] text-gray-300">
+              {humanizeLineageKey(inspection.lineageKey)}
+              {inspection.lineageKey && humanizeLineageKey(inspection.lineageKey) !== inspection.lineageKey && (
+                <span className="text-gray-600 ml-1">({inspection.lineageKey})</span>
+              )}
+            </span>
           </HeaderField>
           {inspection.signingKeyId && (
             <HeaderField label="Key">
@@ -451,7 +475,7 @@ const STATUS_PILL_STYLES: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  verified:        'Verified',
+  verified:        'Source-backed',
   in_progress:     'In Progress',
   not_checked:     'Not Checked',
   stale:           'Stale',
