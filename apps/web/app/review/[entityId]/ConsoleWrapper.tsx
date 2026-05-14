@@ -192,8 +192,11 @@ export default function ConsoleWrapper({ entityId }: { entityId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <p className="font-mono text-sm text-slate-400 animate-pulse">Reviewing source data…</p>
+      <div className="flex flex-col items-center justify-center min-h-[200px] gap-3">
+        <div className="h-px w-24 bg-border overflow-hidden rounded-full">
+          <div className="h-full w-1/2 bg-muted-foreground/40 animate-[slide_1.5s_ease-in-out_infinite]" />
+        </div>
+        <p className="text-sm text-muted-foreground">Reviewing source data…</p>
       </div>
     );
   }
