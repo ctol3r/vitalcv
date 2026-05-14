@@ -8,11 +8,21 @@ import type {
   SourceId,
 } from '@/lib/source-health/sourceHealthTypes';
 
-const SOURCE_LABEL: Record<SourceId, string> = {
-  NPPES: 'NPPES',
-  OIG_LEIE: 'OIG / LEIE',
-  PECOS: 'PECOS',
-  STATE_BOARD: 'State board',
+// Covers both legacy source IDs (NPPES, PECOS, STATE_BOARD) and
+// lane-level IDs (NPPES_API, PECOS_PUBLIC, STATE_LICENSE, etc.) so no raw
+// identifier ever reaches a user-visible label.
+const SOURCE_LABEL: Record<string, string> = {
+  // Legacy operational source IDs
+  NPPES: 'NPPES Registry',
+  OIG_LEIE: 'OIG LEIE',
+  PECOS: 'CMS PECOS',
+  STATE_BOARD: 'State Board',
+  // Lane-level source IDs
+  NPPES_API: 'NPPES Registry',
+  PECOS_PUBLIC: 'CMS PECOS',
+  STATE_LICENSE: 'State Board',
+  EMPLOYMENT_HISTORY: 'Employment',
+  BOARD_CERT: 'Board Certification',
 };
 
 const STATE_LABEL: Record<SourceHealthState, string> = {
@@ -23,20 +33,18 @@ const STATE_LABEL: Record<SourceHealthState, string> = {
   RATE_LIMITED: 'Rate limited',
 };
 
-type BadgeVariant = React.ComponentProps<typeof Badge>['variant'];
-
-function variantFor(state: SourceHealthState): BadgeVariant {
+function stateTone(state: SourceHealthState): string {
   switch (state) {
     case 'LIVE':
-      return 'trust-green';
+      return 'text-[var(--vt-status-resolved)]';
     case 'DEGRADED':
     case 'RATE_LIMITED':
-      return 'trust-yellow';
+      return 'text-[var(--vt-risk-medium)]';
     case 'UNAVAILABLE':
-      return 'trust-red';
+      return 'text-[var(--vt-severity-critical)]';
     case 'UNKNOWN':
     default:
-      return 'outline';
+      return 'text-muted-foreground';
   }
 }
 
@@ -66,10 +74,9 @@ export interface LaneHealthBadgeProps {
  * lastSuccessAt, with the `reason` exposed via title (tooltip).
  */
 export function LaneHealthBadge({ snapshot, className }: LaneHealthBadgeProps) {
-  const sourceLabel = SOURCE_LABEL[snapshot.sourceId];
+  const sourceLabel = SOURCE_LABEL[snapshot.sourceId] ?? snapshot.sourceId;
   const stateLabel = STATE_LABEL[snapshot.state];
   const relative = relativeFromNow(snapshot.lastSuccessAt);
-  const variant = variantFor(snapshot.state);
 
   const title = [
     `Source: ${sourceLabel}`,
@@ -81,19 +88,25 @@ export function LaneHealthBadge({ snapshot, className }: LaneHealthBadgeProps) {
 
   return (
     <span
-      className={cn('inline-flex items-center gap-2', className)}
+      className={cn('flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2', className)}
       title={title}
       data-source-id={snapshot.sourceId}
       data-source-state={snapshot.state}
     >
-      <Badge variant={variant}>
+      <Badge
+        variant="outline"
+        className={cn(
+          'rounded-full border-border bg-card px-2.5 py-1 text-xs font-medium',
+          stateTone(snapshot.state),
+        )}
+      >
         <span className="font-medium">{sourceLabel}</span>
-        <span aria-hidden="true" className="mx-1 opacity-50">
-          ·
+        <span aria-hidden="true" className="mx-1 text-muted-foreground/60">
+          /
         </span>
         <span>{stateLabel}</span>
       </Badge>
-      <span className="text-xs text-muted-foreground">{relative}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">{relative}</span>
     </span>
   );
 }

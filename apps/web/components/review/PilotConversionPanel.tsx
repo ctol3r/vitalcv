@@ -100,7 +100,7 @@ export function PilotConversionPanel({
   if (state === 'done') {
     return (
       <div className="border border-green-200 bg-green-50 rounded-xl px-5 py-4">
-        <p className="text-sm font-bold text-green-800 mb-1">Pilot initiated.</p>
+        <p className="text-sm font-bold text-green-800 mb-1">Request submitted.</p>
         <p className="text-xs text-green-700">We'll follow up within 24 hours at {email}.</p>
         <p className="text-[10px] text-green-600 mt-2 font-mono">
           Context: {decisionState} · {posture} · {blockerCount} blocker{blockerCount !== 1 ? 's' : ''} · NPI {npi}
@@ -113,7 +113,7 @@ export function PilotConversionPanel({
   if (state === 'form' || state === 'submitting') {
     return (
       <div className="border border-slate-200 rounded-xl px-5 py-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Start Pilot</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Start Assessment</p>
         <p className="text-xs text-slate-500">
           We'll run this on your current onboarding cases and measure the delta.
         </p>
@@ -139,7 +139,7 @@ export function PilotConversionPanel({
           disabled={state === 'submitting'}
           className="w-full bg-slate-900 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
-          {state === 'submitting' ? 'Submitting…' : 'Start Pilot'}
+          {state === 'submitting' ? 'Submitting…' : 'Start Assessment'}
         </button>
         <button
           onClick={() => setState('idle')}
@@ -168,7 +168,7 @@ export function PilotConversionPanel({
         onClick={() => setState('form')}
         className="w-full bg-slate-900 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-sm uppercase tracking-wider transition-colors"
       >
-        Start Pilot
+        Start Assessment
       </button>
     </div>
   );

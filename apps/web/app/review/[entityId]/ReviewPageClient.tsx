@@ -168,7 +168,7 @@ export default async function ReviewPageClient({
     resolvedEntityId = tokenResult.body.entityId;
     resolvedContextId = tokenResult.body.organizationContextId ?? contextId;
     resolvedBundleId = tokenResult.body.bundleId ?? bundleId;
-    resolvedFrom = from ?? 'VitalCV packet share';
+    resolvedFrom = from ?? 'VitalCV review share';
   }
 
   const [passportResult, historyResult] = await Promise.all([
