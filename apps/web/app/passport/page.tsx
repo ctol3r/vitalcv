@@ -104,12 +104,12 @@ function resolveIngestErrorCopy(raw: string | undefined | null): {
 
 const PHASE_LABEL: Record<StreamPhase, string> = {
   idle:       '',
-  starting:   'Connecting to primary sources…',
-  nppes:      'Checking primary sources…',
-  sanctions:  'Checking sanctions and exclusions…',
+  starting:   'Connecting to federal registries…',
+  nppes:      'Confirming your identity…',
+  sanctions:  'Checking exclusion status…',
   enrollment: 'Checking Medicare enrollment…',
-  done:       'Complete',
-  error:      'Error',
+  done:       'Identity confirmed',
+  error:      'Unable to connect',
 };
 
 // ── Source row ─────────────────────────────────────────────────────────────────
@@ -175,10 +175,10 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
   const badge = resolveSourceBadge(state, displayValue);
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <div className="flex items-center gap-2.5">
+    <div className="flex items-start justify-between py-2 border-b border-border last:border-0">
+      <div className="flex items-start gap-2.5">
         <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-full shrink-0 mt-[7px]"
           style={{
             backgroundColor:
               state === 'done'     ? 'rgba(255,255,255,0.45)' :
@@ -188,7 +188,12 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
           }}
           aria-hidden
         />
-        <span className="text-muted-foreground text-sm">{label}</span>
+        <div>
+          <span className="text-muted-foreground text-sm">{label}</span>
+          {state === 'error' && (
+            <p className="text-muted-foreground/40 text-xs mt-0.5">Checking in the background — we&apos;ll update when it arrives.</p>
+          )}
+        </div>
       </div>
       <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
     </div>
@@ -527,7 +532,7 @@ function PassportPageContent({
                     disabled={!npiValid}
                     className="h-14 rounded-none bg-foreground px-6 text-sm font-semibold text-background hover:opacity-90 sm:w-auto w-full"
                   >
-                    Check readiness
+                    See my readiness
                   </Button>
                 </div>
                 {inputError && (
@@ -632,7 +637,7 @@ function PassportPageContent({
             {/* Identity block — appears when NPPES resolves */}
             {identity.authoritative && identity.displayName && (
               <Card className="gap-2 rounded-none border-border bg-muted px-5 py-4 shadow-none">
-                <p className="text-muted-foreground/60 text-xs uppercase tracking-widest mb-1">Provider</p>
+                <p className="text-muted-foreground/60 text-xs uppercase tracking-widest mb-1">Identity confirmed</p>
                 <h2 className="text-foreground text-xl font-semibold leading-tight">
                   {identity.displayName}
                 </h2>
