@@ -35,6 +35,97 @@ export interface RuntimeActivationState {
 
   // Telemetry
   telemetryActive: boolean;   // NEXT_PUBLIC_TELEMETRY_DISABLED !== 'true'
+
+  // Operator summary
+  summary: {
+    identity: {
+      status: 'confirmed' | 'pending';
+      label: string;
+    };
+    readiness: {
+      status: 'ready' | 'moving' | 'blocked';
+      label: string;
+    };
+    trust: {
+      status: 'operational' | 'partial' | 'degraded';
+      label: string;
+    };
+    headline: string;
+    detail: string;
+    nextAction: string;
+  };
+}
+
+function buildSummary(input: {
+  clerkConfigured: boolean;
+  apiBaseConfigured: boolean;
+  databaseUrlConfigured: boolean;
+  fullyActivated: boolean;
+  degradedLayers: string[];
+}): RuntimeActivationState['summary'] {
+  const identityConfirmed = input.clerkConfigured;
+  const readinessMoving = input.apiBaseConfigured || input.databaseUrlConfigured;
+  const identity = {
+    status: identityConfirmed ? 'confirmed' as const : 'pending' as const,
+    label: identityConfirmed ? 'Identity recognized' : 'Identity pending',
+  };
+  const readiness = {
+    status: input.fullyActivated
+      ? 'ready' as const
+      : readinessMoving
+        ? 'moving' as const
+        : 'blocked' as const,
+    label: input.fullyActivated
+      ? 'Readiness ready'
+      : readinessMoving
+        ? 'Readiness progressing'
+        : 'Readiness blocked',
+  };
+  const trust = {
+    status: input.fullyActivated
+      ? 'operational' as const
+      : input.degradedLayers.length > 0
+        ? 'degraded' as const
+        : 'partial' as const,
+    label: input.fullyActivated
+      ? 'Source-backed'
+      : input.degradedLayers.length > 0
+        ? 'Review recommended'
+        : 'Waiting on sources',
+  };
+
+  if (input.fullyActivated) {
+    return {
+      identity,
+      readiness,
+      trust,
+      headline: 'Ready to proceed',
+      detail: 'Identity is recognized, readiness is complete, and source-backed signals are in place.',
+      nextAction: 'Proceed to onboarding.',
+    };
+  }
+
+  if (identityConfirmed) {
+    return {
+      identity,
+      readiness,
+      trust,
+      headline: 'Identity recognized',
+      detail: 'Readiness is progressing.',
+      nextAction: input.degradedLayers.length > 0
+        ? 'Review recommended.'
+        : 'Waiting on sources.',
+    };
+  }
+
+  return {
+    identity,
+    readiness,
+    trust,
+    headline: 'Identity pending',
+    detail: 'Identity is still being confirmed.',
+    nextAction: 'Set up identity first.',
+  };
 }
 
 export function getRuntimeActivationState(): RuntimeActivationState {
@@ -73,6 +164,13 @@ export function getRuntimeActivationState(): RuntimeActivationState {
   if (!receiptKeyConfigured) degradedLayers.push('receipt_signing');
 
   const telemetryActive = process.env.NEXT_PUBLIC_TELEMETRY_DISABLED !== 'true';
+  const summary = buildSummary({
+    clerkConfigured,
+    apiBaseConfigured,
+    databaseUrlConfigured,
+    fullyActivated,
+    degradedLayers,
+  });
 
   return {
     timestamp: new Date().toISOString(),
@@ -95,5 +193,6 @@ export function getRuntimeActivationState(): RuntimeActivationState {
     degradedLayers,
 
     telemetryActive,
+    summary,
   };
 }

@@ -91,12 +91,12 @@ export function PassportTrustPosture({
     : safeItems.length > 0 ? 'checked'
     : 'pending';
   const summaryLabel =
-    posture.blockers.length > 0 ? 'Blockers attached'
-    : posture.reviewRequiredItems.length > 0 ? 'Manual review still needed'
-    : posture.gatedItems.length > 0 ? 'Source access still needed'
-    : posture.staleItems.length > 0 ? 'Refresh recommended'
-    : safeItems.length > 0 ? 'Source-backed now'
-    : 'Coverage still building';
+    posture.blockers.length > 0 ? 'Review recommended'
+    : posture.reviewRequiredItems.length > 0 ? 'Review recommended'
+    : posture.gatedItems.length > 0 ? 'Proceed carefully'
+    : posture.staleItems.length > 0 ? 'Proceed carefully'
+    : safeItems.length > 0 ? 'Ready to proceed'
+    : 'Waiting on sources';
   const showScore = posture.dimensions.some((dimension) => dimension.state === 'current');
 
   return (
@@ -107,7 +107,7 @@ export function PassportTrustPosture({
             <p className="text-xs font-medium text-muted-foreground">Trust posture</p>
             <CardTitle className={`text-base font-semibold ${band.labelClass}`}>{posture.bandLabel}</CardTitle>
             <CardDescription className="text-xs leading-relaxed text-muted-foreground">
-              Trust posture reflects source-backed readiness only. It does not represent a hiring, privileging, or employment decision.
+              Verified, open, blocking.
             </CardDescription>
           </div>
           <div className="flex items-start justify-between gap-4 sm:block sm:text-right">

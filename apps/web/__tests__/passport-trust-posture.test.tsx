@@ -107,7 +107,7 @@ describe('PassportTrustPosture', () => {
     expect(markup).toContain('Review required');
     expect(markup).toContain('Access required');
     expect(markup).toContain('Blocked');
-    expect(markup).toContain('Source-backed in this snapshot');
+    expect(markup).toContain('Review recommended');
     expect(markup).toContain('Identity confirmed via CMS NPPES.');
     expect(markup).toContain('Blockers impacting readiness');
     expect(markup).toContain('Medicare enrollment not found');

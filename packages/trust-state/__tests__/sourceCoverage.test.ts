@@ -10,6 +10,7 @@ import {
   mapSourceCoverageStateToTrustStatus,
   normalizeCanonicalSourceCoverageState,
   resolveCanonicalTruthStatus,
+  sourceCoverageBadgeLabel,
   sourceCoveragePosture,
   summarizeCanonicalSourceCoverage,
   type CanonicalSourceCoverageState,
@@ -135,6 +136,8 @@ describe('Canonical Source Coverage Contracts', () => {
     expect(sourceCoveragePosture('notDecisionGrade')).toBe('partial');
     expect(mapSourceCoverageStateToTrustStatus('stale')).toBe('stale');
     expect(mapSourceCoverageStateToTrustStatus('notDecisionGrade')).toBe('pending');
+    expect(sourceCoverageBadgeLabel({ state: 'checked', decisionGrade: true })).toBe('Source-backed');
+    expect(sourceCoverageBadgeLabel({ state: 'checked', decisionGrade: false })).toBe('Checked');
   });
 
   it('finds the highest-priority downgrade reason without manual string branching', () => {

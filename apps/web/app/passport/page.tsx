@@ -729,8 +729,8 @@ function PassportPageContent({
             {/* Terminal completion without anchor */}
             {runCompletedWithoutAnchor && (
               <TrustStateCard
-                title="Profile resolved, but passport continuation is still provisional."
-                description="Public NPI identity resolved, but no source-backed passport anchor was written for this run. Re-check sources before treating this as a full passport."
+                title="Passport is still waiting on sources."
+                description="Public NPI identity resolved, but no source-backed anchor was written."
                 centered
               />
             )}

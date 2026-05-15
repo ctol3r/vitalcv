@@ -11,9 +11,9 @@ import type { PassportSourceCoverageCheck } from '@/lib/trust/source-coverage';
 
 void React;
 
-export const PASSPORT_SOURCE_COVERAGE_TITLE = 'Sources checked';
+export const PASSPORT_SOURCE_COVERAGE_TITLE = 'Source coverage';
 export const PASSPORT_SOURCE_COVERAGE_COPY =
-  'Only checked sources are decision-grade. Pending, stale, review-required, access-required, preview-only, and not-decision-grade sources inform context but do not constitute primary-source verification.';
+  'Source-backed items appear first. Open states show what is still waiting, stale, or access-gated.';
 
 interface PassportSourceCoveragePanelProps {
   checks: PassportSourceCoverageCheck[];
@@ -33,7 +33,7 @@ export function PassportSourceCoveragePanel({
           {PASSPORT_SOURCE_COVERAGE_TITLE}
         </p>
         <CardTitle className="text-base font-semibold text-foreground/85">
-          Trust-core coverage and contextual gaps
+          Source-backed signals, ordered by importance
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed text-muted-foreground">
           {PASSPORT_SOURCE_COVERAGE_COPY}

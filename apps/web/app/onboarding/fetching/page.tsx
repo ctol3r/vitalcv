@@ -53,7 +53,7 @@ function OnboardingFetchingContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ npi: storedNpi }),
     }).catch(() => {
-      setError('The background import is taking longer than expected. Your next step is still ready.');
+      setError('That is taking longer than expected. Your next step stays ready.');
     });
   }, [returnTo, router]);
 
@@ -67,14 +67,14 @@ function OnboardingFetchingContent() {
       <section className="rounded-[30px] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm sm:p-8">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
           <ShieldCheck className="h-3.5 w-3.5 text-sky-300" aria-hidden="true" />
-          Recognizing your record
+          Recognizing record
         </div>
 
         <h1 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
-          Preparing your trust snapshot
+          Snapshot in view
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-          We’re warming the source-backed import so the next screen can open with clarity instead of ceremony.
+          Bringing the snapshot forward.
         </p>
 
         {npi ? (
@@ -85,7 +85,7 @@ function OnboardingFetchingContent() {
 
         <div className="mt-7">
           <ResolverProgressIndicator
-            durationPerStep={620}
+            durationPerStep={540}
             onComplete={() => {
               router.replace(nextHref);
             }}
@@ -93,9 +93,9 @@ function OnboardingFetchingContent() {
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-2 text-[12px] text-white/55">
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">Public source-backed checks</span>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">No account required</span>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">Momentum stays saved</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">Source-backed</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">No account</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">Momentum saved</span>
         </div>
 
         {error ? (

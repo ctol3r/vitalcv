@@ -589,7 +589,7 @@ export function sourceCoverageBadgeLabel(input: {
   decisionGrade: boolean;
 }): string {
   if (input.state === 'checked') {
-    return input.decisionGrade ? 'Decision grade' : 'Checked';
+    return input.decisionGrade ? 'Source-backed' : 'Checked';
   }
 
   return sourceCoverageStateLabel(input.state);

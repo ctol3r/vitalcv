@@ -493,7 +493,7 @@ function PassportWalletLoadingShell() {
       <div className="mx-auto w-full max-w-2xl space-y-5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold text-foreground">VitalCV</span>
-          <span className="text-xs text-muted-foreground">Clinician passport</span>
+          <span className="text-xs text-muted-foreground">Professional passport</span>
         </div>
 
         <Card className="gap-0 rounded-2xl border-border bg-card px-6 py-6 shadow-none">
@@ -504,7 +504,7 @@ function PassportWalletLoadingShell() {
             <TrustStatusBadge status="pending" label="Pending" size="sm" />
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Resolving source-backed passport sections. Nothing is promoted to checked until real source data arrives.
+            Source-backed sections are sliding into view. Nothing is promoted to checked until real source data arrives.
           </p>
         </Card>
 
@@ -512,7 +512,7 @@ function PassportWalletLoadingShell() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Source coverage</p>
-              <p className="mt-1 text-sm text-foreground/80">Resolving current lane state</p>
+              <p className="mt-1 text-sm text-foreground/80">Reading the current source-backed signals</p>
             </div>
             <TrustStatusBadge status="pending" label="Pending" size="sm" />
           </div>
@@ -659,7 +659,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-foreground">VitalCV</p>
-            <p className="text-xs text-muted-foreground">Clinician passport</p>
+            <p className="text-xs text-muted-foreground">Professional passport</p>
           </div>
           <Link href="/passport" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             View another NPI
@@ -683,7 +683,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         <Card className="gap-0 rounded-2xl border-border bg-card px-6 py-7 shadow-none sm:px-7">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Clinician</p>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Professional snapshot</p>
               <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
                 {identity.displayName}
               </h1>
@@ -695,7 +695,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
               )}
             </div>
             <div className="shrink-0 rounded-xl border border-border bg-background px-4 py-3 sm:min-w-48">
-              <p className="text-xs font-medium text-muted-foreground">Readiness score</p>
+              <p className="text-xs font-medium text-muted-foreground">Professional readiness</p>
               <div className="mt-1 text-3xl font-semibold tabular-nums text-foreground">
                 {showReadinessScore ? readiness.score : 'Withheld'}
                 {showReadinessScore ? <span className="text-sm font-medium text-muted-foreground"> / 100</span> : null}
@@ -731,14 +731,14 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
             <div className="rounded-2xl border border-border bg-card px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="h-2 w-2 rounded-full bg-emerald-500/80" />
                   <p className="text-sm font-medium text-foreground/80">
-                    Continuously Monitored
+                    Monitoring active
                   </p>
                 </div>
                 {passport.monitoring.activeAlertCount > 0 && (
                   <span className="text-xs font-medium text-[var(--vt-risk-medium)]">
-                    {passport.monitoring.activeAlertCount} alert{passport.monitoring.activeAlertCount !== 1 ? 's' : ''}
+                    {passport.monitoring.activeAlertCount} active alert{passport.monitoring.activeAlertCount !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
@@ -822,10 +822,10 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {readiness.nextActions.length > 0 && (
           <SectionReveal delay={0.25}>
             <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
-              <p className="text-sm font-medium text-foreground/80">What should happen next</p>
+              <p className="text-sm font-medium text-foreground/80">Required next steps</p>
               {readiness.nextActions.slice(0, 4).map((action) => (
                 <div key={action.id} className="flex items-start gap-3">
-                  <span className="text-muted-foreground/50 mt-1 select-none text-xs">—</span>
+                  <span className="mt-1 select-none text-xs text-muted-foreground/50">-</span>
                   <div>
                     <p className="text-sm text-foreground/80">{action.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{action.detail}</p>
@@ -840,14 +840,14 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
         {(trustPosture.missingItems.length > 0 || trustPosture.gatedItems.length > 0) && (
           <SectionReveal delay={0.28}>
             <Card className="gap-4 rounded-2xl border-border bg-card px-5 py-5 shadow-none">
-              <p className="text-sm font-medium text-foreground/80">Data not yet available</p>
+              <p className="text-sm font-medium text-foreground/80">Movement blockers</p>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                These items are not covered in this snapshot. They require additional source access or have not been checked.
+                These items are not yet source-backed in this snapshot. They require additional source access or a fresh check.
               </p>
               <div className="space-y-2 mt-1">
                 {trustPosture.missingItems.map((item) => (
                   <div key={item} className="flex items-start gap-2">
-                    <span className="mt-0.5 select-none text-xs text-muted-foreground">—</span>
+                    <span className="mt-0.5 select-none text-xs text-muted-foreground">-</span>
                     <div>
                       <p className="text-xs text-foreground/75">{item}</p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">Missing - not yet checked</p>
@@ -856,7 +856,7 @@ function PassportWalletLoaded({ passport }: PassportWalletLoadedProps) {
                 ))}
                 {trustPosture.gatedItems.map((item) => (
                   <div key={item} className="flex items-start gap-2">
-                    <span className="mt-0.5 select-none text-xs text-muted-foreground">—</span>
+                    <span className="mt-0.5 select-none text-xs text-muted-foreground">-</span>
                     <div>
                       <p className="text-xs text-foreground/75">{item}</p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">Gated - requires institutional access</p>

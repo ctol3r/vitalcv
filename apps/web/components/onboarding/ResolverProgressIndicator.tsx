@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Loader2, Database, Shield, Zap, FileText, Network } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check, Loader2, Database, Shield, Zap, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ResolverStep {
@@ -13,16 +13,15 @@ export interface ResolverStep {
 }
 
 const DEFAULT_STEPS: ResolverStep[] = [
-  { id: 'npi', label: 'Locating NPI record', icon: Database },
-  { id: 'board', label: 'Verifying Board Certifications', icon: FileText },
-  { id: 'dea', label: 'Checking DEA Registration', icon: Shield },
-  { id: 'sanctions', label: 'Scanning Sanctions Database', icon: Zap },
-  { id: 'graph', label: 'Generating Trust Graph', icon: Network },
+  { id: 'npi', label: 'Recognizing', icon: Database },
+  { id: 'safety', label: 'Reading', icon: Shield },
+  { id: 'readiness', label: 'Building', icon: FileText },
+  { id: 'handoff', label: 'Opening', icon: Zap },
 ];
 
 export function ResolverProgressIndicator({
   onComplete,
-  durationPerStep = 600,
+  durationPerStep = 540,
 }: {
   onComplete?: () => void;
   durationPerStep?: number;
@@ -33,7 +32,7 @@ export function ResolverProgressIndicator({
     if (currentStepIndex >= DEFAULT_STEPS.length) {
       setTimeout(() => {
         onComplete?.();
-      }, 500); // short delay before transition
+      }, 300); // short delay before transition
       return;
     }
 
@@ -47,8 +46,12 @@ export function ResolverProgressIndicator({
   return (
     <div className="mx-auto w-full max-w-md space-y-5">
       <div className="mb-6 text-center">
-        <h3 className="mb-2 text-xl font-heading font-bold text-foreground sm:text-2xl">Activating trust profile</h3>
-        <p className="text-foreground/70 text-sm font-mono tracking-widest uppercase">Syncing verified records</p>
+        <h3 className="mb-2 text-xl font-semibold tracking-[-0.04em] text-white sm:text-2xl">
+          Recognizing
+        </h3>
+        <p className="text-sm uppercase tracking-[0.22em] text-white/45">
+          One step
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -73,9 +76,9 @@ export function ResolverProgressIndicator({
             >
               <div className={cn(
                 "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500 sm:h-10 sm:w-10",
-                isCompleted ? "bg-emerald-500 text-foreground" :
-                isCurrent ? "bg-muted text-foreground" :
-                "bg-transparent text-muted-foreground"
+                  isCompleted ? "bg-emerald-500 text-foreground" :
+                  isCurrent ? "bg-muted text-foreground" :
+                  "bg-transparent text-muted-foreground"
               )}>
                 {isCompleted ? (
                   <Check className="w-5 h-5" />

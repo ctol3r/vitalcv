@@ -164,23 +164,32 @@ function StepShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] text-foreground sm:px-6 sm:py-10">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 sm:gap-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_40%),linear-gradient(180deg,#050814_0%,#0b1220_56%,#0a1020_100%)] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+1rem)] text-foreground sm:px-6 sm:py-10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.015]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.7) 1px, transparent 1px)',
+          backgroundSize: '84px 84px',
+        }}
+      />
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 sm:gap-7">
+        <div className="flex items-center justify-between gap-3 text-sm text-white/45">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-foreground"
+            className="inline-flex items-center gap-2 transition hover:text-white/75"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
           </Link>
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300 sm:px-4 sm:text-xs">
-              Step {step} of 3
+          <div className="ml-auto flex items-center gap-2">
+            <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 sm:px-4 sm:text-xs">
+              Activation {step} of 3
             </div>
             <Link
               href={exitHref}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-zinc-800 bg-zinc-900/70 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-300 transition hover:border-zinc-700 hover:text-foreground"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/55 transition hover:border-white/20 hover:text-white/75"
             >
               {exitLabel}
             </Link>
@@ -188,18 +197,21 @@ function StepShell({
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{title}</h1>
-          <p className="max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+            Continue activation
+          </p>
+          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">{title}</h1>
+          <p className="max-w-2xl text-sm leading-6 text-white/60">{description}</p>
         </div>
 
-        <div className="h-2 overflow-hidden rounded-full bg-zinc-900">
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
           <div
-            className="h-full rounded-full bg-emerald-400 transition-all"
+            className="h-full rounded-full bg-sky-300/80 transition-all"
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-4 shadow-2xl shadow-black/30 sm:p-6">
+        <section className="rounded-[30px] border border-white/10 bg-white/[0.04] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm sm:p-6">
           {children}
         </section>
 
@@ -264,16 +276,16 @@ export function NpiOnboardingStep({
     if (returnTo) {
       writeOnboardingStorage(STORAGE_KEYS.returnTo, returnTo);
     }
-    router.push(buildOnboardingHref('/onboarding/identity', returnTo));
+    router.push(buildOnboardingHref('/onboarding/fetching', returnTo));
   }
 
   return (
     <StepShell
       step={1}
-      title="Start onboarding"
+      title="Enter your NPI"
       description={guestMode
-        ? 'Preview your public clinician match and live opportunity fit before you decide to activate a workspace.'
-        : 'Enter your NPI to connect your clinician profile, build your readiness baseline, and keep moving toward live applications.'}
+        ? 'Preview your public clinician match before you decide to continue.'
+        : 'Enter your NPI to recognize your public record and keep momentum moving.'}
       backHref={returnTo ?? '/explore'}
       backLabel={returnTo ? 'Back to previous page' : 'Back to opportunities'}
       exitHref={buildExitHref(returnTo, guestMode)}
@@ -290,7 +302,7 @@ export function NpiOnboardingStep({
           <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4 text-sm text-sky-100">
             <p className="font-medium text-foreground">Preview only</p>
             <p className="mt-1 text-sky-100/80">
-              We&apos;ll resolve your public NPI and preview live role fit, but activation and credential ingestion stay protected until you sign in.
+              We&apos;ll resolve your public NPI and preview live role fit, but activation stays protected until you sign in.
             </p>
             <Link
               href={buildSignInHref('/onboarding', returnTo)}
@@ -348,7 +360,7 @@ export function NpiOnboardingStep({
           disabled={!/^\d{10}$/.test(npi)}
           className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
         >
-          {guestMode ? 'Preview my fit' : 'Start onboarding'}
+          {guestMode ? 'Preview my fit' : 'Continue'}
           <ArrowRight className="h-4 w-4" />
         </button>
       </form>
@@ -435,10 +447,10 @@ export function IdentityOnboardingStep({
   return (
     <StepShell
       step={2}
-      title="Confirm your clinician profile"
+      title="Confirm your profile"
       description={guestMode
-        ? 'We resolved your public provider record. Review it before deciding whether to sign in and activate a persistent VitalCV workspace.'
-        : 'We resolved your public provider record. Review it before we activate your VitalCV workspace.'}
+        ? 'We resolved your public provider record. Review it before deciding whether to sign in and continue.'
+        : 'We resolved your public provider record. Review the match and keep moving forward.'}
       backHref={buildOnboardingHref('/onboarding', returnTo)}
       backLabel="Back to NPI"
       exitHref={buildExitHref(returnTo, guestMode)}
@@ -447,7 +459,7 @@ export function IdentityOnboardingStep({
       {loading ? (
         <div className="flex flex-col items-center gap-4 py-10 text-center text-zinc-400">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p>Resolving your provider record...</p>
+          <p>Confirming your public record...</p>
         </div>
       ) : error ? (
         <div className="space-y-4">
@@ -483,10 +495,10 @@ export function IdentityOnboardingStep({
       ) : bootstrap ? (
         <div className="space-y-6">
           {guestMode ? (
-            <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4 text-sm text-sky-100">
+          <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-4 text-sm text-sky-100">
               <p className="font-medium text-foreground">Read-only guest preview</p>
               <p className="mt-1 text-sky-100/80">
-                This step confirms the public provider match only. Signing in is still required before any workspace, credential import, or activation write occurs.
+                This step confirms the public provider match only. Signing in is still required before any profile, credential import, or activation write occurs.
               </p>
             </div>
           ) : null}
@@ -657,7 +669,7 @@ export function ActivateOnboardingStep({
       }),
     ]).then(async ([ingestResult, activateResult]) => {
       if (activateResult.status !== 'fulfilled') {
-        setError('Passport creation failed before your workspace could be created.');
+        setError('Passport creation failed before activation could complete.');
         return;
       }
 
@@ -673,7 +685,7 @@ export function ActivateOnboardingStep({
         && !ingestResult.value.ok
         && ingestResult.value.status !== 409
       ) {
-        setError('Your workspace is ready, but background credential ingestion needs a retry.');
+        setError('Your activation is ready, but background credential ingestion needs a retry.');
         setCompleted(activatePayload);
       }
 
@@ -734,7 +746,7 @@ export function ActivateOnboardingStep({
         {guestLoading ? (
           <div className="flex flex-col items-center gap-4 py-10 text-center text-zinc-400">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-            <p>Loading your guest preview...</p>
+            <p>Bringing your guest preview into view...</p>
           </div>
         ) : error ? (
           <div className="space-y-4">
@@ -791,7 +803,7 @@ export function ActivateOnboardingStep({
                   <p className="mt-1 text-foreground">
                     {guestBootstrap.alreadyRegistered
                       ? 'Sign in to continue with the existing profile'
-                      : 'Sign in to create and persist your workspace'}
+                      : 'Sign in to create and persist your profile'}
                   </p>
                 </div>
               </div>
@@ -802,7 +814,7 @@ export function ActivateOnboardingStep({
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Live role preview</p>
                   <h3 className="mt-2 text-xl font-semibold text-foreground">
-                    {guestMatchTotal} live role{guestMatchTotal === 1 ? '' : 's'} align with this preview
+            {guestMatchTotal} live role{guestMatchTotal === 1 ? '' : 's'} align with this preview
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-sky-100/80">
                     These matches come from the current opportunities feed. Guest mode does not activate, apply, or reserve anything.
@@ -858,7 +870,7 @@ export function ActivateOnboardingStep({
             </div>
 
             <p className="text-sm text-zinc-500">
-              Guest preview is read-only: no workspace activation, credential ingestion, or submission state is persisted until you authenticate.
+              Guest preview is read-only: no activation, credential ingestion, or submission state is persisted until you authenticate.
             </p>
           </div>
         ) : null}
@@ -869,8 +881,8 @@ export function ActivateOnboardingStep({
   return (
     <StepShell
       step={3}
-      title="Finishing your setup"
-      description="We are activating your workspace and building your first readiness state so you can keep moving into live opportunities."
+        title="Continue activation"
+        description="We’re connecting your first readiness state so the handoff feels calm."
       backHref={buildOnboardingHref('/onboarding/identity', returnTo)}
       backLabel="Back to profile review"
       exitHref={buildExitHref(returnTo, guestMode)}
@@ -893,13 +905,13 @@ export function ActivateOnboardingStep({
             </div>
           ) : null}
           <p className="text-sm text-zinc-400">
-            Opening your workspace...
+            Opening your profile...
           </p>
         </div>
       ) : error ? (
         <div className="space-y-4">
           <PilotFailureSignal
-            title="Workspace activation paused"
+            title="Activation paused"
             message={error}
             queueItem={{ source: 'route_failure' }}
             dedupeKey={`onboarding:activation:${error}`}
@@ -907,10 +919,10 @@ export function ActivateOnboardingStep({
           <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-4 text-red-200">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
             <div className="space-y-2 text-sm">
-              <p className="font-semibold text-foreground">Workspace activation paused</p>
+              <p className="font-semibold text-foreground">Activation paused</p>
               <p>{error}</p>
               <p className="text-rose-100/80">
-                Your progress is saved. Please go back and retry activation. If this continues, our team will automatically investigate the interruption.
+                Your progress is saved. Please go back and retry activation. If this continues, the interruption will be visible for follow-up.
               </p>
             </div>
           </div>
@@ -924,9 +936,9 @@ export function ActivateOnboardingStep({
         </div>
       ) : (
         <div className="space-y-6 py-4">
-          <ResolverProgressIndicator durationPerStep={850} />
+          <ResolverProgressIndicator durationPerStep={680} />
           <p className="text-center text-sm text-zinc-500">
-            Your credentials and readiness are being connected to live VitalCV opportunities.
+            Your credentials and readiness are being connected to the next step.
           </p>
         </div>
       )}

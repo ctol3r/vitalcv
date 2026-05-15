@@ -108,7 +108,7 @@ export function buildDegradedPassportStub(
     },
     trustPosture: {
       band: 'degraded',
-      bandLabel: 'Source incomplete',
+      bandLabel: 'Waiting on sources',
       score: 0,
       dimensions: [
         {
@@ -139,10 +139,10 @@ export function buildDegradedPassportStub(
       ],
       freshness: {
         state: 'partial',
-        label: 'Source coverage incomplete',
+        label: 'Waiting on sources',
         items: [],
       },
-      safeToRelyOnNow: ['Identity confirmed via NPPES'],
+      safeToRelyOnNow: ['Identity recognized via NPPES'],
       missingItems: [],
       gatedItems: [],
       reviewRequiredItems: [],

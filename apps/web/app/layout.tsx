@@ -39,11 +39,11 @@ const fontVariables = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'VitalCV — Stop Starting Over. Start Ready.',
+    default: 'VitalCV — Professional identity that moves clinicians forward.',
     template: '%s — VitalCV',
   },
   description:
-    'Enter your NPI to see what\'s checked, what\'s missing, and what could delay your next role — using real federal sources. Credential readiness infrastructure for healthcare.',
+    'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
   metadataBase: new URL('https://vitalcv.com'),
   keywords: [
     'healthcare credentialing',
@@ -60,9 +60,9 @@ export const metadata: Metadata = {
     'theme-color': '#2C3E2D',
   },
   openGraph: {
-    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    title: 'VitalCV — Professional identity that moves clinicians forward.',
     description:
-      'Check physician and clinician readiness in seconds using federal sources — NPPES, OIG/LEIE, and PECOS.',
+      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     type: 'website',
@@ -72,15 +72,15 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'VitalCV — Stop Starting Over. Start Ready.',
+        alt: 'VitalCV — Professional identity that moves clinicians forward.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV — Check Clinician Readiness in Seconds',
+    title: 'VitalCV — Professional identity that moves clinicians forward.',
     description:
-      'Enter your NPI to see what\'s checked, what\'s missing, and what could delay your next role.',
+      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
     images: ['/twitter-image'],
   },
 };

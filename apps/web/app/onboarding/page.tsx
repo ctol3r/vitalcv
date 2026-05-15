@@ -13,23 +13,23 @@ import {
 } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Activation Continuation | VitalCV',
+  title: 'Continue Activation | VitalCV',
   description:
-    'Continue the path already started in passport. Onboarding refines activation without restarting the work.',
+    'Continue the path already started in passport. Onboarding keeps the motion going.',
 };
 
 const CONTINUATION_POINTS = [
   {
     title: 'Identity stays anchored',
-    body: 'Your NPI remains the anchor. Nothing here asks you to re-enter what VitalCV already recognized.',
+    body: 'Your NPI stays anchored. Nothing here asks you to re-enter what VitalCV already recognized.',
   },
   {
     title: 'Momentum stays visible',
-    body: 'The path reads as continuation, not setup bureaucracy.',
+    body: 'The path reads as continuation.',
   },
   {
     title: 'Progress stays calm',
-    body: 'One screen, one primary action, and a clear handoff into the next step.',
+    body: 'One screen, one primary action, one clear handoff.',
   },
 ] as const;
 
@@ -50,28 +50,26 @@ export default async function OnboardingPage({
       <div className="w-full max-w-3xl">
         <div className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_84%,transparent)] px-3 py-1 text-[11px] font-medium text-[var(--vt-text-muted)]">
           <Fingerprint className="h-3.5 w-3.5" aria-hidden="true" />
-          Activation continuation
+          Continue
         </div>
 
         <div className="mt-8 space-y-6">
           <h1 className="max-w-2xl text-[clamp(2.8rem,7vw,4.6rem)] leading-[0.94] font-semibold tracking-[-0.05em] text-[var(--vt-text-primary)]">
-            Keep the momentum going.
+            Keep moving.
           </h1>
 
           <p className="max-w-xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]">
-            You are already recognized. Onboarding continues the motion from the
-            passport snapshot without asking you to start over.
+            Already recognized. Continue.
           </p>
         </div>
 
         <Card className="mt-10 max-w-2xl border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-none">
           <CardHeader className="border-b border-[var(--vt-border-subtle)] px-5 py-5 sm:px-6">
             <CardTitle className="text-base font-semibold text-[var(--vt-text-primary)]">
-              Continue without resetting
+              Continue from passport
             </CardTitle>
             <CardDescription className="text-sm leading-relaxed text-[var(--vt-text-muted)]">
-              This is a continuation surface. It keeps the work moving while
-              preserving the snapshot already shown in passport.
+              Same path.
             </CardDescription>
           </CardHeader>
 
@@ -104,7 +102,7 @@ export default async function OnboardingPage({
 
           <CardFooter className="border-t border-[var(--vt-border-subtle)] px-5 py-4 sm:px-6">
             <p className="text-xs leading-relaxed text-[var(--vt-text-muted)]">
-              Onboarding summarizes the continuation path. It does not complete credentialing.
+              Onboarding continues.
             </p>
           </CardFooter>
         </Card>

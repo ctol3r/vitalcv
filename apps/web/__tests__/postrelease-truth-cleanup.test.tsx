@@ -440,7 +440,7 @@ describe('post-release truth cleanup', () => {
     const interviewTeaserMarkup = renderToStaticMarkup(<InterviewModeTeaser />);
 
     expect(homepageMarkup).toContain('Enter your NPI.');
-    expect(homepageMarkup).toContain('See what already recognizes you.');
+    expect(homepageMarkup).toContain('See what already knows how to help.');
     expect(homepageMarkup).toContain('Open passport');
     
     

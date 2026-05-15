@@ -15,7 +15,6 @@ import {
 import {
   normalizePassportSourceCoverageChecks,
   sourceCoverageBadgeLabel,
-  sourceCoverageStateLabel,
 } from '@/lib/trust/source-coverage';
 import { TrustSignalChips } from '../intelligence-ops/trust-signal-chips';
 
@@ -423,7 +422,7 @@ function passportCoverageClaim(
   state: ReturnType<typeof normalizePassportSourceCoverageChecks>[number]['state'],
 ): string {
   if (state === 'checked') {
-    return `${sourceCoverageStateLabel(state)}. Decision grade.`;
+    return `${sourceCoverageBadgeLabel({ state, decisionGrade: true })}.`;
   }
 
   return `${sourceCoverageBadgeLabel({ state, decisionGrade: false })}.`;

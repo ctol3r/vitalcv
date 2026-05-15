@@ -41,7 +41,7 @@ export function VerificationArtifacts({ artifacts, className = '' }: Verificatio
               <span className="text-[11px] text-vt-neutral-300 font-medium truncate">{art.issuer}</span>
               {art.decisionGrade === true ? (
                 <span className="inline-flex shrink-0 rounded-full border border-[var(--vt-badge-success-border)] bg-[var(--vt-badge-success-bg)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-badge-success-text)]">
-                  Decision grade
+                  Source-backed
                 </span>
               ) : null}
               {art.decisionGrade === false ? (

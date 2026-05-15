@@ -23,7 +23,14 @@ export function TrustSummarySection({
   const tone = posture.blockers.length > 0 ? 'critical' : (BAND_TONE[posture.band] ?? 'default');
   const currentCount = posture.dimensions.filter((d) => d.state === 'current').length;
   const totalCount = posture.dimensions.length;
+  const pendingCount = Math.max(totalCount - currentCount, 0);
   const showScore = currentCount > 0;
+  const canMoveForward =
+    posture.blockers.length === 0
+    && posture.reviewRequiredItems.length === 0
+    && posture.gatedItems.length === 0
+    && posture.staleItems.length === 0
+    && currentCount > 0;
 
   const toneClass: Record<string, string> = {
     success: 'border-border bg-card',
@@ -38,6 +45,13 @@ export function TrustSummarySection({
     : posture.staleItems.length > 0 ? 'stale' as const
     : currentCount > 0 ? 'checked' as const
     : 'pending' as const;
+  const summaryLabel =
+    posture.blockers.length > 0 ? 'Review recommended'
+    : posture.reviewRequiredItems.length > 0 ? 'Review recommended'
+    : posture.gatedItems.length > 0 ? 'Proceed carefully'
+    : posture.staleItems.length > 0 ? 'Proceed carefully'
+    : currentCount > 0 ? 'Ready to proceed'
+    : 'Waiting on sources';
 
   return (
     <Card
@@ -49,12 +63,10 @@ export function TrustSummarySection({
       <div className="px-5 py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              Trust summary
-            </p>
-            <p className="text-base font-semibold text-foreground/85">{posture.bandLabel}</p>
+            <p className="text-xs font-medium text-muted-foreground">Passport summary</p>
+            <p className="text-base font-semibold text-foreground/85">{summaryLabel}</p>
             <p className="text-xs text-muted-foreground">
-              {currentCount}/{totalCount} dimensions source-backed · {posture.freshness.label}
+              {posture.bandLabel} · {currentCount} ready · {pendingCount} waiting
             </p>
           </div>
           <div className="flex shrink-0 items-center justify-between gap-4 sm:block sm:text-right">
@@ -62,8 +74,25 @@ export function TrustSummarySection({
               {showScore ? posture.score : '—'}
             </p>
             <div className="sm:mt-2">
-              <TrustStatusBadge status={summaryStatus} size="sm" />
+              <TrustStatusBadge status={summaryStatus} label={summaryLabel} size="sm" />
             </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-border pt-4">
+          <div className="min-w-[86px]">
+            <p className="text-[11px] font-medium text-muted-foreground">Ready</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums text-foreground/85">{currentCount}</p>
+          </div>
+          <div className="min-w-[86px]">
+            <p className="text-[11px] font-medium text-muted-foreground">Waiting</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums text-foreground/85">{pendingCount}</p>
+          </div>
+          <div className="min-w-[128px]">
+            <p className="text-[11px] font-medium text-muted-foreground">Next step</p>
+            <p className="mt-1 text-sm font-semibold text-foreground/85">
+              {canMoveForward ? 'Ready to proceed' : summaryLabel}
+            </p>
           </div>
         </div>
 
@@ -89,13 +118,6 @@ export function TrustSummarySection({
           </div>
         )}
 
-        {posture.safeToRelyOnNow.length > 0 && posture.blockers.length === 0 && (
-          <div className="mt-4 border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground">
-              {posture.safeToRelyOnNow.length} source-backed signal{posture.safeToRelyOnNow.length === 1 ? '' : 's'} attached
-            </p>
-          </div>
-        )}
       </div>
     </Card>
   );

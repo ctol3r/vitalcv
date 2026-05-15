@@ -503,6 +503,14 @@ describe('passport runtime convergence routes', () => {
         structuredFallbackAvailable: true,
       }),
       deployment: expect.any(Object),
+      deploymentSummary: expect.objectContaining({
+        live: false,
+        stale: false,
+        productionReady: false,
+        status: 'unavailable',
+        canonicalProject: 'vcv-web',
+        legacyProject: 'vitalcv',
+      }),
     }));
     expect(JSON.stringify(body)).not.toContain('localhost');
     expect(JSON.stringify(body)).not.toContain('1346053246');

@@ -85,6 +85,7 @@ function buildLayers(state: RuntimeActivationState): LayerRow[] {
 
 export function RuntimeActivationBoard({ state }: RuntimeActivationBoardProps) {
   const layers = buildLayers(state);
+  const { summary } = state;
 
   const overallStatus: LayerStatus = state.fullyActivated
     ? 'configured'
@@ -111,6 +112,21 @@ export function RuntimeActivationBoard({ state }: RuntimeActivationBoardProps) {
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-500">
           RUNTIME ACTIVATION
         </span>
+      </div>
+
+      <div className="border-b border-gray-100 px-4 py-3">
+        <div className="space-y-1">
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+            {summary.headline}
+          </p>
+          <p className="font-mono text-[10px] text-gray-600">{summary.detail}</p>
+          <div className="flex flex-wrap gap-2">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400">{summary.identity.label}</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400">{summary.readiness.label}</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-gray-400">{summary.trust.label}</span>
+          </div>
+          <p className="font-mono text-[10px] text-gray-700">{summary.nextAction}</p>
+        </div>
       </div>
 
       {/* Column headers */}

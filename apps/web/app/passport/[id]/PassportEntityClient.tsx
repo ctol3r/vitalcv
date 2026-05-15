@@ -199,11 +199,11 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
   if (!passport) {
     return (
       <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm animate-fade-in-up">
+        <div className="w-full max-w-sm">
           <TrustStateCard
             eyebrow="Passport"
             title="Passport not available"
-            description="This passport hasn't been generated yet. Run a readiness check first to create a source-backed passport."
+            description="This passport hasn't been generated yet. Run a readiness check to open the source-backed snapshot."
             centered
             actions={(
               <div className="flex w-full flex-col gap-2">
@@ -237,9 +237,9 @@ export default function PassportEntityClient({ entityId }: PassportEntityClientP
             role="status"
           >
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground">Source data loading</p>
+              <p className="font-medium text-foreground">Source-backed signals loading</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Primary identity confirmed. Readiness lanes are completing in the background.
+                Primary identity is recognized. Readiness is still moving into view.
               </p>
             </div>
             <button

@@ -23,12 +23,8 @@ const PREVIEW_STEPS = [
     body: 'One NPI opens a source-backed snapshot.',
   },
   {
-    title: 'Clarified',
-    body: 'Readiness posture stays readable at a glance.',
-  },
-  {
     title: 'Moving forward',
-    body: 'Onboarding continues without repeating the setup.',
+    body: 'Onboarding continues the path.',
   },
 ] as const;
 
@@ -87,11 +83,11 @@ export default function HomePageClient() {
             <h1 className="max-w-2xl text-[clamp(3rem,7.5vw,5rem)] leading-[0.92] font-semibold tracking-[-0.06em] text-[var(--vt-text-primary)]">
               Enter your NPI.
               <br />
-              See what already recognizes you.
+              See what is ready.
             </h1>
 
             <p className="max-w-xl text-[18px] leading-[1.65] text-[var(--vt-text-secondary)]">
-              VitalCV turns one NPI into a calm, source-backed snapshot of what is already verified, what still needs attention, and what helps you move forward now.
+              VitalCV turns one NPI into a source-backed snapshot that recognizes you and points forward.
             </p>
           </div>
 
@@ -170,7 +166,7 @@ export default function HomePageClient() {
                 <span className="text-[var(--vt-border)]" aria-hidden="true">
                   ·
                 </span>
-                <span>Public source checks only</span>
+                <span>Source-backed</span>
               </div>
             </CardContent>
           </Card>
@@ -192,7 +188,7 @@ export default function HomePageClient() {
           </div>
 
           <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[var(--vt-text-muted)]">
-            The first result is a passport snapshot. Onboarding continues without re-entering what VitalCV already knows.
+            The first result is a passport snapshot. Onboarding continues the path.
           </p>
         </div>
       </main>

@@ -1,39 +1,25 @@
-'use client';
-
 import * as React from 'react';
-import { motion } from 'framer-motion';
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div 
-      className="min-h-screen flex flex-col justify-center items-center p-6 md:p-12 overflow-x-hidden relative"
-      style={{
-        background: 'linear-gradient(145deg, #080e1a 0%, #0b1220 50%, #07101e 100%)',
-      }}
-    >
-      {/* Precision grid */}
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_42%),linear-gradient(180deg,#050814_0%,#0b1220_56%,#0a1020_100%)] px-4 py-6 text-foreground sm:px-6 sm:py-10">
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.015]"
         style={{
           backgroundImage:
-            'linear-gradient(to right, #a0c4ff 1px, transparent 1px), linear-gradient(to bottom, #a0c4ff 1px, transparent 1px)',
-          backgroundSize: '72px 72px',
+            'linear-gradient(to right, rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.7) 1px, transparent 1px)',
+          backgroundSize: '84px 84px',
         }}
       />
 
-      {/* Radial glow */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(16,185,129,0.05) 0%, transparent 60%)',
-        }}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.14),_transparent_65%)]"
       />
-      
-      <div className="relative z-10 w-full max-w-5xl mx-auto">
-        {children}
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center">
+        <div className="w-full">{children}</div>
       </div>
     </div>
   );

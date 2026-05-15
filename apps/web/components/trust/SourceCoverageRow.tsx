@@ -56,7 +56,7 @@ export function SourceCoverageRow({ check }: SourceCoverageRowProps) {
             variant="outline"
             className="rounded-full border-border bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground"
           >
-            {decisionGrade ? 'Decision grade' : 'Not decision grade'}
+            {decisionGrade ? 'Source-backed' : 'Waiting'}
           </Badge>
         </div>
         {statusDescriptor ? (
