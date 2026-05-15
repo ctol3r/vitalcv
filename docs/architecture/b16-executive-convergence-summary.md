@@ -1,5 +1,22 @@
 # B16 + B17 Executive Convergence Summary
 
+> **⚠ RETRACTION (B18 wave):** This summary previously named `vcv-web`
+> as the canonical Vercel project. That assignment is INVALID;
+> `vcv-web.vercel.app` belongs to an unrelated third-party. All
+> `vcv-web` references in this summary now read `<canonical-project-TBD>`.
+> The categorical verdict in §7 ("institutional prototype with a
+> production-grade signing identity guarantee") is unaffected — that
+> claim is about code, not infrastructure naming. The B18 wave adds
+> three new docs (`production-restore-sequence.md`,
+> `pause-root-cause-report.md`, `domain-topology-audit.md`) that
+> supersede the §3 operator checklist with operator-side discovery
+> as the first step.
+>
+> **B18 priority context**: `vitalcv.com` currently returns HTTP 402
+> (paused). The full §3 operator checklist below cannot be executed
+> until the pause is resolved and the real canonical project is
+> identified.
+
 **Closes both convergence waves.** Brutally honest verdict on what's
 production-ready vs what's still blocked, based strictly on code-level
 inspection of `origin/main` (HEAD `7f7ace10`). Live HTTP probing of
@@ -24,8 +41,8 @@ findings.
 
 | Area | Why degraded | Operator fix |
 |---|---|---|
-| Apex Vercel env vars (Clerk, receipt key, issuer origin) | Not yet set per prior `/api/health` probe | Set on `vcv-web` Production scope; details in `final-deployment-sequence.md` §3 |
-| Apex probe runner cron (lane-health snapshots) | Cron not scheduled | Schedule on `vcv-web`; needs `CRON_SECRET`/`MONITORING_SECRET` |
+| Apex Vercel env vars (Clerk, receipt key, issuer origin) | Not yet set per prior `/api/health` probe | Set on `<canonical-project-TBD>` Production scope; details in `final-deployment-sequence.md` §3 |
+| Apex probe runner cron (lane-health snapshots) | Cron not scheduled | Schedule on `<canonical-project-TBD>`; needs `CRON_SECRET`/`MONITORING_SECRET` |
 | Railway production-DB demo seed (NPI 1346053246) | Not seeded | Operator-side SQL once |
 | Preview-scope env labeling | `NODE_ENV=production` on preview inherits unless `VITALCV_ENV_LABEL` set | Set `VITALCV_ENV_LABEL=preview` on Preview scope |
 | Preview signing posture | 500s JWKS/DID unless preview env vars set | Choose Option A or B per `preview-runtime-safety-audit.md` §4 |
@@ -36,10 +53,10 @@ None of these blocks shipping. All are operator-side.
 
 The exhaustive operator-side list:
 
-1. Set apex Vercel env vars on `vcv-web` Production scope (see §3 of `final-deployment-sequence.md`)
+1. Set apex Vercel env vars on `<canonical-project-TBD>` Production scope (see §3 of `final-deployment-sequence.md`)
 2. Schedule probe runner cron on Vercel
 3. Run Railway demo seed SQL
-4. Verify domain attachment: `vitalcv.com` → `vcv-web`, NOT `vitalcv` (deprecated)
+4. Verify domain attachment: `vitalcv.com` → `<canonical-project-TBD>`, NOT `vitalcv` (deprecated)
 5. Run external verification probes per `final-deployment-sequence.md` §4
 6. Choose preview signing posture per `preview-runtime-safety-audit.md` §4
 7. (When ready to ship PR-362) merge it; Vercel auto-deploys
@@ -124,7 +141,7 @@ What it is:
 **No new architecture is required to move VitalCV from "institutional
 prototype" to "operational pilot system."** The full closure path:
 
-1. Operator: env vars on `vcv-web` (5 vars, <30 min)
+1. Operator: env vars on `<canonical-project-TBD>` (5 vars, <30 min)
 2. Operator: probe-runner cron (<15 min)
 3. Operator: Railway demo seed (<5 min)
 4. Operator: domain attachment verification (<5 min)

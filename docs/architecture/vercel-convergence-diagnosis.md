@@ -1,5 +1,17 @@
 # Vercel Convergence Diagnosis
 
+> **⚠ RETRACTION (B18 wave):** Earlier revisions of this document named
+> `vcv-web` as the canonical Vercel project. External verification proved
+> `vcv-web.vercel.app` is unrelated to VitalCV. The actual canonical project
+> is unknown until operator-side discovery in the Vercel dashboard. All
+> `vcv-web` references in this document have been replaced with
+> `<canonical-project-TBD>`. The remaining diagnostic logic is unaffected.
+> See `retraction-vcv-web.md` and `production-restore-sequence.md` §1.
+
+**B18 priority context**: `vitalcv.com` currently returns HTTP 402 (paused).
+The pause-resolution runbook is `pause-root-cause-report.md`; run it
+BEFORE the diagnostic flow below.
+
 **B16-DEPLOYMENT-02 deliverable.** Operator-runnable diagnostic for
 why production may be stale/paused/disabled, and the deterministic
 next action.
@@ -12,12 +24,12 @@ truth, not in-repo state).
 
 | Property | Canonical | Deprecated |
 |---|---|---|
-| Vercel project name | `vcv-web` | `vitalcv` |
+| Vercel project name | `<canonical-project-TBD>` | `vitalcv` |
 | Repo path served | `apps/web` | `apps/web` (same code; different project linkage) |
 | Production branch | `main` | (varies; may be paused or unlinked) |
 | Domain attachment | apex `vitalcv.com` SHOULD be attached here | If apex is still attached here, that's the divergence |
 
-The canonical `vcv-web` project is the one operator action should target. The
+The canonical `<canonical-project-TBD>` project is the one operator action should target. The
 deprecated `vitalcv` project remains as a Vercel artifact and SHOULD have its
 production domain detached if it has not been already.
 
@@ -54,7 +66,7 @@ curl -s https://vitalcv.com/api/status                | jq '.runtime_continuity'
 
 ### Probe 3 — branch linkage
 
-In the Vercel dashboard for `vcv-web`:
+In the Vercel dashboard for `<canonical-project-TBD>`:
 
 - Settings → Git → Production Branch: should be `main`
 - Settings → Domains: `vitalcv.com` should appear, marked as the production domain
@@ -62,7 +74,7 @@ In the Vercel dashboard for `vcv-web`:
 
 ### Probe 4 — deployment pause / billing
 
-In the Vercel dashboard for `vcv-web`:
+In the Vercel dashboard for `<canonical-project-TBD>`:
 
 - Deployments tab: if the most recent deployment is older than the most recent `main` commit, deployments may be paused
 - Billing → Spending Limits: if limits hit, builds are blocked (BILLING issue)
@@ -70,7 +82,7 @@ In the Vercel dashboard for `vcv-web`:
 
 ### Probe 5 — env propagation
 
-In the Vercel dashboard for `vcv-web`:
+In the Vercel dashboard for `<canonical-project-TBD>`:
 
 - Settings → Environment Variables → Production scope: verify all required vars are present (see §4)
 - After setting any new variable, REDEPLOY — env vars do not retroactively apply to existing builds
@@ -93,15 +105,15 @@ deployment (any commit on main) OR use Vercel CLI: `vercel deploy --prod
 | # | Cause | Symptom | Fix |
 |---|---|---|---|
 | a | Env propagation incomplete (`RECEIPT_PRIVATE_KEY_JWK` / `RECEIPT_KID` not set on Production scope) | JWKS/DID return 500; `/api/status` reports `degraded` | Set env vars, redeploy |
-| b | Wrong project receiving traffic — apex attached to `vitalcv` (deprecated) instead of `vcv-web` (canonical) | `/api/health` may still return `service: "web"` (same code) but config differs; signing kid different from operator expectation | Detach apex from deprecated project; verify only `vcv-web` has the apex domain |
+| b | Wrong project receiving traffic — apex attached to `vitalcv` (deprecated) instead of `<canonical-project-TBD>` (canonical) | `/api/health` may still return `service: "web"` (same code) but config differs; signing kid different from operator expectation | Detach apex from deprecated project; verify only `<canonical-project-TBD>` has the apex domain |
 | c | Stale runtime — deployment older than current `main` | `/api/health` timestamp behind current commit time | Force new deploy; if blocked, check billing/pause |
 | d | Edge cache holding old responses | `Cache-Control: no-cache` returns different content from cached request | Force deploy (cache invalidates on new deployment); confirm via probe 6 |
 | e | Vercel project paused | Deployments tab shows pause marker | Resume in dashboard |
 | f | Billing limit hit | Builds queued but never run | Adjust spending limit |
-| g | Preview/Production env divergence | Preview shows `vcv-es256-1`, production shows `vcv-es256-dev` (or vice-versa) | Ensure env vars set on BOTH Production AND Preview scopes in `vcv-web` |
+| g | Preview/Production env divergence | Preview shows `vcv-es256-1`, production shows `vcv-es256-dev` (or vice-versa) | Ensure env vars set on BOTH Production AND Preview scopes in `<canonical-project-TBD>` |
 | h | Vercel preview NODE_ENV=production gotcha | Preview deploys return 500 on JWKS unless preview-scope env vars are set | Set the env vars on Preview scope too, or accept previews 500-ing on signing surfaces |
 
-## §4 — Required env vars on `vcv-web` (Production scope)
+## §4 — Required env vars on `<canonical-project-TBD>` (Production scope)
 
 | Var | Required value | Effect if missing |
 |---|---|---|
@@ -117,7 +129,7 @@ deployment (any commit on main) OR use Vercel CLI: `vercel deploy --prod
 
 ```
 IF curl https://vitalcv.com/api/.well-known/jwks.json returns 500:
-  → BLOCKER: RECEIPT_PRIVATE_KEY_JWK and/or RECEIPT_KID not set on vcv-web Production scope.
+  → BLOCKER: RECEIPT_PRIVATE_KEY_JWK and/or RECEIPT_KID not set on <canonical-project-TBD> Production scope.
   → ACTION: set both, redeploy.
 
 ELIF curl returns kid containing "dev":

@@ -44,9 +44,16 @@
   * **Status:** Canonical.
 
 ### Vercel Deployment Map
-* `vcv-web`
+
+> **⚠ RETRACTION (B18 wave, 2026-05-15):** Earlier text named `vcv-web`
+> as the canonical Vercel project. External verification proved
+> `vcv-web.vercel.app` is unrelated to VitalCV. The actual canonical
+> project remains operator-confirmed-only. Resolve via
+> `production-restore-sequence.md` §1.
+
+* `<canonical-project-TBD>` (operator-confirmed via Vercel dashboard)
   * **Purpose:** The production frontend Vercel project serving `vitalcv.com`. Maps directly to `apps/web`.
-  * **Status:** Canonical.
-* `vitalcv-marketing` / `staging`
+  * **Status:** Operator-confirmed pending; see `production-restore-sequence.md` §1.
+* `vitalcv-marketing` / `staging` / other historical projects
   * **Status:** Legacy / Tangled projects.
-  * **Action:** Route all production traffic through `vcv-web`.
+  * **Action:** Route all production traffic through the operator-confirmed canonical project. Detach `vitalcv.com` from any non-canonical project.

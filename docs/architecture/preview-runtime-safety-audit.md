@@ -1,5 +1,10 @@
 # Preview Runtime Safety Audit
 
+> **⚠ RETRACTION (B18 wave):** Prior preview-URL example used `vcv-web`
+> as the project segment. That name does NOT belong to VitalCV. The
+> example URL now uses `<canonical-project-TBD>` until operator-side
+> discovery confirms the real project name.
+
 **B17-CODE-02 deliverable.** Verifies preview deployments cannot
 emit misleading institutional trust posture, given that Vercel
 preview deploys run under `NODE_ENV=production`.
@@ -89,7 +94,7 @@ actual deployed preview behaves as described requires running probes
 against a live preview URL. Operator-side commands:
 
 ```bash
-PREVIEW_URL="https://vcv-web-git-some-branch.vercel.app"  # whatever Vercel assigns
+PREVIEW_URL="https://<canonical-project-TBD>-git-some-branch.vercel.app"  # whatever Vercel assigns for the operator-confirmed project
 
 # Confirm preview labels itself honestly (after Recommendation 1):
 curl -s "$PREVIEW_URL/api/status" | jq '.runtime_continuity, .environment // empty'

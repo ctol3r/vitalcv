@@ -1,5 +1,11 @@
 # Signing Identity Convergence Report
 
+> **⚠ RETRACTION (B18 wave):** Earlier text in §6 named `vcv-web` as
+> the canonical Vercel project. That assignment is INVALID. The actual
+> canonical project remains TBD per `production-restore-sequence.md` §1.
+> The code-level convergence analysis in §1–§5 is unaffected (it is
+> independent of which Vercel project deploys the code).
+
 **B16-RUNTIME-03 deliverable.** Verifies — at the code level on
 `origin/main` post-PR-362 — that every signing-emitting surface
 converges on a single env-driven canonical kid (operator-expected
@@ -95,5 +101,5 @@ Every runtime surface that emits a signing kid either:
 - is gated by `if (isDev())` (correctly unreachable in production)
 
 **Operational convergence**: pending the operator setting the two
-required env vars on the `vcv-web` Vercel project Production (and
+required env vars on the `<canonical-project-TBD>` Vercel project Production (and
 Preview, per §4) scopes. No code change can replace this step.

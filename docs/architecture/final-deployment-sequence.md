@@ -1,5 +1,16 @@
 # Final Deployment Sequence
 
+> **⚠ RETRACTION (B18 wave):** Earlier revisions named `vcv-web` as the
+> canonical Vercel project. External verification proved that name does
+> NOT belong to VitalCV. The actual canonical project remains
+> operator-confirmed-only. All `vcv-web` references are now
+> `<canonical-project-TBD>`; resolve via `production-restore-sequence.md`
+> §1 (B18-TRUTH-04) BEFORE following this sequence.
+>
+> **B18 priority context**: `vitalcv.com` currently returns HTTP 402
+> (paused). The pause-resolution runbook is `pause-root-cause-report.md`.
+> This deployment sequence is for AFTER the pause is cleared.
+
 **B16-RELEASE-06 + B17-CODE-01 deliverable.** Single operator runbook
 covering canonical deploy, runtime recovery, and post-deploy
 verification. Optimized for low ambiguity — a new operator should be
@@ -9,7 +20,7 @@ able to follow this without prior repo knowledge.
 
 | Item | Value |
 |---|---|
-| Canonical Vercel project | `vcv-web` |
+| Canonical Vercel project | `<canonical-project-TBD>` |
 | Deprecated Vercel project (detach apex from this) | `vitalcv` |
 | Canonical branch | `main` |
 | Canonical release SHA (as of audit) | `7f7ace10` |
@@ -27,15 +38,15 @@ baseline is correct.
 
 In the Vercel dashboard:
 
-- `vcv-web` → Settings → Git: production branch must be `main`
-- `vcv-web` → Settings → Domains: `vitalcv.com` must appear, marked production
+- `<canonical-project-TBD>` → Settings → Git: production branch must be `main`
+- `<canonical-project-TBD>` → Settings → Domains: `vitalcv.com` must appear, marked production
 - `vitalcv` (deprecated) → Settings → Domains: `vitalcv.com` must NOT appear
 
-If apex is attached to `vitalcv` instead of `vcv-web`: detach from
-`vitalcv`, attach to `vcv-web`. This is the single most common cause
+If apex is attached to `vitalcv` instead of `<canonical-project-TBD>`: detach from
+`vitalcv`, attach to `<canonical-project-TBD>`. This is the single most common cause
 of "stale production" symptoms.
 
-### Step 2 — Confirm env vars on `vcv-web`
+### Step 2 — Confirm env vars on `<canonical-project-TBD>`
 
 See §3 for the full required list. The two load-bearing ones are
 `RECEIPT_PRIVATE_KEY_JWK` and `RECEIPT_KID=vcv-es256-1`. Without
@@ -69,7 +80,7 @@ invocation is where the guard fires.
 In Vercel dashboard → Deployments tab → wait for the new deployment to
 show "Ready" status. Expected duration: ~2–4 minutes.
 
-## §3 — Required env vars (`vcv-web` Production scope)
+## §3 — Required env vars (`<canonical-project-TBD>` Production scope)
 
 | Var | Value | Effect when missing |
 |---|---|---|
@@ -164,7 +175,7 @@ Roll back IMMEDIATELY if any of the following holds after deploy:
 
 Rollback procedure:
 
-1. Vercel dashboard → Deployments tab on `vcv-web`
+1. Vercel dashboard → Deployments tab on `<canonical-project-TBD>`
 2. Find the last deployment marked Production with green health
 3. Three-dot menu → "Promote to Production"
 4. Vercel handles CDN cache invalidation automatically on promotion
@@ -174,8 +185,8 @@ Rollback procedure:
 
 If apex is fully broken (Vercel project misconfigured, env wiped, etc.):
 
-1. Verify the canonical baseline (§1) — does `vcv-web` exist, is it linked to GitHub, is `main` the production branch?
-2. If `vcv-web` does NOT exist: create it. Link to GitHub repo `ctol3r/vitalcv`. Set production branch `main`. Set Framework Preset = Next.js. Set Root Directory = `apps/web` (it's a monorepo).
+1. Verify the canonical baseline (§1) — does `<canonical-project-TBD>` exist, is it linked to GitHub, is `main` the production branch?
+2. If `<canonical-project-TBD>` does NOT exist: create it. Link to GitHub repo `ctol3r/vitalcv`. Set production branch `main`. Set Framework Preset = Next.js. Set Root Directory = `apps/web` (it's a monorepo).
 3. Set env vars per §3.
 4. Trigger a deploy.
 5. Attach `vitalcv.com` to the new project; detach from any other project.
