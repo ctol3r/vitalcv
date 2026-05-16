@@ -39,7 +39,7 @@ const PATHS: ReadonlyArray<PathCard> = [
   },
   {
     audience: 'For employers',
-    title: 'Stop restarting verification.',
+    title: 'Days, not weeks, to first start.',
     body: 'Accept source-backed readiness instead of asking every clinician to re-submit credentials. Faster decisions, less paperwork, no claims you cannot back.',
     cta: { label: 'See an employer demo →', href: '/demo/employer' },
   },
@@ -71,10 +71,10 @@ export default function LaunchPage() {
             Clinician readiness, source-honest.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Type an NPI. See what public sources say. Share a readiness preview
-            with employers and issuers without restarting verification every
-            time. VitalCV does not finish credentialing for you — and does not
-            pretend to.
+            Type an NPI. See what public sources say. Share the same
+            source-backed readiness with every reviewer — so decisions move in
+            days, not weeks. VitalCV does not finish credentialing for you —
+            and does not pretend to.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">

@@ -23,8 +23,12 @@ const PREVIEW_STEPS = [
     body: 'One NPI opens a source-backed snapshot.',
   },
   {
-    title: 'Moving forward',
-    body: 'Onboarding continues the path.',
+    title: 'Reusable',
+    body: 'Share the same readiness with every employer — no restarts.',
+  },
+  {
+    title: 'Days, not weeks',
+    body: 'Reviewers see source-backed signals immediately. Credentialing still belongs to the hospital.',
   },
 ] as const;
 
