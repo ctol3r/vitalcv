@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build:web": "pnpm turbo run build --filter @vitalcv/web",
+    "build:web:cloudflare": "pnpm --filter @vitalcv/web build:cloudflare",
     "build:web:direct": "pnpm --filter @vitalcv/trust-state build && pnpm --filter @vitalcv/web build",
     "build:check-chain": "bash scripts/check-web-build-chain.sh",
     "typecheck": "turbo typecheck",

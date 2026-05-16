@@ -107,7 +107,7 @@ export function PassportTrustPosture({
             <p className="text-xs font-medium text-muted-foreground">Trust posture</p>
             <CardTitle className={`text-base font-semibold ${band.labelClass}`}>{posture.bandLabel}</CardTitle>
             <CardDescription className="text-xs leading-relaxed text-muted-foreground">
-              Verified, open, blocking.
+              Source-backed, portable, readable.
             </CardDescription>
           </div>
           <div className="flex items-start justify-between gap-4 sm:block sm:text-right">
@@ -116,7 +116,7 @@ export function PassportTrustPosture({
                 {showScore ? posture.score : 'Withheld'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {showScore ? `${posture.band} / 100` : 'Score appears once source-backed claims attach'}
+                {showScore ? `${posture.band} / 100` : 'Appears once source-backed claims attach'}
               </p>
             </div>
             <div className="sm:mt-3">
@@ -161,7 +161,7 @@ export function PassportTrustPosture({
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Safe to rely on now</p>
               <p className="text-xs leading-relaxed text-muted-foreground/70">
-                No current source-backed claims are available yet.
+                No source-backed claims yet.
               </p>
             </div>
           ) : null}
@@ -178,7 +178,7 @@ export function PassportTrustPosture({
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Needs attention</p>
               <p className="text-xs leading-relaxed text-muted-foreground/70">
-                No missing, stale, gated, or review-required items are currently limiting this passport.
+                No missing, stale, gated, or review-required items are limiting this passport.
               </p>
             </div>
           )}

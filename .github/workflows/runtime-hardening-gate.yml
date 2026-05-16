@@ -1,0 +1,125 @@
+name: W2-PR107A Production Runtime Hardening
+
+# Production governance runtime hardening gate.
+#
+# This workflow runs three runtime-hardening suites that together guarantee
+# replay-safe runtime under load, ambiguity preservation under degradation,
+# fault containment determinism, and fail-closed runtime semantics:
+#
+#   - governanceRuntimeHardening.test.ts        — pure-transform unit coverage
+#   - governanceRuntimeHardening.ci.gate.ts     — frozen-enum + breach canary
+#   - runtimeHardening.scale.test.ts            — chaos + scale coverage
+#                                                  (8 modes: healthy burst,
+#                                                  mixed-friction cohort,
+#                                                  fault lineage,
+#                                                  resilience floor,
+#                                                  ambiguity preservation,
+#                                                  replay stability window,
+#                                                  cross-tenant bleed,
+#                                                  production maturity score)
+#
+# These tests are mock-free and DB-free — they exercise the real
+# `governanceRuntimeHardening` pure-transform module. The gate exists to
+# catch silent runtime collapse, ambiguity loss under load, isolation breach
+# spread, circuit-breaker disablement regressions, and floor-violation
+# regressions before they ship.
+#
+# This is the production-runtime companion to:
+#   - scale-gate.yml             (governance throughput / event survivability)
+#   - deployment-survivability.yml (deploy-layer chaos + lineage)
+#   - rollout-survivability.yml  (institutional rollout boundary)
+#   - replayCorruptionContainment (replay corruption boundary)
+#
+# Fail-closed: any of the three suites failing exits 1 and blocks the gate.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/governance/governanceRuntimeHardening.ts'
+      - 'apps/api/backend/src/services/governance/__tests__/governanceRuntimeHardening*.test.ts'
+      - 'apps/api/backend/src/services/__tests__/scale/runtimeHardening.scale.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/runtime-hardening-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/governance/governanceRuntimeHardening.ts'
+      - 'apps/api/backend/src/services/governance/__tests__/governanceRuntimeHardening*.test.ts'
+      - 'apps/api/backend/src/services/__tests__/scale/runtimeHardening.scale.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/runtime-hardening-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  runtime-hardening:
+    name: Production Runtime Hardening
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # The runtime-hardening suites mock nothing and touch no DB; the env
+      # vars below are only present so jest.setup.ts → loadEnv() does not bail.
+      - name: Run runtime hardening suites
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runtime_hardening_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='(services/governance/__tests__/governanceRuntimeHardening.*\.test\.ts|services/__tests__/scale/runtimeHardening\.scale\.test\.ts)$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee runtime-hardening-gate.log
+
+      - name: Surface runtime hardening board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Runtime Hardening Board"
+          echo "--------------------------"
+          if [ -f runtime-hardening-gate.log ]; then
+            grep -E '\[runtime-hardening-board\]' runtime-hardening-gate.log \
+              || echo "(no runtime-hardening-board metrics emitted — investigate)"
+          else
+            echo "(no runtime-hardening-gate.log produced — investigate)"
+          fi
+
+      - name: Upload runtime-hardening-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-hardening-gate-log
+          path: apps/api/backend/runtime-hardening-gate.log
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,131 @@
+name: W2-PR167A Onboarding Finalization Gate
+
+# Ecosystem Onboarding Finalization gate.
+#
+# This workflow runs the W2-PR167A test surface:
+#   - unit tests in src/services/onboarding/__tests__/
+#   - scale/chaos tests in src/services/__tests__/scale/onboardingFinalization.scale.test.ts
+#
+# Together they enforce the W2-PR167A invariants:
+#   * onboarding replay-safe
+#   * ambiguity preserved cross-org
+#   * onboarding lineage reconstructable
+#   * fail-closed onboarding semantics
+#   * ecosystem activation measurable
+#   * institutional growth longitudinally visible
+#
+# Tests are mock-based — no database required. The scale suite emits
+# [onboarding-board] prefixed lines that this gate surfaces in the
+# workflow summary as the Ecosystem Onboarding Board.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/onboarding/**'
+      - 'apps/api/backend/src/services/__tests__/scale/onboardingFinalization.scale.test.ts'
+      - 'apps/api/backend/src/services/audit/replayEngine.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/onboarding-finalization-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/onboarding/**'
+      - 'apps/api/backend/src/services/__tests__/scale/onboardingFinalization.scale.test.ts'
+      - 'apps/api/backend/src/services/audit/replayEngine.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/onboarding-finalization-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  onboarding-finalization-gate:
+    name: Ecosystem Onboarding Finalization
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      - name: Run onboarding finalization unit suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onboarding_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/onboarding/__tests__/.+\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee onboarding-finalization-unit.log
+
+      - name: Run onboarding finalization scale suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onboarding_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='__tests__/scale/onboardingFinalization\.scale\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee onboarding-finalization-scale.log
+
+      - name: Surface Ecosystem Onboarding Board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Ecosystem Onboarding Board"
+          echo "------------------------------"
+          if [ -f onboarding-finalization-scale.log ]; then
+            grep -E '\[onboarding-board\]' onboarding-finalization-scale.log || echo "(no onboarding-board metrics emitted — investigate)"
+          else
+            echo "(no onboarding-finalization-scale.log produced — investigate)"
+          fi
+          echo ""
+          echo "Board axes:"
+          echo "  - Replay Onboarding Fidelity %"
+          echo "  - Institutional Activation Simplicity %"
+          echo "  - Ecosystem Survivability %"
+          echo "  - Cross-Org Readiness %"
+          echo "  - Onboarding Finalization Maturity %"
+
+      - name: Upload onboarding-finalization logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onboarding-finalization-logs
+          path: |
+            apps/api/backend/onboarding-finalization-unit.log
+            apps/api/backend/onboarding-finalization-scale.log
+          if-no-files-found: warn
+          retention-days: 7

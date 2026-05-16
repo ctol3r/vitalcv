@@ -1,0 +1,156 @@
+name: W2-PR50A Deployment Survivability
+
+# Deployment lineage + replay + chaos gate.
+#
+# Required for merges that touch deployment-relevant paths. Validates:
+#   - config-hash.mjs is deterministic on the current source (re-running
+#     produces the same digest)
+#   - chaos.mjs runs five C-DEPLOY-* modes and all fail closed
+#   - lineage.mjs writes a structurally valid manifest
+#   - replay-manifest.mjs verifies manifest → source → DRIFT-CODE-CLEAN
+#     (or DRIFT-CODE-SHA on the rare case of mid-run commits, treated as 0)
+#
+# Fail-closed: any of the above failing exits 1 and blocks the gate.
+#
+# This is the deploy-layer companion to scale-gate.yml (app-layer chaos).
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'scripts/deploy/**'
+      - '.github/workflows/deployment-survivability.yml'
+      - 'docs/ops/deployment-survivability.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'apps/*/package.json'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'scripts/deploy/**'
+      - '.github/workflows/deployment-survivability.yml'
+      - 'docs/ops/deployment-survivability.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'apps/*/package.json'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  deployment-survivability:
+    name: Deployment Lineage + Replay + Chaos
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ── Determinism ────────────────────────────────────────────────────
+      - name: Config hash (run 1)
+        id: hash1
+        run: |
+          DIGEST=$(node scripts/deploy/config-hash.mjs --bare)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "[hash1] $DIGEST"
+
+      - name: Config hash (run 2 — must match run 1)
+        run: |
+          DIGEST=$(node scripts/deploy/config-hash.mjs --bare)
+          echo "[hash2] $DIGEST"
+          if [ "$DIGEST" != "${{ steps.hash1.outputs.digest }}" ]; then
+            echo "::error::Config hash NON-DETERMINISTIC across two runs on the same source."
+            echo "  run1: ${{ steps.hash1.outputs.digest }}"
+            echo "  run2: $DIGEST"
+            exit 1
+          fi
+          echo "[determinism] OK"
+
+      # ── Chaos (must run before lineage so its fingerprint goes in the manifest) ──
+      - name: Run deployment chaos simulations
+        id: chaos
+        run: |
+          node scripts/deploy/chaos.mjs > chaos-report.json
+          FINGERPRINT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('chaos-report.json','utf-8')).fingerprint)")
+          echo "fingerprint=$FINGERPRINT" >> $GITHUB_OUTPUT
+          echo "[chaos] fingerprint=$FINGERPRINT"
+
+      # ── Lineage emission ───────────────────────────────────────────────
+      - name: Emit lineage manifest
+        env:
+          DEPLOY_ENV: ci
+        run: |
+          node scripts/deploy/lineage.mjs \
+            --env=ci \
+            --platform=github-actions \
+            --operator=${{ github.actor }} \
+            --chaos-fingerprint=${{ steps.chaos.outputs.fingerprint }}
+
+      # ── Replay verification (recompute & compare; CLEAN required) ──────
+      - name: Verify manifest replays clean
+        run: |
+          node scripts/deploy/replay-manifest.mjs
+
+      # ── Surface board (always run, even on failure) ────────────────────
+      - name: Surface deployment survivability board
+        if: always()
+        run: |
+          echo "📊 Deployment Survivability Board"
+          echo "---------------------------------"
+          if [ -f chaos-report.json ]; then
+            node -e "
+              const r = JSON.parse(require('fs').readFileSync('chaos-report.json','utf-8'));
+              console.log('Chaos modes:    ' + r.modes);
+              console.log('Passed:         ' + r.passed);
+              console.log('Fingerprint:    ' + r.fingerprint.slice(0,16) + '…');
+              console.log();
+              for (const v of r.verdicts) {
+                console.log('  ' + (v.passed ? '✓' : '✗') + ' ' + v.mode);
+              }
+            "
+          else
+            echo "(no chaos-report.json — investigate)"
+          fi
+          if [ -f .deployment-lineage/latest.json ]; then
+            echo
+            echo "Latest manifest:"
+            node -e "
+              const m = JSON.parse(require('fs').readFileSync('.deployment-lineage/latest.json','utf-8'));
+              console.log('  manifestId:   ' + m.manifestId.slice(0,16) + '…');
+              console.log('  gitSha:       ' + m.gitSha.slice(0,12));
+              console.log('  configHash:   ' + m.configHash.slice(0,16) + '…');
+              console.log('  envName:      ' + m.envName);
+              console.log('  platform:     ' + m.platform);
+              console.log('  operator:     ' + m.operator);
+              console.log('  rollbackOf:   ' + (m.rollbackOf || 'null'));
+              console.log('  prevManifest: ' + (m.previousManifestId || 'null'));
+            "
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-survivability
+          path: |
+            chaos-report.json
+            .deployment-lineage/
+          if-no-files-found: warn
+          retention-days: 30

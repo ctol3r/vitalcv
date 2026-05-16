@@ -4,6 +4,8 @@ import type { WorklistDbRow } from '@/lib/verifier/worklistRepo';
 import { WorklistPanel } from '@/components/verifier/WorklistPanel';
 import type { WorklistItem } from '@/lib/verifier/worklist';
 
+export const dynamic = 'force-dynamic';
+
 // NPI is not stored on ReceiptCandidate (a future wave adds that lookup).
 // candidateId is used as the identifier in the panel until then.
 function toWorklistItem(row: WorklistDbRow): WorklistItem {

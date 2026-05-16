@@ -11,17 +11,19 @@ import {
 } from 'lucide-react';
 import { PilotRequestForm } from './PilotRequestForm';
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
-  title: 'Start a Pilot',
+  title: 'For Employers — VitalCV',
   description:
-    'Run a 30-day focused employer pilot for credential readiness decisions using VitalCV primary source verification and proof packs.',
+    'See which candidates are ready before day one. Free 30-day pilot with your real clinician roster. No commitment required.',
 };
 
 const PILOT_SCOPE = [
   {
     title: 'What this pilot is',
     body:
-      'A 30-day focused employer pilot. We measure startability timeline events against your current workflow on 10–30 real clinician NPIs and hand you a signed scope document before any measurement starts.',
+      'A free 30-day readiness check on 10–30 of your real clinician candidates. You get a clear report on who is ready, who has gaps, and what is missing — before your credentialing team opens a single file.',
     icon: <Presentation className="h-4 w-4" aria-hidden />,
   },
   {
@@ -33,69 +35,69 @@ const PILOT_SCOPE = [
   {
     title: 'What VitalCV measures',
     body:
-      'Submit → first view → first action → advanced → start-ready → started timeline deltas, refresh and missing-info request counts with owner attribution, and proof-tier distribution at submit time.',
+      'Identity against NPPES. Federal exclusion against OIG. Medicare enrollment via PECOS. Each candidate gets a clear status: ready, incomplete, or flagged — with source cited.',
     icon: <ActivitySquare className="h-4 w-4" aria-hidden />,
   },
   {
     title: 'What success looks like',
     body:
-      'You see documented source coverage, packet status, and limitation notes per clinician before the formal committee process. We do not replace your credentialing committee — we shorten the days-at-risk window before committee review.',
+      'Your team spends zero time on basic registry lookups. Candidates with issues surface before they show up on day one. Candidates who are clean move faster. That gap is where VitalCV lives.',
     icon: <CheckCircle2 className="h-4 w-4" aria-hidden />,
   },
 ] as const;
 
 const LIMITATION_HONESTY = [
-  'NPPES identity checks confirm NPI registration only; they do not replace licensure proof.',
-  'OIG LEIE covers federal exclusion scope only; state Medicaid exclusion lists are out of scope until they are adapter-connected.',
-  'PECOS public data reflects the public release, not the real-time enrollment portal.',
-  'State board coverage depends on institutional access agreements; uninstrumented states remain an adapter gap, not a verified claim.',
-  'The trust container records packet metadata and artifact status; it does not replace Primary Source Verification (PSV).',
-  'A partial proof stays partial. Container issuance never upgrades partial evidence to decision-grade.',
+  'NPPES confirms NPI registration — it does not replace state licensure verification.',
+  'OIG covers federal exclusion only — state Medicaid exclusion lists are not yet included.',
+  'PECOS reflects public data — not the live real-time enrollment portal.',
+  'State board license checks require per-state agreements — coverage varies.',
+  'VitalCV surfaces readiness signals. It does not replace your credentialing committee.',
+  'Partial data stays partial. We tell you what we can confirm — and what we cannot.',
 ] as const;
 
 const PILOT_KPI_SAMPLES = [
   {
-    label: 'Avg time to first signal',
-    value: '1.8 min',
-    note: 'Internal simulation · not a customer pilot result',
+    label: 'Time to first readiness signal',
+    value: '< 2 min',
+    note: 'Internal benchmark · not a customer result',
   },
   {
-    label: 'Automated source lanes',
-    value: '4',
-    note: 'NPPES · OIG LEIE · PECOS public · state-board adapter',
+    label: 'Federal registries checked',
+    value: '3',
+    note: 'NPPES · OIG · PECOS',
   },
   {
-    label: 'Proof-pack export formats',
-    value: 'JSON · ZIP · PDF',
-    note: 'Manifest references in every export',
+    label: 'Candidates per pilot',
+    value: '10–30',
+    note: 'NPI list is all you provide',
   },
   {
-    label: 'Audit record per export',
-    value: 'ARTIFACT_EXPORTED',
-    note: 'Records an audit event before the bundle returns',
+    label: 'Cost to start',
+    value: '$0',
+    note: 'Free 30-day pilot, no commitment',
   },
 ] as const;
 
 const PROOF_OBJECT_LIVE = [
-  'NPPES, OIG LEIE, and PECOS public checks with canonical source coverage',
-  'Proof-pack exports (JSON and ZIP) with deterministic artifact hashing',
-  'ARTIFACT_EXPORTED audit event every time a packet leaves the platform',
-  'Partial-proof limitation notes preserved verbatim through every export',
+  'Identity confirmed against NPPES',
+  'Federal exclusion checked against OIG',
+  'Medicare enrollment status via PECOS',
+  'Per-candidate readiness status: clear, incomplete, or flagged',
 ] as const;
 
 const PROOF_OBJECT_PARTIAL = [
-  'Configured state-board PSV adapters for launch-state authority checks',
-  'Additional payer and organization source adapters after source agreements',
-  'Production credential-container issuance after provider configuration',
-  'Continuous monitoring outside the configured pilot lanes',
+  'State board license verification (per-state agreements required)',
+  'Payer enrollment and organization credentialing checks',
+  'Continuous monitoring and re-check alerts',
+  'ATS integration and bulk roster upload',
 ] as const;
 
 const TRUST_CONTAINER_SAFE_COPY = [
   'Records the evidence packet’s credential envelope and artifact status.',
-  'Does not replace primary source verification.',
-  'Does not upgrade partial evidence to decision-grade.',
-  'Mock/dev containers are not production credentials.',
-  'Limitations shown in the packet remain controlling.',
+  'OIG covers federal exclusion — not state Medicaid lists.',
+  'PECOS reflects public data — not the live portal.',
+  'State board coverage varies by state.',
+  'VitalCV does not replace your credentialing committee.',
 ] as const;
 
 export default function PilotPage() {
@@ -111,17 +113,16 @@ export default function PilotPage() {
             className="text-4xl sm:text-5xl font-semibold tracking-tight text-foreground/90"
             data-testid="pilot-headline"
           >
-            Cut credentialing uncertainty before the start date slips.
+            Know which candidates are ready before day one.
           </h1>
           <p
             className="max-w-3xl text-lg leading-8 text-muted-foreground"
             data-testid="pilot-value-prop"
           >
-            VitalCV turns four source-backed lanes of clinician evidence into a
-            deterministic proof pack and an auditable trust container, so your
-            reviewers can see what is ready, what is missing, and what must
-            wait for primary source verification — without changing your
-            existing compliance stack.
+            VitalCV checks your candidates against federal registries and gives
+            you a clear readiness signal — who is clean, who has gaps, what is
+            missing — before your credentialing team opens a single file. No
+            integration required. Free 30-day pilot.
           </p>
         </header>
 
@@ -176,13 +177,12 @@ export default function PilotPage() {
         >
           <div className="flex items-center gap-3 mb-4">
             <ShieldCheck className="h-6 w-6 text-indigo-500" aria-hidden />
-            <h2 className="text-2xl font-semibold text-foreground/90">The proof pack</h2>
+            <h2 className="text-2xl font-semibold text-foreground/90">What we check</h2>
           </div>
           <p className="text-muted-foreground text-base leading-relaxed max-w-3xl mb-6">
-            Every clinician review generates a deterministic evidence packet with
-            canonical source coverage, per-lane freshness, and a sha256 artifact
-            hash. When your reviewer exports the packet, VitalCV writes an
-            ARTIFACT_EXPORTED audit event before the bytes leave the platform.
+            For each candidate NPI, VitalCV runs three federal checks: NPPES identity,
+            OIG federal exclusion, and PECOS Medicare enrollment. Results are
+            clear, sourced, and available in under two minutes.
           </p>
           <div className="grid md:grid-cols-2 gap-6 text-sm">
             <div className="space-y-3" data-testid="pilot-live-now">
@@ -219,10 +219,7 @@ export default function PilotPage() {
             </h2>
           </div>
           <p className="text-muted-foreground text-base leading-relaxed max-w-3xl mb-4">
-            The trust container is a hidden backend record that binds the
-            credential envelope id, artifact status, and issuer metadata to the
-            proof pack. It is provider-pluggable — a deterministic mock today
-            and a production-provider scaffold ready for future wiring.
+            Each check is source-attributed and timestamped. You see exactly what was checked and when.
           </p>
           <ul
             className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground"

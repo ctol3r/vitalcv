@@ -3,6 +3,8 @@ import { Suspense } from 'react';
 
 import { PilotIntakeForm } from './PilotIntakeForm';
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: 'Contact — Start a Pilot — VitalCV',
   description:

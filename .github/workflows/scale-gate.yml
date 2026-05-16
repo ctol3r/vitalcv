@@ -1,0 +1,118 @@
+name: W2-PR38A Scale Gate
+
+# Governance Scale + Throughput Integrity gate.
+#
+# This workflow runs the `*.scale.test.ts` suites that:
+#   - replay 500+ capsules under load (replayThroughput.scale.test.ts)
+#   - emit 5 000+ governance mutations and explode the state space
+#     (governanceThroughput.scale.test.ts)
+#   - emit a 10 000-event mutation burst (eventStreamSurvivability.scale.test.ts)
+#   - sweep latency 16× to detect non-linear degradation
+#     (latencyDegradation.scale.test.ts)
+#   - inject mixed chaos modes through the audit-bundle pipeline
+#     (scaleChaos.scale.test.ts)
+#
+# These tests are mock-based — no database required. The gate exists to catch
+# silent throughput collapse, ambiguity loss under load, fingerprint
+# collisions, latency tail degradation, and chaos-injected bleedover.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/audit/**'
+      - 'apps/api/backend/src/services/runtimeTrustCohesion.ts'
+      - 'apps/api/backend/src/services/multi-tenant/**'
+      - 'apps/api/backend/src/services/rollout/**'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/src/services/__tests__/scale/**'
+      - 'apps/api/backend/src/services/audit/__tests__/scale/**'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/scale-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/audit/**'
+      - 'apps/api/backend/src/services/runtimeTrustCohesion.ts'
+      - 'apps/api/backend/src/services/multi-tenant/**'
+      - 'apps/api/backend/src/services/rollout/**'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/src/services/__tests__/scale/**'
+      - 'apps/api/backend/src/services/audit/__tests__/scale/**'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/scale-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  scale-gate:
+    name: Governance Scale + Throughput Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # The scale gate runs the four `*.scale.test.ts` suites only. They
+      # mock prisma + the capsuleEngine fully, so no Postgres is needed.
+      # `--passWithNoTests` keeps the gate green if a future refactor
+      # relocates the suites — the absence of scale tests is a separate
+      # alarm raised by the audit checklist.
+      - name: Run scale gate suites
+        working-directory: apps/api/backend
+        env:
+          # Sanity defaults so jest.setup.ts → loadEnv() does not bail.
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scale_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='__tests__/scale/.+\.scale\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee scale-gate.log
+
+      - name: Surface scale board metrics
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Governance Scale Integrity Board"
+          echo "-----------------------------------"
+          if [ -f scale-gate.log ]; then
+            grep -E '\[scale-board\]' scale-gate.log || echo "(no scale-board metrics emitted — investigate)"
+          else
+            echo "(no scale-gate.log produced — investigate)"
+          fi
+
+      - name: Upload scale-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scale-gate-log
+          path: apps/api/backend/scale-gate.log
+          if-no-files-found: warn
+          retention-days: 7

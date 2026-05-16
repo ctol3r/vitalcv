@@ -39,11 +39,11 @@ const fontVariables = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'VitalCV — Professional identity that moves clinicians forward.',
+    default: 'VitalCV — Know your credential readiness. Right now.',
     template: '%s — VitalCV',
   },
   description:
-    'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+    'Enter your NPI and see your credential readiness in 30 seconds. Live federal data. No account required.',
   metadataBase: new URL('https://vitalcv.com'),
   keywords: [
     'healthcare credentialing',
@@ -113,8 +113,11 @@ export default async function RootLayout({
 }>) {
   let initialUserId: string | null = null;
   let initialClerkRole: string | null = null;
+  const staticFirstBuild =
+    process.env.CF_PAGES === '1' || process.env.STATIC_FIRST_BUILD === 'true';
+  const renderGlobalChrome = !staticFirstBuild;
 
-  if (clerkEnabled) {
+  if (clerkEnabled && !staticFirstBuild) {
     try {
       const session = await auth();
       initialUserId = session.userId ?? null;
@@ -134,8 +137,8 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
-          <CommandPalette />
-          <Toaster position="top-right" closeButton richColors />
+          {renderGlobalChrome ? <CommandPalette /> : null}
+          {renderGlobalChrome ? <Toaster position="top-right" closeButton richColors /> : null}
         </Providers>
       </body>
     </html>

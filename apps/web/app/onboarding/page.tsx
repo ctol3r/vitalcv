@@ -13,23 +13,23 @@ import {
 } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Continue Activation | VitalCV',
+  title: 'Activate Your Readiness | VitalCV',
   description:
-    'Continue the path already started in passport. Onboarding keeps the motion going.',
+    'One more step to activate your credential readiness profile.',
 };
 
 const CONTINUATION_POINTS = [
   {
-    title: 'Identity stays anchored',
-    body: 'Your NPI stays anchored. Nothing here asks you to re-enter what VitalCV already recognized.',
+    title: 'Your NPI is already verified',
+    body: 'We recognized your NPI from federal registries. No re-entry needed.',
   },
   {
-    title: 'Momentum stays visible',
-    body: 'The path reads as continuation.',
+    title: 'Your readiness snapshot is waiting',
+    body: 'A few seconds and you can see your full status — what is clear, what needs attention.',
   },
   {
-    title: 'Progress stays calm',
-    body: 'One screen, one primary action, one clear handoff.',
+    title: 'Your passport is portable',
+    body: 'Once activated, you can share it with any employer in one link.',
   },
 ] as const;
 
@@ -55,21 +55,21 @@ export default async function OnboardingPage({
 
         <div className="mt-8 space-y-6">
           <h1 className="max-w-2xl text-[clamp(2.8rem,7vw,4.6rem)] leading-[0.94] font-semibold tracking-[-0.05em] text-[var(--vt-text-primary)]">
-            Keep moving.
+            You're one step away.
           </h1>
 
           <p className="max-w-xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]">
-            Already recognized. Continue.
+            Activate your credential readiness profile. Takes 60 seconds.
           </p>
         </div>
 
         <Card className="mt-10 max-w-2xl border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-none">
           <CardHeader className="border-b border-[var(--vt-border-subtle)] px-5 py-5 sm:px-6">
             <CardTitle className="text-base font-semibold text-[var(--vt-text-primary)]">
-              Continue from passport
+              Activate your readiness profile
             </CardTitle>
             <CardDescription className="text-sm leading-relaxed text-[var(--vt-text-muted)]">
-              Same path.
+              Your NPI is already confirmed. Finish setup to see your full status.
             </CardDescription>
           </CardHeader>
 

@@ -5,6 +5,8 @@
  * Do NOT import this in client components.
  */
 
+import { resolveDeploymentBackendBase } from '@/lib/deployment/backend-base';
+
 export interface RuntimeActivationState {
   timestamp: string;
 
@@ -15,7 +17,7 @@ export interface RuntimeActivationState {
 
   // API base
   apiBaseConfigured: boolean;
-  apiBaseValue: string | null; // "configured" or the base URL (localhost only)
+  apiBaseValue: string | null; // "configured" or the raw base URL when local
 
   backendBase: string;
 
@@ -148,7 +150,7 @@ export function getRuntimeActivationState(): RuntimeActivationState {
     }
   }
 
-  const backendBase = rawApiBase ?? 'http://localhost:4000';
+  const backendBase = rawApiBase ?? resolveDeploymentBackendBase();
 
   const databaseUrlConfigured = !!process.env.DATABASE_URL;
   const receiptKeyConfigured = !!process.env.RECEIPT_PRIVATE_KEY_JWK;

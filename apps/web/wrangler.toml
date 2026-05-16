@@ -1,0 +1,12 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+name = "vcv-web"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2026-05-15"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://vitalcv.com"
+NEXT_PUBLIC_API_BASE = "https://api.vitalcv.com"
+NEXT_PUBLIC_API_URL = "https://api.vitalcv.com"
+NEXT_PUBLIC_BACKEND_URL = "https://api.vitalcv.com"
+BACKEND_URL = "https://api.vitalcv.com"

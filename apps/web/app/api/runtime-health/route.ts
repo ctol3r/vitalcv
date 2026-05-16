@@ -7,17 +7,16 @@ type RuntimeHealthState = 'operational' | 'degraded' | 'unavailable';
 type DeploymentSummaryState = 'ready' | 'stale' | 'unavailable';
 
 function deploymentIdentity() {
-  const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
+  const edgeDeploymentId = process.env.CF_PAGES_BRANCH ?? null;
+  const edgeCommitSha = process.env.CF_PAGES_COMMIT_SHA ?? process.env.CF_PAGES_COMMIT_SHA_SHORT ?? null;
 
   return {
-    deployedAt: process.env.VERCEL_DEPLOYMENT_TIMESTAMP
-      ?? process.env.NEXT_PUBLIC_DEPLOYMENT_TIMESTAMP
-      ?? null,
-    deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
-    commitSha: commitSha ? commitSha.slice(0, 12) : null,
-    commitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
-    vercelEnv: process.env.VERCEL_ENV ?? null,
-    projectName: process.env.VERCEL_PROJECT_NAME ?? null,
+    platform: process.env.CF_PAGES === '1' ? 'cloudflare' : 'local',
+    deployedAt: process.env.NEXT_PUBLIC_DEPLOYMENT_TIMESTAMP ?? null,
+    deploymentId: edgeDeploymentId,
+    commitSha: edgeCommitSha ? edgeCommitSha.slice(0, 12) : null,
+    commitRef: process.env.CF_PAGES_BRANCH ?? process.env.GIT_BRANCH ?? null,
+    projectName: process.env.CF_PAGES_PROJECT_NAME ?? null,
   };
 }
 
@@ -25,7 +24,7 @@ function buildDeploymentSummary(input: {
   deploymentId: string | null;
   commitSha: string | null;
   projectName: string | null;
-  vercelEnv: string | null;
+  platform: string | null;
   passportState: RuntimeHealthState;
   sourceState: RuntimeHealthState;
 }): {
@@ -45,7 +44,6 @@ function buildDeploymentSummary(input: {
   const legacyProject = 'vitalcv';
   const isCanonicalProject = input.projectName === canonicalProject;
   const isLegacyProject = input.projectName === legacyProject;
-  const isPreview = input.vercelEnv === 'preview';
   const projectStatus = input.projectName === canonicalProject
     ? 'canonical'
     : input.projectName === legacyProject
@@ -62,7 +60,7 @@ function buildDeploymentSummary(input: {
       stale,
       productionReady: true,
       status: 'ready',
-      label: 'Canonical production',
+      label: 'Live canonical',
       detail: 'vcv-web is live.',
       canonicalProject,
       legacyProject,
@@ -72,16 +70,16 @@ function buildDeploymentSummary(input: {
   }
 
   if (live) {
-    const label = isCanonicalProject && isPreview
-      ? 'Canonical preview'
+    const label = isCanonicalProject
+      ? 'Canonical live'
       : isLegacyProject
         ? 'Legacy stale'
-        : 'Live but unresolved';
-    const detail = isCanonicalProject && isPreview
-      ? 'vcv-web preview.'
+        : 'Live unresolved';
+    const detail = isCanonicalProject
+      ? 'vcv-web live.'
       : isLegacyProject
         ? 'vitalcv stale.'
-        : 'Live deployment detected, but project identity is not canonical.';
+        : 'Live deployment not canonical.';
 
     return {
       live,
@@ -103,7 +101,7 @@ function buildDeploymentSummary(input: {
     productionReady: false,
     status: 'unavailable',
     label: 'Deployment unavailable',
-    detail: 'No deployment identity detected.',
+    detail: 'No deployment identity.',
     canonicalProject,
     legacyProject,
     projectName: input.projectName,
@@ -175,7 +173,7 @@ export async function GET() {
     deploymentId: deployment.deploymentId,
     commitSha: deployment.commitSha,
     projectName: deployment.projectName,
-    vercelEnv: deployment.vercelEnv,
+    platform: deployment.platform,
     passportState: passportHydration.state,
     sourceState: nppes.reachability,
   });
@@ -185,7 +183,7 @@ export async function GET() {
       status: passportHydration.state === 'unavailable' ? 'degraded' : 'ok',
       checkedAt,
       runtime: {
-        mode: process.env.VERCEL ? 'vercel' : 'local',
+        mode: deployment.platform,
         nodeEnv: process.env.NODE_ENV ?? 'unknown',
       },
       passportHydration,
@@ -196,8 +194,8 @@ export async function GET() {
         active: degradedModeActive,
         structuredFallbackAvailable: passportHydration.degradedFallbackAvailable,
         reason: degradedModeActive
-          ? 'One or more runtime checks are degraded; passport fallback remains structured.'
-          : 'Runtime checks are operational.',
+          ? 'One or more checks are degraded.'
+          : 'Checks are operational.',
       },
       deployment,
       deploymentSummary,

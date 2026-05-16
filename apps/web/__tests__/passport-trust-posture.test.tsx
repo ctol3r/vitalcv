@@ -163,8 +163,8 @@ describe('PassportTrustPosture', () => {
     const markup = renderToStaticMarkup(<PassportTrustPosture posture={posture} />);
 
     expect(markup).toContain('Withheld');
-    expect(markup).toContain('Score appears once source-backed claims attach');
-    expect(markup).toContain('No current source-backed claims are available yet.');
-    expect(markup).toContain('No missing, stale, gated, or review-required items are currently limiting this passport.');
+    expect(markup).toContain('Appears once source-backed claims attach');
+    expect(markup).toContain('No source-backed claims yet.');
+    expect(markup).toContain('No missing, stale, gated, or review-required items are limiting this passport.');
   });
 });

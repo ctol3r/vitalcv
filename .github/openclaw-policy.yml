@@ -1,0 +1,253 @@
+# OpenClaw Policy
+# Authority: docs/ops/openclaw-governance-hardening.md
+# Updated: 2026-05-07
+#
+# This file defines the governance policy for OpenClaw-generated task packages.
+# It is not a GitHub Actions workflow — it is a machine-readable policy reference
+# that OpenClaw reads at the start of every session to enforce operating constraints.
+#
+# Enforcement is done by:
+#   - scripts/openclaw-preflight.ts (automated check)
+#   - scripts/openclaw-risk-check.ts (file-level risk query)
+#   - Codex three-audit template (human+Codex verification)
+#   - docs/ops/openclaw-preflight-checklist.md (manual checklist)
+
+version: "1.0"
+effective_date: "2026-05-07"
+authority: "CLAUDE.md"
+
+# ─── Merge Policy ─────────────────────────────────────────────────────────────
+
+merge_policy:
+  required_verifier: "codex_exec"
+  verifier_command: "codex exec"
+  acceptable_verdicts: ["SAFE"]
+  unacceptable_verdicts: ["FAIL", "PARTIAL", "UNKNOWN"]
+  stand_in_agents_accepted: false
+  # Note: feature-dev:code-reviewer, Claude Desktop, and OpenClaw
+  # do NOT satisfy the merge gate. Only codex exec output with "SAFE" satisfies.
+
+  required_checks_before_merge:
+    - implementation_audit
+    - diff_audit
+    - copy_truth_audit
+
+  merge_executor: "claude_code_terminal"
+  merge_command: "gh pr merge <PR#> --squash"
+
+# ─── Forbidden Mutation Zones ─────────────────────────────────────────────────
+
+forbidden_mutations:
+  # No agent may modify these without the specified gate
+  - path: "CLAUDE.md"
+    gate: "founder_only"
+    reason: "Truth doctrine"
+
+  - path: "MASTER_PROMPT.md"
+    gate: "founder_only"
+    reason: "Operating doctrine"
+
+  - path: "apps/web/prisma/schema.prisma"
+    gate: "founder_approval_in_session"
+    reason: "Prisma schema change requires migration review"
+
+  - path: "apps/api/backend/prisma/schema.prisma"
+    gate: "founder_approval_in_session"
+    reason: "Prisma schema change requires migration review"
+
+  - path: ".github/workflows/banned-strings-gate.yml"
+    gate: "founder_only"
+    reason: "CI gate integrity — never weaken"
+
+  - path: ".github/workflows/ci.yml"
+    gate: "founder_only"
+    reason: "Main CI pipeline — never weaken"
+
+  - path: "apps/web/lib/issuer-verification/receiptCandidate.ts"
+    gate: "founder_approval_in_session"
+    reason: "Frozen literals: decisionGrade:false, proofTier:'receipt_candidate'"
+
+  - path: "apps/web/lib/issuer-verification/policyReview.ts"
+    gate: "founder_approval_in_session"
+    reason: "Frozen 5-gate policy review flow"
+
+# ─── Founder Approval Zones ───────────────────────────────────────────────────
+
+founder_approval_required:
+  paths:
+    - "apps/web/prisma/schema.prisma"
+    - "apps/api/backend/prisma/schema.prisma"
+    - "docs/migrations/**/*.sql"
+    - "CLAUDE.md"
+    - "MASTER_PROMPT.md"
+    - ".github/workflows/banned-strings-gate.yml"
+    - "apps/web/lib/issuer-verification/receiptCandidate.ts"
+    - "apps/web/lib/issuer-verification/policyReview.ts"
+
+  operations:
+    - "prisma migrate"
+    - "delete service or major package"
+    - "change coverage state semantics"
+    - "change merge policy"
+    - "remove tenant boundary"
+
+  approval_format: "Founder must say 'approved' explicitly in the current session"
+
+# ─── Risk Level Mappings ──────────────────────────────────────────────────────
+
+risk_levels:
+  HARD_BLOCK:
+    description: "Stop immediately — truth violation or governance breach"
+    triggers:
+      - banned_string_in_task
+      - unsupported_vendor_claim
+      - decisionGrade_widened
+      - audit_event_removed
+      - ci_gate_weakened
+      - demo_marker_removed_without_real_data
+    action: "Stop. Rewrite or escalate. Do not generate task."
+
+  FOUNDER_REQUIRED:
+    description: "Stop — await explicit founder approval"
+    triggers:
+      - prisma_schema_change
+      - migration_sql_present
+      - doctrine_file_targeted
+      - ci_gate_modification
+      - service_deletion
+      - coverage_state_rename
+    action: "Surface to founder. Do not generate task without approval."
+
+  HIGH_RISK:
+    description: "Require architectural justification"
+    triggers:
+      - crs_scoring_targeted
+      - source_adapter_targeted
+      - trust_state_targeted
+      - auth_middleware_targeted
+      - rbac_logic_targeted
+      - issuer_verification_targeted
+      - audit_path_targeted
+      - security_headers_targeted
+    action: "Write architectural justification. Claude Desktop review recommended."
+
+  GUARDED:
+    description: "Proceed with scope lock"
+    triggers:
+      - file_count_exceeds_15
+      - multiple_domains_crossed
+      - file_deletion_proposed
+      - env_file_targeted
+      - demo_fixture_targeted
+      - product_surface_targeted
+    action: "Write scope lock. Confirm exact files. Then proceed."
+
+  SAFE:
+    description: "Proceed to task generation"
+    triggers:
+      - docs_only
+      - tests_only
+      - isolated_ui_component
+      - css_tokens_only
+      - additive_ci_only
+    action: "Proceed to task generation."
+
+# ─── Auto-Block Conditions ────────────────────────────────────────────────────
+
+auto_block:
+  banned_strings:
+    - "automatically verified"
+    - "guaranteed verification"
+    - "complete credentialing"
+    - "instant credentialing"
+    - "legally accepted"
+    - "risk transferred"
+    - "final verification without review"
+    - "source confirmed before response"
+    - "certified compliant"
+    - "HIPAA compliant"
+    - "SOC2 certified"
+
+  unsupported_vendors:
+    - "NPDB"
+    - "DEA integration"
+    - "ABMS"
+    - "SAM.gov"
+    - "Doximity"
+
+  frozen_literals:
+    - literal: "decisionGrade"
+      required_value: "false"
+      file: "apps/web/lib/issuer-verification/receiptCandidate.ts"
+    - literal: "proofTier"
+      required_value: "'receipt_candidate'"
+      file: "apps/web/lib/issuer-verification/receiptCandidate.ts"
+
+  status_labels:
+    forbidden: "bare 'Verified' as a standalone status"
+    allowed: "'Verified Source', 'NPPES Verified', 'Source-Verified'"
+
+# ─── Doctrine References ──────────────────────────────────────────────────────
+
+doctrine_references:
+  primary: "CLAUDE.md"
+  operating: "MASTER_PROMPT.md"
+  governance: "docs/ops/openclaw-governance-hardening.md"
+  risk_classification: "docs/ops/openclaw-risk-classification.md"
+  preflight_checklist: "docs/ops/openclaw-preflight-checklist.md"
+  pr_scope_rules: "docs/ops/openclaw-pr-scope-rules.md"
+  agent_matrix: "docs/ops/vitalcv-agent-responsibility-matrix.md"
+  execution_graph: "docs/ops/vitalcv-multi-agent-execution-graph.md"
+  codex_gate: "docs/ops/vitalcv-codex-merge-gate-checklist.md"
+  knowledge_trust_graph: "docs/architecture/vitalcv-knowledge-trust-graph.md"
+
+# ─── Required Verification Layers ────────────────────────────────────────────
+
+verification_layers:
+  layer_1:
+    name: "OpenClaw preflight"
+    tool: "scripts/openclaw-preflight.ts"
+    when: "Before task generation"
+    required: true
+
+  layer_2:
+    name: "Claude Code Terminal banned-string grep"
+    when: "Before commit (staged files)"
+    required: true
+
+  layer_3:
+    name: "Codex three-audit"
+    tool: "codex exec"
+    when: "After PR opened, before merge"
+    required: true
+    audits:
+      - implementation_audit
+      - diff_audit
+      - copy_truth_audit
+
+  layer_4:
+    name: "Banned-strings CI gate"
+    file: ".github/workflows/banned-strings-gate.yml"
+    when: "On every PR to main"
+    required: true
+    can_be_bypassed: false
+
+# ─── OpenClaw Role Boundary ───────────────────────────────────────────────────
+
+openclaw_role:
+  is:
+    - execution_router
+    - decomposition_engine
+    - doctrine_aware_planner
+    - scoped_task_generator
+    - governance_aware_assistant
+
+  is_not:
+    - autonomous_engineer
+    - merge_authority
+    - architecture_dictator
+    - schema_owner
+    - codex_substitute
+
+  final_statement: >
+    OpenClaw exists to accelerate disciplined execution, not replace engineering judgment.

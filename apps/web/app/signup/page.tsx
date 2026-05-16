@@ -7,10 +7,12 @@ import {
   type SignupStepStatus,
 } from '@/lib/commercial/selfServeSignupFoundation';
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
-  title: 'Signup Foundation | VitalCV',
+  title: 'Sign up | VitalCV',
   description:
-    'Self-serve signup is a foundation flow. Production account creation may require additional controls.',
+    'Create your VitalCV account and start your readiness profile.',
 };
 
 const STATUS_CLASS: Record<SignupStepStatus, string> = {
@@ -32,8 +34,7 @@ export default function SignupFoundationPage() {
           Self-serve launch path
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong>{`Self-serve signup is a foundation flow. Production account creation may require additional controls.`}</strong>{' '}
-          NPI entry, profile setup, and review requests do not complete identity proofing or payment setup.
+          Create your account, confirm your NPI, and continue into your readiness profile.
         </p>
       </header>
 

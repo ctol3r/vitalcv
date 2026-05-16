@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Check, Loader2, Database, Shield, Zap, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -58,15 +57,11 @@ export function ResolverProgressIndicator({
         {DEFAULT_STEPS.map((step, index) => {
           const isCompleted = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
-          const isPending = index > currentStepIndex;
           const Icon = step.icon;
 
           return (
-            <motion.div
+            <div
               key={step.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
               className={cn(
                 "flex items-center gap-3 rounded-xl border p-3.5 transition-all duration-500 sm:gap-4 sm:p-4",
                 isCompleted ? "bg-emerald-500/10 border-emerald-500/20" :
@@ -99,15 +94,10 @@ export function ResolverProgressIndicator({
                   {step.label}
                 </span>
                 {isCurrent && (
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: durationPerStep / 1000, ease: "linear" }}
-                    className="h-0.5 bg-emerald-500/50 mt-2 rounded-full"
-                  />
+                  <div className="mt-2 h-0.5 w-full rounded-full bg-emerald-500/50" />
                 )}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

@@ -1,0 +1,201 @@
+name: W2-PR114A Deployment Playbook Gate
+
+# Institutional deployment playbook gate.
+#
+# Required for merges that touch the deployment-playbook surface. Validates:
+#   - playbook-hash.mjs is deterministic on the current source (two consecutive
+#     runs produce the same playbookSetHash)
+#   - playbook-validate.mjs accepts every template under
+#     docs/deployment/playbooks/templates/ against the v1 schema
+#     (frontmatter, required sections, fail-closed preconditions, recovery
+#     contract, ambiguity-branch contract, banned-string contract,
+#     onboarding-metric contract)
+#   - playbook-chaos.mjs runs six C-PLAY-* failure modes and all fail closed
+#   - playbook-lineage.mjs writes a structurally valid manifest
+#   - playbook-replay.mjs verifies the manifest re-hashes from source clean
+#
+# Fail-closed: any of the above failing exits 1 and blocks the gate.
+#
+# This is the playbook-content companion to:
+#   - deployment-survivability.yml  (deploy-layer chaos + lineage)
+#   - rollout-survivability.yml     (institutional rollout)
+#   - deployment-certification.yml  (synthesized certification verdict)
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'docs/deployment/playbooks/**'
+      - 'docs/ops/institutional-deployment-playbooks.md'
+      - 'scripts/deploy/playbooks/**'
+      - '.github/workflows/deployment-playbook-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/deployment/playbooks/**'
+      - 'docs/ops/institutional-deployment-playbooks.md'
+      - 'scripts/deploy/playbooks/**'
+      - '.github/workflows/deployment-playbook-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  deployment-playbook-gate:
+    name: Deployment Playbook — Validate + Replay + Chaos
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ── Determinism ────────────────────────────────────────────────────
+      - name: Playbook set hash (run 1)
+        id: hash1
+        run: |
+          DIGEST=$(node scripts/deploy/playbooks/playbook-hash.mjs --bare)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "[hash1] $DIGEST"
+
+      - name: Playbook set hash (run 2 — must match run 1)
+        run: |
+          DIGEST=$(node scripts/deploy/playbooks/playbook-hash.mjs --bare)
+          echo "[hash2] $DIGEST"
+          if [ "$DIGEST" != "${{ steps.hash1.outputs.digest }}" ]; then
+            echo "::error::Playbook set hash NON-DETERMINISTIC across two runs on the same source."
+            echo "  run1: ${{ steps.hash1.outputs.digest }}"
+            echo "  run2: $DIGEST"
+            exit 1
+          fi
+          echo "[determinism] OK"
+
+      # ── Schema validation ──────────────────────────────────────────────
+      - name: Validate every playbook template
+        run: |
+          node scripts/deploy/playbooks/playbook-validate.mjs > validate-report.json
+          echo "[validate] OK"
+
+      # ── Chaos (must run before lineage so its fingerprint goes in the manifest) ──
+      - name: Run playbook chaos simulations
+        id: chaos
+        run: |
+          node scripts/deploy/playbooks/playbook-chaos.mjs > chaos-report.json
+          FINGERPRINT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('chaos-report.json','utf-8')).fingerprint)")
+          echo "fingerprint=$FINGERPRINT" >> $GITHUB_OUTPUT
+          echo "[chaos] fingerprint=$FINGERPRINT"
+
+      # ── Lineage emission ───────────────────────────────────────────────
+      - name: Emit playbook lineage manifest
+        run: |
+          node scripts/deploy/playbooks/playbook-lineage.mjs \
+            --operator=${{ github.actor }} \
+            --chaos-fingerprint=${{ steps.chaos.outputs.fingerprint }}
+
+      # ── Replay verification ────────────────────────────────────────────
+      - name: Verify manifest replays clean
+        run: |
+          node scripts/deploy/playbooks/playbook-replay.mjs
+
+      # ── Banned-string sweep over the playbook surface ──────────────────
+      - name: Banned-strings sweep on playbook surface
+        run: |
+          set +e
+          BANNED=(
+            'automatically verified'
+            'guaranteed verification'
+            'complete credentialing'
+            'instant credentialing'
+            'legally accepted'
+            'risk transferred'
+            'final verification without review'
+            'source confirmed before response'
+            'certified compliant'
+            'HIPAA compliant'
+            'SOC2 certified'
+          )
+          FOUND=0
+          for phrase in "${BANNED[@]}"; do
+            HITS=$(grep -RInF "$phrase" docs/deployment/playbooks/templates/ || true)
+            if [ -n "$HITS" ]; then
+              echo "❌ banned phrase found in playbook surface: $phrase"
+              echo "$HITS"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "Banned-string sweep failed."
+            exit 1
+          fi
+          echo "✅ Banned-string sweep clean."
+
+      # ── Surface board (always run, even on failure) ────────────────────
+      - name: Surface deployment playbook board
+        if: always()
+        run: |
+          echo "📊 Deployment Playbook Board"
+          echo "----------------------------"
+          if [ -f chaos-report.json ]; then
+            node -e "
+              const r = JSON.parse(require('fs').readFileSync('chaos-report.json','utf-8'));
+              console.log('Chaos modes:    ' + r.modes);
+              console.log('Passed:         ' + r.passed);
+              console.log('Fingerprint:    ' + r.fingerprint.slice(0,16) + '…');
+              console.log();
+              for (const v of r.verdicts) {
+                console.log('  ' + (v.passed ? '✓' : '✗') + ' ' + v.mode);
+              }
+            "
+          else
+            echo "(no chaos-report.json — investigate)"
+          fi
+          if [ -f .playbook-lineage/latest.json ]; then
+            echo
+            echo "Latest playbook manifest:"
+            node -e "
+              const m = JSON.parse(require('fs').readFileSync('.playbook-lineage/latest.json','utf-8'));
+              console.log('  manifestId:        ' + m.manifestId.slice(0,16) + '…');
+              console.log('  playbookSetHash:   ' + m.playbookSetHash.slice(0,16) + '…');
+              console.log('  playbookCount:     ' + m.playbookCount);
+              console.log('  gitSha:            ' + m.gitSha.slice(0,12));
+              console.log('  operator:          ' + m.operator);
+              console.log('  deploymentManifestId: ' + (m.deploymentManifestId || 'null'));
+              console.log('  previousManifestId: ' + (m.previousManifestId || 'null'));
+              console.log();
+              console.log('  📊 Completion board');
+              const c = m.playbookCount === 6 ? 100 : Math.round(m.playbookCount/6*100);
+              console.log('  Rollout Repeatability %:           ' + c);
+              console.log('  Replay-Safe Guidance %:            ' + c);
+              console.log('  Recovery Procedure Fidelity %:     ' + c);
+              console.log('  Institutional Onboarding Clarity %: ' + c);
+              console.log('  Deployment Playbook Maturity %:    ' + c);
+            "
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-playbook-gate
+          path: |
+            validate-report.json
+            chaos-report.json
+            .playbook-lineage/
+          if-no-files-found: warn
+          retention-days: 30

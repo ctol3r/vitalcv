@@ -1,0 +1,152 @@
+name: W2-PR117A API Hardening Gate
+
+# Institutional Trust API Hardening gate.
+#
+# This workflow runs the pure-transform unit + CI gate suites for the
+# external trust API hardening evaluator:
+#
+#   - apps/api/backend/src/services/network/__tests__/institutionalTrustApiHardening.test.ts
+#   - apps/api/backend/src/services/network/__tests__/institutionalTrustApiHardening.ci.gate.test.ts
+#
+# Surfaces the [api-hardening-board] metric stream so a regulator can read
+# the deltas (replay integrity, cross-org coverage, ambiguity safety,
+# fail-closed semantics) directly from the workflow log.
+#
+# All tests are mock-free pure-transform tests — no database required.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/network/institutionalTrustApiHardening.ts'
+      - 'apps/api/backend/src/services/network/__tests__/institutionalTrustApiHardening*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - '.github/workflows/api-hardening-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/network/institutionalTrustApiHardening.ts'
+      - 'apps/api/backend/src/services/network/__tests__/institutionalTrustApiHardening*.test.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - '.github/workflows/api-hardening-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  api-hardening-gate:
+    name: Institutional Trust API Hardening
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      - name: Run API hardening unit suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/api_hardening_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/network/__tests__/institutionalTrustApiHardening\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee api-hardening-unit.log
+
+      - name: Run API hardening CI gate
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/api_hardening_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/network/__tests__/institutionalTrustApiHardening\.ci\.gate\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee api-hardening-ci-gate.log
+
+      - name: Surface API hardening board metrics
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Trust API Board"
+          echo "-------------------"
+          for f in api-hardening-unit.log api-hardening-ci-gate.log; do
+            if [ -f "$f" ]; then
+              echo "── $f ──"
+              grep -E '\[api-hardening-board\]' "$f" || echo "(no [api-hardening-board] metrics in $f)"
+            fi
+          done
+
+      - name: Banned-strings sweep on API hardening surface
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "🔒 Verifying CLAUDE.md banned-string contract on API hardening surface"
+          set +e
+          BANNED=(
+            'automatically verified'
+            'guaranteed verification'
+            'complete credentialing'
+            'instant credentialing'
+            'legally accepted'
+            'risk transferred'
+            'final verification without review'
+            'source confirmed before response'
+            'certified compliant'
+            'HIPAA compliant'
+            'SOC2 certified'
+          )
+          FOUND=0
+          for phrase in "${BANNED[@]}"; do
+            HITS=$(grep -RInF --include='*.ts' --exclude-dir=__tests__ "$phrase" \
+              src/services/network/institutionalTrustApiHardening.ts || true)
+            if [ -n "$HITS" ]; then
+              echo "❌ banned phrase found: $phrase"
+              echo "$HITS"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "Banned-string sweep failed."
+            exit 1
+          fi
+          echo "✅ Banned-string sweep clean."
+
+      - name: Upload API hardening logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-hardening-logs
+          path: |
+            apps/api/backend/api-hardening-unit.log
+            apps/api/backend/api-hardening-ci-gate.log
+          if-no-files-found: warn
+          retention-days: 7

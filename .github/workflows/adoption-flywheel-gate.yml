@@ -1,0 +1,127 @@
+name: W2-PR120A Adoption Flywheel Gate
+
+# Institutional Adoption Flywheel gate.
+#
+# This workflow runs the W2-PR120A test surface:
+#   - the adoption-flywheel unit tests in src/services/adoption/__tests__
+#   - the adoption-flywheel scale tests in src/services/__tests__/scale
+#     (adoptionFlywheel.scale.test.ts)
+#
+# Together they enforce the W2-PR120A invariants:
+#   * adoption replay-safe under load
+#   * ambiguity preserved during growth
+#   * network effects measurable
+#   * fail-closed adoption semantics
+#   * ecosystem trust longitudinally visible
+#   * institutional acceleration reconstructable
+#
+# Tests are mock-based — no database required. The gate emits the
+# Adoption Flywheel Board metrics from the scale suite to the workflow
+# summary so a reviewer can see the per-axis %.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/adoption/**'
+      - 'apps/api/backend/src/services/__tests__/scale/adoptionFlywheel.scale.test.ts'
+      - 'apps/api/backend/src/services/audit/replayEngine.ts'
+      - 'apps/api/backend/src/services/audit/replayCorruptionContainment.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/adoption-flywheel-gate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/adoption/**'
+      - 'apps/api/backend/src/services/__tests__/scale/adoptionFlywheel.scale.test.ts'
+      - 'apps/api/backend/src/services/audit/replayEngine.ts'
+      - 'apps/api/backend/src/services/audit/replayCorruptionContainment.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/adoption-flywheel-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  adoption-flywheel-gate:
+    name: Institutional Adoption Flywheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      - name: Run adoption flywheel unit suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/adoption_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/adoption/__tests__/.+\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee adoption-flywheel-unit.log
+
+      - name: Run adoption flywheel scale suite
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/adoption_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='__tests__/scale/adoptionFlywheel\.scale\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee adoption-flywheel-scale.log
+
+      - name: Surface Adoption Flywheel Board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Adoption Flywheel Board"
+          echo "--------------------------"
+          if [ -f adoption-flywheel-scale.log ]; then
+            grep -E '\[flywheel-board\]' adoption-flywheel-scale.log || echo "(no flywheel-board metrics emitted — investigate)"
+          else
+            echo "(no adoption-flywheel-scale.log produced — investigate)"
+          fi
+
+      - name: Upload adoption-flywheel logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adoption-flywheel-logs
+          path: |
+            apps/api/backend/adoption-flywheel-unit.log
+            apps/api/backend/adoption-flywheel-scale.log
+          if-no-files-found: warn
+          retention-days: 7

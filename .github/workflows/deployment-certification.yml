@@ -1,0 +1,159 @@
+name: W2-PR104A Deployment Certification
+
+# Institutional deployment certification gate.
+#
+# Synthesizes evidence from the existing certification primitives into a
+# single deployment-certification verdict and asserts the synthesizer's
+# fail-closed contract. Three suites run:
+#
+#   - deploymentCertification.test.ts          — pure-transform unit coverage
+#   - deploymentCertification.ci.gate.test.ts  — frozen-enum + canary
+#                                                (silent-collapse anti-pattern)
+#   - deploymentCertification.chaos.test.ts    — five C-CERT-* chaos modes
+#                                                (evidence blackout, forged
+#                                                 lineage, forged chaos,
+#                                                 silent survivability
+#                                                 collapse, ambiguity coerced
+#                                                 to GRANTED)
+#
+# Mock-free, DB-free — exercises the pure synthesizer module only. Sits
+# atop, not in place of, the existing layers:
+#   - deployment-survivability.yml (deploy-layer chaos + lineage)
+#   - rollout-survivability.yml    (institutional rollout)
+#   - scale-gate.yml               (audit-layer scale chaos)
+#   - trust-benchmark-gate.yml     (operational benchmarking)
+#
+# Fail-closed: any of the three suites failing exits 1 and blocks the gate.
+
+on:
+  push:
+    branches: [main, develop, 'wave-*/**', 'feature/**', 'fix/**']
+    paths:
+      - 'apps/api/backend/src/services/certification/**'
+      - 'apps/api/backend/src/services/rollout/**'
+      - 'apps/api/backend/src/services/audit/replayCorruptionContainment.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/deployment-certification.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/backend/src/services/certification/**'
+      - 'apps/api/backend/src/services/rollout/**'
+      - 'apps/api/backend/src/services/audit/replayCorruptionContainment.ts'
+      - 'apps/api/backend/src/utils/deterministic.ts'
+      - 'apps/api/backend/jest.config.js'
+      - '.github/workflows/deployment-certification.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  deployment-certification:
+    name: Institutional Deployment Certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client (jest module resolution)
+        run: pnpm --filter chai-vc-platform-backend exec prisma generate
+
+      # The certification suites mock nothing and touch no DB; the env vars
+      # below are only present so jest.setup.ts → loadEnv() does not bail.
+      - name: Run deployment certification suites
+        working-directory: apps/api/backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cert_gate_unused
+          YC_DEMO_MODE: 'false'
+        run: |
+          pnpm exec jest \
+            --testPathPattern='services/certification/__tests__/.+\.test\.ts$' \
+            --maxWorkers=1 \
+            --verbose \
+            --passWithNoTests \
+            2>&1 | tee cert-gate.log
+
+      - name: Surface deployment certification board
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "📊 Deployment Certification Board"
+          echo "---------------------------------"
+          if [ -f cert-gate.log ]; then
+            echo "── [cert-board] entries ──"
+            grep -E '\[cert-board\]' cert-gate.log || echo "(no [cert-board] metrics emitted — investigate)"
+            echo
+            echo "── [cert-chaos] entries ──"
+            grep -E '\[cert-chaos\]' cert-gate.log || echo "(no [cert-chaos] metrics emitted — investigate)"
+            echo
+            echo "── [cert-chaos-board] entries ──"
+            grep -E '\[cert-chaos-board\]' cert-gate.log || echo "(no [cert-chaos-board] aggregate emitted — investigate)"
+          else
+            echo "(no cert-gate.log produced — investigate)"
+          fi
+
+      - name: Banned-strings sweep on certification surface
+        if: always()
+        working-directory: apps/api/backend
+        run: |
+          echo "🔒 Verifying CLAUDE.md banned-string contract on certification surface"
+          set +e
+          BANNED=(
+            'automatically verified'
+            'guaranteed verification'
+            'complete credentialing'
+            'instant credentialing'
+            'legally accepted'
+            'risk transferred'
+            'final verification without review'
+            'source confirmed before response'
+            'certified compliant'
+            'HIPAA compliant'
+            'SOC2 certified'
+          )
+          FOUND=0
+          for phrase in "${BANNED[@]}"; do
+            HITS=$(grep -RInF --include='*.ts' --exclude-dir=__tests__ "$phrase" \
+              src/services/certification/ || true)
+            if [ -n "$HITS" ]; then
+              echo "❌ banned phrase found: $phrase"
+              echo "$HITS"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "Banned-string sweep failed."
+            exit 1
+          fi
+          echo "✅ Banned-string sweep clean."
+
+      - name: Upload cert-gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cert-gate-log
+          path: apps/api/backend/cert-gate.log
+          if-no-files-found: warn
+          retention-days: 7

@@ -77,17 +77,16 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your your readiness</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Get credential-ready in 2 minutes.</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
-              Verify your NPI to activate your clinician profile. Takes 2 minutes.
-              VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
+              Enter your NPI and VitalCV checks federal registries instantly. You'll see your readiness status, what's clear, and what's missing — no document uploads needed to start.
             </p>
           </div>
           <Link
             href="/get-ready"
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3.5 text-sm font-semibold text-black transition w-full justify-center"
           >
-            Verify my NPI <ChevronRight className="h-4 w-4" />
+            Check my readiness <ChevronRight className="h-4 w-4" />
           </Link>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-zinc-800" />
@@ -95,7 +94,7 @@ export default function HolderPage() {
             <div className="flex-1 h-px bg-zinc-800" />
           </div>
           <Link
-            href="/documents"
+            href="/get-ready"
             className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-emerald-800 hover:bg-emerald-950/30 px-7 py-3.5 text-sm font-semibold text-zinc-300 hover:text-emerald-300 transition w-full justify-center"
           >
             <Upload className="h-4 w-4" />
@@ -149,11 +148,11 @@ export default function HolderPage() {
           </p>
         )}
         <Link
-          href="/documents"
+          href="/get-ready"
           className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
         >
           <Upload className="h-3.5 w-3.5" />
-          Upload Credential
+          Update NPI
         </Link>
       </div>
 
@@ -171,7 +170,7 @@ export default function HolderPage() {
       <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
         <details className="group">
           <summary className="flex min-h-[44px] items-center text-xs uppercase tracking-wider text-zinc-500 cursor-pointer transition-colors hover:text-zinc-300">
-            Detailed Credential View
+            Full Credential Details
           </summary>
           <div className="mt-4">
             <CredentialWallet subject={npi!} />
@@ -185,7 +184,7 @@ export default function HolderPage() {
       </div>
       <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6">
         <EvidenceUploadPanel
-          heading="Upload credential evidence"
+          heading="Update your NPI"
           description="Attach a license, certificate, or supporting document here if readiness or an active application requests more evidence. Upload attaches immediately, and verification can complete asynchronously."
           returnToHref="/holder"
           returnToLabel="Return to your readiness"

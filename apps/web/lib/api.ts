@@ -1,3 +1,5 @@
+import { resolveDeploymentBackendBase } from '@/lib/deployment/backend-base';
+
 type ApiPath =
   | '/trust-state'
   | '/ingest/npi'
@@ -47,14 +49,9 @@ export function getApiBase(): string {
   return normalizeApiBase(raw);
 }
 
-/** Backend base URL with Railway fallback on Vercel — safe for server-side proxy routes. */
+/** Backend base URL with canonical deployment fallback for server-side proxy routes. */
 export function getBackendBase(): string {
-  const base = getApiBase();
-  if (base) return base;
-  // Match the shared resolver: fall back to Railway on Vercel, localhost otherwise
-  return process.env.VERCEL
-    ? 'https://api.vitalcv.com'
-    : 'http://localhost:4000';
+  return resolveDeploymentBackendBase();
 }
 
 /** Public-facing API base URL for docs and preview surfaces. */

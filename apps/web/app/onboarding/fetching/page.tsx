@@ -53,7 +53,7 @@ function OnboardingFetchingContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ npi: storedNpi }),
     }).catch(() => {
-      setError('That is taking longer than expected. Your next step stays ready.');
+      setError('Taking longer than expected. Next step stays ready.');
     });
   }, [returnTo, router]);
 
@@ -67,14 +67,14 @@ function OnboardingFetchingContent() {
       <section className="rounded-[30px] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm sm:p-8">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
           <ShieldCheck className="h-3.5 w-3.5 text-sky-300" aria-hidden="true" />
-          Recognizing record
+          Recognizing
         </div>
 
         <h1 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
-          Snapshot in view
+          Snapshot ready
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-          Bringing the snapshot forward.
+          Bringing it forward.
         </p>
 
         {npi ? (
