@@ -113,9 +113,38 @@ export function useIngestStream(initialState?: IngestStreamState | null) {
 
     try {
       // 1. Start ingest run
-      const runId = parseIngestStartResponse({
-        ...(await startPublicIngest(npi)),
-      });
+      const ingestResponse = await startPublicIngest(npi);
+
+      // Detect the backend's degraded-state fallback (HTTP 200 with
+      // body.fallback === true). When the readiness pipeline is
+      // temporarily unreachable, the /api/ingest/[npi] route returns
+      // a structured fallback body rather than 5xx-ing. Surface that
+      // as a calm pending-sources state instead of an `error` phase
+      // with all sources marked failed — the upstream IS unreachable,
+      // but the clinician hasn't done anything wrong, and source
+      // checks are queued to retry.
+      const body = ingestResponse.body as
+        | { fallback?: unknown; message?: unknown }
+        | null;
+      if (body && body.fallback === true) {
+        const calmMessage =
+          typeof body.message === 'string' && body.message.length > 0
+            ? body.message
+            : 'Sources are temporarily unavailable. Try again in a moment.';
+        setState(prev => ({
+          ...prev,
+          phase: 'error',
+          sources: {
+            nppes: 'pending',
+            oig: 'pending',
+            pecos: 'pending',
+          },
+          error: calmMessage,
+        }));
+        return;
+      }
+
+      const runId = parseIngestStartResponse({ ...ingestResponse });
 
       setState(prev => ({ ...prev, runId }));
 

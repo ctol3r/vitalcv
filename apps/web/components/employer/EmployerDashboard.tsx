@@ -543,11 +543,11 @@ export function EmployerDashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/verifier/inbox" className="glue-btn glue-btn-primary">
+              <Link href="/employer/worklist" className="glue-btn glue-btn-primary">
                 Open applications queue
               </Link>
-              <Link href="/verifier/opportunities" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
-                Post opportunity
+              <Link href="/employer/dashboard" className="glue-btn border border-border bg-muted text-foreground hover:bg-muted">
+                Dashboard
               </Link>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import {
@@ -34,6 +35,17 @@ export default function SignupFoundationPage() {
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           <strong>{`Self-serve signup is a foundation flow. Production account creation may require additional controls.`}</strong>{' '}
           NPI entry, profile setup, and review requests do not complete identity proofing or payment setup.
+        </p>
+        <p className="mt-4 text-sm">
+          <Link
+            href="/sign-up"
+            className="inline-flex items-center rounded-md border border-foreground/20 bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+          >
+            Create your account →
+          </Link>
+          <span className="ml-3 text-xs text-muted-foreground">
+            (this page describes the foundation; account creation happens at <Link href="/sign-up" className="underline">/sign-up</Link>)
+          </span>
         </p>
       </header>
 
