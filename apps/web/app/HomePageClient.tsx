@@ -190,6 +190,29 @@ export default function HomePageClient() {
           <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[var(--vt-text-muted)]">
             The first result is a passport snapshot. Onboarding continues the path.
           </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <Link
+              href="/demo/employer"
+              className="inline-flex items-center font-medium text-[var(--vt-text-primary)] underline-offset-4 hover:underline"
+            >
+              Hiring? See the employer view →
+            </Link>
+            <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
+            <Link
+              href="/demo"
+              className="text-[var(--vt-text-secondary)] underline-offset-4 hover:underline"
+            >
+              Walk through three demos
+            </Link>
+            <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
+            <Link
+              href="/launch"
+              className="text-[var(--vt-text-secondary)] underline-offset-4 hover:underline"
+            >
+              Why VitalCV
+            </Link>
+          </div>
         </div>
       </main>
     </div>

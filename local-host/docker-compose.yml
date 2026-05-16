@@ -1,0 +1,93 @@
+# local-host/docker-compose.yml
+#
+# Survival-mode local hosting baseline. Self-hostable on a single VPS
+# or a homelab box. NOT auto-deployed — prepared per the B20+ wave
+# directive "DO NOT deploy automatically."
+#
+# Usage (after operator review):
+#   cd local-host/
+#   cp .env.example .env
+#   # fill in the required values from production-env-requirements.md
+#   docker compose up -d
+#   docker compose logs -f web
+#
+# Three services:
+#   - web      Next.js production build (apps/web)
+#   - postgres Local Postgres for development / standalone hosting
+#   - cloudflared  Cloudflare Tunnel to expose web via vitalcv.com
+#                  (optional; only run if hosting on a non-public IP)
+#
+# All services are restart-on-crash. Postgres data persists in a
+# named volume.
+
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    restart: unless-stopped
+    command: sh -c "corepack enable && corepack prepare pnpm@10.6.1 --activate && pnpm install --frozen-lockfile && pnpm --filter @vitalcv/web build && pnpm --filter @vitalcv/web start"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Required (per docs/architecture/production-env-requirements.md §1):
+      RECEIPT_PRIVATE_KEY_JWK: ${RECEIPT_PRIVATE_KEY_JWK}
+      RECEIPT_KID: ${RECEIPT_KID:-vcv-es256-1}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://vitalcv:vitalcv@postgres:5432/vitalcv}
+      # Recommended:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:4000}
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      VITALCV_ENV_LABEL: ${VITALCV_ENV_LABEL:-self-host}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../:/app:cached
+      - web_pnpm_store:/root/.local/share/pnpm/store
+      - web_next_cache:/app/apps/web/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vitalcv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vitalcv}
+      POSTGRES_DB: ${POSTGRES_DB:-vitalcv}
+    ports:
+      - "127.0.0.1:5432:5432"  # localhost-only by default
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vitalcv} -d ${POSTGRES_DB:-vitalcv}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional. Only start this service when self-hosting on a private
+  # network and exposing via Cloudflare Tunnel. Disabled by default
+  # (use `docker compose --profile tunnel up`).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      CLOUDFLARE_TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  web_pnpm_store:
+  web_next_cache:
