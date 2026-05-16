@@ -18,36 +18,37 @@ import { Button } from '@/components/ui/button';
  */
 
 export const metadata: Metadata = {
-  title: 'VitalCV — Clinician readiness, source-honest.',
+  title: 'VitalCV — Reusable, source-backed clinician readiness.',
   description:
-    'A readiness preview that reads public sources (NPPES, OIG, PECOS) and renders what it finds. No credentialing completion claim. No compliance certification.',
+    'Read NPPES, OIG, PECOS once. Every reviewer sees the same source-backed readiness. No credentialing completion claim.',
 };
 
 interface PathCard {
-  audience: 'For clinicians' | 'For employers' | 'For issuers';
+  audience: 'For employers' | 'For clinicians' | 'For issuers';
   title: string;
   body: string;
   cta: { label: string; href: string };
 }
 
+// Employer-first ordering: hospital operators are the primary 10-second audience.
 const PATHS: ReadonlyArray<PathCard> = [
-  {
-    audience: 'For clinicians',
-    title: 'See your readiness in seconds.',
-    body: 'Type your NPI. VitalCV reads public sources (NPPES, OIG, PECOS) and shows what they say. You see your readiness preview before any employer or reviewer does.',
-    cta: { label: 'See a clinician demo →', href: '/demo/clinician' },
-  },
   {
     audience: 'For employers',
     title: 'Days, not weeks, to first start.',
-    body: 'Accept source-backed readiness instead of asking every clinician to re-submit credentials. Faster decisions, less paperwork, no claims you cannot back.',
-    cta: { label: 'See an employer demo →', href: '/demo/employer' },
+    body: 'Accept source-backed readiness. No re-submission paperwork; no claims you cannot back.',
+    cta: { label: 'See the employer view →', href: '/demo/employer' },
+  },
+  {
+    audience: 'For clinicians',
+    title: 'One NPI. Your readiness preview.',
+    body: 'See what public sources say about you, before any employer asks.',
+    cta: { label: 'See the clinician view →', href: '/demo/clinician' },
   },
   {
     audience: 'For issuers',
     title: 'Verify once. Be re-used.',
-    body: 'When an issuer confirms a credential, that confirmation can be presented to the next reviewer without re-checking. Your verification work compounds instead of being repeated.',
-    cta: { label: 'See an issuer demo →', href: '/demo/issuer' },
+    body: 'Your confirmation carries forward to the next reviewer — verification work compounds instead of repeating.',
+    cta: { label: 'See the issuer view →', href: '/demo/issuer' },
   },
 ] as const;
 
@@ -68,26 +69,24 @@ export default function LaunchPage() {
             VitalCV
           </p>
           <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl">
-            Clinician readiness, source-honest.
+            Reusable, source-backed clinician readiness.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Type an NPI. See what public sources say. Share the same
-            source-backed readiness with every reviewer — so decisions move in
-            days, not weeks. VitalCV does not finish credentialing for you —
-            and does not pretend to.
+            Read NPPES, OIG, and PECOS once. Every reviewer sees the same
+            source-backed readiness — decisions move in days, not weeks.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link href="/demo/clinician">See a clinician demo</Link>
+              <Link href="/demo/employer">See the employer view</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/passport">Try with your NPI</Link>
+              <Link href="/passport">Try with an NPI</Link>
             </Button>
             <Link
-              href="/onboarding"
+              href="/demo/clinician"
               className="text-sm font-medium text-foreground/70 underline-offset-4 hover:underline"
             >
-              Or start onboarding →
+              How it works for clinicians →
             </Link>
           </div>
         </div>
@@ -97,7 +96,7 @@ export default function LaunchPage() {
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto w-full max-w-5xl px-4 py-16 sm:py-20">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Three audiences. One readiness layer.
+            One readiness layer. Three audiences.
           </p>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {PATHS.map((p) => (
@@ -219,7 +218,7 @@ export default function LaunchPage() {
                 <Link href="/sign-up">Create your account</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/demo/clinician">See it work first</Link>
+                <Link href="/demo/employer">See the employer view first</Link>
               </Button>
             </div>
           </div>
