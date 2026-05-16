@@ -1,0 +1,44 @@
+# Cloudflare wrangler configuration EXAMPLE — DO NOT activate.
+#
+# This file is reference-only. To activate, rename to wrangler.toml
+# AND make the runtime decisions documented in
+# docs/architecture/cloudflare-compatibility-audit.md §5-§9.
+#
+# Path C (CDN-proxy hybrid) does NOT need this file — DNS/CF setup
+# happens in the Cloudflare dashboard, not in repo.
+#
+# Path A/B (CF Pages direct) requires this file PLUS the route
+# runtime adjustments documented in the cloudflare-compatibility-audit.
+
+name = "vitalcv-web-survival"
+
+# Update to a recent date when activating; this is a placeholder.
+compatibility_date = "2026-01-01"
+
+# Path B option: enable nodejs_compat to keep node:crypto etc. working
+# on Workers. See cloudflare-compatibility-audit.md §8 for what this
+# does and does not cover.
+# compatibility_flags = ["nodejs_compat"]
+
+# Pages-specific configuration. Replace with actual project name from
+# Cloudflare Pages dashboard when activating.
+# pages_build_output_dir = ".vercel/output/static"
+
+[env.production]
+# Public env vars (non-secret). Copy from
+# docs/architecture/minimal-runtime-env.md §1.
+# vars = { NEXT_PUBLIC_API_BASE = "https://api.vitalcv.com", VITALCV_ENV_LABEL = "production" }
+
+# Secrets MUST be set via `wrangler secret put NAME` — never in this file:
+#   RECEIPT_PRIVATE_KEY_JWK
+#   RECEIPT_KID
+#   CLERK_SECRET_KEY
+#   DATABASE_URL
+#   SENTRY_AUTH_TOKEN
+
+[env.preview]
+# Preview scope. Use a DIFFERENT keypair from production:
+# vars = { NEXT_PUBLIC_API_BASE = "https://api-preview.vitalcv.com", VITALCV_ENV_LABEL = "preview" }
+# Preview secrets via wrangler:
+#   RECEIPT_KID = "vcv-es256-preview-1"  (NOT vcv-es256-1)
+#   RECEIPT_PRIVATE_KEY_JWK = (preview-specific JWK)
