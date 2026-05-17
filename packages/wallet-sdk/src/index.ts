@@ -348,4 +348,3 @@ export default VitalCVWallet;
 // Wave 133: version + diagnostics
 export * from './version';
 export * from './diagnostics';
-export * from './interoperability';
