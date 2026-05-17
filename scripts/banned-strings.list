@@ -18,9 +18,14 @@ HIPAA compliant
 SOC ?2 certified
 NCQA certified
 certified compliant
+guaranteed compliant
 
 # Verification overclaim
 automatically verified
+instantly verified
+\bfully verified\b
+real-time verification
+real-time check
 guaranteed verification
 final verification without review
 source confirmed before response
@@ -28,18 +33,45 @@ source confirmed before response
 # Credentialing overclaim
 \bcomplete credentialing\b
 instant credentialing
+eliminates credentialing
+replaces credentialing
 
 # Risk / acceptance overclaim
 legally accepted
 risk transferred
+accepted everywhere
+single source accepted by all hospitals
 
-# Bare "Verified" label markers — match rendered JSX text and label /
-# status attribute values. The quote class is a literal character set
-# containing ASCII single + double quotes and the four common
-# smart-quote glyphs (U+2018, U+2019, U+201C, U+201D) so a cleaned-up
-# copy pass cannot hide a violation behind curly quotes. The phrase ban
-# is specifically for the BARE word "Verified" used as a status —
-# compound labels such as "Source-verified" remain allowed because the
-# hyphen breaks the surrounding-quote anchor.
-(label|status)\s*[:=]\s*['"‘’“”]Verified['"‘’“”]
+# Outcome overclaim (vague benefits attributed without evidence)
+\balways up to date\b
+solves burnout
+solves diversity attrition
+
+# === CASE-SENSITIVE SECTION ===
+# Patterns below the marker are evaluated with `grep -E` (case-
+# sensitive). The marker matters because the codebase uses the
+# lowercase tokens `'verified'`, `'unavailable'`, etc. as INTERNAL
+# state-machine enum values that the truth contract does NOT ban —
+# the ban is for the CAPITALISED public-copy claim "Verified" used as
+# a status label, not for canonical state names.
+:case-sensitive:
+
+# Bare "Verified" markers — match rendered JSX text and any bare
+# quoted-string literal that is exactly "Verified" (single quotes,
+# double quotes, or backticks). The scanner normalises smart quotes
+# (U+2018, U+2019, U+201C, U+201D) to their ASCII counterparts BEFORE
+# running grep, so the quote class here only needs ASCII glyphs.
+#
+# Mixed-case "Verified" only — lowercase `'verified'` (enum) and
+# uppercase `'VERIFIED'` (canonical state constant) do not match. The
+# all-caps form is reserved for internal canonical states; the public
+# ban targets the buyer-facing capitalized label.
+(label|status)\s*[:=]\s*['"`]Verified['"`]
+['"`]Verified['"`]
 >\s*Verified\s*<
+
+# Compound overclaim phrases — "Verified provider" / "Verified source"
+# are public-copy patterns that survive the bare-quote ban above
+# because they carry a noun rather than a closing quote.
+\bVerified provider\b
+\bVerified source\b

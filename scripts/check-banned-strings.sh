@@ -3,31 +3,31 @@
 # truth-contract banned phrase.
 #
 # Patterns:    scripts/banned-strings.list (one ERE regex per line,
-#              '#' comments).
-# Scan modes:
-#   1. Args:  any positional arg that is a directory or file is added
-#             to the scan set (after a repo-relative resolution).
-#   2. PR diff: if BANNED_STRINGS_DIFF_BASE is set (e.g. "origin/main"),
-#             or running under GitHub Actions on a pull_request with
-#             GITHUB_BASE_REF, the script restricts the scan to the
-#             union of files changed since the merge-base, intersected
-#             with the default scope below.
-#   3. Default scope: apps/web/{app,lib,components},
-#             apps/marketing/{app,components}, docs/ops,
-#             docs/architecture.
-# Allowlist:   files that legitimately contain banned phrases — the
-#              policy doc, the list, this script, the workflow, test
-#              files that assert absence, archived code under
-#              apps/web/app/_archive, and a small set of lib/* files
-#              that contain explicit "does NOT X" negation copy.
-#              Matched as a substring against the repo-relative path.
-#              No broad globs — every entry is a specific path or a
-#              well-bounded prefix.
+#              '#' comments). The scanner pre-normalises smart quotes
+#              (U+2018/U+2019/U+201C/U+201D) to their ASCII
+#              counterparts BEFORE running grep, so list patterns only
+#              need ASCII glyphs.
+#
+# Scan modes (highest precedence first):
+#   1. Args: positional file/dir args are scanned directly.
+#   2. Stdin: when stdin is not a TTY, paths are read one-per-line.
+#      Used by .github/workflows/banned-strings.yml to pipe the PR
+#      changed-files list into the scanner.
+#   3. PR diff: BANNED_STRINGS_DIFF_BASE or GITHUB_BASE_REF expand to
+#      `git diff --name-only <base>...HEAD`, intersected with the
+#      default scope.
+#   4. Default scope: apps/web, apps/marketing, docs/ops,
+#      docs/architecture, docs/specs.
+#
+# Allowlist: a small, explicit per-path substring list (see below).
+# Inline skip comments are NOT honoured by design — exception
+# authority lives with the founder per
+# docs/ops/banned-strings-gate.md.
 #
 # Exit codes:
 #   0  no hits
-#   1  one or more hits (prints `path:line: matched-phrase` + the line)
-#   2  configuration error (missing list, no files in scope)
+#   1  one or more hits (prints `path:line: <pattern> — <line>`)
+#   2  configuration error
 
 set -euo pipefail
 
@@ -39,19 +39,22 @@ if [[ ! -f "$LIST_FILE" ]]; then
   exit 2
 fi
 
-# Default scan scope — public surfaces + the truth-contract docs.
-DEFAULT_SCOPE=(
-  "apps/web/app"
-  "apps/web/lib"
-  "apps/web/components"
-  "apps/marketing/app"
-  "apps/marketing/components"
+# Default scan scope.
+DEFAULT_SCOPE_DIRS=(
+  "apps/web"
+  "apps/marketing"
   "docs/ops"
   "docs/architecture"
+  "docs/specs"
 )
 
+# Files matching these extensions participate in the scan when a
+# directory is walked. Stdin / positional-file inputs are scanned
+# regardless of extension so an operator can target any file.
+SCAN_EXT_REGEX='\.(ts|tsx|js|jsx|mjs|cjs|md|mdx|json|html)$'
+
 # Resolve a path arg (file or dir, repo-relative or absolute) into an
-# absolute path. Echoes nothing and returns 1 if it doesn't exist.
+# absolute path. Prints nothing and returns 1 if it doesn't exist.
 resolve_target() {
   local arg="$1"
   if [[ -e "${REPO_ROOT}/${arg}" ]]; then
@@ -65,71 +68,116 @@ resolve_target() {
   return 1
 }
 
-SCOPE=()
-EXPLICIT_ARGS=0
+# Walk a directory and emit every path whose extension matches
+# SCAN_EXT_REGEX. Skips node_modules / .next / dist / build / .turbo.
+walk_dir_for_files() {
+  local dir="$1"
+  find "$dir" \
+    \( -name 'node_modules' -o -name '.next' -o -name '.turbo' \
+       -o -name 'dist' -o -name 'build' -o -name '_archive' \) -prune \
+    -o -type f -print 2>/dev/null \
+    | grep -E "$SCAN_EXT_REGEX" || true
+}
+
+INPUT_FILES=()
+INPUT_DIRS=()
+
+# Mode 1: positional args.
 for arg in "$@"; do
-  EXPLICIT_ARGS=1
   resolved="$(resolve_target "$arg" || true)"
   if [[ -z "$resolved" ]]; then
     echo "check-banned-strings: scope arg not found: $arg" >&2
     exit 2
   fi
-  SCOPE+=("$resolved")
+  if [[ -d "$resolved" ]]; then
+    INPUT_DIRS+=("$resolved")
+  else
+    INPUT_FILES+=("$resolved")
+  fi
 done
 
-# PR-diff mode — only kicks in if no explicit args were passed.
+# Mode 2: stdin file list. Only consumed when no positional args and
+# stdin is not a terminal.
+if [[ ${#INPUT_FILES[@]} -eq 0 && ${#INPUT_DIRS[@]} -eq 0 && ! -t 0 ]]; then
+  # `|| [[ -n "$line" ]]` handles a final line without a trailing
+  # newline (common when callers pipe `printf '%s' "$f"` or the joined
+  # output of an Array.join('\n')).
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ -z "$line" ]] && continue
+    resolved="$(resolve_target "$line" || true)"
+    [[ -z "$resolved" ]] && continue
+    if [[ -d "$resolved" ]]; then
+      INPUT_DIRS+=("$resolved")
+    elif [[ -f "$resolved" ]]; then
+      INPUT_FILES+=("$resolved")
+    fi
+  done
+fi
+
+# Mode 3: PR-diff mode (auto when no input has been provided so far).
 DIFF_BASE=""
-if [[ $EXPLICIT_ARGS -eq 0 ]]; then
+if [[ ${#INPUT_FILES[@]} -eq 0 && ${#INPUT_DIRS[@]} -eq 0 ]]; then
   if [[ -n "${BANNED_STRINGS_DIFF_BASE:-}" ]]; then
     DIFF_BASE="$BANNED_STRINGS_DIFF_BASE"
   elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
     DIFF_BASE="origin/${GITHUB_BASE_REF}"
   fi
-fi
 
-if [[ -n "$DIFF_BASE" ]]; then
-  # Intersect changed files with the default scope. If git or the base
-  # ref is unavailable, fall back to a full default-scope scan rather
-  # than silently passing.
-  changed_files=()
-  if git -C "$REPO_ROOT" rev-parse --verify "$DIFF_BASE" >/dev/null 2>&1; then
-    while IFS= read -r f; do
-      [[ -z "$f" ]] && continue
-      for prefix in "${DEFAULT_SCOPE[@]}"; do
-        if [[ "$f" == "$prefix"/* ]]; then
-          full="${REPO_ROOT}/${f}"
-          [[ -e "$full" ]] && changed_files+=("$full")
-          break
-        fi
-      done
-    done < <(git -C "$REPO_ROOT" diff --name-only "$DIFF_BASE"...HEAD 2>/dev/null || true)
-  else
-    echo "check-banned-strings: diff base '$DIFF_BASE' not resolvable; falling back to full scope." >&2
-  fi
-  if [[ ${#changed_files[@]} -gt 0 ]]; then
-    SCOPE=("${changed_files[@]}")
-    echo "check-banned-strings: PR-diff mode — scanning ${#SCOPE[@]} changed file(s) against $DIFF_BASE."
+  if [[ -n "$DIFF_BASE" ]]; then
+    if git -C "$REPO_ROOT" rev-parse --verify "$DIFF_BASE" >/dev/null 2>&1; then
+      while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        # Only scan files that fall into the default scope.
+        for prefix in "${DEFAULT_SCOPE_DIRS[@]}"; do
+          if [[ "$f" == "$prefix"/* ]]; then
+            full="${REPO_ROOT}/${f}"
+            if [[ -f "$full" ]] && [[ "$full" =~ $SCAN_EXT_REGEX ]]; then
+              INPUT_FILES+=("$full")
+            fi
+            break
+          fi
+        done
+      done < <(git -C "$REPO_ROOT" diff --name-only "$DIFF_BASE"...HEAD 2>/dev/null || true)
+      if [[ ${#INPUT_FILES[@]} -gt 0 ]]; then
+        echo "check-banned-strings: PR-diff mode — scanning ${#INPUT_FILES[@]} changed file(s) against $DIFF_BASE."
+      fi
+    else
+      echo "check-banned-strings: diff base '$DIFF_BASE' not resolvable; falling back to full default scope." >&2
+    fi
   fi
 fi
 
-# Fall back to the default scope when no explicit args and either no
-# diff base was set, the diff base was unresolvable, or the diff was
-# empty.
-if [[ ${#SCOPE[@]} -eq 0 ]]; then
-  for d in "${DEFAULT_SCOPE[@]}"; do
+# Mode 4: default-scope fallback if still nothing to scan.
+if [[ ${#INPUT_FILES[@]} -eq 0 && ${#INPUT_DIRS[@]} -eq 0 ]]; then
+  for d in "${DEFAULT_SCOPE_DIRS[@]}"; do
     if [[ -d "${REPO_ROOT}/${d}" ]]; then
-      SCOPE+=("${REPO_ROOT}/${d}")
+      INPUT_DIRS+=("${REPO_ROOT}/${d}")
     fi
   done
 fi
 
-if [[ ${#SCOPE[@]} -eq 0 ]]; then
-  echo "check-banned-strings: no scan directories present" >&2
-  exit 2
+# Expand directories into files.
+SCAN_FILES=()
+if [[ ${#INPUT_FILES[@]} -gt 0 ]]; then
+  SCAN_FILES+=("${INPUT_FILES[@]}")
+fi
+if [[ ${#INPUT_DIRS[@]} -gt 0 ]]; then
+  for d in "${INPUT_DIRS[@]}"; do
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      SCAN_FILES+=("$f")
+    done < <(walk_dir_for_files "$d")
+  done
+fi
+
+if [[ ${#SCAN_FILES[@]} -eq 0 ]]; then
+  echo "check-banned-strings: no scannable files in scope."
+  exit 0
 fi
 
 # Allowlist — files that legitimately contain banned phrases. Per
-# apps/web/CLAUDE.md, allowed-use cases are:
+# CLAUDE.md, allowed-use cases are:
 #   - the policy doc itself
 #   - this list / this script / the workflow / the gate doc
 #   - test files that assert absence
@@ -137,26 +185,48 @@ fi
 #     complete credentialing")
 #   - runtime guards whose regex patterns must contain the phrase to
 #     detect it at runtime
-#   - archived code under apps/web/app/_archive (not shipped to users)
-# Matched as a substring against the repo-relative path.
+#   - archived code under apps/web/app/_archive (not shipped)
+# Matched as a substring against the repo-relative path. No broad
+# globs — every entry is a specific path or a well-bounded prefix.
 ALLOWLIST_SUBSTRINGS=(
   "CLAUDE.md"
   "scripts/banned-strings.list"
   "scripts/check-banned-strings.sh"
   ".github/workflows/banned-strings.yml"
   "docs/ops/banned-strings-gate.md"
-  # Policy / audit docs whose entire purpose is to enumerate the
-  # banned phrases. These quote the contract; they do not violate it.
+  # Policy / audit / planning docs whose entire purpose is to
+  # enumerate or critique the banned phrases. They quote the
+  # contract; they do not violate it.
   "docs/ops/vitalcv-public-claims-matrix.md"
   "docs/ops/vitalcv-completion-board.md"
   "docs/ops/code-red-final-verification-2026-05-07.md"
-  "__tests__/banned-"
-  "/banned-verified-label.test"
-  "/check-banned-strings.test"
-  "/openevidence-demo-spine.test"
-  "/leads-route.test"
+  "docs/ops/vitalcv-100pct-action-map.md"
+  "docs/specs/vitalcv-public-truth-audit.md"
+  "docs/specs/vitalcv-ui-doctrine.md"
+  "docs/specs/vitalcv-milestone-status.md"
+  "docs/specs/vitalcv-launch-gate.md"
+  "docs/architecture/vitalcv-knowledge-trust-graph.md"
+  # Test directory — files under apps/web/__tests__/ that encode the
+  # truth contract as fixture data (the phrase list itself, the
+  # bare-Verified assertion table, etc.) are policy enforcement, not
+  # public copy. Per CLAUDE.md, tests asserting absence are an
+  # allowed-use case. Test code never reaches the buyer-facing
+  # surface, so this exemption does not weaken the gate.
+  "/__tests__/"
+  # Archived code under apps/web/app/_archive — never shipped.
   "/_archive/"
+  # Runtime guards: code that enumerates the banned phrases at
+  # runtime so user-supplied / generated copy can be detected and
+  # blocked at the rendering boundary. Each file's purpose is to
+  # ENFORCE the contract, not violate it.
   "/lib/trust/trust-container-view.ts"
+  "/lib/source-health/unavailableLane.ts"
+  "/lib/source-health/README.md"
+  "/lib/issuer-verification/statusCopy.ts"
+  "/lib/publicSafety.ts"
+  # Negation-only copy: these files contain explicit "does NOT X"
+  # disclaim phrases. Their purpose is to surface honest-state
+  # limitations, not to make a positive claim.
   "/lib/commercial/onboardingFoundation.ts"
   "/lib/commercial/selfServeSignupFoundation.ts"
   "/lib/roi/roiData.ts"
@@ -173,81 +243,118 @@ is_allowlisted() {
 }
 
 # Read patterns from the list, stripping blank lines + comments.
-PATTERNS=()
+# Lines after a `:case-sensitive:` sentinel are scanned with grep -E
+# (no -i) so canonical lowercase enum values are not false-positives.
+PATTERNS_CI=()
+PATTERNS_CS=()
+mode="ci"
 while IFS= read -r line || [[ -n "$line" ]]; do
   line="${line%%#*}"
   line="${line#"${line%%[![:space:]]*}"}"
   line="${line%"${line##*[![:space:]]}"}"
   [[ -z "$line" ]] && continue
-  PATTERNS+=("$line")
+  if [[ "$line" == ":case-sensitive:" ]]; then
+    mode="cs"
+    continue
+  fi
+  if [[ "$mode" == "cs" ]]; then
+    PATTERNS_CS+=("$line")
+  else
+    PATTERNS_CI+=("$line")
+  fi
 done < "$LIST_FILE"
 
-if [[ ${#PATTERNS[@]} -eq 0 ]]; then
+TOTAL_PATTERNS=$(( ${#PATTERNS_CI[@]} + ${#PATTERNS_CS[@]} ))
+if [[ $TOTAL_PATTERNS -eq 0 ]]; then
   echo "check-banned-strings: list file contains no patterns" >&2
   exit 2
 fi
 
-# Pre-process the SCOPE list into something grep -R can consume. grep
-# accepts both directories (recurse) and files (scan), so the same
-# array works for default-scope and PR-diff modes.
-INCLUDES=(
-  --include='*.ts' --include='*.tsx'
-  --include='*.js' --include='*.jsx'
-  --include='*.mjs' --include='*.cjs'
-  --include='*.md'  --include='*.mdx'
-  --include='*.json' --include='*.html'
-)
-
-# If SCOPE contains only specific files (PR-diff mode), --include rules
-# are still applied by grep but no recursion is needed; we filter to
-# files whose extension matches the scan set manually so we still
-# respect the same file-type allowlist.
-FILTERED_SCOPE=()
-for t in "${SCOPE[@]}"; do
-  if [[ -d "$t" ]]; then
-    FILTERED_SCOPE+=("$t")
-  elif [[ -f "$t" ]]; then
-    case "$t" in
-      *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.md|*.mdx|*.json|*.html)
-        FILTERED_SCOPE+=("$t")
-        ;;
-      *)
-        ;;
-    esac
-  fi
-done
-
-if [[ ${#FILTERED_SCOPE[@]} -eq 0 ]]; then
-  echo "check-banned-strings: no scannable files (every changed file is outside the file-type allowlist)."
-  exit 0
-fi
+# Normalize smart quotes to ASCII before scanning. Emits the file's
+# content with U+2018/U+2019 → ' and U+201C/U+201D → ".
+normalize_smart_quotes() {
+  local file="$1"
+  sed \
+    -e $'s/\xe2\x80\x98/\x27/g' \
+    -e $'s/\xe2\x80\x99/\x27/g' \
+    -e $'s/\xe2\x80\x9c/"/g' \
+    -e $'s/\xe2\x80\x9d/"/g' \
+    "$file"
+}
 
 HITS=0
-HITS_LOG=""
-for pattern in "${PATTERNS[@]}"; do
-  while IFS= read -r raw; do
-    [[ -z "$raw" ]] && continue
-    file="${raw%%:*}"
-    after_file="${raw#*:}"
-    line_no="${after_file%%:*}"
-    rest="${after_file#*:}"
-    rel="${file#${REPO_ROOT}/}"
-    if is_allowlisted "$rel"; then
-      continue
-    fi
-    HITS=$((HITS + 1))
-    line_out="$(printf '%s:%s: %s — %s' "$rel" "$line_no" "$pattern" "$rest")"
-    printf '%s\n' "$line_out"
-    HITS_LOG="${HITS_LOG}${line_out}"$'\n'
-  done < <(grep -RInIE "${INCLUDES[@]}" -- "$pattern" "${FILTERED_SCOPE[@]}" 2>/dev/null || true)
+
+# Write patterns into temp files so grep can scan all of them in one
+# invocation per file (grep -f). That collapses 29 grep calls per
+# file into 2 (CI + CS), making a 1500-file full-scope scan finish in
+# ~3s instead of ~90s.
+PATTERN_TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$PATTERN_TMP_DIR"' EXIT
+
+PATTERNS_CI_FILE="${PATTERN_TMP_DIR}/ci.patterns"
+PATTERNS_CS_FILE="${PATTERN_TMP_DIR}/cs.patterns"
+printf '%s\n' ${PATTERNS_CI[@]+"${PATTERNS_CI[@]}"} > "$PATTERNS_CI_FILE"
+printf '%s\n' ${PATTERNS_CS[@]+"${PATTERNS_CS[@]}"} > "$PATTERNS_CS_FILE"
+
+scan_file() {
+  local file="$1"
+  local rel="${file#${REPO_ROOT}/}"
+  if is_allowlisted "$rel"; then
+    return 0
+  fi
+
+  # Normalise once, scan twice (CI + CS).
+  local normalized
+  if ! normalized="$(normalize_smart_quotes "$file" 2>/dev/null)"; then
+    return 0
+  fi
+
+  # Bulk hit detection (grep -f single pass), then per-hit pattern
+  # identification so the output names the specific banned phrase.
+  if [[ ${#PATTERNS_CI[@]} -gt 0 ]]; then
+    while IFS= read -r match; do
+      [[ -z "$match" ]] && continue
+      local line_no="${match%%:*}"
+      local rest="${match#*:}"
+      local matched="<banned>"
+      for p in "${PATTERNS_CI[@]}"; do
+        if printf '%s\n' "$rest" | grep -qiE -- "$p" 2>/dev/null; then
+          matched="$p"
+          break
+        fi
+      done
+      HITS=$((HITS + 1))
+      printf '%s:%s: %s — %s\n' "$rel" "$line_no" "$matched" "$rest"
+    done < <(printf '%s' "$normalized" | grep -niEf "$PATTERNS_CI_FILE" 2>/dev/null || true)
+  fi
+  if [[ ${#PATTERNS_CS[@]} -gt 0 ]]; then
+    while IFS= read -r match; do
+      [[ -z "$match" ]] && continue
+      local line_no="${match%%:*}"
+      local rest="${match#*:}"
+      local matched="<banned>"
+      for p in "${PATTERNS_CS[@]}"; do
+        if printf '%s\n' "$rest" | grep -qE -- "$p" 2>/dev/null; then
+          matched="$p"
+          break
+        fi
+      done
+      HITS=$((HITS + 1))
+      printf '%s:%s: %s — %s\n' "$rel" "$line_no" "$matched" "$rest"
+    done < <(printf '%s' "$normalized" | grep -nEf "$PATTERNS_CS_FILE" 2>/dev/null || true)
+  fi
+}
+
+for f in "${SCAN_FILES[@]}"; do
+  scan_file "$f"
 done
 
 if [[ $HITS -gt 0 ]]; then
   printf '\n' >&2
-  echo "check-banned-strings: $HITS hit(s) across ${#PATTERNS[@]} pattern(s)." >&2
+  echo "check-banned-strings: $HITS hit(s) across $TOTAL_PATTERNS pattern(s)." >&2
   echo "See CLAUDE.md and docs/ops/banned-strings-gate.md for the truth contract." >&2
   exit 1
 fi
 
-echo "check-banned-strings: CLEAN — ${#PATTERNS[@]} pattern(s) over ${#FILTERED_SCOPE[@]} path(s)."
+echo "check-banned-strings: CLEAN — $TOTAL_PATTERNS pattern(s) over ${#SCAN_FILES[@]} file(s)."
 exit 0

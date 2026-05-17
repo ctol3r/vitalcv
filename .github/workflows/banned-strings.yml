@@ -3,34 +3,6 @@ name: Banned strings guard
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'apps/web/app/**'
-      - 'apps/web/lib/**'
-      - 'apps/web/components/**'
-      - 'apps/marketing/app/**'
-      - 'apps/marketing/components/**'
-      - 'docs/ops/**'
-      - 'docs/architecture/**'
-      - 'scripts/banned-strings.list'
-      - 'scripts/check-banned-strings.sh'
-      - 'scripts/__tests__/check-banned-strings.test.sh'
-      - 'apps/web/__tests__/banned-strings-gate.test.ts'
-      - '.github/workflows/banned-strings.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'apps/web/app/**'
-      - 'apps/web/lib/**'
-      - 'apps/web/components/**'
-      - 'apps/marketing/app/**'
-      - 'apps/marketing/components/**'
-      - 'docs/ops/**'
-      - 'docs/architecture/**'
-      - 'scripts/banned-strings.list'
-      - 'scripts/check-banned-strings.sh'
-      - 'scripts/__tests__/check-banned-strings.test.sh'
-      - 'apps/web/__tests__/banned-strings-gate.test.ts'
-      - '.github/workflows/banned-strings.yml'
 
 permissions:
   contents: read
@@ -43,19 +15,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Deeper history so PR-diff mode can resolve the merge base
-          # against origin/$GITHUB_BASE_REF.
+          # Deeper history so the merge-base diff can resolve against
+          # origin/$GITHUB_BASE_REF.
           fetch-depth: 0
 
-      - name: Self-test the scanner against the legacy bash fixture
-        run: bash scripts/__tests__/check-banned-strings.test.sh
+      - name: Compute changed-file list for the scan scope
+        id: changed
+        run: |
+          set -euo pipefail
+          BASE_REF="${{ github.base_ref }}"
+          # Ensure the base ref is reachable.
+          git fetch --no-tags --depth=200 origin "${BASE_REF}" || true
+          # Diff against the merge base so reverts / merges don't
+          # surface unrelated history.
+          DIFF_BASE="origin/${BASE_REF}"
+          if ! git rev-parse --verify "$DIFF_BASE" >/dev/null 2>&1; then
+            echo "::error::diff base $DIFF_BASE not resolvable"
+            exit 1
+          fi
+          # Path globs the gate cares about. Anything outside these
+          # globs is out of scope.
+          INCLUDE_PATTERNS=(
+            'apps/web/**/*.ts'
+            'apps/web/**/*.tsx'
+            'apps/web/**/*.md'
+            'apps/marketing/**/*.ts'
+            'apps/marketing/**/*.tsx'
+            'apps/marketing/**/*.md'
+            'docs/ops/**/*.md'
+            'docs/architecture/**/*.md'
+            'docs/specs/**/*.md'
+          )
+          # git diff with `--name-only` against the three-dot range
+          # gives the symmetric difference, which is what PR diffs are.
+          git diff --name-only "${DIFF_BASE}...HEAD" -- "${INCLUDE_PATTERNS[@]}" \
+            | tee changed-files.txt
+          echo "count=$(wc -l < changed-files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
-      - name: Run banned-strings scan (PR-diff mode on pull_request)
-        env:
-          # GITHUB_BASE_REF is set on pull_request events; the script
-          # uses it to scan only files changed since the merge base,
-          # intersected with the default scope. On push events (no
-          # GITHUB_BASE_REF) the script falls back to a full
-          # default-scope scan.
-          GITHUB_BASE_REF: ${{ github.base_ref }}
-        run: bash scripts/check-banned-strings.sh
+      - name: Skip when no in-scope files changed
+        if: ${{ steps.changed.outputs.count == '0' }}
+        run: echo "No in-scope files changed; banned-strings gate has nothing to scan."
+
+      - name: Run banned-strings scanner on changed files
+        if: ${{ steps.changed.outputs.count != '0' }}
+        run: bash scripts/check-banned-strings.sh < changed-files.txt

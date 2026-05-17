@@ -1,147 +1,196 @@
 # Banned-strings CI gate
 
-A small, bash-only scanner that fails CI when a public VitalCV surface
-contains a truth-contract banned phrase.
-
-The contract itself lives in [`CLAUDE.md`](../../CLAUDE.md) and
-[`apps/web/CLAUDE.md`](../../apps/web/CLAUDE.md). This document
+A narrow, bash-only scanner that fails CI when a public VitalCV
+surface contains a truth-contract banned phrase. The contract itself
+lives in [`CLAUDE.md`](../../CLAUDE.md) and
+[`apps/web/CLAUDE.md`](../../apps/web/CLAUDE.md); this document
 describes how the gate enforces it.
 
-## What the gate enforces
+## What the gate checks
 
-The phrase list is in
-[`scripts/banned-strings.list`](../../scripts/banned-strings.list).
-Every line is a case-insensitive extended regex passed to `grep -iE`.
+Every line in [`scripts/banned-strings.list`](../../scripts/banned-strings.list)
+is a case-insensitive extended regex passed to `grep -E`. Patterns
+appearing after the `:case-sensitive:` sentinel are evaluated with
+`grep -E` (no `-i`) so canonical lowercase enum values such as
+`'verified'` are not false positives.
 
-Categories at the time of writing:
+### Compliance and certification overclaim
 
-| Category                          | Examples |
-|-----------------------------------|----------|
-| Compliance / certification claims | `HIPAA compliant`, `SOC2 certified`, `SOC 2 certified`, `NCQA certified`, `certified compliant` |
-| Verification overclaim            | `automatically verified`, `guaranteed verification`, `final verification without review`, `source confirmed before response` |
-| Credentialing overclaim           | `complete credentialing` (word-bounded), `instant credentialing` |
-| Risk / acceptance overclaim       | `legally accepted`, `risk transferred` |
-| Bare-Verified label markers       | `>Verified<` rendered text, `label:` / `status:` set to `Verified` in any quote style (including smart quotes) |
+- `HIPAA compliant`
+- `SOC2 certified`, `SOC 2 certified`
+- `NCQA certified`
+- `certified compliant`
+- `guaranteed compliant`
 
-The smart-quote handling means a copy pass that swaps `'` → `’` or
-`"` → `”` cannot hide a violation; both glyph families are matched.
+### Verification overclaim
+
+- `automatically verified`
+- `instantly verified`
+- `fully verified` (word-bounded)
+- `real-time verification`
+- `real-time check`
+- `guaranteed verification`
+- `final verification without review`
+- `source confirmed before response`
+
+### Credentialing overclaim
+
+- `complete credentialing` (word-bounded)
+- `instant credentialing`
+- `eliminates credentialing`
+- `replaces credentialing`
+
+### Risk and acceptance overclaim
+
+- `legally accepted`
+- `risk transferred`
+- `accepted everywhere`
+- `single source accepted by all hospitals`
+
+### Outcome overclaim (vague benefits)
+
+- `always up to date` (word-bounded)
+- `solves burnout`
+- `solves diversity attrition`
+
+### Bare-`Verified` markers (case-sensitive)
+
+- `'Verified'`, `"Verified"`, `` `Verified` `` — any standalone quoted
+  literal
+- `>Verified<` — bare JSX text node
+- `label: 'Verified'`, `status: "Verified"` — attribute assignments
+- `Verified provider`, `Verified source` — public-copy compounds that
+  survive the bare-quote ban
+
+Smart quotes (`‘ ’ “ ”`) are normalised to ASCII before any pattern is
+applied, so a copy pass that swaps `'` → `’` cannot hide a violation
+behind curly quotes.
 
 ## What the gate does NOT flag
 
-Compound labels and benign keyword reuse are intentionally allowed:
+The bans target buyer-facing public copy, not internal enum values or
+spec language. The following pass:
 
-- `Source-verified`, `Source-backed`, `Source-confirmed`
-- `NPPES-confirmed`, `issuer-confirmed`
-- `verification request`, `request a verification`
-- The lower-case noun `verification` standing alone
+- the lowercase canonical state `'verified'` (used in the trust-state
+  machine as an enum value);
+- the all-caps canonical state `'VERIFIED'` (used as the
+  decision-grade marker);
+- compound labels: `Source-verified`, `Source-confirmed`,
+  `Source-checked`, `NPPES-verified`, `issuer-confirmed`,
+  `HIPAA-aware`;
+- benign noun usage: `verification`, `verification request`,
+  `request a verification`, `verified by NPPES`.
 
-The patterns are anchored to the literal phrase or to the
-`(label|status)\s*[:=]\s*"Verified"` shape — they do not match a
-sub-phrase or a hyphenated compound.
+## Why it exists
 
-## Scan scope
+The truth contract is the single thing VitalCV cannot compromise.
+Marketing pressure, copy refreshes, and well-intentioned UI rewrites
+all introduce drift; a regex gate catches the drift before it lands
+on `main` and reaches buyers. The gate is intentionally narrow — it
+does not lint grammar, copy quality, or style. It only catches the
+phrases that change VitalCV from a source-backed verifier into a
+compliance-overclaim vendor.
 
-When invoked with no arguments and no diff base, the scanner walks:
-
-- `apps/web/{app,lib,components}`
-- `apps/marketing/{app,components}`
-- `docs/ops`
-- `docs/architecture`
-
-You can extend or narrow the scan by passing path arguments
-(repo-relative or absolute, files or directories):
-
-```bash
-bash scripts/check-banned-strings.sh apps/issuer-api/src
-bash scripts/check-banned-strings.sh apps/web/app/launch/page.tsx
-```
-
-## PR-diff mode
-
-In a GitHub Actions `pull_request` job, the gate restricts the scan
-to the union of files changed since `origin/$GITHUB_BASE_REF`,
-intersected with the default scope. The intent is two-fold:
-
-1. PRs that don't touch public surfaces don't pay scan cost.
-2. A merge that *does* touch a public surface is held to the full
-   contract on the touched files.
-
-You can simulate this locally:
+## How to run locally
 
 ```bash
-BANNED_STRINGS_DIFF_BASE=origin/main bash scripts/check-banned-strings.sh
-```
-
-If the diff base is unresolvable, the scanner falls back to a
-full default-scope scan and prints a warning to stderr.
-
-## Allowlist
-
-A small substring allowlist exempts files that legitimately
-contain the banned phrases:
-
-- The policy documents (`CLAUDE.md`, this gate doc, the public-claims
-  matrix, the completion board, the code-red audit log).
-- The phrase list, the scanner, and the workflow.
-- Test fixtures that explicitly assert the absence of these phrases.
-- The runtime-guard regex source
-  (`apps/web/lib/trust/trust-container-view.ts`) and three lib files
-  that contain explicit "does NOT X" negation copy.
-- Archived code under `apps/web/app/_archive/` (never rendered to
-  end users).
-
-The allowlist is intentionally short and per-path; no broad globs.
-Adding to it requires the file path to appear in
-`ALLOWLIST_SUBSTRINGS` inside the script.
-
-## Local usage
-
-```bash
-# Full default-scope scan.
+# Full default-scope scan against the working tree (apps/web,
+# apps/marketing, docs/ops, docs/architecture, docs/specs).
 bash scripts/check-banned-strings.sh
 
-# Restrict to a single file or directory.
+# Scan a single file.
 bash scripts/check-banned-strings.sh apps/web/app/launch/page.tsx
 
-# Simulate the PR-diff mode used in CI.
+# Scan a list piped on stdin (this is how CI runs it).
+git diff --name-only origin/main...HEAD | bash scripts/check-banned-strings.sh
+
+# Simulate CI's PR-diff mode end-to-end.
 BANNED_STRINGS_DIFF_BASE=origin/main bash scripts/check-banned-strings.sh
 
-# Vitest behavioural test (covers fixture cases + a full-repo CLEAN
-# assertion).
-pnpm --filter @vitalcv/web exec vitest run __tests__/banned-strings-gate.test.ts
+# Run the vitest behavioural spec.
+pnpm --filter @vitalcv/web exec vitest run __tests__/banned-strings-script.test.ts
 ```
 
 Exit codes:
 
 | Code | Meaning |
 |------|---------|
-| 0    | No hits in scope. |
-| 1    | One or more hits. The scanner prints each hit as `path:line: <pattern> — <line content>` to stdout, plus a summary on stderr. |
-| 2    | Configuration error (list file missing, scope path doesn't exist, etc.). |
+| `0`  | No hits in scope. |
+| `1`  | One or more hits. Each hit is printed as `path:line: <pattern> — <line>` to stdout, with a summary on stderr. |
+| `2`  | Configuration error (the list file is missing or empty, or a positional scope arg doesn't exist). |
 
-## Adding a new banned phrase
+## How to add a banned phrase
 
-1. Append the case-insensitive ERE to `scripts/banned-strings.list`.
-2. Run `bash scripts/check-banned-strings.sh` and address any new hits
-   on `origin/main` (either by rewording the copy or, only when the
-   text is genuinely policy/test/negation copy, by adding a specific
-   allowlist entry in the script).
-3. If your phrase has predictable false-positive cases, add an
-   `expect(status).toBe(0)` case to
-   `apps/web/__tests__/banned-strings-gate.test.ts` so future
-   regressions are caught.
+1. Append the case-insensitive ERE regex to
+   [`scripts/banned-strings.list`](../../scripts/banned-strings.list).
+   If the phrase should be matched case-sensitively (e.g. a bare-
+   `Verified` marker), put it below the `:case-sensitive:` sentinel.
+2. Run `bash scripts/check-banned-strings.sh` and address any new
+   hits on `origin/main`. Real public-copy regressions get the
+   minimum fix (typically a label rename per the truth contract);
+   negative-only copy or runtime guards get an explicit per-path
+   allowlist entry in
+   [`scripts/check-banned-strings.sh`](../../scripts/check-banned-strings.sh).
+3. Extend the `CANONICAL_PHRASES` or `RISKY_PHRASES` array in
+   [`apps/web/__tests__/banned-strings-script.test.ts`](../../apps/web/__tests__/banned-strings-script.test.ts)
+   so the fixture round-trip catches future regressions.
+
+## How to handle failures
+
+When CI fails this gate:
+
+1. Read the `path:line: <pattern> — <line>` output. The matched
+   phrase is the literal regex from `scripts/banned-strings.list`.
+2. Fix the copy. The standard rewrites:
+   - `'Verified'` (label) → `'Source-verified'` or `'Source-backed'`
+   - `'HIPAA compliant'` / `'SOC2 certified'` →
+     `'HIPAA-aware'` / `'SOC2 scope claimed by vendor — under audit'`
+     or just remove the claim
+   - `'complete credentialing'` → `'foundation-tier readiness preview'`
+   - `'guaranteed verification'` → `'source-checked when probe succeeds'`
+3. Re-run `bash scripts/check-banned-strings.sh` locally to confirm
+   the hit is gone.
+4. Push the fix.
+
+If the hit is in a file that legitimately encodes the contract (a
+policy doc, a test asserting absence, a runtime guard whose regex
+must contain the phrase), add the **specific path** to
+`ALLOWLIST_SUBSTRINGS` in `scripts/check-banned-strings.sh`. Do not
+add a broad glob — the allowlist is per-path by design.
+
+## Founder-only exception authority
+
+There is no inline skip mechanism. The scanner does not honour
+`// banned-strings-disable`, `// eslint-disable-line`, or any other
+inline pragma. If a phrase must ship that the gate currently blocks,
+the founder is the sole authority who may either:
+
+- Approve a permanent removal of the phrase from the list (commit a
+  diff to `scripts/banned-strings.list`), or
+- Approve a per-path allowlist entry naming the exact file path,
+  with a comment explaining why (commit a diff to
+  `ALLOWLIST_SUBSTRINGS` in `scripts/check-banned-strings.sh`).
+
+Allowlist entries SHOULD point to one of the four allowed-use cases
+named in `CLAUDE.md`: policy docs, tests asserting absence, runtime
+guards, or archived code. Any other rationale needs founder sign-off
+in the PR description.
 
 ## Known limitations
 
-- **No HTML rendering**: a phrase split by JSX expressions
-  (`<span>Verified</span>` is caught, but
-  `<span>{label}</span>` with `label = 'Verified'` is not) needs the
-  rendered-HTML scan that lives in the existing
-  `banned-verified-label.test.ts`. The two checks are complementary.
-- **No semantic analysis**: the scanner is a regex grep. It cannot
-  distinguish e.g. a sentence that disclaims a phrase from one that
-  asserts it. The allowlist is the explicit escape hatch.
-- **Smart-quote matching covers the four common glyphs**
-  (`U+2018`/`U+2019`/`U+201C`/`U+201D`) only. Exotic Unicode quote
-  variants are not covered; if a new case appears, add the glyph to
-  the bare-Verified pattern in `scripts/banned-strings.list`.
+- **No JSX-expression rendering.** A phrase split by JSX expressions
+  (`<span>{statusLabel}</span>` with `statusLabel = 'Verified'`) is
+  not caught by this gate. Rendered-HTML coverage is provided by
+  `apps/web/__tests__/banned-verified-label.test.ts`; the two checks
+  are complementary.
+- **No semantic disclaim parsing.** The scanner is a regex grep. It
+  cannot tell `"is HIPAA compliant"` apart from
+  `"is NOT HIPAA compliant"`. The allowlist is the explicit escape
+  hatch for negation-only copy.
+- **Smart-quote normalisation covers the four common glyphs**
+  (`U+2018`, `U+2019`, `U+201C`, `U+201D`) only. Exotic Unicode quote
+  variants need an explicit `sed` translation step before scanning.
+- **Workflow scope** is hard-coded to `apps/web`, `apps/marketing`,
+  `docs/ops`, `docs/architecture`, `docs/specs`. New public surfaces
+  must be added to `.github/workflows/banned-strings.yml` and to
+  `DEFAULT_SCOPE_DIRS` in the script.
