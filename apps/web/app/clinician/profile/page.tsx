@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
 
 export const metadata: Metadata = {
@@ -129,13 +130,13 @@ function ProvenanceBadge({ provenance }: { provenance: ProfileProvenance }) {
 }
 
 export default function ClinicianProfilePage() {
-  // Foundation shell: sections render with placeholders and provenance
-  // badges. No client state. Filled-ness summary is computed below from
-  // the static defs (everything is currently empty / unknown).
+  // Preview-only surface: the page enumerates the planned profile
+  // sections and the provenance class each field will carry once
+  // editing ships. It has no form state, no submit handler, no fetch,
+  // and no localStorage. Read-only display rows replace the editable
+  // form chrome that used to live here so the page cannot be
+  // mistaken for an editable record.
   const totalFields = SECTIONS.reduce((s, sec) => s + sec.fields.length, 0);
-  const filledFields = 0;
-  const sourceBackedFields = 0;
-  const completionPercent = totalFields === 0 ? 0 : Math.round((filledFields / totalFields) * 100);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
@@ -148,31 +149,53 @@ export default function ClinicianProfilePage() {
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           <strong>User-entered information is not verified until source-backed
-          evidence is attached.</strong> Provenance badges show where each field
-          stands today.
+          evidence is attached.</strong> Provenance badges show the class each
+          field will carry once editing ships.
         </p>
 
+        <aside
+          role="status"
+          data-testid="clinician-profile-preview-banner"
+          aria-labelledby="profile-preview-banner-heading"
+          className="mt-5 rounded-xl border border-amber-200/60 bg-amber-50 p-4 text-amber-900 sm:p-5"
+        >
+          <h2 id="profile-preview-banner-heading" className="text-sm font-semibold">
+            Preview only
+          </h2>
+          <p className="mt-1 text-sm">
+            Profile editing is not enabled on this preview page yet. Use
+            onboarding to start a readiness preview.
+          </p>
+          <p className="mt-2 text-sm">
+            <Link
+              href="/clinician/onboarding"
+              className="font-medium underline underline-offset-2"
+              data-testid="clinician-profile-onboarding-link"
+            >
+              Go to clinician onboarding →
+            </Link>
+          </p>
+        </aside>
+
         <section
-          aria-labelledby="completion-summary-heading"
+          aria-labelledby="profile-shape-heading"
           className="mt-5 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
         >
-          <h2 id="completion-summary-heading" className="text-sm font-semibold">
-            Profile completion summary
+          <h2 id="profile-shape-heading" className="text-sm font-semibold">
+            Profile shape
           </h2>
           <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Filled</dt>
-              <dd className="mt-1 font-mono">
-                {filledFields} / {totalFields} ({completionPercent}%)
-              </dd>
+              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Sections</dt>
+              <dd className="mt-1 font-mono">{SECTIONS.length}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Source-backed</dt>
-              <dd className="mt-1 font-mono">{sourceBackedFields} / {totalFields}</dd>
+              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Planned fields</dt>
+              <dd className="mt-1 font-mono">{totalFields}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Verified credentialing</dt>
-              <dd className="mt-1 text-muted-foreground">Not asserted by completion alone.</dd>
+              <dt className="text-xs uppercase tracking-wider text-muted-foreground">Editable here</dt>
+              <dd className="mt-1 text-muted-foreground">None — use onboarding.</dd>
             </div>
           </dl>
         </section>
@@ -192,25 +215,22 @@ export default function ClinicianProfilePage() {
               {section.fields.map((field) => {
                 const fieldId = `${section.key}-${field.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
                 return (
-                  <div key={fieldId} className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div
+                    key={fieldId}
+                    data-testid="clinician-profile-field-row"
+                    className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                  >
                     <div className="flex flex-1 items-center gap-2">
-                      <dt>
-                        <label htmlFor={fieldId} className="text-sm font-medium">
-                          {field.label}
-                        </label>
+                      <dt className="text-sm font-medium" id={`${fieldId}-label`}>
+                        {field.label}
                       </dt>
                       <ProvenanceBadge provenance={field.provenance} />
                     </div>
-                    <dd className="flex-1">
-                      <input
-                        id={fieldId}
-                        type="text"
-                        readOnly
-                        placeholder={field.placeholder}
-                        aria-describedby={`${fieldId}-help`}
-                        className="w-full rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.12))] bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      />
-                      <p id={`${fieldId}-help`} className="mt-1 text-[11px] text-muted-foreground">
+                    <dd className="flex-1" aria-labelledby={`${fieldId}-label`}>
+                      <p className="text-sm italic text-muted-foreground">
+                        {field.placeholder}
+                      </p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {PROVENANCE_META[field.provenance].description}
                       </p>
                     </dd>
@@ -223,7 +243,7 @@ export default function ClinicianProfilePage() {
       </div>
 
       <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
-        This is the foundation shell. Editing flow, source-backed import wiring,
+        This is the preview shell. Editing flow, source-backed import wiring,
         and verification gating ship in subsequent waves. <strong>User-entered
         information is not verified until source-backed evidence is attached.</strong>
       </p>
