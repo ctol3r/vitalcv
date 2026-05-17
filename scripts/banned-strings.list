@@ -1,0 +1,41 @@
+# banned-strings.list
+#
+# Truth-contract banned phrases for VitalCV public-facing surfaces. Any
+# match in a non-allowlisted file fails CI.
+#
+# Lines starting with `#` are comments. Blank lines are ignored. Every
+# other line is treated as a case-insensitive extended regex passed
+# verbatim to `grep -iE`.
+#
+# To add a phrase: add the regex. To allow a file to contain it (e.g.
+# a test asserting its absence, the policy doc itself, this very list):
+# update `ALLOWLIST_GLOBS` in scripts/check-banned-strings.sh.
+#
+# See apps/web/CLAUDE.md for the authoritative truth contract.
+
+# Compliance / certification overclaim
+HIPAA compliant
+SOC2 certified
+NCQA certified
+certified compliant
+
+# Verification overclaim
+automatically verified
+guaranteed verification
+final verification without review
+source confirmed before response
+
+# Credentialing overclaim
+\bcomplete credentialing\b
+instant credentialing
+
+# Risk / acceptance overclaim
+legally accepted
+risk transferred
+
+# Bare "Verified" label markers (rendered between tags or as a label
+# attribute value). The script applies these in addition to the list
+# above; they live there to keep the regex closer to the policy
+# definition.
+label\s*[:=]\s*['"]Verified['"]
+>\s*Verified\s*<

@@ -1,0 +1,44 @@
+name: Banned strings guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'apps/web/lib/**'
+      - 'apps/web/components/**'
+      - 'apps/marketing/app/**'
+      - 'apps/marketing/components/**'
+      - 'scripts/banned-strings.list'
+      - 'scripts/check-banned-strings.sh'
+      - 'scripts/__tests__/check-banned-strings.test.sh'
+      - '.github/workflows/banned-strings.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/app/**'
+      - 'apps/web/lib/**'
+      - 'apps/web/components/**'
+      - 'apps/marketing/app/**'
+      - 'apps/marketing/components/**'
+      - 'scripts/banned-strings.list'
+      - 'scripts/check-banned-strings.sh'
+      - 'scripts/__tests__/check-banned-strings.test.sh'
+      - '.github/workflows/banned-strings.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan public surfaces for truth-contract banned phrases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Self-test the scanner against fixtures
+        run: bash scripts/__tests__/check-banned-strings.test.sh
+
+      - name: Run banned-strings scan
+        run: bash scripts/check-banned-strings.sh
