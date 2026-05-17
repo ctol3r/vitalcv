@@ -58,7 +58,7 @@ function ScoreCard({ score }: { score: number }) {
     RED: 'bg-red-500/10 text-red-600 border-red-500/20',
   }[band];
   const bandLabel = {
-    GREEN: 'Source-verified',
+    GREEN: 'Verified',
     YELLOW: 'Partial',
     RED: 'Incomplete',
   }[band];

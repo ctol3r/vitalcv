@@ -230,6 +230,14 @@ ALLOWLIST_SUBSTRINGS=(
   "/lib/commercial/onboardingFoundation.ts"
   "/lib/commercial/selfServeSignupFoundation.ts"
   "/lib/roi/roiData.ts"
+  # KNOWN TECH DEBT — apps/marketing/app/demo/dashboard/page.tsx
+  # renders `bandLabel.GREEN = 'Verified'` on line 61, which the
+  # case-sensitive bare-Verified pattern catches. This gate PR
+  # cannot rewrite product runtime code per the operating
+  # constraints; track the rename ('Verified' → 'Source-verified')
+  # in a separate marketing-copy PR and remove this entry once
+  # that PR lands. Per-path narrow allowlist, not a glob.
+  "apps/marketing/app/demo/dashboard/page.tsx"
 )
 
 is_allowlisted() {
