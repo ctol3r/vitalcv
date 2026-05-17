@@ -27,11 +27,16 @@ export async function deliverLeadToSlack(
 ): Promise<SlackDeliveryOutcome> {
   if (!webhookUrl) return { delivered: false, reason: 'unconfigured' };
 
+  // Only sanitized fields cross the Slack boundary. No raw free-text
+  // message. No raw npiList. The sampleNpis array is already bounded
+  // and digit-only (validated in persistLead.sanitizeNpiList), so it is
+  // safe to surface for triage.
   const fields: Array<{ type: 'mrkdwn'; text: string }> = [
     { type: 'mrkdwn', text: `*Intent*\n${lead.intent}` },
     { type: 'mrkdwn', text: `*Email*\n${lead.email}` },
     { type: 'mrkdwn', text: `*Lead*\n${lead.leadId}` },
     { type: 'mrkdwn', text: `*Source*\n${lead.source ?? '(unset)'}` },
+    { type: 'mrkdwn', text: `*Sample NPIs*\n${lead.sampleNpiCount}` },
   ];
 
   const blocks: Array<Record<string, unknown>> = [
@@ -42,16 +47,13 @@ export async function deliverLeadToSlack(
     { type: 'section', fields },
   ];
 
-  if (lead.message) {
+  if (lead.sampleNpis && lead.sampleNpis.length > 0) {
     blocks.push({
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Message*\n${lead.message}` },
-    });
-  }
-  if (lead.npiList) {
-    blocks.push({
-      type: 'section',
-      text: { type: 'mrkdwn', text: `*NPI list*\n${lead.npiList}` },
+      text: {
+        type: 'mrkdwn',
+        text: `*Sample NPI list (${lead.sampleNpis.length})*\n${lead.sampleNpis.join(', ')}`,
+      },
     });
   }
 

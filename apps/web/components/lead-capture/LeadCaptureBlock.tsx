@@ -10,11 +10,16 @@ import type { LeadIntent } from '@/lib/leads/persistLead';
  *
  * Honest framing: this collects an email + intent so an operator can
  * follow up. It does NOT enroll a pilot, grant access, or constitute
- * any verification. Copy must avoid the truth-contract banned phrases.
+ * any verification. Copy must avoid the truth-contract banned phrases
+ * and must NOT promise a response window.
  *
- * Optional surfaces:
- *   - showNpiList: render a small textarea so an employer can paste a
- *     candidate list. Field is length-bounded server-side (≤2000 chars).
+ * Data minimization:
+ *   - No free-text "message" / "notes" / "description" field. The form
+ *     intentionally has no surface that could attract PHI, patient
+ *     names, or other sensitive copy.
+ *   - showNpiList exposes a single textarea whose contents are
+ *     sanitized server-side: only 10-digit NPI-like strings survive,
+ *     capped at MAX_SAMPLE_NPIS. Surrounding text is dropped.
  */
 
 const INTENT_OPTIONS: ReadonlyArray<{ value: LeadIntent; label: string }> = [
@@ -58,7 +63,6 @@ export function LeadCaptureBlock({
       email: data.get('email'),
       intent: data.get('intent'),
       source,
-      message: data.get('message') || undefined,
       npiList: showNpiList ? data.get('npiList') || undefined : undefined,
     };
 
@@ -96,9 +100,10 @@ export function LeadCaptureBlock({
         data-testid="lead-capture-success"
         role="status"
       >
-        <h2 className="text-base font-semibold">Thanks — we got it.</h2>
+        <h2 className="text-base font-semibold">Received.</h2>
         <p className="mt-2 text-sm">
-          We&rsquo;ll reply within one business day. Reference:{' '}
+          We&rsquo;ve received your request and will follow up with the
+          next useful step. Reference:{' '}
           <code className="rounded bg-emerald-100 px-1 py-0.5 text-xs">
             {status.leadId}
           </code>
@@ -147,24 +152,10 @@ export function LeadCaptureBlock({
         </select>
       </Field>
 
-      <Field
-        id="lead-message"
-        label="Anything we should know? (optional)"
-        error={errorOf(status, 'message')}
-      >
-        <textarea
-          id="lead-message"
-          name="message"
-          rows={3}
-          maxLength={2000}
-          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-foreground focus:outline-none"
-        />
-      </Field>
-
       {showNpiList && (
         <Field
           id="lead-npi-list"
-          label="Paste a list of NPIs (optional, comma- or newline-separated)"
+          label="Paste a list of NPIs (optional, 10-digit numbers only — anything else is dropped)"
           error={errorOf(status, 'npiList')}
         >
           <textarea

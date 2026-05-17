@@ -27,12 +27,20 @@ import { dirname, join } from 'node:path';
 
 export type LeadIntent = 'waitlist' | 'pilot' | 'walkthrough' | 'early_access';
 
+/** Maximum number of NPIs persisted from a single submission. */
+export const MAX_SAMPLE_NPIS = 25;
+
 export interface LeadInput {
   email: string;
   intent: LeadIntent;
   source?: string;
-  message?: string;
-  npiList?: string;
+  /**
+   * Sanitized, deduplicated array of 10-digit NPI-like strings extracted
+   * from the submission. Bounded by MAX_SAMPLE_NPIS. The submitter may
+   * paste surrounding text in the form; only digit-run matches are kept
+   * and the raw text is dropped at the validation boundary.
+   */
+  sampleNpis?: string[];
   /** Optional coarse caller context — already-hashed on arrival. */
   ipHash?: string;
   /** Optional truncated user-agent (≤200 chars). */
@@ -42,6 +50,8 @@ export interface LeadInput {
 export interface PersistedLead extends LeadInput {
   leadId: string;
   createdAt: string;
+  /** Count of sampleNpis at persistence time (denormalized for Slack). */
+  sampleNpiCount: number;
 }
 
 /** Resolve the JSONL path with env-var override. */
@@ -76,10 +86,35 @@ export async function persistLead(input: LeadInput): Promise<PersistedLead> {
     leadId: randomUUID(),
     createdAt: new Date().toISOString(),
     ...input,
+    sampleNpiCount: input.sampleNpis?.length ?? 0,
   };
   const line = JSON.stringify(record) + '\n';
   await appendFile(target, line, { encoding: 'utf8', mode: 0o600 });
   return record;
+}
+
+/**
+ * Extract NPI-like 10-digit strings from arbitrary input. The submitter
+ * may paste anything (a CSV, an email signature, a note). Only the
+ * 10-digit digit-runs are kept; everything else is discarded. The result
+ * is deduplicated and capped at MAX_SAMPLE_NPIS.
+ *
+ * This is a sanitizer, not a Luhn-style NPI validator: it does NOT
+ * verify the check digit. The purpose is data-minimization at the
+ * persistence boundary, not source-verification.
+ */
+export function sanitizeNpiList(raw: unknown): string[] {
+  if (typeof raw !== 'string' || raw.length === 0) return [];
+  const matches = raw.match(/(?<!\d)\d{10}(?!\d)/g) ?? [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of matches) {
+    if (seen.has(m)) continue;
+    seen.add(m);
+    out.push(m);
+    if (out.length >= MAX_SAMPLE_NPIS) break;
+  }
+  return out;
 }
 
 /**
@@ -132,22 +167,49 @@ export function validateLeadInput(
     errors.intent = 'intent must be one of: waitlist, pilot, walkthrough, early_access';
   }
 
-  // Optional fields — bound the length to keep the JSONL row reasonable.
+  // `source` is a bounded, controlled-vocabulary tag set by the client
+  // surface (e.g. "launch_page", "demo_employer"). It is the only
+  // free-text-ish field that survives the boundary.
   const source = b.source;
   if (source !== undefined && (typeof source !== 'string' || source.length > 200)) {
     errors.source = 'source must be a string ≤200 chars';
   }
-  const message = b.message;
-  if (message !== undefined && (typeof message !== 'string' || message.length > 2000)) {
-    errors.message = 'message must be a string ≤2000 chars';
-  }
-  const npiList = b.npiList;
-  if (npiList !== undefined && (typeof npiList !== 'string' || npiList.length > 2000)) {
+
+  // Submitters may paste an NPI list (with or without surrounding text)
+  // in either `npiList` (legacy field name from the client) or
+  // `sampleNpis` (array form). The surrounding text is intentionally
+  // dropped here — only the 10-digit digit-runs survive sanitation.
+  //
+  // We DO NOT accept or persist a free-text `message` field. If a
+  // submitter sends one, the route still succeeds (so the form is not
+  // brittle), but the text is silently dropped before persistence.
+  const npiListRaw = b.npiList;
+  if (
+    npiListRaw !== undefined
+    && (typeof npiListRaw !== 'string' || npiListRaw.length > 2000)
+  ) {
     errors.npiList = 'npiList must be a string ≤2000 chars';
+  }
+  const sampleNpisRaw = b.sampleNpis;
+  if (sampleNpisRaw !== undefined && !Array.isArray(sampleNpisRaw)) {
+    errors.sampleNpis = 'sampleNpis must be an array of 10-digit strings';
   }
 
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
+  }
+
+  const sanitizedFromString = sanitizeNpiList(npiListRaw);
+  const sanitizedFromArray = sanitizeNpiList(
+    Array.isArray(sampleNpisRaw) ? sampleNpisRaw.join(' ') : undefined,
+  );
+  const merged: string[] = [];
+  const seen = new Set<string>();
+  for (const n of [...sanitizedFromArray, ...sanitizedFromString]) {
+    if (seen.has(n)) continue;
+    seen.add(n);
+    merged.push(n);
+    if (merged.length >= MAX_SAMPLE_NPIS) break;
   }
 
   return {
@@ -156,8 +218,7 @@ export function validateLeadInput(
       email,
       intent: intent as LeadIntent,
       source: typeof source === 'string' ? source : undefined,
-      message: typeof message === 'string' ? message : undefined,
-      npiList: typeof npiList === 'string' ? npiList : undefined,
+      sampleNpis: merged.length > 0 ? merged : undefined,
     },
   };
 }

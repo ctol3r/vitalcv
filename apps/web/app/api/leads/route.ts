@@ -31,6 +31,12 @@ import { deliverLeadToSlack } from '@/lib/leads/slack';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** Max request body size accepted by /api/leads. The form only collects
+ *  email + intent + a small NPI sample, so 8 KB is generous. Larger
+ *  payloads are rejected before JSON.parse to bound parser cost and
+ *  block accidental document-paste / file-paste. */
+const MAX_BODY_BYTES = 8 * 1024;
+
 function extractClientIp(request: Request): string {
   const xff = request.headers.get('x-forwarded-for');
   if (xff) {
@@ -43,9 +49,37 @@ function extractClientIp(request: Request): string {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Fast-fail on an oversize Content-Length header before reading the
+  // body. A streaming client can still understate the header; we
+  // re-check the actual byte length below.
+  const declaredLength = Number(request.headers.get('content-length') ?? '');
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: 'payload_too_large' },
+      { status: 413 },
+    );
+  }
+
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: 'invalid_json' },
+      { status: 400 },
+    );
+  }
+
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: 'payload_too_large' },
+      { status: 413 },
+    );
+  }
+
   let body: unknown;
   try {
-    body = await request.json();
+    body = raw.trim().length === 0 ? {} : JSON.parse(raw);
   } catch {
     return NextResponse.json(
       { ok: false, error: 'invalid_json' },
