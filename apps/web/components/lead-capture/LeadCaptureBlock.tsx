@@ -106,11 +106,11 @@ export function LeadCaptureBlock({
           </p>
         )}
         <h3 className="mt-2 text-base font-semibold leading-snug text-foreground sm:text-lg">
-          You&apos;re on the list.
+          Recorded.
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Recorded as {INTENT_LABEL[intent].toLowerCase()}. We&apos;ll be in
-          touch from a real human inbox.
+          Intent: {INTENT_LABEL[intent].toLowerCase()}. A person responds from
+          a real inbox.
         </p>
         <button
           type="button"
@@ -120,7 +120,7 @@ export function LeadCaptureBlock({
           }}
           className="mt-4 text-xs font-medium text-foreground/60 underline-offset-4 hover:underline"
         >
-          Add another email
+          Submit another
         </button>
       </section>
     );
@@ -189,8 +189,8 @@ export function LeadCaptureBlock({
         </p>
       )}
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        Captured locally on submit. No backend POST in this build — operator
-        wires the real handler later. No tracking pixels.
+        Stored in your browser on submit. No analytics, no tracking pixels.
+        Server-side capture wires in a later release.
       </p>
     </section>
   );

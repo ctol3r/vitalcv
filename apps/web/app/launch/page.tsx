@@ -166,38 +166,65 @@ export default function LaunchPage() {
         </div>
       </section>
 
-      {/* What we don't claim */}
+      {/* Honest scope — what VitalCV does today vs what remains manual */}
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:py-16">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            What VitalCV does not do
+            Operational scope
           </p>
-          <ul className="mt-6 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
-            <li className="rounded-md border border-border bg-card p-4">
-              <span className="font-medium text-foreground">
-                Does not finish credentialing.
-              </span>{' '}
-              Hospitals still own the credentialing decision.
-            </li>
-            <li className="rounded-md border border-border bg-card p-4">
-              <span className="font-medium text-foreground">
-                Does not certify compliance.
-              </span>{' '}
-              VitalCV is a readiness preview, not a compliance program.
-            </li>
-            <li className="rounded-md border border-border bg-card p-4">
-              <span className="font-medium text-foreground">
-                Does not transfer risk.
-              </span>{' '}
-              Reviewers remain responsible for their decisions.
-            </li>
-            <li className="rounded-md border border-border bg-card p-4">
-              <span className="font-medium text-foreground">
-                Does not replace primary sources.
-              </span>{' '}
-              We READ public sources; we don&apos;t become one.
-            </li>
-          </ul>
+          <h2 className="mt-3 text-xl font-semibold leading-snug text-foreground sm:text-2xl">
+            What VitalCV does today.
+          </h2>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            {/* Does today */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Does today
+              </p>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground/80">
+                <li className="rounded-md border border-border bg-card p-3">
+                  Reads NPPES, OIG LEIE, and PECOS for a given NPI.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Renders source-backed readiness with explicit tier per fact.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Issues ES256-signed receipts a reviewer can independently verify.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Records issuer outcomes (confirmed / unable-to-verify) with audit trail.
+                </li>
+              </ul>
+            </div>
+            {/* Remains manual / out of scope */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Remains manual / out of scope
+              </p>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+                <li className="rounded-md border border-border bg-card p-3">
+                  Hospital credentialing decision — hospitals still own this.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Compliance program — VitalCV is a readiness preview, not certification.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Risk transfer — reviewers remain responsible for their decisions.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  State-board portals requiring institutional access — surfaced as &quot;access required&quot;, not as clinician fault.
+                </li>
+                <li className="rounded-md border border-border bg-card p-3">
+                  Primary-source replacement — VitalCV reads sources; it does not become one.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">
+            This breakdown is structurally permanent; the &quot;Does today&quot; column
+            grows as features ship. We do not promote planned features into
+            this column ahead of code.
+          </p>
         </div>
       </section>
 
@@ -230,9 +257,9 @@ export default function LaunchPage() {
 
           <LeadCaptureBlock
             className="mt-6"
-            eyebrow="Skip the form. Talk to a human."
-            heading="Request a pilot, walkthrough, or early access."
-            body="One email, one intent, one human follow-up. No marketing sequences."
+            eyebrow="Direct contact"
+            heading="Pilot, walkthrough, or early access."
+            body="One email. One intent. One human response. No marketing sequences."
             defaultIntent="pilot"
             storageKey="launch-bottom"
           />

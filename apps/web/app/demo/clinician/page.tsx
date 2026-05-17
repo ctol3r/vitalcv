@@ -74,10 +74,8 @@ export default function ClinicianDemoPage() {
             Finally reusable.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            One source-backed readiness preview that every reviewer sees — no
-            re-submission, no restart. This page is a fixture render; the
-            shape matches what the live product produces against real public
-            sources.
+            One source-backed readiness preview; every reviewer sees the same
+            one. Fixture data on this page; live product shape is identical.
           </p>
         </div>
       </header>
@@ -212,8 +210,8 @@ export default function ClinicianDemoPage() {
         <LeadCaptureBlock
           className="mt-10"
           eyebrow="Clinician early access"
-          heading="Be among the first clinicians on VitalCV."
-          body="One readiness preview. Reusable across every employer that accepts it."
+          heading="Clinician early access."
+          body="One readiness preview, reusable across every employer that accepts it."
           defaultIntent="early_access"
           storageKey="clinician-demo"
         />

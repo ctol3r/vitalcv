@@ -205,8 +205,8 @@ export default function EmployerDemoPage() {
         <LeadCaptureBlock
           className="mt-10"
           eyebrow="Employer pilot"
-          heading="Run a pilot at your hospital."
-          body="See source-backed readiness on your actual application queue. We meet you where your workflow is."
+          heading="Employer pilot request."
+          body="Source-backed readiness on your actual queue. We meet your workflow, not the other way around."
           defaultIntent="pilot"
           storageKey="employer-demo"
         />

@@ -227,8 +227,8 @@ export default function IssuerDemoPage() {
         <LeadCaptureBlock
           className="mt-10"
           eyebrow="Issuer integration"
-          heading="Become a VitalCV issuer."
-          body="Confirm a credential once; it carries forward to every reviewer. Less queue. Less redundant work."
+          heading="Issuer integration request."
+          body="Confirm a credential once; it carries forward to every reviewer. Less queue. Less redundant verification."
           defaultIntent="walkthrough"
           storageKey="issuer-demo"
         />
