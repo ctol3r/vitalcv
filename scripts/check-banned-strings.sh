@@ -2,18 +2,31 @@
 # check-banned-strings.sh — fail CI when a public surface contains a
 # truth-contract banned phrase.
 #
-# Patterns:    scripts/banned-strings.list (one regex per line, '#' comments).
-# Scan scope:  apps/web/app, apps/web/lib, apps/web/components,
-#              apps/marketing/app, apps/marketing/components.
-#              Additional paths may be passed as arguments to extend the
-#              scan, e.g. `check-banned-strings.sh apps/issuer-api/src`.
-# Allowlist:   tests that assert absence, the policy doc itself, the
-#              banned-strings list, this script, and the workflow file.
-#              The grep is `-iE` case-insensitive extended regex.
+# Patterns:    scripts/banned-strings.list (one ERE regex per line,
+#              '#' comments).
+# Scan modes:
+#   1. Args:  any positional arg that is a directory or file is added
+#             to the scan set (after a repo-relative resolution).
+#   2. PR diff: if BANNED_STRINGS_DIFF_BASE is set (e.g. "origin/main"),
+#             or running under GitHub Actions on a pull_request with
+#             GITHUB_BASE_REF, the script restricts the scan to the
+#             union of files changed since the merge-base, intersected
+#             with the default scope below.
+#   3. Default scope: apps/web/{app,lib,components},
+#             apps/marketing/{app,components}, docs/ops,
+#             docs/architecture.
+# Allowlist:   files that legitimately contain banned phrases — the
+#              policy doc, the list, this script, the workflow, test
+#              files that assert absence, archived code under
+#              apps/web/app/_archive, and a small set of lib/* files
+#              that contain explicit "does NOT X" negation copy.
+#              Matched as a substring against the repo-relative path.
+#              No broad globs — every entry is a specific path or a
+#              well-bounded prefix.
 #
 # Exit codes:
 #   0  no hits
-#   1  one or more hits (prints `path:line: matched-phrase: line`)
+#   1  one or more hits (prints `path:line: matched-phrase` + the line)
 #   2  configuration error (missing list, no files in scope)
 
 set -euo pipefail
@@ -26,32 +39,89 @@ if [[ ! -f "$LIST_FILE" ]]; then
   exit 2
 fi
 
-# Default scan scope = the public surfaces. Operators can append more
-# directories by passing them as arguments (each must exist).
+# Default scan scope — public surfaces + the truth-contract docs.
 DEFAULT_SCOPE=(
   "apps/web/app"
   "apps/web/lib"
   "apps/web/components"
   "apps/marketing/app"
   "apps/marketing/components"
+  "docs/ops"
+  "docs/architecture"
 )
 
-SCOPE=()
-for d in "${DEFAULT_SCOPE[@]}"; do
-  if [[ -d "${REPO_ROOT}/${d}" ]]; then
-    SCOPE+=("${REPO_ROOT}/${d}")
+# Resolve a path arg (file or dir, repo-relative or absolute) into an
+# absolute path. Echoes nothing and returns 1 if it doesn't exist.
+resolve_target() {
+  local arg="$1"
+  if [[ -e "${REPO_ROOT}/${arg}" ]]; then
+    printf '%s' "${REPO_ROOT}/${arg}"
+    return 0
   fi
-done
+  if [[ -e "$arg" ]]; then
+    printf '%s' "$arg"
+    return 0
+  fi
+  return 1
+}
+
+SCOPE=()
+EXPLICIT_ARGS=0
 for arg in "$@"; do
-  if [[ -d "${REPO_ROOT}/${arg}" ]]; then
-    SCOPE+=("${REPO_ROOT}/${arg}")
-  elif [[ -d "$arg" ]]; then
-    SCOPE+=("$arg")
-  else
-    echo "check-banned-strings: scope arg not a directory: $arg" >&2
+  EXPLICIT_ARGS=1
+  resolved="$(resolve_target "$arg" || true)"
+  if [[ -z "$resolved" ]]; then
+    echo "check-banned-strings: scope arg not found: $arg" >&2
     exit 2
   fi
+  SCOPE+=("$resolved")
 done
+
+# PR-diff mode — only kicks in if no explicit args were passed.
+DIFF_BASE=""
+if [[ $EXPLICIT_ARGS -eq 0 ]]; then
+  if [[ -n "${BANNED_STRINGS_DIFF_BASE:-}" ]]; then
+    DIFF_BASE="$BANNED_STRINGS_DIFF_BASE"
+  elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+    DIFF_BASE="origin/${GITHUB_BASE_REF}"
+  fi
+fi
+
+if [[ -n "$DIFF_BASE" ]]; then
+  # Intersect changed files with the default scope. If git or the base
+  # ref is unavailable, fall back to a full default-scope scan rather
+  # than silently passing.
+  changed_files=()
+  if git -C "$REPO_ROOT" rev-parse --verify "$DIFF_BASE" >/dev/null 2>&1; then
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      for prefix in "${DEFAULT_SCOPE[@]}"; do
+        if [[ "$f" == "$prefix"/* ]]; then
+          full="${REPO_ROOT}/${f}"
+          [[ -e "$full" ]] && changed_files+=("$full")
+          break
+        fi
+      done
+    done < <(git -C "$REPO_ROOT" diff --name-only "$DIFF_BASE"...HEAD 2>/dev/null || true)
+  else
+    echo "check-banned-strings: diff base '$DIFF_BASE' not resolvable; falling back to full scope." >&2
+  fi
+  if [[ ${#changed_files[@]} -gt 0 ]]; then
+    SCOPE=("${changed_files[@]}")
+    echo "check-banned-strings: PR-diff mode — scanning ${#SCOPE[@]} changed file(s) against $DIFF_BASE."
+  fi
+fi
+
+# Fall back to the default scope when no explicit args and either no
+# diff base was set, the diff base was unresolvable, or the diff was
+# empty.
+if [[ ${#SCOPE[@]} -eq 0 ]]; then
+  for d in "${DEFAULT_SCOPE[@]}"; do
+    if [[ -d "${REPO_ROOT}/${d}" ]]; then
+      SCOPE+=("${REPO_ROOT}/${d}")
+    fi
+  done
+fi
 
 if [[ ${#SCOPE[@]} -eq 0 ]]; then
   echo "check-banned-strings: no scan directories present" >&2
@@ -61,8 +131,8 @@ fi
 # Allowlist — files that legitimately contain banned phrases. Per
 # apps/web/CLAUDE.md, allowed-use cases are:
 #   - the policy doc itself
-#   - this list / this script / the workflow
-#   - tests asserting the strings are absent
+#   - this list / this script / the workflow / the gate doc
+#   - test files that assert absence
 #   - negative/safety copy that explicitly disclaims (e.g. "does NOT
 #     complete credentialing")
 #   - runtime guards whose regex patterns must contain the phrase to
@@ -74,6 +144,12 @@ ALLOWLIST_SUBSTRINGS=(
   "scripts/banned-strings.list"
   "scripts/check-banned-strings.sh"
   ".github/workflows/banned-strings.yml"
+  "docs/ops/banned-strings-gate.md"
+  # Policy / audit docs whose entire purpose is to enumerate the
+  # banned phrases. These quote the contract; they do not violate it.
+  "docs/ops/vitalcv-public-claims-matrix.md"
+  "docs/ops/vitalcv-completion-board.md"
+  "docs/ops/code-red-final-verification-2026-05-07.md"
   "__tests__/banned-"
   "/banned-verified-label.test"
   "/check-banned-strings.test"
@@ -111,35 +187,67 @@ if [[ ${#PATTERNS[@]} -eq 0 ]]; then
   exit 2
 fi
 
+# Pre-process the SCOPE list into something grep -R can consume. grep
+# accepts both directories (recurse) and files (scan), so the same
+# array works for default-scope and PR-diff modes.
+INCLUDES=(
+  --include='*.ts' --include='*.tsx'
+  --include='*.js' --include='*.jsx'
+  --include='*.mjs' --include='*.cjs'
+  --include='*.md'  --include='*.mdx'
+  --include='*.json' --include='*.html'
+)
+
+# If SCOPE contains only specific files (PR-diff mode), --include rules
+# are still applied by grep but no recursion is needed; we filter to
+# files whose extension matches the scan set manually so we still
+# respect the same file-type allowlist.
+FILTERED_SCOPE=()
+for t in "${SCOPE[@]}"; do
+  if [[ -d "$t" ]]; then
+    FILTERED_SCOPE+=("$t")
+  elif [[ -f "$t" ]]; then
+    case "$t" in
+      *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.md|*.mdx|*.json|*.html)
+        FILTERED_SCOPE+=("$t")
+        ;;
+      *)
+        ;;
+    esac
+  fi
+done
+
+if [[ ${#FILTERED_SCOPE[@]} -eq 0 ]]; then
+  echo "check-banned-strings: no scannable files (every changed file is outside the file-type allowlist)."
+  exit 0
+fi
+
 HITS=0
+HITS_LOG=""
 for pattern in "${PATTERNS[@]}"; do
-  # -I skip binary, -n line numbers, -E ext regex, -i case-insensitive,
-  # -R recurse, --include filters to source-y file types so node_modules
-  # / build artifacts are skipped if accidentally in scope.
   while IFS= read -r raw; do
     [[ -z "$raw" ]] && continue
     file="${raw%%:*}"
-    rest="${raw#*:}"
+    after_file="${raw#*:}"
+    line_no="${after_file%%:*}"
+    rest="${after_file#*:}"
     rel="${file#${REPO_ROOT}/}"
     if is_allowlisted "$rel"; then
       continue
     fi
-    printf '%s: %s: %s\n' "$rel" "$pattern" "$rest"
     HITS=$((HITS + 1))
-  done < <(grep -RInIE \
-    --include='*.ts' --include='*.tsx' \
-    --include='*.js' --include='*.jsx' \
-    --include='*.mjs' --include='*.cjs' \
-    --include='*.md' --include='*.mdx' \
-    --include='*.json' --include='*.html' \
-    -- "$pattern" "${SCOPE[@]}" 2>/dev/null || true)
+    line_out="$(printf '%s:%s: %s — %s' "$rel" "$line_no" "$pattern" "$rest")"
+    printf '%s\n' "$line_out"
+    HITS_LOG="${HITS_LOG}${line_out}"$'\n'
+  done < <(grep -RInIE "${INCLUDES[@]}" -- "$pattern" "${FILTERED_SCOPE[@]}" 2>/dev/null || true)
 done
 
 if [[ $HITS -gt 0 ]]; then
-  echo "" >&2
-  echo "check-banned-strings: $HITS hit(s). See apps/web/CLAUDE.md for the truth contract." >&2
+  printf '\n' >&2
+  echo "check-banned-strings: $HITS hit(s) across ${#PATTERNS[@]} pattern(s)." >&2
+  echo "See CLAUDE.md and docs/ops/banned-strings-gate.md for the truth contract." >&2
   exit 1
 fi
 
-echo "check-banned-strings: CLEAN — scanned ${#PATTERNS[@]} pattern(s) over ${#SCOPE[@]} directory tree(s)."
+echo "check-banned-strings: CLEAN — ${#PATTERNS[@]} pattern(s) over ${#FILTERED_SCOPE[@]} path(s)."
 exit 0

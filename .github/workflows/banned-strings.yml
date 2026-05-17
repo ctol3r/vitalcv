@@ -9,9 +9,12 @@ on:
       - 'apps/web/components/**'
       - 'apps/marketing/app/**'
       - 'apps/marketing/components/**'
+      - 'docs/ops/**'
+      - 'docs/architecture/**'
       - 'scripts/banned-strings.list'
       - 'scripts/check-banned-strings.sh'
       - 'scripts/__tests__/check-banned-strings.test.sh'
+      - 'apps/web/__tests__/banned-strings-gate.test.ts'
       - '.github/workflows/banned-strings.yml'
   push:
     branches: [main]
@@ -21,9 +24,12 @@ on:
       - 'apps/web/components/**'
       - 'apps/marketing/app/**'
       - 'apps/marketing/components/**'
+      - 'docs/ops/**'
+      - 'docs/architecture/**'
       - 'scripts/banned-strings.list'
       - 'scripts/check-banned-strings.sh'
       - 'scripts/__tests__/check-banned-strings.test.sh'
+      - 'apps/web/__tests__/banned-strings-gate.test.ts'
       - '.github/workflows/banned-strings.yml'
 
 permissions:
@@ -36,9 +42,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Deeper history so PR-diff mode can resolve the merge base
+          # against origin/$GITHUB_BASE_REF.
+          fetch-depth: 0
 
-      - name: Self-test the scanner against fixtures
+      - name: Self-test the scanner against the legacy bash fixture
         run: bash scripts/__tests__/check-banned-strings.test.sh
 
-      - name: Run banned-strings scan
+      - name: Run banned-strings scan (PR-diff mode on pull_request)
+        env:
+          # GITHUB_BASE_REF is set on pull_request events; the script
+          # uses it to scan only files changed since the merge base,
+          # intersected with the default scope. On push events (no
+          # GITHUB_BASE_REF) the script falls back to a full
+          # default-scope scan.
+          GITHUB_BASE_REF: ${{ github.base_ref }}
         run: bash scripts/check-banned-strings.sh

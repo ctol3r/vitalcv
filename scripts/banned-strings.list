@@ -15,7 +15,7 @@
 
 # Compliance / certification overclaim
 HIPAA compliant
-SOC2 certified
+SOC ?2 certified
 NCQA certified
 certified compliant
 
@@ -33,9 +33,13 @@ instant credentialing
 legally accepted
 risk transferred
 
-# Bare "Verified" label markers (rendered between tags or as a label
-# attribute value). The script applies these in addition to the list
-# above; they live there to keep the regex closer to the policy
-# definition.
-label\s*[:=]\s*['"]Verified['"]
+# Bare "Verified" label markers — match rendered JSX text and label /
+# status attribute values. The quote class is a literal character set
+# containing ASCII single + double quotes and the four common
+# smart-quote glyphs (U+2018, U+2019, U+201C, U+201D) so a cleaned-up
+# copy pass cannot hide a violation behind curly quotes. The phrase ban
+# is specifically for the BARE word "Verified" used as a status —
+# compound labels such as "Source-verified" remain allowed because the
+# hyphen breaks the surrounding-quote anchor.
+(label|status)\s*[:=]\s*['"‘’“”]Verified['"‘’“”]
 >\s*Verified\s*<
