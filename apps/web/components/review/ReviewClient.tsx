@@ -1562,10 +1562,15 @@ function ReviewClientLoaded({
                 <span className="text-[var(--vt-success)] text-sm">✔</span>
                 <p className="text-foreground/70 text-sm font-medium">Audit-boundary entry captured</p>
               </div>
-              <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1 space-y-1.5">
-                <p className="text-muted-foreground/40 text-[10px] uppercase tracking-widest">Audit record</p>
-                <p className="text-foreground text-[10px] font-mono break-all">{actionState.state.auditEventId}</p>
-                <p className="text-muted-foreground/40 text-[10px]">{new Date(actionState.state.timestamp).toLocaleString()}</p>
+              <div className="rounded-lg border border-white/8 bg-card px-3 py-2 mt-1">
+                <p
+                  className="text-foreground text-[10px] font-mono break-all"
+                  data-testid="employer-accept-audit-entry"
+                  data-audit-event-id={actionState.state.auditEventId}
+                  data-audit-recorded-at={actionState.state.timestamp}
+                >
+                  {`Audit entry: ${actionState.state.auditEventId} · ${new Date(actionState.state.timestamp).toLocaleString()}`}
+                </p>
               </div>
 
             </TrustStateCard>

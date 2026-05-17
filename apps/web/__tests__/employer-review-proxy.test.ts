@@ -271,6 +271,32 @@ describe('/api/employer-review/[entityId]/[action] proxy', () => {
     });
   });
 
+  it('preserves auditEventId and timestamp on accept so the UI can render the audit-entry line', async () => {
+    authMock.mockResolvedValue({ userId: 'clerk-user-1' });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildActionResponse('accept'), 201));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('../app/api/employer-review/[entityId]/[action]/route');
+    const response = await POST(new NextRequest('http://localhost/api/employer-review/entity-1/accept', {
+      method: 'POST',
+      body: JSON.stringify({ acceptanceScope: 'pilot' }),
+      headers: { 'Content-Type': 'application/json' },
+    }) as never, {
+      params: Promise.resolve({ entityId: 'entity-1', action: 'accept' }),
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as {
+      ok: boolean;
+      state: { auditEventId: string; timestamp: string; action: string };
+    };
+    expect(body.ok).toBe(true);
+    expect(body.state.action).toBe('accept');
+    // The two fields the ReviewClient renders as the audit-entry line.
+    expect(body.state.auditEventId).toBe('audit-accept-1');
+    expect(body.state.timestamp).toBe('2026-03-23T19:00:00.000Z');
+  });
+
   it('forwards share-packet generation and validates the share-token response', async () => {
     authMock.mockResolvedValue({ userId: 'clerk-user-1' });
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
