@@ -47,6 +47,8 @@ export interface DemoClinician {
     name: string;
     issuer: string;
     issuedOn: string;
+    expiresOn?: string;
+    freshness: 'current' | 'expiring_soon' | 'expired' | 'no_expiry';
     tier: SourceTier;
   }>;
 }
@@ -105,18 +107,24 @@ export const DEMO_CLINICIAN: DemoClinician = {
       name: 'PA-C — Physician Assistant Certified',
       issuer: 'NCCPA',
       issuedOn: '2021-08-12',
+      expiresOn: '2027-08-12',
+      freshness: 'current',
       tier: 'T4',
     },
     {
       name: 'BLS — Basic Life Support',
       issuer: 'American Heart Association',
       issuedOn: '2024-09-03',
+      expiresOn: '2026-09-03',
+      freshness: 'expiring_soon',
       tier: 'T4',
     },
     {
       name: 'CA RN License',
       issuer: 'CA Board of Registered Nursing',
       issuedOn: '2020-04-22',
+      expiresOn: '2028-04-22',
+      freshness: 'current',
       tier: 'T3',
     },
   ],
@@ -130,6 +138,11 @@ export interface DemoEmployerApplication {
     specialty: string;
   };
   appliedAt: string;
+  /** When the source-backed readiness was last refreshed for this candidate. */
+  sourceCheckedAt: string;
+  /** How many of the four source lanes (NPPES/OIG/PECOS/State) returned source-backed signal. */
+  sourcesCompleted: number;
+  sourcesTotal: number;
   role: string;
   organization: string;
   state: 'review_recommended' | 'move_forward' | 'waiting_on_sources';
@@ -146,6 +159,9 @@ export const DEMO_EMPLOYER_APPLICATIONS: ReadonlyArray<DemoEmployerApplication> 
       specialty: 'Physician Assistant',
     },
     appliedAt: '2026-05-13T19:00:00.000Z',
+    sourceCheckedAt: '2026-05-15T14:42:00.000Z',
+    sourcesCompleted: 3,
+    sourcesTotal: 4,
     role: 'PA-C — Urgent Care',
     organization: 'Bay Area Health Network',
     state: 'move_forward',
@@ -166,6 +182,9 @@ export const DEMO_EMPLOYER_APPLICATIONS: ReadonlyArray<DemoEmployerApplication> 
       specialty: 'Internal Medicine',
     },
     appliedAt: '2026-05-14T11:30:00.000Z',
+    sourceCheckedAt: '2026-05-15T14:15:00.000Z',
+    sourcesCompleted: 2,
+    sourcesTotal: 4,
     role: 'Hospitalist — IM',
     organization: 'Bay Area Health Network',
     state: 'review_recommended',
@@ -185,6 +204,9 @@ export const DEMO_EMPLOYER_APPLICATIONS: ReadonlyArray<DemoEmployerApplication> 
       specialty: 'Family Nurse Practitioner',
     },
     appliedAt: '2026-05-14T16:45:00.000Z',
+    sourceCheckedAt: '2026-05-15T13:58:00.000Z',
+    sourcesCompleted: 1,
+    sourcesTotal: 4,
     role: 'NP — Family Med',
     organization: 'Bay Area Health Network',
     state: 'waiting_on_sources',
@@ -205,6 +227,12 @@ export interface DemoIssuerRequest {
   status: 'received' | 'in_review' | 'confirmed' | 'unable_to_verify';
   receivedAt: string;
   notes?: string;
+  /** Audit trail entries — who/what/when, in chronological order. */
+  audit: ReadonlyArray<{
+    at: string;
+    actor: string;
+    action: string;
+  }>;
 }
 
 export const DEMO_ISSUER_REQUESTS: ReadonlyArray<DemoIssuerRequest> = [
@@ -218,6 +246,11 @@ export const DEMO_ISSUER_REQUESTS: ReadonlyArray<DemoIssuerRequest> = [
     status: 'confirmed',
     receivedAt: '2026-05-12T10:15:00.000Z',
     notes: 'Confirmed via registrar portal; degree on file 2018-05-30.',
+    audit: [
+      { at: '2026-05-12T10:15:00.000Z', actor: 'system', action: 'Request received' },
+      { at: '2026-05-12T11:02:00.000Z', actor: 'registrar.demo', action: 'Opened for review' },
+      { at: '2026-05-13T09:24:00.000Z', actor: 'registrar.demo', action: 'Confirmed — degree on file' },
+    ],
   },
   {
     requestId: 'req-002',
@@ -228,6 +261,10 @@ export const DEMO_ISSUER_REQUESTS: ReadonlyArray<DemoIssuerRequest> = [
     issuerOrg: 'American Board of Internal Medicine',
     status: 'in_review',
     receivedAt: '2026-05-14T14:00:00.000Z',
+    audit: [
+      { at: '2026-05-14T14:00:00.000Z', actor: 'system', action: 'Request received' },
+      { at: '2026-05-15T08:30:00.000Z', actor: 'abim.demo', action: 'Opened for review' },
+    ],
   },
   {
     requestId: 'req-003',
@@ -240,6 +277,12 @@ export const DEMO_ISSUER_REQUESTS: ReadonlyArray<DemoIssuerRequest> = [
     receivedAt: '2026-05-13T09:00:00.000Z',
     notes:
       'HR was unable to confirm dates; clinician asked to provide pay stubs or W-2 to resolve.',
+    audit: [
+      { at: '2026-05-13T09:00:00.000Z', actor: 'system', action: 'Request received' },
+      { at: '2026-05-13T15:18:00.000Z', actor: 'hr.demo', action: 'Opened for review' },
+      { at: '2026-05-14T10:42:00.000Z', actor: 'hr.demo', action: 'Marked unable to verify (records unavailable)' },
+      { at: '2026-05-14T11:00:00.000Z', actor: 'system', action: 'Notified clinician — additional artifacts requested' },
+    ],
   },
 ];
 

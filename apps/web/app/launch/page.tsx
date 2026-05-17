@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { Button } from '@/components/ui/button';
+import { LeadCaptureBlock } from '@/components/lead-capture/LeadCaptureBlock';
+import { FutureLegitimacyBlock } from '@/components/legitimacy/FutureLegitimacyBlock';
 
 /**
  * /launch — focused public landing pad.
@@ -199,7 +201,10 @@ export default function LaunchPage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Legitimacy placeholders — operator fills with real metrics as they arrive. */}
+      <FutureLegitimacyBlock />
+
+      {/* CTA + lead capture */}
       <section>
         <div className="mx-auto w-full max-w-5xl px-4 py-16 sm:py-20">
           <div className="rounded-md border border-border bg-card p-8 sm:p-12">
@@ -222,6 +227,15 @@ export default function LaunchPage() {
               </Button>
             </div>
           </div>
+
+          <LeadCaptureBlock
+            className="mt-6"
+            eyebrow="Skip the form. Talk to a human."
+            heading="Request a pilot, walkthrough, or early access."
+            body="One email, one intent, one human follow-up. No marketing sequences."
+            defaultIntent="pilot"
+            storageKey="launch-bottom"
+          />
         </div>
       </section>
     </main>

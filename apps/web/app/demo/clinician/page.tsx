@@ -3,11 +3,35 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { Button } from '@/components/ui/button';
+import { LeadCaptureBlock } from '@/components/lead-capture/LeadCaptureBlock';
 import {
   DEMO_CLINICIAN,
   STATUS_LABEL,
   type DemoSource,
 } from '../_seed';
+
+const FRESHNESS_LABEL = {
+  current: 'Current',
+  expiring_soon: 'Expiring soon',
+  expired: 'Expired',
+  no_expiry: 'No expiry',
+} as const;
+
+function freshnessTone(f: 'current' | 'expiring_soon' | 'expired' | 'no_expiry'): string {
+  if (f === 'current') return 'text-emerald-600 dark:text-emerald-400';
+  if (f === 'expiring_soon') return 'text-amber-600 dark:text-amber-400';
+  if (f === 'expired') return 'text-destructive';
+  return 'text-muted-foreground';
+}
+
+function shortTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export const metadata: Metadata = {
   title: 'Clinician demo · VitalCV',
@@ -47,13 +71,13 @@ export default function ClinicianDemoPage() {
             Clinician demo · Fixture
           </p>
           <h1 className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-            Your readiness preview
+            Finally reusable.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            This is a fixture render of a clinician&apos;s readiness preview.
-            It is the same shape the live product renders against real public
-            sources. Nothing here is fabricated about how the product works;
-            only the underlying data is a fixture.
+            One source-backed readiness preview that every reviewer sees — no
+            re-submission, no restart. This page is a fixture render; the
+            shape matches what the live product produces against real public
+            sources.
           </p>
         </div>
       </header>
@@ -95,6 +119,9 @@ export default function ClinicianDemoPage() {
                   </div>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {s.detail}
+                  </p>
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    Checked {shortTime(s.checkedAt)}
                   </p>
                 </div>
                 <p
@@ -149,11 +176,17 @@ export default function ClinicianDemoPage() {
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {cred.issuer} · Issued {cred.issuedOn}
+                      {cred.expiresOn ? ` · Expires ${cred.expiresOn}` : ''}
                     </p>
                   </div>
-                  <span className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-                    {cred.tier}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
+                      {cred.tier}
+                    </span>
+                    <span className={`text-[10px] font-medium ${freshnessTone(cred.freshness)}`}>
+                      {FRESHNESS_LABEL[cred.freshness]}
+                    </span>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -175,6 +208,15 @@ export default function ClinicianDemoPage() {
             ← All demos
           </Link>
         </div>
+
+        <LeadCaptureBlock
+          className="mt-10"
+          eyebrow="Clinician early access"
+          heading="Be among the first clinicians on VitalCV."
+          body="One readiness preview. Reusable across every employer that accepts it."
+          defaultIntent="early_access"
+          storageKey="clinician-demo"
+        />
       </section>
     </main>
   );

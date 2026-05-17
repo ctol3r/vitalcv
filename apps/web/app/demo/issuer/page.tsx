@@ -3,11 +3,21 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { Button } from '@/components/ui/button';
+import { LeadCaptureBlock } from '@/components/lead-capture/LeadCaptureBlock';
 import {
   DEMO_ISSUER_REQUESTS,
   ISSUER_STATUS_LABEL,
   type DemoIssuerRequest,
 } from '../_seed';
+
+function shortTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export const metadata: Metadata = {
   title: 'Issuer demo · VitalCV',
@@ -53,13 +63,14 @@ export default function IssuerDemoPage() {
             Issuer demo · Fixture
           </p>
           <h1 className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-            Verification requests inbox
+            Less redundant verification.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Three live request shapes: confirmed, in-review, and
-            unable-to-verify. Each carries explicit attribution; the issuer
+            unable-to-verify. Each carries an audit trail; the issuer
             (registrar, board, HR) makes the call. VitalCV records the
-            outcome and makes it reusable for the next reviewer.
+            outcome and makes it reusable for the next reviewer — your
+            verification work compounds instead of repeating.
           </p>
         </div>
       </header>
@@ -104,6 +115,27 @@ export default function IssuerDemoPage() {
                   <p className="mt-1 text-sm leading-relaxed text-foreground/80">
                     {r.notes}
                   </p>
+                </div>
+              )}
+
+              {r.audit.length > 0 && (
+                <div className="mt-4 rounded-md border border-border bg-background p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Audit trail
+                  </p>
+                  <ol className="mt-2 space-y-1.5">
+                    {r.audit.map((entry, i) => (
+                      <li key={i} className="flex items-start gap-3 text-xs">
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                          {shortTime(entry.at)}
+                        </span>
+                        <span className="shrink-0 rounded-sm border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          {entry.actor}
+                        </span>
+                        <span className="text-foreground/80">{entry.action}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               )}
 
@@ -191,6 +223,15 @@ export default function IssuerDemoPage() {
             All demos
           </Link>
         </div>
+
+        <LeadCaptureBlock
+          className="mt-10"
+          eyebrow="Issuer integration"
+          heading="Become a VitalCV issuer."
+          body="Confirm a credential once; it carries forward to every reviewer. Less queue. Less redundant work."
+          defaultIntent="walkthrough"
+          storageKey="issuer-demo"
+        />
       </section>
     </main>
   );

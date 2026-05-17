@@ -3,11 +3,21 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { Button } from '@/components/ui/button';
+import { LeadCaptureBlock } from '@/components/lead-capture/LeadCaptureBlock';
 import {
   DEMO_EMPLOYER_APPLICATIONS,
   STATE_LABEL,
   type DemoEmployerApplication,
 } from '../_seed';
+
+function shortTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export const metadata: Metadata = {
   title: 'Employer demo · VitalCV',
@@ -50,13 +60,13 @@ export default function EmployerDemoPage() {
             Employer demo · Fixture
           </p>
           <h1 className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-            Review queue
+            Faster onboarding.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Three applications across the three readiness states a reviewer
-            actually sees. Each application carries source-backed highlights
-            and honest cautions. The reviewer picks the next action; VitalCV
-            does not make the credentialing decision.
+            actually sees. Source-backed highlights, honest cautions, no
+            re-submission paperwork. The reviewer picks the next action;
+            VitalCV does not make the credentialing decision.
           </p>
         </div>
       </header>
@@ -109,6 +119,10 @@ export default function EmployerDemoPage() {
                     {a.candidate.specialty} · NPI{' '}
                     <span className="font-mono">{a.candidate.npi}</span> ·
                     Applied {formatAt(a.appliedAt)}
+                  </p>
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    Sources {a.sourcesCompleted}/{a.sourcesTotal} ·
+                    Last refreshed {shortTime(a.sourceCheckedAt)}
                   </p>
                 </div>
                 <span
@@ -187,6 +201,15 @@ export default function EmployerDemoPage() {
             All demos
           </Link>
         </div>
+
+        <LeadCaptureBlock
+          className="mt-10"
+          eyebrow="Employer pilot"
+          heading="Run a pilot at your hospital."
+          body="See source-backed readiness on your actual application queue. We meet you where your workflow is."
+          defaultIntent="pilot"
+          storageKey="employer-demo"
+        />
       </section>
     </main>
   );
