@@ -34,7 +34,11 @@ function coverageColor(state: SourceOpsEntry['coverageState']): string {
       return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
     case 'accessRequired':
     case 'gated':
-      return 'border-sky-500/30 bg-sky-500/10 text-sky-400';
+      // Operator-action-required state — match the amber "warn"
+      // tone the remediation hint emits for these lanes. Sky/blue
+      // would read as positive info, which contradicts the truth
+      // contract for non-decision-grade lanes.
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
     case 'pending':
     case 'notDecisionGrade':
     case 'previewOnly':
@@ -90,6 +94,10 @@ export function SourceHealthPanel() {
   const [report, setReport] = useState<SourceOpsReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Tracks the timestamp of the last successful health-probe fetch so
+  // the error state can reassure the operator that auto-retry is
+  // running and tell them how stale the last good data is.
+  const [lastOkAt, setLastOkAt] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -106,6 +114,7 @@ export function SourceHealthPanel() {
         if (mountedRef.current) {
           setReport(data);
           setError(null);
+          setLastOkAt(new Date().toISOString());
         }
       } catch {
         if (mountedRef.current) setError('Source health unavailable');
@@ -133,8 +142,16 @@ export function SourceHealthPanel() {
 
   if (error || !report) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-        <p className="text-xs text-rose-400">{error ?? 'No data available'}</p>
+      <div
+        className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 space-y-1"
+        data-testid="source-health-error"
+      >
+        <p className="text-xs text-rose-400">Health probe unreachable.</p>
+        <p className="text-[10px] text-zinc-500">
+          {lastOkAt
+            ? `Last successful poll ${formatAge(lastOkAt)}. Auto-retry every 60s.`
+            : 'Retrying every 60s. If this persists, check the source-health probe service.'}
+        </p>
       </div>
     );
   }
@@ -172,7 +189,7 @@ export function SourceHealthPanel() {
                   <p className="text-xs font-medium text-zinc-300 truncate">
                     {source.name}
                   </p>
-                  <p className="text-[10px] text-zinc-600">
+                  <p className="text-[10px] text-zinc-500">
                     SLA: {source.freshnessSlaHours}h
                   </p>
                   {(() => {
@@ -184,7 +201,7 @@ export function SourceHealthPanel() {
                     if (!hint) return null;
                     return (
                       <p
-                        className={`mt-0.5 text-[10px] ${hintToneClasses(hint.tone)}`}
+                        className={`mt-1 text-[11px] leading-snug ${hintToneClasses(hint.tone)}`}
                         data-testid="source-health-remediation-hint"
                         data-hint-rule={hint.rule}
                         data-hint-tone={hint.tone}
@@ -223,7 +240,7 @@ export function SourceHealthPanel() {
           Alerts
         </h4>
         {report.alerts.length === 0 ? (
-          <p className="text-xs text-zinc-600">No active alerts</p>
+          <p className="text-xs text-zinc-500">No active alerts</p>
         ) : (
           <div className="max-h-32 space-y-1 overflow-y-auto">
             {report.alerts.map((alert, i) => (

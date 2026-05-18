@@ -69,7 +69,7 @@ function HintRow({
   if (!hint) return null;
   return (
     <p
-      className={`mt-0.5 text-[10px] ${hintToneClasses(hint.tone)}`}
+      className={`mt-1 text-[11px] leading-snug ${hintToneClasses(hint.tone)}`}
       data-testid="source-health-remediation-hint"
       data-hint-rule={hint.rule}
       data-hint-tone={hint.tone}
