@@ -39,7 +39,7 @@ documented separately during procurement.
 |---|---|---|
 | Per-user unique identifiers issued via authentication provider claims | `apps/web/middleware.ts` (Clerk middleware), `apps/web/lib/auth/roles.ts` | live |
 | Server-side role resolution + JWT-claim fast path | `apps/web/middleware.ts`, `apps/web/app/api/auth/resolve-role/` | live |
-| Org-membership role resolution stub for `/api/verifier/*` | `apps/web/lib/auth/orgInvitations.ts` | scaffold (PR #243 has open security finding before live) |
+| Org-membership role resolution stub for `/api/verifier/*` | Open PR #243 (`feat/verifier-rbac`); a security finding on that PR (`x-verifier-org` header trusted client-side) must be addressed before merge — see PR #243 comments. Not on main yet. | open PR with security finding |
 
 ### §164.312(a)(2)(i) — Access control · Automatic logoff
 
@@ -54,8 +54,9 @@ documented separately during procurement.
 |---|---|---|
 | HTTPS-only on all public surfaces (HSTS) | `apps/web/security-headers.mjs` (#226) | live |
 | Database connection over TLS (Postgres over `sslmode=require`) | Provisioning doc; enforced at connection-string level | inherits provider |
-| ES256 receipt signing | `apps/web/lib/issuer-verification/signIssuerReceipt.ts` (#203/#204) | live |
-| JWKS endpoint for receipt verification | `apps/web/app/.well-known/jwks.json/` | live |
+| ES256 receipt issuer (signs the JWT, generates the keypair, exposes the public JWK) | `apps/web/lib/crypto/receiptIssuer.ts` (#203/#204) | live |
+| ES256 receipt-candidate signer (per-candidate signing wrapper) | `apps/web/lib/crypto/receiptCandidateSigner.ts` (#203/#204) | live |
+| JWKS endpoint for verifier-side receipt validation | `apps/web/app/api/.well-known/jwks.json/route.ts` | live |
 
 ### §164.312(b) — Audit controls
 
@@ -82,8 +83,8 @@ documented separately during procurement.
 
 | Implementation | File | Status |
 |---|---|---|
-| ES256-signed receipts (JWT) | `apps/web/lib/issuer-verification/signIssuerReceipt.ts` (#203/#204) | live |
-| Receipt verification engine (zero-trust JWT) | `apps/verifier-api/src/routes/verify.ts` (#204) | live |
+| ES256-signed receipts (JWT) | `apps/web/lib/crypto/receiptIssuer.ts`, `apps/web/lib/crypto/receiptCandidateSigner.ts` (#203/#204) | live |
+| Verifier-side receipt verification engine (zero-trust JWT) | `apps/verifier-api/src/oidc4vp/routes.ts`, `apps/web/app/api/receipts/verify/route.ts` (#204) | live |
 
 ### §164.312(d) — Person or entity authentication
 
@@ -100,7 +101,7 @@ documented separately during procurement.
 | HTTPS enforcement via response headers | `apps/web/security-headers.mjs` (#226) | live |
 | Strict CSP with allowlist | same | live |
 | CORS allowlist for cross-origin API calls | `apps/web/lib/security/corsAllowlist.ts` (#234) | live |
-| API key foundation for service-to-service auth | `apps/web/lib/security/apiKey.ts` (#234) | scaffold |
+| API key foundation for service-to-service auth | `apps/web/lib/security/apiKeyFoundation.ts` (#234) | scaffold |
 | Booking-embed iframe sandbox (no top-navigation) | `apps/web/components/pricing/CalendarBookingEmbed.tsx` (#262) | live |
 
 ## Administrative safeguards (§164.308)
@@ -119,7 +120,7 @@ audit firm, controlled-substance authority registration, etc.).
 |---|---|
 | Truth-contract CI gate (banned-strings) | `apps/web/lib/trust/trust-container-view.ts` regex patterns |
 | Banned-strings sweep run on every PR | Codex 3-pass audit (implementation / diff / banned strings) |
-| axe-core WCAG 2.2 AA gate on hero routes | `.github/workflows/axe-wcag-aa.yml` (#232) |
+| axe-core WCAG 2.2 AA gate on hero routes | `.github/workflows/a11y-gate.yml` (#232) |
 | Web Quality CI: vitest + typecheck + build | `.github/workflows/ci.yml` |
 | Post-deploy source-health probe | `scripts/deploy-health-probe.sh` (#252) |
 
@@ -143,7 +144,7 @@ HR documentation.
 | Implementation | File | Status |
 |---|---|---|
 | Role-based access at the route level | `apps/web/middleware.ts` | live |
-| Per-org membership scope (verifier surfaces) | `apps/web/lib/auth/orgInvitations.ts` | scaffold (PR #243 has open security finding before live) |
+| Per-org membership scope (verifier surfaces) | Open PR #243; same security finding documented on that PR — not on main yet. | open PR with security finding |
 
 ### §164.308(a)(5)(ii)(B) — Protection from malicious software
 
@@ -202,24 +203,71 @@ document:
 ## Reproducibility
 
 This document was generated from `origin/main` HEAD `9eb5cdee` on
-2026-05-07. To regenerate the file → control map:
+2026-05-07. To re-verify the evidence map against any later main HEAD,
+run the three steps below from a fresh worktree of `origin/main`.
 
 ```bash
-# 1. Verify each cited file exists at the cited PR
+# 1. Verify every cited file ACTUALLY EXISTS on disk. The list is
+#    derived directly from the rows above; a missing file is a
+#    traceability failure for that row and must be fixed before the
+#    document can be used as audit evidence.
+PATHS=(
+  apps/web/middleware.ts
+  apps/web/lib/auth/roles.ts
+  apps/web/app/api/auth/resolve-role/
+  apps/web/security-headers.mjs
+  apps/web/lib/crypto/receiptIssuer.ts
+  apps/web/lib/crypto/receiptCandidateSigner.ts
+  apps/web/app/api/.well-known/jwks.json/route.ts
+  apps/web/lib/issuer-verification/auditPersistence.ts
+  apps/web/lib/issuer-verification/issuerPersistenceWriter.ts
+  apps/web/lib/issuer-verification/receiptCandidate.ts
+  apps/web/lib/issuer-verification/psvReceiptReuse.ts
+  apps/web/lib/issuer-verification/types.ts
+  apps/api/backend/prisma/migrations/20260504000000_issuer_persistence_scaffold/migration.sql
+  apps/verifier-api/src/oidc4vp/routes.ts
+  apps/web/app/api/receipts/verify/route.ts
+  apps/web/lib/security/corsAllowlist.ts
+  apps/web/lib/security/apiKeyFoundation.ts
+  apps/web/lib/security/dataClassificationFoundation.ts
+  apps/web/lib/security/retentionFoundation.ts
+  apps/web/components/pricing/CalendarBookingEmbed.tsx
+  apps/web/app/legal/dpa/
+  apps/web/app/legal/cookies/
+  apps/web/app/status/page.tsx
+  apps/web/app/api/internal/source-health/probe/
+  apps/web/lib/trust/trust-container-view.ts
+  .github/workflows/a11y-gate.yml
+  .github/workflows/deploy-health-probe.yml
+  scripts/deploy-health-probe.sh
+)
+missing=0
+for p in "${PATHS[@]}"; do
+  if [ ! -e "$p" ]; then echo "MISSING: $p"; missing=$((missing+1)); fi
+done
+[ "$missing" -eq 0 ] && echo "OK: all $((${#PATHS[@]})) cited paths exist" || \
+  { echo "FAIL: $missing cited path(s) missing — fix the doc"; exit 1; }
+
+# 2. Verify the cited PRs are merged
 for pr in 175 203 204 221 226 228 232 234 235 252 255 256 257 258 261 262 230 238 242; do
-  gh pr view $pr --repo ctol3r/vitalcv --json mergedAt --jq ".mergedAt // \"NOT MERGED\""
+  state=$(gh pr view $pr --repo ctol3r/vitalcv --json state,mergedAt \
+            --jq '"\(.state) \(.mergedAt // "")"')
+  echo "PR #$pr: $state"
 done
 
-# 2. Confirm the truth-contract CHECK constraints are in main
+# 3. Confirm the truth-contract CHECK constraints are in main
 grep -A 1 "decisionGrade.*FALSE\|proofTier.*receipt_candidate\|recordedBy.*IN" \
   apps/api/backend/prisma/migrations/20260504000000_issuer_persistence_scaffold/migration.sql
 
-# 3. Confirm banned-strings CI gate exists. The full phrase list lives
+# 4. Confirm banned-strings CI gate exists. The full phrase list lives
 #    in apps/web/lib/trust/trust-container-view.ts as VERIFIER_OVERCLAIM_PATTERNS;
 #    the gate fires whenever a verifier-side payload contains any of them.
 test -f apps/web/lib/trust/trust-container-view.ts && \
   grep -c VERIFIER_OVERCLAIM_PATTERNS apps/web/lib/trust/trust-container-view.ts
 ```
+
+If step 1 reports `FAIL`, the evidence map is out of date and must be
+fixed — every cited path is load-bearing for an audit reviewer.
 
 ## Revision history
 

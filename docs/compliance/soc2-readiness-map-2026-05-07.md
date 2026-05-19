@@ -76,9 +76,9 @@ deferred to a later report.
 | Sub-criterion | Implementation | Reference |
 |---|---|---|
 | CC6.1 — Implements logical access controls | Authentication provider + RBAC middleware | `apps/web/middleware.ts`, `apps/web/lib/auth/roles.ts` |
-| CC6.2 — Restricts logical access for authorized users | Per-org membership role resolution | `apps/web/lib/auth/orgInvitations.ts` (scaffold) |
+| CC6.2 — Restricts logical access for authorized users | Per-org membership role resolution (scaffold pending) | Open PR #243 (`feat/verifier-rbac`) with documented security finding — not on main yet. |
 | CC6.3 — Manages user access provisioning | Authentication provider lifecycle (Clerk dashboard) | inherits provider |
-| CC6.6 — Implements logical access security measures | API key foundation + CORS allowlist | `apps/web/lib/security/` (#234) |
+| CC6.6 — Implements logical access security measures | API key foundation + CORS allowlist | `apps/web/lib/security/apiKeyFoundation.ts`, `apps/web/lib/security/corsAllowlist.ts` (#234) |
 | CC6.7 — Restricts the transmission of information | HTTPS enforced via HSTS; CSP allowlist | `apps/web/security-headers.mjs` (#226) |
 | CC6.8 — Implements controls to prevent or detect unauthorized software | Strict CSP + sandboxed iframes for third-party embeds | same |
 
@@ -87,7 +87,7 @@ deferred to a later report.
 | Sub-criterion | Implementation | Reference |
 |---|---|---|
 | CC7.1 — Detects and prevents introduction of unauthorized software | CSP allowlist; iframe sandbox; no inline scripts | `apps/web/security-headers.mjs` |
-| CC7.2 — Monitors system components | Source-health probe + axe-core hero-route gate | `scripts/deploy-health-probe.sh` (#252), `.github/workflows/axe-wcag-aa.yml` (#232) |
+| CC7.2 — Monitors system components | Source-health probe + axe-core hero-route gate | `scripts/deploy-health-probe.sh` (#252), `.github/workflows/a11y-gate.yml` (#232) |
 | CC7.3 — Evaluates security events | Audit-event boundary + structured logging on every receipt-candidate write | `apps/web/lib/issuer-verification/issuerPersistenceWriter.ts` (#255) |
 | CC7.4 — Responds to identified security events | `tamper_detected` outcome on SQLSTATE 23514; degrades to demo render | `apps/web/lib/issuer-verification/receiptCandidate.ts` (#235) |
 
