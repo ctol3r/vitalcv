@@ -1,0 +1,948 @@
+/*
+ * Pilot Deployment Kit — print-ready document styles.
+ *
+ * Verbatim port of `Pilot Deployment Kit.html` from the design handoff
+ * (Anthropic design archive). Palette ink-0 → ink-900 + paper retained;
+ * font stacks resolve through global CSS variables `--font-geist` /
+ * `--font-geist-mono` (set in apps/web/app/layout.tsx).
+ */
+
+.root {
+  --ink-0: #fff;
+  --ink-50: #fafaf7;
+  --ink-100: #f3f3ef;
+  --ink-200: #e6e4dd;
+  --ink-300: #cbc8be;
+  --ink-400: #928f84;
+  --ink-500: #5f5d56;
+  --ink-600: #3e3c37;
+  --ink-700: #262521;
+  --ink-800: #151412;
+  --ink-900: #0b0b0a;
+  --paper: #faf9f5;
+  --rule: #262521;
+  --soft-rule: #cbc8be;
+  --hair: #e6e4dd;
+
+  background: #e6e4dd;
+  color: var(--ink-900);
+  font-family: var(--font-geist), 'Geist', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  line-height: 1.55;
+  letter-spacing: -0.003em;
+  min-height: 100vh;
+}
+
+.mono {
+  font-family: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'zero', 'tnum';
+}
+
+/* ─── Screen-only chrome ─── */
+.chrome {
+  background: var(--ink-900);
+  color: var(--ink-200);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  border-bottom: 1px solid #000;
+}
+.chromeInner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 36px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.chromeLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chromeLeft .glyph {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  color: #000;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.chromeLeft strong {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.chromeLeft .path {
+  color: var(--ink-400);
+}
+.chromeRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink-400);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+.chromeRight .clock {
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+.chromeRight .print {
+  background: #fff;
+  color: #000;
+  padding: 4px 11px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-family: var(--font-geist), 'Geist', sans-serif;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chromeRight .print:hover {
+  background: var(--ink-200);
+}
+
+/* ─── Paper ─── */
+.doc {
+  max-width: 880px;
+  margin: 36px auto 60px;
+  background: var(--paper);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 24px 80px -32px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+/* Running header */
+.running {
+  padding: 18px 60px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-500);
+}
+.running .l {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.running .l strong {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+.running .r {
+  color: var(--ink-500);
+}
+.running .r strong {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+/* ─── Cover ─── */
+.cover {
+  padding: 48px 60px 56px;
+  border-bottom: 1px solid var(--ink-900);
+  position: relative;
+}
+.coverMetaStrip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  border: 1px solid var(--rule);
+  margin-bottom: 64px;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+}
+.coverMetaCell {
+  padding: 9px 13px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.coverMetaCell:last-child {
+  border-right: 0;
+}
+.coverMetaCell .k {
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+}
+.coverMetaCell .v {
+  font-size: 12px;
+  color: var(--ink-900);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.docNo {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.docNo .nm {
+  color: var(--ink-900);
+  font-weight: 700;
+}
+.docNo .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--ink-200);
+  max-width: 120px;
+}
+.cover h1 {
+  font-size: 54px;
+  line-height: 0.98;
+  letter-spacing: -0.032em;
+  font-weight: 600;
+  margin: 0 0 18px;
+  max-width: 680px;
+  color: var(--ink-900);
+}
+.cover h1 em {
+  font-style: normal;
+  color: var(--ink-500);
+  font-weight: 400;
+}
+.coverSub {
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--ink-600);
+  max-width: 600px;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  margin-bottom: 48px;
+}
+.coverSub strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.coverFor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  border-top: 1px solid var(--ink-900);
+  border-bottom: 1px solid var(--ink-200);
+  padding: 18px 0;
+}
+.coverFor .blk {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.coverFor .k {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+}
+.coverFor .v {
+  font-size: 14.5px;
+  color: var(--ink-900);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.coverFor .v small {
+  display: block;
+  color: var(--ink-500);
+  font-weight: 400;
+  font-size: 11.5px;
+  margin-top: 1px;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  letter-spacing: 0.02em;
+}
+.coverStamp {
+  position: absolute;
+  right: 60px;
+  bottom: 56px;
+  border: 1px solid var(--ink-900);
+  padding: 6px 11px;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-900);
+  font-weight: 700;
+  background: var(--paper);
+}
+
+/* ─── Section shell ─── */
+.section {
+  padding: 36px 60px;
+  border-bottom: 1px solid var(--soft-rule);
+}
+.section:last-of-type {
+  border-bottom: 0;
+}
+.sectionHeader {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  gap: 18px;
+  align-items: baseline;
+  margin-bottom: 22px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--ink-900);
+}
+.sectionHeader .no {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--ink-900);
+  font-weight: 600;
+}
+.sectionHeader h2 {
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink-900);
+}
+.sectionHeader h2 em {
+  font-style: normal;
+  color: var(--ink-500);
+  font-weight: 400;
+}
+.sectionHeader .ref {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-500);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Body type rhythm */
+.section p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink-700);
+  text-wrap: pretty;
+  max-width: 62ch;
+}
+.section p strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.section p:last-child {
+  margin-bottom: 0;
+}
+.lede {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-900);
+  font-weight: 400;
+  letter-spacing: -0.008em;
+  max-width: 62ch;
+  margin-bottom: 20px;
+}
+.lede strong {
+  font-weight: 500;
+}
+
+/* RFC-style hanging list */
+.rfc {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: rfc;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rfc > li {
+  counter-increment: rfc;
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 18px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-700);
+}
+.rfc > li::before {
+  content: counter(rfc, decimal-leading-zero);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-900);
+  letter-spacing: 0.06em;
+  padding-top: 3px;
+}
+.rfc > li > .h {
+  grid-column: 2;
+  display: block;
+  font-weight: 500;
+  color: var(--ink-900);
+  margin-bottom: 2px;
+  letter-spacing: -0.005em;
+}
+.rfc > li > .b {
+  grid-column: 2;
+  color: var(--ink-700);
+}
+.rfc > li > .b strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+
+/* In/out grid */
+.inout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--ink-900);
+  margin-bottom: 18px;
+}
+.inout .col {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.inout .col + .col {
+  border-left: 1px solid var(--ink-900);
+}
+.inout .col .hd {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--ink-900);
+}
+.inout .col .hd strong {
+  color: var(--ink-900);
+  font-weight: 700;
+  font-size: 11px;
+}
+.inout .col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.inout .col li {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-700);
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 9px;
+  letter-spacing: -0.003em;
+}
+.inout .col li .dash {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  color: var(--ink-400);
+  font-weight: 600;
+  padding-top: 1px;
+}
+.inout .col li strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+
+/* Posture table */
+.posture {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--ink-900);
+  margin-bottom: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.posture th {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-900);
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--ink-900);
+  background: var(--ink-200);
+}
+.posture td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--soft-rule);
+  font-size: 12.5px;
+  color: var(--ink-700);
+  vertical-align: top;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
+}
+.posture tr:last-child td {
+  border-bottom: 0;
+}
+.posture .label {
+  font-family: var(--font-geist), 'Geist', sans-serif;
+  color: var(--ink-900);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  width: 24%;
+}
+.posture .touched {
+  width: 14%;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-900);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.posture .touched.no {
+  color: var(--ink-400);
+  font-weight: 400;
+}
+.posture strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+
+/* Architecture rail */
+.rail {
+  border: 1px solid var(--ink-900);
+  margin-bottom: 18px;
+  background: var(--ink-0);
+}
+.railHead {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--ink-900);
+  background: var(--ink-200);
+}
+.railHead .cell {
+  padding: 9px 14px;
+  border-right: 1px solid var(--ink-900);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-900);
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.railHead .cell:last-child {
+  border-right: 0;
+}
+.railHead .cell small {
+  font-weight: 400;
+  color: var(--ink-500);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 9.5px;
+}
+.railBody {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.railCol {
+  border-right: 1px solid var(--soft-rule);
+  padding: 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-height: 240px;
+}
+.railCol:last-child {
+  border-right: 0;
+}
+.nd {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 12px;
+  background: var(--ink-0);
+  border: 1px solid var(--ink-900);
+}
+.nd .k {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+}
+.nd .v {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+}
+.nd .v .mono {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  color: var(--ink-700);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.ndMuted {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--paper) 0 4px,
+    var(--ink-100) 4px 8px
+  );
+}
+.ndMuted .v {
+  color: var(--ink-500);
+}
+.arrowRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--soft-rule);
+  border-bottom: 1px solid var(--soft-rule);
+  background: var(--ink-100);
+}
+.ar {
+  padding: 7px 14px;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-500);
+  border-right: 1px solid var(--soft-rule);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  letter-spacing: 0.04em;
+}
+.ar:last-child {
+  border-right: 0;
+  color: var(--ink-300);
+}
+.ar .arr {
+  color: var(--ink-900);
+  font-weight: 700;
+  font-size: 12px;
+}
+.ar .lbl {
+  color: var(--ink-700);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 9.5px;
+  font-weight: 600;
+}
+.railFoot {
+  padding: 9px 14px;
+  border-top: 1px solid var(--ink-900);
+  background: var(--ink-100);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-500);
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 0.06em;
+}
+.railFoot strong {
+  color: var(--ink-900);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Success criteria */
+.crit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--ink-900);
+  margin-bottom: 18px;
+}
+.critItem {
+  padding: 14px 18px;
+  border-right: 1px solid var(--soft-rule);
+  border-bottom: 1px solid var(--soft-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.critItem:nth-child(2n) {
+  border-right: 0;
+}
+.critItem:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.critItem .k {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.critItem .k strong {
+  color: var(--ink-900);
+  font-weight: 700;
+}
+.critItem .v {
+  font-size: 13.5px;
+  color: var(--ink-900);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+.critItem .v em {
+  font-style: normal;
+  color: var(--ink-500);
+  font-weight: 400;
+}
+.critItem .b {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-600);
+  letter-spacing: -0.003em;
+  margin-top: auto;
+}
+.critItem .b strong {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+.critItem .targ {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-700);
+  border-top: 1px dashed var(--ink-300);
+  padding-top: 6px;
+  margin-top: 6px;
+}
+.critItem .targ .lbl {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+}
+.critItem .targ .num {
+  font-size: 14px;
+  color: var(--ink-900);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Appendix tables */
+.appx {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.appxBox {
+  border: 1px solid var(--ink-900);
+}
+.appxBox .hd {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--ink-900);
+  background: var(--ink-200);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-900);
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+}
+.appxBox .ln {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--soft-rule);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-700);
+  letter-spacing: 0.02em;
+}
+.appxBox .ln:last-child {
+  border-bottom: 0;
+}
+.appxBox .ln .k {
+  color: var(--ink-500);
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  padding-top: 2px;
+}
+.appxBox .ln .v {
+  color: var(--ink-900);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Signature block */
+.sig {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  padding: 24px 60px 60px;
+  border-top: 1px solid var(--ink-900);
+}
+.sig .blk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sig .blk .line {
+  border-bottom: 1px solid var(--ink-900);
+  height: 48px;
+}
+.sig .blk .k {
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+}
+.sig .blk .k strong {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+.sig .blk .v {
+  font-size: 13px;
+  color: var(--ink-900);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.sig .blk .v small {
+  display: block;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-500);
+  font-weight: 400;
+  margin-top: 1px;
+  letter-spacing: 0.02em;
+}
+
+/* Colophon */
+.colophon {
+  padding: 14px 60px 22px;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px dashed var(--soft-rule);
+}
+.colophon strong {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+/* ─── Print stylesheet ─── */
+@page {
+  size: Letter;
+  margin: 0.85in 0.75in;
+}
+@media print {
+  .root {
+    background: #fff;
+  }
+  .chrome {
+    display: none !important;
+  }
+  .doc {
+    box-shadow: none;
+    margin: 0;
+    max-width: none;
+    background: #fff;
+  }
+  .section {
+    border-bottom: 1px solid var(--ink-900);
+    break-inside: avoid;
+  }
+  .sectionHeader {
+    break-after: avoid;
+  }
+  .cover {
+    break-after: page;
+    padding: 0 0 56px;
+    border-bottom: 1px solid var(--ink-900);
+  }
+  .section {
+    break-before: page;
+    padding: 24px 0 32px;
+  }
+  .section:first-of-type {
+    break-before: auto;
+  }
+  .running {
+    padding: 0 0 18px;
+    border-bottom: 1px solid var(--soft-rule);
+    margin-bottom: 18px;
+  }
+  .colophon {
+    padding: 14px 0;
+  }
+  .sig {
+    padding: 24px 0 0;
+  }
+  .crit,
+  .rail,
+  .inout,
+  .posture,
+  .appx {
+    break-inside: avoid;
+  }
+  a {
+    color: var(--ink-900);
+    text-decoration: none;
+  }
+  .cover h1 {
+    font-size: 44pt;
+  }
+  .sectionHeader h2 {
+    font-size: 18pt;
+  }
+  .section p,
+  .rfc > li,
+  .lede {
+    font-size: 10.5pt;
+  }
+  .root {
+    font-size: 10pt;
+  }
+}
