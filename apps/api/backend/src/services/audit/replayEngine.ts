@@ -603,8 +603,23 @@ export async function replayDecision(
     orderBy: { decisionTimestamp: 'desc' },
     take: 10,
   });
+  // Annotated `r` so the .map predicate has an explicit type even
+  // when Prisma's findMany result type collapses under unrelated
+  // pre-existing type-resolution breakage on `origin/main` (Prisma
+  // namespace exports). This preserves the call-site behaviour
+  // exactly — the annotation matches the `select` projection above.
+  interface RelatedRawRow {
+    id: string;
+    decisionType: string;
+    decisionTimestamp: Date;
+    status: string;
+    metadata: unknown;
+    organizationId: string | null;
+  }
   const related = scopeRelatedDecisions(
-    relatedRaw.map(r => ({ ...r, verifierOrgId: r.organizationId })),
+    (relatedRaw as ReadonlyArray<RelatedRawRow>).map(
+      (r: RelatedRawRow) => ({ ...r, verifierOrgId: r.organizationId }),
+    ),
     capsuleTenantId,
   );
   const relatedDecisions = related.map(r => {
