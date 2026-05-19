@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { Prisma } from '@prisma/client'
 import prisma from '../src/graphql/prisma_client'
 import type { NormalizedClaim, VerificationReceipt } from '../src/services/identity/evidenceModel'
 import { buildIdentitySummary } from '../src/services/identity/evidenceModel'
@@ -216,7 +217,7 @@ export async function seedIdentityWaveFixtures(): Promise<{ seededRunCount: numb
         fixture: true,
         _claims: [identityClaim, specialtyClaim],
         _receipts: [receipts[0]],
-      },
+      } as unknown as Prisma.InputJsonValue,
       checksum: nppesChecksum,
       verifiedAt: new Date(observedAt),
     },
@@ -244,7 +245,7 @@ export async function seedIdentityWaveFixtures(): Promise<{ seededRunCount: numb
         fixture: true,
         _claims: [exclusionClaim],
         _receipts: [receipts[1]],
-      },
+      } as unknown as Prisma.InputJsonValue,
       checksum: oigChecksum,
       verifiedAt: new Date(observedAt),
     },
@@ -259,7 +260,7 @@ export async function seedIdentityWaveFixtures(): Promise<{ seededRunCount: numb
         verificationArtifactId: claim.artifactId,
         subjectNpi: claim.subjectNpi,
         claimType: claim.claimType,
-        value: claim.value,
+        value: claim.value as unknown as Prisma.InputJsonValue,
         trustTier: claim.tier,
         confidenceLabel: claim.confidence,
         confidenceScore: claim.confidenceScore,
@@ -290,7 +291,7 @@ export async function seedIdentityWaveFixtures(): Promise<{ seededRunCount: numb
         subjectNpi: '1992992991',
         entityId: receipt.entity_id,
         field: receipt.field,
-        value: receipt.value,
+        value: receipt.value as Prisma.InputJsonValue,
         trustTier: receipt.tier,
         confidence: receipt.confidence,
         sourceArtifactId: receipt.source_artifact_id,
@@ -323,7 +324,7 @@ export async function seedIdentityWaveFixtures(): Promise<{ seededRunCount: numb
         claimRefs: claims.map((claim) => claim.claimId),
         sourceRecordIds: [sourceRecord.id],
         summary,
-      },
+      } as unknown as Prisma.InputJsonValue,
       checksum: hex({ summary, claims: claims.map((claim) => claim.claimId) }),
       verifiedAt: new Date(observedAt),
       observedAt: new Date(observedAt),
