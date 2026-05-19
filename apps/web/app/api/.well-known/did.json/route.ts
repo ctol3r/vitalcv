@@ -1,8 +1,10 @@
 /**
  * GET /.well-known/did.json
  *
- * W3C DID document for did:web:vitalcv.com.
- * Enables decentralized identifier resolution and verifiable credential trust.
+ * W3C DID document for the resolved issuer host. The controller is
+ * derived per-request from `lib/discovery/issuerHost.ts` so the same
+ * codebase serves the production identity at vitalcv.com and a tunnel
+ * identity at <name>.trycloudflare.com without a domain swap.
  *
  * Spec: https://w3c.github.io/did-core/
  * did:web method: https://w3c-ccg.github.io/did-method-web/
@@ -10,44 +12,51 @@
 
 import { NextResponse } from 'next/server';
 import { getPublicKeyJwk } from '@/lib/crypto/receiptIssuer';
+import {
+  resolveIssuerDid,
+  resolveIssuerOrigin,
+} from '@/lib/discovery/issuerHost';
 
 export const runtime = 'nodejs';
 
 // Force runtime evaluation — same rationale as the sibling JWKS route.
 // Prerendering would invoke the production-only signing guard at build
-// time and fail with no env vars present.
+// time and fail with no env vars present. Force-dynamic also lets us
+// read request headers to derive the issuer host.
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   const publicKeyJwk = await getPublicKeyJwk();
+  const issuerDid = resolveIssuerDid(request.headers);
+  const issuerOrigin = resolveIssuerOrigin(request.headers);
 
   const didDocument = {
     '@context': 'https://www.w3.org/ns/did/v1',
-    id: 'did:web:vitalcv.com',
+    id: issuerDid,
     verificationMethod: [
       {
-        id: 'did:web:vitalcv.com#vcv-signing-key-1',
+        id: `${issuerDid}#vcv-signing-key-1`,
         type: 'JsonWebKey2020',
-        controller: 'did:web:vitalcv.com',
+        controller: issuerDid,
         publicKeyJwk,
       },
     ],
-    authentication: ['did:web:vitalcv.com#vcv-signing-key-1'],
+    authentication: [`${issuerDid}#vcv-signing-key-1`],
     service: [
       {
-        id: 'did:web:vitalcv.com#credential-issuer',
+        id: `${issuerDid}#credential-issuer`,
         type: 'CredentialIssuer',
-        serviceEndpoint: 'https://vitalcv.com/api/credentials/issue',
+        serviceEndpoint: `${issuerOrigin}/api/credentials/issue`,
       },
       {
-        id: 'did:web:vitalcv.com#receipt-verifier',
+        id: `${issuerDid}#receipt-verifier`,
         type: 'ReceiptVerifier',
-        serviceEndpoint: 'https://vitalcv.com/api/receipts/verify',
+        serviceEndpoint: `${issuerOrigin}/api/receipts/verify`,
       },
       {
-        id: 'did:web:vitalcv.com#openid-credential-issuer',
+        id: `${issuerDid}#openid-credential-issuer`,
         type: 'OID4VCIIssuer',
-        serviceEndpoint: 'https://vitalcv.com/.well-known/openid-credential-issuer',
+        serviceEndpoint: `${issuerOrigin}/.well-known/openid-credential-issuer`,
       },
     ],
   };
