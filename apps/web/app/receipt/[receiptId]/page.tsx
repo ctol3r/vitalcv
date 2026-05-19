@@ -19,6 +19,8 @@ import { TrustTierBadge, type TrustTier } from '@/components/proof/TrustTierBadg
 import { DownloadReceiptButton } from '@/components/receipt/DownloadReceiptButton';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
 import { CopyableDID } from '@/components/trust/CopyableDID';
+import { LineageHeader } from '@/components/trust/primitives';
+import { composeLineage } from '@/lib/trust/replay-grammar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -480,6 +482,44 @@ export default async function ReceiptPage({
 
       <main className="min-h-screen bg-gray-100 py-6 px-4">
         <div className="vcv-receipt-wrapper max-w-4xl mx-auto">
+          {/* ── CANONICAL LINEAGE · object → ownership → checked_at → channel → replay → run_id ── */}
+          <div className="mb-3">
+            <LineageHeader
+              state={signingKeyId ? 'signed' : 'snapshot'}
+              slots={composeLineage({
+                object: {
+                  label: 'Object',
+                  value: `Receipt · ${shortId(receipt.receipt_id)}`,
+                  subLabel: 'evidentiary artifact',
+                },
+                ownership: {
+                  label: 'Ownership',
+                  value: 'Subject',
+                  subLabel: signingKeyId ? 'issuer-bound' : 'pending bind',
+                },
+                checkedAt: {
+                  label: 'checked_at',
+                  value: checkedAt,
+                  subLabel: 'UTC',
+                },
+                channel: {
+                  label: 'Channel',
+                  value: receipt.lane || 'verify.vitalcv.health',
+                  subLabel: 'public verifier zone',
+                },
+                replay: {
+                  label: 'Replay',
+                  value: signingKeyId ? 'anchored' : 'pending anchor',
+                  subLabel: signingKeyId ? 'σ ok' : '',
+                },
+                runId: {
+                  label: 'run_id',
+                  value: runId,
+                  subLabel: 'batch · receipt head',
+                },
+              })}
+            />
+          </div>
           {/* ── ZONE 1: Institutional Masthead ────────────────────────────── */}
           <ZoneMasthead
             receiptId={receipt.receipt_id}

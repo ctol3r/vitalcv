@@ -13,6 +13,8 @@ import type { ReplayInspection, DegradationOwnership, ContinuityGap } from '@/li
 import { TrustTierBadge } from '@/components/proof/TrustTierBadge';
 import type { TrustTier } from '@/components/proof/TrustTierBadge';
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
+import { LineageHeader as CanonicalLineageHeader } from '@/components/trust/primitives';
+import { composeLineage } from '@/lib/trust/replay-grammar';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -42,8 +44,49 @@ export default async function ReplayInspectionPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      {/* LINEAGE HEADER */}
-      <LineageHeader inspection={inspection} />
+      {/* CANONICAL LINEAGE · object → ownership → checked_at → channel → replay → run_id */}
+      <div className="px-6 pt-5">
+        <div className="max-w-6xl mx-auto">
+          <CanonicalLineageHeader
+            state={inspection.signingKeyId ? 'signed' : 'snapshot'}
+            slots={composeLineage({
+              object: {
+                label: 'Object',
+                value: `Receipt · ${inspection.receiptId.slice(0, 12)}`,
+                subLabel: 'replay-inspection target',
+              },
+              ownership: {
+                label: 'Ownership',
+                value: 'Subject',
+                subLabel: inspection.signingKeyId ? 'issuer-bound' : 'pending bind',
+              },
+              checkedAt: {
+                label: 'checked_at',
+                value: inspection.checkedAt,
+                subLabel: 'UTC',
+              },
+              channel: {
+                label: 'Channel',
+                value: 'verify.vitalcv.health',
+                subLabel: 'verifier zone',
+              },
+              replay: {
+                label: 'Replay',
+                value: inspection.signingKeyId ? 'anchored' : 'pending anchor',
+                subLabel: `${inspection.runs.length} runs · ${inspection.gaps.length} gaps`,
+              },
+              runId: {
+                label: 'run_id',
+                value: inspection.runId,
+                subLabel: 'verification run head',
+              },
+            })}
+          />
+        </div>
+      </div>
+
+      {/* LEGACY DENSE HEADER · route-specific replay-inspection summary */}
+      <ReplayInspectionHeader inspection={inspection} />
 
       {/* DEGRADATION OWNERSHIP BAR */}
       <DegradationBar
@@ -90,7 +133,11 @@ function humanizeLineageKey(key: string | null | undefined): string {
 
 // ─── Lineage Header ───────────────────────────────────────────────────────────
 
-function LineageHeader({ inspection }: { inspection: ReplayInspection }) {
+// Renamed from `LineageHeader` to free the canonical name for the primitive
+// imported above (`CanonicalLineageHeader`). This function renders the
+// route-specific dense replay-inspection summary header, not the binding
+// six-cell reading-order strip.
+function ReplayInspectionHeader({ inspection }: { inspection: ReplayInspection }) {
   return (
     <header className="bg-gray-900 border-b border-gray-800 px-6 py-5">
       <div className="max-w-6xl mx-auto">
