@@ -20,7 +20,10 @@
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
-    "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
+    "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh",
+    "verify:reality": "node --experimental-strip-types scripts/verify-repo-reality.ts full",
+    "verify:worktrees": "node --experimental-strip-types scripts/verify-repo-reality.ts worktrees",
+    "verify:codex-ready": "node --experimental-strip-types scripts/verify-repo-reality.ts codex-ready"
   },
   "devDependencies": {
     "@types/node": "^20",
