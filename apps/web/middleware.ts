@@ -9,6 +9,13 @@ import {
   type UserRoleType,
 } from '@/lib/auth/roles';
 import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
+import {
+  ANTIGRAVITY_COOKIE_ACTIVE_RECEIPT,
+  ANTIGRAVITY_COOKIE_RECEIPT_STATUS,
+  evaluateAntigravityRoute,
+  type AntigravityRole,
+  type ReceiptStatus,
+} from '@/lib/auth/antigravity';
 
 /**
  * Role-based middleware for VitalCV.
@@ -34,8 +41,55 @@ const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 const INTELLIGENCE_API = /^\/api\/(intelligence|investigation)(\/.*)?$/;
 const CLERK_MIDDLEWARE_ENABLED = Boolean(process.env.CLERK_SECRET_KEY);
 
+/**
+ * Antigravity routing check — WAVE C73.
+ *
+ * If the request carries an `vcv_active_receipt` cookie, the session
+ * is a verifier-with-active-receipt and any drift onto a non-canonical
+ * path (dashboards, generic landing pages, mutation surfaces while the
+ * receipt is in a terminal status) is 307-redirected back to the
+ * receipt URL. Pure decision; logic lives in `lib/auth/antigravity.ts`.
+ *
+ * Runs before public-route pass-through so verifier-blocked paths
+ * (e.g. `/dashboard`) cannot leak through even when marked public.
+ */
+function applyAntigravity(
+  req: NextRequest,
+  role: AntigravityRole,
+): NextResponse | null {
+  const activeReceiptId =
+    req.cookies.get(ANTIGRAVITY_COOKIE_ACTIVE_RECEIPT)?.value ?? null;
+  if (!activeReceiptId) return null;
+  const status =
+    (req.cookies.get(ANTIGRAVITY_COOKIE_RECEIPT_STATUS)?.value as ReceiptStatus | undefined) ?? null;
+  const decision = evaluateAntigravityRoute({
+    role,
+    pathname: req.nextUrl.pathname,
+    activeReceiptId,
+    receiptStatus: status,
+  });
+  if (decision.action !== 'redirect' || !decision.redirectTo) return null;
+  const url = req.nextUrl.clone();
+  url.pathname = decision.redirectTo;
+  url.search = '';
+  const res = NextResponse.redirect(url, 307);
+  res.headers.set('x-antigravity-reason', decision.reason ?? 'unknown');
+  return res;
+}
+
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
+
+  // 0. Antigravity check — if a verifier is off-canonical, redirect first.
+  //    Role from JWT if present; cookie presence is the active-session signal.
+  {
+    const earlySession = await auth();
+    const earlyRole = (earlySession.sessionClaims?.vitalcv?.role as
+      | UserRoleType
+      | undefined) ?? null;
+    const antigravity = applyAntigravity(req, earlyRole as AntigravityRole);
+    if (antigravity) return antigravity;
+  }
 
   // 1. Public routes pass through
   if (isPublicRoute(pathname)) {

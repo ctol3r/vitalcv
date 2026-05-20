@@ -30,6 +30,8 @@ module.exports = {
     '^@vitalcv/shared/(.*)$': '<rootDir>/../../../packages/shared/$1',
     '^@vitalcv/trust-state$': '<rootDir>/../../../packages/trust-state/index.ts',
     '^@vitalcv/trust-state/(.*)$': '<rootDir>/../../../packages/trust-state/$1',
+    '^@vitalcv/core$': '<rootDir>/../../../packages/core/src/index.ts',
+    '^@vitalcv/core/(.*)$': '<rootDir>/../../../packages/core/src/$1',
     // core/graph/* package resolution (relative depth varies by caller)
     '^(?:\\.\\./){4,8}core/graph/(.*)$': '<rootDir>/../../../core/graph/$1',
   },

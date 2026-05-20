@@ -1487,6 +1487,13 @@ model AuditEvent {
   organizationId String?
   anchored       Boolean  @default(false)
   merkleRoot     String?
+  // ── WAVE C75 · durable cryptographic event chain ──────────────────────
+  // `lineageKey` groups events into a per-subject/per-lane chain.
+  // `priorRunId` references the predecessor event's `id`; null for genesis.
+  // `hash` is repurposed by `createAuditEventWithChain` to hold the
+  // SHA-256 chain hash computed by `@vitalcv/core` HashChainService.
+  lineageKey     String?  @map("lineage_key")
+  priorRunId     String?  @map("prior_run_id") @db.Uuid
 
   @@index([type, createdAt])
   @@index([clinicianId])
@@ -1494,6 +1501,8 @@ model AuditEvent {
   @@index([organizationId])
   @@index([anchored])
   @@index([merkleRoot])
+  @@index([lineageKey])
+  @@index([priorRunId])
 }
 
 // ── Pilot Operations Events ────────────────────────────────────────────────
