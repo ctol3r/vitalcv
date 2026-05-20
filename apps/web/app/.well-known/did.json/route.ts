@@ -1,26 +1,30 @@
 /**
  * GET /.well-known/did.json
  *
- * W3C DID Document for the VitalCV issuer identity (WAVE C78).
+ * W3C DID Document — the canonical issuer-identity discovery surface.
  *
- * Strict-compliance shape:
- *   - `@context` includes the canonical W3C DID v1 context plus the
- *     Ed25519VerificationKey2020 context.
- *   - `id` and `controller` are derived per-request from the resolved
- *     issuer host (env override > X-Forwarded-Host > Host > default).
- *   - `verificationMethod` carries an Ed25519 entry (`JsonWebKey2020`
- *     with `publicKeyJwk.crv = 'Ed25519'`) sourced from the runtime
- *     keypair in `apps/web/lib/crypto/ed25519IssuerKey.ts`.
- *   - `authentication` and `assertionMethod` both reference the
- *     verification method id.
- *   - `service` advertises the JWKS endpoint (which carries the
- *     separate ES256 receipt-signing key) and the OID4VCI metadata
- *     endpoint.
+ * This route is a **discovery surface only**. It declares the issuer's
+ * verification method and points at the JWKS and OID4VCI metadata
+ * endpoints. It does NOT mint credentials, run OAuth flows, or assert
+ * production federation guarantees -- those are intentionally outside
+ * the discovery layer's scope.
+ *
+ * Integrity contract (binding):
+ *   - response body is canonically serialized (sorted keys) for
+ *     byte-stable replay across processes
+ *   - strong `ETag` derived from canonical bytes
+ *   - 304 returned on matching `If-None-Match`
+ *   - `Vary: Host, X-Forwarded-Host, Accept` so caches don't poison
+ *     across hosts
+ *   - host is normalized via `canonicalizeHost(...)`; every injection
+ *     vector we can name is rejected
+ *   - `application/did+json` content type per the DID-core spec
  *
  * Spec refs:
  *   - https://www.w3.org/TR/did-core/
  *   - https://w3c-ccg.github.io/did-method-web/
  *   - https://w3c-ccg.github.io/lds-jws2020/
+ *   - https://www.rfc-editor.org/rfc/rfc9110 (cache + ETag)
  */
 
 import { NextResponse } from 'next/server';
@@ -29,6 +33,7 @@ import {
   resolveIssuerDid,
   resolveIssuerOrigin,
 } from '@/lib/discovery/issuerHost';
+import { buildCanonicalJsonResponse } from '@/lib/protocol/protocolIntegrity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,7 +43,9 @@ export async function GET(request: Request) {
   const issuerOrigin = resolveIssuerOrigin(request.headers);
   const publicJwk = await getEd25519PublicJwk();
   const kid =
-    typeof publicJwk.kid === 'string' ? publicJwk.kid : 'vcv-ed25519-key-1';
+    typeof publicJwk.kid === 'string' && publicJwk.kid.length > 0
+      ? publicJwk.kid
+      : 'vcv-ed25519-key-1';
   const verificationMethodId = `${issuerDid}#${kid}`;
 
   const didDocument = {
@@ -72,11 +79,17 @@ export async function GET(request: Request) {
     ],
   };
 
-  return NextResponse.json(didDocument, {
-    headers: {
-      'Content-Type': 'application/did+json; charset=utf-8',
-      'Cache-Control':
-        'public, max-age=3600, stale-while-revalidate=86400',
-    },
+  const envelope = buildCanonicalJsonResponse({
+    value: didDocument,
+    contentType: 'application/did+json; charset=utf-8',
+    ifNoneMatch: request.headers.get('if-none-match'),
+  });
+
+  if (envelope.status === 304) {
+    return new NextResponse(null, { status: 304, headers: envelope.headers });
+  }
+  return new NextResponse(envelope.body, {
+    status: envelope.status,
+    headers: envelope.headers,
   });
 }

@@ -2,24 +2,30 @@
  * GET /.well-known/openid-credential-issuer
  *
  * OpenID for Verifiable Credential Issuance (OID4VCI) issuer metadata.
- * (WAVE C78)
  *
- * Strict-compliance shape per
- * https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html:
- *   - `credential_issuer` — resolved per-request from the issuer host
- *   - `credential_endpoint` — POST endpoint for the credential request
- *   - `jwks_uri` — public JWKS for receipt signature verification
- *   - `credential_configurations_supported` — typed credentials VitalCV
- *     issues, keyed by configuration id, each carrying `format`,
- *     `credential_definition`, and `proof_types_supported`.
+ * Discovery surface only. Declares supported credential configurations
+ * and proof capability; this does NOT implement the OID4VCI issuance
+ * flow itself. The pilot-stage interoperability posture is intentional:
+ * issuance is institution-owned during pilot engagements and is not
+ * exercised through this metadata-only surface.
  *
- * `credential_configurations_supported` describes the issuer's
- * **declared** capability — it does not assert that a particular
- * subject possesses any of the listed credentials.
+ * Integrity contract (binding):
+ *   - response body is canonically serialized (sorted keys)
+ *   - strong `ETag` derived from canonical bytes
+ *   - 304 returned on matching `If-None-Match`
+ *   - `Vary: Host, X-Forwarded-Host, Accept`
+ *   - host is canonicalized via `canonicalizeHost(...)`
+ *
+ * Spec ref:
+ *   https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
  */
 
 import { NextResponse } from 'next/server';
-import { resolveIssuerDid, resolveIssuerOrigin } from '@/lib/discovery/issuerHost';
+import {
+  resolveIssuerDid,
+  resolveIssuerOrigin,
+} from '@/lib/discovery/issuerHost';
+import { buildCanonicalJsonResponse } from '@/lib/protocol/protocolIntegrity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,7 +39,6 @@ export async function GET(request: Request) {
     authorization_servers: [issuerOrigin],
     credential_endpoint: `${issuerOrigin}/api/credentials/issue`,
     jwks_uri: `${issuerOrigin}/.well-known/jwks.json`,
-    // OID4VCI 1.0 — proof formats VitalCV will accept on credential request.
     proof_types_supported: {
       jwt: {
         proof_signing_alg_values_supported: ['EdDSA', 'ES256'],
@@ -48,13 +53,10 @@ export async function GET(request: Request) {
         credential_definition: {
           type: ['VerifiableCredential', 'VitalCVCredential'],
           credentialSubject: {
-            // Subject NPI is the primary identifier (NPPES-public).
             npi: { display: [{ name: 'NPI', locale: 'en-US' }] },
-            // Source-confirmed primary taxonomy (CMS NUCC code).
             taxonomyCode: {
               display: [{ name: 'Primary taxonomy', locale: 'en-US' }],
             },
-            // Active practice state (CMS NPPES location address).
             activeState: {
               display: [{ name: 'Active state', locale: 'en-US' }],
             },
@@ -70,12 +72,11 @@ export async function GET(request: Request) {
             name: 'VitalCV Provider Credential',
             locale: 'en-US',
             description:
-              'Verifiable credential issued by VitalCV after source-confirmed federal-registry resolution. Re-verifiable offline against the issuer DID.',
+              'Discovery declaration. Verifiable credential issued by VitalCV after source-confirmed federal-registry resolution; re-verifiable offline against the issuer DID.',
           },
         ],
       },
     },
-    // Convenience cross-reference back to the DID identity.
     issuer_did: issuerDid,
     display: [
       {
@@ -85,10 +86,17 @@ export async function GET(request: Request) {
     ],
   };
 
-  return NextResponse.json(metadata, {
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
-    },
+  const envelope = buildCanonicalJsonResponse({
+    value: metadata,
+    contentType: 'application/json; charset=utf-8',
+    ifNoneMatch: request.headers.get('if-none-match'),
+  });
+
+  if (envelope.status === 304) {
+    return new NextResponse(null, { status: 304, headers: envelope.headers });
+  }
+  return new NextResponse(envelope.body, {
+    status: envelope.status,
+    headers: envelope.headers,
   });
 }
