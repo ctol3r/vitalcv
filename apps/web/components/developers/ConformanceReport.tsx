@@ -158,7 +158,7 @@ export function ConformanceReport({ className = '' }: { className?: string }) {
                 ? <CheckCircle2 className="h-4 w-4" />
                 : <XCircle className="h-4 w-4" />
               }
-              {report.overallCompliant ? 'Fully Compliant' : 'Non-Compliant'}
+              {report.overallCompliant ? 'Conformance Suite Passed' : 'Non-Compliant'}
             </div>
           )}
         </div>
