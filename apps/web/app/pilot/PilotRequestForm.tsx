@@ -15,6 +15,11 @@
 
 import * as React from 'react';
 import { ArrowRight } from 'lucide-react';
+import {
+  CompletionConfirmation,
+  InstitutionalNextStep,
+  BoundedSimulationDisclosure,
+} from '@/components/continuity';
 
 interface PilotRequestFormProps {
   sourceContext?: string;
@@ -101,45 +106,49 @@ export function PilotRequestForm({
 
   if (phase === 'ok' && confirmation) {
     return (
-      <section
-        data-testid="pilot-confirmation"
-        aria-live="polite"
-        className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6"
-      >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-500">
-          {confirmation.headline}
-        </p>
-        <p className="mt-2 text-base text-foreground/90">
-          {confirmation.acknowledgement}
-        </p>
+      <div data-testid="pilot-confirmation" aria-live="polite" className="space-y-4">
+        <BoundedSimulationDisclosure
+          simulationLabel="Pilot intake"
+          whatIsSimulated="The form generates a structured intake record and surfaces this confirmation in-process. The submission is held server-side for the operator session."
+          whatWouldHappenInProduction="A production-grade intake would persist to a CRM, email the operator, and notify the requesting organization of the working-session schedule."
+          whatRemainsInstitutionOwned="The receiving institution’s intake checklist, committee cadence, and final acceptance remain on its own systems regardless of this submission."
+        />
 
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <ConfirmationList
-            title="What happens next"
-            items={confirmation.bullets.whatHappensNext}
-            testId="confirmation-next"
-          />
-          <ConfirmationList
-            title="What VitalCV measures"
-            items={confirmation.bullets.whatVitalCvMeasures}
-            testId="confirmation-measures"
-          />
-          <ConfirmationList
-            title="What you provide"
-            items={confirmation.bullets.whatYouProvide}
-            testId="confirmation-provide"
-          />
-          <ConfirmationList
-            title="Outside current coverage"
-            items={confirmation.bullets.outsideCoverage}
-            testId="confirmation-outside"
-          />
-        </div>
+        <CompletionConfirmation
+          headline={confirmation.headline}
+          acknowledgement={confirmation.acknowledgement}
+          referenceId={confirmation.reference.pilotId}
+          recordedAt={confirmation.reference.requestedAt}
+          whatHappensNext={confirmation.bullets.whatHappensNext}
+          whatRemainsInstitutionOwned={confirmation.bullets.outsideCoverage}
+        />
 
-        <p className="mt-6 font-mono text-[11px] text-muted-foreground">
-          Reference: {confirmation.reference.pilotId} · {confirmation.reference.requestedAt}
-        </p>
-      </section>
+        <InstitutionalNextStep
+          label="See the pilot demonstration walkthrough"
+          href="/demo/pilot"
+          owner="vitalcv"
+          whatHappens="Opens the receiver-side pilot demonstration. Shows what the federal-source resolution cohort looks like, including the operator note carried per lane."
+          whatItDoesNotDo="It does not start a real pilot, contact your institution, or substitute the working session the operator will schedule."
+        />
+
+        <details className="rounded-xl border border-slate-200 bg-white px-4 py-2">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-slate-600">
+            Show full intake bullets
+          </summary>
+          <div className="mt-3 grid gap-5 sm:grid-cols-2">
+            <ConfirmationList
+              title="What VitalCV measures"
+              items={confirmation.bullets.whatVitalCvMeasures}
+              testId="confirmation-measures"
+            />
+            <ConfirmationList
+              title="What you provide"
+              items={confirmation.bullets.whatYouProvide}
+              testId="confirmation-provide"
+            />
+          </div>
+        </details>
+      </div>
     );
   }
 

@@ -4,6 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { VerifierOnboardingGuide } from '@/components/verifier/VerifierOnboardingGuide';
+import {
+  BoundedSimulationDisclosure,
+  InstitutionalNextStep,
+} from '@/components/continuity';
+
+/**
+ * In-process demo token a reviewer can paste to see the verifier
+ * surface render its happy-path. The token is intentionally NOT a
+ * real signed receipt — it is a placeholder string that the API
+ * recognizes only for demo display purposes. Production verification
+ * requires a real signed JWT from a real issuance event.
+ */
+const DEMO_VERIFICATION_TOKEN =
+  'demo.vitalcv.receipt.placeholder-not-a-real-jwt';
 
 interface VerifyResult {
   verified: boolean;
@@ -60,9 +74,18 @@ export default function VerifyPage() {
       </div>
 
       <h1 className="mb-2 text-3xl font-bold tracking-tight">Credential Verifier</h1>
-      <p className="mb-8 text-gray-500">
+      <p className="mb-6 text-gray-500">
         Paste a VitalCV JWT to verify its cryptographic signature and inspect its claims.
       </p>
+
+      <div className="mb-6">
+        <BoundedSimulationDisclosure
+          simulationLabel="Verifier entry"
+          whatIsSimulated="The verifier surface renders by calling /api/receipts/verify on whatever token you paste. The demo-token button below loads a placeholder string so the surface state can be inspected without a real issued receipt."
+          whatWouldHappenInProduction="A real reviewer would paste a JWT received from a clinician's wallet handoff. The API would verify the signature against the published JWKS and surface the lane state attached to the receipt."
+          whatRemainsInstitutionOwned="The receiving institution still owns its own primary-source verification and final credential decision regardless of what /verify renders."
+        />
+      </div>
 
       <div className="mb-4">
         <label htmlFor="token-input" className="mb-2 block text-sm font-medium text-gray-700">
@@ -76,6 +99,14 @@ export default function VerifyPage() {
           placeholder="eyJhbGciOiJFUzI1NiIsImtpZCI6Ii4uLiJ9..."
           className="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
+        <button
+          type="button"
+          data-testid="verify-demo-token-button"
+          onClick={() => setToken(DEMO_VERIFICATION_TOKEN)}
+          className="mt-2 inline-flex items-center text-xs font-medium text-blue-600 underline-offset-2 hover:underline"
+        >
+          Load demo token (placeholder; real verification not yet materialized)
+        </button>
       </div>
 
       <button
@@ -85,6 +116,16 @@ export default function VerifyPage() {
       >
         {loading ? 'Verifying…' : 'Verify'}
       </button>
+
+      <div className="mb-8">
+        <InstitutionalNextStep
+          label="Return to clinician readiness"
+          href="/holder/readiness"
+          owner="operator"
+          whatHappens="Opens the clinician readiness surface where the operator note attached to each lane lives. The receiving institution can cross-check the lane state there."
+          whatItDoesNotDo="It does not issue a credential, contact the receiving institution, or substitute the institution's own primary-source verification."
+        />
+      </div>
 
       <ReceiptReplaySection
         receiptIdInput={receiptIdInput}

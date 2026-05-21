@@ -18,6 +18,10 @@ import { CredentialPresentationActions } from '@/components/clinician/Credential
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel';
+import {
+  VerificationPreparation,
+  ContinuityBridge,
+} from '@/components/continuity';
 
 type WorkspaceProfile = {
   npi?: string | null;
@@ -165,6 +169,26 @@ export default function HolderPage() {
       {/* Passport */}
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <WalletPassport npi={npi!} pollIntervalMs={30_000} />
+      </div>
+
+      {/* Continuity bridge to /verify */}
+      <div className="mx-auto max-w-3xl px-4 pb-2 sm:px-6">
+        <ContinuityBridge
+          fromLabel="/holder · your readiness"
+          toLabel="/verify · verifier surface"
+          toHref="/verify"
+          state="ready"
+          whatTravels="A portable replay envelope per federal-source lane and the operator note attached to each lane. A reference identifier the receiving institution can verify."
+          whatStaysBehind="Institution records, committee minutes, state-board PSV, privileging, and final acceptance for deployment remain on the institution's own systems."
+        />
+      </div>
+
+      {/* Verification preparation guidance */}
+      <div className="mx-auto max-w-3xl px-4 pb-2 sm:px-6">
+        <VerificationPreparation
+          href="/verify"
+          clinicianDisplayName={profile?.firstName ?? undefined}
+        />
       </div>
 
       {/* Detailed credential view */}
