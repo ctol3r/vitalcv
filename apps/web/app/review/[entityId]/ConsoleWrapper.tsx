@@ -144,13 +144,21 @@ function buildBlocker(lane: LaneSnapshot): BlockerItem {
 }
 
 function deriveNextAction(posture: ReadinessPosture, blockers: BlockerItem[]): string {
-  if (posture === 'blocked') return 'Adverse finding detected. Manual review required before proceeding.';
-  if (posture === 'decision_grade') return 'Credentials verified. Clear to proceed.';
+  // Wave 37 P0/P1 hardening: every posture is evidence-bounded and
+  // ends with an explicit institution-review requirement. No
+  // proceed-by-default copy; no "clear to proceed"; no implicit
+  // green-light at access_required.
+  if (posture === 'blocked') {
+    return 'Adverse finding detected. Institution review required before any decision; do not proceed without institutional sign-off.';
+  }
+  if (posture === 'decision_grade') {
+    return 'Lane evidence completed. Institution review still required before a final decision; this surface does not grant clearance.';
+  }
   const topBlocker = blockers[0];
   if (topBlocker?.status === 'access_required') {
-    return 'Primary identity verified. Additional sources pending — proceed with head start or wait.';
+    return 'Identity lane source-confirmed. Additional sources require institutional access — institution review still required before any decision.';
   }
-  return 'Source data is being checked. You can proceed with a head start.';
+  return 'Source data is being checked. Institution review still required; this surface does not grant clearance.';
 }
 
 // ─── Component ────────────────────────────────────────────────────

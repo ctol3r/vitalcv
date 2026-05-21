@@ -56,9 +56,9 @@ interface Props {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MONITORING_META = {
-  active: { label: 'Continuously monitored', color: 'text-foreground/70', dot: 'bg-white/70' },
-  partial: { label: 'Partially monitored', color: 'text-foreground', dot: 'bg-muted5' },
-  inactive: { label: 'Monitoring inactive', color: 'text-muted-foreground/50', dot: 'bg-white/25' },
+  active: { label: 'Re-checked on request', color: 'text-foreground/70', dot: 'bg-white/70' },
+  partial: { label: 'Partial source coverage', color: 'text-foreground', dot: 'bg-muted5' },
+  inactive: { label: 'Per-request re-checks disabled', color: 'text-muted-foreground/50', dot: 'bg-white/25' },
 };
 
 const STATUS_COLORS: Record<string, string> = {

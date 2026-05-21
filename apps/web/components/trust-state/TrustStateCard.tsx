@@ -41,10 +41,10 @@ const BAND_CONFIG: Record<
 };
 
 const WINDOW_LABEL: Record<WindowStatus, string> = {
-  WITHIN_WINDOW: 'Continuously Monitored',
-  EXPIRING_SOON: 'Monitoring Window Expiring Soon',
-  EXPIRED: 'Stale (Monitoring Expired)',
-  NOT_YET_VALID: 'Verification Not Yet Valid',
+  WITHIN_WINDOW: 'Within institution freshness budget',
+  EXPIRING_SOON: 'Freshness budget expiring soon',
+  EXPIRED: 'Stale — re-fetch required',
+  NOT_YET_VALID: 'Evidence not yet effective',
 };
 
 // ── Helpers ────────────────────────────────────────────────

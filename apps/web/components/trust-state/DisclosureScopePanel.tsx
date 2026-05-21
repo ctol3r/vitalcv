@@ -20,8 +20,8 @@ export function DisclosureScopePanel({
         <div>
           <h3 className="font-semibold text-sm text-indigo-950">Minimum-Necessary Disclosure Policy</h3>
           <p className="text-xs text-indigo-800/80 mt-1 max-w-prose leading-relaxed">
-            Access to these credential facts is cryptographically scoped to the stated verification purposes. 
-            The evidence artifacts will automatically decay from the verifier's perimeter in <strong className="font-semibold text-indigo-900">{expiresInDays} days</strong>.
+            Access to these credential facts is signature-scoped to the stated review purposes.
+            The evidence artifacts expire from the verifier&apos;s perimeter in <strong className="font-semibold text-indigo-900">{expiresInDays} days</strong> and must be re-presented by the holder for any subsequent review.
           </p>
           
           <div className="mt-4">

@@ -84,26 +84,26 @@ export function getTrustObserverExplanation(status: TrustStateStatus | null) {
 
   if (start_ready) {
     explanation =
-      'Subject has PSV-backed recognition and employer acceptance on record. Start remains gated by explicit attestation timing.';
+      'Source-confirmed lane evidence is on record and the employer has recorded an acceptance for this scope. Institution attestation timing still gates the start.';
   } else if (!recognized) {
     explanation =
-      'Subject is not recognized by the trust network. Initial verification is required.';
+      'Subject is not on record with source-confirmed lane evidence. Source resolution is required.';
     key_blocker = 'MISSING_RECOGNITION';
   } else if (blocking_reasons?.includes('VERIFICATION_EXPIRED')) {
     explanation =
-      'Trust integrity compromised. Verification signals have aged beyond the acceptable threshold, triggering automatic decay.';
+      'Source-confirmed lane evidence has aged beyond the institution’s freshness budget. Re-fetch on the institution’s own credential to renew.';
     key_blocker = 'VERIFICATION_EXPIRED';
   } else if (blocking_reasons?.includes('ACTIVE_SANCTIONS')) {
     explanation =
-      'Critical blocker detected. Active sanctions in audit history prevent any clinical activity.';
+      'Active sanctions in source-confirmed audit history. Institution review required before any clinical activity.';
     key_blocker = 'ACTIVE_SANCTIONS';
   } else if (blocking_reasons?.includes('CRS_BELOW_THRESHOLD')) {
     explanation =
-      'Cumulative trust factors (license status, tenure, sanctions) result in a score below the safety threshold.';
+      'Cumulative review factors (license status, tenure, sanctions) sit below the institution’s own review threshold. Institution review required.';
     key_blocker = 'CRS_BELOW_THRESHOLD';
   } else if (!accepted) {
     explanation =
-      'PSV-backed recognition is present, but this employer has not recorded acceptance for this scope.';
+      'Source-confirmed lane evidence is on record, but this employer has not recorded acceptance for this scope.';
     key_blocker = 'MISSING_ACCEPTANCE';
   } else {
     explanation = 'One or more blocking criteria are unmet.';
