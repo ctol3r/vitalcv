@@ -185,11 +185,11 @@ export function SuperbrainInsights({ npi: initialNpi }: SuperbrainInsightsProps)
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
                   </span>
-                  CLEARED
+                  SOURCE-CONFIRMED
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-400">
-                  NOT CLEARED
+                  REQUIRES INSTITUTION REVIEW
                 </div>
               )}
             </div>

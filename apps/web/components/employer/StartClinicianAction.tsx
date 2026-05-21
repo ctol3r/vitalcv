@@ -293,11 +293,11 @@ export function StartClinicianAction({
             </p>
           </div>
 
-          {/* Cleared badge */}
+          {/* Source-confirmed badge */}
           {cleared && !isLocked && (
             <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[var(--trust-green)]/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--trust-green)] ring-1 ring-[var(--trust-green)]/25">
               <ShieldCheck className="h-3 w-3" />
-              CLEARED
+              SOURCE-CONFIRMED
             </span>
           )}
           {isLocked && (
@@ -336,12 +336,12 @@ export function StartClinicianAction({
             >
               <Lock className="mx-auto mb-2 h-6 w-6" style={TC} />
               <p className="text-sm font-medium" style={TC}>
-                Superbrain clearance required
+                Lane evidence required
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Run the Superbrain eligibility scan. When it returns{' '}
-                <span className="font-semibold text-[var(--trust-green)]">CLEARED</span>,
-                this panel will unlock.
+                Run the source-resolution sequence. When all federal-source lanes return{' '}
+                <span className="font-semibold text-[var(--trust-green)]">Source-confirmed</span>,
+                this panel unlocks. Institution review remains required before any final decision.
               </p>
             </motion.div>
           )}

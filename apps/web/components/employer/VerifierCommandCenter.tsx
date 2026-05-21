@@ -213,7 +213,7 @@ export function VerifierCommandCenter() {
                         <p className="text-[15px] font-semibold text-foreground truncate">
                           {candidate.name}
                           {wasApproved && (
-                            <CheckCircle2 className="ml-1.5 inline h-4 w-4 text-[var(--trust-green)]" aria-label="Approved" />
+                            <CheckCircle2 className="ml-1.5 inline h-4 w-4 text-[var(--trust-green)]" aria-label="Marked review-complete" />
                           )}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">

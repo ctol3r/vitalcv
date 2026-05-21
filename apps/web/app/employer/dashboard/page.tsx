@@ -18,8 +18,8 @@ export default function EmployerDashboardPage() {
             <li className="flex justify-between"><span>New</span> <span className="font-bold">12</span></li>
             <li className="flex justify-between"><span>Under Review</span> <span className="font-bold">5</span></li>
             <li className="flex justify-between"><span>Waiting for Docs</span> <span className="font-bold">3</span></li>
-            <li className="flex justify-between"><span>Approved</span> <span className="font-bold">8</span></li>
-            <li className="flex justify-between"><span>Rejected</span> <span className="font-bold">2</span></li>
+            <li className="flex justify-between"><span>Marked Review-Complete</span> <span className="font-bold">8</span></li>
+            <li className="flex justify-between"><span>Not Eligible (Institution-Owned)</span> <span className="font-bold">2</span></li>
           </ul>
         </div>
 

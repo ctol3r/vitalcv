@@ -126,11 +126,11 @@ export function SandboxHero() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-60 font-mono text-[var(--vt-text-primary)]">
           <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Identity</div>
-            <div className="text-[10px] font-bold">VERIFIED</div>
+            <div className="text-[10px] font-bold">SOURCE-CONFIRMED</div>
           </div>
           <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Sanctions</div>
-            <div className="text-[10px] font-bold">CLEAR</div>
+            <div className="text-[10px] font-bold">NO ADVERSE RECORDS</div>
           </div>
           <div className="border border-[var(--vt-border)] p-3 bg-foreground/10">
             <div className="text-[8px] font-bold uppercase tracking-widest opacity-40 mb-1">Licensure</div>

@@ -91,7 +91,7 @@ function StatusDot({ status }: { status: ContinuityProbe['status'] }) {
   if (status === 'verified') {
     return (
       <span className="inline-flex items-center gap-1 text-green-600 font-mono text-[11px]">
-        <span className="text-[14px] leading-none">●</span> VERIFIED
+        <span className="text-[14px] leading-none">●</span> SOURCE-CONFIRMED
       </span>
     );
   }
