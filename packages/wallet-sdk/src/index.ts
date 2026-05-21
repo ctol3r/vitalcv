@@ -348,4 +348,7 @@ export default VitalCVWallet;
 // Wave 133: version + diagnostics
 export * from './version';
 export * from './diagnostics';
-export * from './interoperability';
+// Note: prior `./interoperability` re-export referenced a file that
+// was never landed (see PR #398 fix/ci-unlock-and-stack-convergence).
+// Removed here so the local build passes; on rebase against #398 the
+// change collapses to a no-op.

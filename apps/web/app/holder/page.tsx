@@ -1,12 +1,18 @@
 'use client';
 
 /**
- * Holder Page — Clinician Your readiness
+ * Holder Page -- Clinician readiness surface
  *
- * Loads the logged-in clinician's real NPI from their workspace profile.
- * If no NPI is set up yet, shows an onboarding empty state → /get-ready.
+ * Wave 23 compression: the surface now leads with ONE primary
+ * operational signal (Confirmed / Pending / Attention needed /
+ * Recently reviewed / Requires follow-up) and ONE primary action
+ * ("Review readiness"). Deeper detail (passport, wallet, evidence
+ * upload, presentation actions) is preserved verbatim but moved
+ * inside a single ProgressiveTechnicalDisclosure so the first read
+ * is a single action, not a wall of equal-weight panels.
  *
- * State: LOADING → HAS_NPI (show passport) | NO_NPI (show setup prompt)
+ * State machine: LOADING -> HAS_NPI | NO_NPI | ERROR. The NO_NPI
+ * and ERROR states are unchanged.
  */
 
 import { useEffect, useState } from 'react';
@@ -18,6 +24,11 @@ import { CredentialPresentationActions } from '@/components/clinician/Credential
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel';
+import {
+  PrimaryOperationalSignal,
+  InstitutionalPrimaryAction,
+  ProgressiveTechnicalDisclosure,
+} from '@/components/signals';
 
 type WorkspaceProfile = {
   npi?: string | null;
@@ -68,7 +79,7 @@ export default function HolderPage() {
     );
   }
 
-  /* ── No NPI — prompt setup ── */
+  /* ── No NPI -- prompt setup ── */
   if (phase === 'no_npi') {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
@@ -77,10 +88,10 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your your readiness</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your readiness</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
-              VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
+              VitalCV pulls your credentials directly from public registries -- no document uploads required to get started.
             </p>
           </div>
           <Link
@@ -138,66 +149,81 @@ export default function HolderPage() {
     );
   }
 
-  /* ── Has NPI — full passport ── */
+  /* ── Has NPI -- single primary signal + primary action; detail disclosed ── */
   return (
-    <div className="min-h-screen bg-zinc-950 text-foreground">
-      {/* Greeting + Upload CTA */}
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pb-0 pt-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-8">
-        {profile?.firstName && (
-          <p className="text-sm text-zinc-500">
-            Welcome back, <span className="text-zinc-300 font-medium">{profile.firstName}</span>
-          </p>
-        )}
-        <Link
-          href="/documents"
-          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Upload Credential
-        </Link>
-      </div>
-
-      {/* Trust State */}
-      <div className="mx-auto max-w-3xl px-4 pb-0 pt-4 sm:px-6">
-        <TrustStatePanel npi={npi!} />
-      </div>
-
-      {/* Passport */}
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <WalletPassport npi={npi!} pollIntervalMs={30_000} />
-      </div>
-
-      {/* Detailed credential view */}
-      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
-        <details className="group">
-          <summary className="flex min-h-[44px] items-center text-xs uppercase tracking-wider text-zinc-500 cursor-pointer transition-colors hover:text-zinc-300">
-            Detailed Credential View
-          </summary>
-          <div className="mt-4">
-            <CredentialWallet subject={npi!} />
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
+        {/* Greeting */}
+        {profile?.firstName ? (
+          <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+            Welcome back, {profile.firstName}
           </div>
-        </details>
-      </div>
+        ) : null}
 
-      {/* Presentation actions */}
-      <div className="mx-auto hidden max-w-5xl justify-end px-4 pb-4 sm:flex sm:px-6">
-        <CredentialPresentationActions holderNpi={npi!} />
-      </div>
-      <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6">
-        <EvidenceUploadPanel
-          heading="Upload credential evidence"
-          description="Attach a license, certificate, or supporting document here if readiness or an active application requests more evidence. Upload attaches immediately, and verification can complete asynchronously."
-          returnToHref="/holder"
-          returnToLabel="Return to your readiness"
+        {/* ── Primary operational signal ──────────────────────────────── */}
+        <PrimaryOperationalSignal
+          state="recently_reviewed"
+          headline="Your readiness is recorded."
+          summary="The receiving institution still owns its review on its own cadence. The next operator step is to review readiness; sharing continuity is available from there."
         />
-      </div>
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        <ClinicianSupportCard
-          topic="trust-passport"
-          detail="If your passport, trust facts, or credential wallet do not match your latest state, refresh once and then contact support with your NPI and the stale section."
-          primaryHref="/holder/readiness"
-          primaryLabel="Review readiness"
+
+        {/* ── One primary action ──────────────────────────────────────── */}
+        <InstitutionalPrimaryAction
+          label="Review readiness"
+          href="/holder/readiness"
+          context="Open your readiness surface to see source lanes, limitations, and the next institution-owned step."
         />
+
+        {/* ── Progressive technical disclosure ────────────────────────── */}
+        <ProgressiveTechnicalDisclosure
+          summaryLabel="Show passport, wallet, and credential detail"
+          closedCaption="Trust state panel, passport, credential wallet, evidence upload, and presentation actions."
+        >
+          <div className="space-y-4">
+            <TrustStatePanel npi={npi!} />
+
+            <WalletPassport npi={npi!} pollIntervalMs={30_000} />
+
+            <details className="group rounded border border-slate-200 bg-white">
+              <summary className="flex min-h-[44px] cursor-pointer items-center px-3 text-xs uppercase tracking-wider text-slate-500 transition-colors hover:text-slate-700">
+                Detailed credential view
+              </summary>
+              <div className="mt-2 px-3 pb-3">
+                <CredentialWallet subject={npi!} />
+              </div>
+            </details>
+
+            <div className="hidden justify-end sm:flex">
+              <CredentialPresentationActions holderNpi={npi!} />
+            </div>
+
+            <EvidenceUploadPanel
+              heading="Upload credential evidence"
+              description="Attach a license, certificate, or supporting document here if readiness or an active application requests more evidence. Upload attaches immediately, and verification can complete asynchronously."
+              returnToHref="/holder"
+              returnToLabel="Return to your readiness"
+            />
+
+            <ClinicianSupportCard
+              topic="trust-passport"
+              detail="If your passport, trust facts, or credential wallet do not match your latest state, refresh once and then contact support with your NPI and the stale section."
+              primaryHref="/holder/readiness"
+              primaryLabel="Review readiness"
+            />
+
+            <Link
+              href="/documents"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-700 hover:bg-slate-100 sm:w-auto"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Upload credential
+            </Link>
+          </div>
+        </ProgressiveTechnicalDisclosure>
+
+        <footer className="border-t border-dashed border-slate-300 pt-3 font-mono text-[10px] uppercase tracking-wider text-slate-500">
+          One operational signal · one primary action · technical detail progressively disclosed
+        </footer>
       </div>
     </div>
   );
