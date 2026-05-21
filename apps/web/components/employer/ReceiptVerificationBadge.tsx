@@ -42,12 +42,12 @@ export default function ReceiptVerificationBadge({ token }: ReceiptVerificationB
         <span className="font-semibold text-sm">Receipt Integrity</span>
         {status === 'verified' && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-            ✓ Cryptographically Verified
+            ✓ Signature confirmed against published key
           </span>
         )}
         {status === 'failed' && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-            ✗ Tampered / Signature Failed
+            ✗ Signature did not match published key
           </span>
         )}
         {status === 'idle' && token && (

@@ -208,7 +208,7 @@ export const ReceiptViewer = React.forwardRef<HTMLDivElement, ReceiptViewerProps
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-gray-700" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-              Cryptographically Verified
+              Signature confirmed against published key
             </span>
           </div>
 

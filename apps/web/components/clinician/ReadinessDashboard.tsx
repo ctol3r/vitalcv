@@ -53,7 +53,7 @@ export function ReadinessDashboard() {
         {[
           { icon: Fingerprint, label: 'Verified Identity', value: 'Level 2 IAL' },
           { icon: Shield, label: 'PSV Credentials', value: '4 Active' },
-          { icon: Clock, label: 'Audit Log', value: 'Immutable' }
+          { icon: Clock, label: 'Audit Log', value: 'Hash-chained, append-only' }
         ].map((item, i) => (
           <motion.div
             key={i}

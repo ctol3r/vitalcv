@@ -108,7 +108,7 @@ export default function SharePacketModal({ isOpen, onClose, clinicianName, npi }
                   <div className="space-y-1">
                     <p className="text-xs font-bold uppercase tracking-tight">What is being shared?</p>
                     <p className="text-xs opacity-60 leading-relaxed">
-                      Your verified identity, OIG/LEIE status, state licensure data, and the AI-driven MSP Auditor synthesis will be visible to the employer.
+                      Your federal-source identity resolution, OIG/LEIE status, state licensure data, and the operator-reviewed MSP Auditor synthesis will be visible to the employer.
                     </p>
                   </div>
                 </div>

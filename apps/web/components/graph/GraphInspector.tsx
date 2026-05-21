@@ -396,7 +396,7 @@ export function GraphInspector({
               <div className="vital-panel__header mb-3">
                 <div>
                   <p className="vital-panel__eyebrow">Recommended Actions</p>
-                  <h3 className="vital-panel__title">Autonomous Triggers</h3>
+                  <h3 className="vital-panel__title">Operator Triggers</h3>
                 </div>
               </div>
               <div className="space-y-3">

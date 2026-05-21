@@ -139,7 +139,7 @@ export default function EmployerWorkspaceBootstrap({ onComplete, orgId }: Employ
 
               <div className="flex items-center gap-2 justify-center opacity-30 text-[8px] font-mono uppercase tracking-tighter">
                 <ShieldCheck className="w-3 h-3" />
-                Immutable Entity Record will be generated
+                Hash-chained, append-only entity record will be generated
               </div>
             </form>
           </motion.div>
