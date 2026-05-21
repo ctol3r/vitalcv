@@ -19,6 +19,9 @@
     "test:backend:db": "bash scripts/backend-test-db.sh",
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
+    "verify:materialization-enforcement": "node --experimental-strip-types scripts/verify-materialization-enforcement.ts enforce",
+    "verify:repo-reality": "node --experimental-strip-types scripts/verify-materialization-enforcement.ts status",
+    "verify:wave-state": "node --experimental-strip-types scripts/verify-materialization-enforcement.ts wave-state",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
     "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
   },
