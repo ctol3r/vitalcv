@@ -20,7 +20,11 @@
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
-    "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
+    "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh",
+    "verify:stack": "node --experimental-strip-types scripts/verify-stack-integrity.ts",
+    "verify:semantic-lineage": "node --experimental-strip-types scripts/verify-stack-integrity.ts",
+    "generate:codex-context": "node --experimental-strip-types scripts/generate-codex-context.ts",
+    "generate:claude-context": "node --experimental-strip-types scripts/generate-claude-context.ts"
   },
   "devDependencies": {
     "@types/node": "^20",
