@@ -16,9 +16,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-// Public-only nav items. Never add ops/internal routes here.
+// Canonical-product-flow nav items (Wave 32). The visible nav is
+// limited to the five canonical steps; every other route is either
+// secondary-grouped (under /pilot or sign-in), operator-only, or
+// noindexed. See docs/product/canonical-product-flow.md for the
+// rule and the verifier in scripts/verify-canonical-flow.ts for
+// enforcement.
 const NAV_ITEMS = [
-  { href: '/pilot',   label: 'For Employers' },
+  { href: '/',          label: 'Home' },
+  { href: '/get-ready', label: 'Get Ready' },
+  { href: '/passport',  label: 'Passport' },
+  { href: '/review',    label: 'Review' },
+  { href: '/status',    label: 'Status' },
 ] as const;
 
 export default function Navbar() {

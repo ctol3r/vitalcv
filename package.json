@@ -19,6 +19,9 @@
     "test:backend:db": "bash scripts/backend-test-db.sh",
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
+    "verify:canonical-flow": "node --experimental-strip-types scripts/verify-canonical-flow.ts full",
+    "verify:nav-shape": "node --experimental-strip-types scripts/verify-canonical-flow.ts nav-shape",
+    "verify:canonical-routes": "node --experimental-strip-types scripts/verify-canonical-flow.ts canonical-routes",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
     "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
   },
