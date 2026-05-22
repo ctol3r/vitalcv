@@ -154,8 +154,8 @@ export default function ClinicianPassport({ trustState, npi, clinicianName, erro
             </div>
             <h2 className="text-5xl font-bold tracking-tighter uppercase">{displayName}</h2>
             <p className="text-sm opacity-60 font-mono max-w-md">
-              NPI: {npi} | Real-time synchronization with primary source registries. 
-              Immutable audit trail enabled.
+              NPI: {npi} | Per-request resolution against primary-source registries.
+              Hash-chained, append-only audit trail enabled.
             </p>
           </div>
           

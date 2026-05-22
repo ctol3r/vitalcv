@@ -157,7 +157,7 @@ function emptyFeedMessage(delivery: LiveFeedResponse['delivery']): string {
 export function LiveFeedRibbon() {
   const [events, setEvents] = useState<RibbonEvent[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [refreshSeconds, setRefreshSeconds] = useState(0);
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [delivery, setDelivery] = useState<LiveFeedResponse['delivery']>(DEFAULT_DELIVERY);
 
   useEffect(() => {
@@ -183,7 +183,7 @@ export function LiveFeedRibbon() {
 
         setEvents(toRibbonEvents(normalized.events));
         setDelivery(normalized.delivery);
-        setRefreshSeconds(0);
+        setLastFetchedAt(Date.now());
       } catch {
         if (!active) {
           return;
@@ -208,12 +208,11 @@ export function LiveFeedRibbon() {
     };
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Wave 41 production-integrity: the previous 1-second cosmetic
+  // tick rendered a ticking "00:NN" counter that suggested live
+  // monitoring even when no actual fetch was happening. Removed.
+  // The honest read is `lastFetchedAt`, which advances only when
+  // the feed poll actually returns.
 
   if (!mounted) {
     return null;
@@ -254,7 +253,9 @@ export function LiveFeedRibbon() {
           
           <div className="flex items-center gap-1.5 text-[9px] text-[var(--vt-text-3)] font-mono uppercase tracking-widest">
             <Activity className="h-2.5 w-2.5" />
-            00:{refreshSeconds.toString().padStart(2, '0')}
+            {lastFetchedAt
+              ? `Last fetched ${new Date(lastFetchedAt).toLocaleTimeString()}`
+              : 'Awaiting first fetch'}
           </div>
         </>
       )}

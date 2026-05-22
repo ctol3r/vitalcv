@@ -19,6 +19,9 @@
     "test:backend:db": "bash scripts/backend-test-db.sh",
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
     "verify:passport-runtime": "node --experimental-strip-types scripts/runtime/verify-passport-runtime.ts",
+    "verify:production-integrity": "node --experimental-strip-types scripts/verify-production-integrity.ts enforce",
+    "verify:deployment-state": "node --experimental-strip-types scripts/verify-production-integrity.ts deployment-state",
+    "verify:runtime-recovery": "node --experimental-strip-types scripts/verify-production-integrity.ts runtime-recovery",
     "release:readiness": "node --experimental-strip-types scripts/release/release-readiness.ts",
     "runtime:kill-shadow-runtimes": "bash scripts/runtime/kill-shadow-runtimes.sh"
   },

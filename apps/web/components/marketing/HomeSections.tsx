@@ -333,7 +333,7 @@ export function TractionSection() {
 
         <div className="text-center">
           <p className="text-[var(--vt-text-muted)] text-sm mb-5">
-            See the product working in real time.
+            See the product resolve federal-source lanes on request.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/passport" className="border border-line px-7 py-3 text-sm font-semibold text-[var(--vt-text-primary)] uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center gap-2">

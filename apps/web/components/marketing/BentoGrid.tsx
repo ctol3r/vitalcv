@@ -33,10 +33,10 @@ const ENGINES = [
   },
   {
     icon: Eye,
-    title: 'Continuous Trust Daemon',
-    subtitle: 'Real-Time Monitoring',
+    title: 'Lane Re-check on Request',
+    subtitle: 'Per-request federal-source resolution',
     description:
-      'A background process monitors every credentialed clinician. License suspensions, exclusions, and adverse actions are detected and surfaced — not at the next recredentialing cycle.',
+      'Federal-source lanes are re-resolved against the published registries (NPPES, OIG/LEIE, PECOS) on the institution’s own freshness budget. No continuous monitoring is performed; lanes are re-checked when requested.',
     accent: 'amber',
     span: 'lg:col-span-1',
     visual: DaemonVisual,
