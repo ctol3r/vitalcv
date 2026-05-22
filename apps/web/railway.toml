@@ -1,0 +1,27 @@
+# Railway service config for `apps/web`.
+#
+# This is the canonical web-app deployment config. The root
+# `railway.toml` deploys `apps/api/backend`; this file deploys
+# `apps/web` and is consumed when the Railway service's root
+# directory is set to `apps/web` in the Railway dashboard.
+#
+# Build chain: pnpm install (root) → pnpm turbo build --filter
+# @vitalcv/web. Turbo handles the workspace dep build order
+# (trust-state, ingest, etc.) before next build runs.
+#
+# Start: Next.js listens on $PORT provided by Railway, binds 0.0.0.0.
+#
+# Health check: /api/health returns JSON `{status:'ok'}`. The route
+# never throws; backend probe failures map to backend:'unreachable'
+# in the response body, not a 5xx.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd ../.. && pnpm install --frozen-lockfile && pnpm turbo run build --filter @vitalcv/web"
+
+[deploy]
+startCommand = "cd apps/web && pnpm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
