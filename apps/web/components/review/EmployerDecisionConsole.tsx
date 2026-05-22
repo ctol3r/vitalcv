@@ -76,10 +76,10 @@ const DECISION_CONFIG: Record<DecisionState, {
   dot: string;
   confidence: 'measured' | 'estimated' | 'unverified';
 }> = {
-  ready:               { label: 'READY TO PROCEED',    color: 'text-green-700', bg: 'bg-green-50',  border: 'border-green-300', dot: 'bg-green-500',  confidence: 'measured' },
-  proceed_with_review: { label: 'PROCEED WITH REVIEW', color: 'text-amber-700', bg: 'bg-amber-50',  border: 'border-amber-300', dot: 'bg-amber-500',  confidence: 'estimated' },
-  blocked:             { label: 'BLOCKED',              color: 'text-red-700',   bg: 'bg-red-50',    border: 'border-red-300',   dot: 'bg-red-500',    confidence: 'unverified' },
-  needs_data:          { label: 'NEEDS MORE DATA',      color: 'text-slate-700', bg: 'bg-slate-50',  border: 'border-slate-300', dot: 'bg-slate-400',  confidence: 'unverified' },
+  ready:               { label: 'LANE EVIDENCE COMPLETED · INSTITUTION REVIEW REQUIRED', color: 'text-green-700', bg: 'bg-green-50',  border: 'border-green-300', dot: 'bg-green-500',  confidence: 'measured' },
+  proceed_with_review: { label: 'ADDITIONAL EVIDENCE REQUIRED',                          color: 'text-amber-700', bg: 'bg-amber-50',  border: 'border-amber-300', dot: 'bg-amber-500',  confidence: 'estimated' },
+  blocked:             { label: 'BLOCKED · INSTITUTION REVIEW REQUIRED',                  color: 'text-red-700',   bg: 'bg-red-50',    border: 'border-red-300',   dot: 'bg-red-500',    confidence: 'unverified' },
+  needs_data:          { label: 'REVIEW INCOMPLETE',                                      color: 'text-slate-700', bg: 'bg-slate-50',  border: 'border-slate-300', dot: 'bg-slate-400',  confidence: 'unverified' },
 };
 
 function deriveDecisionState(posture: ReadinessPosture, blockers: BlockerItem[]): DecisionState {

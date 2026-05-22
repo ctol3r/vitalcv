@@ -25,7 +25,8 @@ export type ReadinessPosture =
   | 'partial'
   | 'decision_grade'
   | 'blocked'
-  | 'degraded';
+  | 'degraded'
+  | 'needs_data';
 
 // ─── Color map — state only, no decoration ────────────────────────
 
@@ -42,11 +43,12 @@ export const STATUS_COLORS: Record<SourceStatus, { dot: string; text: string; bg
 
 export const POSTURE_COLORS: Record<ReadinessPosture, { text: string; bg: string; label: string }> = {
   unchecked:       { text: 'text-gray-500',  bg: 'bg-gray-50',   label: 'Not yet checked' },
-  checking:        { text: 'text-blue-700',  bg: 'bg-blue-50',   label: 'Verification in progress' },
-  partial:         { text: 'text-amber-700', bg: 'bg-amber-50',  label: 'Partial coverage' },
-  decision_grade:  { text: 'text-green-700', bg: 'bg-green-50',  label: 'Decision-ready' },
-  blocked:         { text: 'text-red-700',   bg: 'bg-red-50',    label: 'Adverse finding present' },
-  degraded:        { text: 'text-amber-700', bg: 'bg-amber-50',  label: 'Refresh required' },
+  checking:        { text: 'text-blue-700',  bg: 'bg-blue-50',   label: 'Review in progress' },
+  partial:         { text: 'text-amber-700', bg: 'bg-amber-50',  label: 'Additional evidence required' },
+  decision_grade:  { text: 'text-green-700', bg: 'bg-green-50',  label: 'Lane evidence completed · institution review required' },
+  blocked:         { text: 'text-red-700',   bg: 'bg-red-50',    label: 'Blocked · institution review required' },
+  degraded:        { text: 'text-amber-700', bg: 'bg-amber-50',  label: 'Re-fetch required' },
+  needs_data:      { text: 'text-slate-700', bg: 'bg-slate-50',  label: 'Review incomplete' },
 };
 
 // ─── Label explanations — every label explainable ─────────────────

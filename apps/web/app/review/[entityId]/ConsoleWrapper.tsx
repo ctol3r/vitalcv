@@ -45,11 +45,12 @@ async function fetchConsoleData(entityId: string): Promise<ConsoleProps | null> 
       .filter(l => ['adverse', 'access_required', 'unavailable', 'not_checked'].includes(l.status))
       .map(l => buildBlocker(l));
 
-    // 4. Derive decision metadata
-    const posture = (manifest?.tier === 'decision_grade' ? 'decision_grade'
-      : lanes.some(l => l.status === 'adverse') ? 'blocked'
-      : lanes.some(l => l.status === 'verified') ? 'partial'
-      : 'needs_data') as ReadinessPosture;
+    // 4. Derive decision metadata (Wave 39: deterministic from lane
+    //    evidence ONLY; manifest.tier never overrides degraded /
+    //    incomplete lane states). The required-lane gate ensures
+    //    decision_grade is only emitted when every required lane is
+    //    affirmatively `verified` (source-confirmed).
+    const posture = derivePosture(lanes);
 
     const score = (() => {
       const verified = lanes.filter(l => l.status === 'verified').length;
@@ -143,14 +144,70 @@ function buildBlocker(lane: LaneSnapshot): BlockerItem {
   return { laneId: lane.laneId, status: lane.status, ...defaults };
 }
 
+/**
+ * Wave 39: deterministic-confidence enforcement.
+ *
+ * The required-lane set is the closed list of lanes that MUST be
+ * affirmatively `verified` before any positive posture is allowed.
+ * If any required lane is missing or sits in a degraded state
+ * (`access_required`, `unavailable`, `stale`, `not_checked`,
+ * `in_progress`), the posture cannot reach `decision_grade`. The
+ * manifest.tier value is intentionally NOT consulted here; the
+ * substrate cannot grant clearance.
+ */
+const REQUIRED_LANES_FOR_DECISION_GRADE: readonly string[] = [
+  'nppes_identity',
+  'oig_exclusions',
+  'state_license',
+  'employment_history',
+];
+
+function derivePosture(lanes: LaneSnapshot[]): ReadinessPosture {
+  // 1. Any adverse finding always blocks.
+  if (lanes.some((l) => l.status === 'adverse')) {
+    return 'blocked';
+  }
+  // 2. Required-lane completeness gate. Every required lane MUST be
+  //    affirmatively `verified` to reach `decision_grade`. Any
+  //    degraded state on a required lane drops the posture.
+  const requiredVerified = REQUIRED_LANES_FOR_DECISION_GRADE.every((requiredLane) => {
+    const lane = lanes.find((l) => l.laneId === requiredLane);
+    return lane?.status === 'verified';
+  });
+  if (requiredVerified) {
+    return 'decision_grade';
+  }
+  // 3. At least one lane is verified but the required set is
+  //    incomplete: partial. Otherwise: needs_data.
+  if (lanes.some((l) => l.status === 'verified')) {
+    return 'partial';
+  }
+  return 'needs_data';
+}
+
 function deriveNextAction(posture: ReadinessPosture, blockers: BlockerItem[]): string {
-  if (posture === 'blocked') return 'Adverse finding detected. Manual review required before proceeding.';
-  if (posture === 'decision_grade') return 'Credentials verified. Clear to proceed.';
+  if (posture === 'blocked') {
+    return 'Adverse finding detected. Institution review required before any decision; do not proceed without institutional sign-off.';
+  }
+  if (posture === 'decision_grade') {
+    return 'Lane evidence completed. Institution review still required before a final decision; this surface does not grant clearance.';
+  }
+  // Any non-decision_grade posture explicitly names the missing
+  // evidence so the operator sees the deterministic gap.
   const topBlocker = blockers[0];
   if (topBlocker?.status === 'access_required') {
-    return 'Primary identity verified. Additional sources pending — proceed with head start or wait.';
+    return `Additional evidence required: ${topBlocker.displayName} requires institutional access. Institution review still required.`;
   }
-  return 'Source data is being checked. You can proceed with a head start.';
+  if (topBlocker?.status === 'unavailable') {
+    return `Source unavailable: ${topBlocker.displayName} did not respond within the freshness budget. Institution review still required.`;
+  }
+  if (topBlocker?.status === 'stale') {
+    return `Stale evidence: ${topBlocker.displayName} is past the freshness budget. Re-fetch on the institution's own credential.`;
+  }
+  if (topBlocker?.status === 'not_checked') {
+    return `Review incomplete: ${topBlocker.displayName} has not been checked. Institution review still required.`;
+  }
+  return 'Review incomplete: source data is being checked. Institution review still required; this surface does not grant clearance.';
 }
 
 // ─── Component ────────────────────────────────────────────────────
