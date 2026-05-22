@@ -164,6 +164,6 @@ jobs:
       - name: Build Web
         run: pnpm turbo run build --filter='@vitalcv/web'
 
-      - name: Deploy to Vercel
-        # Add Vercel deployment steps here
-        run: echo "Deploy to Vercel"
+      # Vercel deploy step removed — production deploys via Railway
+      # service integration directly from main; this workflow only
+      # validates that the build still passes.
