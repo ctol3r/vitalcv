@@ -9,14 +9,19 @@ This document describes which environment variables belong to which app/service 
 - `REDIS_URL` - Redis connection string
 - `JWT_SECRET` - JWT signing secret
 - `NODE_ENV` - Environment (development/production)
-- `PORT` - Server port (default: 3001)
+- `PORT` - Server port (default: 4000 inside the container; Railway injects its own port at runtime)
 - `LOG_LEVEL` - Logging level
+- Health endpoint: `/api/audit/health`
 
 ### @vitalcv/web (Frontend Next.js)
-- `NEXT_PUBLIC_API_URL` - Backend API URL
-- `NEXT_PUBLIC_APP_URL` - Frontend app URL
-- `NODE_ENV` - Environment
-- `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN (optional)
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - **Required.** Clerk auth public key.
+- `CLERK_SECRET_KEY` - **Required.** Clerk auth secret.
+- `NEXT_PUBLIC_API_BASE` - Build-time only. Backend API origin baked into the client bundle (default `https://api.vitalcv.com`).
+- `NEXT_PUBLIC_APP_URL` - Optional. Canonical app URL (e.g. `https://vitalcv.com`).
+- `NODE_ENV` - Environment (set to `production` in deploys).
+- `PORT` - Server port (default: 3000 inside the container; Railway injects its own port at runtime).
+- `NEXT_PUBLIC_SENTRY_DSN` - Optional. Sentry build-time + runtime instrumentation skipped entirely when unset.
+- Health endpoint: `/api/health`
 
 ## Shared Services
 
