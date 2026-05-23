@@ -20,7 +20,7 @@ This document describes which environment variables belong to which app/service 
 - `RECEIPT_PRIVATE_KEY_JWK` - **Required in production**. ES256 private JWK, JSON-encoded.
   Generate ONCE with `node scripts/generate-receipt-keypair.mjs`. Without these two,
   `/.well-known/jwks.json`, `did.json`, `trust-register`, `/trust`, and `/trust/doctrine` return 500.
-- `NEXT_PUBLIC_API_BASE` - Build-time only. Backend API origin baked into the client bundle (default `https://api.vitalcv.com`).
+- `NEXT_PUBLIC_API_BASE` - **Required on Railway.** Build-time only. Set to `https://api.vitalcv.com`. The Dockerfile bakes this default in for Docker builds, but Railway's Nixpacks builder does NOT inherit Dockerfile ARGs, so this must be set explicitly in the Railway Variables tab. Without it, the server-side proxy routes + 3 client components fall through to `http://localhost:4000`.
 - `NEXT_PUBLIC_APP_URL` - Optional. Canonical app URL (e.g. `https://vitalcv.com`).
 - `NODE_ENV` - Environment (set to `production` in deploys).
 - `PORT` - Server port (default: 3000 inside the container; Railway injects its own port at runtime).

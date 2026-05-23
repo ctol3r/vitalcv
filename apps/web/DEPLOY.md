@@ -56,7 +56,7 @@ docker-compose up -d db  # just database
 | `CLERK_SECRET_KEY` | **Yes** | No | Clerk auth secret |
 | `RECEIPT_KID` | **Yes** (in production) | No | ES256 keypair `kid`. Required when `NODE_ENV=production`. |
 | `RECEIPT_PRIVATE_KEY_JWK` | **Yes** (in production) | No | ES256 private JWK (JSON-encoded). Required when `NODE_ENV=production`. Generate with `node scripts/generate-receipt-keypair.mjs`. |
-| `NEXT_PUBLIC_API_BASE` | No | Yes | Backend API URL (defaults to `https://api.vitalcv.com` at build time) |
+| `NEXT_PUBLIC_API_BASE` | **Yes on Railway** | Yes | Set to `https://api.vitalcv.com`. The Dockerfile builds this in via `ARG NEXT_PUBLIC_API_BASE=https://api.vitalcv.com`, but Railway uses Nixpacks (not Docker) and does NOT inherit that Dockerfile ARG. Inline fallback chains across `apps/web/app/api/**` and 3 client components end in `http://localhost:4000`; without this env var the production server proxies to localhost and the client bundle bakes localhost as the build-time literal. |
 | `NEXT_PUBLIC_APP_URL` | No | Yes | Canonical app URL (e.g. `https://vitalcv.com`); falls back to request origin |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | Yes | Sentry instrumentation skipped entirely when unset |
 | `PORT` | No | No | Server port (default 3000; Railway injects automatically — do NOT set manually) |

@@ -60,6 +60,7 @@ In the Railway service → Variables tab, add:
 | `CLERK_SECRET_KEY` | (from clerk.com production app) | Same |
 | `RECEIPT_KID` | (from step 2) | `/trust`, `/trust/doctrine`, `/.well-known/jwks.json`, `/.well-known/did.json`, `/.well-known/trust-register` all 500 without it |
 | `RECEIPT_PRIVATE_KEY_JWK` | (from step 2; full JSON string including the curly braces) | Same |
+| `NEXT_PUBLIC_API_BASE` | `https://api.vitalcv.com` | Most server-side proxy routes (`apps/web/app/api/**`) and three client components (`apply`, `verify`, `ImpactPanel`) use an inline fallback chain that ends in `http://localhost:4000`. Without `NEXT_PUBLIC_API_BASE` set, those routes call localhost inside the Railway container and the client bundle bakes localhost as the build-time literal. The `apps/web/lib/backend-url.ts` module has a production-safe fallback to `https://api.vitalcv.com`, but it is NOT used uniformly — set the env var explicitly. |
 | `NODE_ENV` | `production` | Triggers fail-closed paths; no ephemeral dev keys |
 
 **Do not set `PORT`** — Railway injects it automatically.
@@ -237,7 +238,11 @@ Roll back immediately on any of:
 - TLS handshake errors persist >5 min after DNS update
 - Receipt-JWK chain breaks live verifiers (`/.well-known/jwks.json` returns 500 unexpectedly)
 
-Rollback: Railway → Deployments → previous successful deploy → "Redeploy this deployment".
+Rollback hierarchy (use in order; first option that fits the situation):
+
+1. **Railway → Deployments → previous successful deploy → "Redeploy this deployment"** — preferred. Instant. Main branch unchanged. Preserves git history.
+2. **`git revert <merge-commit> && git push origin main`** — when the bad change must come off `main` immediately for repeated redeploys. Preserves history; creates a clean revert commit Railway picks up on the next build.
+3. **`git push --force-with-lease origin main`** — last-resort emergency only. Never the default rollback path. Use only when 1 and 2 are insufficient because the bad commit must be erased from history (e.g. secret leak in the diff). Force-push rewrites history; coordinate with anyone working off main before pushing.
 
 ## Likely first-production regressions
 
