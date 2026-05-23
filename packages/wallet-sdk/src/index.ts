@@ -348,4 +348,6 @@ export default VitalCVWallet;
 // Wave 133: version + diagnostics
 export * from './version';
 export * from './diagnostics';
-export * from './interoperability';
+// Removed orphan `./interoperability` re-export (file never landed);
+// the import was breaking the wallet-sdk build and blocking every
+// downstream turbo build of @vitalcv/web. Canonical fix on PR #375.

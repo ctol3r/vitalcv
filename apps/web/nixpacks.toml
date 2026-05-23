@@ -1,0 +1,21 @@
+# Nixpacks build profile for `apps/web` on Railway.
+#
+# Pinned to Node 20 + pnpm 10. The build runs from the monorepo
+# root (cd ../..) so workspace dependencies (trust-state, ingest,
+# psv, crs, shared, etc.) resolve and pre-build via turbo.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm-10_x"]
+
+[phases.install]
+cmds = [
+  "cd ../.. && pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "cd ../.. && pnpm turbo run build --filter @vitalcv/web"
+]
+
+[start]
+cmd = "pnpm start"
