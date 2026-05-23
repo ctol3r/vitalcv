@@ -191,3 +191,62 @@ and DNS propagation. The repo is deploy-safe.
 5. Update Clerk production app's authorized origins to include `vitalcv.com` (operator action).
 
 All five blockers are operator-side. No code blocker remains.
+
+## Post-cutover freeze (binding)
+
+Once `vitalcv.com` is live and `scripts/verify-production.sh` reports
+`19 checks passed`, the repo enters a **stabilization-first freeze**:
+
+1. **Only deploy-safe / hotfix-grade changes** merge to main during
+   the first 72 hours.
+2. **No new routes, no new doctrine surfaces, no new architecture,
+   no new orchestration layers** during the freeze window.
+3. **Wave 2–6 backlog items** (institutional-deployment-readiness,
+   operational-proof-surfaces, institutional-trust-memory,
+   materialized-institutional-flows, institutional-experience-compression)
+   are **archived post-launch backlog**. They are explicitly not
+   in scope for cutover or stabilization. They unfreeze only after
+   live behavior is verified.
+4. **Safe-change boundary**: a change is hotfix-grade only if it
+   targets one of:
+   - a runtime crash (5xx on a canonical route)
+   - a security regression (auth bypass, secret leakage)
+   - a hydration crash (broken client bundle)
+   - a deploy regression (build / start failure)
+   - a verify-production failure on a check that was previously OK
+5. **Everything else waits** until the post-cutover freeze lifts.
+
+## First-24-hour monitoring order (operator)
+
+| When | What | How |
+|---|---|---|
+| t+0 | DNS + TLS resolves | `./scripts/verify-production.sh https://vitalcv.com` |
+| t+5 min | Full verify-production passes | same command; expect 19 checks pass |
+| t+15 min | Railway logs clean | Railway dashboard → Deployments → Logs; look for Clerk-middleware crashes, RECEIPT_PRIVATE_KEY_JWK errors |
+| t+1 hr | Health check stable | `watch -n 30 'curl -fsS https://vitalcv.com/api/health \| jq .'` (or repeated curls) |
+| t+4 hr | Re-run verify-production | confirm no drift |
+| t+24 hr | Stabilization review | confirm no rollback triggered; release the freeze if all checks remain green |
+
+## Rollback triggers
+
+Roll back immediately on any of:
+
+- `verify-production.sh` reports ≥2 FAILs on a check that was previously OK
+- `/api/health` returns 500 (not just slow) for >2 consecutive minutes
+- Clerk-middleware crash detected in Railway logs (every route 500ing)
+- TLS handshake errors persist >5 min after DNS update
+- Receipt-JWK chain breaks live verifiers (`/.well-known/jwks.json` returns 500 unexpectedly)
+
+Rollback: Railway → Deployments → previous successful deploy → "Redeploy this deployment".
+
+## Likely first-production regressions
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| All routes 500 including `/api/health` | Dummy Clerk env vars set in Railway | Either real keys from clerk.com or completely unset (no placeholders) |
+| `/trust` chain 500s, `/api/health` 200 | `RECEIPT_KID` + `RECEIPT_PRIVATE_KEY_JWK` unset | Generate with `node scripts/generate-receipt-keypair.mjs`, paste into Variables, redeploy |
+| `/sign-in` redirect loop | Clerk authorized-origins missing `vitalcv.com` | Add to Clerk production app → Domains |
+| TLS handshake fails first 5 min | Railway cert still provisioning | Wait; verify-production retries with backoff |
+| DNS resolves to wrong IP | Cloudflare CNAME points at stale Railway target | Update CNAME with current Railway hostname |
+| Cold-start latency 30+ s | Railway service spun down | Set Railway service to "Always On" or accept first-request latency |
+
