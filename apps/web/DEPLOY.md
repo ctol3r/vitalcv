@@ -54,11 +54,15 @@ docker-compose up -d db  # just database
 |----------|----------|------------|-------------|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | **Yes** | Yes | Clerk auth public key |
 | `CLERK_SECRET_KEY` | **Yes** | No | Clerk auth secret |
+| `RECEIPT_KID` | **Yes** (in production) | No | ES256 keypair `kid`. Required when `NODE_ENV=production`. |
+| `RECEIPT_PRIVATE_KEY_JWK` | **Yes** (in production) | No | ES256 private JWK (JSON-encoded). Required when `NODE_ENV=production`. Generate with `node scripts/generate-receipt-keypair.mjs`. |
 | `NEXT_PUBLIC_API_BASE` | No | Yes | Backend API URL (defaults to `https://api.vitalcv.com` at build time) |
 | `NEXT_PUBLIC_APP_URL` | No | Yes | Canonical app URL (e.g. `https://vitalcv.com`); falls back to request origin |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | Yes | Sentry instrumentation skipped entirely when unset |
 | `PORT` | No | No | Server port (default 3000; Railway injects automatically — do NOT set manually) |
 | `NODE_ENV` | Recommended | No | Set to `production` in deploys |
+
+> **Critical:** `RECEIPT_KID` + `RECEIPT_PRIVATE_KEY_JWK` are fail-closed in production. Without them, `/.well-known/jwks.json`, `/.well-known/did.json`, `/.well-known/trust-register`, `/trust`, and `/trust/doctrine` all return 500. Generate the keypair with `node scripts/generate-receipt-keypair.mjs` and paste both lines into the Railway Variables tab before the first deploy. The private JWK is a secret; never commit it.
 
 > **Note:** `NEXT_PUBLIC_*` variables are embedded at **build time**. Changing them requires a rebuild.
 

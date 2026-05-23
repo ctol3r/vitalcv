@@ -16,6 +16,10 @@ This document describes which environment variables belong to which app/service 
 ### @vitalcv/web (Frontend Next.js)
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - **Required.** Clerk auth public key.
 - `CLERK_SECRET_KEY` - **Required.** Clerk auth secret.
+- `RECEIPT_KID` - **Required in production** (`NODE_ENV=production`). ES256 keypair `kid`.
+- `RECEIPT_PRIVATE_KEY_JWK` - **Required in production**. ES256 private JWK, JSON-encoded.
+  Generate ONCE with `node scripts/generate-receipt-keypair.mjs`. Without these two,
+  `/.well-known/jwks.json`, `did.json`, `trust-register`, `/trust`, and `/trust/doctrine` return 500.
 - `NEXT_PUBLIC_API_BASE` - Build-time only. Backend API origin baked into the client bundle (default `https://api.vitalcv.com`).
 - `NEXT_PUBLIC_APP_URL` - Optional. Canonical app URL (e.g. `https://vitalcv.com`).
 - `NODE_ENV` - Environment (set to `production` in deploys).
