@@ -3471,6 +3471,11 @@ app.use(
 registerReplayRunRoutes(app);
 registerReplayByNpiRoute(app);
 
+// Health + public metrics must be registered BEFORE tenant guard
+// so /health and /readyz are never gated by org context.
+registerHealthRoutes(app);
+registerPublicMetricsRoutes(app);
+
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
 app.use(requireTenantContextOrReadAccess);
@@ -3482,9 +3487,7 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 // Observability
   app.use(requestObservability);
 
-  // Routes
-  registerHealthRoutes(app);
-  registerPublicMetricsRoutes(app);
+  // Routes (health + publicMetrics already registered above)
   registerPublicRoutes(app); // Wave 26: Golden Link
   registerAKGRoutes(app);       // Wave 27: AKG / MCP
   registerAuthorityRoutes(app); // Wave 29: PAS Engine
