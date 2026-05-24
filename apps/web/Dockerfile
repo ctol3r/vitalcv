@@ -7,7 +7,7 @@ FROM base AS deps
 # Copy ALL workspace manifests + lockfile so pnpm can resolve the full graph,
 # then install everything (including root devDeps like turbo). Filter-install
 # isn't enough because we need turbo + tsc to build workspace package dist/.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
 COPY apps ./apps
 COPY packages ./packages
 COPY services ./services
