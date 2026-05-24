@@ -12,8 +12,12 @@ COPY apps/web/prisma apps/web/prisma
 RUN pnpm install --frozen-lockfile --filter web...
 
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
+# Copy source first, then overlay deps-stage node_modules + prisma-generated client.
+# Order matters: source COPY would otherwise wipe generated client and workspace node_modules.
 COPY . .
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/apps/web/lib/generated ./apps/web/lib/generated
 ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time
 ARG NEXT_PUBLIC_API_BASE=http://localhost:4000
@@ -27,7 +31,9 @@ ENV NODE_ENV=production
 COPY --from=build /app/apps/web/.next ./apps/web/.next
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/apps/web/package.json ./apps/web/
+COPY --from=build /app/apps/web/lib/generated ./apps/web/lib/generated
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/web/node_modules ./apps/web/node_modules
 WORKDIR /app/apps/web
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://localhost:3000/api/health || exit 1
