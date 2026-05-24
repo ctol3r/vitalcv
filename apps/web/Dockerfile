@@ -12,6 +12,7 @@ COPY apps ./apps
 COPY packages ./packages
 COPY services ./services
 COPY blockchain ./blockchain
+COPY core ./core
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
