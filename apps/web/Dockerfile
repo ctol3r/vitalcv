@@ -6,6 +6,9 @@ RUN npm i -g pnpm@10.6.1
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/
+# Prisma schema must be present before install because apps/web has
+# postinstall: prisma generate
+COPY apps/web/prisma apps/web/prisma
 RUN pnpm install --frozen-lockfile --filter web...
 
 FROM base AS build
