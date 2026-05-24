@@ -1,0 +1,9 @@
+# Railway config for vitalcv-web (Next.js web service)
+# This file is referenced by the vitalcv-web service via railwayConfigFile.
+# Repo-root railway.toml is API-shaped and must NOT be inherited by this service.
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
