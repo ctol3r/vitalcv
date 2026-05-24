@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const FOOTER_LINKS = [
+  { href: '/trust', label: 'Trust' },
+  { href: '/trust/attribution', label: 'Attribution' },
+  { href: '/status', label: 'Status' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
   { href: '/legal/dpa', label: 'DPA' },

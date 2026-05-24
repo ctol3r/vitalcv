@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 
 const CONTINUATION_POINTS = [
   {
-    title: 'Your NPI is already verified',
-    body: 'We recognized your NPI from federal registries. No re-entry needed.',
+    title: 'Your NPI was source-confirmed against NPPES',
+    body: 'We recognized your NPI from the federal registry. No re-entry needed; institution review is still required for any final decision.',
   },
   {
     title: 'Your readiness snapshot is waiting',
