@@ -9,6 +9,9 @@ const FOOTER_LINKS = [
   { href: '/terms', label: 'Terms' },
   { href: '/legal/dpa', label: 'DPA' },
   { href: '/legal/cookies', label: 'Cookies' },
+  { href: '/trust', label: 'Trust' },
+  { href: '/trust/attribution', label: 'Attribution' },
+  { href: '/status', label: 'Status' },
   { href: '/pilot', label: 'Start a Pilot' },
 ] as const;
 

@@ -19,7 +19,8 @@ import { useState } from 'react';
 // Public-only nav items. Never add ops/internal routes here.
 const NAV_ITEMS = [
   { href: '/pilot', label: 'For Employers' },
-  { href: '/verify', label: 'Verify a Provider' },
+  { href: '/verify', label: 'Check Clinician Readiness' },
+  { href: '/trust', label: 'Trust' },
 ] as const;
 
 export default function Navbar() {

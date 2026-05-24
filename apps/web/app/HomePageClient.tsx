@@ -20,7 +20,7 @@ function formatNpi(value: string): string {
 const CLINICIAN_BULLETS = [
   'See your NPI status in 30 seconds',
   'Get a portable credential readiness passport',
-  'Walk into any new role already verified',
+  'Walk into any new role with your evidence packet ready.',
 ];
 
 const EMPLOYER_BULLETS = [
@@ -275,7 +275,7 @@ export default function HomePageClient() {
                 </span>
               </div>
               <h2 className="mb-3 text-[17px] font-semibold leading-tight text-[var(--vt-text-primary)]">
-                Verify once. Trust everywhere.
+                Evidence submitted once. Reusable for institution review.
               </h2>
               <ul className="space-y-2">
                 {ISSUER_BULLETS.map((b) => (
