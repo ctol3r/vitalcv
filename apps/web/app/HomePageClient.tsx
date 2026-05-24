@@ -191,7 +191,7 @@ export default function HomePageClient() {
 
         {/* ── What happens after ────────────────────────────────────────── */}
         <div className="mt-6 flex flex-wrap gap-4 text-[13px] text-[var(--vt-text-muted)]">
-          {['Identity confirmed against NPPES', 'Sanctions checked via OIG', 'Readiness score generated'].map((item) => (
+          {['Identity confirmed against NPPES', 'Sanctions checked via OIG', 'Readiness status generated'].map((item) => (
             <span key={item} className="flex items-center gap-1.5">
               <CheckCircle2 size={13} className="text-[var(--vt-state-verified)] shrink-0" aria-hidden="true" />
               {item}
