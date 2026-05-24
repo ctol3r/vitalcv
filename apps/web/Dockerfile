@@ -4,27 +4,26 @@ WORKDIR /app
 RUN npm i -g pnpm@10.6.1
 
 FROM base AS deps
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/web/package.json apps/web/
-# Prisma schema must be present before install because apps/web has
-# postinstall: prisma generate
-COPY apps/web/prisma apps/web/prisma
-RUN pnpm install --frozen-lockfile --filter web...
+# Copy ALL workspace manifests + lockfile so pnpm can resolve the full graph,
+# then install everything (including root devDeps like turbo). Filter-install
+# isn't enough because we need turbo + tsc to build workspace package dist/.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY apps ./apps
+COPY packages ./packages
+COPY services ./services
+COPY blockchain ./blockchain
+RUN pnpm install --frozen-lockfile
 
-FROM base AS build
-# Copy source first, then overlay deps-stage node_modules + prisma-generated client.
-# Order matters: source COPY would otherwise wipe generated client and workspace node_modules.
-COPY . .
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/apps/web/lib/generated ./apps/web/lib/generated
+FROM deps AS build
+# deps stage already has full source + node_modules + generated prisma client.
+# Just run turbo build for @vitalcv/web; turbo resolves ^build for all workspace deps.
 ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time
 ARG NEXT_PUBLIC_API_BASE=http://localhost:4000
 ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-RUN pnpm --filter web build
+RUN pnpm turbo run build --filter @vitalcv/web
 
 FROM base AS runtime
 ENV NODE_ENV=production
