@@ -21,6 +21,8 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/compliance',
   '/privacy',
   '/terms',
+  '/contact',
+  '/trust',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -63,6 +65,8 @@ const PREFIX_MATCHERS = [
   '/review',
   '/verify',
   '/clip',
+  '/trust',
+  '/legal',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
