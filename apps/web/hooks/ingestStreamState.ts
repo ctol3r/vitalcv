@@ -167,16 +167,29 @@ function isAuthoritativeIdentity(input: {
   displayName?: string;
   identityStatus?: string;
   sourceResult?: IngestSourceResult;
+  hasEntityId?: boolean;
 }): boolean {
   if (!input.displayName) {
     return false;
+  }
+
+  if (input.identityStatus?.toUpperCase() === 'UNKNOWN') {
+    return false;
+  }
+
+  // The backend currently marks NPPES `status: FAILED` whenever the run
+  // produces zero normalized claim records, even when the identity payload
+  // itself (displayName, identityStatus, entityId, taxonomies) is intact.
+  // Trust a populated identity payload over the coarse source-level flag.
+  if (input.identityStatus?.toUpperCase() === 'ACTIVE' && input.hasEntityId) {
+    return true;
   }
 
   if (input.sourceResult && input.sourceResult !== 'SUCCESS') {
     return false;
   }
 
-  return input.identityStatus?.toUpperCase() !== 'UNKNOWN';
+  return true;
 }
 
 function mergeIdentity(
@@ -186,6 +199,7 @@ function mergeIdentity(
   const displayName = readString(payload, 'displayName') ?? prev.displayName;
   const identityStatus = readString(payload, 'identityStatus') ?? prev.status;
   const sourceResult = readSourceResult(payload) ?? prev.sourceResult;
+  const entityId = readString(payload, 'entityId') ?? prev.entityId;
 
   let taxonomies = prev.taxonomies;
   if (Array.isArray(payload.taxonomies)) {
@@ -198,7 +212,7 @@ function mergeIdentity(
   }
 
   return {
-    entityId: readString(payload, 'entityId') ?? prev.entityId,
+    entityId,
     displayName,
     specialty: readString(payload, 'specialty') ?? prev.specialty,
     credentials: readString(payload, 'credentials') ?? prev.credentials,
@@ -214,6 +228,7 @@ function mergeIdentity(
       displayName,
       identityStatus,
       sourceResult,
+      hasEntityId: Boolean(entityId),
     }),
   };
 }
@@ -427,14 +442,21 @@ export function applyIngestEvent(prev: IngestStreamState, event: IngestEvent): I
       const result = readSourceResult(event.payload);
 
       if (event.sourceId === 'nppes') {
+        const identity = mergeIdentity(prev.identity, event.payload);
+        // NPPES identity authority is the source-truth signal here. When NPPES
+        // returns a populated identity payload, treat that as a successful
+        // identity read regardless of the backend's coarse `status` flag.
+        const nppesState: 'done' | 'error' = identity.authoritative
+          ? 'done'
+          : sourceStateFromResult(result);
         return {
           ...prev,
           events,
           disconnected: false,
-          identity: mergeIdentity(prev.identity, event.payload),
+          identity,
           sources: {
             ...prev.sources,
-            nppes: sourceStateFromResult(result),
+            nppes: nppesState,
           },
         };
       }

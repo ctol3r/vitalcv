@@ -156,11 +156,23 @@ function resolveSourceBadge(state: SourceState, displayValue: string): {
   };
 }
 
-function SourceRow({ label, state, value }: { label: string; state: SourceState; value?: string }) {
+function SourceRow({
+  label,
+  state,
+  value,
+  errorLabel = 'Unavailable',
+  errorCopy,
+}: {
+  label: string;
+  state: SourceState;
+  value?: string;
+  errorLabel?: string;
+  errorCopy?: string;
+}) {
   const displayValue =
     state === 'checking' ? 'Checking…'
     : state === 'done' ? (value ?? 'Done')
-    : state === 'error' ? 'Unavailable'
+    : state === 'error' ? errorLabel
     : '—';
   const badge = resolveSourceBadge(state, displayValue);
 
@@ -180,9 +192,9 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
         />
         <div>
           <span className="text-muted-foreground text-sm">{label}</span>
-          {state === 'error' && (
-            <p className="text-muted-foreground/40 text-xs mt-0.5">Checking in the background — we&apos;ll update when it arrives.</p>
-          )}
+          {state === 'error' && errorCopy ? (
+            <p className="text-muted-foreground/40 text-xs mt-0.5">{errorCopy}</p>
+          ) : null}
         </div>
       </div>
       <TrustStatusBadge status={badge.status} label={badge.label} size="sm" />
@@ -613,16 +625,22 @@ function PassportPageContent({
                 label="NPPES"
                 state={sources.nppes}
                 value={identityLabel}
+                errorLabel="Temporarily unavailable"
+                errorCopy="Source temporarily unavailable. Try this NPI again in a moment."
               />
               <SourceRow
                 label="OIG / LEIE"
                 state={sources.oig}
                 value={exclusionLabel}
+                errorLabel="Not connected"
+                errorCopy="Federal exclusion lane is not connected in this build. Do not treat this as an exclusion clearance."
               />
               <SourceRow
                 label="CMS PECOS"
                 state={sources.pecos}
                 value={enrollmentLabel}
+                errorLabel="Not connected"
+                errorCopy="Medicare enrollment lane is not connected in this build. Institution review may require separate enrollment evidence."
               />
               <SourceRow
                 label="Configured state board lane"
@@ -673,6 +691,14 @@ function PassportPageContent({
                     {state.readiness.status}
                   </p>
                 )}
+                {sources.nppes === 'done'
+                  && (sources.oig === 'error' || sources.pecos === 'error') ? (
+                  <p className="text-muted-foreground/60 text-xs mt-3 leading-relaxed">
+                    Identity source returned. Additional credential lanes require
+                    source access or are not connected in this build. Institution
+                    review is still required for any final decision.
+                  </p>
+                ) : null}
               </Card>
             )}
 

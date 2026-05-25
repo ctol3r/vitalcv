@@ -237,4 +237,79 @@ describe('ingestStreamState', () => {
     expect(state.sources.oig).toBe('done');
     expect(state.phase).toBe('enrollment');
   });
+
+  it('treats NPPES source_complete with populated identity payload as authoritative even when backend status is FAILED', () => {
+    // Backend ingestOrchestrator currently emits source_complete with
+    // status: FAILED whenever the run produces zero normalized claim records,
+    // even when the NPPES identity payload itself (displayName, identityStatus,
+    // entityId, taxonomies) is fully intact. The UI must not show "Unavailable"
+    // for NPPES in that case — identity has been resolved.
+    let state = {
+      ...createInitialIngestStreamState(),
+      phase: 'nppes' as const,
+      sources: { nppes: 'checking' as const, oig: 'checking' as const, pecos: 'checking' as const },
+    };
+
+    state = applyIngestEvent(state, makeEvent({
+      type: 'source_complete',
+      sourceId: 'nppes',
+      payload: {
+        sourceId: 'nppes',
+        status: 'FAILED',
+        resultStatus: 'FAILED',
+        entityId: 'entity-vef',
+        displayName: 'VICTORIA ELIZABETH FISCHER, MD',
+        identityStatus: 'ACTIVE',
+        specialty: 'Neurological Surgery',
+        claimCount: 0,
+        credentialIds: [],
+      },
+    }));
+
+    expect(state.sources.nppes).toBe('done');
+    expect(state.identity.authoritative).toBe(true);
+    expect(state.identity.displayName).toBe('VICTORIA ELIZABETH FISCHER, MD');
+    expect(state.identity.entityId).toBe('entity-vef');
+  });
+
+  it('keeps NPPES as error when status FAILED and no identity payload', () => {
+    let state = {
+      ...createInitialIngestStreamState(),
+      phase: 'nppes' as const,
+      sources: { nppes: 'checking' as const, oig: 'checking' as const, pecos: 'checking' as const },
+    };
+
+    state = applyIngestEvent(state, makeEvent({
+      type: 'source_complete',
+      sourceId: 'nppes',
+      payload: {
+        sourceId: 'nppes',
+        status: 'FAILED',
+        claimCount: 0,
+        credentialIds: [],
+      },
+    }));
+
+    expect(state.sources.nppes).toBe('error');
+    expect(state.identity.authoritative).toBe(false);
+  });
+
+  it('does not promote identity to authoritative when identityStatus is UNKNOWN even with displayName', () => {
+    let state = createInitialIngestStreamState();
+
+    state = applyIngestEvent(state, makeEvent({
+      type: 'source_complete',
+      sourceId: 'nppes',
+      payload: {
+        sourceId: 'nppes',
+        status: 'FAILED',
+        entityId: 'entity-x',
+        displayName: 'SOME NAME',
+        identityStatus: 'UNKNOWN',
+      },
+    }));
+
+    expect(state.identity.authoritative).toBe(false);
+    expect(state.sources.nppes).toBe('error');
+  });
 });
