@@ -153,6 +153,53 @@ async function emitSourceStart(runId: string, sourceId: IngestSourceId): Promise
   });
 }
 
+/**
+ * Truth-state guard for source_complete emission.
+ *
+ * The downstream claim-derivation / artifact-write / delta / alert stages of
+ * `ingestClinicianIdentity` can flip an overall ingest result to `FAILED`
+ * even when the source-level identity payload itself is intact (observed
+ * with NPI 1699264564: NPPES returned a full provider record but a later
+ * step threw, causing `status: 'FAILED'` to propagate while displayName,
+ * identityStatus 'ACTIVE', and entityId remained populated).
+ *
+ * For NPPES specifically, the public source_complete event must reflect
+ * whether identity was source-confirmed, not whether the downstream
+ * derivation chain succeeded. When the orchestrator already holds an
+ * authoritative NPPES identity payload (from the pre-pipeline entity
+ * resolution) and is passing it via `extras`, the emitted status for
+ * NPPES is promoted from FAILED → SUCCESS.
+ *
+ * OIG/PECOS/STATE_BOARD/FSMB/NURSYS are not promoted — those sources do
+ * not have a separate identity-only success signal, and their failure
+ * truly means the lane did not produce evidence.
+ */
+function deriveSourceCompleteStatus(
+  sourceId: IngestSourceId,
+  result: IngestionResult | null,
+  extras: Record<string, unknown> | undefined,
+): IngestionResult['status'] | undefined {
+  const rawStatus = result?.status;
+  if (sourceId !== 'nppes' || rawStatus !== 'FAILED' || !extras) {
+    return rawStatus;
+  }
+
+  const displayName = typeof extras.displayName === 'string' ? extras.displayName : '';
+  const identityStatus = typeof extras.identityStatus === 'string' ? extras.identityStatus : '';
+  const entityId = typeof extras.entityId === 'string' ? extras.entityId : '';
+
+  if (
+    displayName.length > 0
+    && identityStatus.toUpperCase() !== ''
+    && identityStatus.toUpperCase() !== 'UNKNOWN'
+    && entityId.length > 0
+  ) {
+    return 'SUCCESS';
+  }
+
+  return rawStatus;
+}
+
 async function finalizeSourceResult(
   runId: string,
   sourceId: IngestSourceId,
@@ -161,15 +208,30 @@ async function finalizeSourceResult(
 ): Promise<void> {
   const credentialIds = result?.credentialIds ?? [];
   const claimIds = result?.claimIds ?? [];
-  const status = result?.status === 'FAILED' ? 'ERROR' : 'DONE';
+  const effectiveStatus = deriveSourceCompleteStatus(sourceId, result, extras);
+  const persistStatus = effectiveStatus === 'FAILED' ? 'ERROR' : 'DONE';
+
+  // Promoted-NPPES truth-state alignment:
+  // The caller may pass `resultStatus` inside `extras` (e.g. the runPipeline
+  // NPPES call mirrors the upstream IngestionResult.status into extras for
+  // downstream consumers). When `effectiveStatus` is a promotion from FAILED
+  // -> SUCCESS for NPPES with intact identity, a stale `resultStatus: FAILED`
+  // in extras would leak into the source_complete payload via `...extras` and
+  // disagree with the emitted top-level `status`. Both fields must agree.
+  const effectiveResultStatus =
+    sourceId === 'nppes'
+      && effectiveStatus === 'SUCCESS'
+      && result?.status === 'FAILED'
+      ? effectiveStatus
+      : (result?.status ?? effectiveStatus);
 
   await updateIngestSourceRun(runId, sourceId, {
-    status,
+    status: persistStatus,
     sourceRunId: result?.sourceRunId ?? null,
     artifactId: result?.artifactId ?? null,
     claimCount: result?.claimsEmitted ?? 0,
     credentialCount: credentialIds.length,
-    errorCode: result?.status === 'FAILED' ? 'SOURCE_FAILED' : null,
+    errorCode: effectiveStatus === 'FAILED' ? 'SOURCE_FAILED' : null,
     lastError: result?.error ?? null,
     completedAt: new Date(),
   });
@@ -181,16 +243,20 @@ async function finalizeSourceResult(
     dedupeKey: dedupeKey(
       'source_complete',
       sourceId,
-      `${result?.sourceRunId ?? 'none'}:${result?.artifactId ?? 'none'}:${result?.status ?? 'missing'}`,
+      `${result?.sourceRunId ?? 'none'}:${result?.artifactId ?? 'none'}:${effectiveStatus ?? 'missing'}`,
     ),
     payload: {
       sourceId,
-      status: result?.status ?? 'FAILED',
       sourceRunId: result?.sourceRunId ?? null,
       artifactId: result?.artifactId ?? null,
       claimCount: result?.claimsEmitted ?? 0,
       credentialIds,
       ...extras,
+      // Authoritative truth-state fields written AFTER the extras spread so
+      // a stale `extras.status` or `extras.resultStatus` cannot override the
+      // promoted/derived truth-state for NPPES intact-identity cases.
+      status: effectiveStatus ?? 'FAILED',
+      resultStatus: effectiveResultStatus,
     },
   });
 
