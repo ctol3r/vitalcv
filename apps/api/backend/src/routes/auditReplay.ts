@@ -18,11 +18,75 @@ import {
   buildAuditBundle,
   addAttestation,
 } from '../services/audit/replayEngine';
+import { getRequestOrganizationId } from '../middleware/organizationContext';
+import {
+  TenantIsolationError,
+  type RequesterAuthority,
+} from '../services/multi-tenant/tenantIsolation';
 import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const NPI_RE  = /^\d{10}$/;
+
+/**
+ * Codex finding (PR #421, P1): the audit-replay routes previously called
+ * `replayDecision(id)` without forwarding the requester's tenant, which
+ * combined with `assertTenantScope`'s default-OPEN path for null requester
+ * to let any caller replay another tenant's capsule by id. This helper
+ * extracts the requester tenant from the request and pairs it with the
+ * matching `RequesterAuthority`, so the fail-closed validator can see the
+ * real boundary at every call site.
+ *
+ * If a request reaches these routes without a tenant id, the resulting
+ * `requesterAuthority` is `'unknown'` and `assertTenantScope` will refuse
+ * to read a tenant-owned capsule. Public capsules (no tenant anchor) are
+ * still readable — by design.
+ */
+function tenantScopeFromRequest(req: Request): {
+  requesterTenantId: string | null;
+  requesterAuthority: RequesterAuthority;
+} {
+  const tenantId = getRequestOrganizationId(req) ?? null;
+  return {
+    requesterTenantId: tenantId,
+    requesterAuthority: tenantId ? 'tenant' : 'unknown',
+  };
+}
+
+/**
+ * Map a `TenantIsolationError` (or anything thrown by the replay engine)
+ * to an Express response. Returns `true` if a response was sent.
+ *
+ * Tenant violations are `403 Forbidden` rather than `500` so the client
+ * can distinguish authorization failures from server faults. The error
+ * message is replayed verbatim because `assertTenantScope` only includes
+ * tenant identifiers and capsule ids in it (no PHI).
+ */
+function handleReplayError(
+  err: unknown,
+  res: Response,
+  context: { route: string; capsuleId?: string; npi?: string },
+): void {
+  if (err instanceof TenantIsolationError) {
+    res.status(403).json({
+      error: err.message,
+      code: err.code,
+      violation: err.violation,
+    });
+    return;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes('not found')) {
+    res.status(404).json({ error: msg });
+    return;
+  }
+  log('error', `auditReplay: ${context.route} failed`, {
+    ...context,
+    error: msg,
+  });
+  res.status(500).json({ error: `${context.route} failed` });
+}
 
 export function registerAuditReplayRoutes(app: Express): void {
 
@@ -44,7 +108,7 @@ export function registerAuditReplayRoutes(app: Express): void {
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid capsule ID' }); return; }
 
     try {
-      const replay = await replayDecision(id);
+      const replay = await replayDecision(id, tenantScopeFromRequest(req));
       res.json({
         capsuleId:         replay.capsuleId,
         subjectNpi:        replay.subjectNpi,
@@ -56,10 +120,7 @@ export function registerAuditReplayRoutes(app: Express): void {
         replayedAt:        replay.replayedAt,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('not found')) { res.status(404).json({ error: msg }); return; }
-      log('error', 'auditReplay: /evidence failed', { id, error: msg });
-      res.status(500).json({ error: 'Evidence reconstruction failed' });
+      handleReplayError(err, res, { route: '/evidence', capsuleId: id });
     }
   });
 
@@ -79,7 +140,7 @@ export function registerAuditReplayRoutes(app: Express): void {
     if (!UUID_RE.test(id)) { res.status(400).json({ error: 'Invalid capsule ID' }); return; }
 
     try {
-      const replay = await replayDecision(id);
+      const replay = await replayDecision(id, tenantScopeFromRequest(req));
       const chain  = replay.authorityChain;
 
       // Summarize chain health
@@ -102,10 +163,7 @@ export function registerAuditReplayRoutes(app: Express): void {
         generatedAt:   replay.replayedAt,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('not found')) { res.status(404).json({ error: msg }); return; }
-      log('error', 'auditReplay: /chain failed', { id, error: msg });
-      res.status(500).json({ error: 'Authority chain construction failed' });
+      handleReplayError(err, res, { route: '/chain', capsuleId: id });
     }
   });
 
@@ -126,7 +184,7 @@ export function registerAuditReplayRoutes(app: Express): void {
     const fmt = req.query.format === 'ndjson' ? 'ndjson' : 'json';
 
     try {
-      const replay = await replayDecision(id);
+      const replay = await replayDecision(id, tenantScopeFromRequest(req));
       const exportedAt = new Date().toISOString();
 
       // Bundle hash: SHA-256 of the replay content
@@ -178,10 +236,7 @@ export function registerAuditReplayRoutes(app: Express): void {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}.json"`);
       res.json(bundle);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('not found')) { res.status(404).json({ error: msg }); return; }
-      log('error', 'auditReplay: /bundle failed', { id, error: msg });
-      res.status(500).json({ error: 'Audit bundle export failed' });
+      handleReplayError(err, res, { route: '/bundle', capsuleId: id });
     }
   });
 

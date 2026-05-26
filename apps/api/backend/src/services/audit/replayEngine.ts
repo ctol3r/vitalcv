@@ -26,6 +26,7 @@ import {
   assertTenantScope,
   scopeRelatedDecisions,
   normalizeTenantId,
+  type RequesterAuthority,
   type TenantId,
   type TenantScope,
 } from '../multi-tenant/tenantIsolation';
@@ -314,18 +315,33 @@ function runtimeSeedFromMetadata(meta: Record<string, unknown>): Record<string, 
 
 export async function replayDecision(
   capsuleId: string,
-  options: { requesterTenantId?: TenantId | null } = {},
+  options: {
+    requesterTenantId?: TenantId | null;
+    /**
+     * Authority of the caller. Defaults to `'unknown'`, which is fail-closed
+     * against tenant-owned capsules. Route handlers should pass `'tenant'`
+     * (alongside a real `requesterTenantId`) once they've forwarded the
+     * requester's organization. Internal callers (cron, backfills, admin
+     * diagnostics) may pass `'system'` to access tenant-owned capsules
+     * without a matching `requesterTenantId`.
+     */
+    requesterAuthority?: RequesterAuthority;
+  } = {},
 ): Promise<DecisionReplay> {
   const capsule = await capsuleEngine.getCapsuleById(capsuleId);
   if (!capsule) throw new Error(`Capsule not found: ${capsuleId}`);
 
   const capsuleTenantId = normalizeTenantId(capsule.verifierOrgId);
   const requesterTenantId = normalizeTenantId(options.requesterTenantId ?? null);
-  // Fail-closed: throws TenantIsolationError on cross-tenant or ambiguous reads.
+  // Fail-closed: throws TenantIsolationError on cross-tenant, ambiguous, or
+  // tenant-owned-without-requester reads. The `requesterAuthority` default
+  // is `'unknown'`, so a route handler that forgets to forward the request
+  // organization can no longer access a tenant-owned capsule.
   const tenantScope = assertTenantScope({
     capsuleId,
     capsuleTenantId,
     requesterTenantId,
+    requesterAuthority: options.requesterAuthority,
   });
 
   const meta = (capsule.metadata ?? {}) as Record<string, unknown>;
@@ -671,11 +687,17 @@ export async function buildAuditBundle(
     types?: string[];
     maxCapsules?: number;
     requesterTenantId?: TenantId | null;
+    /**
+     * Authority of the bundle requester. Defaults to `'unknown'`, which
+     * is fail-closed against tenant-owned capsules. See `replayDecision`.
+     */
+    requesterAuthority?: RequesterAuthority;
   } = {},
 ): Promise<AuditBundle> {
   const { createHash: ch } = await import('crypto');
 
   const requesterTenantId = normalizeTenantId(options.requesterTenantId ?? null);
+  const requesterAuthority: RequesterAuthority = options.requesterAuthority ?? 'unknown';
 
   const capsules = await prisma.decisionCapsule.findMany({
     where: {
@@ -700,7 +722,9 @@ export async function buildAuditBundle(
     try {
       // Defense-in-depth: each replay re-asserts tenant scope, so a query-
       // layer regression cannot leak a cross-tenant capsule into the bundle.
-      const replay = await replayDecision(id, { requesterTenantId });
+      // We forward both the tenant id and the caller's authority so the inner
+      // assertTenantScope can apply the same fail-closed rule.
+      const replay = await replayDecision(id, { requesterTenantId, requesterAuthority });
       replays.push(replay);
       quarantines.push(replay.containment);
     } catch (err) {
