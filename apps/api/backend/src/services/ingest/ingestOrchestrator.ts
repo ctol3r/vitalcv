@@ -211,6 +211,20 @@ async function finalizeSourceResult(
   const effectiveStatus = deriveSourceCompleteStatus(sourceId, result, extras);
   const persistStatus = effectiveStatus === 'FAILED' ? 'ERROR' : 'DONE';
 
+  // Promoted-NPPES truth-state alignment:
+  // The caller may pass `resultStatus` inside `extras` (e.g. the runPipeline
+  // NPPES call mirrors the upstream IngestionResult.status into extras for
+  // downstream consumers). When `effectiveStatus` is a promotion from FAILED
+  // -> SUCCESS for NPPES with intact identity, a stale `resultStatus: FAILED`
+  // in extras would leak into the source_complete payload via `...extras` and
+  // disagree with the emitted top-level `status`. Both fields must agree.
+  const effectiveResultStatus =
+    sourceId === 'nppes'
+      && effectiveStatus === 'SUCCESS'
+      && result?.status === 'FAILED'
+      ? effectiveStatus
+      : (result?.status ?? effectiveStatus);
+
   await updateIngestSourceRun(runId, sourceId, {
     status: persistStatus,
     sourceRunId: result?.sourceRunId ?? null,
@@ -233,12 +247,16 @@ async function finalizeSourceResult(
     ),
     payload: {
       sourceId,
-      status: effectiveStatus ?? 'FAILED',
       sourceRunId: result?.sourceRunId ?? null,
       artifactId: result?.artifactId ?? null,
       claimCount: result?.claimsEmitted ?? 0,
       credentialIds,
       ...extras,
+      // Authoritative truth-state fields written AFTER the extras spread so
+      // a stale `extras.status` or `extras.resultStatus` cannot override the
+      // promoted/derived truth-state for NPPES intact-identity cases.
+      status: effectiveStatus ?? 'FAILED',
+      resultStatus: effectiveResultStatus,
     },
   });
 

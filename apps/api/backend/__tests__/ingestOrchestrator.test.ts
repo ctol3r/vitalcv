@@ -421,6 +421,11 @@ describe('ingestOrchestrator', () => {
     expect(nppesCompleteCalls).toHaveLength(1);
     const nppesPayload = (nppesCompleteCalls[0][0] as { payload: Record<string, unknown> }).payload;
     expect(nppesPayload.status).toBe('SUCCESS');
+    // Truth-state alignment: status and resultStatus must agree for promoted
+    // NPPES intact-identity events. A stale `resultStatus: FAILED` leaking
+    // through the extras spread would contradict the promoted top-level status.
+    expect(nppesPayload.resultStatus).not.toBe('FAILED');
+    expect(nppesPayload.resultStatus).toBe('SUCCESS');
     expect(nppesPayload.displayName).toBe('VICTORIA ELIZABETH FISCHER, MD');
     expect(nppesPayload.identityStatus).toBe('ACTIVE');
     expect(nppesPayload.entityId).toBe('entity-vef');
@@ -488,6 +493,10 @@ describe('ingestOrchestrator', () => {
         && (event as { sourceId?: string }).sourceId === 'nppes',
     );
     expect(nppesCompleteCalls).toHaveLength(1);
-    expect((nppesCompleteCalls[0][0] as { payload: { status: string } }).payload.status).toBe('FAILED');
+    const emptyPayload = (nppesCompleteCalls[0][0] as { payload: Record<string, unknown> }).payload;
+    expect(emptyPayload.status).toBe('FAILED');
+    // No promotion occurs without intact identity payload, so resultStatus
+    // must also remain FAILED (no spurious SUCCESS leak).
+    expect(emptyPayload.resultStatus).toBe('FAILED');
   });
 });
