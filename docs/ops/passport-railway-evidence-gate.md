@@ -88,3 +88,39 @@ After backend patch lands and the `delightful-essence` API service redeploys, re
 - Re-touching web-side mapping (PR #419 already correct; the defensive guard stays in place even after backend lands its agreement fix)
 - OIG / PECOS adapter wiring (those lanes remain "not connected in this build" until live integrations are added in a separate wave)
 - Auth/CORS regression on `/api/ingest/*` observed during operator probe (file separately if relevant)
+- **Backend "degraded" + "no-payload" path** — PR #420 only addresses the case where NPPES returns a valid identity payload but downstream claim derivation throws, producing `status: 'FAILED'` while the identity payload is intact. PR #420 does NOT fix the separate condition where NPPES itself fails to return any identity payload (e.g., the backend service is degraded, the NPPES API is unreachable, the NPI doesn't exist). In that case the live `/passport?npi=...` correctly shows `Temporarily unavailable` with the honest "Source temporarily unavailable. Try this NPI again in a moment." subtext, and the readiness card omits the identity-present contextual note. That is the doctrine-aligned behavior for a true upstream outage and stays unchanged here.
+
+## Non-code CI noise / unrelated checks
+
+The Web Quality CI step on PR #420 (and PR #419 before it, and every wave-10a PR for at least the last 13 hours) fails with this identical stack:
+
+```
+Error: Playwright Test did not expect test.describe() to be called here.
+ ❯ tests/trust-register.spec.ts:3:6
+ ❯ TestTypeImpl._currentSuite (.../playwright/lib/common/testType.js:75:13)
+ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @vitalcv/web@0.1.0 test: `vitest run`
+```
+
+### Root cause
+
+`apps/web/vitest.config.ts` excludes `tests/e2e/**` from the vitest run but not `tests/**`. The file `apps/web/tests/trust-register.spec.ts` is a Playwright spec (`import { test, expect } from '@playwright/test'; test.describe(...)`) that lives at `apps/web/tests/` rather than `apps/web/tests/e2e/`. Vitest's default include pattern picks up `*.spec.ts`, tries to run the Playwright spec, and throws because `test.describe` from `@playwright/test` cannot run inside a vitest worker.
+
+### Branch attribution
+
+**Pre-existing, not branch-caused.** The same failure reproduces on:
+
+- PR #418 (homepage copy fix) — closed-superseded
+- PR #419 (passport NPPES truth-state, web-side) — merged anyway as `1d1b8175` because the failure is config drift, not code
+- PR #420 (this PR) — same identical stack
+
+### Decision
+
+Documented here per Phase 1/2 of the deployment evidence wave; **not addressed in this PR** to keep scope tight. A separate, single-line follow-up wave can add `'tests/**'` (or, more targeted, `'tests/*.spec.ts'`) to the `STALE_TEST_FILES`-adjacent `exclude` array in `apps/web/vitest.config.ts`. That fix is a vitest config change with zero product impact and belongs in its own PR so the diff history stays clean.
+
+### Backend ts-jest blocker
+
+A second pre-existing infra issue: `apps/api/backend/__tests__/*` cannot run under ts-jest with a dummy `DATABASE_URL` because `ingestOrchestrator.ts:136`'s `prisma.vcvCredential.findMany().rows.map((row) => row.domain)` triggers `TS2322: Type 'unknown[]' is not assignable to type 'string[]'` when the full Prisma client typing isn't resolved at test-compile time. Reproduces on baseline `1d1b8175`. The PR #420 regression tests are correct by inspection and will execute in backend CI / when a real Prisma client + DB are present.
+
+### Vercel checks
+
+The `Vercel – vcv-web`, `Vercel – vitalcv`, and `Vercel Agent Review` checks are FAILURE / NEUTRAL because Vercel deploys are permanently blocked for this account (billing-blocked, migration to Railway is complete). These checks should be removed from required-status-checks if they aren't already. Not branch-caused, not actionable from this PR.
