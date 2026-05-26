@@ -2,12 +2,12 @@
 
 Empirical record of whether `delightful-essence` (Railway API for `api.vitalcv.com`) can deploy `main` as-is.
 
-## Inputs
+## Run 1 — pre-#421 baseline (kept for record)
 
 | Field | Value |
 |---|---|
-| Date | 2026-05-26 |
-| `main` SHA | `7f1cfb0501dc0bcc314c8c63848513393785c06c` (`fix(deploy): remove Vercel coupling, prepare Railway-native deploy (#415)`) |
+| Date | 2026-05-26 ~15:00Z |
+| `main` SHA | `7f1cfb0501dc0bcc314c8c63848513393785c06c` (pre-#421) |
 | Worktree | `/tmp/vitalcv-api-main-smoke` (detached at `origin/main`) |
 | Install | `pnpm install --frozen-lockfile` — lockfile unchanged |
 
@@ -60,3 +60,64 @@ Order of operations after #421 lands:
 ## Browser / Railway deploy verification
 
 **Not yet appropriate.** Don't run the deploy smoke until `main` actually builds. Browser/Cowork QA after step 6 above, not before.
+
+---
+
+## Run 2 — post-#421 (and post-#423) main 2026-05-26 ~20:55Z
+
+| Field | Value |
+|---|---|
+| Date | 2026-05-26 ~20:55Z |
+| `main` SHA | `9f272c80ce842366a4ee43274b6584668c0a9e0c` (`fix(api): align NPPES source_complete truth state on main (#423)`) — both #421 and #423 now landed |
+| Prior commit on main | `fe9c6f9c12381cb49a9786cb1ff45918e2450cf0` (#421) |
+| Worktree | `/tmp/vitalcv-main-api-smoke` (fresh, detached at `origin/main`) |
+| Install | `pnpm install --frozen-lockfile` — lockfile unchanged |
+
+### Commands
+
+```bash
+pnpm turbo run build --filter @vitalcv/api --force
+  Tasks: 15 successful, 15 total
+  Cached: 0 cached, 15 total
+  Time:    15.14s
+
+pnpm --filter @vitalcv/api exec tsc -p backend/tsconfig.json --noEmit
+  # clean (empty output)
+
+pnpm lint
+  Tasks: 2 successful, 2 total
+  # web lint clean; only pre-existing marketing useCallback warning
+```
+
+### Conclusion
+
+**`delightful-essence` CAN now build `main`.** The seven `TS2307` errors from Run 1 are gone. The single build-gap blocker that kept the Railway API service stuck at PR #359-era for ~2 weeks is resolved.
+
+### Live deployment state
+
+```bash
+curl -fsS https://api.vitalcv.com/health
+  {
+    "status":"ok",
+    "git_branch":"main",
+    "git_sha":"fe9c6f9c12381cb49a9786cb1ff45918e2450cf0",   # = PR #421 merge commit
+    "metrics": {...}
+  }
+```
+
+`api.vitalcv.com` is live on PR #421 (`fe9c6f9c1`). PR #423 merged ~8 minutes later (`9f272c80c`); Railway should be auto-building the new deploy. Operator should confirm the next `/health` poll shows `git_sha:"9f272c80c..."` (or trigger a manual redeploy).
+
+### Next action
+
+1. Poll `https://api.vitalcv.com/health` until `git_sha` updates to `9f272c80c…` (or trigger Railway manual redeploy).
+2. Run authenticated SSE smoke for NPI 1699264564 against `api.vitalcv.com`:
+
+   ```bash
+   BASE=https://vitalcv-web-production.up.railway.app
+   RUNID=$(curl -fsS -X POST -m 20 "$BASE/api/ingest/1699264564" \
+     | python3 -c 'import sys,json;print(json.load(sys.stdin)["runId"])')
+   curl -sSN -m 8 -H 'Accept: text/event-stream' "$BASE/api/ingest/stream/$RUNID" \
+     | grep -E '"status":"FAILED"|"status":"SUCCESS"' | head -5
+   ```
+
+   Expected once PR #423 is live: NPPES `source_complete` shows `"status":"SUCCESS"`; OIG/PECOS still `"status":"FAILED"`.

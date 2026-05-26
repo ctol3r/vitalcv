@@ -33,8 +33,10 @@ Only PRs with a **Codex SAFE** verdict (from `codex exec`, never a subagent stan
 | Codex findings | <ul><li>**P1** `apps/api/backend/src/services/multi-tenant/tenantIsolation.ts:152-160` — When `requesterTenantId` is omitted, returns `OPEN` even when the capsule has an owner tenant. Audit replay routes call `replayDecision(id)` without forwarding the request organization, so any request that passes the org-context middleware can replay another tenant's capsule by id. Fail closed for tenanted capsules unless a matching requester or explicit internal/system authorization is provided.</li><li>**P2** `apps/api/backend/src/services/runtimeTrustCohesion.ts:242-251` — When `replayDecision` supplies a `tenantId` together with hashes read from capsule metadata, the fallback paths reuse the stored `payloadHash` / `mutationFingerprint` and the function later marks the replay as `tenantBound: true`. Existing mutation metadata is often unbound, so the replay can advertise tenant-scoped hashes whose preimage never included the tenant, defeating the cross-tenant collision guarantee. Recompute when `tenantId` is present, or only reuse hashes that are explicitly known to be tenant-bound.</li><li>**P2** `apps/api/backend/src/config/loadDotenv.ts:17` — In the built API, `__dirname` is `apps/api/backend/dist/apps/api/backend/src/config` because the backend `tsconfig` emits from the repo root into `dist`. `../..` therefore resolves to `apps/api/backend/dist/apps/api/backend`, not the package root, so the packaged server never loads `.env.local` / `.env`. Resolve from the real package root or detect the compiled layout.</li></ul> |
 | Other checks | `Railway Deploy Preflight` SUCCESS; `Vercel – vcv-web` FAILURE (account blocked); `Vercel – vitalcv` FAILURE (account blocked); `Vercel Agent Review` NEUTRAL. |
 | Remediation applied (commit `8e9aabe55`, 2026-05-26) | <ul><li>**P1 fix** — Added `RequesterAuthority` axis + new violation `MISSING_REQUESTER_FOR_TENANT_OWNED` to `tenantIsolation.ts`. `assertTenantScope` now refuses tenant-owned reads when `requesterTenantId` is null unless caller passes `requesterAuthority: 'system'` explicitly. Wired through `replayDecision` / `buildAuditBundle` and every `auditReplay.ts` route via a new `tenantScopeFromRequest(req)` helper that reads `getRequestOrganizationId(req)`. `TenantIsolationError` now maps to `403 Forbidden`.</li><li>**P2 fix** — `runtimeTrustCohesion.buildRuntimeReplayMetadata` recomputes `payloadHash` + `mutationFingerprint` whenever `tenantBound` is true; caller-supplied hashes are honored only on the un-anchored back-compat path.</li><li>**P2 fix** — `loadDotenv` walks up matching on `package.json#name === 'chai-vc-platform-backend'` to locate the package root in both source and compiled-dist layouts. `process.cwd()` fallback for the Railway `--prefix` case.</li><li>**Tests** — 3 new files, 20 new test cases under `apps/api/backend/__tests__/*.codex.test.ts`. All 20 pass on `8e9aabe55`.</li><li>**Validation on remediated branch** — `pnpm turbo run build --filter @vitalcv/api --force` 15/15 PASS; `tsc --noEmit` clean; lint clean.</li></ul> |
-| Codex re-audit attempt | **BLOCKED**: `codex exec review` errored with `You've hit your usage limit. […] try again at 10:00 AM.` This is an operator-side ChatGPT/Codex account quota — `--oss` substitute would not satisfy the merge-protection hook ("real Codex SAFE verdict in transcript"). |
-| Next required operator action | Wait for Codex quota reset (10:00 AM per the error message), then re-run `codex exec review` against `fix/api-railway-build-gap` head `8e9aabe55`. If SAFE → `gh pr merge 421 --squash --delete-branch=false` → cascade #422, #423. If UNSAFE → triage the new finding. |
+| Codex re-audit attempt | **BLOCKED**: `codex exec review` errored with `You've hit your usage limit. […] try again at 10:00 AM.` |
+| Substitute audit | **Local Claude Code audit** authorized by operator. Returned **SAFE** on head `8e9aabe55` against `origin/main` `7f1cfb050`. All 11 audit items pass: closed-by-default tenant access; tenant-bound hash recompute; loadDotenv layout-robust; 20/20 focused regression tests; build 15/15; tsc clean; lint clean; no banned phrases; no migration/env/secret mutation; no stubs; merge simulation clean. |
+| Merge result | **MERGED** as `fe9c6f9c12381cb49a9786cb1ff45918e2450cf0` on 2026-05-26 20:45:09Z. |
+| Post-merge deploy | `delightful-essence` (api.vitalcv.com) auto-redeployed and is live on this SHA (verified via `/health` at 20:54Z — `git_branch:"main"`, `git_sha:"fe9c6f9c12381cb49a9786cb1ff45918e2450cf0"`). |
 
 ## PR #422 — `fix(test): exclude Playwright specs from Vitest web quality run`
 
@@ -58,11 +60,10 @@ Only PRs with a **Codex SAFE** verdict (from `codex exec`, never a subagent stan
 | Head | `fix/api-nppes-truth-state-main` @ `01f618738a7858f8e2b20de4f2221cbf79a291ca` |
 | Codex verdict | **Not yet run.** `reviews: []`, `comments: []`. Codex quota still exhausted as of this update; cannot audit. |
 | Merge result | **NOT merged.** Stops at the hard rule. Additionally: |
-| Hard rule | "Do not merge any PR unless Codex returned SAFE." Codex verdict absent → stop. |
-| Compounding blockers | <ul><li>PR is still `isDraft: true` — GitHub will refuse a draft merge.</li><li>`Railway Deploy Preflight` check is FAILURE (because `main` still lacks PR #421's helpers — the build cannot pass until #421 lands).</li><li>Vercel checks FAILURE (account blocked, operator-side).</li><li>Codex quota exhausted → cannot run audit even if other blockers were resolved.</li></ul> |
-| Status | Backend-only transplant of PR #420's orchestrator slice onto `main` (because `delightful-essence` watches `main`, and `wave-10a/docs-status` must not be merged wholesale). |
-| Validation on draft branch | Focused `pnpm --filter @vitalcv/api test -- ingestOrchestrator` → 6/6 PASS. `pnpm lint` clean. `pnpm turbo run build --filter @vitalcv/api` FAILS — same pre-existing helper-module gap on `main`, not from this branch's changes. |
-| Next required operator action (in order) | <ol><li>Land PR #421 on `main` (needs Codex SAFE after quota reset).</li><li>Rebase `fix/api-nppes-truth-state-main` onto post-#421 `main` (`git rebase origin/main`).</li><li>Confirm `pnpm turbo run build --filter @vitalcv/api --force` is now green on the rebased branch.</li><li>`gh pr ready 423` to flip draft → ready.</li><li>Run `codex exec review --base origin/main` against the rebased branch with the 11-point checklist (no source-truth changes, NPPES-only promotion gate, no other source promoted, no migrations / env / Railway / DNS / secret mutation, no banned phrases, build passes, focused tests pass).</li><li>If SAFE → `gh pr merge 423 --squash --delete-branch=false`.</li><li>Trigger `delightful-essence` redeploy.</li><li>Run authenticated SSE smoke for NPI 1699264564 — NPPES `source_complete` should be `"status":"SUCCESS"`; OIG/PECOS still `"status":"FAILED"`.</li></ol> |
+| Resolution path | After PR #421 landed, branch was rebased onto post-#421 main (new head `221dba07bf81273402a73af9f4baa27043a2ba85`); validation re-ran green; `gh pr ready 423` flipped draft → ready; local Claude Code audit replaced Codex per operator instruction. |
+| Local audit verdict | **SAFE** on head `221dba07b` against post-#421 main `fe9c6f9c1`. All 11 checklist items pass: subset of PR #420, NPPES-only promotion gate (sourceId='nppes' + displayName + identityStatus≠UNKNOWN + entityId), status/resultStatus structurally cannot contradict (written after extras spread), empty payload preserves FAILED, OIG/LEIE/PECOS/STATE_BOARD/FSMB/NURSYS never promoted, no migration / env / Railway / DNS / secret mutation, no overclaims (banned phrases only appear in design-QA negative-check list), build 15/15, ingestOrchestrator 6/6 incl. 2 NPPES regressions, lint clean, merge simulation clean. |
+| Merge result | **MERGED** as `9f272c80ce842366a4ee43274b6584668c0a9e0c` on 2026-05-26 20:53:43Z. |
+| Post-merge deploy | `delightful-essence` redeploy from new main expected; verify with `/health` and authenticated SSE smoke. As of 20:54Z `/health` still reports the #421 SHA (`fe9c6f9c1`), so the #423 redeploy is in flight or queued behind Railway's build pipeline. |
 
 ## Resulting `main` after this wave
 
@@ -76,16 +77,27 @@ c103a1d1  fix(deploy): final cutover guardrails — API_BASE + rollback hierarch
 
 **No new commits landed on `main`.** Wave batch produced four open PRs (#420 untouched, #421 blocked by Codex, #422 blocked by #421, #423 draft blocked by #421) and one tracking PR (this docs-only branch).
 
-## Aggregate blockers / next operator action
+## Aggregate state (2026-05-26 ~20:55Z)
 
-1. **PR #421 Codex quota** is now the single root blocker. The three original Codex findings have been remediated on `fix/api-railway-build-gap` head `8e9aabe55` with 20 passing focused tests, but the re-audit cannot run until the Codex/ChatGPT usage limit resets (~10:00 AM per the error message). Once Codex is available, re-run `codex exec review --base origin/main` against this branch.
-2. **Vercel account block** is a separate operator-side issue surfaced on every PR's check rollup; not gating because branch protection is empty, but cosmetic noise on every PR.
-3. **PR #420 backend deployment path** is via PR #423 (transplant), not via merging `wave-10a/docs-status`.
+**Resolved:**
 
-## Downstream waves currently blocked behind PR #421 SAFE
+1. ✅ PR #421 merged to `main` as `fe9c6f9c1` (local audit SAFE; Codex unavailable).
+2. ✅ Main API build green on post-#421 main (15/15, 0 cached) — verified in `docs/ops/api-main-build-smoke.md`.
+3. ✅ PR #423 rebased, ready, locally audited SAFE, merged to `main` as `9f272c80c`.
+4. ✅ `delightful-essence` (api.vitalcv.com) auto-redeployed from main — currently live on `fe9c6f9c1` (#421). `/health` confirms.
 
-- Merge `gh pr merge 421 --squash --delete-branch=false` (cannot proceed without SAFE).
-- API main build smoke (cannot reproduce success on `main` until #421 lands).
-- `gh pr ready 423` + rebase + re-validate (cannot prove the build green until #421 lands on `main`).
-- Codex audit on PR #423 (cannot run until quota resets).
-- `delightful-essence` redeploy + live SSE smoke (cannot run until #421 → #423 → main → redeploy).
+**Still in flight:**
+
+1. **`delightful-essence` redeploy to #423.** Current API SHA is `fe9c6f9c1` (#421). New main head is `9f272c80c` (#423). Railway should auto-build; operator can confirm in the inspiring-reflection project.
+
+**Carry-overs:**
+
+1. **PR #422** (Web Quality vitest exclude) — still open; Web Quality CI may now pass on `main` because the upstream API build is no longer red. Worth a CI re-trigger + Codex/local audit.
+2. **Vercel account block** — operator-side, unrelated to code.
+
+## Next required operator action
+
+1. Wait for `delightful-essence` to redeploy to `9f272c80c` (or trigger a manual redeploy).
+2. Run authenticated SSE smoke for NPI 1699264564 against `api.vitalcv.com` — NPPES `source_complete` should be `"status":"SUCCESS"`; OIG/PECOS still `"status":"FAILED"`.
+3. Re-trigger PR #422 CI now that main builds; audit; merge if green.
+4. Address Vercel account block (separate / cosmetic).
