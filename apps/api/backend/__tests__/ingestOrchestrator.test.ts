@@ -345,4 +345,149 @@ describe('ingestOrchestrator', () => {
     expect(run?.id).toBe('run-1');
     expect(mockGetIngestRun).toHaveBeenCalledWith('run-1');
   });
+
+  it('promotes NPPES source_complete to SUCCESS when identity payload is intact even if pipeline reports FAILED', async () => {
+    // Reproduces the NPI 1699264564 case: NPPES identity is fully resolved
+    // by the entity resolution stage (displayName + identityStatus ACTIVE +
+    // entityId), but the downstream claim-derivation / artifact-write stage
+    // throws and the pipeline returns status: FAILED with claimsEmitted: 0.
+    // The orchestrator must emit source_complete for NPPES as SUCCESS
+    // because identity has been source-confirmed.
+    mockResolveEntityFromNpi.mockResolvedValue({
+      entity: {
+        id: 'entity-vef',
+        displayName: 'VICTORIA ELIZABETH FISCHER, MD',
+        entityType: 'PERSON',
+        npiType: 'TYPE_1',
+        metadata: {
+          status: 'ACTIVE',
+          specialty: 'Neurological Surgery',
+          credentials: 'MD',
+          enumerationDate: '2018-05-07',
+          lastUpdated: '2026-02-11',
+        },
+      },
+    });
+    mockIngestClinicianIdentity.mockResolvedValue({
+      results: [
+        {
+          npi: '1699264564',
+          source: 'NPPES_API',
+          artifactId: 'artifact-nppes-vef',
+          sourceRunId: 'source-run-nppes-vef',
+          claimIds: [],
+          credentialIds: [],
+          claimsEmitted: 0,
+          deltaEvents: [],
+          status: 'FAILED',
+          latencyMs: 15,
+        },
+        {
+          npi: '1699264564',
+          source: 'OIG_LEIE',
+          artifactId: null,
+          sourceRunId: null,
+          claimIds: [],
+          credentialIds: [],
+          claimsEmitted: 0,
+          deltaEvents: [],
+          status: 'FAILED',
+          latencyMs: 5,
+        },
+        {
+          npi: '1699264564',
+          source: 'PECOS_PUBLIC',
+          artifactId: null,
+          sourceRunId: null,
+          claimIds: [],
+          credentialIds: [],
+          claimsEmitted: 0,
+          deltaEvents: [],
+          status: 'FAILED',
+          latencyMs: 5,
+        },
+      ],
+    });
+
+    await startIngestRun('1699264564');
+    await flushAsyncWork();
+    await flushAsyncWork();
+
+    const nppesCompleteCalls = mockAppendIngestEvent.mock.calls.filter(
+      ([event]) =>
+        (event as { type: string; sourceId?: string }).type === 'source_complete'
+        && (event as { sourceId?: string }).sourceId === 'nppes',
+    );
+    expect(nppesCompleteCalls).toHaveLength(1);
+    const nppesPayload = (nppesCompleteCalls[0][0] as { payload: Record<string, unknown> }).payload;
+    expect(nppesPayload.status).toBe('SUCCESS');
+    expect(nppesPayload.displayName).toBe('VICTORIA ELIZABETH FISCHER, MD');
+    expect(nppesPayload.identityStatus).toBe('ACTIVE');
+    expect(nppesPayload.entityId).toBe('entity-vef');
+
+    // OIG/PECOS must NOT be promoted — they have no identity-only success signal.
+    const oigCompleteCalls = mockAppendIngestEvent.mock.calls.filter(
+      ([event]) =>
+        (event as { type: string; sourceId?: string }).type === 'source_complete'
+        && (event as { sourceId?: string }).sourceId === 'oig',
+    );
+    const pecosCompleteCalls = mockAppendIngestEvent.mock.calls.filter(
+      ([event]) =>
+        (event as { type: string; sourceId?: string }).type === 'source_complete'
+        && (event as { sourceId?: string }).sourceId === 'pecos',
+    );
+    expect((oigCompleteCalls[0][0] as { payload: { status: string } }).payload.status).toBe('FAILED');
+    expect((pecosCompleteCalls[0][0] as { payload: { status: string } }).payload.status).toBe('FAILED');
+
+    // The persisted IngestSourceRun for NPPES must also be DONE, not ERROR.
+    const nppesUpdateCalls = mockUpdateIngestSourceRun.mock.calls.filter(
+      ([, sId]) => sId === 'nppes',
+    );
+    const lastNppesUpdate = nppesUpdateCalls[nppesUpdateCalls.length - 1];
+    expect(lastNppesUpdate[2]).toMatchObject({
+      status: 'DONE',
+      errorCode: null,
+    });
+  });
+
+  it('does not promote NPPES to SUCCESS when identity payload is empty (true upstream failure preserved)', async () => {
+    mockResolveEntityFromNpi.mockResolvedValue({
+      entity: {
+        id: '',
+        displayName: '',
+        entityType: 'PERSON',
+        npiType: 'TYPE_1',
+        metadata: { status: 'UNKNOWN' },
+      },
+    });
+    mockIngestClinicianIdentity.mockResolvedValue({
+      results: [
+        {
+          npi: '1558302470',
+          source: 'NPPES_API',
+          artifactId: null,
+          sourceRunId: null,
+          claimIds: [],
+          credentialIds: [],
+          claimsEmitted: 0,
+          deltaEvents: [],
+          status: 'FAILED',
+          latencyMs: 5,
+          error: 'NPPES API returned 502',
+        },
+      ],
+    });
+
+    await startIngestRun('1558302470');
+    await flushAsyncWork();
+    await flushAsyncWork();
+
+    const nppesCompleteCalls = mockAppendIngestEvent.mock.calls.filter(
+      ([event]) =>
+        (event as { type: string; sourceId?: string }).type === 'source_complete'
+        && (event as { sourceId?: string }).sourceId === 'nppes',
+    );
+    expect(nppesCompleteCalls).toHaveLength(1);
+    expect((nppesCompleteCalls[0][0] as { payload: { status: string } }).payload.status).toBe('FAILED');
+  });
 });
