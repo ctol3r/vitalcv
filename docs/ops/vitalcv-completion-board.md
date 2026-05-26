@@ -1,22 +1,23 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-26 (Wave Batch 2026-05-26 — diagnosis/repair/transplant batch; **no merges to main**)
-Latest PRs involved: #420 (open), #421 (open, Codex UNSAFE), #422 (open, dep-blocked), #423 (draft, dep-blocked)
+Last updated: 2026-05-26 (Wave Batch 2026-05-26 evening — **PRs #421 and #423 MERGED to main**; delightful-essence redeployed; SSE smoke pending)
+Latest PRs involved: #420 (still open against wave-10a/docs-status — deployment path now via #423), #421 ✅ merged `fe9c6f9c1`, #422 (still open, dependency cleared), #423 ✅ merged `9f272c80c`, #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
 
-## Standing rule (added 2026-05-26)
+## Standing rule
 
-Update this board after every wave. Even a docs-only wave should bump the **Last updated** field and any state transitions for in-flight PRs.
+Update this board after every wave. Even a docs-only wave should bump the **Last updated** field and any state transitions for in-flight PRs. Move percentages only on **merge / deploy / live validation** — not on PR existence.
 
-## Current blockers (top of mind, 2026-05-26)
+## Current blockers (2026-05-26 evening)
 
-1. **PR #421 Codex UNSAFE remediation** — single root blocker. Unblocks #422 and #423, and consequently `delightful-essence`'s ability to deploy `main`. See `docs/ops/merge-ledger.md`.
-2. **Vercel account block** — operator-side; surfaces as failing required-looking check on every PR.
-3. **`delightful-essence` stale at PR #359-era** — direct effect of (1).
+1. **PR #423 redeploy to `delightful-essence`.** Service is currently live on PR #421 (`/health` git_sha=`fe9c6f9c1`); the #423 deploy is queued or building in the inspiring-reflection Railway project. Cleared by Railway auto-deploy or operator manual trigger.
+2. **Authenticated SSE smoke for NPI 1699264564** has not yet been run. Until it confirms NPPES `source_complete` `"status":"SUCCESS"` and OIG/PECOS still `"status":"FAILED"`, NPPES truth-state is **merged + deployed but not validated live**.
+3. **PR #422** (Web Quality vitest exclude) — its dependency on PR #421 is cleared; CI can now be re-run, audited, and merged.
+4. **Vercel account block** — operator-side cosmetic noise on every PR check rollup; not gating.
 
 ## Next highest-leverage bottleneck
 
-Resolve PR #421's three Codex findings (tenant isolation default, tenant-bound hash reuse, dotenv compiled-layout path). That single piece unblocks the rest of the merge train.
+**Database / Persistence Layer (16%, 40 waves left)** — TRUST-PERSIST-1 cutover from in-memory to real DB-backed writers is now the largest single board blocker. Every other infrastructure-grade dimension (DevOps, CI, API reliability, truth contract) has at least foundation status; persistence is still at *seed* and is the bottleneck for moving Trust / Proof / Receipts and Backend / API Reliability above their current ceilings.
 
 ## Full-Scope Coverage Rule
 
@@ -595,7 +596,7 @@ Hard rule: **no row moves on unmerged work.** This wave produced no merges to `m
 
 Same items as Waves B/D/E/F/H section above (Wave B Phase 3d/3e, Phase 2 design-surface work, Wave A leftovers #237/#240/#243/#247, Wave G enterprise hardening). None addressed this wave.
 
-### Next recommended wave
+### Next recommended wave (afternoon half, superseded — see evening half below)
 
 `fix/api-railway-build-gap-codex-remediation` — author the three minimal patches Codex requested on PR #421:
 
@@ -604,3 +605,72 @@ Same items as Waves B/D/E/F/H section above (Wave B Phase 3d/3e, Phase 2 design-
 3. `config/loadDotenv.ts` — resolve `.env` from the package root via package metadata or compiled-layout detection, not via fragile `__dirname/../..`.
 
 Re-run Codex three-audit. If SAFE: merge PR #421 → rebase #422 → Codex → merge #422 → mark #423 ready → rebase → Codex → merge #423. Then `delightful-essence` redeploys, SSE smoke confirms NPPES SUCCESS / OIG-PECOS FAILED for NPI 1699264564.
+
+## Wave Batch 2026-05-26 evening — PR #421 + PR #423 MERGED
+
+The evening half of the 2026-05-26 batch closed the merge cascade. Codex was unavailable due to ChatGPT account quota; operator authorized a Local Claude Code audit substitute (no merge-protection hook bypass — the operator explicitly redirected the gate). Both PR #421 and PR #423 cleared local SAFE verdicts and were squash-merged to `main`. `delightful-essence` auto-redeployed from `main` and is now live on PR #421 (`/health` confirms `git_sha:"fe9c6f9c1"`). PR #423's redeploy is in flight.
+
+### Confirmed completed facts (evening half)
+
+- ✅ PR #421 remediation pushed (`8e9aabe55`): three Codex findings fixed (tenant isolation default-closed via new `RequesterAuthority`; tenant-bound replay hashes always recomputed; loadDotenv resolves backend root by `package.json` name in both source and compiled layouts) + 20 focused regression tests.
+- ✅ Local Claude Code audit on `8e9aabe55` → SAFE (clean merge sim; security checklist passes; truth/deploy scan clean; build 15/15; tsc clean; lint clean; tests 20/20).
+- ✅ PR #421 squash-merged to `main` as `fe9c6f9c12381cb49a9786cb1ff45918e2450cf0` (2026-05-26 20:45:09Z).
+- ✅ `pnpm turbo run build --filter @vitalcv/api --force` green on `main` (15/15 PASS, 0 cached, ~15s) — the 7 `TS2307` errors that kept `delightful-essence` stale for ~2 weeks are gone.
+- ✅ `api.vitalcv.com/health` returns `status:"ok"`, `git_branch:"main"`, `git_sha:"fe9c6f9c1…"` — PR #421 is **deployed live**.
+- ✅ PR #423 rebased onto post-#421 main (head `221dba07b`), validated (build 15/15, ingestOrchestrator 6/6 incl. 2 NPPES regressions, tsc clean, lint clean), `gh pr ready 423` flipped draft → ready.
+- ✅ Local Claude Code audit on rebased PR #423 → SAFE on all 11 checklist items (NPPES-only promotion gate, no other source promoted, no migration / env / Railway / DNS / secret mutation, no banned phrases in product copy, banned-phrase docs use only as negative checklist items, build green, focused tests green, merge sim clean).
+- ✅ PR #423 squash-merged to `main` as `9f272c80ce842366a4ee43274b6584668c0a9e0c` (2026-05-26 20:53:43Z).
+- ✅ `docs/ops/merge-ledger.md` + `docs/ops/api-main-build-smoke.md` updated to record both merges, both audits, the local-substitute pattern, and the operator instruction set.
+
+### NOT yet validated live (carry-forwards)
+
+- ⏳ PR #423 redeploy to `delightful-essence` (Railway should auto-build; `/health` still shows #421 SHA as of last poll at 20:54Z).
+- ⏳ Authenticated SSE smoke for NPI 1699264564 — required to confirm NPPES `source_complete` `"status":"SUCCESS"` and OIG/PECOS still `"status":"FAILED"`. Until this passes, NPPES truth-state is **merged + deployed but not validated live**.
+
+### Per-row Current % deltas (evidenced by merges + live deploy)
+
+| Area | Before | After | Δ | Evidence |
+|---|---:|---:|---:|---|
+| Real persistence writer (Trust Engine) | 70 | 70 | — | No action this wave. TRUST-PERSIST-1 remains the largest board blocker. |
+| API route hardening (Backend) | 60 | 70 | +10 | PR #421 merged + deployed; `replayDecision` routes forward tenant scope; `TenantIsolationError` → 403 with violation code. |
+| Backend test coverage (Backend) | 42 | 47 | +5 | 20 new focused tests (tenantIsolation/runtimeTrustCohesion/loadDotenv) + 2 new NPPES regression tests merged to `main`. |
+| Railway deploy preflight (CI/Release) | 40 | 60 | +20 | `delightful-essence` redeployed from `main` for the first time in ~2 weeks; `/health` returns 200 with modern `git_sha`. |
+| Web quality (CI/Release) | 85 | 85 | — | No action this wave. PR #422 still open; dependency now cleared (CI can be re-run). |
+| Monorepo CI/CD (CI/Release) | 65 | 65 | — | Merge-protection gate was substituted by Local Claude Code audit this wave at operator instruction; original gate unchanged. |
+
+### 15-dimension view (per operator baseline)
+
+| Dimension | % | Waves left | Δ | Highest state reached | Evidence |
+|---|---:|---:|---:|---|---|
+| Product Truth Contract | 47 | 13 | +1 / −1 | merged | PR #423 backend NPPES truth-state correction merged as `9f272c80c`. **Not yet validated live** (SSE smoke pending). |
+| Core Credentialing Workflow | 29 | 26 | — | planned | No action this wave. |
+| Source Integrations / PSV | 18 | 40 | — | merged (emission only) | NPPES emission semantics tightened via #423; no new PSV integration. |
+| Backend / API Reliability | 28 | 29 | +4 / −3 | **deployed live** | PR #421 merged + deployed; 3 Codex correctness fixes; 20 regression tests; `/health` confirms; module-resolution gap closed. |
+| Database / Persistence Layer | 16 | 40 | — | planned | No action this wave. **Now the largest single board blocker.** |
+| Trust / Proof / Receipts | 33 | 27 | +2 / −2 | **deployed live** | Tenant isolation hardened + hash recompute on tenant-bound replays (#421); deployed live in `delightful-essence`. |
+| Frontend UX / Role Journeys | 35 | 24 | — | merged + deployed | No action this wave (prior waves landed). |
+| Sign-up / Auth / Onboarding | 22 | 28 | — | planned | No action this wave. |
+| Interoperability / Standards | 26 | 34 | — | planned | No action this wave. |
+| Demo / Sales Conversion | 24 | 32 | — | planned | No action this wave. |
+| Deployment / DevOps | 28 | 28 | +5 / −3 | **deployed live** | `delightful-essence` cleared from PR #359-era stale state; `/health` confirms modern git_sha; 2-week deployment gap resolved. |
+| Testing / CI / Quality Gates | 31 | 26 | +2 / −2 | merged | 22 new tests landed on `main` (3 Codex regression files + 2 NPPES regressions). |
+| Self-Improving System / Agents | 13 | 50 | — | planned | No action this wave. |
+| Business / GTM / Revenue Engine | 17 | 50 | — | planned | No action this wave. |
+| **Overall Billion-Dollar Readiness** | **25** | **397** | **+1 / −7** | mixed | Weighted aggregate. Five sub-rows moved on merge+deploy; the rest unchanged. |
+
+### Per-PR state transitions (evening half)
+
+| PR | State | Note |
+|---|---|---|
+| #420 | open | Deployment path is now via #423 (transplant); #420 itself can stay open against `wave-10a/docs-status` or be closed as superseded — operator call. |
+| #421 | **MERGED** `fe9c6f9c1`, **DEPLOYED** to `delightful-essence` | Local audit SAFE; Codex unavailable, operator-authorized substitute. |
+| #422 | open | Dependency on #421 cleared; CI can be re-triggered, audited, merged. |
+| #423 | **MERGED** `9f272c80c` | Deploy queued; SSE smoke pending. |
+| #424 | open | Tracking docs PR; extended this wave with updated ledgers. |
+
+### Next recommended wave (post-evening-half)
+
+1. **Poll `https://api.vitalcv.com/health` until `git_sha` flips to `9f272c80c…`** (or trigger Railway manual redeploy in `inspiring-reflection` if Railway is sleeping).
+2. **Run authenticated SSE smoke for NPI 1699264564** — this is the live validation that will move Product Truth Contract from "merged" to "validated live".
+3. **PR #422 reactivation** — re-trigger Web Quality CI now that `main` builds; if green, run local audit + merge.
+4. **Open TRUST-PERSIST-1 scoping wave** — Database / Persistence Layer at 16% / 40 waves is now the largest single board bottleneck.
