@@ -1,7 +1,22 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-07 (Waves B/D/E/F/H — 14 PRs landed; all 6 design surfaces foundationed)
-Source branch: `rescue/ops-docs-foundation`
+Last updated: 2026-05-26 (Wave Batch 2026-05-26 — diagnosis/repair/transplant batch; **no merges to main**)
+Latest PRs involved: #420 (open), #421 (open, Codex UNSAFE), #422 (open, dep-blocked), #423 (draft, dep-blocked)
+Source branch (for board update only): `docs/wave-batch-tracking`
+
+## Standing rule (added 2026-05-26)
+
+Update this board after every wave. Even a docs-only wave should bump the **Last updated** field and any state transitions for in-flight PRs.
+
+## Current blockers (top of mind, 2026-05-26)
+
+1. **PR #421 Codex UNSAFE remediation** — single root blocker. Unblocks #422 and #423, and consequently `delightful-essence`'s ability to deploy `main`. See `docs/ops/merge-ledger.md`.
+2. **Vercel account block** — operator-side; surfaces as failing required-looking check on every PR.
+3. **`delightful-essence` stale at PR #359-era** — direct effect of (1).
+
+## Next highest-leverage bottleneck
+
+Resolve PR #421's three Codex findings (tenant isolation default, tenant-bound hash reuse, dotenv compiled-layout path). That single piece unblocks the rest of the merge train.
 
 ## Full-Scope Coverage Rule
 
@@ -522,3 +537,70 @@ word-boundary regex to prevent false positives like `sam` matching inside
   (verifier RBAC), #247 (policy decision persistence) all still open.
 * **Wave G** — enterprise architecture hardening (HIPAA / SOC2 docs / PWA /
   CI gates) not yet started.
+
+## Wave Batch 2026-05-26 — diagnosis / repair / transplant (no merges)
+
+This batch produced four open PRs and **landed nothing on `main`**. Per the standing rule "Do not inflate progress because a PR exists", percentages do not move; the wave is recorded as state transitions on in-flight PRs and as a known-unknown bump to two waves-left counts where Codex surfaced new remediation work.
+
+### Status legend (used in the alternate 15-dimension view below)
+
+`planned` → `PR opened` → `merged` → `deployed` → `validated live` → `generating business traction`.
+
+### 15-dimension view (high-end waves-left only)
+
+| Dimension | % | Waves left | Status of latest in-flight work |
+|---|---:|---:|---|
+| Product Truth Contract | 46% | 14 | PR opened (#420 against wave-10a; #423 draft against main) |
+| Core Credentialing Workflow | 29% | 26 | planned (untouched this wave) |
+| Source Integrations / PSV | 18% | 40 | planned (emission semantics moved on #420/#423; no new source integration) |
+| Backend / API Reliability | 24% | **32** (+2) | PR opened (#421, #423); Codex UNSAFE on #421 added known remediation work |
+| Database / Persistence Layer | 16% | 40 | planned (untouched) |
+| Trust / Proof / Receipts | 31% | **29** (+1) | PR opened (#421, #423); Codex hash-binding finding adds remediation work |
+| Frontend UX / Role Journeys | 35% | 24 | merged + deployed (prior waves; #b89d9801) |
+| Sign-up / Auth / Onboarding | 22% | 28 | planned (PR #420 onboarding nudge excluded — main already clean) |
+| Interoperability / Standards | 26% | 34 | planned (untouched) |
+| Demo / Sales Conversion | 24% | 32 | planned (untouched) |
+| Deployment / DevOps | 23% | **31** (+1) | PR opened (#421); delightful-essence still stale at PR #359-era; Vercel account block adds path |
+| Testing / CI / Quality Gates | 29% | 28 | PR opened (#422); upstream API build is the actual CI red — not the vitest rule |
+| Self-Improving System / Agents | 13% | 50 | planned (untouched) |
+| Business / GTM / Revenue Engine | 17% | 50 | planned (untouched) |
+| **Overall Billion-Dollar Readiness** | **24%** | **404** (+4) | nothing landed; aggregate waves-left bumped for newly-surfaced remediation |
+
+### Per-row Current % deltas (canonical schema)
+
+Hard rule: **no row moves on unmerged work.** This wave produced no merges to `main`, so every affected row's Current % stays where it was. The board records this wave only as a metadata bump.
+
+| Area | Current % | After Wave % | Detail / Action Per Area | Status |
+|---|---:|---:|---|---|
+| Real persistence writer (Trust Engine) | 70 | 70 | No action this wave. | 🚀 Hardening |
+| Source health classifier (Trust Engine) | 75 | 75 | No action this wave. | 🚀 Hardening |
+| API route hardening (Backend) | 60 | 60 | No action this wave. PR #421 module restoration would lift this once landed; Codex UNSAFE keeps it where it is. | 🛠️ Buildout |
+| Backend test coverage (Backend) | 42 | 42 | No action this wave. PR #423 adds 2 regression tests but is not merged. | 🧱 Foundation |
+| Database migration readiness (Backend) | 5 | 5 | No action this wave. | 🌱 Seed |
+| Railway deploy preflight (CI/Release) | 40 | 40 | No action this wave. `delightful-essence` remains stale at PR #359-era; PR #421 build-repair has not landed; Codex UNSAFE blocks progress. | 🧱 Foundation |
+| Vercel deploy health (CI/Release) | 60 | 60 | No action this wave. Account block surfaces failing-required-looking statuses on every open PR; not formally gating because branch protection is empty. | 🛠️ Buildout |
+| Web quality (CI/Release) | 85 | 85 | No action this wave. PR #422 fixes vitest discovery (Playwright spec exclusion) but CI is downstream-red on the API build until PR #421 lands. | 🚀 Hardening |
+| Monorepo CI/CD (CI/Release) | 65 | 65 | No action this wave. Codex SAFE gate held (PR #421 correctly refused merge on UNSAFE verdict). | 🛠️ Buildout |
+
+### Per-PR state transitions
+
+| PR | Title | Highest state reached | Block reason |
+|---|---|---|---|
+| #420 | preserve NPPES identity success when source payload is intact | PR opened | Vercel checks failing (account block, operator-side); base wave-10a/docs-status doesn't deploy delightful-essence |
+| #421 | repair Railway build module resolution | PR opened | Codex UNSAFE on three findings; needs remediation commit + re-audit |
+| #422 | exclude Playwright specs from Vitest web quality run | PR opened | Web Quality CI red until #421's helpers land |
+| #423 (draft) | align NPPES source_complete truth state on main | PR opened (draft) | Build red until #421's helpers land; not yet Codex-audited |
+
+### Deferred / not in scope (carry-forwards still open)
+
+Same items as Waves B/D/E/F/H section above (Wave B Phase 3d/3e, Phase 2 design-surface work, Wave A leftovers #237/#240/#243/#247, Wave G enterprise hardening). None addressed this wave.
+
+### Next recommended wave
+
+`fix/api-railway-build-gap-codex-remediation` — author the three minimal patches Codex requested on PR #421:
+
+1. `multi-tenant/tenantIsolation.ts` — close the open-by-default path for tenant-owned capsules (either by forwarding `requesterTenantId` at every audit-replay call site, or by requiring an explicit internal/system caller flag).
+2. `runtimeTrustCohesion.ts::buildRuntimeReplayMetadata` — recompute hashes when a `tenantId` is supplied; only reuse stored hashes with `tenantBound: true` when the stored hash is known to be tenant-bound.
+3. `config/loadDotenv.ts` — resolve `.env` from the package root via package metadata or compiled-layout detection, not via fragile `__dirname/../..`.
+
+Re-run Codex three-audit. If SAFE: merge PR #421 → rebase #422 → Codex → merge #422 → mark #423 ready → rebase → Codex → merge #423. Then `delightful-essence` redeploys, SSE smoke confirms NPPES SUCCESS / OIG-PECOS FAILED for NPI 1699264564.
