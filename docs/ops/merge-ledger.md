@@ -24,14 +24,17 @@ Only PRs with a **Codex SAFE** verdict (from `codex exec`, never a subagent stan
 | Field | Value |
 |---|---|
 | Base | `main` |
-| Head | `fix/api-railway-build-gap` @ `44ab7501860dc719422c4d2bd3e1999f7b1a7dfd` |
-| Codex verdict | **UNSAFE** (implementation audit, 2026-05-26) |
+| Head | `fix/api-railway-build-gap` @ `8e9aabe55c060398550e974fc96ffda772064d43` (post-remediation) |
+| Prior head | `44ab7501860dc719422c4d2bd3e1999f7b1a7dfd` (first Codex audit) |
+| Codex verdict | **UNSAFE** on prior head; **pending re-audit** on new head (Codex usage quota hit; resets at 10:00 AM) |
 | Merge result | **NOT merged** — hard rule respected. |
 | `mergeable` | `MERGEABLE` |
 | `mergeStateStatus` | `UNSTABLE` |
 | Codex findings | <ul><li>**P1** `apps/api/backend/src/services/multi-tenant/tenantIsolation.ts:152-160` — When `requesterTenantId` is omitted, returns `OPEN` even when the capsule has an owner tenant. Audit replay routes call `replayDecision(id)` without forwarding the request organization, so any request that passes the org-context middleware can replay another tenant's capsule by id. Fail closed for tenanted capsules unless a matching requester or explicit internal/system authorization is provided.</li><li>**P2** `apps/api/backend/src/services/runtimeTrustCohesion.ts:242-251` — When `replayDecision` supplies a `tenantId` together with hashes read from capsule metadata, the fallback paths reuse the stored `payloadHash` / `mutationFingerprint` and the function later marks the replay as `tenantBound: true`. Existing mutation metadata is often unbound, so the replay can advertise tenant-scoped hashes whose preimage never included the tenant, defeating the cross-tenant collision guarantee. Recompute when `tenantId` is present, or only reuse hashes that are explicitly known to be tenant-bound.</li><li>**P2** `apps/api/backend/src/config/loadDotenv.ts:17` — In the built API, `__dirname` is `apps/api/backend/dist/apps/api/backend/src/config` because the backend `tsconfig` emits from the repo root into `dist`. `../..` therefore resolves to `apps/api/backend/dist/apps/api/backend`, not the package root, so the packaged server never loads `.env.local` / `.env`. Resolve from the real package root or detect the compiled layout.</li></ul> |
 | Other checks | `Railway Deploy Preflight` SUCCESS; `Vercel – vcv-web` FAILURE (account blocked); `Vercel – vitalcv` FAILURE (account blocked); `Vercel Agent Review` NEUTRAL. |
-| Next required operator action | Decide between: (a) author a follow-up commit that hardens `tenantIsolation` / `runtimeTrustCohesion` / `loadDotenv` per Codex's three findings, re-audit, then merge; or (b) accept these helpers as transplanted-from-prior-wave and explicitly document that the call-site (`replayEngine.ts`, route handlers) is responsible for forwarding tenant context — but this is a substantive call that needs human review, not a bypass. |
+| Remediation applied (commit `8e9aabe55`, 2026-05-26) | <ul><li>**P1 fix** — Added `RequesterAuthority` axis + new violation `MISSING_REQUESTER_FOR_TENANT_OWNED` to `tenantIsolation.ts`. `assertTenantScope` now refuses tenant-owned reads when `requesterTenantId` is null unless caller passes `requesterAuthority: 'system'` explicitly. Wired through `replayDecision` / `buildAuditBundle` and every `auditReplay.ts` route via a new `tenantScopeFromRequest(req)` helper that reads `getRequestOrganizationId(req)`. `TenantIsolationError` now maps to `403 Forbidden`.</li><li>**P2 fix** — `runtimeTrustCohesion.buildRuntimeReplayMetadata` recomputes `payloadHash` + `mutationFingerprint` whenever `tenantBound` is true; caller-supplied hashes are honored only on the un-anchored back-compat path.</li><li>**P2 fix** — `loadDotenv` walks up matching on `package.json#name === 'chai-vc-platform-backend'` to locate the package root in both source and compiled-dist layouts. `process.cwd()` fallback for the Railway `--prefix` case.</li><li>**Tests** — 3 new files, 20 new test cases under `apps/api/backend/__tests__/*.codex.test.ts`. All 20 pass on `8e9aabe55`.</li><li>**Validation on remediated branch** — `pnpm turbo run build --filter @vitalcv/api --force` 15/15 PASS; `tsc --noEmit` clean; lint clean.</li></ul> |
+| Codex re-audit attempt | **BLOCKED**: `codex exec review` errored with `You've hit your usage limit. […] try again at 10:00 AM.` This is an operator-side ChatGPT/Codex account quota — `--oss` substitute would not satisfy the merge-protection hook ("real Codex SAFE verdict in transcript"). |
+| Next required operator action | Wait for Codex quota reset (10:00 AM per the error message), then re-run `codex exec review` against `fix/api-railway-build-gap` head `8e9aabe55`. If SAFE → `gh pr merge 421 --squash --delete-branch=false` → cascade #422, #423. If UNSAFE → triage the new finding. |
 
 ## PR #422 — `fix(test): exclude Playwright specs from Vitest web quality run`
 
@@ -74,6 +77,14 @@ c103a1d1  fix(deploy): final cutover guardrails — API_BASE + rollback hierarch
 
 ## Aggregate blockers / next operator action
 
-1. **PR #421 Codex findings** are the single root blocker. Resolving #421 unblocks #422 and #423 (and consequently allows `delightful-essence` to deploy from `main`).
+1. **PR #421 Codex quota** is now the single root blocker. The three original Codex findings have been remediated on `fix/api-railway-build-gap` head `8e9aabe55` with 20 passing focused tests, but the re-audit cannot run until the Codex/ChatGPT usage limit resets (~10:00 AM per the error message). Once Codex is available, re-run `codex exec review --base origin/main` against this branch.
 2. **Vercel account block** is a separate operator-side issue surfaced on every PR's check rollup; not gating because branch protection is empty, but cosmetic noise on every PR.
 3. **PR #420 backend deployment path** is via PR #423 (transplant), not via merging `wave-10a/docs-status`.
+
+## Downstream waves currently blocked behind PR #421 SAFE
+
+- Merge `gh pr merge 421 --squash --delete-branch=false` (cannot proceed without SAFE).
+- API main build smoke (cannot reproduce success on `main` until #421 lands).
+- `gh pr ready 423` + rebase + re-validate (cannot prove the build green until #421 lands on `main`).
+- Codex audit on PR #423 (cannot run until quota resets).
+- `delightful-essence` redeploy + live SSE smoke (cannot run until #421 → #423 → main → redeploy).
