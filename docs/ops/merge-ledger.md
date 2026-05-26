@@ -55,13 +55,14 @@ Only PRs with a **Codex SAFE** verdict (from `codex exec`, never a subagent stan
 | Field | Value |
 |---|---|
 | Base | `main` |
-| Head | `fix/api-nppes-truth-state-main` @ `01f6187380000000000000000000000000000000` (head SHA recorded at draft open) |
-| Codex verdict | Not yet run — draft. |
-| Merge result | Draft / not eligible to merge until PR #421 lands. |
+| Head | `fix/api-nppes-truth-state-main` @ `01f618738a7858f8e2b20de4f2221cbf79a291ca` |
+| Codex verdict | **Not yet run.** `reviews: []`, `comments: []`. Codex quota still exhausted as of this update; cannot audit. |
+| Merge result | **NOT merged.** Stops at the hard rule. Additionally: |
+| Hard rule | "Do not merge any PR unless Codex returned SAFE." Codex verdict absent → stop. |
+| Compounding blockers | <ul><li>PR is still `isDraft: true` — GitHub will refuse a draft merge.</li><li>`Railway Deploy Preflight` check is FAILURE (because `main` still lacks PR #421's helpers — the build cannot pass until #421 lands).</li><li>Vercel checks FAILURE (account blocked, operator-side).</li><li>Codex quota exhausted → cannot run audit even if other blockers were resolved.</li></ul> |
 | Status | Backend-only transplant of PR #420's orchestrator slice onto `main` (because `delightful-essence` watches `main`, and `wave-10a/docs-status` must not be merged wholesale). |
-| Validation | Focused `pnpm --filter @vitalcv/api test -- ingestOrchestrator` → 6/6 PASS, including both new regression tests. `pnpm lint` clean. `pnpm turbo run build --filter @vitalcv/api` FAILS — but failure is the same pre-existing helper-module gap on `main`, not from this branch's changes. |
-| Block source | Same as PR #422 — depends on PR #421 landing first. |
-| Next required operator action | Land PR #421, rebase, mark ready, Codex audit, merge. |
+| Validation on draft branch | Focused `pnpm --filter @vitalcv/api test -- ingestOrchestrator` → 6/6 PASS. `pnpm lint` clean. `pnpm turbo run build --filter @vitalcv/api` FAILS — same pre-existing helper-module gap on `main`, not from this branch's changes. |
+| Next required operator action (in order) | <ol><li>Land PR #421 on `main` (needs Codex SAFE after quota reset).</li><li>Rebase `fix/api-nppes-truth-state-main` onto post-#421 `main` (`git rebase origin/main`).</li><li>Confirm `pnpm turbo run build --filter @vitalcv/api --force` is now green on the rebased branch.</li><li>`gh pr ready 423` to flip draft → ready.</li><li>Run `codex exec review --base origin/main` against the rebased branch with the 11-point checklist (no source-truth changes, NPPES-only promotion gate, no other source promoted, no migrations / env / Railway / DNS / secret mutation, no banned phrases, build passes, focused tests pass).</li><li>If SAFE → `gh pr merge 423 --squash --delete-branch=false`.</li><li>Trigger `delightful-essence` redeploy.</li><li>Run authenticated SSE smoke for NPI 1699264564 — NPPES `source_complete` should be `"status":"SUCCESS"`; OIG/PECOS still `"status":"FAILED"`.</li></ol> |
 
 ## Resulting `main` after this wave
 
