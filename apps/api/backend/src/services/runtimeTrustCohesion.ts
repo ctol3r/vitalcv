@@ -239,17 +239,40 @@ export function buildRuntimeReplayMetadata(input: {
   const tenantId = normalizeTenantForFingerprint(input.tenantId ?? null);
   const tenantBound = tenantId !== null;
 
-  const payloadHash = input.payloadHash?.trim() || sha256ForPayload({
-    schema: 'vitalcv.runtime-trust-replay-payload.v1',
-    capsuleId: input.capsuleId,
-    ...(tenantBound ? { tenantId } : {}),
-  });
-  const mutationFingerprint = input.mutationFingerprint?.trim() || sha256ForPayload({
-    schema: 'vitalcv.runtime-trust-replay-fingerprint.v1',
-    capsuleId: input.capsuleId,
-    payloadHash,
-    ...(tenantBound ? { tenantId } : {}),
-  });
+  // Codex finding (PR #421, P2): when a tenant binding is requested, the
+  // emitted hashes MUST include the tenantId in their preimage. Reusing
+  // hashes supplied by the caller — which typically come from capsule
+  // metadata that was stored BEFORE tenant binding existed — would
+  // advertise `tenantBound: true` while the actual hash preimage never
+  // folded the tenant in, defeating the cross-tenant collision guarantee.
+  //
+  // Rule: when `tenantBound` is true, ALWAYS recompute. Caller-supplied
+  // hashes are only honored in the back-compat (un-anchored) path, where
+  // their preimage is also un-anchored and the consumer interprets the
+  // emitted record as predating tenant isolation (`tenantBound: false`).
+  const payloadHash = tenantBound
+    ? sha256ForPayload({
+        schema: 'vitalcv.runtime-trust-replay-payload.v1',
+        capsuleId: input.capsuleId,
+        tenantId,
+      })
+    : (input.payloadHash?.trim() || sha256ForPayload({
+        schema: 'vitalcv.runtime-trust-replay-payload.v1',
+        capsuleId: input.capsuleId,
+      }));
+
+  const mutationFingerprint = tenantBound
+    ? sha256ForPayload({
+        schema: 'vitalcv.runtime-trust-replay-fingerprint.v1',
+        capsuleId: input.capsuleId,
+        payloadHash,
+        tenantId,
+      })
+    : (input.mutationFingerprint?.trim() || sha256ForPayload({
+        schema: 'vitalcv.runtime-trust-replay-fingerprint.v1',
+        capsuleId: input.capsuleId,
+        payloadHash,
+      }));
 
   return {
     schema: 'vitalcv.runtime-trust-replay.v1',

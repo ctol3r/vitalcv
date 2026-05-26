@@ -29,9 +29,32 @@ export type TenantViolationKind =
   | 'CROSS_TENANT_REPLAY'
   | 'CROSS_TENANT_BUNDLE'
   | 'AMBIGUOUS_TENANT'
+  | 'MISSING_REQUESTER_FOR_TENANT_OWNED'
   | 'DRIFT_BLEEDOVER'
   | 'RECOVERY_LEAK'
   | 'BLAST_RADIUS_BREACH';
+
+/**
+ * Authority of the caller asking for a tenant-scoped read.
+ *
+ *  - `'tenant'`  — the caller is acting on behalf of a specific tenant; the
+ *                  validator expects `requesterTenantId` to be populated.
+ *  - `'system'`  — explicit internal / system call (cron job, scheduled
+ *                  backfill, admin tool) that is allowed to access a tenant-
+ *                  owned capsule WITHOUT a matching tenant. Must be set
+ *                  intentionally at the call site — never inferred from the
+ *                  absence of a requester.
+ *  - `'unknown'` — default. Treated as untrusted: the validator refuses to
+ *                  open access to tenant-owned capsules.
+ *
+ * Codex finding (PR #421, P1): the prior signature defaulted a null
+ * `requesterTenantId` to verdict `OPEN`, which let any request that reached
+ * the route handler replay another tenant's capsule by id. The fix is
+ * fail-closed by default: unless the caller explicitly opts in via
+ * `requesterAuthority: 'system'`, a tenant-owned capsule cannot be read
+ * without a matching `requesterTenantId`.
+ */
+export type RequesterAuthority = 'tenant' | 'system' | 'unknown';
 
 export class TenantIsolationError extends Error {
   readonly code = 'TENANT_ISOLATION_VIOLATION' as const;
@@ -132,24 +155,48 @@ export function tenantBoundaryDigest(input: {
 /**
  * Fail-closed tenant scope validator.
  *
- *   requesterTenantId | capsuleTenantId | verdict
- *   ------------------+-----------------+--------------------------
- *   null              | any             | OPEN (no enforcement)
- *   set               | null            | THROWS AMBIGUOUS_TENANT
- *   set               | matches         | ENFORCED
- *   set               | mismatches      | THROWS CROSS_TENANT_REPLAY
+ *   requesterTenantId | capsuleTenantId | authority   | verdict
+ *   ------------------+-----------------+-------------+---------------------------------
+ *   null              | null            | n/a         | OPEN (no tenanted data involved)
+ *   null              | set             | 'system'    | OPEN (explicit internal access)
+ *   null              | set             | else        | THROWS MISSING_REQUESTER_FOR_TENANT_OWNED
+ *   set               | null            | n/a         | THROWS AMBIGUOUS_TENANT
+ *   set               | matches         | n/a         | ENFORCED
+ *   set               | mismatches      | n/a         | THROWS CROSS_TENANT_REPLAY
+ *
+ * The `'system'` authority is the ONLY way to read a tenant-owned capsule
+ * without supplying a matching `requesterTenantId`. Call sites that genuinely
+ * need internal access (cron, backfill, admin diagnostics) must set it
+ * explicitly. Request-driven routes must instead forward the requester's
+ * tenant id from the auth layer.
  */
 export function assertTenantScope(input: {
   capsuleId: string;
   capsuleTenantId: TenantId | null;
   requesterTenantId: TenantId | null;
+  /** Defaults to `'unknown'` — fail-closed unless caller opts in. */
+  requesterAuthority?: RequesterAuthority;
 }): TenantScope {
   const partitionedAt = new Date().toISOString();
   const boundaryDigest = tenantBoundaryDigest(input);
   const requester = normalizeTenantId(input.requesterTenantId);
   const owner = normalizeTenantId(input.capsuleTenantId);
+  const authority: RequesterAuthority = input.requesterAuthority ?? 'unknown';
 
   if (!requester) {
+    if (owner && authority !== 'system') {
+      throw new TenantIsolationError({
+        violation: 'MISSING_REQUESTER_FOR_TENANT_OWNED',
+        message:
+          `Capsule ${input.capsuleId} is tenant-owned (tenant ${owner}) but the caller did ` +
+          `not supply a requesterTenantId and requesterAuthority is '${authority}'. ` +
+          `Forward the requester's tenant from the auth layer, or pass ` +
+          `requesterAuthority: 'system' if this is an explicit internal call.`,
+        capsuleId: input.capsuleId,
+        capsuleTenantId: owner,
+        requesterTenantId: null,
+      });
+    }
     return {
       schema: 'vitalcv.tenant-isolation.v1',
       capsuleTenantId: owner,
@@ -199,6 +246,7 @@ export function evaluateTenantScope(input: {
   capsuleId: string;
   capsuleTenantId: TenantId | null;
   requesterTenantId: TenantId | null;
+  requesterAuthority?: RequesterAuthority;
 }): TenantScope {
   try {
     return assertTenantScope(input);
