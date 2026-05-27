@@ -99,3 +99,52 @@ c103a1d1  fix(deploy): final cutover guardrails — API_BASE + rollback hierarch
 2. Run authenticated SSE smoke for NPI 1699264564 against `api.vitalcv.com` — NPPES `source_complete` should be `"status":"SUCCESS"`; OIG/PECOS still `"status":"FAILED"`.
 3. Re-trigger PR #422 CI now that main builds; audit; merge if green.
 4. Address Vercel account block (separate / cosmetic).
+
+## Cascade merges 2026-05-26 22:24–22:26 PDT (San Jose / Pacific)
+
+Three PRs merged through the Local Claude Code audit gate (Codex disabled per operator instruction). Sequential cascade; each audit run against the latest post-merge `main`.
+
+### PR #425 — `feat(web): TruthStateChip + TruthStateLegend visual foundation`
+
+| Field | Value |
+|---|---|
+| Base | `main` (started at `801100c7f`; cascade-rebased to `801100c7f` head still — audit was off that SHA) |
+| Head | `feat/truth-state-chip` @ `54b60d39d` |
+| Local audit verdict | **SAFE** on 2026-05-26 22:23 PDT. Clean merge sim; 19/19 vitest; build 13/13; tsc clean; lint clean; banned-copy scan clean. |
+| Merge result | **MERGED** as `a368a1ffb64f4ac20028fb0dbb22bb3f38607736` on 2026-05-27 05:24:07Z (2026-05-26 22:24:07 PDT). |
+| Post-merge deploy | Not applicable — design-system component; no API or runtime route change. |
+
+### PR #426 — `docs(design): define VitalCV visual system and screen language`
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-#425, `a368a1ffb`) |
+| Head | `docs/design-system-foundation` @ `18eee2c3d` |
+| Local audit verdict | **SAFE** on 2026-05-26 22:25 PDT. Single commit on branch touching 6 files all under `docs/design/`; merge sim clean against post-#425 main; banned-phrase hits only in avoid/risk enumeration per operator allowance. |
+| Merge result | **MERGED** as `a88e014e463fdd53a948bb02b93a057554a97902` on 2026-05-27 05:25:16Z (2026-05-26 22:25:16 PDT). |
+
+### PR #424 — `docs(ops): wave batch 2026-05-26 — merge ledger, main build smoke, completion board`
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-#426, `a88e014e4`) |
+| Head | `docs/wave-batch-tracking` @ `453cb6fc1` |
+| Local audit verdict | **SAFE** on 2026-05-26 22:26 PDT. 8 docs files in `docs/ops/`; merge sim clean against post-#426 main; banned-phrase hits in scan are all in PRE-EXISTING `docs/ops/` files (not in PR #424's diff) and all document banned lists as banned. |
+| Merge result | **MERGED** as `50942ad1e47ef2e30c8587bed32582b41f818bab` on 2026-05-27 05:26:16Z (2026-05-26 22:26:16 PDT). |
+
+## Final main state after cascade
+
+```
+$ git log --oneline -6 origin/main
+50942ad1e docs(ops): wave batch 2026-05-26 — merge ledger, main build smoke, completion board (#424)
+a88e014e4 docs(design): define VitalCV visual system and screen language (#426)
+a368a1ffb feat(web): add TruthStateChip + TruthStateLegend visual foundation (#425)
+801100c7f fix(test): exclude Playwright specs from Vitest web quality run (#422)
+9f272c80c fix(api): align NPPES source_complete truth state on main (#423)
+fe9c6f9c1 fix(api): repair Railway build module resolution (#421)
+```
+
+## Next required operator action
+
+1. **Authenticated SSE smoke for NPI 1699264564** — operator-only, per `docs/ops/authenticated-sse-smoke-runbook.md`. Gates Product Truth Contract from "deployed" → "validated live".
+2. **Wave H — Passport calm-degradation integration** — now unblocked by #425 + #426 on `main`. Recommended next coding wave.

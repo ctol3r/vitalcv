@@ -110,3 +110,12 @@ Companion to:
 ## Ledger maintenance rule
 
 Append one row per wave at the end of the current batch's table. Open a new `## Batch` section when starting a new batch. Never edit historical rows; if a fact changes (e.g. a deploy is later validated), append a new row.
+
+### Cascade-merge half (2026-05-26 22:23–22:26 PDT)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 26 | 2026-05-26 22:23 PDT | PR #425 local audit | **SAFE.** 5 files, +770/0; component audit confirms bounded states / no bare Verified / variant fixed per state / aria + icon + data-attribute multi-signal; banned-copy scan clean (all hits negative-example); 19/19 vitest pass; build 13/13; tsc clean; lint clean. | verdict in transcript | None. |
+| 27 | 2026-05-26 22:24 PDT | Merge PR #425 if SAFE | **MERGED** as `a368a1ffb` at 05:24:07Z. | merge commit `a368a1ffb` | None. |
+| 28 | 2026-05-26 22:25 PDT | PR #426 local audit + merge if SAFE | **SAFE.** 6 docs in `docs/design/`; squash adds only those (1 commit on branch); banned hits only in avoid/risk enumeration. **MERGED** as `a88e014e4` at 05:25:16Z. | merge commit `a88e014e4` | None. |
+| 29 | 2026-05-26 22:26 PDT | PR #424 local audit + merge if SAFE | **SAFE.** 8 docs in `docs/ops/`; merge sim clean (only adds tracking docs); banned-copy hits all in pre-existing files documenting banned lists (operator allowance). **MERGED** as `50942ad1e` at 05:26:16Z. | merge commit `50942ad1e` | None. |
