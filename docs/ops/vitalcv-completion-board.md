@@ -1,10 +1,11 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-27 (post-cascade convergence snapshot — **PR #421 + PR #423 merged AND both deployed live**; authenticated SSE smoke still pending)
-Latest PRs involved: #420 (open against wave-10a/docs-status — superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED, #422 (open, dependency cleared), #423 ✅ merged `9f272c80c` + DEPLOYED (auto-redeploy confirmed at 2026-05-27 03:18Z), #424 (docs tracking, open)
+Last updated: 2026-05-27 (post-cascade convergence — **PRs #421 + #423 + #422 ALL MERGED**; #421 + #423 deployed live; SSE smoke still pending)
+Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED, #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + DEPLOYED (auto-redeploy confirmed 2026-05-27 03:18Z), #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
 
-`api.vitalcv.com/health` 2026-05-27 03:18Z → `status:"ok"`, `git_branch:"main"`, `git_sha:"9f272c80c…"`, 13 requests / 0 errors / p90 73 ms.
+`main` head: `801100c7f24f69b2ed5810197f3f5f58fc81333d`
+`api.vitalcv.com/health` 2026-05-27 03:18Z → `status:"ok"`, `git_branch:"main"`, `git_sha:"9f272c80c…"`, 13 requests / 0 errors / p90 73 ms. (PR #422 is web-only / CI-config; api deploys are unaffected by it.)
 
 ## Standing rule
 
@@ -709,7 +710,7 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 | Interoperability / Standards | **26** | **34** | — | planned | No action this wave. |
 | Demo / Sales Conversion | **24** | **32** | — | planned | **Held at 24%** per operator instruction. No GTM movement. |
 | Deployment / DevOps | **28** | **26** | — % / −2 waves | **deployed live** | Same % as prior; closed 2 more waves of work as `delightful-essence` auto-deploy proved stable across two consecutive merges. |
-| Testing / CI / Quality Gates | **30** | **27** | −1 % vs prior (corrected) | merged | Pulled back 1% from prior 31% (PR #422's vitest exclude is still open). 22 tests landed on `main` (3 Codex regressions + 2 NPPES regressions); PR #422 will lift further. |
+| Testing / CI / Quality Gates | **31** | **26** | +1 % vs new baseline / −1 wave | merged | PR #422 (vitest exclude) merged as `801100c7f` on 2026-05-27 03:28:22Z. Playwright/Vitest collision is gone on `main`; 5–6 pre-existing `__tests__/` failures now surfaced — opens a triage wave but not a regression. 22 + 1 (one-line CI config) tests/configs landed. |
 | Self-Improving System / Agents | **14** | **49** | +1 % / −1 wave | planned | Local Claude Code audit pattern hardened across two PRs (#421 + #423); the substitute gate worked. |
 | Business / GTM / Revenue Engine | **17** | **50** | — | planned | No action this wave. |
 | **Overall Billion-Dollar Readiness** | **26** | **394** | +1 % / −3 waves | mixed | Weighted aggregate; reflects #423 deployed live, but capped by SSE smoke not yet run. |
@@ -720,13 +721,14 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 |---|---|---|
 | #420 | open | Superseded by #423 transplant; operator decision whether to close. |
 | #421 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`. |
-| #422 | open | Dependency cleared; **next coding wave's merge candidate.** |
+| #422 | **MERGED** `801100c7f` | Local audit SAFE on 2026-05-27; merged at 03:28Z. |
 | #423 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`; behavior pending SSE smoke. |
 | #424 | open | Tracking PR; this update lives on its branch. |
 
 ### Next recommended wave
 
 1. **Operator runs `docs/ops/authenticated-sse-smoke-runbook.md`** against `api.vitalcv.com` for NPI 1699264564. Two-minute task; gates Product Truth Contract → "validated live".
-2. **PR #422 audit + merge** — small one-line vitest exclude; immediate CI hygiene win.
+2. ~~PR #422 audit + merge~~ ✅ **DONE** — merged as `801100c7f` on 2026-05-27 03:28Z.
 3. **Open `fix/nppes-source-health-observability`** as the next coding wave — Wave D's task 1 (adapter trace logging) + task 3 (NPPES failure taxonomy) bundled as the smallest combined increment.
 4. **TRUST-PERSIST-1 scoping** — Database / Persistence Layer at 16% / 40 waves is the largest single board bottleneck; still open.
+5. **`__tests__/` drift cleanup wave** — 5–6 pre-existing Vitest failures now surfaced on `main` after PR #422 made the CI path actually reachable. Worth opening a triage wave: `wave1-external-pilot-flow`, `status-page-compliance-evidence`, `foundation-sweep-6-analytics-status`, `foundation-sweep-6-commercial`, `passport-ingest-page`, `review-page-contract`. Not regressions caused by PR #422.

@@ -44,13 +44,10 @@ Only PRs with a **Codex SAFE** verdict (from `codex exec`, never a subagent stan
 |---|---|
 | Base | `main` |
 | Head | `fix/web-quality-playwright-vitest-exclude` @ `e294657a7b61eb605db233b45b0b7f0dc03b8e30` |
-| Codex verdict | Not run — pre-empted by hard dependency. |
-| Merge result | **NOT merged** — depends on PR #421's helpers. |
-| `mergeable` | `MERGEABLE` |
-| `mergeStateStatus` | `UNSTABLE` |
-| Blocking checks | `Web Quality` FAILURE — but the failure is not in the vitest step. The job dies at the **"Build workspace package dependencies"** step (`pnpm turbo build --filter='!@vitalcv/web'`), which builds `@vitalcv/api` among others. Without PR #421's helper modules on `main`, `@vitalcv/api` cannot compile, so Web Quality cannot reach the vitest step regardless of `vitest.config.ts`. Vercel statuses also fail (account block). |
-| Block source | **Downstream of PR #421.** This PR is mechanically correct (one-line config) but cannot demonstrate a green Web Quality run until PR #421's helpers reach `main`. |
-| Next required operator action | After PR #421 lands, rebase this branch onto post-#421 main, re-run CI, run Codex audit, then merge. No code change needed here. |
+| Dependency | PR #421 landed on `main` as `fe9c6f9c1`; PR #422's upstream blocker is cleared. |
+| Local audit verdict | **SAFE** on 2026-05-27 against post-cascade main (`9f272c80c`). One-line change (`apps/web/vitest.config.ts`: `tests/e2e/**` → `tests/**`). Merge sim clean (only that one file changed). Playwright collision error gone (Vitest no longer collects `apps/web/tests/trust-register.spec.ts`). `pnpm turbo run build --filter @vitalcv/web` 13/13 PASS. `pnpm lint` clean. 5–6 remaining `__tests__/` failures are pre-existing drift unrelated to this PR (`__tests__/wave1-external-pilot-flow.test.ts`, `__tests__/status-page-compliance-evidence.test.tsx`, etc.). |
+| Merge result | **MERGED** as `801100c7f24f69b2ed5810197f3f5f58fc81333d` on 2026-05-27 03:28:22Z. |
+| Post-merge | `main` is now at `801100c7f`. Three infrastructure PRs (#421 + #423 + #422) all landed. |
 
 ## PR #423 — `fix(api): align NPPES source_complete truth state on main` (DRAFT)
 

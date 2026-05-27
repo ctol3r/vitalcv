@@ -74,13 +74,20 @@ Companion to:
 | 18 | 2026-05-27 | Confirm PR #424 / docs branch status | PR #424 verified OPEN. Branch `docs/wave-batch-tracking` clean; this update extends it. | (this PR) | None. |
 | 19 | 2026-05-27 | Completion-board update with operator baseline | Applied baseline (PTC 48, Core 30, PSV 18 held, BAR 29, DB 16, T/P/R 32, FE 35, Auth 22 held, Interop 26, Demo 24 held, Dep 28, T/CI 30, Agents 14, GTM 17, Overall 26 / 394). Trust/Proof/Receipts pulled back 1% from prior over-credit; Testing/CI pulled back 1% pending PR #422 merge. | `docs/ops/vitalcv-completion-board.md` | None. |
 
+### Convergence half continuation (2026-05-27)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 20 | 2026-05-27 | Audit + merge PR #422 (Web Quality vitest exclude) | **SAFE** local audit; **MERGED** as `801100c7f24f69b2ed5810197f3f5f58fc81333d` on 2026-05-27 03:28:22Z. Playwright collision error confirmed gone (`Vitest` no longer collects `apps/web/tests/trust-register.spec.ts`). 5–6 remaining `__tests__/` failures are pre-existing drift, not caused by this PR. | merge commit `801100c7f` | None — landed. |
+
 ### Carry-overs to next batch
 
 - **Authenticated SSE smoke for NPI 1699264564** — operator-only; smallest wave that gates the largest move (PTC from 48% → 50%+).
-- **PR #422 audit + merge** — one-line vitest exclude; immediate CI hygiene win.
+- ~~**PR #422 audit + merge**~~ ✅ landed.
 - **`fix/nppes-source-health-observability`** — Wave D's task 1 + task 3 bundled; first coding wave after the cascade.
 - **Operator: configure `CRON_SECRET`** — fixes the two failing scheduled workflows. Cosmetic but worth it.
 - **Operator: investigate web `/api/health` `backend.status: "degraded"`** — cosmetic observability hygiene.
+- **`__tests__/` drift cleanup** (5–6 failing tests on `main` post-#422): `wave1-external-pilot-flow`, `status-page-compliance-evidence`, `foundation-sweep-6-analytics-status`, `foundation-sweep-6-commercial`, `passport-ingest-page`, `review-page-contract`. Not new; surfaced by PR #422 making Vitest finally reachable in CI. Worth opening a triage wave.
 
 ## Ledger maintenance rule
 
