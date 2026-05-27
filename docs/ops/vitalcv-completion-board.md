@@ -1,11 +1,11 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-27 evening (visual-system Phase 1: **PR #425 TruthStateChip foundation** + **PR #426 design docs** opened, both awaiting local audit + merge; PRs #421 + #423 + #422 all merged + deployed; SSE smoke AUTH BLOCKED — operator sign-in remains the gate)
-Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED (now REMOVED in Railway history, superseded by #423), #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + **DEPLOYED ACTIVE on `delightful-essence`** (Browser verification + `/health` SHA match), #424 (docs tracking, open)
-Source branch (for board update only): `docs/wave-batch-tracking`
+Last updated: **2026-05-27 04:27 PDT (San Jose / Pacific)** (🚢 Agent Operating SOP merged (PR #428); visual-system Phase 1 cascade #425+#426+#424 on main; 🚢 #421+#423+#422 deployed; 🔴 SSE smoke AUTH BLOCKED — operator sign-in is the only remaining gate to "validated live")
+Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e` (tracking), 🚢 #425 `a368a1ffb` (chip foundation 🎨), 🚢 #426 `a88e014e4` (design docs 🎨), 🚢 #428 `97971b578` (agent operating SOP 🤖)
+Source branch (this update): `docs/post-merge-tracking-update`
 
-`main` head: `801100c7f24f69b2ed5810197f3f5f58fc81333d`
-Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit). 12 requests, 0 errors, p90 73 ms — fresh container. Railway active row subject contains `(#423)`. Browser-confirmed read-only verification, no Railway settings touched.
+`main` head: `97971b5780e7ccb0f58af19a5062796cc7f930a6`
+Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit, Browser-confirmed `PR423 LIVE`). 12 requests / 0 errors / p90 73 ms — fresh container.
 
 ## Standing rule
 
@@ -741,8 +741,9 @@ Per operator rules: design docs alone raise UX/Design **slightly only if impleme
 
 | PR | State | Note |
 |---|---|---|
-| #425 | open — local audit pending | Wave G — TruthStateChip + Legend + 19 tests; build/tsc/lint all green. |
-| #426 | open — docs-only | Wave M — visual-system foundation docs (6 files). |
+| #425 | 🚢 MERGED `a368a1ffb` | Wave G — TruthStateChip + Legend + 19 tests. Local audit SAFE on 2026-05-26 22:23 PDT; merged 22:24 PDT. |
+| #426 | 🚢 MERGED `a88e014e4` | Wave M — 6 design docs. Local audit SAFE on 2026-05-26 22:24 PDT; merged 22:25 PDT. |
+| #424 | 🚢 MERGED `50942ad1e` | Tracking — 8 docs in `docs/ops/`. Local audit SAFE on 2026-05-26 22:25 PDT; merged 22:26 PDT. |
 
 ### Carry-overs (full list)
 
@@ -771,3 +772,100 @@ See `docs/ops/wave-ledger.md` "Carry-overs to next batch" — most notable: PR #
 3. **Open `fix/nppes-source-health-observability`** as the next coding wave — Wave D's task 1 (adapter trace logging) + task 3 (NPPES failure taxonomy) bundled as the smallest combined increment.
 4. **TRUST-PERSIST-1 scoping** — Database / Persistence Layer at 16% / 40 waves is the largest single board bottleneck; still open.
 5. **`__tests__/` drift cleanup wave** — 5–6 pre-existing Vitest failures now surfaced on `main` after PR #422 made the CI path actually reachable. Worth opening a triage wave: `wave1-external-pilot-flow`, `status-page-compliance-evidence`, `foundation-sweep-6-analytics-status`, `foundation-sweep-6-commercial`, `passport-ingest-page`, `review-page-contract`. Not regressions caused by PR #422.
+
+## 2026-05-26 22:26 PDT — visual-system Phase 1 cascade MERGED
+
+🚢 #425 + 🚢 #426 + 🚢 #424 all merged through local Claude Code audit gate (Codex disabled per operator instruction). Post-cascade `main` is `50942ad1e`. No deployment redeploy required — these are frontend + docs-only changes; `delightful-essence` API stays at `9f272c80c…`.
+
+### Confirmed completed facts (cascade)
+
+- 🧪 PR #425 audit (Wave A): SAFE. 5 files, +770/0; 19/19 vitest pass; tsc clean; build 13/13; lint clean; banned-copy scan clean (all hits in negative-example sections).
+- 🚢 PR #425 merged as `a368a1ffb` at 2026-05-26 22:24 PDT (05:24Z).
+- 🧪 PR #426 audit: SAFE. 6 docs files; merge sim clean against post-#425 main; banned phrases only in "avoid"/"risk" enumeration per operator allowance.
+- 🚢 PR #426 merged as `a88e014e4` at 2026-05-26 22:25 PDT (05:25Z).
+- 🧪 PR #424 audit: SAFE. 8 docs files in `docs/ops/`; merge sim clean against post-#426 main; banned phrases only in pre-existing files documenting banned lists.
+- 🚢 PR #424 merged as `50942ad1e` at 2026-05-26 22:26 PDT (05:26Z).
+
+### Per-row Current % deltas (post-cascade)
+
+Operator rule recap: percentages only move on "completed, committed, tested, merged or validated work". PR #425 + #426 merges were already counted as "merged/tested" in the prior evening-half move. The cascade merging into main does not retroactively unlock further movement — those PRs' percentage credit was already booked at "open + tested" per the operator-supplied "TruthStateChip merged/tested" and "Visual docs only" rules.
+
+Verdict: **no further percentage moves from the cascade alone.** Baseline holds.
+
+| Dimension | % | Waves left | Δ vs prior | State emoji | Note |
+|---|---:|---:|---|---|---|
+| Product Truth Contract | **48** | **12** | — | 🚢 merged + deployed; 🔴 SSE blocked | Banned-phrase contract now enforced by chip tests in `main` CI. Same numeric position. |
+| Core Credentialing Workflow | **30** | **25** | — | 🟡 planned | No workflow change. |
+| Source Integrations / PSV | **18** | **40** | — | 🔴 SSE-blocked | Held per rule — SSE behavior unvalidated. |
+| Backend / API Reliability | **30** | **26** | — | 🚢 deployed live | No backend touched in this cascade. |
+| Database / Persistence Layer | **16** | **40** | — | 🟡 planned | Largest single bottleneck. |
+| Trust / Proof / Receipts | **33** | **26** | — | 🚢 merged | Chip foundation already credited. |
+| Frontend UX / Role Journeys | **37** | **22** | — | 🎨 🚢 merged | Cascade lands the bookings made when PRs opened. |
+| Sign-up / Auth / Onboarding | **22** | **28** | — | 🟡 planned | Held — Wave J not implemented. |
+| Interoperability / Standards | **27** | **33** | — | 🎨 merged | Visual docs landed. |
+| Demo / Sales Conversion | **24** | **32** | — | 🟡 planned | Held — no GTM movement. |
+| Deployment / DevOps | **29** | **25** | — | 🚢 deployed live | No deploy change. |
+| Testing / CI / Quality Gates | **32** | **25** | — | 🧪 merged | 19 chip regression tests now on `main`. |
+| Self-Improving System / Agents | **15** | **48** | +1 % / −1 wave | 🤖 🚢 SOP merged | PR #428 (Agent Operating SOP) merged 2026-05-27 04:26 PDT as `97971b578`. Three SOP docs codify the semi-autonomous wave execution pattern, 20-task wave batch template, AI tool routing matrix. Per operator rule "Agent SOP merged: Self-Improving Agents +1". |
+| Business / GTM / Revenue Engine | **17** | **50** | — | 🟡 planned | Held. |
+| **Overall Billion-Dollar Readiness** | **28** | **388** | — | 🧱 mixed | No retroactive aggregate move. |
+
+### Next highest-leverage bottleneck (unchanged)
+
+**Database / Persistence Layer (16% / 40 waves)** — TRUST-PERSIST-1 cutover; largest single board blocker.
+
+**Closest-to-done bottleneck** (still): authenticated SSE smoke for NPI 1699264564 — one operator action gates Product Truth Contract → "validated live" and unlocks Source Integrations / PSV from its 18% hold.
+
+### Carry-overs for next batch
+
+- 🟡 Authenticated SSE smoke (operator-only).
+- 🎨 Wave H — Passport calm-degradation integration. **Now unblocked** by #425 + #426 on `main`. Recommended next coding wave.
+- 🎨 Wave I — Homepage NPI-first + role doors. Can ship in parallel with Wave J.
+- 🔐 Wave J — Sign-in / sign-up calm disclosure card.
+- 🎨 Wave K — `/status` + `/trust/attribution` receipt registers.
+- 🧱 `fix/nppes-source-health-observability` — observability moat (Wave D's task 1 + task 3 bundle).
+- 🧱 Web `/api/health` `backend.status:"degraded"` classifier inspection.
+- 🧱 `__tests__/` drift cleanup (5–6 pre-existing failures surfaced by PR #422).
+- 🧱 `_archive/` sweep (delete dead routes carrying legacy banned phrases).
+- Operator: `CRON_SECRET` config to fix failing scheduled workflows.
+
+### Wave-ledger note
+
+Waves 26 (PR #425 audit), 27 (PR #425 merge), 28 (PR #426 audit + merge), 29 (PR #424 audit + merge) — appended to `docs/ops/wave-ledger.md` in this batch.
+
+## 2026-05-27 04:27 PDT — Agent Operating SOP landed
+
+🚢 PR #428 (`docs(ops): define VitalCV agent operating SOP`) merged as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 2026-05-27 11:26:55Z (= 04:26 PDT). Three new docs codify the semi-autonomous wave execution pattern for every AI tool that touches VitalCV:
+
+- `docs/ops/agent-operating-sop.md` — the doctrine (10 sections).
+- `docs/ops/wave-batch-template.md` — the 20-task wave batch template + per-task audit checklist + 5-class verdict taxonomy + worked example.
+- `docs/ops/ai-tool-routing.md` — tool routing matrix with per-task table, hard prohibitions per tool, default ordering when ambiguous, Codex re-enable procedure.
+
+### Per-row delta (post-#428)
+
+| Dimension | % | Waves left | Δ | State | Note |
+|---|---:|---:|---|---|---|
+| Self-Improving System / Agents | **15** | **48** | +1 % / −1 wave | 🤖 🚢 merged | SOP codifies the local-audit-as-merge-gate pattern that produced 3 SAFE verdicts last batch. |
+| Overall Billion-Dollar Readiness | **28** | **387** | — % / −1 wave | 🧱 mixed | Aggregate; Self-Improving Agents +1 closes 1 wave. |
+
+All other dimensions unchanged — the SOP is a meta-doc, not a product surface; no product-truth-contract, deploy, or persistence move.
+
+### `main` head after #428
+
+```
+97971b578 docs(ops): define VitalCV agent operating SOP (#428)
+50942ad1e docs(ops): wave batch 2026-05-26 — merge ledger, main build smoke, completion board (#424)
+a88e014e4 docs(design): define VitalCV visual system and screen language (#426)
+a368a1ffb feat(web): add TruthStateChip + TruthStateLegend visual foundation (#425)
+801100c7f fix(test): exclude Playwright specs from Vitest web quality run (#422)
+9f272c80c fix(api): align NPPES source_complete truth state on main (#423)
+fe9c6f9c1 fix(api): repair Railway build module resolution (#421)
+```
+
+### Next Direction (post-#428)
+
+A) **Wave H — Passport calm-degradation integration** (`feat/passport-calm-degradation`). Now unblocked by #425 + #426 on `main`. Recipe in `docs/design/screen-composition-spec.md` lines 33–66.
+B) **Authenticated SSE smoke for NPI 1699264564** (operator-only, per `docs/ops/authenticated-sse-smoke-runbook.md`). Gates Product Truth Contract → "validated live"; releases the 18% hold on Source Integrations / PSV.
+C) **Wave I — Homepage NPI-first + role doors** (`feat/home-npi-role-doors`). Can ship in parallel with Wave J (zero shared files).
+D) **Operator hygiene** — configure `CRON_SECRET` repo secret to fix the two failing scheduled health-probe workflows; optional `_archive/` sweep to remove legacy banned-phrase routes.
+E) **Continue to next task / next wave batch.**
