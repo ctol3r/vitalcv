@@ -1,6 +1,6 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-27 (post-cascade — **PRs #421 + #423 + #422 ALL MERGED**; **PR #423 deployment Browser-confirmed `PR423 LIVE`**; SSE smoke still pending)
+Last updated: 2026-05-27 (post-cascade — **PRs #421 + #423 + #422 ALL MERGED**; **PR #423 deployment Browser-confirmed `PR423 LIVE`**; SSE smoke attempted Wave 22 and cleanly stopped at AUTH BLOCKED per runbook — operator sign-in required to resume)
 Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED (now REMOVED in Railway history, superseded by #423), #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + **DEPLOYED ACTIVE on `delightful-essence`** (Browser verification + `/health` SHA match), #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
 
@@ -14,7 +14,7 @@ Update this board after every wave. Even a docs-only wave should bump the **Last
 ## Current blockers (2026-05-27)
 
 1. ✅ ~~PR #423 redeploy to `delightful-essence`~~ — **resolved.** `/health` confirms `git_sha:"9f272c80c"`. Auto-deployed within ~6.4 hours of merge.
-2. **Authenticated SSE smoke for NPI 1699264564** has not yet been run. Until it confirms NPPES `source_complete` `"status":"SUCCESS"` and OIG/PECOS still `"status":"FAILED"`, NPPES truth-state is **merged + deployed but not validated live**. See `docs/ops/authenticated-sse-smoke-runbook.md`.
+2. **Authenticated SSE smoke for NPI 1699264564** — attempted Wave 22 (2026-05-27); **AUTH BLOCKED** per runbook. Browser session unauthenticated; `POST /api/ingest/1699264564` returned `HTTP 403 + x-cors-blocked:1`; runbook safety constraints prevented agent from initiating sign-in or entering credentials. Resume path: operator signs in to `vitalcv.com` themselves; agent then re-runs the POST + SSE stream and reports raw NPPES `source_complete` fields verbatim. Until this runs cleanly, NPPES truth-state is **merged + deployed but not validated live**. Useful side-finding: unauthenticated `/passport` page is **clean of banned phrases** and renders honest "Unavailable / not connected" copy across all four lanes.
 3. **PR #422** (Web Quality vitest exclude) — dependency on PR #421 cleared; CI can be re-triggered, audited, merged.
 4. **NPPES source operational reliability** (no-payload reads, OIG/PECOS not connected) — observability moat scoped in `docs/ops/nppes-source-health-next-wave.md`; not yet a `fix/` branch.
 5. **`Deploy health probe` / `Source Health Probe` workflows failing** every ~30 min due to missing `CRON_SECRET` repo secret — pre-existing CI config issue, **not a deployment failure**. Cosmetic.
