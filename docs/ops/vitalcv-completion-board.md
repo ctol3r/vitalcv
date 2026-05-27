@@ -1,6 +1,6 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-27 (post-cascade — **PRs #421 + #423 + #422 ALL MERGED**; **PR #423 deployment Browser-confirmed `PR423 LIVE`**; SSE smoke attempted Wave 22 and cleanly stopped at AUTH BLOCKED per runbook — operator sign-in required to resume)
+Last updated: 2026-05-27 evening (visual-system Phase 1: **PR #425 TruthStateChip foundation** + **PR #426 design docs** opened, both awaiting local audit + merge; PRs #421 + #423 + #422 all merged + deployed; SSE smoke AUTH BLOCKED — operator sign-in remains the gate)
 Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED (now REMOVED in Railway history, superseded by #423), #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + **DEPLOYED ACTIVE on `delightful-essence`** (Browser verification + `/health` SHA match), #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
 
@@ -714,6 +714,45 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 | Self-Improving System / Agents | **14** | **49** | +1 % / −1 wave | planned | Local Claude Code audit pattern hardened across two PRs (#421 + #423); the substitute gate worked. |
 | Business / GTM / Revenue Engine | **17** | **50** | — | planned | No action this wave. |
 | **Overall Billion-Dollar Readiness** | **27** | **392** | +1 % / −2 waves (post-Browser-verify) | mixed | Weighted aggregate; Browser-confirmed deployment moves Backend/API + Deployment/DevOps; still capped by SSE smoke pending. |
+
+## 2026-05-27 evening — visual-system Phase 1 deltas (PR #425 + PR #426 opened)
+
+Per operator rules: design docs alone raise UX/Design **slightly only if implementation-ready**; UI implementation raises UX **only when committed and tested**. Source Integrations / Auth / Business / GTM held pending live behavior validation.
+
+| Dimension | % | Waves left | Δ this batch | Highest state | Why |
+|---|---:|---:|---:|---|---|
+| Product Truth Contract | **48** | **12** | — | merged + deployed | No new SSE evidence (AUTH BLOCKED held). Wave G's banned-strings regression test strengthens the contract but does not move the % alone. |
+| Core Credentialing Workflow | **30** | **25** | — | planned | No workflow change. |
+| Source Integrations / PSV | **18** | **40** | — | planned | **Held** per operator instruction — SSE smoke not yet validated live. |
+| Backend / API Reliability | **30** | **26** | — | deployed live | No backend touched. |
+| Database / Persistence Layer | **16** | **40** | — | planned | Unchanged. Still the largest single board blocker. |
+| Trust / Proof / Receipts | **33** | **26** | +1 % / −1 wave | merged (chip foundation) | TruthStateChip is the canonical visual that surfaces trust/proof signals; PR #425 ships the foundation, committed + tested 19/19. Bumped 1 percentage point per operator rule for "TruthStateChip merged/tested: Trust/Proof +1". |
+| Frontend UX / Role Journeys | **37** | **22** | +2 % / −2 waves | merged (chip foundation) + docs | PR #425 chip foundation merged-readiness + tested (19/19 pass). PR #426 design system docs (6 files, implementation-ready spec). Operator rule allows +1 for visual docs + +1 for TruthStateChip merged/tested. |
+| Sign-up / Auth / Onboarding | **22** | **28** | — | planned | **Held** per operator instruction — Wave J not yet implemented. |
+| Interoperability / Standards | **27** | **33** | +1 % / −1 wave | docs (implementation-ready) | Visual docs include receipt-document layout for `/status` Connector Matrix and `/trust/attribution` register, both interop-facing. Operator rule allows +1 for visual docs only when implementation-ready (Wave K is scoped with concrete recipe). |
+| Demo / Sales Conversion | **24** | **32** | — | planned | **Held** per operator instruction — homepage / role-doors / persona surface upgrades pending. |
+| Deployment / DevOps | **29** | **25** | — | deployed live | No deploy change this batch. |
+| Testing / CI / Quality Gates | **32** | **25** | +1 % / −1 wave | merged | 19 new vitest cases for chip (banned-strings regex, variant pinning, source-label aria contract, timestamp hidden `<time>`, full legend round-trip). All pass. |
+| Self-Improving System / Agents | **14** | **49** | — | planned | No agents work. |
+| Business / GTM / Revenue Engine | **17** | **50** | — | planned | **Held** per operator instruction — no GTM movement this batch. |
+| **Overall Billion-Dollar Readiness** | **28** | **388** | +1 % / −4 waves | mixed | Weighted aggregate; reflects the +2 on Frontend UX, +1 on Trust/Proof, +1 on Testing/CI, +1 on Interop. Still capped by SSE smoke pending and Database/Persistence stagnation. |
+
+### Per-PR state transitions (this batch)
+
+| PR | State | Note |
+|---|---|---|
+| #425 | open — local audit pending | Wave G — TruthStateChip + Legend + 19 tests; build/tsc/lint all green. |
+| #426 | open — docs-only | Wave M — visual-system foundation docs (6 files). |
+
+### Carry-overs (full list)
+
+See `docs/ops/wave-ledger.md` "Carry-overs to next batch" — most notable: PR #425 + PR #426 audit + merge; Wave H (Passport) is the next coding wave once #425 lands; authenticated SSE smoke remains the largest single move on Product Truth Contract.
+
+### Next highest-leverage bottleneck (re-affirmed)
+
+**Database / Persistence Layer (16% / 40 waves)** — TRUST-PERSIST-1 cutover. The visual system upgrade does not move this dimension at all; it remains the largest single board blocker.
+
+**Closest-to-done bottleneck:** authenticated SSE smoke for NPI 1699264564 (operator browser session required). One operator action moves Product Truth Contract → "validated live" and unlocks Source Integrations / PSV from its 18% hold.
 
 ### Per-PR state transitions (since evening half)
 

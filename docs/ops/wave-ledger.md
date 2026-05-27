@@ -82,15 +82,30 @@ Companion to:
 | 21 | 2026-05-27 | Browser verification of PR #423 live deployment | **CONFIRMED PR423 LIVE.** Independent Browser-side verification of Railway active deployment + cache-busted `/health` probe. Railway active deployment subject literally contains `(#423)`; `api.vitalcv.com/health?cb=v423r3` returns `git_sha:9f272c80c…` (exact PR #423 merge SHA), `status:"ok"`, 12 requests / 0 errors / p90 73ms (fresh container). Railway history shows PR #421 deployment in `REMOVED` state (superseded by #423 as expected). No Railway FAILED rows reference #421 or #423. Browser session: read-only, no buttons clicked, no env/DNS/Railway/secret mutation. | classification `PR423 LIVE` | None for deployment. Authenticated SSE smoke still pending (needs operator browser session). |
 | 22 | 2026-05-27 | Authenticated SSE smoke for NPI 1699264564 | **STOPPED at AUTH gate per runbook.** Browser session unauthenticated (`window.Clerk.user === false`, top-nav shows "Sign In"). `POST .../api/ingest/1699264564` returned `HTTP 403` with `x-cors-blocked: 1` header; no `runId` issued; SSE stream NOT opened; no SSE result fabricated. Safety constraints honored: no credentials entered, no accounts created, no auth flow initiated by agent. Side-finding: unauthenticated `/passport` page contains **zero banned phrases** and renders honest "Unavailable / not connected" copy for all four lanes (NPPES, OIG/LEIE, PECOS, state board) — useful truth-contract observation but does not exercise PR #423's backend `deriveSourceCompleteStatus` algorithm. | classification `AUTH BLOCKED` (per runbook taxonomy) | Operator authentication required. Smoke can resume in the same browser session once operator signs in. |
 
+### Visual-system half (2026-05-27)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 23 | 2026-05-27 | UI inventory audit (read-only) | Inventoried 60+ component directories, 600+ `.tsx` files; identified two parallel design systems (`apps/web/design-system/` canonical vs `apps/web/components/ui/` legacy); 30+ scattered badge/chip components; banned phrases only in `apps/web/app/_archive/` (not live). Top-10 implementation targets enumerated. Phase 1 scope recommended (Wave G + design docs). | `docs/design/current-ui-inventory.md` on PR #426 | None — docs only. |
+| 24 | 2026-05-27 | Wave G — `TruthStateChip` + `TruthStateLegend` | **Implemented** in `apps/web/design-system/components/`. 8 truth states (source-backed, snapshot-only, institution-review-required, access-required, auth-required, temporarily-unavailable, connector-not-live, demo-only); 4 visual variants per fixed state assignment; 5-row Passport legend + 8-row full legend; banned-strings regression tests **19/19 PASS**; tsc clean; web build 13/13; lint clean. | PR **#425** — `feat/truth-state-chip` head `54b60d39d`. 5 files, +770 / 0. | Awaiting local audit + merge. |
+| 25 | 2026-05-27 | Design-system docs (Wave M packaging) | 5 new docs + 1 audit doc bundled. North star, component spec, screen composition, state-model rationale, implementation roadmap. All banned-string hits are in "avoid" / "risk" enumeration sections per operator rule. | PR **#426** — `docs/design-system-foundation`. 6 files. | None — docs only. |
+
 ### Carry-overs to next batch
 
-- **Authenticated SSE smoke for NPI 1699264564** — operator-only; smallest wave that gates the largest move (PTC from 48% → "validated live"). With Browser confirming the container is live on PR #423, this is now the only gate between "deployed" and "validated live" for NPPES truth-state.
+- **Authenticated SSE smoke for NPI 1699264564** — operator-only; gates Product Truth Contract move from "deployed" → "validated live".
 - ~~**PR #422 audit + merge**~~ ✅ landed (Wave 20).
-- ~~**Browser deployment confirmation for PR #423**~~ ✅ done (Wave 21 — `PR423 LIVE`).
-- **`fix/nppes-source-health-observability`** — Wave D's task 1 + task 3 bundled; first coding wave after the cascade.
-- **Web `/api/health` `backend.status: "degraded"` investigation** — likely-truthful signal (composite of lane-connectivity, where OIG/PECOS/STATE_BOARD/FSMB/NURSYS are intentionally not-connected per PR #419 honest copy), but might be stale cache. Operator hypothesis from Wave 21: the web aggregator may flag "degraded" based on source-lane status rather than backend process health. Worth a code-side inspection of `apps/web/app/api/health/route.ts` (Claude Code, not Browser).
-- **Operator: configure `CRON_SECRET`** — fixes the two failing scheduled workflows. Cosmetic but worth it.
-- **`__tests__/` drift cleanup** (5–6 failing tests on `main` post-#422): `wave1-external-pilot-flow`, `status-page-compliance-evidence`, `foundation-sweep-6-analytics-status`, `foundation-sweep-6-commercial`, `passport-ingest-page`, `review-page-contract`. Not new; surfaced by PR #422 making Vitest finally reachable in CI. Worth opening a triage wave.
+- ~~**Browser deployment confirmation for PR #423**~~ ✅ done (Wave 21).
+- **PR #425** (Wave G — TruthStateChip) — awaiting local audit + merge. Foundational for the integration waves.
+- **PR #426** (design docs) — companion to #425; either can land first.
+- **Wave H** — Passport degraded-state upgrade. Imports `TruthStateChip` + `TruthStateLegend` once #425 lands.
+- **Wave I** — Homepage NPI-first + role doors. Can ship in parallel with Wave J.
+- **Wave J** — Sign-in / sign-up calm disclosure card.
+- **Wave K** — `/status` Connector Matrix + `/trust/attribution` register. Uses full 8-row legend.
+- **`fix/nppes-source-health-observability`** — Wave D's task 1 + task 3 bundled; coding wave for observability moat.
+- **Web `/api/health` `backend.status: "degraded"` investigation** — code-side inspection of the classifier.
+- **Operator: configure `CRON_SECRET`** — fixes failing scheduled workflows.
+- **`__tests__/` drift cleanup** (5–6 pre-existing Vitest failures surfaced by PR #422).
+- **`_archive/` sweep wave** — delete dead routes that still carry banned phrases in grep scans.
 
 ## Ledger maintenance rule
 
