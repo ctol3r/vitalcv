@@ -63,6 +63,25 @@ Companion to:
 - **2026-05-26 evening**: "Codex is unavailable/quota-blocked and should not be used. This wave replaces Codex with a strict Claude Code audit." (Authorized substitute — applies to PRs #421 and #423 in this batch.)
 - **Throughout**: "Do not modify Railway/DNS/env/secrets. No Prisma migrations. No product copy changes unless required for banned-phrase cleanup. No stubs that hide runtime errors."
 
+### Convergence half (2026-05-27 — post-cascade)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 14 | 2026-05-27 | Diagnose PR #423 deployment gap | **Resolved.** `api.vitalcv.com/health` 2026-05-27 03:18Z returns `git_sha:"9f272c80c…"` — PR #423 deployed live. Auto-deploy lag was ~6.4 hours. "Deploy health probe" CI failure is unrelated `CRON_SECRET` workflow misconfig. | `docs/ops/pr423-deployment-gap.md` | n/a |
+| 15 | 2026-05-27 | Operator-safe authenticated SSE smoke runbook | Drafted. Browser-first path (no credential surfacing); curl path documented with safety constraints. Failure classes enumerated (AUTH BLOCKED, PATCH LIVE BUT SOURCE NO-PAYLOAD, DEPLOYMENT GAP, RUNTIME FAILURE, TRUTH-STATE CONTRADICTION). | `docs/ops/authenticated-sse-smoke-runbook.md` | Operator must run the smoke. |
+| 16 | 2026-05-27 | NPPES source-health next-wave spec | 8-task observability moat scoped: adapter trace logging, per-source health endpoint, failure taxonomy, runId diagnostics, no-PHI debug snapshot, retry/backoff, freshness budget, web-classifier alignment. Truth constraints enforced; no migration in this wave. | `docs/ops/nppes-source-health-next-wave.md` | None — docs only. |
+| 17 | 2026-05-27 | Main-branch convergence snapshot | Snapshot recorded: `main` head `9f272c80c`; API live on `9f272c80c`; web on `wave-10a/docs-status`. Split-branch reality + 4 convergence options + 8-item risk register. Highest risk: SSE smoke not yet run. | `docs/ops/main-convergence-snapshot.md` | None — docs only. |
+| 18 | 2026-05-27 | Confirm PR #424 / docs branch status | PR #424 verified OPEN. Branch `docs/wave-batch-tracking` clean; this update extends it. | (this PR) | None. |
+| 19 | 2026-05-27 | Completion-board update with operator baseline | Applied baseline (PTC 48, Core 30, PSV 18 held, BAR 29, DB 16, T/P/R 32, FE 35, Auth 22 held, Interop 26, Demo 24 held, Dep 28, T/CI 30, Agents 14, GTM 17, Overall 26 / 394). Trust/Proof/Receipts pulled back 1% from prior over-credit; Testing/CI pulled back 1% pending PR #422 merge. | `docs/ops/vitalcv-completion-board.md` | None. |
+
+### Carry-overs to next batch
+
+- **Authenticated SSE smoke for NPI 1699264564** — operator-only; smallest wave that gates the largest move (PTC from 48% → 50%+).
+- **PR #422 audit + merge** — one-line vitest exclude; immediate CI hygiene win.
+- **`fix/nppes-source-health-observability`** — Wave D's task 1 + task 3 bundled; first coding wave after the cascade.
+- **Operator: configure `CRON_SECRET`** — fixes the two failing scheduled workflows. Cosmetic but worth it.
+- **Operator: investigate web `/api/health` `backend.status: "degraded"`** — cosmetic observability hygiene.
+
 ## Ledger maintenance rule
 
 Append one row per wave at the end of the current batch's table. Open a new `## Batch` section when starting a new batch. Never edit historical rows; if a fact changes (e.g. a deploy is later validated), append a new row.

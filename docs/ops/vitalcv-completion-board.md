@@ -1,19 +1,23 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-26 (Wave Batch 2026-05-26 evening — **PRs #421 and #423 MERGED to main**; delightful-essence redeployed; SSE smoke pending)
-Latest PRs involved: #420 (still open against wave-10a/docs-status — deployment path now via #423), #421 ✅ merged `fe9c6f9c1`, #422 (still open, dependency cleared), #423 ✅ merged `9f272c80c`, #424 (docs tracking, open)
+Last updated: 2026-05-27 (post-cascade convergence snapshot — **PR #421 + PR #423 merged AND both deployed live**; authenticated SSE smoke still pending)
+Latest PRs involved: #420 (open against wave-10a/docs-status — superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED, #422 (open, dependency cleared), #423 ✅ merged `9f272c80c` + DEPLOYED (auto-redeploy confirmed at 2026-05-27 03:18Z), #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
+
+`api.vitalcv.com/health` 2026-05-27 03:18Z → `status:"ok"`, `git_branch:"main"`, `git_sha:"9f272c80c…"`, 13 requests / 0 errors / p90 73 ms.
 
 ## Standing rule
 
 Update this board after every wave. Even a docs-only wave should bump the **Last updated** field and any state transitions for in-flight PRs. Move percentages only on **merge / deploy / live validation** — not on PR existence.
 
-## Current blockers (2026-05-26 evening)
+## Current blockers (2026-05-27)
 
-1. **PR #423 redeploy to `delightful-essence`.** Service is currently live on PR #421 (`/health` git_sha=`fe9c6f9c1`); the #423 deploy is queued or building in the inspiring-reflection Railway project. Cleared by Railway auto-deploy or operator manual trigger.
-2. **Authenticated SSE smoke for NPI 1699264564** has not yet been run. Until it confirms NPPES `source_complete` `"status":"SUCCESS"` and OIG/PECOS still `"status":"FAILED"`, NPPES truth-state is **merged + deployed but not validated live**.
-3. **PR #422** (Web Quality vitest exclude) — its dependency on PR #421 is cleared; CI can now be re-run, audited, and merged.
-4. **Vercel account block** — operator-side cosmetic noise on every PR check rollup; not gating.
+1. ✅ ~~PR #423 redeploy to `delightful-essence`~~ — **resolved.** `/health` confirms `git_sha:"9f272c80c"`. Auto-deployed within ~6.4 hours of merge.
+2. **Authenticated SSE smoke for NPI 1699264564** has not yet been run. Until it confirms NPPES `source_complete` `"status":"SUCCESS"` and OIG/PECOS still `"status":"FAILED"`, NPPES truth-state is **merged + deployed but not validated live**. See `docs/ops/authenticated-sse-smoke-runbook.md`.
+3. **PR #422** (Web Quality vitest exclude) — dependency on PR #421 cleared; CI can be re-triggered, audited, merged.
+4. **NPPES source operational reliability** (no-payload reads, OIG/PECOS not connected) — observability moat scoped in `docs/ops/nppes-source-health-next-wave.md`; not yet a `fix/` branch.
+5. **`Deploy health probe` / `Source Health Probe` workflows failing** every ~30 min due to missing `CRON_SECRET` repo secret — pre-existing CI config issue, **not a deployment failure**. Cosmetic.
+6. **Vercel account block** — operator-side cosmetic noise; not gating.
 
 ## Next highest-leverage bottleneck
 
@@ -668,9 +672,61 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 | #423 | **MERGED** `9f272c80c` | Deploy queued; SSE smoke pending. |
 | #424 | open | Tracking docs PR; extended this wave with updated ledgers. |
 
-### Next recommended wave (post-evening-half)
+### Next recommended wave (post-evening-half — superseded by 2026-05-27 update below)
 
 1. **Poll `https://api.vitalcv.com/health` until `git_sha` flips to `9f272c80c…`** (or trigger Railway manual redeploy in `inspiring-reflection` if Railway is sleeping).
 2. **Run authenticated SSE smoke for NPI 1699264564** — this is the live validation that will move Product Truth Contract from "merged" to "validated live".
 3. **PR #422 reactivation** — re-trigger Web Quality CI now that `main` builds; if green, run local audit + merge.
 4. **Open TRUST-PERSIST-1 scoping wave** — Database / Persistence Layer at 16% / 40 waves is now the largest single board bottleneck.
+
+## Convergence update 2026-05-27 — PR #423 confirmed deployed live; SSE smoke still pending
+
+### Confirmed completed facts (since evening half)
+
+- ✅ `api.vitalcv.com/health` polled 2026-05-27 03:18Z: `status:"ok"`, `git_branch:"main"`, `git_sha:"9f272c80ce842366a4ee43274b6584668c0a9e0c"`. PR #423 is deployed live on `delightful-essence`.
+- ✅ Operator-safe authenticated SSE smoke runbook drafted (`docs/ops/authenticated-sse-smoke-runbook.md`) — no credentials surfaced, browser-first path.
+- ✅ NPPES source-health next-wave spec drafted (`docs/ops/nppes-source-health-next-wave.md`) — 8-task observability moat, no truth-state behavior change.
+- ✅ Main-branch convergence snapshot drafted (`docs/ops/main-convergence-snapshot.md`) — split-branch reality recorded (`delightful-essence` watches `main`; `vitalcv-web` watches `wave-10a/docs-status`).
+
+### Still pending live validation
+
+- ⏳ **Authenticated SSE smoke** for NPI 1699264564 against `api.vitalcv.com`. Until this fires, NPPES truth-state is "deployed" but not "validated live". The smoke is an operator-side step (signed-in browser); no agent can run it without surfacing credentials.
+- ⏳ **OIG / LEIE / PECOS / STATE_BOARD / FSMB / NURSYS** are not connected to live upstream services. PR #423 explicitly does **not** promote them; they remain `FAILED`.
+- ⏳ **NPPES source operational reliability** — separate observability moat (Wave D's spec).
+
+### 15-dimension view (operator baseline 2026-05-27 — applied)
+
+| Dimension | % | Waves left | Δ vs prior | Highest state reached | Why this number |
+|---|---:|---:|---|---|---|
+| Product Truth Contract | **48** | **12** | +1 % / −1 wave | merged + deployed | PR #423 deployed live (`/health` confirms `git_sha`); behavior not yet validated via authenticated SSE smoke. Move beyond 48% gated on smoke result. |
+| Core Credentialing Workflow | **30** | **25** | +1 % / −1 wave | planned | Minor uplift on aggregate hardening; no specific credentialing surface changed this wave. |
+| Source Integrations / PSV | **18** | **40** | — | planned | **Held at 18%** per operator instruction. SSE smoke unconfirmed; do not raise until live NPPES SUCCESS is observed. |
+| Backend / API Reliability | **29** | **27** | +1 % / −2 waves | **deployed live** | PR #421 live + #423 live; both merge commits visible at `api.vitalcv.com/health`. 13 requests, 0 errors observed. |
+| Database / Persistence Layer | **16** | **40** | — | planned | Unchanged. **Largest single board blocker.** |
+| Trust / Proof / Receipts | **32** | **27** | −1 % vs prior (corrected) | merged + deployed | Pulled back 1% from prior 33% (over-credited tenant isolation without live truth-state SSE proof). Tenant isolation is deployed live; replay receipts behavior not yet exercised against live SSE. |
+| Frontend UX / Role Journeys | **35** | **24** | — | merged + deployed | No action this wave. |
+| Sign-up / Auth / Onboarding | **22** | **28** | — | planned | **Held at 22%** per operator instruction. |
+| Interoperability / Standards | **26** | **34** | — | planned | No action this wave. |
+| Demo / Sales Conversion | **24** | **32** | — | planned | **Held at 24%** per operator instruction. No GTM movement. |
+| Deployment / DevOps | **28** | **26** | — % / −2 waves | **deployed live** | Same % as prior; closed 2 more waves of work as `delightful-essence` auto-deploy proved stable across two consecutive merges. |
+| Testing / CI / Quality Gates | **30** | **27** | −1 % vs prior (corrected) | merged | Pulled back 1% from prior 31% (PR #422's vitest exclude is still open). 22 tests landed on `main` (3 Codex regressions + 2 NPPES regressions); PR #422 will lift further. |
+| Self-Improving System / Agents | **14** | **49** | +1 % / −1 wave | planned | Local Claude Code audit pattern hardened across two PRs (#421 + #423); the substitute gate worked. |
+| Business / GTM / Revenue Engine | **17** | **50** | — | planned | No action this wave. |
+| **Overall Billion-Dollar Readiness** | **26** | **394** | +1 % / −3 waves | mixed | Weighted aggregate; reflects #423 deployed live, but capped by SSE smoke not yet run. |
+
+### Per-PR state transitions (since evening half)
+
+| PR | State | Note |
+|---|---|---|
+| #420 | open | Superseded by #423 transplant; operator decision whether to close. |
+| #421 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`. |
+| #422 | open | Dependency cleared; **next coding wave's merge candidate.** |
+| #423 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`; behavior pending SSE smoke. |
+| #424 | open | Tracking PR; this update lives on its branch. |
+
+### Next recommended wave
+
+1. **Operator runs `docs/ops/authenticated-sse-smoke-runbook.md`** against `api.vitalcv.com` for NPI 1699264564. Two-minute task; gates Product Truth Contract → "validated live".
+2. **PR #422 audit + merge** — small one-line vitest exclude; immediate CI hygiene win.
+3. **Open `fix/nppes-source-health-observability`** as the next coding wave — Wave D's task 1 (adapter trace logging) + task 3 (NPPES failure taxonomy) bundled as the smallest combined increment.
+4. **TRUST-PERSIST-1 scoping** — Database / Persistence Layer at 16% / 40 waves is the largest single board bottleneck; still open.
