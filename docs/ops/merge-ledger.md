@@ -148,3 +148,13 @@ fe9c6f9c1 fix(api): repair Railway build module resolution (#421)
 
 1. **Authenticated SSE smoke for NPI 1699264564** — operator-only, per `docs/ops/authenticated-sse-smoke-runbook.md`. Gates Product Truth Contract from "deployed" → "validated live".
 2. **Wave H — Passport calm-degradation integration** — now unblocked by #425 + #426 on `main`. Recommended next coding wave.
+
+## PR #428 — `docs(ops): define VitalCV agent operating SOP`
+
+| Field | Value |
+|---|---|
+| Base | `main` (at `50942ad1e`) |
+| Head | `docs/agent-operating-sop` @ `9b7799312` |
+| Local audit verdict | **SAFE** on 2026-05-27 04:25 PDT. Merge sim clean; 3 docs only under `docs/ops/`; banned-phrase hits classified as banned-list documentation / negative-example bullets / workflow-approval language (all per operator allowance). |
+| Merge result | **MERGED** as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 2026-05-27 11:26:55Z (= 04:26 PDT). |
+| Post-merge | `main` is now at `97971b578`. The SOP doctrine is now the canonical operating reference for every AI tool that touches VitalCV (Claude Code primary; Claude Design always included; Browser only for live verification; Codex disabled; OpenClaw only on explicit request). |

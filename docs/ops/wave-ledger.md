@@ -119,3 +119,12 @@ Append one row per wave at the end of the current batch's table. Open a new `## 
 | 27 | 2026-05-26 22:24 PDT | Merge PR #425 if SAFE | **MERGED** as `a368a1ffb` at 05:24:07Z. | merge commit `a368a1ffb` | None. |
 | 28 | 2026-05-26 22:25 PDT | PR #426 local audit + merge if SAFE | **SAFE.** 6 docs in `docs/design/`; squash adds only those (1 commit on branch); banned hits only in avoid/risk enumeration. **MERGED** as `a88e014e4` at 05:25:16Z. | merge commit `a88e014e4` | None. |
 | 29 | 2026-05-26 22:26 PDT | PR #424 local audit + merge if SAFE | **SAFE.** 8 docs in `docs/ops/`; merge sim clean (only adds tracking docs); banned-copy hits all in pre-existing files documenting banned lists (operator allowance). **MERGED** as `50942ad1e` at 05:26:16Z. | merge commit `50942ad1e` | None. |
+
+### SOP half (2026-05-27 PDT)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 30 | 2026-05-27 04:21 PDT | Write Agent Operating SOP (3 docs) | 3 docs created: `docs/ops/agent-operating-sop.md` (10 sections), `docs/ops/wave-batch-template.md` (20-task template), `docs/ops/ai-tool-routing.md` (tool matrix). All within `docs/ops/`; no product/deploy/env touched. | commit `9b7799312` on `docs/agent-operating-sop` | None — docs only. |
+| 31 | 2026-05-27 04:25 PDT | PR #428 local audit | **SAFE.** Merge sim clean against post-#424 main; 3 docs only; banned-phrase hits all in banned-list documentation / negative-example bullets / workflow-approval language. | verdict in transcript | None. |
+| 32 | 2026-05-27 04:26 PDT | Merge PR #428 if SAFE | **MERGED** as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 11:26:55Z (04:26 PDT). | merge commit `97971b578` | None — landed. |
+| 33 | 2026-05-27 04:27 PDT | Update completion board post-#428 | Self-Improving Agents 14% / 49 → 15% / 48; Overall 28% / 388 → 28% / 387. | this update on `docs/post-merge-tracking-update` (PR #427) | None. |

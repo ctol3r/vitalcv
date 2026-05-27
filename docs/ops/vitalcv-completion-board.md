@@ -1,10 +1,10 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-26 22:26 PDT (visual-system Phase 1 cascade **MERGED**: 🚢 #425 TruthStateChip + 🚢 #426 design docs + 🚢 #424 tracking ledgers all landed; 🚢 #421 + #423 + #422 already deployed; 🔴 SSE smoke AUTH BLOCKED — operator sign-in is the only remaining gate to "validated live")
-Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e` (tracking), 🚢 #425 `a368a1ffb` (chip foundation 🎨), 🚢 #426 `a88e014e4` (design docs 🎨)
+Last updated: **2026-05-27 04:27 PDT (San Jose / Pacific)** (🚢 Agent Operating SOP merged (PR #428); visual-system Phase 1 cascade #425+#426+#424 on main; 🚢 #421+#423+#422 deployed; 🔴 SSE smoke AUTH BLOCKED — operator sign-in is the only remaining gate to "validated live")
+Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e` (tracking), 🚢 #425 `a368a1ffb` (chip foundation 🎨), 🚢 #426 `a88e014e4` (design docs 🎨), 🚢 #428 `97971b578` (agent operating SOP 🤖)
 Source branch (this update): `docs/post-merge-tracking-update`
 
-`main` head: `50942ad1e47ef2e30c8587bed32582b41f818bab`
+`main` head: `97971b5780e7ccb0f58af19a5062796cc7f930a6`
 Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit, Browser-confirmed `PR423 LIVE`). 12 requests / 0 errors / p90 73 ms — fresh container.
 
 ## Standing rule
@@ -806,7 +806,7 @@ Verdict: **no further percentage moves from the cascade alone.** Baseline holds.
 | Demo / Sales Conversion | **24** | **32** | — | 🟡 planned | Held — no GTM movement. |
 | Deployment / DevOps | **29** | **25** | — | 🚢 deployed live | No deploy change. |
 | Testing / CI / Quality Gates | **32** | **25** | — | 🧪 merged | 19 chip regression tests now on `main`. |
-| Self-Improving System / Agents | **14** | **49** | — | 🟡 planned | Local audit pattern hardened across two more PRs (#425, #426); track-record holds. |
+| Self-Improving System / Agents | **15** | **48** | +1 % / −1 wave | 🤖 🚢 SOP merged | PR #428 (Agent Operating SOP) merged 2026-05-27 04:26 PDT as `97971b578`. Three SOP docs codify the semi-autonomous wave execution pattern, 20-task wave batch template, AI tool routing matrix. Per operator rule "Agent SOP merged: Self-Improving Agents +1". |
 | Business / GTM / Revenue Engine | **17** | **50** | — | 🟡 planned | Held. |
 | **Overall Billion-Dollar Readiness** | **28** | **388** | — | 🧱 mixed | No retroactive aggregate move. |
 
@@ -832,3 +832,40 @@ Verdict: **no further percentage moves from the cascade alone.** Baseline holds.
 ### Wave-ledger note
 
 Waves 26 (PR #425 audit), 27 (PR #425 merge), 28 (PR #426 audit + merge), 29 (PR #424 audit + merge) — appended to `docs/ops/wave-ledger.md` in this batch.
+
+## 2026-05-27 04:27 PDT — Agent Operating SOP landed
+
+🚢 PR #428 (`docs(ops): define VitalCV agent operating SOP`) merged as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 2026-05-27 11:26:55Z (= 04:26 PDT). Three new docs codify the semi-autonomous wave execution pattern for every AI tool that touches VitalCV:
+
+- `docs/ops/agent-operating-sop.md` — the doctrine (10 sections).
+- `docs/ops/wave-batch-template.md` — the 20-task wave batch template + per-task audit checklist + 5-class verdict taxonomy + worked example.
+- `docs/ops/ai-tool-routing.md` — tool routing matrix with per-task table, hard prohibitions per tool, default ordering when ambiguous, Codex re-enable procedure.
+
+### Per-row delta (post-#428)
+
+| Dimension | % | Waves left | Δ | State | Note |
+|---|---:|---:|---|---|---|
+| Self-Improving System / Agents | **15** | **48** | +1 % / −1 wave | 🤖 🚢 merged | SOP codifies the local-audit-as-merge-gate pattern that produced 3 SAFE verdicts last batch. |
+| Overall Billion-Dollar Readiness | **28** | **387** | — % / −1 wave | 🧱 mixed | Aggregate; Self-Improving Agents +1 closes 1 wave. |
+
+All other dimensions unchanged — the SOP is a meta-doc, not a product surface; no product-truth-contract, deploy, or persistence move.
+
+### `main` head after #428
+
+```
+97971b578 docs(ops): define VitalCV agent operating SOP (#428)
+50942ad1e docs(ops): wave batch 2026-05-26 — merge ledger, main build smoke, completion board (#424)
+a88e014e4 docs(design): define VitalCV visual system and screen language (#426)
+a368a1ffb feat(web): add TruthStateChip + TruthStateLegend visual foundation (#425)
+801100c7f fix(test): exclude Playwright specs from Vitest web quality run (#422)
+9f272c80c fix(api): align NPPES source_complete truth state on main (#423)
+fe9c6f9c1 fix(api): repair Railway build module resolution (#421)
+```
+
+### Next Direction (post-#428)
+
+A) **Wave H — Passport calm-degradation integration** (`feat/passport-calm-degradation`). Now unblocked by #425 + #426 on `main`. Recipe in `docs/design/screen-composition-spec.md` lines 33–66.
+B) **Authenticated SSE smoke for NPI 1699264564** (operator-only, per `docs/ops/authenticated-sse-smoke-runbook.md`). Gates Product Truth Contract → "validated live"; releases the 18% hold on Source Integrations / PSV.
+C) **Wave I — Homepage NPI-first + role doors** (`feat/home-npi-role-doors`). Can ship in parallel with Wave J (zero shared files).
+D) **Operator hygiene** — configure `CRON_SECRET` repo secret to fix the two failing scheduled health-probe workflows; optional `_archive/` sweep to remove legacy banned-phrase routes.
+E) **Continue to next task / next wave batch.**
