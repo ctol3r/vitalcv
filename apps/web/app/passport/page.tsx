@@ -81,30 +81,40 @@ function isValidNpiChecksum(npi: string): boolean {
 }
 
 function resolveIngestErrorCopy(raw: string | undefined | null) {
+  // Copy is a contract — keep the exact strings from the prior implementation
+  // so the passport-ingest-page tests pass. Raw codes like
+  // `organization_context_required` MUST NOT surface to users; collapse them
+  // into the degraded copy.
   const degraded = {
-    title: "We couldn't load the source-backed snapshot right now.",
-    description: 'Try this NPI again in a moment. Nothing has been marked adverse.',
+    title: "We couldn't load your readiness snapshot right now.",
+    description: 'Try this NPI again in a moment.',
   } as const;
   if (!raw) return degraded;
   const n = raw.toLowerCase().replace(/[_\s]+/g, '_');
+  if (n.includes('organization_context') || n.includes('org_required')) {
+    return degraded;
+  }
   if (n.includes('npi') && n.includes('invalid')) {
     return {
-      title: 'That NPI was not found in NPPES.',
-      description:
-        'Check the 10-digit number and try again. Nothing has been marked adverse.',
+      title: 'That NPI was not found.',
+      description: 'Check the 10-digit number and try this NPI again.',
     };
   }
+  if (n.includes('timeout') || n.includes('timed_out')) return degraded;
+  if (n.includes('unavailable') || n.includes('backend')) return degraded;
   return degraded;
 }
 
+// Copy preserved verbatim from the prior /passport implementation so the
+// passport-ingest-page contract tests continue to pass against the new shell.
 const PHASE_LABEL: Record<StreamPhase, string> = {
-  idle: '',
-  starting: 'Opening the passport…',
-  nppes: 'Reading NPPES…',
-  sanctions: 'Checking OIG exclusion record…',
-  enrollment: 'Checking CMS PECOS enrollment…',
-  done: 'Read complete',
-  error: 'Source unavailable',
+  idle:       '',
+  starting:   'Opening your passport…',
+  nppes:      'Recognizing your NPI…',
+  sanctions:  'Checking exclusion status…',
+  enrollment: 'Checking Medicare enrollment…',
+  done:       'Identity confirmed',
+  error:      'Unable to connect',
 };
 
 // Map an SSE source state to a TruthChip state.
@@ -120,6 +130,15 @@ function sourceToTruthState(s: SourceState): TruthState {
       return 'source-unavailable';
   }
 }
+
+// Source-state chip labels — also a contract. Tests assert "Pending",
+// "Unavailable", "Review required" appear when those states render.
+const SOURCE_STATE_CHIP_LABEL: Record<SourceState, string> = {
+  pending: 'Pending',
+  checking: 'Pending',
+  done: 'Done',
+  error: 'Unavailable',
+};
 
 function formatExclusionLabel(
   checked: boolean,
@@ -253,6 +272,7 @@ function PassportPageContent({
 
   const { identity, standing, sources, readiness } = state;
   const isActive = state.phase !== 'idle';
+  const hasTerminalState = Boolean(state.completedAt) || state.phase === 'done' || state.phase === 'error';
   const isRunning =
     isActive &&
     !state.completedAt &&
@@ -261,8 +281,34 @@ function PassportPageContent({
     !state.isUsable;
   const isHydrated = state.isUsable || Boolean(identity.authoritative);
   const anchorEntityId = state.anchorEntityId ?? identity.entityId;
+  const canViewPassport = state.isUsable && Boolean(anchorEntityId);
+  // Terminal state derivations — match the prior page's contract so the
+  // empty-state tests (passport-ingest-page.test.tsx) keep passing.
+  const noProfileYet =
+    hasTerminalState
+    && !canViewPassport
+    && (
+      state.identity.sourceResult === 'SKIPPED'
+      || (state.sources.nppes === 'done' && state.identity.status === 'UNKNOWN')
+    );
+  const disconnected = state.disconnected && !canViewPassport;
+  const runCompletedWithoutAnchor =
+    hasTerminalState
+    && !canViewPassport
+    && !noProfileYet
+    && !disconnected
+    && state.identity.authoritative;
+  const genericError =
+    state.phase === 'error'
+    && !canViewPassport
+    && !disconnected
+    && !noProfileYet;
   const samDown = sources.oig === 'error'; // proxy: SAM.gov outage today maps to OIG lane error
-  const errorCopy = state.phase === 'error' ? resolveIngestErrorCopy(state.error) : null;
+  const errorCopy = genericError ? resolveIngestErrorCopy(state.error) : null;
+  const retryNpi = state.npi ?? npi.trim();
+  const continueToOnboardingHref = /^\d{10}$/.test(retryNpi)
+    ? `/onboarding?returnTo=${encodeURIComponent(`/passport?npi=${retryNpi}`)}`
+    : '/onboarding';
 
   const displayRole =
     roleContext.roleTitle ??
@@ -299,7 +345,7 @@ function PassportPageContent({
   if (!isActive) {
     return (
       <Shell>
-        <Nav cta={<LinkButton href="/sign-in">Sign in</LinkButton>} />
+        <Nav activePath="/passport" cta={<LinkButton href="/sign-in">Sign in</LinkButton>} />
         <main className="vs-page">
           <Eyebrow tag="Passport">Look up a clinician by NPI</Eyebrow>
           <h1 className="vs-h-display" style={{ marginTop: 18 }}>
@@ -452,27 +498,38 @@ function PassportPageContent({
     truth: { state: 'review-needed', source: 'institution-only' },
   });
 
-  // Source-health right rail — derived from live SSE source states.
-  const sourceHealth: Array<{ name: string; state: TruthState; src: string }> = [
+  // Source-health right rail — derived from live SSE source states. The
+  // `label` is a contract per the passport-ingest-page tests: source
+  // states render as "Pending" / "Unavailable" / "Review required" / "Done".
+  const sourceHealth: Array<{ name: string; state: TruthState; src: string; label: string }> = [
     {
       name: 'NPPES',
       state: sourceToTruthState(sources.nppes),
       src: sources.nppes === 'done' ? '200 · live' : sources.nppes === 'error' ? '503 · retry' : 'reading',
+      label: SOURCE_STATE_CHIP_LABEL[sources.nppes],
     },
     {
       name: 'OIG LEIE',
       state: sourceToTruthState(sources.oig),
       src: sources.oig === 'done' ? '200 · live' : sources.oig === 'error' ? '503 · 02h' : 'reading',
+      // OIG-specific override: POSSIBLE_MATCH escalates to "Review required"
+      // even when the connector returned 200.
+      label:
+        sources.oig === 'done' && standing.exclusionStatus === 'POSSIBLE_MATCH'
+          ? 'Review required'
+          : SOURCE_STATE_CHIP_LABEL[sources.oig],
     },
     {
       name: 'CMS PECOS',
       state: sourceToTruthState(sources.pecos),
       src: sources.pecos === 'done' ? '200 · live' : sources.pecos === 'error' ? '503 · retry' : 'reading',
+      label: SOURCE_STATE_CHIP_LABEL[sources.pecos],
     },
     {
       name: 'NPDB',
       state: 'review-needed',
       src: 'institution-only',
+      label: 'Review required',
     },
   ];
 
@@ -529,6 +586,7 @@ function PassportPageContent({
   return (
     <Shell>
       <Nav
+        activePath="/passport"
         status={
           samDown
             ? { label: '1 source unavailable', variant: 'degraded' }
@@ -593,15 +651,19 @@ function PassportPageContent({
               </div>
               <div className="vs-psh-actions">
                 <Button onClick={() => setDrawerOpen(true)}>View receipt</Button>
-                {anchorEntityId ? (
-                  <LinkButton href={buildPassportEntityHref(anchorEntityId)} variant="primary">
-                    Open full passport →
-                  </LinkButton>
-                ) : (
-                  <Button variant="primary" disabled>
-                    Open full passport →
-                  </Button>
-                )}
+                {/* Tests assert "View full passport" + "Continue activation" appear
+                    only when the profile is usable, and NOT during loading/empty
+                    states. Both render conditionally on canViewPassport. */}
+                {canViewPassport && anchorEntityId ? (
+                  <>
+                    <LinkButton href={buildPassportEntityHref(anchorEntityId)} variant="primary">
+                      View full passport
+                    </LinkButton>
+                    <LinkButton href={continueToOnboardingHref}>
+                      Continue activation
+                    </LinkButton>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -673,7 +735,11 @@ function PassportPageContent({
 
         <section className="vs-pbody">
           <div className="vs-panel">
-            {/* Loading skeleton lanes — chat22 fix #13 */}
+            {/* Loading skeleton lanes — chat22 fix #13.
+                Lane names + "Pending" chip label are a contract: the
+                passport-ingest-page tests assert markup contains the exact
+                strings "NPPES", "OIG / LEIE", "CMS PECOS", and "Pending"
+                while sources are still resolving. */}
             {isRunning && !isHydrated ? (
               <div role="status" aria-live="polite">
                 <h4>
@@ -681,7 +747,7 @@ function PassportPageContent({
                 </h4>
                 <Card>
                   <CardBody style={{ padding: '6px 18px' }}>
-                    {(['NPPES', 'OIG LEIE', 'CMS PECOS'] as const).map((lane) => (
+                    {(['NPPES', 'OIG / LEIE', 'CMS PECOS'] as const).map((lane) => (
                       <div className="vs-field" key={lane}>
                         <span className="vs-label">{lane}</span>
                         <span className="vs-value">
@@ -691,7 +757,7 @@ function PassportPageContent({
                           </small>
                         </span>
                         <span className="vs-meta">
-                          <TruthChip state="pending-source" source={`${lane} · reading`} />
+                          <TruthChip state="pending-source" source={`${lane} · reading`} label="Pending" />
                         </span>
                       </div>
                     ))}
@@ -747,6 +813,52 @@ function PassportPageContent({
               </>
             ) : null}
 
+            {/* Terminal state surfaces — each is a contract preserved from the
+                prior /passport implementation (passport-ingest-page.test.tsx
+                asserts the exact copy). New visual treatment, same behavior. */}
+            {noProfileYet ? (
+              <div className="vs-empty" style={{ marginTop: 18 }} role="status">
+                <span className="vs-glyph">·</span>
+                <h5>No profile found for this NPI yet.</h5>
+                <p>
+                  The ingest run completed, but NPPES did not return an authoritative provider
+                  record. Try this NPI again later, or check the number for a typo.
+                </p>
+              </div>
+            ) : null}
+
+            {runCompletedWithoutAnchor ? (
+              <div className="vs-empty" style={{ marginTop: 18 }} role="status">
+                <span className="vs-glyph">i</span>
+                <h5>Profile resolved, but passport continuation is still provisional.</h5>
+                <p>
+                  Public NPI identity resolved, but no source-backed passport anchor was written
+                  for this run. Re-check sources to attempt continuation.
+                </p>
+              </div>
+            ) : null}
+
+            {disconnected ? (
+              <div className="vs-empty" style={{ marginTop: 18 }} role="status">
+                <span className="vs-glyph">!</span>
+                <h5>Stream disconnected before your passport finished hydrating.</h5>
+                <p>
+                  Start the read again to reopen the live stream. Nothing has been marked adverse.
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    if (/^\d{10}$/.test(retryNpi)) {
+                      reset();
+                      setTimeout(() => void startIngest(retryNpi), 30);
+                    }
+                  }}
+                >
+                  Check another NPI
+                </Button>
+              </div>
+            ) : null}
+
             {errorCopy ? (
               <BoundaryBanner
                 label="Read incomplete"
@@ -800,7 +912,7 @@ function PassportPageContent({
               {sourceHealth.map((s) => (
                 <React.Fragment key={s.name}>
                   <span className="vs-src-name">{s.name}</span>
-                  <TruthChip state={s.state} source={s.src} label={s.state === 'review-needed' ? 'institution-only' : undefined} />
+                  <TruthChip state={s.state} source={s.src} label={s.label} />
                 </React.Fragment>
               ))}
             </div>

@@ -32,6 +32,7 @@ export default function SignUpPage() {
   return (
     <Shell>
       <Nav
+        activePath="/sign-up"
         showCmdPill={false}
         links={[
           { href: '/', label: 'Overview' },

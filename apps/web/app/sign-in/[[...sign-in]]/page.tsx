@@ -38,6 +38,7 @@ export default function SignInPage() {
   return (
     <Shell>
       <Nav
+        activePath="/sign-in"
         showCmdPill={false}
         links={[
           { href: '/', label: 'Overview' },

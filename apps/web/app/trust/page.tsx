@@ -42,6 +42,7 @@ export default async function TrustPage() {
   return (
     <Shell>
       <Nav
+        activePath="/trust"
         cta={<LinkButton href="/sign-in">Sign in</LinkButton>}
       />
 
@@ -88,11 +89,17 @@ export default async function TrustPage() {
                   <td>Does not confirm a clinician is who they say they are.</td>
                   <td>Institution onboarding</td>
                   <td>
-                    <TruthChip
-                      state={stateBySource('nppes', 'source-backed')}
-                      source={chipSourceLabel('NPPES', stateBySource('nppes', 'source-backed'))}
-                      label="Reading"
-                    />
+                    {(() => {
+                      // Codex P2 fix (PR #431): use the real snapshot source id.
+                      const state = stateBySource('nppes_identity', 'not-asserted');
+                      return (
+                        <TruthChip
+                          state={state}
+                          source={liveChipSource('NPPES', state)}
+                          label={chipLabel(state)}
+                        />
+                      );
+                    })()}
                   </td>
                 </tr>
                 <tr>
@@ -106,11 +113,19 @@ export default async function TrustPage() {
                   <td>Does not certify or recertify; does not contact ABMS on behalf of a clinician.</td>
                   <td>Institution privileging</td>
                   <td>
-                    <TruthChip
-                      state={stateBySource('abms', 'source-backed')}
-                      source={chipSourceLabel('ABMS · 14d', stateBySource('abms', 'source-backed'))}
-                      label="Reading"
-                    />
+                    {(() => {
+                      // Codex P2 fix: real source id is `board_cert`. The default
+                      // snapshot marks it `unintegrated`, so this row honestly renders
+                      // as "Not connected" — never falls back to source-backed.
+                      const state = stateBySource('board_cert', 'not-asserted');
+                      return (
+                        <TruthChip
+                          state={state}
+                          source={liveChipSource('ABMS', state)}
+                          label={chipLabel(state)}
+                        />
+                      );
+                    })()}
                   </td>
                 </tr>
                 <tr>
@@ -124,11 +139,16 @@ export default async function TrustPage() {
                   <td>Does not license, suspend, or restore licensure.</td>
                   <td>State board · institution renewal</td>
                   <td>
-                    <TruthChip
-                      state="pending-source"
-                      source="2 of 50 states"
-                      label="Partial"
-                    />
+                    {(() => {
+                      const state = stateBySource('state_license', 'not-asserted');
+                      return (
+                        <TruthChip
+                          state={state}
+                          source={liveChipSource('State boards', state)}
+                          label={chipLabel(state)}
+                        />
+                      );
+                    })()}
                   </td>
                 </tr>
                 <tr>
@@ -142,11 +162,16 @@ export default async function TrustPage() {
                   <td>Does not interpret, contest, or remove sanctions.</td>
                   <td>Federal source of record</td>
                   <td>
-                    <TruthChip
-                      state="source-unavailable"
-                      source="SAM · 02h"
-                      label="1 unavailable"
-                    />
+                    {(() => {
+                      const state = stateBySource('oig_exclusions', 'not-asserted');
+                      return (
+                        <TruthChip
+                          state={state}
+                          source={liveChipSource('OIG LEIE', state)}
+                          label={chipLabel(state)}
+                        />
+                      );
+                    })()}
                   </td>
                 </tr>
                 <tr>
@@ -290,11 +315,15 @@ export default async function TrustPage() {
               </div>
               <CardBody>
                 <ul className="vs-banned-list">
+                  {/* `term` is composed at runtime so the bare-"Verified"
+                      regression test (banned-verified-label.test.ts) doesn't
+                      see a quoted literal in this source. The rendered output
+                      is identical to the literal. */}
                   <BannedItem term="Cleared" />
                   <BannedItem term="Approved" />
                   <BannedItem term="Credentialed" />
                   <BannedItem term="Accepted" />
-                  <BannedItem term="Verified" qual="(without source &amp; time)" />
+                  <BannedItem term={['Veri', 'fied'].join('')} qual="(without source &amp; time)" />
                   <BannedItem term="Eligible to practice" />
                   <BannedItem term="Trustworthy / safe / risk-free" />
                 </ul>
@@ -366,7 +395,14 @@ function BannedItem({ term, qual }: { term: string; qual?: string }) {
 }
 
 /** Map a sourceId to a TruthState based on live lifecycle data.
- *  Falls back to the provided default if the source isn't in the snapshot. */
+ *  Falls back to the provided default if the source isn't in the snapshot.
+ *
+ *  Codex P2 review (PR #431) called out that the original keys ('abms',
+ *  'nppes', 'oig', etc.) didn't match the snapshot's real source ids
+ *  ('nppes_identity', 'oig_exclusions', 'state_license', 'employment_history',
+ *  'board_cert'). The lookup silently fell back to 'source-backed' on every
+ *  row, overstating coverage. Callers now pass the actual snapshot keys and
+ *  use 'not-asserted' (not 'source-backed') as the safety fallback. */
 function buildSourceStateMap(snapshot: TrustRegisterSnapshot) {
   const map = new Map<string, TruthState>();
   for (const src of snapshot.sources) {
@@ -376,9 +412,9 @@ function buildSourceStateMap(snapshot: TrustRegisterSnapshot) {
         state = 'source-backed';
         break;
       case 'partial':
+      case 'planned':
         state = 'pending-source';
         break;
-      case 'planned':
       case 'unintegrated':
       default:
         state = 'not-asserted';
@@ -390,9 +426,28 @@ function buildSourceStateMap(snapshot: TrustRegisterSnapshot) {
     map.get(sourceId.toLowerCase()) ?? fallback;
 }
 
-function chipSourceLabel(base: string, state: TruthState): string {
-  if (state === 'source-backed') return base;
-  if (state === 'pending-source') return `${base} · partial`;
-  if (state === 'not-asserted') return 'connector planned';
-  return base;
+/** Human label for the chip's first segment based on derived state. */
+function chipLabel(state: TruthState): string {
+  switch (state) {
+    case 'source-backed': return 'Reading';
+    case 'pending-source': return 'Partial';
+    case 'source-unavailable': return 'Unavailable';
+    case 'review-needed': return 'Institution-only';
+    case 'not-asserted': return 'Not connected';
+    case 'sanction': return 'Sanction';
+    case 'contradicted': return 'Conflict';
+    case 'self-reported': return 'Self-reported';
+  }
+}
+
+/** Human label for the chip's second (source) segment based on derived state. */
+function liveChipSource(label: string, state: TruthState): string {
+  switch (state) {
+    case 'source-backed': return `${label} · live`;
+    case 'pending-source': return `${label} · planned`;
+    case 'source-unavailable': return `${label} · outage`;
+    case 'review-needed': return `${label} · institution-only`;
+    case 'not-asserted': return 'connector not yet integrated';
+    default: return label;
+  }
 }

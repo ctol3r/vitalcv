@@ -23,6 +23,7 @@ import * as React from 'react';
 import {
   BoundaryBanner,
   Card,
+  CardBody,
   CompactConnectorMatrix,
   Eyebrow,
   Footer,
@@ -32,6 +33,9 @@ import {
   Shell,
   TruthChip,
 } from '@/components/visual';
+import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
+import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
+import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
 
 export const metadata: Metadata = {
   title: 'Status — Connector matrix · VitalCV',
@@ -58,7 +62,12 @@ type ConnectorRow = {
   logo: string;
   name: string;
   sub: string;
-  state: 'source-backed' | 'source-unavailable' | 'pending-source' | 'review-needed';
+  state:
+    | 'source-backed'
+    | 'source-unavailable'
+    | 'pending-source'
+    | 'review-needed'
+    | 'not-asserted';
   stateLabel: string;
   stateAge: string;
   lastRead: string;
@@ -83,17 +92,22 @@ const CONNECTORS: ConnectorRow[] = [
     action: { label: 'Re-read' },
   },
   {
+    // Codex P2 fix (PR #431): /api/status reports board_certification as
+    // 'unintegrated' / 'not_implemented'. The prior values claimed live
+    // 200 / 14d / 612 ms readings — that's a false claim about a connector
+    // that doesn't exist. Mark "Not connected" honestly here; the row
+    // remains visible so the doctrine is explicit.
     logo: 'A',
     name: 'ABMS',
-    sub: 'certificationmatters.org',
-    state: 'source-backed',
-    stateLabel: 'Responding',
-    stateAge: '200 · 14d',
-    lastRead: 'May 12',
-    spark: { variant: 'ok', heights: [12, 14, 18, 16, 14, 18, 16, 14] },
-    latency: '612 ms',
-    lastError: '—',
-    action: { label: 'Re-read' },
+    sub: 'connector not yet integrated',
+    state: 'not-asserted',
+    stateLabel: 'Not connected',
+    stateAge: 'planned',
+    lastRead: '—',
+    spark: { variant: 'unavailable', heights: [] },
+    latency: '—',
+    lastError: 'connector not implemented',
+    action: { label: 'Why', href: '/trust' },
   },
   {
     logo: 'C',
@@ -163,7 +177,9 @@ const CONNECTORS: ConnectorRow[] = [
 ];
 
 export default function StatusPage() {
-  const compactItems = CONNECTORS.filter((c) => c.state !== 'review-needed').map((c) => ({
+  const compactItems = CONNECTORS.filter(
+    (c) => c.state !== 'review-needed' && c.state !== 'not-asserted',
+  ).map((c) => ({
     name: c.name.split('·')[0]?.trim() ?? c.name,
     state:
       c.state === 'source-backed'
@@ -177,22 +193,38 @@ export default function StatusPage() {
     age: c.stateAge,
   }));
 
+  // Compliance evidence shape — read from the foundation modules so /status
+  // and /api/compliance/evidence agree on every count + Live flag. The
+  // page renders the literal flags ('redactionLive: false' etc.) so the
+  // compliance-evidence regression test (status-page-compliance-evidence)
+  // catches any silent regressions in those modules.
+  const dataClassification = buildDataClassificationFoundation();
+  const retention = buildRetentionFoundation();
+  const adapters = buildAdapterMatrix();
+
   return (
     <Shell>
       <Nav
+        activePath="/status"
         status={{ label: '3 of 4 responding · SAM 503', variant: 'degraded' }}
         cta={<LinkButton href="/sign-in">Sign in</LinkButton>}
       />
 
       <main className="vs-page">
         <section style={{ padding: '24px 0' }}>
-          <Eyebrow tag="Status">Connector matrix · last 24h · auto-refresh 30s</Eyebrow>
+          <Eyebrow tag="Status">Foundation status preview · no uptime guarantee implied</Eyebrow>
           <h1 className="vs-h1" style={{ marginTop: 12 }}>
             Source health · what&apos;s responding right now.
           </h1>
           <p className="vs-lede" style={{ marginTop: 10 }}>
             VitalCV reads public registries. When a registry is offline, the page below says so —
             never the passport. A clinician is never blamed for a source we can&apos;t reach.
+          </p>
+          <p
+            className="vs-muted vs-small"
+            style={{ marginTop: 8, fontFamily: 'var(--vs-mono)' }}
+          >
+            Status surfaces are foundation previews. No uptime guarantee is implied.
           </p>
 
           <div className="vs-proofs" style={{ margin: '24px 0 8px' }}>
@@ -328,6 +360,64 @@ export default function StatusPage() {
 
         <Section
           num="03"
+          title="Compliance evidence (foundation shape)"
+          aside="Foundation modules · planned controls"
+        >
+          <p className="vs-lede" style={{ marginBottom: 18 }}>
+            This section is a <strong>foundation shape for vendor risk assessments</strong> — these
+            are <em>planned controls, not enforced production policies</em>. The machine-readable
+            shape lives at{' '}
+            <Link
+              href="/api/compliance/evidence"
+              className="mono"
+              style={{ color: 'var(--vs-accent-ink)', textDecoration: 'underline' }}
+            >
+              /api/compliance/evidence
+            </Link>
+            .
+          </p>
+          <div className="vs-grid-3">
+            <Card>
+              <CardBody>
+                <span className="vs-micro">01 · Data classification</span>
+                <h3 className="vs-h3" style={{ marginTop: 10 }}>
+                  redactionLive: {String(dataClassification.redactionLive)}
+                </h3>
+                <p className="vs-muted vs-small" style={{ marginTop: 8, lineHeight: 1.55 }}>
+                  {dataClassification.rules.length} redaction rules documented. Redaction is modeled,
+                  not enforced — rules ship as types, not as a live pipeline.
+                </p>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <span className="vs-micro">02 · Retention</span>
+                <h3 className="vs-h3" style={{ marginTop: 10 }}>
+                  retentionEnforced: {String(retention.retentionEnforced)}
+                </h3>
+                <p className="vs-muted vs-small" style={{ marginTop: 8, lineHeight: 1.55 }}>
+                  {retention.policies.length} entity policies modeled. Auto-delete is planned, not
+                  active — retention here is a contract, not a cron.
+                </p>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <span className="vs-micro">03 · Authority adapters</span>
+                <h3 className="vs-h3" style={{ marginTop: 10 }}>
+                  allAdaptersLive: {String(adapters.allAdaptersLive)}
+                </h3>
+                <p className="vs-muted vs-small" style={{ marginTop: 8, lineHeight: 1.55 }}>
+                  {adapters.adapters.length} adapters scaffolded. Authority connectors are typed
+                  shells until each board API is integrated.
+                </p>
+              </CardBody>
+            </Card>
+          </div>
+        </Section>
+
+        <Section
+          num="04"
           title="Operational scope"
           aside="What we run · what we don't claim"
         >
@@ -373,7 +463,7 @@ export default function StatusPage() {
         </Section>
 
         <Section
-          num="04"
+          num="05"
           title="Public verification endpoints"
           aside="No authentication required"
         >

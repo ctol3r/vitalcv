@@ -1,7 +1,4 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import * as React from 'react';
 import { CmdPill } from './primitives';
 
@@ -38,6 +35,10 @@ export type NavProps = {
   cta?: React.ReactNode;
   /** Show ⌘K command pill. Defaults to true. */
   showCmdPill?: boolean;
+  /** Mark a link as active. Match by href (the path portion, before `?`).
+   *  Pages know their own route — passing this avoids the client-only
+   *  `usePathname` hook, which keeps Nav server-renderable. */
+  activePath?: string;
   className?: string;
 };
 
@@ -51,14 +52,17 @@ export function Nav({
   status = DEFAULT_STATUS,
   cta,
   showCmdPill = true,
+  activePath,
   className,
 }: NavProps) {
-  const pathname = usePathname();
-
+  // Nav is server-renderable so the route pages don't need `'use client'`
+  // just to mount it. Active-link highlighting comes from the caller's
+  // `activePath` (the route already knows what page it is).
   function isActive(href: string): boolean {
+    if (!activePath) return false;
     const [pathOnly] = href.split('?');
-    if (pathOnly === '/') return pathname === '/';
-    return pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
+    if (pathOnly === '/') return activePath === '/';
+    return activePath === pathOnly || activePath.startsWith(`${pathOnly}/`);
   }
 
   return (

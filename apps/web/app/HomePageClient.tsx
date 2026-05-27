@@ -67,6 +67,7 @@ export default function HomePageClient() {
   return (
     <Shell>
       <Nav
+        activePath="/"
         cta={
           <>
             <LinkButton href="/sign-in">Sign in</LinkButton>

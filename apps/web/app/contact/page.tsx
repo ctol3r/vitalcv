@@ -33,6 +33,7 @@ export default function ContactPage() {
   return (
     <Shell>
       <Nav
+        activePath="/contact"
         cta={
           <>
             <LinkButton href="/sign-in">Sign in</LinkButton>
