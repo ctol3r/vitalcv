@@ -79,14 +79,16 @@ Companion to:
 | Wave | Date | Mission | Outcome | Artifacts | Blockers |
 |---:|---|---|---|---|---|
 | 20 | 2026-05-27 | Audit + merge PR #422 (Web Quality vitest exclude) | **SAFE** local audit; **MERGED** as `801100c7f24f69b2ed5810197f3f5f58fc81333d` on 2026-05-27 03:28:22Z. Playwright collision error confirmed gone (`Vitest` no longer collects `apps/web/tests/trust-register.spec.ts`). 5–6 remaining `__tests__/` failures are pre-existing drift, not caused by this PR. | merge commit `801100c7f` | None — landed. |
+| 21 | 2026-05-27 | Browser verification of PR #423 live deployment | **CONFIRMED PR423 LIVE.** Independent Browser-side verification of Railway active deployment + cache-busted `/health` probe. Railway active deployment subject literally contains `(#423)`; `api.vitalcv.com/health?cb=v423r3` returns `git_sha:9f272c80c…` (exact PR #423 merge SHA), `status:"ok"`, 12 requests / 0 errors / p90 73ms (fresh container). Railway history shows PR #421 deployment in `REMOVED` state (superseded by #423 as expected). No Railway FAILED rows reference #421 or #423. Browser session: read-only, no buttons clicked, no env/DNS/Railway/secret mutation. | classification `PR423 LIVE` | None for deployment. Authenticated SSE smoke still pending (needs operator browser session). |
 
 ### Carry-overs to next batch
 
-- **Authenticated SSE smoke for NPI 1699264564** — operator-only; smallest wave that gates the largest move (PTC from 48% → 50%+).
-- ~~**PR #422 audit + merge**~~ ✅ landed.
+- **Authenticated SSE smoke for NPI 1699264564** — operator-only; smallest wave that gates the largest move (PTC from 48% → "validated live"). With Browser confirming the container is live on PR #423, this is now the only gate between "deployed" and "validated live" for NPPES truth-state.
+- ~~**PR #422 audit + merge**~~ ✅ landed (Wave 20).
+- ~~**Browser deployment confirmation for PR #423**~~ ✅ done (Wave 21 — `PR423 LIVE`).
 - **`fix/nppes-source-health-observability`** — Wave D's task 1 + task 3 bundled; first coding wave after the cascade.
+- **Web `/api/health` `backend.status: "degraded"` investigation** — likely-truthful signal (composite of lane-connectivity, where OIG/PECOS/STATE_BOARD/FSMB/NURSYS are intentionally not-connected per PR #419 honest copy), but might be stale cache. Operator hypothesis from Wave 21: the web aggregator may flag "degraded" based on source-lane status rather than backend process health. Worth a code-side inspection of `apps/web/app/api/health/route.ts` (Claude Code, not Browser).
 - **Operator: configure `CRON_SECRET`** — fixes the two failing scheduled workflows. Cosmetic but worth it.
-- **Operator: investigate web `/api/health` `backend.status: "degraded"`** — cosmetic observability hygiene.
 - **`__tests__/` drift cleanup** (5–6 failing tests on `main` post-#422): `wave1-external-pilot-flow`, `status-page-compliance-evidence`, `foundation-sweep-6-analytics-status`, `foundation-sweep-6-commercial`, `passport-ingest-page`, `review-page-contract`. Not new; surfaced by PR #422 making Vitest finally reachable in CI. Worth opening a triage wave.
 
 ## Ledger maintenance rule

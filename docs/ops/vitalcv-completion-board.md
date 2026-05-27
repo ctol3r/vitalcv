@@ -1,11 +1,11 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: 2026-05-27 (post-cascade convergence — **PRs #421 + #423 + #422 ALL MERGED**; #421 + #423 deployed live; SSE smoke still pending)
-Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED, #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + DEPLOYED (auto-redeploy confirmed 2026-05-27 03:18Z), #424 (docs tracking, open)
+Last updated: 2026-05-27 (post-cascade — **PRs #421 + #423 + #422 ALL MERGED**; **PR #423 deployment Browser-confirmed `PR423 LIVE`**; SSE smoke still pending)
+Latest PRs involved: #420 (open, superseded by #423 transplant), #421 ✅ merged `fe9c6f9c1` + DEPLOYED (now REMOVED in Railway history, superseded by #423), #422 ✅ merged `801100c7f`, #423 ✅ merged `9f272c80c` + **DEPLOYED ACTIVE on `delightful-essence`** (Browser verification + `/health` SHA match), #424 (docs tracking, open)
 Source branch (for board update only): `docs/wave-batch-tracking`
 
 `main` head: `801100c7f24f69b2ed5810197f3f5f58fc81333d`
-`api.vitalcv.com/health` 2026-05-27 03:18Z → `status:"ok"`, `git_branch:"main"`, `git_sha:"9f272c80c…"`, 13 requests / 0 errors / p90 73 ms. (PR #422 is web-only / CI-config; api deploys are unaffected by it.)
+Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit). 12 requests, 0 errors, p90 73 ms — fresh container. Railway active row subject contains `(#423)`. Browser-confirmed read-only verification, no Railway settings touched.
 
 ## Standing rule
 
@@ -702,18 +702,18 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 | Product Truth Contract | **48** | **12** | +1 % / −1 wave | merged + deployed | PR #423 deployed live (`/health` confirms `git_sha`); behavior not yet validated via authenticated SSE smoke. Move beyond 48% gated on smoke result. |
 | Core Credentialing Workflow | **30** | **25** | +1 % / −1 wave | planned | Minor uplift on aggregate hardening; no specific credentialing surface changed this wave. |
 | Source Integrations / PSV | **18** | **40** | — | planned | **Held at 18%** per operator instruction. SSE smoke unconfirmed; do not raise until live NPPES SUCCESS is observed. |
-| Backend / API Reliability | **29** | **27** | +1 % / −2 waves | **deployed live** | PR #421 live + #423 live; both merge commits visible at `api.vitalcv.com/health`. 13 requests, 0 errors observed. |
+| Backend / API Reliability | **30** | **26** | +1 % / −1 wave (post-Browser-verify) | **deployed live** | PR #421 + #423 both confirmed live by Browser (Wave 21). 12 requests / 0 errors / p90 73ms / fresh container. Railway active row subject contains `(#423)`; PR #421 deployment in REMOVED state (correctly superseded). |
 | Database / Persistence Layer | **16** | **40** | — | planned | Unchanged. **Largest single board blocker.** |
 | Trust / Proof / Receipts | **32** | **27** | −1 % vs prior (corrected) | merged + deployed | Pulled back 1% from prior 33% (over-credited tenant isolation without live truth-state SSE proof). Tenant isolation is deployed live; replay receipts behavior not yet exercised against live SSE. |
 | Frontend UX / Role Journeys | **35** | **24** | — | merged + deployed | No action this wave. |
 | Sign-up / Auth / Onboarding | **22** | **28** | — | planned | **Held at 22%** per operator instruction. |
 | Interoperability / Standards | **26** | **34** | — | planned | No action this wave. |
 | Demo / Sales Conversion | **24** | **32** | — | planned | **Held at 24%** per operator instruction. No GTM movement. |
-| Deployment / DevOps | **28** | **26** | — % / −2 waves | **deployed live** | Same % as prior; closed 2 more waves of work as `delightful-essence` auto-deploy proved stable across two consecutive merges. |
+| Deployment / DevOps | **29** | **25** | +1 % / −1 wave (post-Browser-verify) | **deployed live** | Browser-side independent verification (Wave 21) of Railway active deployment subject + cache-busted `/health` probe — both signals agree on `(#423)` / `9f272c80c…`. Railway pipeline now demonstrably handles main-watching auto-redeploy cleanly across 3 consecutive merges (#421 → #423, with #422 not impacting API). |
 | Testing / CI / Quality Gates | **31** | **26** | +1 % vs new baseline / −1 wave | merged | PR #422 (vitest exclude) merged as `801100c7f` on 2026-05-27 03:28:22Z. Playwright/Vitest collision is gone on `main`; 5–6 pre-existing `__tests__/` failures now surfaced — opens a triage wave but not a regression. 22 + 1 (one-line CI config) tests/configs landed. |
 | Self-Improving System / Agents | **14** | **49** | +1 % / −1 wave | planned | Local Claude Code audit pattern hardened across two PRs (#421 + #423); the substitute gate worked. |
 | Business / GTM / Revenue Engine | **17** | **50** | — | planned | No action this wave. |
-| **Overall Billion-Dollar Readiness** | **26** | **394** | +1 % / −3 waves | mixed | Weighted aggregate; reflects #423 deployed live, but capped by SSE smoke not yet run. |
+| **Overall Billion-Dollar Readiness** | **27** | **392** | +1 % / −2 waves (post-Browser-verify) | mixed | Weighted aggregate; Browser-confirmed deployment moves Backend/API + Deployment/DevOps; still capped by SSE smoke pending. |
 
 ### Per-PR state transitions (since evening half)
 
@@ -722,7 +722,7 @@ The evening half of the 2026-05-26 batch closed the merge cascade. Codex was una
 | #420 | open | Superseded by #423 transplant; operator decision whether to close. |
 | #421 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`. |
 | #422 | **MERGED** `801100c7f` | Local audit SAFE on 2026-05-27; merged at 03:28Z. |
-| #423 | **MERGED + DEPLOYED LIVE** | `git_sha` confirmed on `/health`; behavior pending SSE smoke. |
+| #423 | **MERGED + DEPLOYED LIVE (Browser-confirmed Wave 21)** | Railway active row subject contains `(#423)`, `/health` SHA matches, 12 req / 0 err / p90 73ms. Behavior validation (SSE smoke) still pending. |
 | #424 | open | Tracking PR; this update lives on its branch. |
 
 ### Next recommended wave
