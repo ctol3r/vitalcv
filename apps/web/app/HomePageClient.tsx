@@ -17,15 +17,67 @@ function formatNpi(value: string): string {
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
 }
 
-const PREVIEW_STEPS = [
+/**
+ * Role doors — four entry points keyed off operator role.
+ *
+ * Each door is a calm card with a single action. Doors share a flat
+ * visual treatment (no gradients, no hover lift, no shadow-stack drama)
+ * so the NPI lookup above remains the unambiguous primary action.
+ */
+const ROLE_DOORS = [
   {
-    title: 'Recognized',
-    body: 'One NPI opens a source-backed snapshot.',
+    role: 'Verifier',
+    action: 'Look up an NPI',
+    href: '/',
+    blurb: 'See what is source-backed about a clinician.',
   },
   {
-    title: 'Moving forward',
-    body: 'Onboarding continues the path.',
+    role: 'Clinician',
+    action: 'Claim my NPI record',
+    href: '/onboarding',
+    blurb: 'Open the snapshot tied to your NPI.',
   },
+  {
+    role: 'Employer',
+    action: 'Review a passport',
+    href: '/employers',
+    blurb: 'Reviewer-ready head start, not a final credentialing decision.',
+  },
+  {
+    role: 'Issuer',
+    action: 'Connect a source',
+    href: '/issuer',
+    blurb: 'Add a primary-source lane to the trust register.',
+  },
+] as const;
+
+/**
+ * Proof strip — three terse columns that name what every Passport row
+ * carries. Avoids dashboard chrome; reads like a document caption.
+ */
+const PROOF_STRIP = [
+  {
+    label: 'Source',
+    text: 'Every field names the primary source we read.',
+  },
+  {
+    label: 'State',
+    text: 'Source-backed, gated, or temporarily unavailable.',
+  },
+  {
+    label: 'Review boundary',
+    text: 'Institution review remains the final step.',
+  },
+] as const;
+
+/**
+ * Footer trust row — small links the operator can use to inspect the
+ * truth contract directly. Local; no marketing chrome.
+ */
+const TRUST_FOOTER_LINKS = [
+  { label: 'Status', href: '/status' },
+  { label: 'Source attribution', href: '/trust/attribution' },
+  { label: 'Trust', href: '/trust' },
 ] as const;
 
 export default function HomePageClient() {
@@ -77,119 +129,194 @@ export default function HomePageClient() {
         </SignedIn>
       )}
 
-      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16 sm:py-20">
-        <div className="w-full max-w-3xl">
-          <div className="space-y-6">
-            <h1 className="max-w-2xl text-[clamp(3rem,7.5vw,5rem)] leading-[0.92] font-semibold tracking-[-0.06em] text-[var(--vt-text-primary)]">
-              Enter your NPI.
-              <br />
-              See what is ready.
-            </h1>
+      <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-start px-6 py-16 sm:py-20">
+        <div className="w-full">
 
-            <p className="max-w-xl text-[18px] leading-[1.65] text-[var(--vt-text-secondary)]">
-              VitalCV turns one NPI into a source-backed snapshot that recognizes you and points forward.
-            </p>
-          </div>
-
-          <Card className="mt-10 max-w-2xl border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] shadow-[0_1px_0_rgba(255,255,255,0.72),0_18px_48px_rgba(15,23,42,0.05)]">
-            <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
-              <form
-                className="space-y-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  handleSubmit();
-                }}
+          {/* Hero — NPI-first lookup with trust-bounded headline */}
+          <section aria-label="NPI lookup" data-home-hero="" className="max-w-3xl">
+            <div className="space-y-5">
+              <h1 className="text-[clamp(2.5rem,6vw,4rem)] leading-[0.96] font-semibold tracking-[-0.04em] text-[var(--vt-text-primary)]">
+                Look up an NPI.
+              </h1>
+              <p
+                data-home-hero-subhead=""
+                className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
               >
-                <label
-                  htmlFor="npi"
-                  className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]"
-                >
-                  NPI
-                </label>
+                See what is source-backed, what is gated, and what still needs institution review.
+              </p>
+            </div>
 
-                <div
-                  className={cn(
-                    'flex flex-col overflow-hidden rounded-[1.5rem] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
-                    focused
-                      ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
-                      : 'border-[var(--vt-border)]',
-                  )}
+            <Card className="mt-8 max-w-2xl border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] shadow-[0_1px_0_rgba(255,255,255,0.72),0_18px_48px_rgba(15,23,42,0.05)]">
+              <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+                <form
+                  className="space-y-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleSubmit();
+                  }}
                 >
-                  <div className="flex items-center gap-3 px-4 pt-4 text-[var(--vt-text-muted)] sm:pt-0">
-                    <Fingerprint size={18} aria-hidden="true" />
-                  </div>
-                  <Input
-                    id="npi"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="Enter 10-digit NPI"
-                    value={formatNpi(raw)}
-                    onChange={(event) => {
-                      setRaw(event.target.value);
-                      setError(null);
-                    }}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    aria-invalid={Boolean(error)}
-                    aria-describedby={error ? 'home-npi-error' : undefined}
-                    className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!isFull}
+                  <label
+                    htmlFor="npi"
+                    className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]"
+                  >
+                    NPI
+                  </label>
+
+                  <div
                     className={cn(
-                      'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
-                      isFull
-                        ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
-                        : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                      'flex flex-col overflow-hidden rounded-[1.5rem] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
+                      focused
+                        ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
+                        : 'border-[var(--vt-border)]',
                     )}
                   >
-                    Open passport
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </button>
+                    <div className="flex items-center gap-3 px-4 pt-4 text-[var(--vt-text-muted)] sm:pt-0">
+                      <Fingerprint size={18} aria-hidden="true" />
+                    </div>
+                    <Input
+                      id="npi"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="Enter 10-digit NPI"
+                      value={formatNpi(raw)}
+                      onChange={(event) => {
+                        setRaw(event.target.value);
+                        setError(null);
+                      }}
+                      onFocus={() => setFocused(true)}
+                      onBlur={() => setFocused(false)}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? 'home-npi-error' : undefined}
+                      className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
+                    />
+                    <button
+                      type="submit"
+                      data-home-primary-cta=""
+                      disabled={!isFull}
+                      className={cn(
+                        'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
+                        isFull
+                          ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
+                          : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                      )}
+                    >
+                      Look up an NPI
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                </form>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                  <span
+                    className={error ? 'text-[var(--vt-state-blocked)]' : undefined}
+                    role={error ? 'alert' : undefined}
+                    id={error ? 'home-npi-error' : undefined}
+                  >
+                    {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
+                  </span>
+                  <span className="text-[var(--vt-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>No account required</span>
+                  <span className="text-[var(--vt-border)]" aria-hidden="true">
+                    ·
+                  </span>
+                  <Link
+                    href="/sign-in"
+                    data-home-secondary-cta=""
+                    className="font-medium text-[var(--vt-text-secondary)] underline underline-offset-4 transition-opacity hover:opacity-80"
+                  >
+                    Sign in
+                  </Link>
                 </div>
-              </form>
+              </CardContent>
+            </Card>
+          </section>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
-                <span
-                  className={error ? 'text-[var(--vt-state-blocked)]' : undefined}
-                  role={error ? 'alert' : undefined}
-                  id={error ? 'home-npi-error' : undefined}
+          {/* Role doors — four calm entry points */}
+          <section
+            aria-label="Role-specific entry points"
+            data-home-role-doors=""
+            className="mt-14"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              By role
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {ROLE_DOORS.map((door) => (
+                <Link
+                  key={door.role}
+                  href={door.href}
+                  data-home-role-door={door.role.toLowerCase()}
+                  className="group flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)] transition-colors hover:border-[var(--vt-text-primary)]"
                 >
-                  {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
-                </span>
-                <span className="text-[var(--vt-border)]" aria-hidden="true">
-                  ·
-                </span>
-                <span>No account required</span>
-                <span className="text-[var(--vt-border)]" aria-hidden="true">
-                  ·
-                </span>
-                <span>Source-backed</span>
-              </div>
-            </CardContent>
-          </Card>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                    {door.role}
+                  </p>
+                  <p className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
+                    {door.action}
+                  </p>
+                  <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
+                    {door.blurb}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {PREVIEW_STEPS.map((step) => (
-              <div
-                key={step.title}
-                className="rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_92%,white)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
-                  {step.title}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--vt-text-secondary)]">
-                  {step.body}
-                </p>
-              </div>
+          {/* Proof strip — what every passport row carries */}
+          <section
+            aria-label="What every passport row carries"
+            data-home-proof-strip=""
+            className="mt-14"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              Every row carries
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {PROOF_STRIP.map((col) => (
+                <div
+                  key={col.label}
+                  data-home-proof-col={col.label.toLowerCase().replace(/\s+/g, '-')}
+                  className="rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                    {col.label}
+                  </p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--vt-text-secondary)]">
+                    {col.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Trust footer row — calm pointer links, no marketing chrome */}
+          <nav
+            aria-label="Trust footer"
+            data-home-trust-footer=""
+            className="mt-14 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+              Trust
+            </span>
+            {TRUST_FOOTER_LINKS.map((link, idx) => (
+              <React.Fragment key={link.href}>
+                {idx > 0 && (
+                  <span aria-hidden="true" className="text-[var(--vt-border)]">
+                    ·
+                  </span>
+                )}
+                <Link
+                  href={link.href}
+                  className="font-medium text-[var(--vt-text-secondary)] underline-offset-4 transition-opacity hover:underline hover:opacity-90"
+                >
+                  {link.label}
+                </Link>
+              </React.Fragment>
             ))}
-          </div>
-
-          <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[var(--vt-text-muted)]">
-            The first result is a passport snapshot. Onboarding continues the path.
-          </p>
+          </nav>
         </div>
       </main>
     </div>
