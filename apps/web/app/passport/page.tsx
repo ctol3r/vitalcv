@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { TrustStateCard } from '@/components/trust/TrustStateCard';
 import { TrustStatusBadge, type TrustBadgeStatus } from '@/components/ui/trust-status-badge';
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
+import { PassportTruthStateBanner } from '@/components/passport/PassportTruthStateBanner';
 import { useIngestStream, hydrateFromHomepagePreview, type IngestStreamState, type StreamPhase } from '@/hooks/useIngestStream';
 import {
   buildPassportEntityHref,
@@ -181,7 +182,7 @@ function SourceRow({ label, state, value }: { label: string; state: SourceState;
         <div>
           <span className="text-muted-foreground text-sm">{label}</span>
           {state === 'error' && (
-            <p className="text-muted-foreground/40 text-xs mt-0.5">Checking in the background — we&apos;ll update when it arrives.</p>
+            <p className="text-muted-foreground/40 text-xs mt-0.5">Source temporarily unavailable. This is a system condition, not a finding about the clinician.</p>
           )}
         </div>
       </div>
@@ -581,6 +582,11 @@ function PassportPageContent({
         {/* Live ingest panel */}
         {isActive && (
           <div className="mx-auto max-w-lg space-y-5 animate-fade-in-up">
+
+            {/* Truth-state banner — 5-row legend + degraded header + institution review boundary */}
+            <PassportTruthStateBanner
+              degraded={genericError || noProfileYet || disconnected}
+            />
 
             {/* Phase label */}
             {isRunning && (
