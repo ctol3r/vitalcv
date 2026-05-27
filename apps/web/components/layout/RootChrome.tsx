@@ -11,7 +11,10 @@ import { PilotSignInTracker } from '@/components/pilot-ops/PilotSignInTracker';
 import PrequalifyBar from '@/components/prequalify/PrequalifyBar';
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher';
 import VCommandBar from '@/components/ops/VCommandBar';
-import { OPS_SURFACE_PREFIXES } from '@/components/layout/publicSurfaceRoutes';
+import {
+  OPS_SURFACE_PREFIXES,
+  isVisualSystemOwnedRoute,
+} from '@/components/layout/publicSurfaceRoutes';
 
 // Single source of truth lives in publicSurfaceRoutes.ts — do not maintain a local copy here.
 function isOperationalRoute(pathname: string | null): boolean {
@@ -29,13 +32,16 @@ interface RootChromeProps {
 export default function RootChrome({ children, clerkEnabled }: RootChromeProps) {
   const pathname = usePathname();
   const operationalRoute = isOperationalRoute(pathname);
+  // Visual-system D57 routes own their own chrome (Nav + Footer under .vs-root)
+  // and must NOT receive the global marketing Navbar/Footer.
+  const visualSystemRoute = isVisualSystemOwnedRoute(pathname);
   const pilotReporter = (
     <Suspense fallback={null}>
       <PilotReporterHost />
     </Suspense>
   );
 
-  if (operationalRoute) {
+  if (operationalRoute || visualSystemRoute) {
     return (
       <>
         <div className="relative min-h-screen">{children}</div>

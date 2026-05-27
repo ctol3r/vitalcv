@@ -1,0 +1,1026 @@
+/* ============================================================
+   VitalCV · shared visual system
+   Paper substrate · ink · hairline · one accent · 8 trust states
+   Ported from handoff prototype (vitalcv-app/styles.css)
+   Scoped to .vs-root so tokens don't pollute existing design system.
+   ============================================================ */
+
+.vs-root {
+  /* paper + ink */
+  --vs-paper:        oklch(98.5% 0.004 85);
+  --vs-paper-warm:   oklch(97% 0.008 85);
+  --vs-paper-inset:  oklch(95% 0.008 85);
+  --vs-paper-edge:   oklch(92% 0.008 85);
+  --vs-ink:          oklch(18% 0.012 265);
+  --vs-ink-strong:   oklch(12% 0.012 265);
+  --vs-ink-mute:     oklch(46% 0.010 265);
+  --vs-ink-subtle:   oklch(62% 0.008 265);
+  --vs-ink-ghost:    oklch(78% 0.006 265);
+  --vs-hairline:     oklch(86% 0.008 265 / 0.9);
+  --vs-hairline-strong: oklch(70% 0.010 265 / 0.55);
+
+  /* single accent — ink-indigo */
+  --vs-accent:       oklch(38% 0.14 274);
+  --vs-accent-ink:   oklch(28% 0.10 274);
+  --vs-accent-wash:  oklch(94% 0.025 274);
+
+  /* truth states — paired ink + wash. never neon, never bare. */
+  --vs-src-backed:        oklch(46% 0.10 152);
+  --vs-src-backed-wash:   oklch(94% 0.03 152);
+  --vs-src-pending:       oklch(54% 0.10 78);
+  --vs-src-pending-wash:  oklch(95% 0.04 78);
+  --vs-src-unavailable:   oklch(58% 0.008 265);
+  --vs-src-unavailable-wash: oklch(94% 0.005 265);
+  --vs-src-self:          oklch(50% 0.05 230);
+  --vs-src-self-wash:     oklch(95% 0.015 230);
+  --vs-review-needed:     oklch(38% 0.14 274);
+  --vs-review-needed-wash: oklch(94% 0.025 274);
+  --vs-sanction:          oklch(48% 0.16 25);
+  --vs-sanction-wash:     oklch(94% 0.04 25);
+  --vs-contradict:        oklch(42% 0.14 305);
+  --vs-contradict-wash:   oklch(94% 0.03 305);
+  --vs-not-asserted:      oklch(72% 0.005 265);
+  --vs-not-asserted-wash: oklch(96% 0.004 265);
+
+  /* type — these are set by next/font on <html> via vs-font-* vars;
+     fall back to a system stack if those vars aren't present. */
+  --vs-sans:  var(--vs-font-sans, 'Geist', ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', sans-serif);
+  --vs-serif: var(--vs-font-serif, 'Fraunces', 'Iowan Old Style', Georgia, serif);
+  --vs-mono:  var(--vs-font-mono, 'Geist Mono', ui-monospace, 'SF Mono', monospace);
+
+  --vs-r-2: 4px;
+  --vs-r-3: 6px;
+  --vs-r-4: 8px;
+  --vs-r-5: 10px;
+
+  --vs-shadow-1: 0 0.5px 0 0 var(--vs-hairline), 0 1px 2px -1px oklch(20% 0.02 265 / 0.06);
+  --vs-shadow-2: 0 0.5px 0 0 var(--vs-hairline), 0 6px 24px -12px oklch(20% 0.02 265 / 0.18);
+  --vs-shadow-press: inset 0 0 0 1px var(--vs-hairline);
+
+  --vs-ease: cubic-bezier(.2,.6,.2,1);
+  --vs-t-fast: 120ms;
+  --vs-t-med:  220ms;
+
+  background: var(--vs-paper);
+  color: var(--vs-ink);
+  font: 400 15px/1.55 var(--vs-sans);
+  font-feature-settings: 'ss01','ss02','cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Reset/normalize inside the visual shell */
+.vs-root *,
+.vs-root *::before,
+.vs-root *::after { box-sizing: border-box; }
+.vs-root .mono,
+.vs-root code,
+.vs-root kbd,
+.vs-root samp {
+  font-family: var(--vs-mono);
+  font-feature-settings: 'zero','tnum';
+  font-variant-numeric: tabular-nums;
+}
+.vs-root .serif { font-family: var(--vs-serif); font-optical-sizing: auto; }
+.vs-root .tnum { font-variant-numeric: tabular-nums; }
+.vs-root a { color: inherit; text-decoration: none; }
+.vs-root button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+.vs-root hr { border: 0; border-top: 1px solid var(--vs-hairline); margin: 0; }
+.vs-root input, .vs-root textarea { font: inherit; }
+.vs-root img, .vs-root svg { display: block; max-width: 100%; }
+
+/* ── NAV ──────────────────────────────────────────────────────── */
+.vs-root .vs-nav {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in oklch, var(--vs-paper) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(120%);
+  border-bottom: 1px solid var(--vs-hairline);
+}
+.vs-root .vs-nav-in {
+  max-width: 1240px; margin: 0 auto;
+  display: flex; align-items: center; gap: 18px;
+  padding: 14px 24px;
+  font-size: 13px;
+  flex-wrap: nowrap;
+}
+.vs-root .vs-nav .vs-btn { white-space: nowrap; }
+.vs-root .vs-brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 500; letter-spacing: -0.01em;
+  color: var(--vs-ink-strong);
+}
+.vs-root .vs-brand .vs-glyph {
+  width: 24px; height: 24px; border-radius: var(--vs-r-2);
+  background: var(--vs-ink-strong); color: var(--vs-paper);
+  display: grid; place-items: center;
+  font-family: var(--vs-serif); font-weight: 400; font-style: italic; font-size: 15px;
+  letter-spacing: -0.04em;
+}
+.vs-root .vs-brand .vs-ver {
+  margin-left: 6px; padding: 1px 6px;
+  border: 1px solid var(--vs-hairline); border-radius: 99px;
+  font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--vs-ink-mute); font-weight: 400; text-transform: uppercase;
+}
+.vs-root .vs-nav-links {
+  display: flex; align-items: center; gap: 4px;
+  margin-left: 12px;
+  font-family: var(--vs-sans); font-size: 13px;
+}
+.vs-root .vs-nav-links a {
+  padding: 6px 10px; color: var(--vs-ink-mute); border-radius: var(--vs-r-2);
+  transition: background var(--vs-t-fast) var(--vs-ease), color var(--vs-t-fast) var(--vs-ease);
+}
+.vs-root .vs-nav-links a:hover { color: var(--vs-ink); background: var(--vs-paper-inset); }
+.vs-root .vs-nav-links a.active { color: var(--vs-ink-strong); background: var(--vs-paper-inset); }
+.vs-root .vs-nav-right { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.vs-root .vs-nav-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute);
+  padding: 4px 8px; border: 1px solid var(--vs-hairline); border-radius: 99px;
+  background: var(--vs-paper); white-space: nowrap;
+}
+.vs-root .vs-nav-status .vs-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--vs-src-backed); box-shadow: 0 0 0 2px var(--vs-src-backed-wash); }
+.vs-root .vs-nav-status.degraded .vs-dot { background: var(--vs-src-pending); box-shadow: 0 0 0 2px var(--vs-src-pending-wash); }
+
+/* chat22 fix #9 — tighten nav 980–1180px: collapse status pill to a dot that expands on hover */
+@media (min-width: 980px) and (max-width: 1180px) {
+  .vs-root .vs-nav-status { padding: 4px; gap: 0; }
+  .vs-root .vs-nav-status > :not(.vs-dot) {
+    max-width: 0; overflow: hidden; white-space: nowrap;
+    transition: max-width var(--vs-t-med) var(--vs-ease), margin var(--vs-t-med) var(--vs-ease);
+    margin-left: 0;
+  }
+  .vs-root .vs-nav-status:hover > :not(.vs-dot) { max-width: 240px; margin-left: 6px; }
+}
+
+/* ── PAGE ─────────────────────────────────────────────────────── */
+.vs-root .vs-page { flex: 1; max-width: 1240px; width: 100%; margin: 0 auto; padding: 56px 28px 80px; }
+.vs-root .vs-page.narrow { max-width: 720px; }
+.vs-root .vs-page.split { max-width: none; padding: 0; }
+
+.vs-root .vs-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--vs-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--vs-ink-mute);
+}
+.vs-root .vs-eyebrow .vs-ln { display: inline-block; width: 24px; height: 1px; background: var(--vs-hairline-strong); }
+.vs-root .vs-eyebrow .vs-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 7px; border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-2);
+  color: var(--vs-ink); background: var(--vs-paper);
+  white-space: nowrap;
+}
+
+/* ── TYPE ─────────────────────────────────────────────────────── */
+.vs-root .vs-h-display {
+  font: 300 56px/1.04 var(--vs-sans);
+  letter-spacing: -0.032em; color: var(--vs-ink-strong);
+  margin: 0; max-width: 22ch;
+}
+.vs-root .vs-h-display em { font-family: var(--vs-serif); font-style: italic; font-weight: 400; color: var(--vs-accent-ink); }
+.vs-root .vs-h1 { font: 500 32px/1.12 var(--vs-sans); letter-spacing: -0.022em; color: var(--vs-ink-strong); margin: 0; }
+.vs-root .vs-h2 { font: 500 22px/1.2 var(--vs-sans); letter-spacing: -0.014em; color: var(--vs-ink-strong); margin: 0; }
+.vs-root .vs-h3 { font: 500 17px/1.3 var(--vs-sans); letter-spacing: -0.01em; color: var(--vs-ink-strong); margin: 0; }
+.vs-root .vs-lede {
+  font: 400 17px/1.55 var(--vs-sans);
+  color: var(--vs-ink-mute); max-width: 60ch; letter-spacing: -0.005em;
+}
+.vs-root .vs-lede strong { color: var(--vs-ink); font-weight: 500; }
+.vs-root .vs-micro {
+  font-family: var(--vs-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--vs-ink-mute);
+}
+.vs-root .vs-small { font-size: 12.5px; }
+.vs-root .vs-muted { color: var(--vs-ink-mute); }
+
+/* ── CARD / SURFACE ───────────────────────────────────────────── */
+.vs-root .vs-card {
+  background: var(--vs-paper);
+  border: 1px solid var(--vs-hairline);
+  border-radius: var(--vs-r-4);
+  overflow: hidden;
+}
+.vs-root .vs-card.warm { background: var(--vs-paper-warm); }
+.vs-root .vs-card-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--vs-hairline);
+  font-family: var(--vs-mono); font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--vs-ink-mute);
+  background: var(--vs-paper-warm);
+}
+.vs-root .vs-card-hd .vs-ttl { color: var(--vs-ink); letter-spacing: 0.04em; }
+.vs-root .vs-card-hd .vs-sp { flex: 1; }
+.vs-root .vs-card-hd .vs-aside { color: var(--vs-ink-subtle); }
+.vs-root .vs-card-bd { padding: 22px; }
+.vs-root .vs-card-bd.tight { padding: 16px; }
+.vs-root .vs-card-ft {
+  border-top: 1px solid var(--vs-hairline);
+  padding: 10px 16px;
+  font-family: var(--vs-mono); font-size: 11px;
+  color: var(--vs-ink-mute);
+  background: var(--vs-paper-warm);
+  display: flex; align-items: center; gap: 12px;
+}
+
+/* ── TRUTH STATE CHIPS ────────────────────────────────────────── */
+/* Single-segment chip — used only in legends and 'never bare' positions */
+.vs-root .vs-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 99px;
+  font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  border: 1px solid var(--vs-hairline);
+  background: var(--vs-paper); color: var(--vs-ink-mute);
+  text-transform: uppercase; white-space: nowrap;
+  font-weight: 500;
+}
+.vs-root .vs-chip .vs-glyph { width: 6px; height: 6px; border-radius: 99px; background: var(--vs-ink-ghost); flex-shrink: 0; }
+
+.vs-root .vs-chip[data-state="source-backed"]  { color: var(--vs-src-backed); background: var(--vs-src-backed-wash); border-color: color-mix(in oklch, var(--vs-src-backed) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="source-backed"] .vs-glyph { background: var(--vs-src-backed); }
+.vs-root .vs-chip[data-state="pending-source"] { color: var(--vs-src-pending); background: var(--vs-src-pending-wash); border-color: color-mix(in oklch, var(--vs-src-pending) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="pending-source"] .vs-glyph { background: var(--vs-src-pending); }
+.vs-root .vs-chip[data-state="source-unavailable"] { color: var(--vs-ink-mute); background: var(--vs-src-unavailable-wash); }
+.vs-root .vs-chip[data-state="source-unavailable"] .vs-glyph { background: var(--vs-ink-mute); }
+.vs-root .vs-chip[data-state="self-reported"] { color: var(--vs-src-self); background: var(--vs-src-self-wash); border-color: color-mix(in oklch, var(--vs-src-self) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="self-reported"] .vs-glyph { background: var(--vs-src-self); }
+.vs-root .vs-chip[data-state="review-needed"] { color: var(--vs-accent-ink); background: var(--vs-review-needed-wash); border-color: color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="review-needed"] .vs-glyph { background: var(--vs-accent); }
+.vs-root .vs-chip[data-state="sanction"] { color: var(--vs-sanction); background: var(--vs-sanction-wash); border-color: color-mix(in oklch, var(--vs-sanction) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="sanction"] .vs-glyph { background: var(--vs-sanction); }
+.vs-root .vs-chip[data-state="contradicted"] { color: var(--vs-contradict); background: var(--vs-contradict-wash); border-color: color-mix(in oklch, var(--vs-contradict) 22%, var(--vs-hairline)); }
+.vs-root .vs-chip[data-state="contradicted"] .vs-glyph { background: var(--vs-contradict); }
+.vs-root .vs-chip[data-state="not-asserted"] { color: var(--vs-ink-subtle); background: var(--vs-not-asserted-wash); border-style: dashed; }
+.vs-root .vs-chip[data-state="not-asserted"] .vs-glyph { background: var(--vs-ink-ghost); }
+.vs-root .vs-chip.solid { background: var(--vs-ink-strong); color: var(--vs-paper); border-color: transparent; }
+
+/* Compound chip — state + source + date (never bare).
+   This is the canonical form. The single .vs-chip above is reserved for legends. */
+.vs-root .vs-truth {
+  display: inline-flex; align-items: stretch; border: 1px solid var(--vs-hairline);
+  border-radius: 99px; background: var(--vs-paper); overflow: hidden;
+  font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  flex-shrink: 0; flex-wrap: nowrap;
+}
+.vs-root .vs-truth .vs-st {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; color: var(--vs-ink-mute); text-transform: uppercase;
+  white-space: nowrap;
+}
+.vs-root .vs-truth .vs-st .vs-glyph { width: 6px; height: 6px; border-radius: 99px; background: var(--vs-ink-ghost); flex-shrink: 0; }
+.vs-root .vs-truth .vs-src {
+  border-left: 1px solid var(--vs-hairline);
+  padding: 3px 8px; color: var(--vs-ink); text-transform: none;
+  background: var(--vs-paper-warm);
+  white-space: nowrap;
+}
+.vs-root .vs-truth[data-state="source-backed"] .vs-st,
+.vs-root .vs-truth.t-backed .vs-st { color: var(--vs-src-backed); background: var(--vs-src-backed-wash); }
+.vs-root .vs-truth[data-state="source-backed"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-backed .vs-st .vs-glyph { background: var(--vs-src-backed); }
+.vs-root .vs-truth[data-state="pending-source"] .vs-st,
+.vs-root .vs-truth.t-pending .vs-st { color: var(--vs-src-pending); background: var(--vs-src-pending-wash); }
+.vs-root .vs-truth[data-state="pending-source"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-pending .vs-st .vs-glyph { background: var(--vs-src-pending); }
+.vs-root .vs-truth[data-state="source-unavailable"] .vs-st,
+.vs-root .vs-truth.t-unavail .vs-st { color: var(--vs-ink-mute); background: var(--vs-src-unavailable-wash); }
+.vs-root .vs-truth[data-state="source-unavailable"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-unavail .vs-st .vs-glyph { background: var(--vs-ink-mute); }
+.vs-root .vs-truth[data-state="self-reported"] .vs-st,
+.vs-root .vs-truth.t-self .vs-st { color: var(--vs-src-self); background: var(--vs-src-self-wash); }
+.vs-root .vs-truth[data-state="self-reported"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-self .vs-st .vs-glyph { background: var(--vs-src-self); }
+.vs-root .vs-truth[data-state="review-needed"] .vs-st,
+.vs-root .vs-truth.t-review .vs-st { color: var(--vs-accent-ink); background: var(--vs-review-needed-wash); }
+.vs-root .vs-truth[data-state="review-needed"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-review .vs-st .vs-glyph { background: var(--vs-accent); }
+.vs-root .vs-truth[data-state="sanction"] .vs-st,
+.vs-root .vs-truth.t-sanction .vs-st { color: var(--vs-sanction); background: var(--vs-sanction-wash); }
+.vs-root .vs-truth[data-state="sanction"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-sanction .vs-st .vs-glyph { background: var(--vs-sanction); }
+.vs-root .vs-truth[data-state="contradicted"] .vs-st,
+.vs-root .vs-truth.t-contradict .vs-st { color: var(--vs-contradict); background: var(--vs-contradict-wash); }
+.vs-root .vs-truth[data-state="contradicted"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-contradict .vs-st .vs-glyph { background: var(--vs-contradict); }
+.vs-root .vs-truth[data-state="not-asserted"] .vs-st,
+.vs-root .vs-truth.t-not-asserted .vs-st { color: var(--vs-ink-subtle); background: var(--vs-not-asserted-wash); }
+.vs-root .vs-truth[data-state="not-asserted"] .vs-st .vs-glyph,
+.vs-root .vs-truth.t-not-asserted .vs-st .vs-glyph { background: var(--vs-ink-ghost); }
+
+/* ── BUTTON / INPUT ──────────────────────────────────────────── */
+.vs-root .vs-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: var(--vs-r-3);
+  border: 1px solid var(--vs-hairline); background: var(--vs-paper);
+  font: 500 13.5px/1 var(--vs-sans); color: var(--vs-ink);
+  transition: background var(--vs-t-fast) var(--vs-ease), border-color var(--vs-t-fast) var(--vs-ease), transform var(--vs-t-fast) var(--vs-ease);
+  letter-spacing: -0.005em; cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.vs-root .vs-btn:hover { border-color: var(--vs-hairline-strong); background: var(--vs-paper-warm); }
+.vs-root .vs-btn:active { transform: translateY(0.5px); }
+.vs-root .vs-btn.primary { background: var(--vs-ink-strong); color: var(--vs-paper); border-color: var(--vs-ink-strong); }
+.vs-root .vs-btn.primary:hover { background: var(--vs-ink); border-color: var(--vs-ink); }
+.vs-root .vs-btn.accent { background: var(--vs-accent); color: var(--vs-paper); border-color: var(--vs-accent); }
+.vs-root .vs-btn.accent:hover { background: var(--vs-accent-ink); border-color: var(--vs-accent-ink); }
+.vs-root .vs-btn.ghost { border-color: transparent; background: transparent; color: var(--vs-ink-mute); }
+.vs-root .vs-btn.ghost:hover { color: var(--vs-ink); background: var(--vs-paper-inset); }
+.vs-root .vs-btn.lg { padding: 12px 18px; font-size: 14px; }
+.vs-root .vs-btn .vs-kbd {
+  display: inline-flex; padding: 1px 5px; border-radius: 3px;
+  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
+  font-family: var(--vs-mono); font-size: 10.5px; opacity: 0.7;
+  margin-left: 4px;
+}
+
+.vs-root .vs-input, .vs-root .vs-select {
+  width: 100%; display: block;
+  padding: 11px 14px;
+  background: var(--vs-paper); border: 1px solid var(--vs-hairline);
+  border-radius: var(--vs-r-3); color: var(--vs-ink);
+  font: 400 14px/1.3 var(--vs-sans);
+  transition: border-color var(--vs-t-fast) var(--vs-ease), box-shadow var(--vs-t-fast) var(--vs-ease);
+}
+.vs-root .vs-input:focus, .vs-root .vs-select:focus { outline: none; border-color: var(--vs-accent); box-shadow: 0 0 0 4px var(--vs-accent-wash); }
+.vs-root .vs-input.mono { font-family: var(--vs-mono); letter-spacing: 0.06em; font-size: 14.5px; }
+.vs-root .vs-input.lg { padding: 14px 16px; font-size: 16px; }
+
+.vs-root .vs-field-grp { display: flex; flex-direction: column; gap: 6px; }
+.vs-root .vs-field-grp label { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-mute); }
+.vs-root .vs-field-grp .vs-hint { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); display: flex; justify-content: space-between; margin-top: 2px; }
+.vs-root .vs-field-grp .vs-hint a { text-decoration: underline; text-decoration-color: var(--vs-hairline-strong); text-underline-offset: 2px; }
+.vs-root .vs-field-grp .vs-hint a:hover { color: var(--vs-accent-ink); text-decoration-color: var(--vs-accent); }
+
+/* ── SEGMENTED ───────────────────────────────────────────────── */
+.vs-root .vs-segment {
+  display: inline-flex; padding: 3px;
+  background: var(--vs-paper-inset); border-radius: var(--vs-r-3);
+  border: 1px solid var(--vs-hairline);
+}
+.vs-root .vs-segment button {
+  padding: 6px 12px; border-radius: var(--vs-r-2);
+  font-family: var(--vs-mono); font-size: 11px; letter-spacing: 0.04em;
+  color: var(--vs-ink-mute); text-transform: uppercase;
+  transition: all var(--vs-t-fast) var(--vs-ease);
+}
+.vs-root .vs-segment button.active { background: var(--vs-paper); color: var(--vs-ink-strong); box-shadow: var(--vs-shadow-1); }
+
+/* ── FIELD ROW ───────────────────────────────────────────────── */
+.vs-root .vs-field {
+  display: grid; grid-template-columns: 200px 1fr auto; gap: 20px;
+  align-items: start; padding: 14px 0;
+  border-top: 1px solid var(--vs-hairline);
+}
+.vs-root .vs-field:first-child { border-top: 0; }
+.vs-root .vs-field .vs-label { font-family: var(--vs-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-mute); padding-top: 3px; }
+.vs-root .vs-field .vs-value { font: 500 15px/1.4 var(--vs-sans); color: var(--vs-ink-strong); letter-spacing: -0.005em; }
+.vs-root .vs-field .vs-value.mono-val { font-family: var(--vs-mono); letter-spacing: 0.04em; font-weight: 500; }
+.vs-root .vs-field .vs-value .vs-source { display: block; margin-top: 4px; font: 400 12px/1.4 var(--vs-mono); color: var(--vs-ink-subtle); }
+.vs-root .vs-field .vs-meta { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; max-width: 240px; }
+
+/* ── LINEAGE / PROOF CONTINUITY RAIL ─────────────────────────── */
+.vs-root .vs-rail {
+  display: flex; align-items: stretch; gap: 0;
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-3);
+  background: var(--vs-paper-warm); overflow: hidden;
+}
+.vs-root .vs-rail .vs-step {
+  flex: 1; padding: 12px 16px;
+  border-right: 1px solid var(--vs-hairline);
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative;
+}
+.vs-root .vs-rail .vs-step:last-child { border-right: 0; }
+.vs-root .vs-rail .vs-step .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-subtle); }
+.vs-root .vs-rail .vs-step .vs-v { font: 500 13px/1.3 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-rail .vs-step .vs-t { font: 400 11px/1.3 var(--vs-mono); color: var(--vs-ink-mute); }
+.vs-root .vs-rail .vs-step.current { background: var(--vs-paper); box-shadow: inset 0 2px 0 0 var(--vs-accent); }
+.vs-root .vs-rail .vs-step.current .vs-v { color: var(--vs-accent-ink); }
+.vs-root .vs-rail .vs-step.boundary { background: color-mix(in oklch, var(--vs-accent-wash) 50%, var(--vs-paper-warm)); }
+.vs-root .vs-rail .vs-step.boundary::after {
+  content: "REVIEW BOUNDARY"; position: absolute; top: 4px; right: 6px;
+  font-family: var(--vs-mono); font-size: 9px; letter-spacing: 0.08em;
+  color: var(--vs-accent); opacity: 0.7;
+}
+
+/* ── RECEIPT ─────────────────────────────────────────────────── */
+.vs-root .vs-receipt {
+  background: var(--vs-paper);
+  border: 1px solid var(--vs-hairline);
+  border-radius: var(--vs-r-3);
+  padding: 14px 16px;
+  font-family: var(--vs-mono); font-size: 12px; line-height: 1.7;
+  color: var(--vs-ink); position: relative;
+}
+.vs-root .vs-receipt::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: repeating-linear-gradient(45deg, var(--vs-ink-strong) 0 6px, transparent 6px 12px);
+  opacity: 0.16;
+}
+.vs-root .vs-receipt .vs-ln { display: grid; grid-template-columns: 110px 1fr; gap: 18px; }
+.vs-root .vs-receipt .vs-ln .vs-k { color: var(--vs-ink-subtle); letter-spacing: 0.04em; text-transform: uppercase; font-size: 10.5px; padding-top: 2px; }
+.vs-root .vs-receipt .vs-ln .vs-v { color: var(--vs-ink-strong); }
+.vs-root .vs-receipt .vs-sig {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--vs-hairline);
+  display: flex; gap: 8px; flex-wrap: wrap; font-size: 10.5px; color: var(--vs-ink-subtle);
+}
+
+/* ── SOURCE ROW ──────────────────────────────────────────────── */
+.vs-root .vs-src-row {
+  display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px;
+  align-items: center; padding: 11px 12px;
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-3);
+  background: var(--vs-paper);
+}
+.vs-root .vs-src-row .vs-ic {
+  width: 26px; height: 26px; border-radius: var(--vs-r-2);
+  background: var(--vs-paper-inset); display: grid; place-items: center;
+  font-family: var(--vs-serif); font-style: italic; font-weight: 400; color: var(--vs-ink-strong);
+  border: 1px solid var(--vs-hairline); font-size: 14px;
+}
+.vs-root .vs-src-row .vs-nm { font: 500 13px/1.3 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-src-row .vs-nm small { display: block; font: 400 11px/1.3 var(--vs-mono); color: var(--vs-ink-mute); margin-top: 2px; }
+.vs-root .vs-src-row .vs-age { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute); }
+
+/* ── TABLE ───────────────────────────────────────────────────── */
+.vs-root .vs-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.vs-root .vs-tbl thead th {
+  text-align: left; font: 500 10.5px/1 var(--vs-mono);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--vs-ink-subtle); padding: 11px 14px;
+  border-bottom: 1px solid var(--vs-hairline);
+}
+.vs-root .vs-tbl tbody td {
+  padding: 13px 14px; border-bottom: 1px solid var(--vs-hairline);
+  color: var(--vs-ink); vertical-align: middle;
+}
+.vs-root .vs-tbl tbody tr:hover { background: var(--vs-paper-warm); }
+.vs-root .vs-tbl tbody tr:last-child td { border-bottom: 0; }
+.vs-root .vs-tbl .vs-who { display: flex; align-items: center; gap: 10px; }
+.vs-root .vs-tbl .vs-who .vs-av { width: 26px; height: 26px; border-radius: 99px; background: var(--vs-paper-inset); display: grid; place-items: center; font: 500 11px/1 var(--vs-sans); color: var(--vs-ink-strong); border: 1px solid var(--vs-hairline); }
+.vs-root .vs-tbl .vs-who .vs-nm { font-weight: 500; color: var(--vs-ink-strong); }
+.vs-root .vs-tbl .vs-who .vs-sub { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute); display: block; margin-top: 2px; }
+.vs-root .vs-tbl .vs-num { font-family: var(--vs-mono); color: var(--vs-ink); font-variant-numeric: tabular-nums; }
+.vs-root .vs-tbl .vs-row-link { color: var(--vs-accent-ink); font-weight: 500; }
+
+/* ── ROLE DOOR ───────────────────────────────────────────────── */
+.vs-root .vs-doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.vs-root .vs-door {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 24px 24px 20px;
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-4);
+  background: var(--vs-paper); text-align: left;
+  position: relative; overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--vs-t-fast) var(--vs-ease), background var(--vs-t-fast) var(--vs-ease), transform var(--vs-t-fast) var(--vs-ease);
+  text-decoration: none; color: inherit;
+}
+.vs-root .vs-door:hover { border-color: var(--vs-hairline-strong); background: var(--vs-paper-warm); }
+.vs-root .vs-door:active { transform: translateY(0.5px); }
+.vs-root .vs-door .vs-door-hd { display: flex; align-items: center; gap: 12px; }
+.vs-root .vs-door .vs-door-ic {
+  width: 38px; height: 38px; border-radius: var(--vs-r-3);
+  background: var(--vs-paper-warm); border: 1px solid var(--vs-hairline);
+  display: grid; place-items: center;
+  font: 400 18px/1 var(--vs-serif); font-style: italic; color: var(--vs-ink-strong);
+}
+.vs-root .vs-door .vs-door-role {
+  font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.08em;
+  color: var(--vs-ink-subtle); text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.vs-root .vs-door .vs-door-nm {
+  font: 500 18px/1.2 var(--vs-sans); letter-spacing: -0.01em; color: var(--vs-ink-strong);
+}
+.vs-root .vs-door .vs-door-desc { color: var(--vs-ink-mute); font-size: 13.5px; line-height: 1.5; margin: 0; }
+.vs-root .vs-door .vs-door-uses { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.vs-root .vs-door .vs-door-uses span { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-subtle); display: flex; gap: 8px; }
+.vs-root .vs-door .vs-door-uses span::before { content: "—"; color: var(--vs-ink-ghost); }
+.vs-root .vs-door .vs-door-cta {
+  margin-top: auto; display: flex; align-items: center; gap: 6px;
+  font: 500 13px/1 var(--vs-sans); color: var(--vs-accent-ink);
+  padding-top: 14px; border-top: 1px solid var(--vs-hairline);
+}
+.vs-root .vs-door .vs-door-cta::after { content: "→"; transition: transform var(--vs-t-fast) var(--vs-ease); }
+.vs-root .vs-door:hover .vs-door-cta::after { transform: translateX(2px); }
+
+/* ── FOOTER ──────────────────────────────────────────────────── */
+.vs-root .vs-footer {
+  border-top: 1px solid var(--vs-hairline);
+  background: var(--vs-paper-warm);
+  margin-top: auto;
+}
+.vs-root .vs-footer-in {
+  max-width: 1240px; margin: 0 auto;
+  padding: 36px 28px 28px;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;
+}
+.vs-root .vs-footer .vs-ttl { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vs-ink-subtle); margin-bottom: 12px; }
+.vs-root .vs-footer .vs-col { display: flex; flex-direction: column; gap: 8px; }
+.vs-root .vs-footer .vs-col a { color: var(--vs-ink-mute); font-size: 13px; }
+.vs-root .vs-footer .vs-col a:hover { color: var(--vs-ink-strong); }
+.vs-root .vs-footer .vs-brand-blob p { color: var(--vs-ink-mute); font-size: 13px; line-height: 1.55; margin: 12px 0 14px; max-width: 36ch; }
+.vs-root .vs-footer .vs-scope {
+  display: flex; flex-direction: column; gap: 6px;
+  font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute);
+}
+.vs-root .vs-footer .vs-scope b { color: var(--vs-ink-strong); font-weight: 500; font-family: var(--vs-mono); }
+.vs-root .vs-footer-bottom {
+  border-top: 1px solid var(--vs-hairline);
+  max-width: 1240px; margin: 0 auto;
+  padding: 14px 28px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); letter-spacing: 0.04em;
+}
+.vs-root .vs-footer-bottom .vs-sp { flex: 1; }
+.vs-root .vs-footer-bottom .vs-truth-row {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 4px 10px; border: 1px solid var(--vs-hairline); border-radius: 99px;
+  background: var(--vs-paper);
+}
+.vs-root .vs-footer-bottom .vs-truth-row .vs-dot { width: 5px; height: 5px; border-radius: 99px; background: var(--vs-src-backed); }
+.vs-root .vs-footer .vs-disclaimer {
+  font-size: 10.5px; color: var(--vs-ink-subtle); line-height: 1.5;
+  font-family: var(--vs-mono); max-width: 60ch;
+}
+
+/* ── HERO / NPI LOOKUP ───────────────────────────────────────── */
+.vs-root .vs-hero { padding: 72px 0 48px; }
+.vs-root .vs-hero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: start; }
+.vs-root .vs-hero-meta { display: flex; flex-direction: column; gap: 22px; }
+.vs-root .vs-hero h1 { margin-top: 8px; }
+.vs-root .vs-hero .vs-lede { font-size: 18px; }
+
+.vs-root .vs-npi-card {
+  border: 1px solid var(--vs-hairline);
+  border-radius: var(--vs-r-5);
+  background: var(--vs-paper);
+  padding: 22px;
+  box-shadow: var(--vs-shadow-2);
+  display: flex; flex-direction: column; gap: 16px;
+  position: relative;
+}
+.vs-root .vs-npi-card::before {
+  content: "NPI · NPPES PUBLIC REGISTRY";
+  position: absolute; top: -10px; left: 18px;
+  background: var(--vs-paper); padding: 2px 8px;
+  font-family: var(--vs-mono); font-size: 10px; letter-spacing: 0.08em;
+  color: var(--vs-ink-subtle); border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-2);
+}
+.vs-root .vs-npi-card .vs-field-grp label { color: var(--vs-ink); }
+.vs-root .vs-npi-input-row { display: flex; gap: 10px; }
+.vs-root .vs-npi-input-row .vs-input { flex: 1; }
+.vs-root .vs-npi-input-row .vs-btn { white-space: nowrap; }
+.vs-root .vs-npi-card .vs-hint-list {
+  display: flex; flex-direction: column; gap: 6px;
+  font-family: var(--vs-mono); font-size: 11.5px; color: var(--vs-ink-mute);
+}
+.vs-root .vs-npi-card .vs-hint-list span { display: flex; align-items: center; gap: 8px; }
+.vs-root .vs-npi-card .vs-hint-list span::before { content: "·"; color: var(--vs-ink-ghost); }
+.vs-root .vs-npi-card .vs-disclaimer {
+  font-family: var(--vs-mono); font-size: 10.5px;
+  color: var(--vs-ink-subtle); line-height: 1.5;
+  padding-top: 12px; border-top: 1px dashed var(--vs-hairline);
+}
+
+/* ── PROOF POINTS row ─────────────────────────────────────────── */
+.vs-root .vs-proofs {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--vs-hairline);
+  border-top: 1px solid var(--vs-hairline); border-bottom: 1px solid var(--vs-hairline);
+  margin: 24px 0 8px;
+}
+.vs-root .vs-proofs > div { background: var(--vs-paper); padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.vs-root .vs-proofs .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vs-ink-subtle); }
+.vs-root .vs-proofs .vs-v { font: 500 17px/1.25 var(--vs-sans); color: var(--vs-ink-strong); letter-spacing: -0.01em; }
+.vs-root .vs-proofs .vs-v small { font-weight: 400; color: var(--vs-ink-mute); font-family: var(--vs-mono); font-size: 11px; display: block; margin-top: 4px; letter-spacing: 0; }
+
+/* ── SECTION SCAFFOLD ─────────────────────────────────────────── */
+.vs-root .vs-section { margin-top: 64px; }
+.vs-root .vs-sec-head {
+  display: grid; grid-template-columns: 60px 1fr auto;
+  gap: 24px; align-items: baseline; margin-bottom: 24px;
+}
+.vs-root .vs-sec-num { font-family: var(--vs-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--vs-ink-subtle); padding-top: 8px; }
+.vs-root .vs-sec-title { font: 500 24px/1.15 var(--vs-sans); letter-spacing: -0.018em; margin: 0; color: var(--vs-ink-strong); }
+.vs-root .vs-sec-aside { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute); align-self: end; }
+
+/* ── AUTH ─────────────────────────────────────────────────────── */
+.vs-root .vs-auth { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 64px); }
+.vs-root .vs-auth-left {
+  background: var(--vs-ink-strong); color: var(--vs-paper);
+  padding: 56px 56px 48px;
+  display: flex; flex-direction: column; gap: 28px;
+  position: relative; overflow: hidden;
+}
+.vs-root .vs-auth-left::after {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(to right, transparent 49.7%, oklch(28% 0.02 265) 49.7% 50%, transparent 50%),
+    radial-gradient(oklch(40% 0.03 265) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px;
+  opacity: 0.28; pointer-events: none;
+}
+.vs-root .vs-auth-left > * { position: relative; z-index: 1; }
+.vs-root .vs-auth-left .vs-brand { color: var(--vs-paper); }
+.vs-root .vs-auth-left .vs-brand .vs-glyph { background: var(--vs-paper); color: var(--vs-ink-strong); }
+.vs-root .vs-auth-left .vs-brand .vs-ver { color: color-mix(in oklch, var(--vs-paper) 65%, transparent); border-color: color-mix(in oklch, var(--vs-paper) 25%, transparent); }
+.vs-root .vs-auth-left h2 {
+  font: 300 38px/1.1 var(--vs-sans); letter-spacing: -0.028em;
+  margin: 8px 0 0; max-width: 18ch; color: var(--vs-paper);
+}
+.vs-root .vs-auth-left h2 em { font-family: var(--vs-serif); font-style: italic; font-weight: 400; color: color-mix(in oklch, var(--vs-paper) 92%, var(--vs-accent)); }
+.vs-root .vs-auth-disclosures {
+  margin-top: auto; display: flex; flex-direction: column; gap: 14px;
+  border-top: 1px solid color-mix(in oklch, var(--vs-paper) 18%, transparent);
+  padding-top: 24px;
+}
+.vs-root .vs-auth-disclosures .vs-row {
+  display: grid; grid-template-columns: 24px 1fr; gap: 14px;
+  align-items: flex-start;
+}
+.vs-root .vs-auth-disclosures .vs-ic {
+  width: 24px; height: 24px; border-radius: var(--vs-r-2);
+  border: 1px solid color-mix(in oklch, var(--vs-paper) 22%, transparent);
+  display: grid; place-items: center;
+  font-family: var(--vs-serif); font-style: italic; font-size: 14px; color: var(--vs-paper);
+}
+.vs-root .vs-auth-disclosures .vs-k {
+  font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em;
+  color: color-mix(in oklch, var(--vs-paper) 60%, transparent); text-transform: uppercase;
+  display: block; margin-bottom: 4px;
+}
+.vs-root .vs-auth-disclosures .vs-v {
+  font: 400 13.5px/1.5 var(--vs-sans);
+  color: color-mix(in oklch, var(--vs-paper) 88%, transparent);
+}
+.vs-root .vs-auth-disclosures .vs-v strong { color: var(--vs-paper); font-weight: 500; }
+
+.vs-root .vs-auth-right {
+  background: var(--vs-paper);
+  padding: 56px 56px;
+  display: flex; flex-direction: column; gap: 18px; justify-content: center;
+}
+/* chat22 fix #5 — segmented role control. Lock 3 columns to match landing role doors.
+   chat22 fix #6 — give role-tab labels enough vertical room so they don't clip. */
+.vs-root .vs-auth-right .vs-seg-roles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--vs-hairline); border: 1px solid var(--vs-hairline);
+  border-radius: var(--vs-r-3); overflow: hidden; margin-bottom: 6px;
+}
+.vs-root .vs-auth-right .vs-seg-roles button {
+  background: var(--vs-paper-warm); padding: 14px 12px;     /* was 12px 10px → fix #6 */
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  text-align: left; transition: background var(--vs-t-fast) var(--vs-ease);
+  min-height: 64px;                                          /* fix #6 — ensures both lines fit */
+  line-height: 1.25;
+}
+.vs-root .vs-auth-right .vs-seg-roles button:hover { background: var(--vs-paper); }
+.vs-root .vs-auth-right .vs-seg-roles button.active { background: var(--vs-paper); }
+.vs-root .vs-auth-right .vs-seg-roles .vs-nm { font: 500 13px/1.2 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-auth-right .vs-seg-roles button.active .vs-nm { color: var(--vs-accent-ink); }
+.vs-root .vs-auth-right .vs-seg-roles .vs-ds { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-mute); letter-spacing: 0.04em; line-height: 1.35; }
+.vs-root .vs-auth-right .vs-submit { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.vs-root .vs-auth-right .vs-submit .vs-btn.accent { flex: 1; justify-content: center; padding: 12px 16px; font-size: 14px; }
+.vs-root .vs-auth-right .vs-divider { display: flex; align-items: center; gap: 12px; color: var(--vs-ink-subtle); font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.vs-root .vs-auth-right .vs-divider::before, .vs-root .vs-auth-right .vs-divider::after { content: ""; flex: 1; height: 1px; background: var(--vs-hairline); }
+.vs-root .vs-auth-right .vs-sso { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vs-root .vs-auth-right .vs-sso .vs-btn { justify-content: center; padding: 11px 12px; }
+.vs-root .vs-auth-ft { margin-top: 8px; display: flex; justify-content: space-between; font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); }
+.vs-root .vs-auth-ft a { text-decoration: underline; text-decoration-color: var(--vs-hairline-strong); text-underline-offset: 2px; }
+
+/* ── EMPTY / DEGRADED ───────────────────────────────────────── */
+.vs-root .vs-empty {
+  padding: 40px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  border: 1px dashed var(--vs-hairline); border-radius: var(--vs-r-4);
+  background: var(--vs-paper-warm);
+}
+.vs-root .vs-empty .vs-glyph {
+  width: 36px; height: 36px; border-radius: 99px;
+  background: var(--vs-paper); border: 1px solid var(--vs-hairline);
+  display: grid; place-items: center;
+  font-family: var(--vs-serif); font-style: italic; color: var(--vs-ink-mute);
+}
+.vs-root .vs-empty h5 { font: 500 16px/1.3 var(--vs-sans); margin: 0; color: var(--vs-ink-strong); letter-spacing: -0.01em; }
+.vs-root .vs-empty p { margin: 0; color: var(--vs-ink-mute); font-size: 13.5px; max-width: 38ch; line-height: 1.55; }
+
+/* ── BOUNDARY BANNER ─────────────────────────────────────────── */
+.vs-root .vs-boundary-banner {
+  border: 1px solid color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline));
+  background: var(--vs-accent-wash);
+  border-radius: var(--vs-r-4);
+  padding: 14px 18px;
+  display: grid; grid-template-columns: 24px 1fr auto; gap: 14px; align-items: center;
+}
+.vs-root .vs-boundary-banner .vs-ic {
+  width: 24px; height: 24px; border-radius: var(--vs-r-2);
+  background: var(--vs-paper); border: 1px solid color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline));
+  display: grid; place-items: center;
+  font: 400 14px/1 var(--vs-serif); font-style: italic; color: var(--vs-accent);
+}
+.vs-root .vs-boundary-banner .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-accent); display: block; margin-bottom: 2px; }
+.vs-root .vs-boundary-banner .vs-v { font: 400 13.5px/1.5 var(--vs-sans); color: var(--vs-ink); max-width: 70ch; }
+.vs-root .vs-boundary-banner .vs-v strong { color: var(--vs-ink-strong); font-weight: 500; }
+
+/* chat22 fix #7 — degraded-source banner (muted variant, slim, hairline-bordered).
+   Slots beneath the proof rail when any required source is 503. */
+.vs-root .vs-degraded-banner {
+  border: 1px solid color-mix(in oklch, var(--vs-src-pending) 22%, var(--vs-hairline));
+  background: var(--vs-src-pending-wash);
+  border-radius: var(--vs-r-3);
+  padding: 10px 14px;
+  display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; align-items: center;
+  font-family: var(--vs-mono); font-size: 11.5px;
+  color: var(--vs-ink);
+}
+.vs-root .vs-degraded-banner .vs-ic {
+  width: 18px; height: 18px; border-radius: 99px;
+  background: var(--vs-src-pending);
+  display: grid; place-items: center;
+  color: var(--vs-paper);
+  font: 500 11px/1 var(--vs-sans); letter-spacing: 0;
+}
+.vs-root .vs-degraded-banner strong { color: var(--vs-ink-strong); font-weight: 500; }
+.vs-root .vs-degraded-banner .vs-meta { color: var(--vs-ink-mute); }
+
+/* ── COMMAND PILL ─────────────────────────────────────────────── */
+.vs-root .vs-cmd-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid var(--vs-hairline); border-radius: 99px;
+  background: var(--vs-paper);
+  font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute);
+  cursor: pointer; transition: border-color var(--vs-t-fast) var(--vs-ease);
+}
+.vs-root .vs-cmd-pill:hover { border-color: var(--vs-hairline-strong); }
+.vs-root .vs-cmd-pill .vs-kbd {
+  display: inline-flex; padding: 1px 5px; border-radius: 3px;
+  border: 1px solid var(--vs-hairline); background: var(--vs-paper-warm);
+  font-size: 10.5px;
+}
+
+/* utility */
+.vs-root .vs-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vs-root .vs-col { display: flex; flex-direction: column; }
+.vs-root .vs-stack { display: flex; flex-direction: column; gap: 14px; }
+.vs-root .vs-stack-tight { display: flex; flex-direction: column; gap: 6px; }
+.vs-root .vs-between { justify-content: space-between; }
+.vs-root .vs-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.vs-root .vs-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.vs-root .vs-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.vs-root .vs-pad-0 { padding: 0; }
+
+/* ── PASSPORT-SPECIFIC ─────────────────────────────────────── */
+.vs-root .vs-psh { padding: 28px 0 18px; border-bottom: 1px solid var(--vs-hairline); }
+.vs-root .vs-psh-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.vs-root .vs-psh .vs-id { display: flex; align-items: center; gap: 16px; }
+.vs-root .vs-psh .vs-av { width: 64px; height: 64px; border-radius: 50%; background: var(--vs-ink-strong); color: var(--vs-paper); display: grid; place-items: center; font: 500 22px/1 var(--vs-sans); position: relative; }
+.vs-root .vs-psh .vs-av::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid var(--vs-hairline); }
+.vs-root .vs-psh .vs-nm { font: 500 28px/1.12 var(--vs-sans); letter-spacing: -0.02em; color: var(--vs-ink-strong); }
+.vs-root .vs-psh .vs-nm small { color: var(--vs-ink-mute); font-weight: 400; font-size: 17px; }
+.vs-root .vs-psh .vs-sub { display: flex; align-items: center; gap: 12px; font-family: var(--vs-mono); font-size: 11.5px; color: var(--vs-ink-mute); margin-top: 5px; flex-wrap: wrap; }
+.vs-root .vs-psh .vs-sub .vs-sep { color: var(--vs-ink-ghost); }
+.vs-root .vs-psh .vs-ts .vs-lbl { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
+.vs-root .vs-psh .vs-ts .vs-val { font: 500 14px/1.3 var(--vs-sans); color: var(--vs-ink-strong); margin-top: 4px; }
+.vs-root .vs-psh .vs-ts .vs-val small { color: var(--vs-ink-mute); font-weight: 400; }
+.vs-root .vs-psh-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+.vs-root .vs-psh .vs-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--vs-hairline); border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-3); margin-top: 22px; overflow: hidden; }
+.vs-root .vs-psh .vs-summary > div { background: var(--vs-paper); padding: 14px 16px; }
+.vs-root .vs-psh .vs-summary .vs-k { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); letter-spacing: 0.06em; text-transform: uppercase; }
+.vs-root .vs-psh .vs-summary .vs-v { font: 500 22px/1.1 var(--vs-sans); letter-spacing: -0.014em; color: var(--vs-ink-strong); margin-top: 6px; display: flex; align-items: baseline; gap: 6px; }
+.vs-root .vs-psh .vs-summary .vs-v small { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-mute); font-weight: 400; }
+
+.vs-root .vs-pbody { display: grid; grid-template-columns: 1fr 320px; gap: 32px; padding-top: 28px; }
+.vs-root .vs-panel { padding: 0; }
+.vs-root .vs-panel h4 { font: 500 12px/1 var(--vs-mono); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; color: var(--vs-ink-mute); display: flex; align-items: center; gap: 8px; }
+.vs-root .vs-panel h4 .vs-ct { font-family: var(--vs-mono); color: var(--vs-ink-subtle); background: var(--vs-paper); border: 1px solid var(--vs-hairline); border-radius: 99px; padding: 1px 7px; font-size: 10.5px; }
+.vs-root .vs-aside-r { background: var(--vs-paper-warm); border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-4); padding: 22px; align-self: start; position: sticky; top: 80px; }
+
+.vs-root .vs-review-block { background: var(--vs-accent-wash); border: 1px solid color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline)); border-radius: var(--vs-r-4); padding: 16px 18px; margin: 22px 0; }
+.vs-root .vs-review-block .vs-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.vs-root .vs-review-block .vs-hd .vs-ic { width: 22px; height: 22px; border-radius: var(--vs-r-2); background: var(--vs-paper); border: 1px solid color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline)); color: var(--vs-accent); display: grid; place-items: center; font: 400 13px/1 var(--vs-serif); font-style: italic; }
+.vs-root .vs-review-block .vs-hd .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vs-accent); }
+.vs-root .vs-review-block ul { margin: 0; padding-left: 16px; color: var(--vs-ink); font-size: 13.5px; line-height: 1.65; }
+.vs-root .vs-review-block ul li { margin-bottom: 4px; }
+.vs-root .vs-review-block ul li::marker { color: var(--vs-accent); }
+
+/* chat22 fix #11 — Audit Timeline rendered as a proper timeline.
+   chat22 fix #4 — fix the date/label spacing (gap, never zero).
+   Stack the label-row vertically; use gap, not absolute spacing. */
+.vs-root .vs-timeline { display: flex; flex-direction: column; gap: 0; border-left: 1px solid var(--vs-hairline); padding-left: 18px; margin: 6px 0 0 6px; }
+.vs-root .vs-timeline .vs-tl { position: relative; padding: 10px 0 10px 0; display: flex; flex-direction: column; gap: 4px; }
+.vs-root .vs-timeline .vs-tl::before { content: ""; position: absolute; left: -22px; top: 14px; width: 7px; height: 7px; border-radius: 99px; background: var(--vs-ink-ghost); border: 2px solid var(--vs-paper-warm); }
+.vs-root .vs-timeline .vs-tl.now::before { background: var(--vs-accent); }
+.vs-root .vs-timeline .vs-tl .vs-k { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); letter-spacing: 0.04em; }
+.vs-root .vs-timeline .vs-tl .vs-v { font: 500 13px/1.3 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-timeline .vs-tl .vs-t { font: 400 11px/1.3 var(--vs-mono); color: var(--vs-ink-mute); }
+
+/* chat22 fix #3 — Source Health right-rail grid.
+   When a source name wraps, the trailing chip must align to row start, not the first line.
+   Use grid with content-min columns and align-items: start. */
+.vs-root .vs-src-health { display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; align-items: start; }
+.vs-root .vs-src-health .vs-src-name { font-family: var(--vs-mono); font-size: 12px; color: var(--vs-ink); align-self: center; min-width: 0; word-break: break-word; }
+.vs-root .vs-src-health .vs-truth { align-self: center; }
+
+@media (max-width: 980px) {
+  .vs-root .vs-pbody { grid-template-columns: 1fr; }
+  .vs-root .vs-aside-r { position: static; }
+  .vs-root .vs-psh-grid { grid-template-columns: 1fr; }
+  .vs-root .vs-psh-actions { justify-content: flex-start; }
+  .vs-root .vs-psh .vs-summary { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── TRUST/ATTRIBUTION-SPECIFIC ─────────────────────────────── */
+.vs-root .vs-attr-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+.vs-root .vs-attr-nav { position: sticky; top: 80px; }
+.vs-root .vs-attr-nav .vs-grp { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-subtle); margin: 14px 4px 6px; }
+.vs-root .vs-attr-nav a { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: var(--vs-r-2); font-size: 13px; color: var(--vs-ink); }
+.vs-root .vs-attr-nav a:hover { background: var(--vs-paper-warm); }
+.vs-root .vs-attr-nav a.active { background: var(--vs-paper-warm); box-shadow: var(--vs-shadow-press); color: var(--vs-ink-strong); font-weight: 500; }
+.vs-root .vs-attr-nav a .vs-ag { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-subtle); }
+.vs-root .vs-src-block { padding-bottom: 36px; border-bottom: 1px solid var(--vs-hairline); margin-bottom: 36px; }
+.vs-root .vs-src-block:last-child { border-bottom: 0; }
+.vs-root .vs-src-hd { display: grid; grid-template-columns: 56px 1fr auto; gap: 18px; align-items: start; margin-bottom: 18px; }
+.vs-root .vs-src-hd .vs-logo { width: 56px; height: 56px; border-radius: var(--vs-r-3); background: var(--vs-paper-warm); border: 1px solid var(--vs-hairline); display: grid; place-items: center; font: 400 26px/1 var(--vs-serif); font-style: italic; color: var(--vs-ink-strong); }
+.vs-root .vs-src-hd h2 { margin: 0 0 4px; }
+.vs-root .vs-src-hd .vs-url { font-family: var(--vs-mono); font-size: 11.5px; color: var(--vs-ink-mute); }
+.vs-root .vs-src-meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--vs-hairline); border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-3); overflow: hidden; margin-bottom: 18px; }
+.vs-root .vs-src-meta-grid > div { background: var(--vs-paper); padding: 12px 16px; }
+.vs-root .vs-src-meta-grid .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-subtle); }
+.vs-root .vs-src-meta-grid .vs-v { font: 500 14px/1.3 var(--vs-sans); color: var(--vs-ink-strong); margin-top: 4px; }
+.vs-root .vs-kv-list { display: grid; grid-template-columns: 180px 1fr; gap: 8px 18px; font-size: 13.5px; line-height: 1.6; }
+.vs-root .vs-kv-list dt { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-subtle); letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px; }
+.vs-root .vs-kv-list dd { margin: 0; color: var(--vs-ink); }
+
+@media (max-width: 980px) {
+  .vs-root .vs-attr-grid { grid-template-columns: 1fr; }
+  .vs-root .vs-attr-nav { position: static; }
+  .vs-root .vs-src-meta-grid { grid-template-columns: repeat(2, 1fr); }
+  .vs-root .vs-kv-list { grid-template-columns: 1fr; gap: 4px 0; }
+  .vs-root .vs-kv-list dd { margin-bottom: 10px; }
+}
+
+/* ── STATUS-SPECIFIC ─────────────────────────────────────── */
+.vs-root .vs-matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.vs-root .vs-matrix th { font: 500 10.5px/1 var(--vs-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-subtle); text-align: center; padding: 10px 6px; border-bottom: 1px solid var(--vs-hairline); }
+.vs-root .vs-matrix th:first-child { text-align: left; padding-left: 16px; }
+.vs-root .vs-matrix td { padding: 14px 6px; border-bottom: 1px solid var(--vs-hairline); text-align: center; }
+.vs-root .vs-matrix td:first-child { text-align: left; padding-left: 16px; }
+.vs-root .vs-matrix tr:last-child td { border-bottom: 0; }
+.vs-root .vs-matrix tbody tr:hover { background: var(--vs-paper-warm); }
+.vs-root .vs-matrix .vs-src-cell { display: flex; align-items: center; gap: 10px; }
+.vs-root .vs-matrix .vs-src-cell .vs-logo { width: 26px; height: 26px; border-radius: var(--vs-r-2); background: var(--vs-paper-warm); border: 1px solid var(--vs-hairline); display: grid; place-items: center; font: 400 14px/1 var(--vs-serif); font-style: italic; color: var(--vs-ink-strong); }
+.vs-root .vs-matrix .vs-src-cell .vs-nm { font: 500 13px/1.2 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-matrix .vs-src-cell .vs-sub { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-mute); display: block; margin-top: 2px; }
+.vs-root .vs-spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.vs-root .vs-spark span { width: 4px; background: var(--vs-ink-ghost); border-radius: 1px; }
+.vs-root .vs-spark.ok span { background: var(--vs-src-backed); }
+.vs-root .vs-spark.degraded span { background: var(--vs-src-pending); }
+.vs-root .vs-spark.unavailable span { background: var(--vs-ink-mute); }
+.vs-root .vs-spark.unavailable span:last-child { background: var(--vs-src-unavailable); height: 6px !important; }
+
+/* chat22 fix #12 — compact Connector Matrix grid variant for landing/nav reuse. */
+.vs-root .vs-matrix-compact {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+  background: var(--vs-hairline);
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-3); overflow: hidden;
+}
+.vs-root .vs-matrix-compact > div {
+  background: var(--vs-paper);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.vs-root .vs-matrix-compact .vs-cm-src { font-family: var(--vs-mono); font-size: 11px; color: var(--vs-ink-subtle); letter-spacing: 0.04em; text-transform: uppercase; }
+.vs-root .vs-matrix-compact .vs-cm-state { font: 500 13px/1.25 var(--vs-sans); color: var(--vs-ink-strong); }
+.vs-root .vs-matrix-compact .vs-cm-state.degraded { color: var(--vs-src-pending); }
+.vs-root .vs-matrix-compact .vs-cm-state.unavail { color: var(--vs-ink-mute); }
+.vs-root .vs-matrix-compact .vs-cm-state.review { color: var(--vs-accent-ink); }
+.vs-root .vs-matrix-compact .vs-cm-age { font-family: var(--vs-mono); font-size: 10.5px; color: var(--vs-ink-mute); }
+
+.vs-root .vs-hist {
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-4); background: var(--vs-paper);
+  padding: 22px; display: flex; flex-direction: column; gap: 14px;
+}
+.vs-root .vs-hist .vs-row { font-family: var(--vs-mono); font-size: 12px; color: var(--vs-ink); padding: 8px 0; border-top: 1px dashed var(--vs-hairline); display: grid; grid-template-columns: 120px auto 1fr auto; gap: 14px; align-items: center; }
+.vs-root .vs-hist .vs-row:first-of-type { border-top: 0; }
+.vs-root .vs-hist .vs-row .vs-ts { color: var(--vs-ink-mute); }
+.vs-root .vs-hist .vs-row .vs-src { color: var(--vs-ink-strong); font-weight: 500; }
+.vs-root .vs-hist .vs-row .vs-what { color: var(--vs-ink); }
+
+.vs-root .vs-scope-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--vs-hairline);
+  border: 1px solid var(--vs-hairline); border-radius: var(--vs-r-4); overflow: hidden;
+}
+.vs-root .vs-scope-list > div { background: var(--vs-paper); padding: 18px 20px; }
+.vs-root .vs-scope-list .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-subtle); }
+.vs-root .vs-scope-list .vs-v { font: 500 14px/1.4 var(--vs-sans); color: var(--vs-ink-strong); margin-top: 6px; }
+.vs-root .vs-scope-list .vs-v small { color: var(--vs-ink-mute); display: block; margin-top: 2px; font-weight: 400; font-size: 12.5px; line-height: 1.5; }
+
+/* chat22 fix #2 — banned-words two-column grid.
+   Each row is its own grid with label and parenthetical-qualifier wrapping
+   into a second row, never on top of the label. */
+.vs-root .vs-banned-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-family: var(--vs-mono); font-size: 13px; color: var(--vs-ink); line-height: 1.6; }
+.vs-root .vs-banned-list > li {
+  display: grid; grid-template-columns: 18px 1fr; gap: 10px;
+  align-items: baseline;
+}
+.vs-root .vs-banned-list > li > .vs-x { color: var(--vs-sanction); font-weight: 600; }
+.vs-root .vs-banned-list > li > .vs-content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vs-root .vs-banned-list > li > .vs-content > .vs-term { color: var(--vs-ink); }
+.vs-root .vs-banned-list > li > .vs-content > .vs-qual { color: var(--vs-ink-mute); font-size: 12px; }
+
+/* ── RECEIPT DRAWER (chat22 fix #10) ─────────────────────── */
+.vs-root .vs-drawer-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: color-mix(in oklch, var(--vs-ink-strong) 35%, transparent);
+  backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity 200ms var(--vs-ease);
+  pointer-events: none;
+}
+.vs-root .vs-drawer-backdrop[data-open="true"] { opacity: 1; pointer-events: auto; }
+.vs-root .vs-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 70;
+  width: min(480px, 92vw);
+  background: var(--vs-paper);
+  border-left: 1px solid var(--vs-hairline);
+  box-shadow: -8px 0 32px -16px oklch(20% 0.02 265 / 0.18);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 280ms var(--vs-ease);
+}
+.vs-root .vs-drawer[data-open="true"] { transform: translateX(0); }
+.vs-root .vs-drawer-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--vs-hairline);
+  font-family: var(--vs-mono); font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-ink-mute);
+}
+.vs-root .vs-drawer-hd .vs-ttl { color: var(--vs-ink); flex: 1; }
+.vs-root .vs-drawer-bd { flex: 1; overflow-y: auto; padding: 22px; }
+.vs-root .vs-drawer-ft {
+  padding: 14px 22px; border-top: 1px solid var(--vs-hairline);
+  display: flex; gap: 8px;
+  background: var(--vs-paper-warm);
+}
+
+/* ── LOADING SKELETON (chat22 fix #13) ─────────────────────
+   Skeleton lane with source name visible (per zenlike-ui-doctrine §3) */
+.vs-root .vs-skel { background: linear-gradient(90deg, var(--vs-paper-inset) 0%, var(--vs-paper-warm) 50%, var(--vs-paper-inset) 100%); background-size: 200% 100%; animation: vs-skel-shimmer 1.6s ease-in-out infinite; border-radius: var(--vs-r-2); }
+@keyframes vs-skel-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.vs-root .vs-skel.line-md { height: 14px; max-width: 160px; }
+.vs-root .vs-skel.line-lg { height: 18px; max-width: 220px; }
+.vs-root .vs-skel.line-xs { height: 10px; max-width: 90px; }
+
+/* ── AUTH-REQUIRED OVERLAY (chat22 fix #13) ──────────────── */
+.vs-root .vs-auth-required {
+  position: relative;
+  padding: 18px 22px;
+  border: 1px dashed color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline));
+  background: var(--vs-accent-wash);
+  border-radius: var(--vs-r-3);
+  display: grid; grid-template-columns: 24px 1fr auto; gap: 14px; align-items: center;
+  margin: 14px 0;
+}
+.vs-root .vs-auth-required .vs-ic {
+  width: 24px; height: 24px; border-radius: var(--vs-r-2);
+  background: var(--vs-paper); border: 1px solid color-mix(in oklch, var(--vs-accent) 22%, var(--vs-hairline));
+  color: var(--vs-accent); display: grid; place-items: center;
+  font: 400 14px/1 var(--vs-serif); font-style: italic;
+}
+.vs-root .vs-auth-required .vs-k { font-family: var(--vs-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vs-accent); display: block; margin-bottom: 2px; }
+.vs-root .vs-auth-required .vs-v { font: 400 13.5px/1.5 var(--vs-sans); color: var(--vs-ink); }
+
+/* responsive */
+@media (max-width: 1180px) {
+  .vs-root .vs-no-on-narrow { display: none !important; }
+}
+@media (max-width: 1040px) {
+  .vs-root .vs-nav-links a:not(.active) { padding: 6px 8px; }
+}
+@media (max-width: 860px) {
+  .vs-root .vs-nav-in { padding: 12px 18px; gap: 12px; }
+  .vs-root .vs-nav-links { display: none; }
+  .vs-root .vs-page { padding: 36px 18px 56px; }
+  .vs-root .vs-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .vs-root .vs-h-display { font-size: 40px; }
+  .vs-root .vs-doors { grid-template-columns: 1fr; }
+  .vs-root .vs-auth { grid-template-columns: 1fr; min-height: auto; }
+  .vs-root .vs-auth-left { padding: 40px 28px; }
+  .vs-root .vs-auth-right { padding: 36px 24px; }
+  .vs-root .vs-footer-in { grid-template-columns: 1fr 1fr; gap: 24px; padding: 28px 20px; }
+  .vs-root .vs-field { grid-template-columns: 1fr; gap: 6px; }
+  .vs-root .vs-field .vs-label { padding-top: 0; }
+  .vs-root .vs-proofs { grid-template-columns: repeat(2, 1fr); }
+  .vs-root .vs-grid-2, .vs-root .vs-grid-3, .vs-root .vs-grid-4 { grid-template-columns: 1fr; }
+  .vs-root .vs-rail { flex-wrap: wrap; }
+  .vs-root .vs-rail .vs-step { flex: 1 1 50%; border-right: 0; border-bottom: 1px solid var(--vs-hairline); }
+}

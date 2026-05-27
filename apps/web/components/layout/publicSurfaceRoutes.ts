@@ -49,6 +49,37 @@ export const OPS_SURFACE_PREFIXES = [
   '/mission-ops',
 ] as const;
 
+// Routes whose page components OWN their own chrome (Nav + Footer) and
+// must NOT receive the global marketing Navbar/Footer. The visual-system
+// port (D57 Calm Wave) provides its own paper-substrate shell on every
+// page in this list, scoped under `.vs-root`.
+//
+// Each entry is either an exact path (string equality required) or a
+// prefix marked with a trailing '/*' (matches the path itself and any
+// deeper subpath). Subroutes that aren't covered fall back to the global
+// chrome.
+export const VISUAL_SYSTEM_OWNED_ROUTES = [
+  '/',                       // homepage
+  '/passport/*',             // passport ingest + view (own chrome via FooterBottom)
+  '/sign-in/*',              // Clerk catch-all wrapped in AuthShell
+  '/sign-up/*',              // Clerk catch-all wrapped in AuthShell
+  '/trust',                  // exact — /trust/doctrine keeps its existing chrome
+  '/trust/attribution/*',
+  '/status',                 // exact
+  '/contact',                // exact
+] as const;
+
+export function isVisualSystemOwnedRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return VISUAL_SYSTEM_OWNED_ROUTES.some((entry) => {
+    if (entry.endsWith('/*')) {
+      const prefix = entry.slice(0, -2);
+      return pathname === prefix || pathname.startsWith(`${prefix}/`);
+    }
+    return pathname === entry;
+  });
+}
+
 const PREFIX_MATCHERS = [
   '/demo',
   '/sign-in',

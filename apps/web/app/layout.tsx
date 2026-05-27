@@ -7,17 +7,49 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
+import { Fraunces, Geist, Geist_Mono } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
+import '../styles/visual-system.css';
 import Providers from './providers';
+
+// Real webfonts for the visual-system shell (.vs-root).
+// Loaded via next/font so they self-host with `display: swap` and the
+// CSS variables below feed --vs-font-sans/-mono/-serif.
+const geistSans = Geist({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-geist-real',
+  display: 'swap',
+});
+const geistMonoFont = Geist_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-geist-mono-real',
+  display: 'swap',
+});
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['300', '400', '500'],
+  style: ['italic', 'normal'],
+  variable: '--font-fraunces-real',
+  display: 'swap',
+});
 
 const systemSansStack =
   "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const systemDisplayStack = "Georgia, 'Times New Roman', serif";
 const systemMonoStack =
   "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+
+// Compose real-font stacks for the visual-system shell. These get assigned
+// into the CSS variables --vs-font-sans / -mono / -serif on <html> so any
+// .vs-root subtree picks them up.
+const vsSansStack = `var(--font-geist-real), ${systemSansStack}`;
+const vsMonoStack = `var(--font-geist-mono-real), ${systemMonoStack}`;
+const vsSerifStack = `var(--font-fraunces-real), ${systemDisplayStack}`;
 
 const fontVariables = {
   ...vdsCssVariables,
@@ -35,6 +67,10 @@ const fontVariables = {
   '--font-heading': systemSansStack,
   '--font-serif': systemDisplayStack,
   '--font-mono': systemMonoStack,
+  // visual-system shell: real webfont stacks (Geist / Geist Mono / Fraunces).
+  '--vs-font-sans': vsSansStack,
+  '--vs-font-mono': vsMonoStack,
+  '--vs-font-serif': vsSerifStack,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
@@ -128,6 +164,7 @@ export default async function RootLayout({
   const hydratedContent = (
     <html
       lang="en"
+      className={`${geistSans.variable} ${geistMonoFont.variable} ${fraunces.variable}`}
       style={fontVariables}
       suppressHydrationWarning
     >
