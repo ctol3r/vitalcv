@@ -29,3 +29,5 @@ export * from './Table';
 export * from './Tabs';
 export * from './Timeline';
 export * from './Toast';
+export * from './TruthStateChip';
+export * from './TruthStateLegend';
