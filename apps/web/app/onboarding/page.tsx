@@ -102,7 +102,7 @@ export default async function OnboardingPage({
 
           <CardFooter className="border-t border-[var(--vt-border-subtle)] px-5 py-4 sm:px-6">
             <p className="text-xs leading-relaxed text-[var(--vt-text-muted)]">
-              Onboarding continues.
+              Onboarding summarizes the continuation path. It does not complete credentialing.
             </p>
           </CardFooter>
         </Card>

@@ -147,8 +147,8 @@ export default async function ReviewPageClient({
               title="Review link unavailable"
               description={
                 isExpired
-                  ? 'This review link has expired. Ask the clinician to generate a new review link.'
-                  : 'This review link is missing, expired, or no longer maps to an active credential record.'
+                  ? 'This review link has expired. Ask the clinician to share a fresh packet.'
+                  : 'This review link is missing, expired, or no longer maps to an active packet.'
               }
               tone="warning"
               centered
@@ -168,7 +168,7 @@ export default async function ReviewPageClient({
     resolvedEntityId = tokenResult.body.entityId;
     resolvedContextId = tokenResult.body.organizationContextId ?? contextId;
     resolvedBundleId = tokenResult.body.bundleId ?? bundleId;
-    resolvedFrom = from ?? 'VitalCV review share';
+    resolvedFrom = from ?? 'VitalCV packet share';
   }
 
   const [passportResult, historyResult] = await Promise.all([

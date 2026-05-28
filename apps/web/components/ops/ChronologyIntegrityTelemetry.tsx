@@ -7,6 +7,8 @@
  * All values font-mono text-xs. No fetch needed — these are invariants.
  */
 
+import * as React from 'react';
+
 const READING_ORDER = ['OBJECT', 'OWNERSHIP', 'CHECKED_AT', 'CHANNEL', 'REPLAY', 'RUN_ID'] as const;
 const SLOT_COUNT = READING_ORDER.length;
 
