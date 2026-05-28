@@ -6,16 +6,20 @@
  * chronology integrity, and links to all .well-known endpoints.
  */
 
+import * as React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
 import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
 import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
+import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
+import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
+import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
 
 export const metadata: Metadata = {
   title: 'Operational Status · VitalCV',
   description:
-    'Live operational status for VitalCV trust infrastructure. Independently verifiable.',
+    'Status surfaces are foundation previews. No uptime guarantee is implied. Live operational status for VitalCV trust infrastructure.',
 };
 
 const WELL_KNOWN_ENDPOINTS = [
@@ -82,6 +86,15 @@ const WELL_KNOWN_ENDPOINTS = [
 ];
 
 export default function StatusPage() {
+  // Compliance evidence shape — read from the foundation modules so /status
+  // and /api/compliance/evidence agree on every count + Live flag. The page
+  // renders the literal flag strings (`redactionLive: false` etc.) so the
+  // status-page-compliance-evidence regression test catches any silent
+  // regressions in the underlying foundation modules.
+  const dataClassification = buildDataClassificationFoundation();
+  const retention = buildRetentionFoundation();
+  const authority = buildAdapterMatrix();
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
       {/* Header */}
@@ -105,6 +118,61 @@ export default function StatusPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
+        {/* Foundation status preview — disclaimer + compliance evidence shape */}
+        <section
+          aria-labelledby="foundation-status-heading"
+          className="border border-gray-800 bg-gray-950"
+        >
+          <div className="border-b border-gray-800 px-4 py-2">
+            <h2 id="foundation-status-heading" className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              Foundation status preview
+            </h2>
+          </div>
+          <div className="px-4 py-3 text-xs leading-relaxed text-gray-300">
+            <p>
+              <strong>{'Status surfaces are foundation previews. No uptime guarantee is implied.'}</strong>{' '}
+              Incident notices and public changelogs are planned surfaces. Neither is wired today.
+            </p>
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="compliance-evidence-heading"
+          className="border border-gray-800 bg-gray-950"
+        >
+          <div className="border-b border-gray-800 px-4 py-2">
+            <h2 id="compliance-evidence-heading" className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              Compliance evidence (foundation shape)
+            </h2>
+          </div>
+          <div className="space-y-3 px-4 py-3 text-xs leading-relaxed text-gray-300">
+            <p className="text-gray-400">
+              This report is a foundation shape for vendor risk assessments. It reflects planned controls, not enforced production policies.
+            </p>
+            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Data classification</dt>
+                <dd className="mt-1 font-mono text-[11px]">redactionLive: {String(dataClassification.redactionLive)}</dd>
+                <dd className="font-mono text-[11px] text-gray-500">{dataClassification.rules.length} redaction rules</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Retention</dt>
+                <dd className="mt-1 font-mono text-[11px]">retentionEnforced: {String(retention.retentionEnforced)}</dd>
+                <dd className="font-mono text-[11px] text-gray-500">{retention.policies.length} entity policies</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Authority adapters</dt>
+                <dd className="mt-1 font-mono text-[11px]">allAdaptersLive: {String(authority.allAdaptersLive)}</dd>
+                <dd className="font-mono text-[11px] text-gray-500">{authority.adapters.length} adapters</dd>
+              </div>
+            </dl>
+            <p className="text-[10px] text-gray-500">
+              Machine-readable shape:{' '}
+              <Link href="/api/compliance/evidence" className="underline hover:text-gray-300">/api/compliance/evidence</Link>
+            </p>
+          </div>
+        </section>
+
         {/* Live status board */}
         <LiveTrustStatusBoard />
 

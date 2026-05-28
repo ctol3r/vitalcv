@@ -7,6 +7,8 @@
  * Dense font-mono table. No color on "not implemented".
  */
 
+import * as React from 'react';
+
 export interface SourceLaneStatus {
   laneId: string;
   displayName: string;
