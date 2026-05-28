@@ -7,6 +7,7 @@
  * Auto-refreshes every 60s. Manual refresh button.
  */
 
+import * as React from 'react';
 import { useEffect, useState, useCallback } from 'react';
 
 interface EndpointStatus {
