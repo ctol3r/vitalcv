@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
 import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
 import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
+import { ConnectorMatrix } from '@/components/status/ConnectorMatrix';
 import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
 import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
 import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
@@ -130,11 +131,17 @@ export default function StatusPage() {
           </div>
           <div className="px-4 py-3 text-xs leading-relaxed text-gray-300">
             <p>
+              <strong>{'We publish the source of every field. We do not claim HIPAA, SOC 2, or NCQA certification.'}</strong>
+            </p>
+            <p className="mt-2">
               <strong>{'Status surfaces are foundation previews. No uptime guarantee is implied.'}</strong>{' '}
               Incident notices and public changelogs are planned surfaces. Neither is wired today.
             </p>
           </div>
         </section>
+
+        {/* Connector matrix — per-source state, observation, and operator interpretation */}
+        <ConnectorMatrix />
 
         <section
           aria-labelledby="compliance-evidence-heading"
