@@ -1,8 +1,8 @@
 # VitalCV Full Scope Completion Board
 
-Last updated: **2026-05-27 04:27 PDT (San Jose / Pacific)** (🚢 Agent Operating SOP merged (PR #428); visual-system Phase 1 cascade #425+#426+#424 on main; 🚢 #421+#423+#422 deployed; 🔴 SSE smoke AUTH BLOCKED — operator sign-in is the only remaining gate to "validated live")
-Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e` (tracking), 🚢 #425 `a368a1ffb` (chip foundation 🎨), 🚢 #426 `a88e014e4` (design docs 🎨), 🚢 #428 `97971b578` (agent operating SOP 🤖)
-Source branch (this update): `docs/post-merge-tracking-update`
+Last updated: **2026-05-28 21:46 PDT (San Jose / Pacific)** (🚢 Visual-system cascade complete: 🎨 #429 Passport + 🎨 #430 Homepage + 🔐 #434 Auth + 🎨 #435 Status/Attribution all merged through Local Claude Code audit; 🔴 SSE smoke AUTH BLOCKED — operator sign-in still the gate to "validated live")
+Latest PRs (all on `main`): #420 (open, superseded by #423 transplant), 🚢 #421 `fe9c6f9c1`, 🚢 #422 `801100c7f`, 🚢 #423 `9f272c80c` (DEPLOYED ACTIVE on `delightful-essence`), 🚢 #424 `50942ad1e`, 🚢 #425 `a368a1ffb` 🎨, 🚢 #426 `a88e014e4` 🎨, 🚢 #427 `f8721ff30`, 🚢 #428 `97971b578` 🤖, 🚢 #429 `5b0e78c7e` 🎨 (Passport calm degradation), 🚢 #430 `f7b5b367a` 🎨 (Homepage NPI-first + role doors), 🚢 #432 `5a6ac229f` (truth-contract copy restore — other agent flow), 🚢 #433 `f9049d258` (/passport + /status restore — other agent flow), 🚢 #434 `3f5afc622` 🔐 (Auth calm disclosure), 🚢 #435 `e7b4e7e6c` 🎨 (Status Connector Matrix + /trust/attribution receipt register)
+Source branch (this update): `docs/wave-g-to-k-tracking`
 
 `main` head: `97971b5780e7ccb0f58af19a5062796cc7f930a6`
 Active API: `git_sha:"9f272c80c…"` (= PR #423 merge commit, Browser-confirmed `PR423 LIVE`). 12 requests / 0 errors / p90 73 ms — fresh container.
@@ -868,4 +868,77 @@ A) **Wave H — Passport calm-degradation integration** (`feat/passport-calm-deg
 B) **Authenticated SSE smoke for NPI 1699264564** (operator-only, per `docs/ops/authenticated-sse-smoke-runbook.md`). Gates Product Truth Contract → "validated live"; releases the 18% hold on Source Integrations / PSV.
 C) **Wave I — Homepage NPI-first + role doors** (`feat/home-npi-role-doors`). Can ship in parallel with Wave J (zero shared files).
 D) **Operator hygiene** — configure `CRON_SECRET` repo secret to fix the two failing scheduled health-probe workflows; optional `_archive/` sweep to remove legacy banned-phrase routes.
+E) **Continue to next task / next wave batch.**
+
+## 2026-05-28 21:46 PDT — Wave H → K visual-system cascade MERGED
+
+Four PRs through Local Claude Code audit (Codex disabled per operator instruction). Same pattern that produced 4 SAFE verdicts the prior turn: one focused implementation per turn, full validation, audit, merge.
+
+### Confirmed completed facts
+
+- 🚢 🎨 **PR #429** `feat(web): calm degraded passport truth states` merged as `5b0e78c7e` (2026-05-27 04:56 PDT). Local audit SAFE; 12 vitest cases; build 13/13. Adds `PassportTruthStateBanner` (degraded header + 5-row legend + institution review boundary); replaces "Checking in the background" skeleton-style line with canonical system-condition copy.
+- 🚢 🎨 **PR #430** `feat(web): make homepage NPI-first with role doors` merged as `f7b5b367a` (2026-05-27 05:09 PDT). Local audit SAFE; 11 vitest cases; build 13/13. Hero "Look up an NPI." + 4 role doors (Verifier/Clinician/Employer/Issuer) + 3-col proof strip + trust footer row.
+- 🚢 🔐 **PR #434** `feat(web): clarify auth gate with calm sign-in surfaces` merged as `3f5afc622` (2026-05-28 21:33 PDT). Local audit SAFE; 14 vitest cases; build 13/13. New `AuthDisclosureCard` wraps Clerk `<SignIn />` and `<SignUp />` with canonical disclosure copy + trust footer; sign-up's prior emerald/zinc Clerk appearance overrides dropped.
+- 🚢 🎨 **PR #435** `feat(web): render status and attribution as receipt registers` merged as `e7b4e7e6c` (2026-05-28 21:40 PDT). Local audit SAFE; 16 vitest cases; build 13/13. New `ConnectorMatrix` (6 rows) on `/status` + new `/trust/attribution` page with `TrustAttributionRegister` (9 rows); canonical disclaimer surfaced; OIG/LEIE/PECOS/FSMB/Nursys all `connector-not-live`; state board `access-required`.
+
+### Per-row Current % deltas (post-cascade)
+
+Per operator-supplied rules for this batch:
+
+- **Passport visual upgrade merged + tested:** Core Workflow +1, Frontend UX +1.
+- **Homepage role doors merged + tested:** Frontend UX +1, Demo/Sales +1.
+- **Auth disclosure merged + tested:** Auth/Onboarding +1.
+- **Status/Attribution merged + tested:** Trust/Proof +1, Interop +1.
+
+| Dimension | Before | After | Δ | State | Why |
+|---|---:|---:|---|---|---|
+| Product Truth Contract | 48 / 12 | **48 / 12** | — | 🚢 deployed; 🔴 SSE blocked | No new SSE evidence. Held. |
+| Core Credentialing Workflow | 30 / 25 | **31 / 24** | +1 % / −1 wave | 🚢 merged | Passport calm degradation (#429) lands the canonical truth-state vocabulary on the hottest unauthenticated surface. |
+| Source Integrations / PSV | 18 / 40 | **18 / 40** | — | 🔴 SSE-blocked | Held per rule — SSE behavior unvalidated. |
+| Backend / API Reliability | 30 / 26 | **30 / 26** | — | 🚢 deployed live | No backend touched in this cascade. |
+| Database / Persistence Layer | 16 / 40 | **16 / 40** | — | 🟡 planned | Unchanged. Still largest single board blocker. |
+| Trust / Proof / Receipts | 33 / 26 | **34 / 25** | +1 % / −1 wave | 🚢 merged | Status Connector Matrix + per-field Attribution Register (#435) make trust attribution publicly inspectable. |
+| Frontend UX / Role Journeys | 37 / 22 | **39 / 20** | +2 % / −2 waves | 🎨 🚢 merged | Passport (#429) + Homepage (#430) both shipped tested. |
+| Sign-up / Auth / Onboarding | 22 / 28 | **23 / 27** | +1 % / −1 wave | 🔐 🚢 merged | Auth calm disclosure (#434) — the Auth-rule exception is satisfied (real UI/flow change). |
+| Interoperability / Standards | 27 / 33 | **28 / 32** | +1 % / −1 wave | 🚢 merged | `/trust/attribution` receipt register (#435) makes per-field source attribution machine-readable from `/status`'s well-known endpoints. |
+| Demo / Sales Conversion | 24 / 32 | **25 / 31** | +1 % / −1 wave | 🚢 merged | Homepage NPI-first + role doors (#430) — operator rule explicitly allows +1 here. |
+| Deployment / DevOps | 29 / 25 | **29 / 25** | — | 🚢 deployed live | No deploy change. |
+| Testing / CI / Quality Gates | 32 / 25 | **33 / 24** | +1 % / −1 wave | 🧪 🚢 merged | 53 new vitest cases landed across this cascade (12+11+14+16). |
+| Self-Improving System / Agents | 15 / 48 | **15 / 48** | — | 🟡 planned | No SOP / agent work this batch. |
+| Business / GTM / Revenue Engine | 17 / 50 | **17 / 50** | — | 🟡 planned | Held per rule — no pilot work. |
+| **Overall Billion-Dollar Readiness** | **28 / 387** | **29 / 380** | +1 % / −7 waves | 🧱 mixed | Weighted aggregate. Seven sub-row wave-closures. Still capped by SSE smoke pending and Database/Persistence stagnation. |
+
+### Per-PR state transitions (this batch)
+
+| PR | State | Note |
+|---|---|---|
+| #429 | 🚢 MERGED `5b0e78c7e` | Wave H — Passport calm-degradation. |
+| #430 | 🚢 MERGED `f7b5b367a` | Wave I — Homepage NPI-first + role doors. |
+| #432 | 🚢 MERGED `5a6ac229f` | Truth-contract copy restore (other-agent flow). Not credited to operator-rule Δ list. |
+| #433 | 🚢 MERGED `f9049d258` | /passport completed-without-anchor + /status restore (other-agent flow). Not credited to operator-rule Δ list. |
+| #434 | 🚢 MERGED `3f5afc622` | Wave J — Auth calm disclosure. |
+| #435 | 🚢 MERGED `e7b4e7e6c` | Wave K — Status Connector Matrix + /trust/attribution receipt register. |
+
+### Next highest-leverage bottleneck (unchanged)
+
+**Database / Persistence Layer (16% / 40 waves)** — TRUST-PERSIST-1 cutover; largest single board blocker.
+
+**Closest-to-done bottleneck** (still): authenticated SSE smoke for NPI 1699264564 — one operator action gates Product Truth Contract → "validated live" and unlocks Source Integrations / PSV from its 18% hold.
+
+### Carry-overs for next batch
+
+- 🟡 Authenticated SSE smoke (operator-only).
+- 🌐 Browser visual QA of the merged Homepage / Passport / Auth / Status / Attribution surfaces.
+- 🧱 `fix/nppes-source-health-observability` — next coding wave (Wave D's task 1 + task 3 bundle).
+- 🧱 Web `/api/health` `backend.status:"degraded"` classifier inspection.
+- 🧱 `_archive/` sweep (delete dead routes carrying legacy banned phrases in grep scans).
+- Operator: `CRON_SECRET` config to fix failing scheduled workflows.
+- 🧱 `__tests__/` drift cleanup (5–6 pre-existing failures surfaced by PR #422).
+
+### Next Direction
+
+A) **Authenticated SSE smoke** for NPI 1699264564 (operator-only). Biggest single percentage move; gates Product Truth Contract → "validated live".
+B) **Browser visual QA** of the freshly-merged Homepage / Passport / Auth / Status / Attribution surfaces. Closes the design-quality feedback loop on what just shipped.
+C) **`fix/nppes-source-health-observability`** — first coding wave outside the visual-system arc; observability moat for NPPES (Wave D task 1 + task 3 bundle).
+D) **TRUST-PERSIST-1 scoping** — Database / Persistence Layer at 16% / 40 waves is the largest single board bottleneck.
 E) **Continue to next task / next wave batch.**
