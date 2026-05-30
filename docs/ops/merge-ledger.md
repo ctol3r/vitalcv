@@ -158,3 +158,63 @@ fe9c6f9c1 fix(api): repair Railway build module resolution (#421)
 | Local audit verdict | **SAFE** on 2026-05-27 04:25 PDT. Merge sim clean; 3 docs only under `docs/ops/`; banned-phrase hits classified as banned-list documentation / negative-example bullets / workflow-approval language (all per operator allowance). |
 | Merge result | **MERGED** as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 2026-05-27 11:26:55Z (= 04:26 PDT). |
 | Post-merge | `main` is now at `97971b578`. The SOP doctrine is now the canonical operating reference for every AI tool that touches VitalCV (Claude Code primary; Claude Design always included; Browser only for live verification; Codex disabled; OpenClaw only on explicit request). |
+
+## Visual-system cascade — Wave H → K (2026-05-27 → 2026-05-28 PDT)
+
+Four PRs merged through Local Claude Code audit (Codex disabled per operator instruction). Sequential cascade against the latest post-merge `main` each time.
+
+### PR #429 — `feat(web): calm degraded passport truth states` (Wave H)
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-cascade) |
+| Head | `feat/passport-calm-degradation` @ `702f5d220` |
+| Local audit verdict | **SAFE** on 2026-05-27 04:54 PDT. 3-file additive diff; merge sim clean; build 13/13; tsc clean; lint clean; 12/12 vitest including banned-phrase regression; truth-state behavior preserved (NPPES no-payload stays unavailable, OIG/PECOS stay not-connected). |
+| Merge result | **MERGED** as `5b0e78c7eb94ab50bc81a0146b8fbc1510260121` on 2026-05-27 04:56 PDT (11:56:38Z). |
+
+### PR #430 — `feat(web): make homepage NPI-first with role doors` (Wave I)
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-#429) |
+| Head | `feat/home-npi-role-doors` @ `660cba87f` |
+| Local audit verdict | **SAFE** on 2026-05-27 05:08 PDT. 2 files; only `verified` hits are internal CSS variable token names; banned-phrase scan clean; 11/11 vitest; build 13/13; tsc + lint clean. |
+| Merge result | **MERGED** as `f7b5b367af6ff16f7b22f17e47e51e2e90ac80ea` on 2026-05-27 05:09 PDT (12:09:23Z). |
+
+### PR #434 — `feat(web): clarify auth gate with calm sign-in surfaces` (Wave J)
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-cascade including #432/#433 other-agent merges) |
+| Head | `feat/auth-calm-disclosure` @ `24bffe666` |
+| Local audit verdict | **SAFE** on 2026-05-28 21:32 PDT. 4 files (new AuthDisclosureCard + 2 page rewrites + new test); Clerk config NOT touched; canonical sign-in / sign-up disclosure copy pinned by tests; 14/14 vitest including banned-phrase regression for "verify your email to get verified". |
+| Merge result | **MERGED** as `3f5afc6223e270624a018cee7949758d118e9760` on 2026-05-28 21:33 PDT (04:33:55Z UTC). |
+
+### PR #435 — `feat(web): render status and attribution as receipt registers` (Wave K)
+
+| Field | Value |
+|---|---|
+| Base | `main` (post-#434) |
+| Head | `feat/status-attribution-receipts` @ post-fix head |
+| Local audit verdict | **SAFE** on 2026-05-28 21:39 PDT. 5 files (2 new components + 1 page edit + 1 new page + 1 new test). OIG/LEIE/PECOS/FSMB/Nursys all `connector-not-live`. NPPES at matrix level is `temporarily-unavailable` (per-request behavior left to backend gate). State board is `access-required`. Canonical disclaimer ("we do not claim HIPAA, SOC 2, or NCQA certification") surfaced on both /status and /trust/attribution. 16/16 vitest. Build-error fix mid-implementation: moved TRUST_ATTRIBUTION_DISCLAIMER constant off the Next page (only `default` / `metadata` / `generateMetadata` / `generateStaticParams` allowed) into the register component. |
+| Merge result | **MERGED** as `e7b4e7e6caaa4e1a15b7164723b3e16531fcbe28` on 2026-05-28 21:40 PDT (04:40:46Z UTC). |
+
+### Final `main` after cascade
+
+```
+$ git log --oneline -8 origin/main
+e7b4e7e6c feat(web): render status and attribution as receipt registers (#435)
+3f5afc622 feat(web): clarify auth gate with calm sign-in surfaces (#434)
+f9049d258 fix(web): restore /passport completed-without-anchor copy + /status … (#433)
+5a6ac229f fix(web): restore truth-contract copy on onboarding + review surfaces (#432)
+f7b5b367a feat(web): make homepage NPI-first with role doors (#430)
+5b0e78c7e feat(web): calm degraded passport truth states (#429)
+f8721ff30 docs(ops): record cascade merge of PRs #425 #426 #424 (#427)
+97971b578 docs(ops): define VitalCV agent operating SOP (#428)
+```
+
+### Next required operator action
+
+1. **Authenticated SSE smoke** for NPI 1699264564 — biggest single percentage move on Product Truth Contract; releases the 18% hold on Source Integrations / PSV.
+2. **Browser visual QA** of merged surfaces (/passport, /, /sign-in, /sign-up, /status, /trust/attribution) — closes the design-quality feedback loop.
+3. **`fix/nppes-source-health-observability`** — next coding wave outside the visual-system arc.

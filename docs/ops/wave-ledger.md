@@ -128,3 +128,13 @@ Append one row per wave at the end of the current batch's table. Open a new `## 
 | 31 | 2026-05-27 04:25 PDT | PR #428 local audit | **SAFE.** Merge sim clean against post-#424 main; 3 docs only; banned-phrase hits all in banned-list documentation / negative-example bullets / workflow-approval language. | verdict in transcript | None. |
 | 32 | 2026-05-27 04:26 PDT | Merge PR #428 if SAFE | **MERGED** as `97971b5780e7ccb0f58af19a5062796cc7f930a6` at 11:26:55Z (04:26 PDT). | merge commit `97971b578` | None — landed. |
 | 33 | 2026-05-27 04:27 PDT | Update completion board post-#428 | Self-Improving Agents 14% / 49 → 15% / 48; Overall 28% / 388 → 28% / 387. | this update on `docs/post-merge-tracking-update` (PR #427) | None. |
+
+### Visual-system cascade half (2026-05-27 → 2026-05-28 PDT)
+
+| Wave | Date | Mission | Outcome | Artifacts | Blockers |
+|---:|---|---|---|---|---|
+| 34 | 2026-05-27 04:54 PDT | Wave H — Passport calm-degradation (PR #429) | **SAFE** local audit; **MERGED** as `5b0e78c7e` at 04:56 PDT. New PassportTruthStateBanner (degraded header + 5-row legend + institution review boundary). Replaces "Checking in the background" line. 12/12 vitest. | merge commit `5b0e78c7e` | None — landed. |
+| 35 | 2026-05-27 05:08 PDT | Wave I — Homepage NPI-first + role doors (PR #430) | **SAFE** local audit; **MERGED** as `f7b5b367a` at 05:09 PDT. Hero "Look up an NPI." + 4 role doors + 3-col proof strip + trust footer. 11/11 vitest. | merge commit `f7b5b367a` | None — landed. |
+| 36 | 2026-05-28 21:32 PDT | Wave J — Sign-in / sign-up calm disclosure (PR #434) | **SAFE** local audit; **MERGED** as `3f5afc622` at 21:33 PDT. New AuthDisclosureCard wraps Clerk primitives with canonical disclosure copy + trust footer. Clerk config unchanged. 14/14 vitest. | merge commit `3f5afc622` | None — landed. |
+| 37 | 2026-05-28 21:39 PDT | Wave K — Status Connector Matrix + /trust/attribution receipt register (PR #435) | **SAFE** local audit; **MERGED** as `e7b4e7e6c` at 21:40 PDT. ConnectorMatrix (6 rows) on /status + NEW /trust/attribution page with TrustAttributionRegister (9 rows). Canonical "we do not claim HIPAA, SOC 2, or NCQA" disclaimer surfaced. Build-error fix during implementation: moved TRUST_ATTRIBUTION_DISCLAIMER export off the Next page (only `default`/`metadata`/etc. allowed) into the register component. 16/16 vitest. | merge commit `e7b4e7e6c` | None — landed. |
+| 38 | 2026-05-28 21:46 PDT | Tracking update for this cascade | Completion board, wave ledger, merge ledger extended. Per-row Δ applied per operator-supplied rules: Core +1, FE UX +2, Trust/Proof +1, Auth +1, Interop +1, Demo +1, Testing/CI +1, Overall +1 / −7. | this update on `docs/wave-g-to-k-tracking` | None. |
