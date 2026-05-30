@@ -90,4 +90,10 @@ dist/
 .deployment-lineage/
 .playbook-lineage/
 
+# Local agent runtime artifacts
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+.worktrees/
+
 apps/web/lib/generated/
