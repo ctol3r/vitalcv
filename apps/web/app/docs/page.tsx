@@ -44,6 +44,12 @@ const DOC_LINKS: ReadonlyArray<DocLink> = [
     description: 'Foundation preview of source-health and build status surfaces.',
     href: '/status',
   },
+  {
+    label: 'Visual QA · D57',
+    description:
+      'Design QA audit of the UI canon: 8 routes, 14 components, 8 trust states. LIMITED PASS pending 9 required fixes (§9).',
+    href: '/docs/visual-qa',
+  },
 ];
 
 export default function DocsPage() {

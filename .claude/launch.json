@@ -25,6 +25,12 @@
       "runtimeExecutable": "/bin/zsh",
       "runtimeArgs": ["-l", "-c", "cd /tmp/vitalcv-wave-12a && PORT=3010 pnpm --filter @vitalcv/web exec next dev -p 3010"],
       "port": 3010
+    },
+    {
+      "name": "web-dev-visual",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-l", "-c", "cd /tmp/vitalcv-visual-port && PORT=3020 pnpm --filter @vitalcv/web exec next dev -p 3020"],
+      "port": 3020
     }
   ]
 }
