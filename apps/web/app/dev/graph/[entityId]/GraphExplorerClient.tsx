@@ -67,13 +67,13 @@ export default function GraphExplorerClient({ entityId }: { entityId: string }) 
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-1 pr-3">id</th>
-                  <th className="py-1 pr-3">type</th>
-                  <th className="py-1 pr-3">class</th>
-                  <th className="py-1 pr-3">status</th>
-                  <th className="py-1 pr-3">trustScore</th>
-                  <th className="py-1 pr-3">DG</th>
-                  <th className="py-1">label</th>
+                  <th scope="col" className="py-1 pr-3">id</th>
+                  <th scope="col" className="py-1 pr-3">type</th>
+                  <th scope="col" className="py-1 pr-3">class</th>
+                  <th scope="col" className="py-1 pr-3">status</th>
+                  <th scope="col" className="py-1 pr-3">trustScore</th>
+                  <th scope="col" className="py-1 pr-3">DG</th>
+                  <th scope="col" className="py-1">label</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,10 +97,10 @@ export default function GraphExplorerClient({ entityId }: { entityId: string }) 
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-1 pr-3">type</th>
-                  <th className="py-1 pr-3">from</th>
-                  <th className="py-1 pr-3">to</th>
-                  <th className="py-1">evidenceId</th>
+                  <th scope="col" className="py-1 pr-3">type</th>
+                  <th scope="col" className="py-1 pr-3">from</th>
+                  <th scope="col" className="py-1 pr-3">to</th>
+                  <th scope="col" className="py-1">evidenceId</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,11 +127,11 @@ export default function GraphExplorerClient({ entityId }: { entityId: string }) 
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-1 pr-3">dimension</th>
-                    <th className="py-1 pr-3">score</th>
-                    <th className="py-1 pr-3">contrib</th>
-                    <th className="py-1 pr-3">DG</th>
-                    <th className="py-1">origins</th>
+                    <th scope="col" className="py-1 pr-3">dimension</th>
+                    <th scope="col" className="py-1 pr-3">score</th>
+                    <th scope="col" className="py-1 pr-3">contrib</th>
+                    <th scope="col" className="py-1 pr-3">DG</th>
+                    <th scope="col" className="py-1">origins</th>
                   </tr>
                 </thead>
                 <tbody>

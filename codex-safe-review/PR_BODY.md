@@ -26,9 +26,11 @@ The executable Career Evidence Network layer: a new app-agnostic package (`@vita
 
 ## Validation
 
-- Package: **28 tests** green · Web stack + regression: **52 tests** green.
-- `tsc --noEmit` (package + web): 0 errors · `pnpm check:claims`: pass · ESLint: clean.
-- **`pnpm turbo run build --filter @vitalcv/web`: 11/11 tasks, exit 0** (full Next build with TS+ESLint enforced).
+- Package: **28 tests** green · Web stack + integration + regression: green (incl. 6 Career OS integration tests, W245).
+- `tsc --noEmit` (package + web): 0 errors · ESLint: clean · `banned-verified-label` vitest: green (enforces no bare `Verified`).
+- **`pnpm turbo run build --filter @vitalcv/web`: tasks successful, exit 0** (full Next build with TS+ESLint enforced).
+
+> `check:claims` (the 20-phrase public-copy scanner) is pre-existing infra not on `origin/main`; the stack was verified against it on the source branch, and the committed `banned-verified-label` test covers the critical sub-rule here.
 
 ## Architecture
 
