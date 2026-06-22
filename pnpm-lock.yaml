@@ -758,6 +758,9 @@ importers:
       '@vitalcv/crs':
         specifier: workspace:*
         version: link:../../packages/crs
+      '@vitalcv/domain-evidence':
+        specifier: workspace:*
+        version: link:../../packages/domain-evidence
       '@vitalcv/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest
@@ -980,6 +983,19 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+
+  packages/domain-evidence:
+    dependencies:
+      '@vitalcv/trust-state':
+        specifier: workspace:*
+        version: link:../trust-state
+    devDependencies:
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.2.1)(jsdom@29.0.1(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.46.0)
 
   packages/embed-sdk:
     devDependencies:
