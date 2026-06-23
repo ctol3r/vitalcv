@@ -60,3 +60,23 @@ export {
   type ReputationSummary,
   type TimelineProjection,
 } from './timeline/timeline';
+
+export {
+  defaultReadinessTemplate,
+  deriveMobilityOverview,
+  detectGaps,
+  projectReadiness,
+  type EvidenceRequirement,
+  type ExperienceRequirement,
+  type Gap,
+  type GapKind,
+  type GapRemediation,
+  type GapReport,
+  type MobilityOverview,
+  type MobilityReadiness,
+  type OpportunityObject,
+  type OpportunityRequirement,
+  type ReadinessProjection,
+  type RequirementNecessity,
+  type TrustRequirement,
+} from './mobility/mobility';
