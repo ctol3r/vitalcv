@@ -80,3 +80,11 @@ export {
   type RequirementNecessity,
   type TrustRequirement,
 } from './mobility/mobility';
+
+export {
+  projectOrganizations,
+  type ClinicianOrganizationRelationship,
+  type OrganizationGraph,
+  type OrganizationKind,
+  type OrganizationNode,
+} from './organizations/organizations';

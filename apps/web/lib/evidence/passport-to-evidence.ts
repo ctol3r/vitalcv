@@ -24,6 +24,11 @@ function normalizeId(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
+function trimOrNull(value: string | null | undefined): string | null {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 /**
  * Classify a verification source into an evidence class. The launch spine and
  * extended sources are enumerated; the fallback ('licensure') only triggers for
@@ -151,12 +156,55 @@ function credentialToEvidence(
   };
 }
 
+type PassportTrainingRecord = PassportData['training']['records'][number];
+
+/** Conservative status for self-reported-by-default training records. */
+function deriveTrainingStatus(record: PassportTrainingRecord): EvidenceStatus {
+  if (!record.completed) return 'pending';
+  const level = (record.verificationLevel ?? '').toUpperCase();
+  if (level.includes('PRIMARY') || level.includes('TRIPLE')) return 'checked';
+  return 'notDecisionGrade';
+}
+
+/** Training/education evidence — the institution becomes a career organization node. */
+function trainingToEvidence(subjectKey: string, record: PassportTrainingRecord): EvidenceObject {
+  const status = deriveTrainingStatus(record);
+  const institution = trimOrNull(record.institutionName);
+  const sourceId = institution ? normalizeId(institution) : `program:${normalizeId(record.recordType)}`;
+  return {
+    evidenceId: `training:${record.id}`,
+    subjectKey,
+    evidenceClass: 'training',
+    label: trimOrNull(record.degreeOrTitle) ?? trimOrNull(record.programName) ?? record.recordType,
+    value: { recordType: record.recordType, specialty: record.specialty ?? null, endYear: record.endYear ?? null },
+    status,
+    source: {
+      sourceId,
+      sourceLabel: institution ?? record.programName ?? record.recordType,
+      laneType: null,
+      governance: null,
+    },
+    trustTier: null,
+    decisionGrade: isDecisionGradeStatus(status),
+    observedAt: null,
+    checkedAt: null,
+    expiresAt: null,
+    freshnessWindowHours: null,
+    integrityHash: null,
+    provenance: { artifactIds: [], receiptIds: [], sourceUrl: null, checksum: null, parserVersion: null },
+    lifecycle: 'active',
+    supersedes: null,
+    supersededBy: null,
+  };
+}
+
 /** Build the per-entity EvidenceCollection from a hydrated passport. */
 export function passportToEvidenceCollection(passport: PassportData): EvidenceCollection {
   const subjectKey = passport.entityId;
   const objects: EvidenceObject[] = [
     ...(passport.sourceCoverage.checks ?? []).map((check) => coverageCheckToEvidence(subjectKey, check)),
     ...passport.authority.credentials.map((cred) => credentialToEvidence(subjectKey, cred)),
+    ...passport.training.records.map((record) => trainingToEvidence(subjectKey, record)),
   ];
 
   // Every evidence object is verified_by its source node (feeds the C5 graph).
