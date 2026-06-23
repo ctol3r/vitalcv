@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getApiBase } from '@/lib/api';
+import { walletDeletePath, walletFetchPath } from '@/lib/wallet/credential-wallet-paths';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -148,7 +149,7 @@ export function CredentialWallet({
 
   const fetchWallet = useCallback(async () => {
     try {
-      const r = await fetch(`${base}/api/credentials/wallet/${encodeURIComponent(subject)}`);
+      const r = await fetch(walletFetchPath(base, subject));
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json() as WalletResponse;
       setData(json);
@@ -179,7 +180,7 @@ export function CredentialWallet({
   const handleRemove = useCallback(async (credentialId: string) => {
     setRemoving((prev) => new Set(prev).add(credentialId));
     try {
-      await fetch(`${base}/api/credentials/${credentialId}`, { method: 'DELETE' });
+      await fetch(walletDeletePath(base, credentialId), { method: 'DELETE' });
       setData((prev) =>
         prev
           ? {
@@ -215,8 +216,11 @@ export function CredentialWallet({
           )}
         </div>
         <button
+          type="button"
           onClick={() => void fetchWallet()}
           disabled={loading}
+          aria-label="Refresh credential wallet"
+          aria-busy={loading}
           className="rounded p-1.5 hover:bg-secondary transition-colors disabled:opacity-40"
           title="Refresh wallet"
         >
@@ -293,8 +297,11 @@ export function CredentialWallet({
                         {credential.status}
                       </span>
                       <button
+                        type="button"
                         onClick={() => void handleRemove(credential.credentialId)}
                         disabled={isRemoving}
+                        aria-label={`Remove ${issuerLabel} credential from wallet`}
+                        aria-busy={isRemoving}
                         className="rounded p-1 hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
                         title="Remove from wallet"
                       >
