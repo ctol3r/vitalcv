@@ -7,6 +7,16 @@ import {
   statusTrustScore,
 } from './graph';
 
+describe('statusTrustScore — only decision-grade contributes positive trust', () => {
+  it('scores ONLY checked as positive; every non-decision-grade status is 0', () => {
+    expect(statusTrustScore('checked')).toBe(1);
+    // stale/pending/reviewRequired are NOT decision-grade and must never contribute trust
+    for (const s of ['stale', 'pending', 'reviewRequired', 'gated', 'accessRequired', 'notDecisionGrade', 'previewOnly', 'unavailable'] as const) {
+      expect(statusTrustScore(s)).toBe(0);
+    }
+  });
+});
+
 function makeObject(
   id: string,
   evidenceClass: EvidenceClass,

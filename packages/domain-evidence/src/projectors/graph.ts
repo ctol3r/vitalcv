@@ -83,14 +83,14 @@ export interface GraphProjection {
  */
 export function statusTrustScore(status: EvidenceStatus): number {
   switch (status) {
+    // Only decision-grade ('checked') evidence contributes positive trust.
+    // Every non-decision-grade state — including stale/pending/reviewRequired —
+    // is 0, so it can never raise a dimension or overall score (fail-closed).
     case 'checked':
       return 1;
     case 'stale':
-      return 0.4;
     case 'pending':
-      return 0.2;
     case 'reviewRequired':
-      return 0.1;
     case 'gated':
     case 'accessRequired':
     case 'notDecisionGrade':
