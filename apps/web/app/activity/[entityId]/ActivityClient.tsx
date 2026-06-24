@@ -28,7 +28,7 @@ function badge(e: CareerEvent): string {
   if (e.trustImpact < 0) return 'decay';
   if (e.mobilityImpact === 'expands') return 'mobility unlock';
   if (e.recognitionImpact !== 'none') return e.recognitionImpact;
-  if (e.trustImpact > 0) return 'verified';
+  if (e.trustImpact > 0) return 'source-backed';
   return e.type.replace(/_/g, ' ');
 }
 
