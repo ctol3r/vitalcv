@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Activity · VitalCV',
-  description: 'The clinician career feed — evidence verified, trust milestones, recognition, and mobility changes.',
+  description: 'The clinician career feed — evidence checks, trust milestones, recognition, and mobility changes.',
 };
 
 export default async function ActivityPage({ params }: { params: Promise<{ entityId: string }> }) {
