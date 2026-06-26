@@ -8,11 +8,13 @@ import { assertPassportData } from '../lib/trust/passport-contract';
 // what an accelerator / investor / enterprise demo sees.
 
 describe('demo passport (W500-C4)', () => {
-  it('is a valid, decision-grade passport', () => {
+  it('is a valid passport with honest verification levels (only integrated sources are primary-source)', () => {
     const passport = assertPassportData(buildDemoPassport());
-    expect(passport.readiness.status).toBe('DECISION_GRADE');
     expect(passport.identity.displayName).toBe('Dr. Maya Chen');
-    expect(passport.authority.credentials.length).toBeGreaterThanOrEqual(4);
+    // licensure is primary-source (STATE_BOARD is integrated); board cert is self-reported (ABMS not integrated)
+    expect(passport.authority.credentials.find((c) => c.id === 'lic-ca')?.verificationLevel).toBe('PRIMARY_SOURCE');
+    expect(passport.authority.credentials.find((c) => c.id === 'abim')?.verificationLevel).toBe('SELF_REPORTED');
+    expect(passport.standing.deaStatus).toBe('unknown'); // DEA not integrated → not claimed
   });
 
   it('reserves a demo id that cannot collide with a real NPI or UUID', () => {
@@ -31,9 +33,9 @@ describe('demo tenant end-to-end (no mocks — real resolver)', () => {
 
     expect(body.subjectKey).toBe(DEMO_ENTITY_ID);
     // strong, source-backed snapshot
-    expect(body.trust.overall.decisionGradeEvidence).toBeGreaterThan(0);
-    expect(body.timeline.reputation.standing).toBe('established');
-    expect(body.readiness.readiness).toBe('ready');
+    expect(body.trust.overall.decisionGradeEvidence).toBeGreaterThanOrEqual(5); // NPPES, OIG, PECOS, CA, NV
+    expect(['established', 'emerging']).toContain(body.timeline.reputation.standing); // honest: self-reported items keep it sub-established
+    expect(body.readiness.readiness).toBe('ready'); // integrated spine (identity/exclusion/licensure) all checked
     // rich network: training institutions + credential issuers
     const kinds = body.organizations.organizations.map((o: any) => o.kind);
     expect(kinds).toContain('training_institution');

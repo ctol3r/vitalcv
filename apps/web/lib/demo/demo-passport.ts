@@ -20,11 +20,15 @@ export function isDemoEntity(entityId: string): boolean {
 interface DemoCredential {
   id: string; domain: string; type: string; jurisdiction?: string; issuerName: string; sourceId: string;
 }
-function checkedCredential(c: DemoCredential) {
+// Only integrated launch-spine sources (NPPES/OIG/PECOS/STATE_BOARD) are PRIMARY_SOURCE
+// here. Board certification (ABMS) and training are SELF_REPORTED — those sources are
+// NOT integrated per doctrine, so the demo shows them honestly as not-decision-grade.
+function credential(c: DemoCredential, verificationLevel: 'PRIMARY_SOURCE' | 'SELF_REPORTED') {
+  const decisionGrade = verificationLevel === 'PRIMARY_SOURCE';
   return {
-    id: c.id, domain: c.domain, type: c.type, status: 'ACTIVE', verificationLevel: 'PRIMARY_SOURCE',
-    stale: false, confidenceLabel: 'HIGH', claimConfidenceLabel: 'HIGH', dataFreshness: 'fresh',
-    dataFreshnessLabel: 'Fresh', reviewRequired: false, issuerName: c.issuerName, sourceId: c.sourceId,
+    id: c.id, domain: c.domain, type: c.type, status: 'ACTIVE', verificationLevel,
+    stale: false, confidenceLabel: decisionGrade ? 'HIGH' : 'LOW', claimConfidenceLabel: decisionGrade ? 'HIGH' : 'LOW',
+    dataFreshness: 'fresh', dataFreshnessLabel: 'Fresh', reviewRequired: false, issuerName: c.issuerName, sourceId: c.sourceId,
     jurisdiction: c.jurisdiction, verifiedAt: '2026-06-01T00:00:00.000Z', observedAt: '2026-06-01T00:00:00.000Z',
   };
 }
@@ -41,23 +45,25 @@ export function buildDemoPassport() {
     identity: { displayName: 'Dr. Maya Chen', specialty: 'Cardiology', entityType: 'PERSON', status: 'ACTIVE', npi: '1700000000' },
     authority: {
       credentials: [
-        checkedCredential({ id: 'lic-ca', domain: 'California Medical Board', type: 'STATE_LICENSE', jurisdiction: 'CA', issuerName: 'Medical Board of California', sourceId: 'STATE_BOARD' }),
-        checkedCredential({ id: 'lic-nv', domain: 'Nevada State Board of Medical Examiners', type: 'STATE_LICENSE', jurisdiction: 'NV', issuerName: 'Nevada State Board', sourceId: 'NURSYS' }),
-        checkedCredential({ id: 'abim', domain: 'ABIM', type: 'BOARD_CERTIFICATION', issuerName: 'American Board of Internal Medicine', sourceId: 'ABMS' }),
-        checkedCredential({ id: 'dea', domain: 'DEA', type: 'DEA_REGISTRATION', issuerName: 'Drug Enforcement Administration', sourceId: 'DEA' }),
+        // Decision-grade: state licensure via STATE_BOARD (a launch-spine source).
+        credential({ id: 'lic-ca', domain: 'California Medical Board', type: 'STATE_LICENSE', jurisdiction: 'CA', issuerName: 'Medical Board of California', sourceId: 'STATE_BOARD' }, 'PRIMARY_SOURCE'),
+        credential({ id: 'lic-nv', domain: 'Nevada State Board of Medical Examiners', type: 'STATE_LICENSE', jurisdiction: 'NV', issuerName: 'Nevada State Board of Medical Examiners', sourceId: 'STATE_BOARD' }, 'PRIMARY_SOURCE'),
+        // Self-reported (ABMS not integrated) → honestly NOT decision-grade in the demo.
+        credential({ id: 'abim', domain: 'Board certification (self-reported)', type: 'BOARD_CERTIFICATION', issuerName: 'American Board of Internal Medicine', sourceId: 'ABMS' }, 'SELF_REPORTED'),
       ],
-      summary: { active: 4, expired: 0, stale: 0, missing: [] },
+      summary: { active: 3, expired: 0, stale: 0, missing: [] },
     },
     training: {
+      // Training/education is not an integrated decision-grade source → self-reported.
       records: [
-        { id: 'res-1', recordType: 'RESIDENCY', degreeOrTitle: 'Internal Medicine Residency', specialty: 'Internal Medicine', programName: 'IM Residency', institutionName: 'Johns Hopkins Hospital', endYear: 2018, completed: true, verificationLevel: 'PRIMARY_SOURCE' },
-        { id: 'fel-1', recordType: 'FELLOWSHIP', degreeOrTitle: 'Cardiology Fellowship', specialty: 'Cardiology', programName: 'Cardiology Fellowship', institutionName: 'Mayo Clinic', endYear: 2021, completed: true, verificationLevel: 'PRIMARY_SOURCE' },
+        { id: 'res-1', recordType: 'RESIDENCY', degreeOrTitle: 'Internal Medicine Residency', specialty: 'Internal Medicine', programName: 'IM Residency', institutionName: 'Johns Hopkins Hospital', endYear: 2018, completed: true, verificationLevel: 'SELF_REPORTED' },
+        { id: 'fel-1', recordType: 'FELLOWSHIP', degreeOrTitle: 'Cardiology Fellowship', specialty: 'Cardiology', programName: 'Cardiology Fellowship', institutionName: 'Mayo Clinic', endYear: 2021, completed: true, verificationLevel: 'SELF_REPORTED' },
       ],
-      hasDegree: true, degreeVerified: true, hasResidency: true, fellowshipCount: 1,
+      hasDegree: true, degreeVerified: false, hasResidency: true, fellowshipCount: 1,
     },
     standing: {
       exclusionClear: true, exclusionStatus: 'CLEAR', exclusionCheckedAt: '2026-06-01T00:00:00.000Z', exclusionConfidenceLabel: 'HIGH',
-      licensureStatus: 'verified', deaStatus: 'registered', pecosStatus: 'enrolled', pecosEnrollmentStatus: 'ENROLLED',
+      licensureStatus: 'verified', deaStatus: 'unknown', pecosStatus: 'enrolled', pecosEnrollmentStatus: 'ENROLLED',
       enrollmentSourceLabel: 'CMS PECOS', enrollmentDataFreshness: 'Quarterly', enrollmentNote: 'Current PECOS enrollment found.',
       enrollmentObservedAt: '2026-06-01T00:00:00.000Z', negativeFindings: [],
     },
