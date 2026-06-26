@@ -80,7 +80,7 @@ export default function RecruiterCandidateClient({ entityId }: { entityId: strin
     setChecking(false);
   }
 
-  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading candidate…</p></main>;
+  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading candidate…</p></main>;
   if (!data) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Candidate not available.</p></main>;
 
   const { evidence, trust, mobility, organizations } = data;

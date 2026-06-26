@@ -78,28 +78,21 @@ export default function EcosystemHomeClient({ entityId }: { entityId: string }) 
     let cancelled = false;
     void (async () => {
       setLoading(true);
-      const id = encodeURIComponent(entityId);
-      const [evidence, trust, timeline, mobility, readiness, organizations] = await Promise.all([
-        fetchJson<EvidenceCollection>(`/api/evidence/${id}`),
-        fetchJson<TrustProjection>(`/api/graph/${id}/trust`),
-        fetchJson<TimelineProjection>(`/api/timeline/${id}`),
-        fetchJson<MobilityOverview>(`/api/mobility/${id}`),
-        fetchJson<ReadinessProjection>(`/api/mobility/${id}/readiness`),
-        fetchJson<OrganizationGraph>(`/api/organizations/${id}`),
-      ]);
+      // Single composite call: the passport is resolved once server-side (Wave 400 C1).
+      const snapshot = await fetchJson<EcosystemData>(`/api/ecosystem/${encodeURIComponent(entityId)}`);
       if (cancelled) return;
-      if (evidence && trust && timeline && mobility && readiness && organizations) {
-        setData({ evidence, trust, timeline, mobility, readiness, organizations });
-      } else {
-        setData(null);
-      }
+      setData(
+        snapshot && snapshot.evidence && snapshot.trust && snapshot.timeline && snapshot.mobility && snapshot.readiness && snapshot.organizations
+          ? snapshot
+          : null,
+      );
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [entityId]);
 
   if (loading) {
-    return <main className="mx-auto w-full max-w-4xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading career ecosystem…</p></main>;
+    return <main className="mx-auto w-full max-w-4xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading career ecosystem…</p></main>;
   }
   if (!data) {
     return (

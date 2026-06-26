@@ -38,7 +38,7 @@ export default function NetworkClient({ entityId }: { entityId: string }) {
     return () => { cancelled = true; };
   }, [entityId]);
 
-  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading network…</p></main>;
+  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading network…</p></main>;
   if (!graph) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Network not available.</p></main>;
 
   const relFor = (orgId: string) => graph.relationships.find((r) => r.to === orgId)?.type ?? '';
