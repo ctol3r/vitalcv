@@ -3,6 +3,7 @@ import RecruiterCandidateClient from './RecruiterCandidateClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
+  robots: { index: false, follow: false },
   title: 'Candidate Review · VitalCV',
   description: 'Recruiter candidate review — placement readiness, evidence, trust, and background, source-backed.',
 };

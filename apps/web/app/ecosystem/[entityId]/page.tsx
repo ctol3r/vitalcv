@@ -3,6 +3,7 @@ import EcosystemHomeClient from './EcosystemHomeClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
+  robots: { index: false, follow: false },
   title: 'Career Ecosystem · VitalCV',
   description: 'The operating system for a healthcare career — evidence, trust, mobility, organizations, and activity in one view.',
 };

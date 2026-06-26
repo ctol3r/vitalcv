@@ -35,7 +35,7 @@ export default function CareerIntelligenceClient({ entityId }: { entityId: strin
     return () => { cancelled = true; };
   }, [entityId]);
 
-  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading intelligence…</p></main>;
+  if (loading) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading intelligence…</p></main>;
   if (!data) return <main className="mx-auto w-full max-w-3xl px-4 py-16"><p className="text-sm text-muted-foreground">Career intelligence not available.</p></main>;
 
   return (

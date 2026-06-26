@@ -48,7 +48,7 @@ export default function ActivityClient({ entityId }: { entityId: string }) {
     return () => { cancelled = true; };
   }, [entityId]);
 
-  if (loading) return <main className="mx-auto w-full max-w-2xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading activity…</p></main>;
+  if (loading) return <main className="mx-auto w-full max-w-2xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading activity…</p></main>;
   if (!timeline) return <main className="mx-auto w-full max-w-2xl px-4 py-16"><p className="text-sm text-muted-foreground">Activity not available.</p></main>;
 
   const events = [...timeline.events].reverse();

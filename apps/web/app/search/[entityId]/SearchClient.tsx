@@ -77,7 +77,7 @@ export default function SearchClient({ entityId }: { entityId: string }) {
         </label>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading ecosystem…</p>
+          <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading ecosystem…</p>
         ) : (
           <>
             <p className="text-xs text-muted-foreground">{results.length} result{results.length === 1 ? '' : 's'}{q ? ` for “${query}”` : ''}</p>

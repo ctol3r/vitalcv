@@ -3,6 +3,7 @@ import PacketClient from './PacketClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
+  robots: { index: false, follow: false },
   title: 'Career Packet · VitalCV',
   description: 'Source-backed clinician career readiness packet for recruiter and employer review.',
 };

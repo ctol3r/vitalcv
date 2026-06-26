@@ -41,7 +41,7 @@ export default function CareerMapClient({ entityId }: { entityId: string }) {
   const sourceNodes = useMemo(() => (graph?.nodes ?? []).filter((n) => n.type === 'source'), [graph]);
   const classes = useMemo(() => [...new Set(evidenceNodes.map((n) => n.evidenceClass).filter(Boolean))] as string[], [evidenceNodes]);
 
-  if (loading) return <main className="mx-auto w-full max-w-4xl px-4 py-16"><p className="text-sm text-muted-foreground">Loading career map…</p></main>;
+  if (loading) return <main className="mx-auto w-full max-w-4xl px-4 py-16"><p role="status" aria-live="polite" className="text-sm text-muted-foreground">Loading career map…</p></main>;
   if (!graph) return <main className="mx-auto w-full max-w-4xl px-4 py-16"><p className="text-sm text-muted-foreground">Career map not available.</p></main>;
 
   const subject = graph.nodes.find((n) => n.type === 'subject');
