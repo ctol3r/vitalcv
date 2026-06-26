@@ -88,3 +88,14 @@ export {
   type OrganizationKind,
   type OrganizationNode,
 } from './organizations/organizations';
+
+export {
+  generateIntelligence,
+  type Insight,
+  type InsightKind,
+  type InsightSeverity,
+  type IntelligenceProjection,
+  type Notification,
+  type NotificationCategory,
+  type PrioritizedAction,
+} from './intelligence/intelligence';
