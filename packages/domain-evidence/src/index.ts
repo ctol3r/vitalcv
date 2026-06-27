@@ -99,3 +99,17 @@ export {
   type NotificationCategory,
   type PrioritizedAction,
 } from './intelligence/intelligence';
+
+export {
+  CAREER_ARC,
+  buildMentorship,
+  projectProfessionalGrowth,
+  type CareerProgression,
+  type CareerStage,
+  type GrowthGap,
+  type MentorshipRelationship,
+  type MentorshipRole,
+  type Milestone,
+  type MilestoneType,
+  type ProfessionalGrowthProjection,
+} from './growth/growth';
