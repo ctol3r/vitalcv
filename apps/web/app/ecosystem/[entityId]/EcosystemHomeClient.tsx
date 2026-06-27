@@ -19,6 +19,8 @@ import type {
   TimelineProjection,
   TrustProjection,
 } from '@vitalcv/domain-evidence';
+import { fetchJson } from '@/lib/workspace/fetch-json';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 interface EcosystemData {
   evidence: EvidenceCollection;
@@ -27,12 +29,6 @@ interface EcosystemData {
   mobility: MobilityOverview;
   readiness: ReadinessProjection;
   organizations: OrganizationGraph;
-}
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) return null;
-  return (await res.json()) as T;
 }
 
 const READINESS_TONE: Record<string, string> = {
@@ -112,7 +108,8 @@ export default function EcosystemHomeClient({ entityId }: { entityId: string }) 
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
+      <WorkspaceNav entityId={entityId} active="ecosystem" />
+      <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
         {/* Header — Career Health (answers "where am I?") */}
         <header className="rounded-2xl border border-border bg-card p-6">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Career Ecosystem</p>

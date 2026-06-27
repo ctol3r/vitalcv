@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Insight, IntelligenceProjection } from '@vitalcv/domain-evidence';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 const SEVERITY_TONE: Record<string, string> = {
   high: 'border-rose-300 text-rose-800',
@@ -40,6 +41,7 @@ export default function CareerIntelligenceClient({ entityId }: { entityId: strin
 
   return (
     <main className="min-h-screen bg-background">
+      <WorkspaceNav entityId={entityId} active="career-intelligence" />
       <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
         <header>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Career Intelligence</p>

@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { OrganizationGraph, OrganizationKind } from '@vitalcv/domain-evidence';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 const KIND_LABELS: Record<OrganizationKind, string> = {
   employer: 'Employers',
@@ -46,6 +47,7 @@ export default function NetworkClient({ entityId }: { entityId: string }) {
 
   return (
     <main className="min-h-screen bg-background">
+      <WorkspaceNav entityId={entityId} active="network" />
       <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
         <header>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">My Network</p>

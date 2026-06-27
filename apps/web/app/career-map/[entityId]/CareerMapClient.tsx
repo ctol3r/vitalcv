@@ -10,11 +10,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { GraphProjection, TrustProjection } from '@vitalcv/domain-evidence';
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: 'no-store' });
-  return res.ok ? ((await res.json()) as T) : null;
-}
+import { fetchJson } from '@/lib/workspace/fetch-json';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 export default function CareerMapClient({ entityId }: { entityId: string }) {
   const [graph, setGraph] = useState<GraphProjection | null>(null);
@@ -55,6 +52,7 @@ export default function CareerMapClient({ entityId }: { entityId: string }) {
 
   return (
     <main className="min-h-screen bg-background">
+      <WorkspaceNav entityId={entityId} active="career-map" />
       <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
         <header>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Career Map</p>

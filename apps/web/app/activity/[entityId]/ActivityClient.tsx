@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { CareerEvent, TimelineProjection } from '@vitalcv/domain-evidence';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 function formatDate(value: string | null): string {
   if (!value) return 'Undated';
@@ -55,6 +56,7 @@ export default function ActivityClient({ entityId }: { entityId: string }) {
 
   return (
     <main className="min-h-screen bg-background">
+      <WorkspaceNav entityId={entityId} active="activity" />
       <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10">
         <header>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Activity</p>
