@@ -68,12 +68,15 @@ export function buildDemoPassport() {
       enrollmentObservedAt: '2026-06-01T00:00:00.000Z', negativeFindings: [],
     },
     readiness: { status: 'DECISION_GRADE', score: 95, level: 'L3', blockers: [], gaps: [], estimatedStartDays: 5, nextActions: [] },
-    sources: { checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC'], lastFetch: { NPPES_API: '2026-06-01T00:00:00.000Z', OIG_LEIE: '2026-06-01T00:00:00.000Z', PECOS_PUBLIC: '2026-06-01T00:00:00.000Z' } },
+    sources: { checked: ['NPPES_API', 'OIG_LEIE', 'PECOS_PUBLIC', 'STATE_BOARD'], lastFetch: { NPPES_API: '2026-06-01T00:00:00.000Z', OIG_LEIE: '2026-06-01T00:00:00.000Z', PECOS_PUBLIC: '2026-06-01T00:00:00.000Z', STATE_BOARD: '2026-06-01T00:00:00.000Z' } },
     sourceCoverage: {
+      // Full launch-spine coverage (NPPES + OIG + PECOS + STATE_BOARD) — required for
+      // a DECISION_GRADE derived readiness. Non-integrated sources are not claimed here.
       checks: [
         checkedSource('NPPES_API', 'NPPES identity checked'),
         checkedSource('OIG_LEIE', 'OIG/LEIE exclusion screening clear'),
         checkedSource('PECOS_PUBLIC', 'CMS PECOS enrollment confirmed'),
+        checkedSource('STATE_BOARD', 'State medical board licensure checked'),
       ],
     },
     trustPosture: {
