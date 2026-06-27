@@ -25,6 +25,12 @@ const EVENT_TYPES: SolutionEventType[] = ['landing_view', 'role_selected', 'demo
 const VALID_ROLES: SolutionRole[] = ['clinician', 'recruiter', 'organization', 'enterprise'];
 const ALLOWED_KEYS = ['schema', 'type', 'role', 'occurredAt'];
 
+/** Strict ISO-8601 instant (e.g. 2026-06-01T00:00:00.000Z) — so `occurredAt` can
+ * never carry arbitrary string PII. */
+function isIsoTimestamp(v: unknown): boolean {
+  return typeof v === 'string' && v.length <= 30 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(v);
+}
+
 export function buildSolutionEvent(type: SolutionEventType, role: SolutionRole | null = null, occurredAt: string | null = null): SolutionEvent {
   return { schema: 'vitalcv.solution-event.v1', type, role, occurredAt };
 }
@@ -40,7 +46,7 @@ export function isSolutionEvent(value: unknown): value is SolutionEvent {
     && typeof e.type === 'string'
     && EVENT_TYPES.includes(e.type as SolutionEventType)
     && (e.role === null || (typeof e.role === 'string' && VALID_ROLES.includes(e.role as SolutionRole)))
-    && (e.occurredAt === null || typeof e.occurredAt === 'string');
+    && (e.occurredAt === null || isIsoTimestamp(e.occurredAt));
 }
 
 export type EventEmit = (event: SolutionEvent) => void;

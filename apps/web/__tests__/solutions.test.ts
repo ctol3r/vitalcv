@@ -44,6 +44,9 @@ describe('solution analytics (W700-C5)', () => {
     // strict / fail-closed: invalid role + ANY extra (PII) field are rejected
     expect(isSolutionEvent({ schema: 'vitalcv.solution-event.v1', type: 'role_selected', role: 'astronaut', occurredAt: null })).toBe(false);
     expect(isSolutionEvent({ schema: 'vitalcv.solution-event.v1', type: 'role_selected', role: null, occurredAt: null, email: 'a@b.com' })).toBe(false);
+    // occurredAt must be a strict ISO instant — arbitrary string PII is rejected
+    expect(isSolutionEvent({ schema: 'vitalcv.solution-event.v1', type: 'role_selected', role: null, occurredAt: 'alice@example.com' })).toBe(false);
+    expect(isSolutionEvent({ schema: 'vitalcv.solution-event.v1', type: 'role_selected', role: null, occurredAt: '2026-06-01T00:00:00.000Z' })).toBe(true);
   });
 
   it('ingestion route accepts a valid event (204) and rejects an invalid one (400)', async () => {
