@@ -53,7 +53,12 @@ export interface SignedWebhookDelivery {
   headers: Record<string, string>;
 }
 
-function computeSignature(timestamp: string, body: string, secret: string): string {
+/**
+ * Shared HMAC-SHA256 primitive over `${timestamp}.${body}` (replay-bound).
+ * Exported so the trust-exchange layer signs/verifies with the identical vetted
+ * formula instead of duplicating its own crypto.
+ */
+export function computeSignature(timestamp: string, body: string, secret: string): string {
   return 'sha256=' + createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 }
 
