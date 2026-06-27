@@ -78,21 +78,26 @@ export interface CareerProgression {
   progress: number;
 }
 
-function has(evidence: EvidenceCollection, ...classes: EvidenceClass[]): boolean {
-  return classes.some((c) => (evidence.byClass[c]?.length ?? 0) > 0);
+/** A stage is reached only by DECISION-GRADE evidence — never by gated/stale/
+ * self-reported items, which can be career facts but not verified progression. */
+function hasDecisionGrade(evidence: EvidenceCollection, ...classes: EvidenceClass[]): boolean {
+  return classes.some((c) => (evidence.byClass[c] ?? []).some((o) => o.decisionGrade));
 }
 
 function deriveProgression(evidence: EvidenceCollection, standing: ReputationStanding): CareerProgression {
   const reached = new Set<CareerStage>();
-  if (has(evidence, 'training')) reached.add('training');
-  if (has(evidence, 'licensure', 'registration')) reached.add('licensed');
-  if (has(evidence, 'employment', 'recognition', 'acceptance', 'start')) reached.add('practicing');
-  if (has(evidence, 'board_cert')) reached.add('board_certified');
-  if (standing === 'established') reached.add('established');
+  if (hasDecisionGrade(evidence, 'training')) reached.add('training');
+  if (hasDecisionGrade(evidence, 'licensure', 'registration')) reached.add('licensed');
+  if (hasDecisionGrade(evidence, 'employment', 'recognition', 'acceptance', 'start')) reached.add('practicing');
+  if (hasDecisionGrade(evidence, 'board_cert')) reached.add('board_certified');
+  // 'established' is a capstone: every prior career stage verified AND established standing.
+  const careerStagesReached = (['training', 'licensed', 'practicing', 'board_certified'] as CareerStage[]).every((s) => reached.has(s));
+  if (careerStagesReached && standing === 'established') reached.add('established');
 
   const stagesReached = CAREER_ARC.filter((s) => reached.has(s));
   const stage = stagesReached.length > 0 ? stagesReached[stagesReached.length - 1] : null;
-  const nextStage = CAREER_ARC.find((s) => !reached.has(s)) ?? null;
+  const stageIdx = stage ? CAREER_ARC.indexOf(stage) : -1;
+  const nextStage = CAREER_ARC.slice(stageIdx + 1).find((s) => !reached.has(s)) ?? null;
   const progress = stage ? Math.round(((CAREER_ARC.indexOf(stage) + 1) / CAREER_ARC.length) * 10000) / 10000 : 0;
   return { stage, stagesReached, nextStage, progress };
 }

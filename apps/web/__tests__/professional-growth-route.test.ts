@@ -46,9 +46,11 @@ describe('professional-growth route (W520-C6)', () => {
     // self-reported residency is reached-but-unverified (honest)
     expect(body.milestones.some((m: any) => m.type === 'training' && m.decisionGrade === false)).toBe(true);
 
-    // progression: training + licensed reached; board cert not → growth gap
-    expect(body.progression.stagesReached).toEqual(expect.arrayContaining(['training', 'licensed']));
+    // progression: decision-grade licensure reaches 'licensed'; self-reported residency does NOT advance the arc
+    expect(body.progression.stagesReached).toContain('licensed');
+    expect(body.progression.stagesReached).not.toContain('training');
     expect(body.growthGaps.some((g: any) => g.toReachStage === 'board_certified')).toBe(true);
+    expect(body.growthGaps.some((g: any) => g.toReachStage === 'training')).toBe(true); // verify your training
 
     // mentorship model present but empty (external data source)
     expect(body.mentorship).toEqual([]);

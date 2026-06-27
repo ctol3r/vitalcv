@@ -36,16 +36,22 @@ describe('projectProfessionalGrowth (W520)', () => {
     expect(g.milestones.find((m) => m.evidenceId === 'training:res')?.decisionGrade).toBe(false); // self-reported, honest
   });
 
-  it('computes a career progression along the arc', () => {
+  it('reaches a stage ONLY via decision-grade evidence', () => {
     const g = growthOf([
-      makeObject('training:res', 'training', 'notDecisionGrade', 'JHU'),
-      makeObject('cred:lic', 'licensure', 'checked', 'STATE_BOARD'),
+      makeObject('training:res', 'training', 'notDecisionGrade', 'JHU'), // self-reported → not a verified stage
+      makeObject('cred:lic', 'licensure', 'checked', 'STATE_BOARD'),     // decision-grade licensure
     ]);
-    expect(g.progression.stagesReached).toContain('training');
+    expect(g.progression.stagesReached).not.toContain('training'); // self-reported residency does not advance the arc
     expect(g.progression.stagesReached).toContain('licensed');
-    expect(g.progression.stage).toBe('licensed'); // highest reached on the arc
+    expect(g.progression.stage).toBe('licensed');
     expect(g.progression.nextStage).toBe('practicing');
     expect(g.progression.progress).toBeGreaterThan(0);
+  });
+
+  it('does NOT mark a stage reached from gated/non-decision-grade coverage', () => {
+    const g = growthOf([makeObject('coverage:STATE_BOARD', 'licensure', 'gated', 'STATE_BOARD')]);
+    expect(g.progression.stagesReached).not.toContain('licensed'); // the exact bug: gated licensure ≠ licensed
+    expect(g.progression.stage).toBeNull();
   });
 
   it('produces growth gaps for unreached stages with rationale', () => {
