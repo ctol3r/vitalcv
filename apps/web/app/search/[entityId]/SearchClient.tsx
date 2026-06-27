@@ -10,11 +10,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { EvidenceCollection, OrganizationGraph, TimelineProjection } from '@vitalcv/domain-evidence';
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: 'no-store' });
-  return res.ok ? ((await res.json()) as T) : null;
-}
+import { fetchJson } from '@/lib/workspace/fetch-json';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 interface Hit { kind: 'Evidence' | 'Organization' | 'Career Event'; label: string; detail: string }
 
@@ -54,6 +51,7 @@ export default function SearchClient({ entityId }: { entityId: string }) {
 
   return (
     <main className="min-h-screen bg-background">
+      <WorkspaceNav entityId={entityId} active="search" />
       <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-10">
         <header>
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Search</p>
