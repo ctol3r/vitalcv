@@ -45,7 +45,7 @@ export default function ProfessionalGrowthClient({ entityId }: { entityId: strin
                 Stage: <span className="font-medium capitalize">{data.progression.stage?.replace('_', ' ') ?? 'not yet established'}</span>
                 {data.progression.nextStage && <span className="text-muted-foreground"> · next: {data.progression.nextStage.replace('_', ' ')}</span>}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Verified stages: {data.progression.stagesReached.join(', ') || 'none'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Source-backed stages: {data.progression.stagesReached.join(', ') || 'none'}</p>
             </section>
 
             <section className="rounded-2xl border border-border bg-card p-5">
