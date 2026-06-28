@@ -3,6 +3,7 @@ import { composeCareerModel } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
 import { demoWorkspaceConfig, findRole, findDashboard, isRoleGranted } from '@/lib/workspace-config/config';
+import { authenticateApp, appKeyEnvVar } from '@/lib/workspace-config/auth';
 import { projectForRole } from '@/lib/workspace-config/roles';
 import { evaluateWorkflow } from '@/lib/workspace-config/workflows';
 import { projectDashboard } from '@/lib/workspace-config/dashboard';
@@ -37,11 +38,21 @@ export async function GET(
       );
     }
 
-    // Caller authorization: an app may only assume a role it has been granted.
-    // Without this, any caller could request the broadest role (e.g. clinician).
+    // Caller AUTHENTICATION first: the app must prove its identity with its
+    // configured key, otherwise the appId is just an unverified claim. Fails
+    // closed (401) when the key is missing/unconfigured/mismatched.
+    const appKey = req.headers.get('x-app-key') ?? searchParams.get('appKey') ?? '';
+    if (!authenticateApp(appId, appKey, process.env[appKeyEnvVar(appId)])) {
+      return NextResponse.json(
+        { error: 'app_not_authenticated', error_description: 'A valid appId and matching app key are required.' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
+    // Caller AUTHORIZATION: an authenticated app may only assume a granted role.
     if (!isRoleGranted(config, appId, roleId)) {
       return NextResponse.json(
-        { error: 'role_not_granted', error_description: `Application "${appId || '(none)'}" may not assume role "${roleId}".` },
+        { error: 'role_not_granted', error_description: `Application "${appId}" may not assume role "${roleId}".` },
         { status: 403, headers: { 'Cache-Control': 'no-store' } },
       );
     }

@@ -83,38 +83,51 @@ describe('Configurable Platform (C1/C6)', () => {
     expect(validateWorkspaceConfig(degenerate).valid).toBe(false);
   });
 
-  it('route authorizes the caller: an app may only assume a granted role', async () => {
-    const cfg = demoWorkspaceConfig();
-    // Partner ATS is granted recruiter only.
-    expect(isRoleGranted(cfg, 'app-coastal-ats', 'recruiter')).toBe(true);
-    expect(isRoleGranted(cfg, 'app-coastal-ats', 'clinician')).toBe(false);
-    expect(isRoleGranted(cfg, '', 'clinician')).toBe(false);
+  it('route authenticates the caller before authorizing — a claimed appId is not enough', async () => {
+    // Configure per-app keys (server-side secrets).
+    process.env.WORKSPACE_APP_KEY_APP_COASTAL_ATS = 'coastal-secret';
+    process.env.WORKSPACE_APP_KEY_APP_VITALCV_WEB = 'web-secret';
 
-    // Route: ATS requesting the broad clinician role is refused.
-    const denied = await workspaceGET(
-      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=clinician&appId=app-coastal-ats'),
-      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
-    );
+    const call = (qs: string, headers?: Record<string, string>) =>
+      workspaceGET(
+        new NextRequest(`http://localhost/api/workspace-config/demo-clinician?${qs}`, { headers }),
+        { params: Promise.resolve({ entityId: 'demo-clinician' }) },
+      );
+
+    // THE BYPASS CODEX FOUND: claiming a granted appId WITHOUT its key must fail
+    // closed (401) — you cannot just assert appId=app-vitalcv-web.
+    const spoof = await call('role=clinician&appId=app-vitalcv-web');
+    expect(spoof.status).toBe(401);
+    expect((await spoof.json()).error).toBe('app_not_authenticated');
+
+    // Wrong key → 401.
+    const wrongKey = await call('role=clinician&appId=app-vitalcv-web&appKey=not-the-key');
+    expect(wrongKey.status).toBe(401);
+
+    // No appId at all → 401.
+    expect((await call('role=clinician')).status).toBe(401);
+
+    // Authenticated app, but role NOT granted → 403 (authn passes, authz fails).
+    const denied = await call('role=clinician&appId=app-coastal-ats', { 'x-app-key': 'coastal-secret' });
     expect(denied.status).toBe(403);
     expect((await denied.json()).error).toBe('role_not_granted');
 
-    // Route: no appId at all is refused (no anonymous broadest-role access).
-    const anon = await workspaceGET(
-      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=clinician'),
-      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
-    );
-    expect(anon.status).toBe(403);
-
-    // Route: ATS in its granted recruiter role is allowed.
-    const ok = await workspaceGET(
-      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=recruiter&appId=app-coastal-ats'),
-      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
-    );
+    // Authenticated + granted role → 200, still correctly section-scoped.
+    const ok = await call('role=recruiter&appId=app-coastal-ats', { 'x-app-key': 'coastal-secret' });
     expect(ok.status).toBe(200);
     const json = await ok.json();
     expect(json.role.roleId).toBe('recruiter');
-    // The recruiter projection cannot see raw evidence.
     expect(json.projection.hiddenSections).toContain('evidence');
+
+    delete process.env.WORKSPACE_APP_KEY_APP_COASTAL_ATS;
+    delete process.env.WORKSPACE_APP_KEY_APP_VITALCV_WEB;
+  });
+
+  it('role grant check is fail-closed at the unit level too', () => {
+    const cfg = demoWorkspaceConfig();
+    expect(isRoleGranted(cfg, 'app-coastal-ats', 'recruiter')).toBe(true);
+    expect(isRoleGranted(cfg, 'app-coastal-ats', 'clinician')).toBe(false);
+    expect(isRoleGranted(cfg, '', 'clinician')).toBe(false);
   });
 
   it('workflow steps are gated by REAL decision-grade facts, not configuration', () => {
