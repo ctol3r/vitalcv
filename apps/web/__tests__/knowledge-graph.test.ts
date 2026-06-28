@@ -100,4 +100,14 @@ describe('Knowledge Graph — one canonical graph (C1/C7)', () => {
     const missing = traverseSubgraph(index, 'does-not-exist', 3);
     expect(missing.entities).toHaveLength(0);
   });
+
+  it('content hash reacts to label changes, not just status (no stale 304)', () => {
+    const base = passportToEvidenceCollection(buildDemoPassport());
+    const baseHash = buildKnowledgeGraph(base).contentHash;
+
+    // Change the subject display name only — entity status/decisionGrade untouched.
+    // The subject node label changes, so the ETag MUST change.
+    const renamed = { ...base, generatedFor: { ...base.generatedFor, displayName: 'Dr. Different Name' } };
+    expect(buildKnowledgeGraph(renamed).contentHash).not.toBe(baseHash);
+  });
 });

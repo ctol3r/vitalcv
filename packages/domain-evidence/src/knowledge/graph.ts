@@ -69,12 +69,21 @@ export interface KnowledgeGraph {
   contentHash: string;
 }
 
-/** FNV-1a 32-bit. Pure JS cache hash, not security. */
+/**
+ * FNV-1a 32-bit. Pure JS cache hash, not security.
+ *
+ * Hashes the FULL entity/edge content — id, kind, label, status, class, trust,
+ * source, decisionGrade for entities; all fields for edges. The hash is the
+ * route ETag, so under-hashing (e.g. status only) would let a changed graph
+ * return a stale 304. Sorted for determinism regardless of array order.
+ */
 function hashEntities(entities: KnowledgeEntity[], edges: KnowledgeEdge[]): string {
   let h = 0x811c9dc5;
   const material = [
-    ...entities.map((e) => `${e.id}:${e.kind}:${e.status ?? ''}:${e.decisionGrade ? 1 : 0}`),
-    ...edges.map((e) => `${e.from}>${e.predicate}>${e.to}:${e.decisionGrade ? 1 : 0}`),
+    ...entities.map((e) =>
+      JSON.stringify([e.id, e.kind, e.label, e.status, e.evidenceClass, e.trustScore, e.source, e.decisionGrade]),
+    ),
+    ...edges.map((e) => JSON.stringify([e.id, e.from, e.to, e.predicate, e.decisionGrade, e.evidenceIds])),
   ]
     .sort()
     .join('|');
