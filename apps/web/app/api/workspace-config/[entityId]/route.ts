@@ -30,17 +30,11 @@ export async function GET(
     const roleId = searchParams.get('role') ?? 'clinician';
     const appId = searchParams.get('appId')?.trim() ?? '';
 
-    const role = findRole(config, roleId);
-    if (!role) {
-      return NextResponse.json(
-        { error: 'unknown_role', error_description: `Role "${roleId}" is not defined in this workspace.` },
-        { status: 403, headers: { 'Cache-Control': 'no-store' } },
-      );
-    }
-
-    // Caller AUTHENTICATION first: the app must prove its identity with its
-    // configured key, otherwise the appId is just an unverified claim. Fails
-    // closed (401) when the key is missing/unconfigured/mismatched.
+    // Caller AUTHENTICATION FIRST — before anything reveals workspace structure.
+    // The app must prove its identity with its configured key; otherwise the
+    // appId is just an unverified claim. Doing this before any role lookup also
+    // prevents an unauthenticated caller from enumerating role IDs via the
+    // difference between 403 unknown_role and other responses. Fails closed (401).
     const appKey = req.headers.get('x-app-key') ?? searchParams.get('appKey') ?? '';
     if (!authenticateApp(appId, appKey, process.env[appKeyEnvVar(appId)])) {
       return NextResponse.json(
@@ -50,9 +44,19 @@ export async function GET(
     }
 
     // Caller AUTHORIZATION: an authenticated app may only assume a granted role.
+    // Checked before role existence so a non-granted caller learns nothing about
+    // which role IDs exist.
     if (!isRoleGranted(config, appId, roleId)) {
       return NextResponse.json(
         { error: 'role_not_granted', error_description: `Application "${appId}" may not assume role "${roleId}".` },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
+    const role = findRole(config, roleId);
+    if (!role) {
+      return NextResponse.json(
+        { error: 'unknown_role', error_description: `Role "${roleId}" is not defined in this workspace.` },
         { status: 403, headers: { 'Cache-Control': 'no-store' } },
       );
     }

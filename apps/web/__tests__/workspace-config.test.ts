@@ -107,6 +107,11 @@ describe('Configurable Platform (C1/C6)', () => {
     // No appId at all → 401.
     expect((await call('role=clinician')).status).toBe(401);
 
+    // No role enumeration pre-auth: a VALID role and a BOGUS role both return 401
+    // (not 403 unknown_role) when unauthenticated — no oracle for which roles exist.
+    expect((await call('role=clinician')).status).toBe(401);
+    expect((await call('role=does-not-exist')).status).toBe(401);
+
     // Authenticated app, but role NOT granted → 403 (authn passes, authz fails).
     const denied = await call('role=clinician&appId=app-coastal-ats', { 'x-app-key': 'coastal-secret' });
     expect(denied.status).toBe(403);
