@@ -128,3 +128,20 @@ export {
   type CareerEra,
   type CareerLongitudinal,
 } from './career/longitudinal';
+
+export {
+  KNOWLEDGE_GRAPH_SCHEMA,
+  buildKnowledgeGraph,
+  indexKnowledgeGraph,
+  neighbors,
+  traverseSubgraph,
+  searchEntities,
+  type KnowledgeEntity,
+  type KnowledgeEntityKind,
+  type KnowledgePredicate,
+  type KnowledgeEdge,
+  type KnowledgeGraph,
+  type KnowledgeGraphIndex,
+  type SubgraphResult,
+  type KnowledgeSearchQuery,
+} from './knowledge/graph';
