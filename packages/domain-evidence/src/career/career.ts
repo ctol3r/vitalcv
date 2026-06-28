@@ -96,13 +96,21 @@ export interface ComposeCareerOptions {
 /**
  * FNV-1a, 32-bit. Pure JS (no node:crypto — this package is app-agnostic and
  * runs anywhere). Sufficient for a cache-validation ETag, NOT for security.
+ *
+ * Hashes the FULL collection. The Career Model is a pure function of the
+ * collection, so this ETag changes whenever ANY model-affecting input changes —
+ * evidence values, provenance, identity, relationships — not merely status or
+ * checkedAt. Hashing a narrow subset would let a changed model return a stale
+ * 304. Object key order is deterministic from the canonical builder.
  */
 function contentHash(collection: EvidenceCollection): string {
   let h = 0x811c9dc5;
-  const material = collection.objects
-    .map((o) => `${o.evidenceId}:${o.status}:${o.checkedAt ?? ''}`)
-    .sort()
-    .join('|');
+  const material = JSON.stringify({
+    subjectKey: collection.subjectKey,
+    generatedFor: collection.generatedFor,
+    objects: collection.objects,
+    relationships: collection.relationships,
+  });
   for (let i = 0; i < material.length; i++) {
     h ^= material.charCodeAt(i);
     h = Math.imul(h, 0x01000193);

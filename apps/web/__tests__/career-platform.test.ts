@@ -80,6 +80,23 @@ describe('Career Platform — canonical model (C1/C6)', () => {
     expect(a.meta.decisionGradeEvidence).toBeLessThanOrEqual(a.meta.totalEvidence);
   });
 
+  it('content hash reacts to ANY model-affecting change, not just status (no stale 304)', () => {
+    const base = passportToEvidenceCollection(buildDemoPassport());
+    const baseHash = composeCareerModel(base).meta.contentHash;
+
+    // Change identity display name only — status/checkedAt untouched. The ETag
+    // MUST change so a client cannot keep a stale model via 304.
+    const renamed = { ...base, generatedFor: { ...base.generatedFor, displayName: 'Dr. Different Name' } };
+    expect(composeCareerModel(renamed).meta.contentHash).not.toBe(baseHash);
+
+    // Change an evidence object's value only — again status untouched.
+    const mutatedObjects = base.objects.map((o, i) =>
+      i === 0 ? { ...o, value: { ...(o.value as object), _probe: 'changed' } } : o,
+    );
+    const mutated = { ...base, objects: mutatedObjects };
+    expect(composeCareerModel(mutated).meta.contentHash).not.toBe(baseHash);
+  });
+
   it('longitudinal model: legacy is the earliest dated era, milestones immutable-by-derivation', () => {
     const m = model();
     const { longitudinal } = m;
