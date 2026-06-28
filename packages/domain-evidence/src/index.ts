@@ -145,3 +145,19 @@ export {
   type SubgraphResult,
   type KnowledgeSearchQuery,
 } from './knowledge/graph';
+
+export {
+  REASONING_SCHEMA,
+  planTraversal,
+  reason,
+  createReasoner,
+  simulateScenario,
+  type ReasoningQuery,
+  type TraversalPlan,
+  type ReasoningConfidence,
+  type ReasoningExplanation,
+  type ReasoningResult,
+  type Reasoner,
+  type ScenarioMutation,
+  type ScenarioResult,
+} from './reasoning/engine';
