@@ -28,6 +28,19 @@ const ISO_8601 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 const ALLOWED_KEYS = new Set(['type', 'tenantId', 'occurredAt']);
 
 /**
+ * A real UTC instant — not just the right SHAPE. The regex alone accepts
+ * impossible values like `2026-99-99T99:99:99Z` or `2026-02-30T...`. We also
+ * require the string to parse AND round-trip to the same calendar Y-M-D H:M:S,
+ * which rejects out-of-range months/days/times (Date would roll them over).
+ */
+function isRealIsoInstant(value: string): boolean {
+  if (!ISO_8601.test(value)) return false;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.toISOString().slice(0, 19) === value.slice(0, 19);
+}
+
+/**
  * Strict validation — mirrors the solutions-analytics posture. A record must
  * have ONLY the three allowed keys, a known event type, a non-empty tenantId,
  * and a strict ISO-8601 timestamp. Anything else (extra keys = possible PII) is
@@ -40,7 +53,7 @@ export function isTelemetryRecord(value: unknown): value is TelemetryRecord {
   const r = value as Record<string, unknown>;
   if (!(PLATFORM_EVENT_TYPES as readonly string[]).includes(r.type as string)) return false;
   if (typeof r.tenantId !== 'string' || r.tenantId.trim().length === 0 || r.tenantId.length > 64) return false;
-  if (typeof r.occurredAt !== 'string' || !ISO_8601.test(r.occurredAt)) return false;
+  if (typeof r.occurredAt !== 'string' || !isRealIsoInstant(r.occurredAt)) return false;
   return true;
 }
 

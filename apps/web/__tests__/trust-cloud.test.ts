@@ -7,6 +7,8 @@
  * telemetry, and fail-closed enterprise readiness.
  */
 import { describe, expect, it } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET as manifestGET } from '../app/api/platform/manifest/route';
 import { demoPlatformRegistry, resolveCloudIdentity, findTenant } from '../lib/platform-cloud/registry';
 import { demoApplicationRegistry, authorizeApplication } from '../lib/platform-cloud/applications';
 import { emitPlatformEvent, type EventSubscription } from '../lib/platform-cloud/events';
@@ -89,6 +91,29 @@ describe('Trust Cloud — telemetry (C6) & readiness (C7)', () => {
     expect(summary.total).toBe(2);
     expect(summary.byType['exchange.verified']).toBe(2);
     expect(summary.tenantCount).toBe(2);
+  });
+
+  it('rejects semantically-invalid timestamps that pass the regex shape', () => {
+    const summary = aggregateTelemetry([
+      { type: 'exchange.verified', tenantId: 'x', occurredAt: '2026-99-99T99:99:99Z' }, // impossible
+      { type: 'exchange.verified', tenantId: 'x', occurredAt: '2026-02-30T00:00:00Z' }, // overflow day
+      { type: 'exchange.verified', tenantId: 'x', occurredAt: '2026-06-20T00:00:00Z' }, // valid
+    ]);
+    expect(summary.total).toBe(1);
+  });
+
+  it('manifest is tenant-scoped — a partner app sees only its own tenants (no cross-tenant leak)', async () => {
+    // app-coastal-ats is registered for coastal-staffing only.
+    const res = await manifestGET(new NextRequest('http://localhost/api/platform/manifest?appId=app-coastal-ats'));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.tenants.map((t: { tenantId: string }) => t.tenantId)).toEqual(['coastal-staffing']);
+    expect(json.readiness.tenants.every((t: { tenantId: string }) => t.tenantId === 'coastal-staffing')).toBe(true);
+  });
+
+  it('manifest fails closed for an unknown app', async () => {
+    const res = await manifestGET(new NextRequest('http://localhost/api/platform/manifest?appId=app-unknown'));
+    expect(res.status).toBe(403);
   });
 
   it('fail-closed readiness: a tenant with no signing secret is not ready', () => {
