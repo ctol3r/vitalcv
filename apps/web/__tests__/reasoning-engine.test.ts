@@ -104,6 +104,29 @@ describe('Reasoning Engine — scenario simulation (C5)', () => {
     );
   });
 
+  it('add_edge pulling real decision-grade evidence into scope cannot raise confidence', () => {
+    const g = graph();
+    // Shallow real reasoning where some decision-grade evidence may be out of scope.
+    const realShallow = reason(g, { maxDepth: 1 });
+
+    // Find a real decision-grade evidence entity and hypothetically wire the subject
+    // straight to it — this would expand the simulated traversal scope.
+    const dgEvidence = g.entities.find((e) => e.kind === 'evidence' && e.decisionGrade);
+    const predicate = g.edges[0]?.predicate ?? 'HAS_EVIDENCE';
+    const scenario = simulateScenario(
+      g,
+      dgEvidence ? [{ type: 'add_edge', edge: { from: g.subjectId, to: dgEvidence.id, predicate } }] : [],
+      { maxDepth: 1 },
+    );
+
+    // Even though the hypothetical edge changes the shown structure, confidence
+    // reflects the real graph and is never inflated by the hypothetical edge.
+    expect(scenario.result.explanation.confidence.decisionGradeEvidence).toBe(
+      realShallow.explanation.confidence.decisionGradeEvidence,
+    );
+    expect(scenario.result.explanation.confidence.score).toBe(realShallow.explanation.confidence.score);
+  });
+
   it('set_status on a hypothetical entity does not confer decision-grade', () => {
     const g = graph();
     const scenario = simulateScenario(g, [

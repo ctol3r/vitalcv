@@ -272,10 +272,25 @@ export function simulateScenario(
   };
 
   const result = reason(draft, query, undefined, /* hypothetical */ true);
+
+  // CONFIDENCE HONESTY: a simulation must never raise confidence above reality.
+  // Hypothetical structure of ANY kind — added entities, added edges that pull
+  // real decision-grade evidence into scope, or status upgrades — must not
+  // inflate it. So the reported confidence is computed from the REAL graph for
+  // the same query; the hypothetical only changes the shown structure, never the
+  // verification standing. This closes the add_edge reachability vector.
+  const realConfidence = reason(graph, query, undefined, false).explanation.confidence;
+  result.explanation.confidence = {
+    ...realConfidence,
+    basis:
+      realConfidence.basis +
+      ' Confidence reflects the real graph; hypothetical structure cannot raise it.',
+  };
+
   return {
     hypothetical: true,
     mutations,
     result,
-    note: 'Hypothetical scenario over a cloned graph. Source data unchanged; simulated evidence is not decision-grade and is not real verification.',
+    note: 'Hypothetical scenario over a cloned graph. Source data unchanged; simulated evidence is not decision-grade, and confidence reflects the real graph — a scenario is never real verification.',
   };
 }
