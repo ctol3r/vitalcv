@@ -247,9 +247,12 @@ export function simulateScenario(
       const entity = draft.entities.find((e) => e.id === m.target);
       if (entity) {
         entity.status = m.status ?? entity.status;
-        // A hypothetical status change does NOT confer decision-grade.
-        if (isHypothetical(entity)) entity.decisionGrade = false;
-        else entity.decisionGrade = entity.status === 'checked';
+        // A SIMULATED status change is hypothetical — it can never CONFER
+        // decision-grade, on a hypothetical OR a real entity. Otherwise a scenario
+        // could upgrade a real gated/self-reported credential to "checked" and
+        // inflate confidence, presenting a hypothetical as real verification.
+        // It may only REMOVE decision-grade (a hypothetical downgrade).
+        entity.decisionGrade = false;
       }
     }
   }

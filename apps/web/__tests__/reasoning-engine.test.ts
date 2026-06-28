@@ -113,4 +113,29 @@ describe('Reasoning Engine — scenario simulation (C5)', () => {
     const h = scenario.result.explanation.evidence.find((e) => e.id === 'hypothetical:h1');
     if (h) expect(h.decisionGrade).toBe(false);
   });
+
+  it('set_status UPGRADE on a REAL non-decision-grade entity cannot raise confidence', () => {
+    const g = graph();
+    const baseline = reason(g, { maxDepth: 5 });
+
+    // A real (non-hypothetical) evidence entity that is currently NOT decision-grade
+    // (the demo has self-reported credentials/training).
+    const target = g.entities.find((e) => e.kind === 'evidence' && !e.decisionGrade && !e.id.startsWith('hypothetical:'));
+    expect(target).toBeDefined();
+
+    const scenario = simulateScenario(
+      g,
+      [{ type: 'set_status', target: target!.id, status: 'checked' }],
+      { maxDepth: 5 },
+    );
+
+    // The hypothetically-upgraded real entity must stay non-decision-grade.
+    const inSim = scenario.result.explanation.evidence.find((e) => e.id === target!.id);
+    if (inSim) expect(inSim.decisionGrade).toBe(false);
+
+    // Confidence must not be inflated above the real baseline.
+    expect(scenario.result.explanation.confidence.decisionGradeEvidence).toBeLessThanOrEqual(
+      baseline.explanation.confidence.decisionGradeEvidence,
+    );
+  });
 });
