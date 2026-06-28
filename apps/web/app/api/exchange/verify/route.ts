@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { evaluateExchange, EVIDENCE_EXCHANGE_SCHEMA, type EvidenceExchange } from '@/lib/exchange/exchange';
-import { memberCanActAs } from '@/lib/exchange/federation';
+import { authorizeIssuer, memberCanActAs } from '@/lib/exchange/federation';
 import { demoFederation, exchangeSecret } from '@/lib/exchange/config';
 
 export const runtime = 'nodejs';
@@ -35,6 +35,18 @@ export async function POST(req: NextRequest) {
     if (!verifier || !memberCanActAs(demoFederation(), verifier, 'verifier')) {
       return NextResponse.json(
         { error: 'verifier_not_authorized', error_description: `verifier "${verifier}" is not an authorized federation member.` },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
+    // Federation boundary on the ISSUER too: a validly-signed envelope is not
+    // enough — the party that issued it must be an authorized federation issuer.
+    // Otherwise an envelope claiming issuer:"org-unknown" (or a verify-only
+    // member) could still get trust derived. Authorize before any derivation.
+    const issuerAuth = authorizeIssuer(demoFederation(), exchange.issuer);
+    if (!issuerAuth.authorized) {
+      return NextResponse.json(
+        { error: 'issuer_not_authorized', error_description: issuerAuth.reason },
         { status: 403, headers: { 'Cache-Control': 'no-store' } },
       );
     }
