@@ -10,7 +10,7 @@
  * silently mis-scoping a role or binding a widget to a non-existent section.
  */
 import { CAREER_SECTIONS, type CareerSection } from './roles';
-import type { WorkflowDefinition } from './workflows';
+import { isFactualGate, type WorkflowDefinition } from './workflows';
 import type { AutomationRule } from './automation';
 import type { DashboardConfig } from './dashboard';
 import { PLATFORM_EVENT_TYPES } from '@/lib/platform-cloud/events';
@@ -22,10 +22,18 @@ export interface WorkspaceRole {
   visibleSections: CareerSection[];
 }
 
+/** Which application/principal may assume which role in this workspace. */
+export interface RoleGrant {
+  appId: string;
+  roleId: string;
+}
+
 export interface WorkspaceConfig {
   workspaceId: string;
   tenantId: string;
   roles: WorkspaceRole[];
+  /** Caller authorization: an app may only assume a role it is granted. */
+  grants: RoleGrant[];
   workflows: WorkflowDefinition[];
   automations: AutomationRule[];
   dashboards: DashboardConfig[];
@@ -35,6 +43,17 @@ export function findRole(config: WorkspaceConfig, roleId: string): WorkspaceRole
   const id = roleId?.trim();
   if (!id) return null;
   return config.roles.find((r) => r.roleId === id) ?? null;
+}
+
+/**
+ * Caller authorization: an application may assume a role ONLY if the workspace
+ * grants it. Fails closed — no appId, or no matching grant ⇒ not authorized.
+ * This stops a caller from simply requesting the broadest role.
+ */
+export function isRoleGranted(config: WorkspaceConfig, appId: string, roleId: string): boolean {
+  const id = appId?.trim();
+  if (!id) return false;
+  return config.grants.some((g) => g.appId === id && g.roleId === roleId);
 }
 
 export function findDashboard(config: WorkspaceConfig, dashboardId: string): DashboardConfig | null {
@@ -67,6 +86,18 @@ export function validateWorkspaceConfig(config: WorkspaceConfig): ValidationResu
 
   for (const wf of config.workflows) {
     if (wf.steps.length === 0) errors.push(`workflow "${wf.workflowId}" has no steps.`);
+    for (const step of wf.steps) {
+      // A step gate must impose a real requirement — never an empty/degenerate
+      // gate that would complete the step without a decision-grade fact.
+      if (!isFactualGate(step.gate)) {
+        errors.push(`workflow "${wf.workflowId}" step "${step.stepId}" has a non-factual gate.`);
+      }
+    }
+  }
+
+  for (const grant of config.grants) {
+    if (!grant.appId?.trim()) errors.push('a role grant is missing appId.');
+    if (!roleIds.has(grant.roleId)) errors.push(`grant references unknown role "${grant.roleId}".`);
   }
 
   for (const rule of config.automations) {
@@ -108,6 +139,13 @@ export function demoWorkspaceConfig(): WorkspaceConfig {
         label: 'Credentialing Specialist',
         visibleSections: ['evidence', 'trust', 'readiness', 'organizations'],
       },
+    ],
+    grants: [
+      // The first-party app may act as the clinician self-view; the partner ATS
+      // is limited to the recruiter role — it can never request the clinician view.
+      { appId: 'app-vitalcv-web', roleId: 'clinician' },
+      { appId: 'app-vitalcv-web', roleId: 'credentialer' },
+      { appId: 'app-coastal-ats', roleId: 'recruiter' },
     ],
     workflows: [
       {

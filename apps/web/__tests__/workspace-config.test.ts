@@ -7,10 +7,12 @@
  * gates, and routes — it NEVER alters, fabricates, or elevates trust facts.
  */
 import { describe, expect, it } from 'vitest';
+import { NextRequest } from 'next/server';
+import { GET as workspaceGET } from '../app/api/workspace-config/[entityId]/route';
 import { buildDemoPassport } from '../lib/demo/demo-passport';
 import { passportToEvidenceCollection } from '../lib/evidence/passport-to-evidence';
 import { composeCareerModel } from '@vitalcv/domain-evidence';
-import { demoWorkspaceConfig, validateWorkspaceConfig, findRole } from '../lib/workspace-config/config';
+import { demoWorkspaceConfig, validateWorkspaceConfig, findRole, isRoleGranted } from '../lib/workspace-config/config';
 import { projectForRole, CAREER_SECTIONS } from '../lib/workspace-config/roles';
 import { evaluateWorkflow } from '../lib/workspace-config/workflows';
 import { evaluateAutomations } from '../lib/workspace-config/automation';
@@ -63,6 +65,56 @@ describe('Configurable Platform (C1/C6)', () => {
       // Visible sections are always a subset of the canonical sections.
       expect(proj.visibleSections.every((s) => (CAREER_SECTIONS as readonly string[]).includes(s))).toBe(true);
     }
+  });
+
+  it('rejects an empty/degenerate workflow gate — config cannot force completion', () => {
+    const m = model();
+    const bad = demoWorkspaceConfig();
+    bad.workflows[0].steps[0].gate = {}; // empty gate
+    expect(validateWorkspaceConfig(bad).valid).toBe(false);
+
+    // And defensively: an empty gate never satisfies (step is not 'complete').
+    const evaln = evaluateWorkflow(bad.workflows[0], m);
+    expect(evaln.steps[0].state).not.toBe('complete');
+
+    // A degenerate "needs 0" gate is also non-factual.
+    const degenerate = demoWorkspaceConfig();
+    degenerate.workflows[0].steps[0].gate = { minDecisionGradeEvidence: 0 };
+    expect(validateWorkspaceConfig(degenerate).valid).toBe(false);
+  });
+
+  it('route authorizes the caller: an app may only assume a granted role', async () => {
+    const cfg = demoWorkspaceConfig();
+    // Partner ATS is granted recruiter only.
+    expect(isRoleGranted(cfg, 'app-coastal-ats', 'recruiter')).toBe(true);
+    expect(isRoleGranted(cfg, 'app-coastal-ats', 'clinician')).toBe(false);
+    expect(isRoleGranted(cfg, '', 'clinician')).toBe(false);
+
+    // Route: ATS requesting the broad clinician role is refused.
+    const denied = await workspaceGET(
+      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=clinician&appId=app-coastal-ats'),
+      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
+    );
+    expect(denied.status).toBe(403);
+    expect((await denied.json()).error).toBe('role_not_granted');
+
+    // Route: no appId at all is refused (no anonymous broadest-role access).
+    const anon = await workspaceGET(
+      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=clinician'),
+      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
+    );
+    expect(anon.status).toBe(403);
+
+    // Route: ATS in its granted recruiter role is allowed.
+    const ok = await workspaceGET(
+      new NextRequest('http://localhost/api/workspace-config/demo-clinician?role=recruiter&appId=app-coastal-ats'),
+      { params: Promise.resolve({ entityId: 'demo-clinician' }) },
+    );
+    expect(ok.status).toBe(200);
+    const json = await ok.json();
+    expect(json.role.roleId).toBe('recruiter');
+    // The recruiter projection cannot see raw evidence.
+    expect(json.projection.hiddenSections).toContain('evidence');
   });
 
   it('workflow steps are gated by REAL decision-grade facts, not configuration', () => {

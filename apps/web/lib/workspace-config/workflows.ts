@@ -51,7 +51,22 @@ export interface WorkflowEvaluation {
   currentStepId: string | null;
 }
 
+/**
+ * A gate is FACTUAL only if it imposes at least one real requirement: needing
+ * >=1 decision-grade evidence, or a non-empty readiness set. An empty gate `{}`
+ * or a degenerate one (`minDecisionGradeEvidence: 0`) is NOT factual — config
+ * must never be able to mark a step complete without a real fact.
+ */
+export function isFactualGate(gate: WorkflowGate): boolean {
+  const hasEvidenceReq = typeof gate.minDecisionGradeEvidence === 'number' && gate.minDecisionGradeEvidence >= 1;
+  const hasReadinessReq = Array.isArray(gate.readinessIn) && gate.readinessIn.length > 0;
+  return hasEvidenceReq || hasReadinessReq;
+}
+
 function gateSatisfied(gate: WorkflowGate, model: CareerModel): boolean {
+  // Defense in depth: a non-factual gate can never be satisfied, so configuration
+  // alone can never force a step to 'complete'. (Validation also rejects these.)
+  if (!isFactualGate(gate)) return false;
   if (
     typeof gate.minDecisionGradeEvidence === 'number' &&
     model.meta.decisionGradeEvidence < gate.minDecisionGradeEvidence

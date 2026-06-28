@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { composeCareerModel } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
-import { demoWorkspaceConfig, findRole, findDashboard } from '@/lib/workspace-config/config';
+import { demoWorkspaceConfig, findRole, findDashboard, isRoleGranted } from '@/lib/workspace-config/config';
 import { projectForRole } from '@/lib/workspace-config/roles';
 import { evaluateWorkflow } from '@/lib/workspace-config/workflows';
 import { projectDashboard } from '@/lib/workspace-config/dashboard';
@@ -27,11 +27,21 @@ export async function GET(
     const config = demoWorkspaceConfig();
     const { searchParams } = new URL(req.url);
     const roleId = searchParams.get('role') ?? 'clinician';
+    const appId = searchParams.get('appId')?.trim() ?? '';
 
     const role = findRole(config, roleId);
     if (!role) {
       return NextResponse.json(
         { error: 'unknown_role', error_description: `Role "${roleId}" is not defined in this workspace.` },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
+    // Caller authorization: an app may only assume a role it has been granted.
+    // Without this, any caller could request the broadest role (e.g. clinician).
+    if (!isRoleGranted(config, appId, roleId)) {
+      return NextResponse.json(
+        { error: 'role_not_granted', error_description: `Application "${appId || '(none)'}" may not assume role "${roleId}".` },
         { status: 403, headers: { 'Cache-Control': 'no-store' } },
       );
     }
