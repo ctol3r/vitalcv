@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  defaultReadinessTemplate,
-  deriveMobilityOverview,
-  detectGaps,
-  generateIntelligence,
-  projectEvidenceToGraph,
-  projectOrganizations,
-  projectReadiness,
-  projectTimeline,
-  propagateTrust,
-} from '@vitalcv/domain-evidence';
+import { composeCareerModel } from '@vitalcv/domain-evidence';
 import { resolvePassportRuntimePassport } from '@/lib/trust/passport-runtime';
 import { passportToEvidenceCollection } from '@/lib/evidence/passport-to-evidence';
 
@@ -22,6 +12,11 @@ export const runtime = 'nodejs';
  * every projection in one response. The ecosystem dashboard previously fired six
  * separate API calls — each re-resolving the passport — so this collapses 6×
  * passport resolution + 6 round-trips into 1. Same honest, source-backed data.
+ *
+ * Wave 1000 (C2/C5): orchestration now delegates to the canonical
+ * `composeCareerModel` — the one Career projection layer. This route only
+ * re-shapes that model into the established `vitalcv.ecosystem.v1` contract, so
+ * the ecosystem surface and the Career Model can never drift apart.
  */
 export async function GET(
   _req: NextRequest,
@@ -31,17 +26,20 @@ export async function GET(
   try {
     const passport = await resolvePassportRuntimePassport(entityId);
     const collection = passportToEvidenceCollection(passport);
-    const graph = projectEvidenceToGraph(collection);
-    const trust = propagateTrust(graph);
-    const timeline = projectTimeline(collection, graph, trust);
-    const mobility = deriveMobilityOverview(collection, trust);
-    const template = defaultReadinessTemplate();
-    const readiness = projectReadiness(template, detectGaps(template, collection, trust), trust);
-    const organizations = projectOrganizations(collection, graph);
-    const intelligence = generateIntelligence(collection, trust, timeline, mobility, organizations);
+    const model = composeCareerModel(collection);
 
     return NextResponse.json(
-      { schema: 'vitalcv.ecosystem.v1', subjectKey: collection.subjectKey, evidence: collection, trust, timeline, mobility, readiness, organizations, intelligence },
+      {
+        schema: 'vitalcv.ecosystem.v1',
+        subjectKey: model.identity.subjectKey,
+        evidence: model.evidence,
+        trust: model.trust,
+        timeline: model.timeline,
+        mobility: model.mobility,
+        readiness: model.readiness,
+        organizations: model.organizations,
+        intelligence: model.intelligence,
+      },
       { status: 200, headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {

@@ -113,3 +113,18 @@ export {
   type MilestoneType,
   type ProfessionalGrowthProjection,
 } from './growth/growth';
+
+export {
+  CAREER_MODEL_SCHEMA,
+  composeCareerModel,
+  type CareerIdentity,
+  type CareerModel,
+  type CareerModelMeta,
+  type ComposeCareerOptions,
+} from './career/career';
+
+export {
+  projectCareerLongitudinal,
+  type CareerEra,
+  type CareerLongitudinal,
+} from './career/longitudinal';
