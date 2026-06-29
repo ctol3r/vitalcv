@@ -1059,8 +1059,9 @@ function readVersionInfo(): VersionResponse {
   const commitHash =
     process.env.COMMIT_HASH ??
     process.env.GIT_COMMIT_HASH ??
+    process.env.RAILWAY_GIT_COMMIT_SHA ??
     process.env.GITHUB_SHA ??
-    process.env.VERCEL_GIT_COMMIT_SHA ??
+    process.env.VERCEL_GIT_COMMIT_SHA ?? // legacy fallback
     'unknown';
   const prismaVersion =
     readPackageValue<string>(readInstalledPrismaPackagePath(), 'version') ??
