@@ -85,3 +85,26 @@ The web `getBackendBase()` resolves `BACKEND_URL || NEXT_PUBLIC_API_BASE || …`
 ## 7. Impact on the W1400 ops-engine work (PR #465)
 
 Nothing in the live Operations Engine depends on Vercel. `/ops/engine` reads the backend via `getBackendBase()`; on Railway with `BACKEND_URL` set it reads the real roster/ledger. The failed Vercel preview on #465 is **not a blocker** — verify the live authed path on the **Railway web deployment** (or a Railway PR environment) instead of a Vercel preview.
+
+## 8. Full pipeline verification (2026-06-29)
+
+End-to-end audit of the Railway deploy pipeline. ✅ verified · 🔧 fixed in this PR · ⚠️ flagged.
+
+| Item | Result |
+|---|---|
+| `railway.toml` (API) | ✅ build `pnpm turbo build`, `prisma migrate deploy` (preDeploy), start `…/register-workspace-paths.js …/dist/apps/api/backend/src/server.js`, health `/health` |
+| `nixpacks.toml` | ✅ forces Nixpacks builder (canonical API path); start matches railway.toml |
+| `apps/web/Dockerfile` | ✅ already correct on main — `NEXT_PUBLIC_API_BASE` defaults to `https://api.vitalcv.com`, `CMD ["pnpm","start"]` (binds `0.0.0.0`), copies `.next`/`public`/`prisma`/`lib/generated` |
+| `apps/api/Dockerfile` | 🔧 CMD pointed at `dist/server.js` (wrong — tsc `rootDir` is the monorepo root, real path is `dist/apps/api/backend/src/server.js`) and lacked `register-workspace-paths.js`; build used bare `pnpm --filter` (missed workspace dep dist). Fixed to mirror Nixpacks (turbo build + canonical start). |
+| Build commands | ✅ turbo builds workspace `^build` deps |
+| Start commands | ✅ API canonical entrypoint verified; web `pnpm start -H 0.0.0.0 -p $PORT` |
+| Health checks | ✅ API `/health` exists (`app.ts`), web `/api/health` exists; both unauthenticated |
+| Migrations | ✅ 51 Prisma migrations; `prisma migrate deploy` runs in `preDeployCommand` |
+| Static assets | ✅ Dockerfile copies `public/` + `.next/` |
+| Image optimization | ✅ `images.unoptimized: true` → no `sharp` / no Vercel image optimizer needed |
+| Clerk auth | ✅ `middleware.ts` (clerkMiddleware). ⚠️ requires `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` as a **build arg** (else the client SDK has an empty key) + `CLERK_SECRET_KEY` at runtime — documented in `railway-env.md` |
+| API connectivity | ✅ `getBackendBase()` + `lib/backend-url.ts` resolve to `https://api.vitalcv.com` in prod (🔧 `backend-url.ts` `VERCEL` gate → `RAILWAY_ENVIRONMENT` first) |
+| Production logging | ✅ structured single-line JSON to `console`/stdout (`obs/logger.ts`) — Railway captures stdout/stderr |
+| Env vars | 🔧 `railway-env.md` now splits **build-time** (`NEXT_PUBLIC_*`) vs **runtime**, and flags that the **web** service also needs `DATABASE_URL` (`worklistRepo` / `issuerPersistenceWriter` query the web Prisma client at runtime) |
+
+⚠️ **Flagged (not fixed — business logic, out of scope for this infra PR):** `apps/api/backend/src/services/verifier/verifierValidation.ts` writes a "scrapbook" JSON to the local filesystem (`SCRAPBOOK_DIR`). Railway filesystems are **ephemeral** — these artifacts are lost on redeploy. The write is wrapped in try/catch (`/* non-fatal */`) and the audit ledger remains the system of record, so this is low-severity, but if those bundles must persist, move them to object storage. Tracked for a separate (non-infra) change.

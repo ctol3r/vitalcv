@@ -7,12 +7,29 @@ Railway services: **`@vitalcv/api`** (root `railway.toml`) and **`@vitalcv/web`*
 
 ## Required in Production
 
-### Web service — backend wiring (required for live data surfaces)
+### Web service — build-time (baked into the client bundle)
+
+`NEXT_PUBLIC_*` are read at **build** time and frozen into the client JS. Railway
+exposes service variables as Docker build args, so set these on the web service:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+  **Required** — without it the client Clerk SDK initializes with an empty key
+  and auth breaks in the browser. (`apps/web/Dockerfile` declares the matching `ARG`.)
+- `NEXT_PUBLIC_API_BASE`
+  Client-side API base. The Dockerfile defaults this to `https://api.vitalcv.com`,
+  so a build without an override does not leak a localhost URL into the bundle.
+
+### Web service — runtime (server)
 - `BACKEND_URL`
   Real backend base URL for **server-side** reads (e.g. `https://api.vitalcv.com`).
-  Takes precedence in `getBackendBase()` and overrides the Docker build default
-  of `NEXT_PUBLIC_API_BASE=http://localhost:4000`. **Required** for `/ops/engine`
-  and other surfaces that read the live roster/ledger.
+  Takes precedence in `getBackendBase()` / `lib/backend-url.ts`. **Required** for
+  `/ops/engine` and other surfaces that read the live roster/ledger.
+- `CLERK_SECRET_KEY`
+  Required by Clerk middleware in the server runtime.
+- `DATABASE_URL`
+  **Required on the web service too** — `lib/verifier/worklistRepo.ts` and
+  `lib/issuer-verification/issuerPersistenceWriter.ts` query the web Prisma client
+  (`IssuerRequest` / `ReceiptCandidate`) at runtime. Those routes fail without it.
 
 ### Shared Backend Storage / Policy
 - `DATABASE_URL`  
