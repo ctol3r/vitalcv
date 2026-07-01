@@ -15,6 +15,7 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "build": "pnpm turbo build",
+    "check:deploy": "node --experimental-strip-types scripts/deployment-integrity-check.ts",
     "report:public-copy": "node scripts/report-public-entry-copy-sources.js",
     "test:backend:db": "bash scripts/backend-test-db.sh",
     "verify:production-convergence": "node --experimental-strip-types scripts/runtime/verify-production-convergence.ts",
