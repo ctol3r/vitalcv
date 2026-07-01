@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  UserRound,
 } from 'lucide-react';
 import {
   ApplicationList,
@@ -196,6 +197,14 @@ export default function ClinicianHomeSurface() {
       href: '/holder/applications',
       icon: BellRing,
       tone: 'amber',
+    },
+    {
+      id: 'open-profile',
+      label: 'Professional profile',
+      description: 'Review your profile record and add self-attested career links and work authorization.',
+      href: '/clinician/profile',
+      icon: UserRound,
+      tone: 'zinc',
     },
   ];
 
