@@ -46,6 +46,19 @@ export default function ReadinessSurface() {
   const [logEntries, setLogEntries] = useState<StateLogEntry[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
 
+  // Synchronous reset on identity change (React "adjust state during render"
+  // pattern): React re-renders immediately with cleared state, so not one
+  // frame of a prior clinician's readiness, limitations, or state log can
+  // ever be shown for a different NPI.
+  const [renderedNpi, setRenderedNpi] = useState(npi);
+  if (renderedNpi !== npi) {
+    setRenderedNpi(npi);
+    setSnapshot(null);
+    setLimitations([]);
+    setLogEntries([]);
+    setLoadState(npi ? 'loading' : 'no-npi');
+  }
+
   const addLog = useCallback((message: string, level: StateLogEntry['level'] = 'info') => {
     setLogEntries((prev) => [...prev, { ts: Date.now(), message, level }]);
   }, []);
@@ -100,6 +113,12 @@ export default function ReadinessSurface() {
     };
   }, [npi, name, addLog]);
 
+  // Render-time identity guard: a snapshot is only valid for the NPI it was
+  // built from. On NPI change (or disappearance) the effect resets state a
+  // tick later — this guard makes sure not even one frame of another
+  // clinician's readiness can render in the gap.
+  const activeSnapshot = snapshot && snapshot.npi === npi ? snapshot : null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -111,17 +130,17 @@ export default function ReadinessSurface() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {/* Posture header */}
-        {snapshot && (
+        {activeSnapshot && (
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">{snapshot.name}</h1>
-              <p className="font-mono text-sm text-slate-500 mt-0.5 tracking-wide">NPI {snapshot.npi}</p>
+              <h1 className="text-2xl font-extrabold text-slate-900">{activeSnapshot.name}</h1>
+              <p className="font-mono text-sm text-slate-500 mt-0.5 tracking-wide">NPI {activeSnapshot.npi}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 ml-auto">
-              <PostureBadge posture={snapshot.posture} size="md" />
-              <ProofTierBadge tier={snapshot.proofTier} />
-              {snapshot.score !== null
-                ? <MetricBadge label={`${snapshot.score}% readiness`} type="measured" />
+              <PostureBadge posture={activeSnapshot.posture} size="md" />
+              <ProofTierBadge tier={activeSnapshot.proofTier} />
+              {activeSnapshot.score !== null
+                ? <MetricBadge label={`${activeSnapshot.score}% readiness`} type="measured" />
                 : <MetricBadge label="score unavailable" type="unverified" />}
             </div>
           </div>
@@ -156,22 +175,22 @@ export default function ReadinessSurface() {
         )}
 
         {/* Split pane */}
-        {snapshot && loadState === 'ready' && (
+        {activeSnapshot && loadState === 'ready' && (
           <>
             <ProofSplitPane
-              lanes={snapshot.lanes}
-              npi={snapshot.npi}
-              name={snapshot.name}
-              score={snapshot.score}
-              generatedAt={snapshot.generatedAt}
-              proofTier={snapshot.proofTier}
+              lanes={activeSnapshot.lanes}
+              npi={activeSnapshot.npi}
+              name={activeSnapshot.name}
+              score={activeSnapshot.score}
+              generatedAt={activeSnapshot.generatedAt}
+              proofTier={activeSnapshot.proofTier}
               limitations={limitations}
             />
 
-            {snapshot.nextStep && (
+            {activeSnapshot.nextStep && (
               <div className="bg-white border border-slate-200 rounded-xl px-5 py-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Next Step</p>
-                <p className="text-sm text-slate-700">{snapshot.nextStep}</p>
+                <p className="text-sm text-slate-700">{activeSnapshot.nextStep}</p>
               </div>
             )}
 
