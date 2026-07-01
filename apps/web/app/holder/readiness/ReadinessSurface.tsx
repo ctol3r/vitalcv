@@ -54,11 +54,18 @@ export default function ReadinessSurface() {
     let cancelled = false;
 
     async function load() {
+      // Reset all readiness state whenever the identity changes so a prior
+      // clinician's snapshot can never linger while (or after) a new NPI loads.
+      setSnapshot(null);
+      setLimitations([]);
+      setLogEntries([]);
+
       if (!npi) {
         setLoadState('no-npi');
         return;
       }
 
+      setLoadState('loading');
       addLog('Loading source-backed readiness…');
       try {
         const res = await fetch(`/api/passport/${encodeURIComponent(npi)}`, { cache: 'no-store' });
