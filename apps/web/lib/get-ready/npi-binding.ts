@@ -100,10 +100,18 @@ export function summarizeBootstrapResult(result: NpiBootstrapResult): BoundIdent
  * as a finding about the clinician.
  */
 export function describeBootstrapError(status: number, body: unknown): string {
-  const message =
-    body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
-      ? ((body as { error: string }).error)
-      : null;
+  // The web proxies preserve backend error bodies, which come in two shapes:
+  // a plain string (`{ error: '…' }`) or the global handler's nested form
+  // (`{ error: { code, message } }`). Read both.
+  let message: string | null = null;
+  if (body && typeof body === 'object') {
+    const raw = (body as { error?: unknown }).error;
+    if (typeof raw === 'string') {
+      message = raw;
+    } else if (raw && typeof raw === 'object' && typeof (raw as { message?: unknown }).message === 'string') {
+      message = (raw as { message: string }).message;
+    }
+  }
 
   if (message && /already registered to another account/i.test(message)) {
     return 'This NPI is already connected to a different VitalCV account. If that account is yours, sign in with it — or contact support to resolve ownership.';

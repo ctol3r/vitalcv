@@ -97,7 +97,7 @@ curl https://vitalcv.com/api/status
 ## PILOT-1 Activation Sequence
 
 1. Create test clinician account via Clerk sign-up
-2. POST `/api/me/link-npi` with real NPI
+2. POST `/api/profile/npi/bootstrap` with real NPI (or use the `/get-ready` surface)
 3. POST `/api/ingest/{npi}` to trigger NPPES hydration
 4. GET `/api/passport/npi/{npi}` — should return full PassportData
 5. POST `/api/credentials/issue` — issue first SD-JWT

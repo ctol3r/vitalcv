@@ -80,6 +80,15 @@ describe('describeBootstrapError', () => {
     expect(text).toContain('different VitalCV account');
   });
 
+  it('reads the nested { error: { code, message } } shape from the backend global handler', () => {
+    const text = describeBootstrapError(500, {
+      error: { code: 'INTERNAL', message: 'NPI 1234567890 is already registered to another account.' },
+    });
+    expect(text).toContain('different VitalCV account');
+    const badInput = describeBootstrapError(422, { error: { code: 'BAD_REQUEST', message: 'npi must be exactly 10 digits.' } });
+    expect(badInput).toContain('exactly 10 digits');
+  });
+
   it('maps auth expiry, bad input, missing record, and system failure distinctly', () => {
     expect(describeBootstrapError(401, null)).toContain('Sign in again');
     expect(describeBootstrapError(422, { error: 'NPI must be exactly 10 digits.' })).toContain('exactly 10 digits');

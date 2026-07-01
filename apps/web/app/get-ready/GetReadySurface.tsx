@@ -17,7 +17,7 @@
  * them.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import {
@@ -43,6 +43,14 @@ export default function GetReadySurface() {
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +104,7 @@ export default function GetReadySurface() {
         body: JSON.stringify({ npi: validation.npi }),
       });
       const body: unknown = await res.json().catch(() => null);
+      if (!mountedRef.current) return;
       if (!res.ok) {
         setFormError(describeBootstrapError(res.status, body));
         setPhase('form');
@@ -109,6 +118,7 @@ export default function GetReadySurface() {
       setSummary(summarizeBootstrapResult(body));
       setPhase('success');
     } catch {
+      if (!mountedRef.current) return;
       setFormError(describeBootstrapError(0, null));
       setPhase('form');
     }
