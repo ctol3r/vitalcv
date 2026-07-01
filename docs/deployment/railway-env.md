@@ -32,40 +32,40 @@ exposes service variables as Docker build args, so set these on the web service:
   (`IssuerRequest` / `ReceiptCandidate`) at runtime. Those routes fail without it.
 
 ### Shared Backend Storage / Policy
-- `DATABASE_URL`  
+- `DATABASE_URL`
   PostgreSQL connection string used by `@vitalcv/api`, `@vitalcv/authz`, and `@vitalcv/verifier-api`.
 
-- `SIGNING_KEY_JWK`  
+- `SIGNING_KEY_JWK`
   JSON JWK used for authz token signing. Required by `@vitalcv/authz`.
 
-- `CORS_ORIGIN`  
+- `CORS_ORIGIN`
   Comma-separated allowed CORS origins. **Must not be `*` in production.**
 
-- `API_KEYS`  
+- `API_KEYS`
   Comma-separated API keys. Required in production for write endpoints on `@vitalcv/api`.
 
 ### Frontend Configuration
-- `NEXT_PUBLIC_API_BASE` or `NEXT_PUBLIC_BACKEND_URL`  
+- `NEXT_PUBLIC_API_BASE` or `NEXT_PUBLIC_BACKEND_URL`
   Backend base URL consumed by `@vitalcv/web`.
 
-- `NEXT_PUBLIC_SENTRY_DSN`  
+- `NEXT_PUBLIC_SENTRY_DSN`
   Public Sentry DSN (optional, but supported) for frontend monitoring.
 
-- `NEXT_PUBLIC_ADMIN_API_URL` or `NEXT_PUBLIC_APP_URL`  
+- `NEXT_PUBLIC_ADMIN_API_URL` or `NEXT_PUBLIC_APP_URL`
   Optional route-prefix variables used by specific web screens.
 
 ## Optional
 
-- `SAM_API_KEY`  
+- `SAM_API_KEY`
   Optional downstream service key used by `@vitalcv/api` integrations.
 
-- `SENTRY_DSN`  
+- `SENTRY_DSN`
   Server-side Sentry DSN for `@vitalcv/api` crash/error reporting.
 
-- `VERIFIER_AUDIENCE`, `TOKEN_AUDIENCE`, `TOKEN_ISSUER`, `VERIFIER_ISSUER`  
+- `VERIFIER_AUDIENCE`, `TOKEN_AUDIENCE`, `TOKEN_ISSUER`, `VERIFIER_ISSUER`
   Override only when wiring non-default OIDC endpoints.
 
-- `NEXT_PUBLIC_*` variables not listed above  
+- `NEXT_PUBLIC_*` variables not listed above
   Add only documented frontend values needed by your deployment.
 
 ## Deploy metadata (injected automatically by Railway)
@@ -82,4 +82,3 @@ legacy `VERCEL_*` equivalents are still read as backwards-compatible fallbacks.
 | `RAILWAY_GIT_COMMIT_MESSAGE` | `VERCEL_GIT_COMMIT_MESSAGE` | commit message |
 | `RAILWAY_PUBLIC_DOMAIN` | `VERCEL_URL` | deployment URL |
 | `RAILWAY_REGION` | `VERCEL_REGION` | region |
-
