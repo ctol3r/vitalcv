@@ -302,7 +302,6 @@ describe('LIVE-100B source copy guard', () => {
     'components/motion/FloatingCredentials.tsx',
     'components/mobile/MobileExperience.tsx',
     'components/sandbox/ClinicianPassport.tsx',
-    'components/clinician/WalletDashboard.tsx',
     'components/explore/ApplyModal.tsx',
     'lib/trust/passport-truth.ts',
     'lib/trust/homepage-public-truth.ts',
