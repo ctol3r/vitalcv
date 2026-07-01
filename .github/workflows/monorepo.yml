@@ -87,7 +87,16 @@ jobs:
         # test coverage lives in .github/workflows/ci-preflight.yml
         # (see the "backend tests" step there); the deploy-api job in
         # this file only builds the backend, it does not test it.
-        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend
+        #
+        # @vitalcv/web is excluded for the same class of reason: this job
+        # has no postgres service, but the dummy DATABASE_URL above (kept
+        # for other packages' env validation) un-skips the web suite's
+        # real-Postgres tests (__tests__/verifier-worklist-db.test.ts
+        # skips only when DATABASE_URL is unset), which then fail with
+        # P1001 — red on every push to main since PR #469. The full web
+        # suite runs without DATABASE_URL in .github/workflows/ci.yml
+        # ("Web Quality"), which triggers on the same web/package paths.
+        run: pnpm turbo run test --filter=!@vitalcv/api --filter=!chai-vc-platform-backend --filter=!@vitalcv/web
 
       - name: Scale integrity gate (W2-PR38A)
         # Mock-based scale + throughput suite for the replay engine and
