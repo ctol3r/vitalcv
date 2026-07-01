@@ -157,11 +157,12 @@ describe('commercial route copy invariants', () => {
     expect(src).toContain('Pricing is a foundation preview. Payments are not collected in this build.');
   });
 
-  it('signup route includes the required production-account safety copy', () => {
+  it('signup route is a pure redirect to the real Clerk sign-up flow', () => {
     const src = readRoute('signup/page.tsx');
-    expect(src).toContain(
-      'Self-serve signup is a foundation flow. Production account creation may require additional controls.',
-    );
+    expect(src).toContain("redirect('/sign-up')");
+    // The legacy foundation shell is gone: the alias must not render its own
+    // signup UI or plan copy that could read as a second account-creation path.
+    expect(src).not.toContain('buildSignupFoundationPlan');
   });
 
   it('onboarding route includes the required credentialing safety copy', () => {
