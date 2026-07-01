@@ -14,16 +14,18 @@ WORKDIR /app
 RUN npm i -g pnpm@10.6.1
 
 FROM base AS deps
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/web/package.json apps/web/
-# Skip postinstall in the deps layer — the Prisma schema isn't
-# copied yet. `prisma generate` runs in the build stage via the
-# package.json `build` script (`prisma generate && next build`).
+# Copy the FULL workspace manifest + source set so pnpm can resolve the
+# COMPLETE workspace graph — inter-package symlinks (e.g. crs -> psv) plus
+# every selected package's node_modules. A web-only manifest leaves the
+# transitively-built workspace packages that `turbo run build` compiles
+# with no links (TS2307) and no build tooling. `--filter @vitalcv/web...`
+# still scopes the install to web's dependency closure, not all apps.
+# --ignore-scripts skips postinstalls (prisma generate) here; the web
+# `build` script (`prisma generate && next build`) runs it in the build stage.
+COPY . .
 RUN pnpm install --frozen-lockfile --filter @vitalcv/web... --ignore-scripts
 
-FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+FROM deps AS build
 ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time.
 # Default to the production API host so a build without an explicit
