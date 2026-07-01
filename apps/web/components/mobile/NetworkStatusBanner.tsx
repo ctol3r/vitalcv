@@ -11,7 +11,11 @@ export default function NetworkStatusBanner() {
   }
 
   return (
-    <div className="sticky top-0 z-40 border-b border-amber-400/20 bg-amber-500/10 px-4 py-3 text-amber-50 backdrop-blur-xl">
+    <div
+      role="status"
+      aria-live="polite"
+      className="sticky top-0 z-40 border-b border-amber-400/20 bg-amber-500/10 px-4 py-3 text-amber-50 backdrop-blur-xl"
+    >
       <div className="mx-auto flex w-full max-w-5xl items-start gap-3">
         {isOffline ? (
           <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />

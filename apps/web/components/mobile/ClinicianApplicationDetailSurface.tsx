@@ -325,7 +325,7 @@ export default function ClinicianApplicationDetailSurface({
                 </Link>
               ) : null}
               <Link
-                href={`/opportunities/${encodeURIComponent(application.opportunity.id)}`}
+                href={`/holder/opportunities/${encodeURIComponent(application.opportunity.id)}`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:border-white/20"
               >
                 View role details
