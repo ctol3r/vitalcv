@@ -44,7 +44,7 @@ export default function ReadinessSurface() {
   const [snapshot, setSnapshot] = useState<ReadinessSnapshot | null>(null);
   const [limitations, setLimitations] = useState<string[]>([]);
   const [logEntries, setLogEntries] = useState<StateLogEntry[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [loadState, setLoadState] = useState<LoadState>(npi ? 'loading' : 'no-npi');
 
   // Synchronous reset on identity change (React "adjust state during render"
   // pattern): React re-renders immediately with cleared state, so not one
