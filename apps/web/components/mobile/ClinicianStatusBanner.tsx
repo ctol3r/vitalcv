@@ -29,29 +29,45 @@ export function ClinicianStatusBanner({
   detail,
   actionHref,
   actionLabel,
+  onAction,
+  onActionLabel,
 }: {
   tone: ClinicianStatusTone;
   title: string;
   detail: string;
   actionHref?: string;
   actionLabel?: string;
+  /** Optional in-place action (e.g. retry) rendered as a button. */
+  onAction?: () => void;
+  onActionLabel?: string;
 }) {
   return (
-    <div className={`rounded-3xl border px-4 py-4 ${TONE_STYLES[tone]}`}>
+    <div className={`rounded-3xl border px-4 py-4 ${TONE_STYLES[tone]}`} role="status" aria-live="polite">
       <div className="flex items-start gap-3">
         <StatusIcon tone={tone} />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white">{title}</p>
           <p className="mt-1 text-sm leading-6">{detail}</p>
-          {actionHref && actionLabel ? (
-            <Link
-              href={actionHref}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:text-white/80"
-            >
-              {actionLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-4">
+            {onAction && onActionLabel ? (
+              <button
+                type="button"
+                onClick={onAction}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white underline underline-offset-4 transition hover:text-white/80"
+              >
+                {onActionLabel}
+              </button>
+            ) : null}
+            {actionHref && actionLabel ? (
+              <Link
+                href={actionHref}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:text-white/80"
+              >
+                {actionLabel}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
