@@ -126,3 +126,53 @@ record, never as a credential guarantee.
 
 A clinician can answer immediately: **Am I recognized?** (home card), **What does it mean?**
 (detail surface), **How do I share or prove it?** (share affordances + public verifier).
+
+---
+
+## Wave 2D closure — verified state as of 2026-07-02
+
+All five buckets above are merged and deployed. This section supersedes the gap claims in
+§4 ("Nowhere on"), §5 ("Nowhere explicitly"), §6, and §8 "Missing" (a)–(d) — kept above,
+unrewritten, as the point-in-time record of what this mission changed.
+
+| Bucket | PR | Landed as |
+| --- | --- | --- |
+| A — NPI acceptance read | [#484](https://github.com/ctol3r/vitalcv/pull/484) | `resolveEmployerReviewSubjectByNpi` (read-only) on `GET /api/employer-review/[npi]/acceptance-history` |
+| B — home card | [#485](https://github.com/ctol3r/vitalcv/pull/485) | `components/recognition/RecognitionCard.tsx` on `/holder` + `ClinicianHomeSurface` (`/holder/home`); honest tri-state (recognized / none recorded / unavailable-as-system-state) |
+| C — detail surface | [#486](https://github.com/ctol3r/vitalcv/pull/486) | `/holder/recognition` → `components/recognition/RecognitionSurface.tsx`; entries carry org label, scope, accepted date |
+| D — share + public verifier | [#487](https://github.com/ctol3r/vitalcv/pull/487) | `ShareRecognitionPanel` ("Present VitalCV Recognition", copy-link → public `/verify/[npi]`); "Employer acceptances" panel on `/verify/[npi]` |
+| E — timeline events | [#488](https://github.com/ctol3r/vitalcv/pull/488) | acceptance history merged into `GET /api/timeline/[entityId]` for NPI subjects (`lib/recognition/acceptance-evidence.ts`); `/activity/[entityId]` consumes this route, so `/holder/timeline` → `/activity/[npi]` renders them — the §6 adapter gap is closed |
+
+**Post-mission fix:** [#490](https://github.com/ctol3r/vitalcv/pull/490) restored the public
+verifier after the W1300 tenant guard left `/api/trust-proof/` off its allowlist — production
+`/verify/[npi]` had rendered "NPI not found" for every NPI, making Bucket D unreachable.
+`/verify/[npi]` now reads `GET /api/passport/npi/:npi` (anonymous by design, redacted credential
+labels for anonymous viewers) and the redacted trust-proof read is public again.
+
+**Production verification (2026-07-02, web deploy `43304d495` SUCCESS 09:48Z):**
+
+- `GET api.vitalcv.com/api/trust-proof/1003000126` → 200 (was 401 `organization_context_required`).
+- `GET api.vitalcv.com/api/employer-review/1003000126/acceptance-history` → 200,
+  `{"headline":"No prior acceptances","history":[]}` — honest zero-state, no fabrication.
+- `https://vitalcv.com/verify/1003000126` → full verifier view: identity, source-coverage lanes,
+  readiness, "Employer acceptances" section present; "NPI not found" absent.
+- `GET vitalcv.com/api/timeline/1003000126` → 200 `vitalcv.timeline.v1` projection (coverage
+  events; `recognitionImpact: "none"` — truthful, zero acceptances recorded in production).
+
+**Honest limits of this verification:**
+
+- Production has **zero recorded employer acceptances**, so the recognized-state card, populated
+  detail surface, and timeline recognition events are test-verified only
+  (`recognition-card.test.tsx`, `recognition-share-verify.test.tsx`, `holder-route-contract.test.ts`);
+  production shows them after the first real accept.
+- Gated `/holder/*` surfaces are proven by the route-contract suite + deploy freshness, not a
+  signed-in browser pass (Clerk's CDN bot-blocks automated browsers; a 307→sign-in only proves
+  middleware fired). Chris's signed-in pass remains the outstanding human check.
+- Backend `GET api.vitalcv.com/api/timeline/:id` directly returns 401 (tenant guard). The clinician
+  path does not use it — the web route composes the projection in-process — but any future external
+  timeline consumer will need an allowlist decision like #490's.
+
+**DoD status:** visible (card on both holder homes) · understandable (`/holder/recognition`) ·
+shareable (Present VitalCV Recognition → copy-link) · verifiable (public `/verify/[npi]`,
+production-proven). Recognition is a career asset a clinician can present; the record is
+NPI-keyed, anonymized-org, and survives across opportunities.
