@@ -6,6 +6,7 @@ import {
   BellRing,
   BriefcaseBusiness,
   Compass,
+  History,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -204,6 +205,14 @@ export default function ClinicianHomeSurface() {
       description: 'Review your profile record and add self-attested career links and work authorization.',
       href: '/clinician/profile',
       icon: UserRound,
+      tone: 'zinc',
+    },
+    {
+      id: 'open-timeline',
+      label: 'Career timeline',
+      description: 'Your professional timeline — evidence checks, trust milestones, recognition, and mobility changes.',
+      href: '/holder/timeline',
+      icon: History,
       tone: 'zinc',
     },
   ];
