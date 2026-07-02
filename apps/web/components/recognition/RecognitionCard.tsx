@@ -119,10 +119,10 @@ function RecognizedBody({
       )}
 
       <Link
-        href="/holder/applications"
+        href="/holder/recognition"
         className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
       >
-        View your applications <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+        View your recognition record <ChevronRight className="h-3.5 w-3.5" aria-hidden />
       </Link>
     </div>
   );

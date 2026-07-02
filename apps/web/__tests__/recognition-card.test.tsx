@@ -129,7 +129,7 @@ describe('RecognitionCard', () => {
     expect(container.textContent).toContain('Accepted by 1 organization');
     expect(container.textContent).toContain('Pilot organization 1');
     expect(container.textContent).toContain('Pilot scope');
-    const link = container.querySelector('a[href="/holder/applications"]');
+    const link = container.querySelector('a[href="/holder/recognition"]');
     expect(link).not.toBeNull();
   });
 
