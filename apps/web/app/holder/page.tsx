@@ -89,18 +89,6 @@ export default function HolderPage() {
           >
             Verify my NPI <ChevronRight className="h-4 w-4" />
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-zinc-800" />
-            <span className="text-xs text-zinc-700">or</span>
-            <div className="flex-1 h-px bg-zinc-800" />
-          </div>
-          <Link
-            href="/documents"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-emerald-800 hover:bg-emerald-950/30 px-7 py-3.5 text-sm font-semibold text-zinc-300 hover:text-emerald-300 transition w-full justify-center"
-          >
-            <Upload className="h-4 w-4" />
-            Upload a credential document
-          </Link>
           <ClinicianSupportCard
             topic="passport-setup"
             detail="If your clinician identity cannot be linked yet, start with NPI verification first. Support can help if your public registry record still does not resolve."
@@ -148,13 +136,13 @@ export default function HolderPage() {
             Welcome back, <span className="text-zinc-300 font-medium">{profile.firstName}</span>
           </p>
         )}
-        <Link
-          href="/documents"
+        <a
+          href="#evidence-upload"
           className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
         >
           <Upload className="h-3.5 w-3.5" />
           Upload Credential
-        </Link>
+        </a>
       </div>
 
       {/* Trust State */}
@@ -183,7 +171,7 @@ export default function HolderPage() {
       <div className="mx-auto hidden max-w-5xl justify-end px-4 pb-4 sm:flex sm:px-6">
         <CredentialPresentationActions holderNpi={npi!} />
       </div>
-      <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6">
+      <div id="evidence-upload" className="mx-auto max-w-5xl scroll-mt-6 px-4 py-2 sm:px-6">
         <EvidenceUploadPanel
           heading="Upload credential evidence"
           description="Attach a license, certificate, or supporting document here if readiness or an active application requests more evidence. Upload attaches immediately, and verification can complete asynchronously."

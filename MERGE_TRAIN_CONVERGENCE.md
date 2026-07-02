@@ -27,7 +27,7 @@ Dependencies: none
 PR: feat/trust-discovery-endpoints
   - /.well-known/did.json, openid-credential-issuer, trust.json, trust-register
   - next.config.mjs rewrites
-  - /api/me/link-npi
+  - /api/me/link-npi (historical — endpoint since removed; NPI binding is /api/profile/npi/bootstrap)
 Dependencies: Step 1
 ```
 
