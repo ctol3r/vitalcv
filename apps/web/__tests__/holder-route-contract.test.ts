@@ -29,6 +29,9 @@ const SURFACE_FILES = [
   'components/recognition/RecognitionCard.tsx',
   'components/recognition/RecognitionSurface.tsx',
   'components/recognition/ShareRecognitionPanel.tsx',
+  'components/mobile/ClinicianBlockerDetailSurface.tsx',
+  // Data-layer href builders (blocker "Resolve" CTAs are assembled here, not in JSX)
+  'lib/mobile/clinician-state.ts',
 ];
 
 /** Extract internal href path literals (static + template-literal heads). */
@@ -53,6 +56,15 @@ function extractInternalHrefs(source: string): string[] {
   }
   for (const match of source.matchAll(/href:\s*`(\/[^`$]*)\$\{/g)) {
     hrefs.add(`${match[1]}__DYNAMIC__`);
+  }
+  // variable-assigned hrefs: const href = `/path/${expr}` | const somethingHref = '/path'
+  // (this is how lib/mobile/clinician-state.ts builds /holder/blockers/{id} —
+  //  a plain assignment, not an href= attribute or href: object key)
+  for (const match of source.matchAll(/(?:href|Href)\s*=\s*`(\/[^`$]*)\$\{/g)) {
+    hrefs.add(`${match[1]}__DYNAMIC__`);
+  }
+  for (const match of source.matchAll(/(?:href|Href)\s*=\s*["'](\/[^"'#?]*)["']/g)) {
+    hrefs.add(match[1]);
   }
 
   return [...hrefs].filter((href) => href.startsWith('/'));
