@@ -45,6 +45,7 @@ import {
   recordEmployerReviewRefreshRequest,
   recordEmployerReviewRouting,
   resolveEmployerReviewSubject,
+  resolveEmployerReviewSubjectByNpi,
 } from '../services/entity/employerReviewActions';
 import {
   buildRuntimeMutationMetadata,
@@ -666,11 +667,17 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
 
-      const subject = await resolveEmployerReviewSubject(entityId);
+      // Holder surfaces only know the clinician NPI; a 10-digit key resolves by
+      // NPI instead of entity UUID (also keeps non-UUID input away from the
+      // uuid-typed findUnique). Read-only — mutation actions still require an
+      // entity id.
+      const subject = /^\d{10}$/.test(entityId.trim())
+        ? await resolveEmployerReviewSubjectByNpi(entityId.trim())
+        : await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
 
       const history = await loadEmployerAcceptanceHistory({
-        entityId,
+        entityId: subject.entityId,
         clinicianNpi: subject.clinicianNpi,
       });
 

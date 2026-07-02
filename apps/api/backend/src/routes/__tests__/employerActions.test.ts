@@ -7,6 +7,7 @@ jest.mock('../../graphql/prisma_client', () => ({
   default: {
     vcvEntity: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     employerAcceptance: {
       findFirst: jest.fn(),
@@ -79,6 +80,7 @@ import { sha256ForPayload } from '../../utils/deterministic';
 const prismaMock = prisma as unknown as {
   vcvEntity: {
     findUnique: jest.Mock;
+    findFirst: jest.Mock;
   };
   employerAcceptance: {
     findFirst: jest.Mock;
@@ -374,6 +376,7 @@ function buildPacketFixture() {
 describe('employer action routes', () => {
   beforeEach(() => {
     prismaMock.vcvEntity.findUnique.mockReset();
+    prismaMock.vcvEntity.findFirst.mockReset();
     prismaMock.employerAcceptance.findFirst.mockReset();
     prismaMock.employerAcceptance.create.mockReset();
     prismaMock.startAttestation.create.mockReset();
@@ -396,6 +399,7 @@ describe('employer action routes', () => {
       id: 'entity-1',
       npi: '1234567890',
     });
+    prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
     prismaMock.employerAcceptance.findFirst.mockResolvedValue(null);
     prismaMock.employerAcceptance.create.mockResolvedValue({
       id: 'accept-1',
@@ -573,6 +577,52 @@ describe('employer action routes', () => {
         },
       ],
     });
+  });
+
+  it('resolves a 10-digit acceptance-history key as a clinician NPI without touching the uuid lookup', async () => {
+    prismaMock.vcvEntity.findFirst.mockResolvedValue({
+      id: 'entity-1',
+      npi: '1234567890',
+    });
+
+    const response = await request(buildApp())
+      .get('/api/employer-review/1234567890/acceptance-history')
+      .expect(200);
+
+    expect(response.body).toEqual({
+      ok: true,
+      summary: {
+        acceptedOrganizationCount: 0,
+        hasPriorAcceptances: false,
+        headline: 'No prior acceptances',
+        trustCopy: null,
+      },
+      history: [],
+    });
+
+    expect(prismaMock.vcvEntity.findFirst).toHaveBeenCalledWith({
+      where: { npi: '1234567890' },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, npi: true },
+    });
+    expect(prismaMock.vcvEntity.findUnique).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        type: 'EMPLOYER_REVIEW_ACCEPTED',
+        clinicianId: '1234567890',
+      },
+    }));
+  });
+
+  it('returns 404 for an NPI-shaped acceptance-history key with no known entity', async () => {
+    prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
+
+    await request(buildApp())
+      .get('/api/employer-review/9999999999/acceptance-history')
+      .expect(404);
+
+    expect(prismaMock.vcvEntity.findUnique).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.findMany).not.toHaveBeenCalled();
   });
 
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {
