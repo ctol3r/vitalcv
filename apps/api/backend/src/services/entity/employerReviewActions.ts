@@ -1353,7 +1353,10 @@ export async function loadEmployerAcceptanceHistory(input: {
       acceptanceId: entry.acceptanceId,
       orgLabel: org.orgLabel,
       isAnonymized: org.isAnonymized,
-      acceptedByOrgId: entry.acceptedByOrgId,
+      // An anonymized label with the raw org id beside it would defeat the
+      // anonymization on this anonymous read; the id ships only when the
+      // organization is already named.
+      acceptedByOrgId: org.isAnonymized ? null : entry.acceptedByOrgId,
       acceptedAt: entry.acceptedAt,
       acceptanceScope: entry.acceptanceScope,
       acceptanceReason: entry.acceptanceReason,

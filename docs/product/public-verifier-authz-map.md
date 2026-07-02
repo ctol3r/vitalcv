@@ -111,10 +111,12 @@ Residual exposures documented as **follow-ups, deliberately not expanded or chan
   dictionary-attackable for low-entropy values (statuses, dates, license/DEA numbers). #490
   accepted the redacted bundle as-is; salting the digests is the right follow-up before any
   further widening of digest exposure.
-- `acceptedByOrgId` (opaque org id) and `acceptanceId` (internal record id) remain in the
-  acceptance-history payload — consumed by holder Recognition evidence surfaces
-  (`lib/recognition/acceptance-evidence.ts`); removing them requires a split public/holder
-  payload. Org display exposure is already governed by the anonymization rule.
+- `acceptedByOrgId` is now **withheld (`null`) whenever the org label is anonymized** — a raw
+  org id beside "Pilot organization N" defeated the anonymization (flagged by the Codex
+  implementation audit; fixed in this wave). It still ships for named, non-pilot acceptances,
+  where org identity is deliberately public; holder Recognition evidence
+  (`lib/recognition/acceptance-evidence.ts`) guards on its presence and degrades gracefully.
+  `acceptanceId` (internal record id) remains as the stable entry key.
 - The backend trusts identity headers (`x-clerk-user-id`, `x-org-id`) set by the web tier;
   `api.vitalcv.com` is directly reachable, so header-attributed (non-anonymous) reads such as
   `/api/employer-review/:id/status` and `/packet` rely on that platform-wide W1300-era model.
@@ -164,11 +166,14 @@ closed, zero PHI on-chain, no banned strings, no bare "Verified" label.
 - `services/entity/__tests__/employerReviewActions.test.ts` —
   write path never copies notes into the stored acceptance reason (notes still persisted for
   org-scoped reads); history read suppresses legacy notes-copies (canonical copy served) and
-  serves `null` (not notes) when no reason was stored; serialized history contains no note text.
+  serves `null` (not notes) when no reason was stored; anonymized entries carry
+  `acceptedByOrgId: null` while named non-pilot entries keep the org id; serialized history
+  contains no note text.
 - `routes/__tests__/employerActions.test.ts` — **anonymous** (no `x-clerk-user-id`, no
   `x-org-id`) NPI-keyed acceptance-history request returns 200 with the canonical copy and the
-  serialized response contains no note/role/facility text; pre-existing tests pin the unknown-NPI
-  404 (no data reflection) and the NPI-format guard against UUID lookups.
+  serialized response contains no note/role/facility text and no raw org id on anonymized
+  entries; pre-existing tests pin the unknown-NPI 404 (no data reflection) and the NPI-format
+  guard against UUID lookups.
 - `middleware/__tests__/tenantGuard.test.ts` — skip-list pins for
   `/api/passport/npi/:npi` and `/api/employer-review/:npi/acceptance-history` (new), for
   `/api/trust-proof/:npi` (#490), and the anonymous-401 pin for protected routes (existing).

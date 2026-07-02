@@ -571,7 +571,8 @@ describe('employer action routes', () => {
           acceptanceId: 'accept-1',
           orgLabel: 'Pilot organization 1',
           isAnonymized: true,
-          acceptedByOrgId: 'org-entity-1',
+          // Raw org id withheld whenever the label is anonymized.
+          acceptedByOrgId: null,
           acceptedAt: '2026-03-23T18:00:00.000Z',
           acceptanceScope: 'pilot',
           acceptanceReason: 'Accepted as head start using VitalCV verification.',
@@ -696,12 +697,14 @@ describe('employer action routes', () => {
       expect.objectContaining({
         acceptanceId: 'accept-legacy',
         acceptanceReason: 'Accepted as head start using VitalCV verification.',
+        acceptedByOrgId: null,
       }),
     ]);
     const serialized = JSON.stringify(response.body);
     expect(serialized).not.toContain('Salary band flexible');
     expect(serialized).not.toContain('Hospitalist');
     expect(serialized).not.toContain('Main campus');
+    expect(serialized).not.toContain('org-entity-1');
   });
 
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {

@@ -340,9 +340,11 @@ describe('employerReviewActions service', () => {
       acceptanceId: string;
       notes: string;
       acceptanceReason?: string;
+      acceptanceScope?: string;
+      acceptedAt?: string;
     }) => ({
       id: input.id,
-      createdAt: new Date('2026-03-23T18:00:00.000Z'),
+      createdAt: new Date(input.acceptedAt ?? '2026-03-23T18:00:00.000Z'),
       metadata: {
         employerReviewAction: {
           action: 'accept',
@@ -385,8 +387,8 @@ describe('employerReviewActions service', () => {
           },
           acceptance: {
             acceptedByOrgId: 'org-entity-1',
-            acceptedAt: '2026-03-23T18:00:00.000Z',
-            acceptanceScope: 'pilot',
+            acceptedAt: input.acceptedAt ?? '2026-03-23T18:00:00.000Z',
+            acceptanceScope: input.acceptanceScope ?? 'pilot',
             ...(input.acceptanceReason !== undefined
               ? { acceptanceReason: input.acceptanceReason }
               : {}),
@@ -409,8 +411,18 @@ describe('employerReviewActions service', () => {
       acceptanceId: 'accept-absent',
       notes: 'Budget approved internally.',
     });
+    // Named, non-pilot acceptance: org identity is deliberately public, so the
+    // org id stays. Anonymized entries above must ship acceptedByOrgId: null.
+    const namedScope = buildAcceptanceEvent({
+      id: 'audit-named',
+      acceptanceId: 'accept-named',
+      notes: 'Panel review complete.',
+      acceptanceReason: 'Accepted for full credentialing head start.',
+      acceptanceScope: 'full',
+      acceptedAt: '2026-03-25T18:00:00.000Z',
+    });
 
-    prismaMock.auditEvent.findMany.mockResolvedValue([legacyNotesCopy, reasonAbsent]);
+    prismaMock.auditEvent.findMany.mockResolvedValue([legacyNotesCopy, reasonAbsent, namedScope]);
 
     const history = await loadEmployerAcceptanceHistory({
       entityId: 'entity-1',
@@ -419,18 +431,28 @@ describe('employerReviewActions service', () => {
 
     expect(history.history).toEqual([
       expect.objectContaining({
+        acceptanceId: 'accept-named',
+        orgLabel: 'First Org',
+        isAnonymized: false,
+        acceptedByOrgId: 'org-entity-1',
+        acceptanceReason: 'Accepted for full credentialing head start.',
+      }),
+      expect.objectContaining({
         acceptanceId: 'accept-legacy',
         acceptanceReason: 'Accepted as head start using VitalCV verification.',
+        acceptedByOrgId: null,
       }),
       expect.objectContaining({
         acceptanceId: 'accept-absent',
         acceptanceReason: null,
+        acceptedByOrgId: null,
       }),
     ]);
 
     const serialized = JSON.stringify(history);
     expect(serialized).not.toContain('Great culture fit');
     expect(serialized).not.toContain('Budget approved internally');
+    expect(serialized).not.toContain('Panel review complete');
   });
 
   it('persists bundle fallback attribution onto acceptance audit events using the canonical organization context', async () => {
