@@ -8,6 +8,7 @@ import {
   Compass,
   History,
   RefreshCw,
+  Settings,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -213,6 +214,14 @@ export default function ClinicianHomeSurface() {
       description: 'Your professional timeline — evidence checks, trust milestones, recognition, and mobility changes.',
       href: '/holder/timeline',
       icon: History,
+      tone: 'zinc',
+    },
+    {
+      id: 'open-settings',
+      label: 'Settings',
+      description: 'Account, identity binding, and sharing.',
+      href: '/holder/settings',
+      icon: Settings,
       tone: 'zinc',
     },
   ];
