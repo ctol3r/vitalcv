@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, ChevronRight, Loader2, AlertCircle, Upload } from 'lucide-react';
+import { ShieldCheck, ChevronRight, Loader2, AlertCircle, Upload, UserRound } from 'lucide-react';
 import { WalletPassport } from '@/components/wallet/WalletPassport';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet';
 import { CredentialPresentationActions } from '@/components/clinician/CredentialPresentationActions';
@@ -137,13 +137,22 @@ export default function HolderPage() {
             Welcome back, <span className="text-zinc-300 font-medium">{profile.firstName}</span>
           </p>
         )}
-        <a
-          href="#evidence-upload"
-          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Upload Credential
-        </a>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Link
+            href="/clinician/profile"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
+          >
+            <UserRound className="h-3.5 w-3.5" />
+            Professional profile
+          </Link>
+          <a
+            href="#evidence-upload"
+            className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-emerald-700 hover:bg-emerald-950/30 hover:text-emerald-300 sm:w-auto"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Upload Credential
+          </a>
+        </div>
       </div>
 
       {/* Trust State */}

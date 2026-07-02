@@ -20,6 +20,7 @@ const APP_ROOT = join(WEB_ROOT, 'app');
 const SURFACE_FILES = [
   'app/holder/page.tsx',
   'app/holder/readiness/ReadinessSurface.tsx',
+  'app/clinician/profile/ProfileSurface.tsx',
   'components/mobile/ClinicianHomeSurface.tsx',
   'components/mobile/ClinicianOpportunitiesSurface.tsx',
   'components/mobile/ClinicianApplicationsSurface.tsx',
