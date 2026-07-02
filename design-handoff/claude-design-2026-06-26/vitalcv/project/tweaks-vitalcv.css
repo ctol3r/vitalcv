@@ -1,0 +1,270 @@
+/* ───────── VitalCV Tweaks — global stylistic knobs ─────────
+   Drives: surface noise reduction, density, radii, borders,
+   chip color treatment, monochrome, modern motion.
+   All vars are read by these rules; component files are untouched. */
+
+:root {
+  --tw-pad: 1;
+  --tw-font: 1;
+  --tw-gap: 1;
+  --tw-radius: 8px;
+  --tw-border: 1px;
+  --tw-dur-fast: 140ms;
+  --tw-dur: 260ms;
+  --tw-dur-slow: 440ms;
+  --tw-ease: cubic-bezier(.2,.7,.2,1);
+}
+
+/* ─── Density: scale paddings + gaps subtly ─── */
+html .p-2  { padding: calc(0.5rem  * var(--tw-pad)); }
+html .p-3  { padding: calc(0.75rem * var(--tw-pad)); }
+html .p-4  { padding: calc(1rem    * var(--tw-pad)); }
+html .p-5  { padding: calc(1.25rem * var(--tw-pad)); }
+html .p-6  { padding: calc(1.5rem  * var(--tw-pad)); }
+html .px-3 { padding-left: calc(.75rem * var(--tw-pad)); padding-right: calc(.75rem * var(--tw-pad)); }
+html .px-4 { padding-left: calc(1rem    * var(--tw-pad)); padding-right: calc(1rem    * var(--tw-pad)); }
+html .px-6 { padding-left: calc(1.5rem  * var(--tw-pad)); padding-right: calc(1.5rem  * var(--tw-pad)); }
+html .py-2 { padding-top: calc(.5rem  * var(--tw-pad)); padding-bottom: calc(.5rem  * var(--tw-pad)); }
+html .py-3 { padding-top: calc(.75rem * var(--tw-pad)); padding-bottom: calc(.75rem * var(--tw-pad)); }
+html .py-4 { padding-top: calc(1rem    * var(--tw-pad)); padding-bottom: calc(1rem    * var(--tw-pad)); }
+html .gap-2 { gap: calc(0.5rem  * var(--tw-gap)); }
+html .gap-3 { gap: calc(0.75rem * var(--tw-gap)); }
+html .gap-4 { gap: calc(1rem    * var(--tw-gap)); }
+html .gap-6 { gap: calc(1.5rem  * var(--tw-gap)); }
+
+/* ─── Corners: unify rounded-* across the app ─── */
+html .rounded     { border-radius: var(--tw-radius) !important; }
+html .rounded-md  { border-radius: var(--tw-radius) !important; }
+html .rounded-lg  { border-radius: var(--tw-radius) !important; }
+html .rounded-xl  { border-radius: calc(var(--tw-radius) * 1.4) !important; }
+html .rounded-2xl { border-radius: calc(var(--tw-radius) * 1.8) !important; }
+
+/* ─── Borders: thinner / suppressible ─── */
+html .border, html .border-t, html .border-b, html .border-l, html .border-r {
+  border-width: var(--tw-border) !important;
+}
+
+/* ─── Shadows: flat by default ─── */
+html.tw-flat *,
+html.tw-flat *:before,
+html.tw-flat *:after {
+  box-shadow: none !important;
+}
+
+/* ─── Surface noise reduction ─── */
+/* Calm: hide pure-decoration backgrounds */
+html.tw-noise-calm .grid-dots { background-image: none !important; }
+html.tw-noise-calm .shimmer::after { display: none !important; }
+/* Quiet: also soften background surfaces toward white/slate-950 */
+html.tw-noise-quiet .grid-dots { background-image: none !important; }
+html.tw-noise-quiet .shimmer::after { display: none !important; }
+html:not(.dark).tw-noise-quiet .bg-slate-50,
+html:not(.dark).tw-noise-quiet [class*="bg-slate-50/"] { background-color: #ffffff !important; }
+html:not(.dark).tw-noise-quiet .bg-slate-100 { background-color: #f8fafc !important; }
+html.dark.tw-noise-quiet .bg-slate-50,
+html.dark.tw-noise-quiet [class*="bg-slate-50/"] { background-color: #0b1220 !important; }
+/* Mute: drop most borders and decorative hairlines */
+html.tw-noise-mute .grid-dots { background-image: none !important; }
+html.tw-noise-mute .shimmer::after { display: none !important; }
+html.tw-noise-mute .border-slate-100,
+html.tw-noise-mute .border-slate-200 { border-color: transparent !important; }
+html.tw-noise-mute .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.tw-noise-mute .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: transparent !important; }
+
+/* ─── Chip treatments ─── */
+html.tw-chips-muted [class*="bg-emerald-50"],
+html.tw-chips-muted [class*="bg-amber-50"],
+html.tw-chips-muted [class*="bg-rose-50"],
+html.tw-chips-muted [class*="bg-indigo-50"],
+html.tw-chips-muted [class*="bg-purple-50"],
+html.tw-chips-muted [class*="bg-sky-50"] {
+  background-color: rgba(15,23,42,.04) !important;
+}
+html.dark.tw-chips-muted [class*="bg-emerald-50"],
+html.dark.tw-chips-muted [class*="bg-amber-50"],
+html.dark.tw-chips-muted [class*="bg-rose-50"],
+html.dark.tw-chips-muted [class*="bg-indigo-50"],
+html.dark.tw-chips-muted [class*="bg-purple-50"],
+html.dark.tw-chips-muted [class*="bg-sky-50"] {
+  background-color: rgba(226,232,240,.06) !important;
+}
+
+html.tw-chips-mono [class*="bg-emerald-50"],
+html.tw-chips-mono [class*="bg-amber-50"],
+html.tw-chips-mono [class*="bg-rose-50"],
+html.tw-chips-mono [class*="bg-indigo-50"],
+html.tw-chips-mono [class*="bg-purple-50"],
+html.tw-chips-mono [class*="bg-sky-50"] {
+  background-color: rgba(15,23,42,.06) !important;
+  color: #0f172a !important;
+}
+html.tw-chips-mono .text-emerald-700, html.tw-chips-mono .text-emerald-600,
+html.tw-chips-mono .text-amber-700,  html.tw-chips-mono .text-amber-800, html.tw-chips-mono .text-amber-900, html.tw-chips-mono .text-amber-600,
+html.tw-chips-mono .text-rose-700,   html.tw-chips-mono .text-rose-600,
+html.tw-chips-mono .text-indigo-700, html.tw-chips-mono .text-indigo-600,
+html.tw-chips-mono .text-purple-700, html.tw-chips-mono .text-sky-700 {
+  color: #0f172a !important;
+}
+html.dark.tw-chips-mono [class*="bg-emerald-50"],
+html.dark.tw-chips-mono [class*="bg-amber-50"],
+html.dark.tw-chips-mono [class*="bg-rose-50"],
+html.dark.tw-chips-mono [class*="bg-indigo-50"],
+html.dark.tw-chips-mono [class*="bg-purple-50"],
+html.dark.tw-chips-mono [class*="bg-sky-50"] {
+  background-color: rgba(226,232,240,.08) !important;
+  color: #e2e8f0 !important;
+}
+html.dark.tw-chips-mono .text-emerald-700, html.dark.tw-chips-mono .text-emerald-600,
+html.dark.tw-chips-mono .text-amber-700, html.dark.tw-chips-mono .text-amber-800, html.dark.tw-chips-mono .text-amber-900, html.dark.tw-chips-mono .text-amber-600,
+html.dark.tw-chips-mono .text-rose-700, html.dark.tw-chips-mono .text-rose-600,
+html.dark.tw-chips-mono .text-indigo-700, html.dark.tw-chips-mono .text-indigo-600,
+html.dark.tw-chips-mono .text-purple-700, html.dark.tw-chips-mono .text-sky-700 { color: #e2e8f0 !important; }
+
+/* ─── Full monochrome (override): map every color family to slate ─── */
+html.tw-mono [class*="bg-emerald-"],
+html.tw-mono [class*="bg-amber-"],
+html.tw-mono [class*="bg-rose-"],
+html.tw-mono [class*="bg-indigo-"],
+html.tw-mono [class*="bg-purple-"],
+html.tw-mono [class*="bg-sky-"],
+html.tw-mono [class*="bg-blue-"],
+html.tw-mono [class*="bg-green-"] {
+  background-color: rgba(15,23,42,.06) !important;
+}
+html.tw-mono [class*="text-emerald-"],
+html.tw-mono [class*="text-amber-"],
+html.tw-mono [class*="text-rose-"],
+html.tw-mono [class*="text-indigo-"],
+html.tw-mono [class*="text-purple-"],
+html.tw-mono [class*="text-sky-"],
+html.tw-mono [class*="text-blue-"],
+html.tw-mono [class*="text-green-"] {
+  color: #0f172a !important;
+}
+html.tw-mono [class*="border-emerald-"],
+html.tw-mono [class*="border-amber-"],
+html.tw-mono [class*="border-rose-"],
+html.tw-mono [class*="border-indigo-"],
+html.tw-mono [class*="border-purple-"],
+html.tw-mono [class*="border-sky-"],
+html.tw-mono [class*="border-blue-"],
+html.tw-mono [class*="border-green-"] { border-color: rgba(15,23,42,.12) !important; }
+html.dark.tw-mono [class*="bg-emerald-"],
+html.dark.tw-mono [class*="bg-amber-"],
+html.dark.tw-mono [class*="bg-rose-"],
+html.dark.tw-mono [class*="bg-indigo-"],
+html.dark.tw-mono [class*="bg-purple-"],
+html.dark.tw-mono [class*="bg-sky-"],
+html.dark.tw-mono [class*="bg-blue-"],
+html.dark.tw-mono [class*="bg-green-"] { background-color: rgba(226,232,240,.06) !important; }
+html.dark.tw-mono [class*="text-emerald-"],
+html.dark.tw-mono [class*="text-amber-"],
+html.dark.tw-mono [class*="text-rose-"],
+html.dark.tw-mono [class*="text-indigo-"],
+html.dark.tw-mono [class*="text-purple-"],
+html.dark.tw-mono [class*="text-sky-"],
+html.dark.tw-mono [class*="text-blue-"],
+html.dark.tw-mono [class*="text-green-"] { color: #e2e8f0 !important; }
+
+/* ─── Modern motion ───
+   Speed up transitions, give cards/rows a soft hover lift,
+   add a tasteful entry animation, and stagger lists. */
+html:not(.tw-anim-off) * { transition-timing-function: var(--tw-ease); }
+
+/* Override Tailwind transition timing helpers */
+html:not(.tw-anim-off) .transition,
+html:not(.tw-anim-off) .transition-all,
+html:not(.tw-anim-off) .transition-colors,
+html:not(.tw-anim-off) .transition-opacity,
+html:not(.tw-anim-off) .transition-transform,
+html:not(.tw-anim-off) .transition-shadow {
+  transition-duration: var(--tw-dur) !important;
+  transition-timing-function: var(--tw-ease) !important;
+}
+
+/* Modern entry: very small fade + rise */
+@keyframes twRise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes twFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+html.tw-anim-modern main,
+html.tw-anim-modern section,
+html.tw-anim-modern article,
+html.tw-anim-modern [class*="rounded-2xl"],
+html.tw-anim-modern [class*="rounded-xl"] {
+  animation: twRise var(--tw-dur-slow) var(--tw-ease) both;
+}
+html.tw-anim-snappy main,
+html.tw-anim-snappy section,
+html.tw-anim-snappy article {
+  animation: twFade var(--tw-dur-fast) var(--tw-ease) both;
+}
+html.tw-anim-soft main,
+html.tw-anim-soft section,
+html.tw-anim-soft article {
+  animation: twRise calc(var(--tw-dur-slow) * 1.4) cubic-bezier(.4,.0,.2,1) both;
+}
+
+/* Stagger lists — nudge children of grid/flex containers */
+html.tw-stagger ul > li,
+html.tw-stagger ol > li,
+html.tw-stagger [role="list"] > *,
+html.tw-stagger .lane-row {
+  animation: twRise var(--tw-dur) var(--tw-ease) both;
+}
+html.tw-stagger ul > li:nth-child(1),
+html.tw-stagger ol > li:nth-child(1),
+html.tw-stagger [role="list"] > *:nth-child(1),
+html.tw-stagger .lane-row:nth-child(1) { animation-delay: 0ms; }
+html.tw-stagger ul > li:nth-child(2),
+html.tw-stagger ol > li:nth-child(2),
+html.tw-stagger [role="list"] > *:nth-child(2),
+html.tw-stagger .lane-row:nth-child(2) { animation-delay: 30ms; }
+html.tw-stagger ul > li:nth-child(3),
+html.tw-stagger ol > li:nth-child(3),
+html.tw-stagger [role="list"] > *:nth-child(3),
+html.tw-stagger .lane-row:nth-child(3) { animation-delay: 60ms; }
+html.tw-stagger ul > li:nth-child(4),
+html.tw-stagger ol > li:nth-child(4),
+html.tw-stagger [role="list"] > *:nth-child(4),
+html.tw-stagger .lane-row:nth-child(4) { animation-delay: 90ms; }
+html.tw-stagger ul > li:nth-child(5),
+html.tw-stagger ol > li:nth-child(5),
+html.tw-stagger [role="list"] > *:nth-child(5),
+html.tw-stagger .lane-row:nth-child(5) { animation-delay: 120ms; }
+html.tw-stagger ul > li:nth-child(n+6),
+html.tw-stagger ol > li:nth-child(n+6),
+html.tw-stagger [role="list"] > *:nth-child(n+6),
+html.tw-stagger .lane-row:nth-child(n+6) { animation-delay: 150ms; }
+
+/* Hover lift — light, modern */
+html.tw-hover-lift [class*="rounded-2xl"]:hover,
+html.tw-hover-lift [class*="rounded-xl"]:hover,
+html.tw-hover-lift .lane-row:hover {
+  transform: translateY(-1px);
+  transition: transform var(--tw-dur-fast) var(--tw-ease), background-color var(--tw-dur-fast) var(--tw-ease);
+}
+
+/* Reduced motion / Off — kill all of the above */
+html.tw-anim-off *,
+html.tw-anim-off *::before,
+html.tw-anim-off *::after,
+html.tw-reduce-motion *,
+html.tw-reduce-motion *::before,
+html.tw-reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Speed up the existing pulse / shimmer / drawer */
+html:not(.tw-anim-off) .pulse-soft { animation-duration: calc(1.6s * var(--tw-spd, 1)); }
+html:not(.tw-anim-off) .shimmer::after { animation-duration: calc(1.8s * var(--tw-spd, 1)); }
+html:not(.tw-anim-off) .drawer-enter {
+  transition-duration: var(--tw-dur) !important;
+  transition-timing-function: var(--tw-ease) !important;
+}

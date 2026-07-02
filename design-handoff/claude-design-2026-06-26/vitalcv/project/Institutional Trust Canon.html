@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Institutional Trust Canon · v2 refinement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   VitalCV · Institutional Trust Canon · v2
+   Refinement pass over Trust Primitives v1. Same vocabulary, sharper hand.
+   Visual targets: Palantir Foundry + Apple internal compliance + aviation PFD.
+   Reading discipline: every identifier monospace · tabular numerics enforced ·
+   left-aligned evidence · hairline rules · zero accent color · zero animation.
+   ========================================================================= */
+
+:root {
+  /* ink scale — single color axis, no accents */
+  --ink-0:  #ffffff;
+  --ink-50: #f7f7f5;
+  --ink-100:#eeede9;
+  --ink-200:#dcdbd5;
+  --ink-300:#c0bfb8;
+  --ink-400:#9a998f;
+  --ink-500:#6e6d66;
+  --ink-600:#4d4c47;
+  --ink-700:#33322e;
+  --ink-800:#1f1e1c;
+  --ink-900:#121110;
+  --ink-950:#000000;
+  --rule:   #dcdbd5;
+  --paper:  #f4f1ea;  /* preview / unbound register */
+
+  /* type ramp — four sizes total */
+  --t-eyebrow: 9.5px;   /* keys, monospace labels */
+  --t-meta:    10.5px;  /* operational metadata */
+  --t-body:    11.75px; /* identifiers, values */
+  --t-rule:    13px;    /* row text, banners */
+  --t-title:   15px;    /* section heads */
+  --t-h1:      22px;    /* one h1 per document */
+
+  --lh-tight: 1.25;
+  --lh-cell:  1.4;
+
+  /* spacing — 4px baseline */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  --tracking-key: 0.18em;   /* eyebrow tracking */
+  --tracking-id:  0.04em;   /* identifier tracking */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  background: var(--ink-50);
+  color: var(--ink-900);
+  font-size: var(--t-rule);
+  line-height: var(--lh-cell);
+}
+.mono, code { font-family: "Geist Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-feature-settings: "ss01"; }
+
+/* hairlines — pixel-pinned */
+.rule-t { border-top: 1px solid var(--ink-900); }
+.rule-b { border-bottom: 1px solid var(--ink-900); }
+.rule-tt{ border-top: 2px solid var(--ink-950); }
+
+/* ===================================================================== */
+/* 1 · RUNTIME BAND — deploy fingerprint, always inverted, always present */
+/* ===================================================================== */
+.t-runtime{
+  background: var(--ink-950); color: var(--ink-300);
+  font-family: "Geist Mono", monospace;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform: uppercase;
+}
+.t-runtime .in{
+  max-width:1400px; margin:0 auto; min-height:30px;
+  padding:6px 28px; display:flex; align-items:center;
+  justify-content:space-between; gap:18px; flex-wrap:wrap;
+}
+.t-runtime .grp{ display:flex; align-items:center; gap:10px; }
+.t-runtime .k{ color: var(--ink-500); }
+.t-runtime .v{ color:#fff; font-weight:500; letter-spacing: var(--tracking-id); }
+.t-runtime .sep{ color: var(--ink-700); }
+.t-runtime .dot{ width:6px; height:6px; background:#fff; display:inline-block; margin-right:6px; vertical-align: 0px; }
+
+/* ===================================================================== */
+/* 2 · DOCUMENT CONTROL BAND — form/rev/effective/controller + STATE STAMP */
+/* ===================================================================== */
+.t-doc{ background: var(--ink-0); border-top: 2px solid var(--ink-950); border-bottom: 1px solid var(--ink-900); }
+.t-doc .in{
+  max-width:1400px; margin:0 auto;
+  padding: var(--sp-4) 28px calc(var(--sp-4) - 1px);
+  display:grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 0.9fr; gap: var(--sp-5); align-items:end;
+}
+.t-doc .cell{ border-left: 1px solid var(--rule); padding-left: var(--sp-4); }
+.t-doc .cell:first-child{ border-left:0; padding-left:0; }
+.t-doc .k{
+  font-family:"Geist Mono",monospace;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform:uppercase; color: var(--ink-500);
+  margin-bottom: var(--sp-1); font-weight:500;
+}
+.t-doc .v{
+  font-family:"Geist Mono",monospace;
+  font-size: var(--t-body); color: var(--ink-900);
+  font-weight:500; letter-spacing: var(--tracking-id); line-height: var(--lh-tight);
+}
+.t-doc .v .sub{
+  display:block; font-family:"Geist",sans-serif;
+  font-size: var(--t-meta); color: var(--ink-500); margin-top:3px;
+  font-weight:400; letter-spacing:0; text-transform:none;
+}
+.t-doc .form .g{ display:flex; align-items:center; gap:var(--sp-2); }
+.t-doc .form .glyph{
+  width:24px; height:24px; background: var(--ink-950); color:#fff;
+  display:grid; place-items:center;
+  font-family:"Geist Mono",monospace; font-size:11px; font-weight:600;
+}
+.t-doc .form .nm{
+  font-family:"Geist Mono",monospace; font-size:11.5px;
+  letter-spacing: 0.16em; text-transform:uppercase; color: var(--ink-950); font-weight:600;
+}
+.t-doc .form .title{
+  font-family:"Geist Mono",monospace; font-size: var(--t-eyebrow);
+  letter-spacing: 0.14em; color: var(--ink-500);
+  text-transform:uppercase; margin-top: 6px;
+}
+
+/* ===================================================================== */
+/* 3 · TRUST STATE STAMP — preview / snapshot / signed + 4 failure modes */
+/* ===================================================================== */
+.t-stamp{
+  display:inline-flex; flex-direction:column; gap:2px;
+  padding: var(--sp-2) 11px;
+  border: 1.5px solid var(--ink-950);
+  font-family:"Geist Mono",monospace; background:transparent;
+  min-width: 110px;
+}
+.t-stamp .lb{
+  font-size: 8.5px; letter-spacing: 0.22em;
+  text-transform:uppercase; color: var(--ink-500);
+}
+.t-stamp .v{
+  font-size: var(--t-rule); letter-spacing: 0.18em;
+  text-transform:uppercase; color: var(--ink-950); font-weight:600;
+}
+.t-stamp[data-state="preview"]{ border-style:dashed; border-color: var(--ink-500); }
+.t-stamp[data-state="preview"] .v{ color: var(--ink-700); }
+.t-stamp[data-state="snapshot"]{ border-color: var(--ink-700); }
+.t-stamp[data-state="signed"]{ background: var(--ink-950); border-color: var(--ink-950); }
+.t-stamp[data-state="signed"] .lb{ color: var(--ink-400); }
+.t-stamp[data-state="signed"] .v{ color:#fff; }
+/* failure-mode stamps share register with the 5-mode banner */
+.t-stamp[data-state="source-unreachable"]{ border-style:dashed; border-color: var(--ink-500); }
+.t-stamp[data-state="source-unreachable"] .v{ color: var(--ink-700); }
+.t-stamp[data-state="auth-restricted"]{ border-color: var(--ink-700); }
+.t-stamp[data-state="infrastructure-outage"]{ background: var(--ink-900); border-color: var(--ink-900); }
+.t-stamp[data-state="infrastructure-outage"] .lb{ color: var(--ink-400); }
+.t-stamp[data-state="infrastructure-outage"] .v{ color:#fff; }
+.t-stamp[data-state="no-adverse-findings"]{ border-width: 2px; border-color: var(--ink-900); }
+.t-stamp[data-state="no-adverse-findings"] .lb{ color: var(--ink-700); }
+.t-stamp[data-state="no-adverse-findings"] .v{ color: var(--ink-900); }
+.t-stamp[data-state="issuer-unavailable"]{ background: var(--ink-950); border-color: var(--ink-950); }
+.t-stamp[data-state="issuer-unavailable"] .lb{ color: var(--ink-400); }
+.t-stamp[data-state="issuer-unavailable"] .v{ color:#fff; }
+
+/* ===================================================================== */
+/* 4 · MASTHEAD                                                            */
+/* ===================================================================== */
+.mast{
+  background: var(--ink-0);
+  border-top: 2px solid var(--ink-950);
+  border-bottom: 1px solid var(--ink-900);
+  padding: var(--sp-6) 28px;
+  max-width:1400px; margin:0 auto;
+}
+.mast .l1{
+  font-family:"Geist Mono",monospace; font-size: var(--t-eyebrow);
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); font-weight:500;
+}
+.mast h1{
+  font-size: var(--t-h1); margin: 6px 0; font-weight:600;
+  letter-spacing:-0.02em; color: var(--ink-900);
+}
+.mast .l2{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  color: var(--ink-600); font-weight:400; letter-spacing:0.02em;
+}
+.mast .l2 strong{ color: var(--ink-900); font-weight:500; }
+
+/* ===================================================================== */
+/* 5 · LEGIBILITY SCORE CARD                                               */
+/* ===================================================================== */
+.score{
+  max-width:1400px; margin: 0 auto;
+  background: var(--ink-0); border-bottom: 1px solid var(--ink-900);
+  display:grid; grid-template-columns: 220px 1fr 200px;
+}
+.score .head{
+  background: var(--ink-950); color:#fff;
+  padding: var(--sp-4) var(--sp-5);
+  font-family:"Geist Mono",monospace;
+}
+.score .head .lb{
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform:uppercase; color: var(--ink-400);
+}
+.score .head .val{ font-size:38px; font-weight:600; letter-spacing:-0.02em; margin-top:4px; line-height:1; }
+.score .head .sub{
+  font-family:"Geist",sans-serif; font-size: var(--t-meta);
+  color: var(--ink-300); margin-top:6px;
+}
+.score .body{
+  padding: var(--sp-4) var(--sp-5);
+  display:grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+  border-right: 1px solid var(--rule);
+}
+.score .body .ax{ border-right: 1px solid var(--rule); padding: 0 var(--sp-3); }
+.score .body .ax:last-child{ border-right:0; }
+.score .body .ax .k{
+  font-family:"Geist Mono",monospace; font-size: 9px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); margin-bottom:6px;
+}
+.score .body .ax .v{
+  font-family:"Geist Mono",monospace; font-size:20px;
+  font-weight:600; color: var(--ink-900); line-height:1;
+}
+.score .body .ax .v .of{ font-size:11px; color: var(--ink-400); font-weight:500; }
+.score .body .ax .nm{ font-size:11px; color: var(--ink-700); margin-top:8px; line-height:1.35; }
+.score .verdict{
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--ink-50);
+}
+.score .verdict .k{
+  font-family:"Geist Mono",monospace; font-size: var(--t-eyebrow);
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500);
+}
+.score .verdict .v{
+  font-family:"Geist Mono",monospace; font-size: var(--t-rule);
+  letter-spacing:0.12em; text-transform:uppercase;
+  color: var(--ink-900); margin-top:4px; font-weight:600;
+}
+.score .verdict .sub{
+  font-size: 11px; color: var(--ink-600);
+  line-height:1.4; margin-top:8px;
+}
+
+/* ===================================================================== */
+/* 6 · WRAP                                                                */
+/* ===================================================================== */
+.wrap{ max-width:1400px; margin:0 auto; padding: var(--sp-5) 28px var(--sp-8); }
+
+.t-sh{
+  display:flex; align-items:baseline; gap: var(--sp-3);
+  border-bottom: 1px solid var(--ink-900);
+  padding-bottom: var(--sp-2);
+  margin: var(--sp-8) 0 var(--sp-4);
+}
+.t-sh .n{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-300); font-weight:600;
+}
+.t-sh h2{
+  font-size: var(--t-title); margin:0; font-weight:600;
+  letter-spacing:-0.015em; color: var(--ink-900);
+}
+.t-sh .ey{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); margin-left:auto;
+}
+
+/* ===================================================================== */
+/* 7 · TRUST HEADER — teachable reading order (numbered ticks under cells) */
+/* ===================================================================== */
+.th{
+  border: 1px solid var(--ink-900);
+  background: var(--ink-0);
+}
+.th .cap{
+  background: var(--ink-900); color:#fff;
+  padding: var(--sp-2) var(--sp-4);
+  font-family:"Geist Mono",monospace;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform:uppercase;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.th .cap strong{ color:#fff; font-weight:600; }
+.th .cap .ord{ color: var(--ink-400); }
+.th .cap .ord b{ color:#fff; font-weight:500; }
+.th .row{
+  display:grid; grid-template-columns: 1.4fr 0.85fr 1fr 1fr 0.85fr 0.95fr;
+}
+.th .c{
+  padding: 11px var(--sp-4) var(--sp-1);
+  border-right: 1px solid var(--rule);
+  display:flex; flex-direction:column; min-height: 64px;
+}
+.th .c:last-child{ border-right:0; }
+.th .c .k{
+  font-family:"Geist Mono",monospace; font-size: 9px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); margin-bottom: var(--sp-1);
+}
+.th .c .v{
+  font-family:"Geist Mono",monospace; font-size: var(--t-body);
+  color: var(--ink-900); font-weight:500;
+  letter-spacing: var(--tracking-id); line-height: var(--lh-tight);
+}
+.th .c .v .sub{
+  display:block; font-family:"Geist",sans-serif; font-size: var(--t-meta);
+  color: var(--ink-500); margin-top:3px; font-weight:400;
+  letter-spacing:0; text-transform:none;
+}
+/* teachable tick rail — numbered indices below cells */
+.th .ticks{
+  display:grid; grid-template-columns: 1.4fr 0.85fr 1fr 1fr 0.85fr 0.95fr;
+  border-top: 1px solid var(--rule);
+  background: var(--ink-50);
+}
+.th .ticks .tk{
+  padding: 6px var(--sp-4) 7px;
+  border-right: 1px solid var(--rule);
+  display:flex; align-items:center; gap: var(--sp-2);
+  font-family:"Geist Mono",monospace;
+}
+.th .ticks .tk:last-child{ border-right:0; }
+.th .ticks .ix{
+  font-size:9px; letter-spacing: 0.12em;
+  color:#fff; background: var(--ink-950);
+  padding: 1px 5px; font-weight:600;
+}
+.th .ticks .nm{
+  font-size:9.5px; letter-spacing: var(--tracking-key);
+  text-transform:uppercase; color: var(--ink-600);
+}
+.th .ticks .ar{ color: var(--ink-300); font-size:11px; margin-left:auto; }
+/* states */
+.th[data-state="signed"]   { border-color: var(--ink-950); }
+.th[data-state="signed"]   .cap{ background: var(--ink-950); }
+.th[data-state="snapshot"] { border-color: var(--ink-700); }
+.th[data-state="snapshot"] .cap{ background: var(--ink-700); }
+.th[data-state="preview"]  { border-style:dashed; border-color: var(--ink-400); background: var(--paper); }
+.th[data-state="preview"]  .cap{ background: var(--ink-100); color: var(--ink-700); }
+.th[data-state="preview"]  .cap .ord b{ color: var(--ink-900); }
+.th[data-state="preview"]  .ticks{ background: var(--paper); }
+
+/* ===================================================================== */
+/* 8 · REPLAY LINEAGE — chain-of-custody, not analytics                    */
+/* ===================================================================== */
+.cust{
+  border: 1px solid var(--ink-300);
+  background: var(--ink-0);
+}
+.cust[data-tone="inverted"]{ background: var(--ink-950); border-color: var(--ink-950); color:#fff; }
+.cust .cap{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-50); border-bottom: 1px solid var(--rule);
+  font-family:"Geist Mono",monospace;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform:uppercase; color: var(--ink-500);
+  display:grid; grid-template-columns: 1fr auto auto; gap: var(--sp-4); align-items:center;
+}
+.cust[data-tone="inverted"] .cap{
+  background: transparent; border-bottom-color: rgba(255,255,255,0.10);
+  color: var(--ink-400);
+}
+.cust .cap strong{ color: var(--ink-900); font-weight:500; }
+.cust[data-tone="inverted"] .cap strong{ color:#fff; }
+.cust .cap .meta{ color: var(--ink-700); font-weight:500; }
+.cust[data-tone="inverted"] .cap .meta{ color: var(--ink-300); }
+
+.cust .body{
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  display:grid; grid-auto-flow:column; grid-auto-columns: 1fr; gap:0;
+  position:relative;
+}
+.cust .body::before{
+  content:""; position:absolute; left: var(--sp-4); right: var(--sp-4);
+  top: 32px; border-top: 1px solid var(--ink-300);
+}
+.cust[data-tone="inverted"] .body::before{ border-top-color: rgba(255,255,255,0.15); }
+.cust .ev{
+  position:relative; padding: 0 var(--sp-3);
+  border-right: 1px solid var(--rule);
+}
+.cust[data-tone="inverted"] .ev{ border-right-color: rgba(255,255,255,0.10); }
+.cust .ev:last-child{ border-right:0; }
+.cust .ev .ix{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:"Geist Mono",monospace; font-size:9.5px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500);
+}
+.cust[data-tone="inverted"] .ev .ix{ color: var(--ink-400); }
+.cust .ev .ix .dot{
+  width:11px; height:11px; background:#fff;
+  border: 1.5px solid var(--ink-900);
+  border-radius:50%;
+  position:relative; z-index:1;
+}
+.cust .ev[data-head="true"] .ix .dot{ background: var(--ink-950); border-color: var(--ink-950); }
+.cust[data-tone="inverted"] .ev .ix .dot{ background: var(--ink-950); border-color:#fff; }
+.cust[data-tone="inverted"] .ev[data-head="true"] .ix .dot{ background:#fff; }
+.cust .ev[data-gap="true"] .ix .dot{ background: transparent; border-style:dashed; }
+.cust .ev .tok{
+  display:inline-block; margin-top: var(--sp-3);
+  font-family:"Geist Mono",monospace; font-size: var(--t-body);
+  color: var(--ink-900); font-weight:500;
+  padding: 4px 7px; background: var(--ink-50); border: 1px solid var(--rule);
+}
+.cust[data-tone="inverted"] .ev .tok{
+  color:#fff; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.18);
+}
+.cust .ev[data-head="true"] .tok{ background: var(--ink-950); color:#fff; border-color: var(--ink-950); }
+.cust[data-tone="inverted"] .ev[data-head="true"] .tok{ background:#fff; color: var(--ink-950); border-color:#fff; }
+.cust .ev[data-gap="true"] .tok{ background:transparent; border-style:dashed; color: var(--ink-500); }
+.cust .ev .when{
+  display:block; font-family:"Geist Mono",monospace;
+  font-size: var(--t-meta); color: var(--ink-700); margin-top: 6px;
+  letter-spacing:0.02em; font-variant-numeric: tabular-nums;
+}
+.cust[data-tone="inverted"] .ev .when{ color: var(--ink-300); }
+.cust .ev .who{
+  display:block; font-family:"Geist Mono",monospace;
+  font-size: 9.5px; letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); margin-top: 3px;
+}
+.cust[data-tone="inverted"] .ev .who{ color: var(--ink-400); }
+.cust .ev .sig{
+  display:inline-block; margin-top:6px;
+  font-family:"Geist Mono",monospace; font-size: 9.5px;
+  letter-spacing: 0.10em; text-transform:uppercase;
+  padding: 1px 5px; background: var(--ink-900); color:#fff;
+}
+.cust[data-tone="inverted"] .ev .sig{ background:#fff; color: var(--ink-950); }
+.cust .ev[data-gap="true"] .sig{ background:transparent; color: var(--ink-500); border: 1px dashed var(--ink-400); }
+
+.cust .ft{
+  border-top: 1px solid var(--rule);
+  padding: var(--sp-2) var(--sp-4);
+  display:flex; justify-content: space-between; gap: var(--sp-4);
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  color: var(--ink-500);
+}
+.cust[data-tone="inverted"] .ft{
+  border-top-color: rgba(255,255,255,0.10); color: var(--ink-400);
+}
+.cust .ft strong{ color: var(--ink-900); font-weight:500; }
+.cust[data-tone="inverted"] .ft strong{ color:#fff; }
+
+/* ===================================================================== */
+/* 9 · ISSUER ATTRIBUTION — signer panel, 4 columns + age bar              */
+/* ===================================================================== */
+.iss{ border: 1px solid var(--ink-900); background: var(--ink-0); }
+.iss .cap{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-900); color:#fff;
+  font-family:"Geist Mono",monospace;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-key);
+  text-transform:uppercase;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.iss .cap .ok{
+  display:inline-flex; align-items:center; gap:6px;
+  font-weight:500; color:#fff;
+}
+.iss .cap .ok .d{ width:7px; height:7px; background:#fff; }
+.iss .body{ display:grid; grid-template-columns: 1.2fr 1fr 1fr 1.1fr; }
+.iss .col{ padding: var(--sp-4); border-right: 1px solid var(--rule); }
+.iss .col:last-child{ border-right:0; }
+.iss .k{
+  font-family:"Geist Mono",monospace; font-size: 9.5px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500); margin-bottom: var(--sp-1); font-weight:500;
+}
+.iss .v{
+  font-family:"Geist Mono",monospace; font-size: var(--t-body);
+  color: var(--ink-900); font-weight:500;
+  letter-spacing: var(--tracking-id); line-height: var(--lh-tight);
+}
+.iss .v .sub{
+  display:block; font-family:"Geist",sans-serif;
+  font-size: var(--t-meta); color: var(--ink-600);
+  margin-top: 4px; font-weight:400;
+}
+.iss .age{
+  height: 4px; background: var(--ink-100);
+  border: 1px solid var(--ink-200); position:relative;
+  margin-top: var(--sp-2);
+}
+.iss .age .f{ position:absolute; inset:0 auto 0 0; background: var(--ink-950); }
+.iss .age .mark{
+  position:absolute; top:-4px; height:12px; width:1px;
+  background: var(--ink-700);
+}
+.iss .age .mark .lb{
+  position:absolute; bottom:-14px; left:50%; transform: translateX(-50%);
+  font-size:8.5px; letter-spacing: 0.10em; color: var(--ink-500);
+  text-transform:uppercase; white-space:nowrap;
+}
+.iss .row2{
+  display:flex; gap: var(--sp-3); margin-top: var(--sp-3);
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+}
+.iss .row2 .pill{
+  padding: 2px 6px; border: 1px solid var(--ink-900);
+  letter-spacing: 0.10em; text-transform:uppercase; font-size: 9.5px;
+  color: var(--ink-900); font-weight:500;
+}
+.iss .row2 .pill.f{ background: var(--ink-900); color:#fff; }
+
+/* ===================================================================== */
+/* 10 · DEGRADED STATE BANNER — 5 modes, D = SUCCESS                        */
+/* ===================================================================== */
+.fb{
+  border: 1px solid var(--ink-300); background: var(--ink-0);
+  padding: var(--sp-4) var(--sp-5);
+  display:grid; grid-template-columns: 36px 1.4fr 1fr auto; gap: var(--sp-4); align-items:center;
+}
+.fb .ic{ width:32px; height:32px; display:grid; place-items:center; }
+.fb .ic svg{ width:28px; height:28px; }
+.fb .lb{
+  font-family:"Geist Mono",monospace; font-size: 9.5px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500);
+}
+.fb .ti{
+  font-size: var(--t-rule); font-weight:500; letter-spacing: -0.005em;
+  color: var(--ink-900); margin-top: 2px;
+}
+.fb .cause{ font-size: 12px; margin-top: 4px; color: var(--ink-700); }
+.fb .owner{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  color: var(--ink-600);
+}
+.fb .owner .k{ color: var(--ink-400); letter-spacing: var(--tracking-key); text-transform:uppercase; font-size: 9px; }
+.fb .owner .v{ display:block; color: var(--ink-900); margin-top: 3px; }
+.fb .cta{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  letter-spacing: 0.14em; text-transform:uppercase;
+  padding: 6px 10px; border: 1px solid var(--ink-900);
+  color: var(--ink-900); font-weight:500; background:transparent; text-decoration:none;
+}
+/* mode A — source unreachable: dashed outline, upstream chevron */
+.fb[data-mode="A"]{ border-style:dashed; border-color: var(--ink-400); }
+.fb[data-mode="A"] .ic{ border: 1.5px dashed var(--ink-700); }
+/* mode B — auth-restricted: outline + lock */
+.fb[data-mode="B"]{ border-color: var(--ink-700); }
+.fb[data-mode="B"] .ic{ border: 1.5px solid var(--ink-700); }
+/* mode C — infrastructure outage (VitalCV-side): dark fill */
+.fb[data-mode="C"]{ background: var(--ink-900); border-color: var(--ink-900); color:#fff; }
+.fb[data-mode="C"] .lb, .fb[data-mode="C"] .owner .k{ color: var(--ink-400); }
+.fb[data-mode="C"] .ti, .fb[data-mode="C"] .cause, .fb[data-mode="C"] .owner .v{ color:#fff; }
+.fb[data-mode="C"] .ic{ background: var(--ink-700); }
+.fb[data-mode="C"] .cta{ border-color:#fff; color:#fff; }
+/* mode D — NO ADVERSE FINDINGS · SUCCESS — solid double border + filled check */
+.fb[data-mode="D"]{
+  border: 2px solid var(--ink-900);
+  background: var(--ink-0);
+  box-shadow: inset 0 0 0 1px var(--ink-900), inset 0 0 0 4px var(--ink-0);
+}
+.fb[data-mode="D"] .ic{ background: var(--ink-900); }
+.fb[data-mode="D"] .ic svg path,
+.fb[data-mode="D"] .ic svg polyline{ stroke:#fff; }
+.fb[data-mode="D"] .lb{ color: var(--ink-700); }
+.fb[data-mode="D"] .ti strong{ font-weight:600; }
+.fb[data-mode="D"] .count{
+  display:inline-block; padding: 2px 6px;
+  background: var(--ink-900); color:#fff;
+  font-family:"Geist Mono",monospace; font-size: 9.5px;
+  letter-spacing: 0.10em; text-transform:uppercase; font-weight:600;
+  margin-left: 8px; vertical-align: 1px;
+}
+/* mode E — issuer cryptographic outage: deepest dark, diamond */
+.fb[data-mode="E"]{ background: var(--ink-950); border-color: var(--ink-950); color:#fff; }
+.fb[data-mode="E"] .lb, .fb[data-mode="E"] .owner .k{ color: var(--ink-400); }
+.fb[data-mode="E"] .ti, .fb[data-mode="E"] .cause, .fb[data-mode="E"] .owner .v{ color:#fff; }
+.fb[data-mode="E"] .ic{ background: var(--ink-800); }
+.fb[data-mode="E"] .cta{ border-color:#fff; color:#fff; }
+
+/* ===================================================================== */
+/* 11 · TRUST STATE BAND — runtime register strip                          */
+/* ===================================================================== */
+.tsb{
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  display:grid; grid-template-columns: auto 1fr auto auto;
+  align-items:stretch; border: 1px solid var(--ink-900);
+}
+.tsb .lb{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-950); color:#fff;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  font-weight:600; font-size: 10px;
+}
+.tsb .nm{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-900); color:#fff;
+  letter-spacing: 0.14em; text-transform:uppercase;
+}
+.tsb .ctx{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-900); color: var(--ink-300);
+  font-size: 10px;
+  border-left: 1px solid rgba(255,255,255,0.10);
+}
+.tsb .ref{
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ink-900); color: var(--ink-400);
+  font-size: 9.5px; letter-spacing: 0.10em;
+  border-left: 1px solid rgba(255,255,255,0.10);
+}
+.tsb[data-state="preview"]{ border-style:dashed; border-color: var(--ink-400); }
+.tsb[data-state="preview"] .lb{ background: var(--ink-100); color: var(--ink-700); }
+.tsb[data-state="preview"] .nm, .tsb[data-state="preview"] .ctx, .tsb[data-state="preview"] .ref{ background: var(--paper); color: var(--ink-700); border-left-color: var(--rule); }
+.tsb[data-state="snapshot"] .lb{ background: var(--ink-700); }
+.tsb[data-state="snapshot"] .nm{ background: var(--ink-50); color: var(--ink-900); }
+.tsb[data-state="snapshot"] .ctx, .tsb[data-state="snapshot"] .ref{ background: var(--ink-50); color: var(--ink-600); border-left-color: var(--rule); }
+
+/* ===================================================================== */
+/* 12 · TIER + OWNERSHIP + CHIPS — atomic primitives                       */
+/* ===================================================================== */
+.tier{
+  font-family:"Geist Mono",monospace; font-size:10.5px; font-weight:600;
+  color:#fff; background: var(--ink-900);
+  padding: 2px 6px; letter-spacing: 0.06em;
+  display:inline-block;
+}
+.tier[data-t="T1"]{ background: var(--ink-500); }
+.tier[data-t="T2"]{ background: var(--ink-700); }
+.tier[data-t="T3"]{ background: var(--ink-900); }
+.tier[data-t="T4"]{ background: var(--ink-950); }
+
+.own{
+  font-family:"Geist Mono",monospace; font-size:10px;
+  text-transform:uppercase; letter-spacing: 0.10em;
+  display:inline-flex; align-items:center; gap:5px;
+  padding: 3px 7px; font-weight:500; white-space:nowrap;
+}
+.own[data-s="subject"]{ background: var(--ink-900); color:#fff; }
+.own[data-s="subject"] .d{ width:5px; height:5px; background:#fff; border-radius:50%; }
+.own[data-s="delegated"]{ border: 1px solid var(--ink-900); color: var(--ink-900); }
+.own[data-s="delegated"] .d{ width:5px; height:5px; background: var(--ink-900); border-radius:50%; }
+.own[data-s="unbound"]{ border: 1px dashed var(--ink-700); color: var(--ink-700); }
+.own[data-s="unbound"] .d{ width:5px; height:5px; border: 1px solid var(--ink-700); border-radius:50%; }
+
+.chip{
+  display:inline-flex; align-items:center; gap:5px;
+  padding: 3px 7px; border: 1px solid var(--ink-900);
+  font-family:"Geist Mono",monospace; font-size:10px;
+  text-transform:uppercase; letter-spacing: 0.10em;
+  color: var(--ink-900); font-weight:500; white-space:nowrap;
+}
+.chip .d{ width:5px; height:5px; background: var(--ink-900); border-radius:50%; }
+.chip[data-v="dashed"]{ border-style:dashed; color: var(--ink-700); }
+.chip[data-v="dashed"] .d{ background:transparent; border:1px solid var(--ink-700); }
+.chip[data-v="dotted"]{ border-style:dotted; color: var(--ink-700); }
+.chip[data-v="dotted"] .d{ background:transparent; border:1px dotted var(--ink-700); }
+.chip[data-v="solid"]{ background: var(--ink-900); color:#fff; }
+.chip[data-v="solid"] .d{ background:#fff; }
+
+/* ===================================================================== */
+/* 13 · CLAIM ROW — trust-first reading order                              */
+/* ===================================================================== */
+.facts{ width:100%; border-collapse: collapse; background: var(--ink-0); border: 1px solid var(--ink-900); }
+.facts thead th{
+  background: var(--ink-950); color:#fff;
+  font-family:"Geist Mono",monospace; font-size:9.5px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  text-align:left; padding: var(--sp-2) var(--sp-3); font-weight:500;
+  border-right: 1px solid rgba(255,255,255,0.10);
+}
+.facts thead th:last-child{ border-right:0; }
+.facts tbody td{
+  padding: var(--sp-3); border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  vertical-align: top;
+  font-family:"Geist Mono",monospace; font-size: var(--t-body);
+  color: var(--ink-900); font-weight:500; letter-spacing: var(--tracking-id);
+}
+.facts tbody td:last-child{ border-right:0; }
+.facts tbody tr:last-child td{ border-bottom:0; }
+.facts tbody td .sub{
+  display:block; font-family:"Geist",sans-serif; font-size: var(--t-meta);
+  color: var(--ink-500); margin-top: 3px; font-weight:400; letter-spacing:0;
+}
+.facts tbody tr[data-degraded="true"] td{
+  border-left: 2px dashed var(--ink-500);
+}
+.facts tbody tr[data-degraded="true"] td:not(:first-child){
+  border-left: 1px solid var(--rule);
+}
+.facts tbody tr[data-degraded="true"] td:first-child{
+  border-left: 2px dashed var(--ink-700);
+}
+
+/* ===================================================================== */
+/* 14 · VERDICT BAR                                                        */
+/* ===================================================================== */
+.verdict{
+  display:grid; grid-template-columns: auto 1fr auto;
+  border: 1px solid var(--ink-950); background: var(--ink-0);
+  align-items:stretch;
+}
+.verdict .lh{
+  background: var(--ink-950); color:#fff;
+  padding: var(--sp-3) var(--sp-4);
+  font-family:"Geist Mono",monospace; font-size: var(--t-rule);
+  font-weight:600; letter-spacing: 0.14em; text-transform:uppercase;
+  display:flex; align-items:center; gap: var(--sp-2);
+}
+.verdict .lh .d{ width:8px; height:8px; background:#fff; }
+.verdict .facts-line{
+  padding: var(--sp-3) var(--sp-4);
+  font-family:"Geist Mono",monospace; font-size: var(--t-body);
+  color: var(--ink-900); display:flex; align-items:center; gap: var(--sp-4);
+  letter-spacing: var(--tracking-id);
+}
+.verdict .facts-line .sep{ color: var(--ink-300); }
+.verdict .rt{
+  border-left: 1px solid var(--rule);
+  padding: var(--sp-3) var(--sp-4);
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  color: var(--ink-700); display:flex; align-items:center;
+  letter-spacing: 0.10em; text-transform:uppercase;
+}
+.verdict .rt strong{ color: var(--ink-900); font-weight:500; }
+
+/* ===================================================================== */
+/* 15 · COMPOSED-SURFACE FRAMES — passport & verifier excerpts             */
+/* ===================================================================== */
+.frame{
+  border: 1px solid var(--ink-300); background: var(--ink-0);
+  padding: var(--sp-5);
+  display:grid; gap: var(--sp-4);
+}
+.frame .lab{
+  font-family:"Geist Mono",monospace; font-size: 9.5px;
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-500);
+}
+.frame .lab strong{ color: var(--ink-900); font-weight:600; }
+
+.two{ display:grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+@media (max-width: 1100px){ .two{ grid-template-columns: 1fr; } }
+
+/* ===================================================================== */
+/* 16 · DELIVERABLE NOTES                                                  */
+/* ===================================================================== */
+.note{
+  border: 1px solid var(--rule); background: var(--ink-0);
+  padding: var(--sp-4) var(--sp-5); display:grid; gap: var(--sp-2);
+  font-size: 12px; line-height: 1.55; color: var(--ink-700);
+}
+.note .h{
+  font-family:"Geist Mono",monospace; font-size: var(--t-eyebrow);
+  letter-spacing: var(--tracking-key); text-transform:uppercase;
+  color: var(--ink-900); font-weight:600;
+}
+.note ul{ margin: 0; padding-left: 1.1em; }
+.note li{ margin-bottom: 4px; }
+.note code{
+  font-size: 11px; background: var(--ink-50);
+  padding: 1px 5px; border: 1px solid var(--rule);
+}
+
+.foot{
+  max-width:1400px; margin: var(--sp-8) auto 0;
+  padding: var(--sp-4) 28px;
+  border-top: 2px solid var(--ink-950); border-bottom: 1px solid var(--ink-900);
+  background: var(--ink-0);
+  font-family:"Geist Mono",monospace; font-size: var(--t-meta);
+  color: var(--ink-500);
+  display:flex; justify-content:space-between; gap: var(--sp-4); flex-wrap:wrap;
+}
+.foot strong{ color: var(--ink-900); font-weight:500; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- Runtime band                                                  -->
+<!-- ============================================================ -->
+<div class="t-runtime">
+  <div class="in">
+    <div class="grp">
+      <span class="dot"></span>
+      <span class="k">Runtime</span><span class="v">vc.2026.05.12-a</span>
+      <span class="sep">|</span>
+      <span class="k">Commit</span><span class="v">7a2c b8d3 9d11 3e4a</span>
+      <span class="sep">|</span>
+      <span class="k">Origin</span><span class="v">localhost:3030</span>
+      <span class="sep">|</span>
+      <span class="k">Issuer</span><span class="v">did:web:vitalcv.health</span>
+    </div>
+    <div class="grp">
+      <span class="k">Standards</span>
+      <span class="v">W3C VC 2.0</span><span class="sep">|</span>
+      <span class="v">OpenID4VCI</span><span class="sep">|</span>
+      <span class="v">StatusList2021</span><span class="sep">|</span>
+      <span class="v">RFC 3161</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Document control                                              -->
+<!-- ============================================================ -->
+<div class="t-doc">
+  <div class="in">
+    <div class="cell form">
+      <div class="g"><span class="glyph">V</span><span class="nm">VitalCV · Trust</span></div>
+      <div class="title">Institutional canon · v2 refinement</div>
+    </div>
+    <div class="cell">
+      <div class="k">Form</div>
+      <div class="v">VCV-CAN-002<span class="sub">controlled spec</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">Classification</div>
+      <div class="v">INTERNAL · SPEC<span class="sub">institutional reference</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">Effective</div>
+      <div class="v">2026-05-12<span class="sub">rev 2 · refinement pass</span></div>
+    </div>
+    <div class="cell">
+      <div class="k">Controlled by</div>
+      <div class="v">did:web:vitalcv.health<span class="sub">signer of record</span></div>
+    </div>
+    <div class="cell" style="border-left:0;">
+      <div class="t-stamp" data-state="signed"><span class="lb">trust state</span><span class="v">signed</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Masthead                                                      -->
+<!-- ============================================================ -->
+<div class="mast">
+  <div class="l1">Refinement pass · institutional readability</div>
+  <h1>VitalCV is critical trust infrastructure — visible as such.</h1>
+  <div class="l2">Same 9 primitives, same 7 mandatory states, same reading order. <strong>What changes</strong>: replay reads as chain-of-custody, header teaches its own order, mode&nbsp;D reads as success, type ramp tightens to four sizes, every identifier is monospace, baseline is 4&nbsp;px.</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Legibility score card                                         -->
+<!-- ============================================================ -->
+<div class="score">
+  <div class="head">
+    <div class="lb">Legibility · institutional</div>
+    <div class="val">86<span style="font-size:18px; color:var(--ink-400); font-weight:500;">/100</span></div>
+    <div class="sub">+11 over v1 · target 92 after Wave-2 fixes land</div>
+  </div>
+  <div class="body">
+    <div class="ax"><div class="k">Op. honesty</div><div class="v">17<span class="of">/20</span></div><div class="nm">5-mode failure named</div></div>
+    <div class="ax"><div class="k">Provenance</div><div class="v">14<span class="of">/15</span></div><div class="nm">Trust-first column order held</div></div>
+    <div class="ax"><div class="k">Replay</div><div class="v">12<span class="of">/15</span></div><div class="nm">Chain-of-custody render</div></div>
+    <div class="ax"><div class="k">Trust read</div><div class="v">13<span class="of">/15</span></div><div class="nm">T1–T4 monotonic ink</div></div>
+    <div class="ax"><div class="k">Verifier</div><div class="v">14<span class="of">/15</span></div><div class="nm">Reference surface</div></div>
+    <div class="ax"><div class="k">Ownership</div><div class="v">9<span class="of">/10</span></div><div class="nm">3 states, atomic</div></div>
+    <div class="ax"><div class="k">Degrade</div><div class="v">7<span class="of">/10</span></div><div class="nm">Replay row still ambiguous</div></div>
+  </div>
+  <div class="verdict">
+    <div class="k">Verdict</div>
+    <div class="v">Institutional infrastructure</div>
+    <div class="sub">Register held. Vocabulary frozen. Three coherence debts open on <code>/replay</code> and <code>/trust</code>. 30-second test passes on 4 of 5 surfaces.</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ================================================================ -->
+<!-- 01 · TrustHeader · teachable reading order                         -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">01 ·</span>
+  <h2>TrustHeader — teachable reading order</h2>
+  <span class="ey">six cells · numbered tick rail · binding on every surface</span>
+</div>
+
+<div class="th" data-state="signed">
+  <header class="cap">
+    <span><strong>Lineage</strong> · subject-bound · re-verifiable offline</span>
+    <span class="ord">read <b>01</b> → <b>02</b> → <b>03</b> → <b>04</b> → <b>05</b> → <b>06</b></span>
+  </header>
+  <div class="row">
+    <div class="c"><div class="k">Object</div><div class="v">Provider passport · NPI 1356428912<span class="sub">Mira Chen, MD · CA · Internal Medicine</span></div></div>
+    <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>Subject</span></div></div>
+    <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago · within freshness budget</span></div></div>
+    <div class="c"><div class="k">Channel</div><div class="v">verify.vitalcv.health<span class="sub">public verifier zone</span></div></div>
+    <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip"><span class="d"></span>anchored</span></div></div>
+    <div class="c"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">batch · RFC 3161 anchored</span></div></div>
+  </div>
+  <div class="ticks">
+    <div class="tk"><span class="ix">01</span><span class="nm">Object</span><span class="ar">→</span></div>
+    <div class="tk"><span class="ix">02</span><span class="nm">Ownership</span><span class="ar">→</span></div>
+    <div class="tk"><span class="ix">03</span><span class="nm">checked_at</span><span class="ar">→</span></div>
+    <div class="tk"><span class="ix">04</span><span class="nm">Channel</span><span class="ar">→</span></div>
+    <div class="tk"><span class="ix">05</span><span class="nm">Replay</span><span class="ar">→</span></div>
+    <div class="tk"><span class="ix">06</span><span class="nm">run_id</span></div>
+  </div>
+</div>
+
+<div style="height:14px;"></div>
+
+<div class="two">
+  <div class="th" data-state="snapshot">
+    <header class="cap">
+      <span><strong>Lineage</strong> · authenticated · not yet signed</span>
+      <span class="ord">state · <b>snapshot</b></span>
+    </header>
+    <div class="row">
+      <div class="c"><div class="k">Object</div><div class="v">Provider passport · pending bind<span class="sub">session-authenticated</span></div></div>
+      <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="delegated"><span class="d"></span>Delegated</span></div></div>
+      <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:30:11Z<span class="sub">99 s ago</span></div></div>
+      <div class="c"><div class="k">Channel</div><div class="v">clinician.vitalcv.health<span class="sub">holder zone</span></div></div>
+      <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip" data-v="dotted"><span class="d"></span>pending</span></div></div>
+      <div class="c"><div class="k">run_id</div><div class="v">— · not committed<span class="sub">no batch hash</span></div></div>
+    </div>
+    <div class="ticks">
+      <div class="tk"><span class="ix">01</span><span class="nm">Object</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">02</span><span class="nm">Ownership</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">03</span><span class="nm">checked_at</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">04</span><span class="nm">Channel</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">05</span><span class="nm">Replay</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">06</span><span class="nm">run_id</span></div>
+    </div>
+  </div>
+  <div class="th" data-state="preview">
+    <header class="cap">
+      <span><strong>Lineage</strong> · anonymous · no claim asserted</span>
+      <span class="ord">state · <b>preview</b></span>
+    </header>
+    <div class="row">
+      <div class="c"><div class="k">Object</div><div class="v">Public readiness · sample<span class="sub">no subject bound</span></div></div>
+      <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="unbound"><span class="d"></span>Unbound</span></div></div>
+      <div class="c"><div class="k">checked_at</div><div class="v">— · not consulted<span class="sub">no fetch</span></div></div>
+      <div class="c"><div class="k">Channel</div><div class="v">vitalcv.health<span class="sub">public zone</span></div></div>
+      <div class="c"><div class="k">Replay</div><div class="v" style="font-size:11px; color: var(--ink-500);">none</div></div>
+      <div class="c"><div class="k">run_id</div><div class="v">— · sample<span class="sub">non-committed</span></div></div>
+    </div>
+    <div class="ticks">
+      <div class="tk"><span class="ix">01</span><span class="nm">Object</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">02</span><span class="nm">Ownership</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">03</span><span class="nm">checked_at</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">04</span><span class="nm">Channel</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">05</span><span class="nm">Replay</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">06</span><span class="nm">run_id</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">Refinement · why the tick rail</div>
+  <p>v1 rendered the cells correctly but the reading order was institutional knowledge — learnable only by reading section copy. v2 renders the order <em>as part of the header</em>: numbered ticks under each cell carry the same indices the masthead names, so the reading discipline is teachable in-surface. A reviewer learns the order on first encounter and never re-decides. <strong>Never reorder. Never substitute.</strong></p>
+</div>
+
+<!-- ================================================================ -->
+<!-- 02 · ReplayLineage · chain-of-custody                              -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">02 ·</span>
+  <h2>ReplayLineage — chain-of-custody (not analytics)</h2>
+  <span class="ey">tick mark · hash · timestamp · custodian · counter-signature</span>
+</div>
+
+<div class="cust">
+  <header class="cap">
+    <span><strong>Replay lineage</strong> · chain-linked · RFC 3161 anchored · re-verifiable offline</span>
+    <span class="meta">4 receipts</span>
+    <span class="meta">0 gaps</span>
+  </header>
+  <div class="body">
+    <div class="ev" data-head="true">
+      <div class="ix"><span class="dot"></span>#04 · head</div>
+      <span class="tok">7a2c…b8d3</span>
+      <span class="when">2026-05-12T14:31:58Z</span>
+      <span class="who">verifier · v.head</span>
+      <span class="sig">σ ok</span>
+    </div>
+    <div class="ev">
+      <div class="ix"><span class="dot"></span>#03</div>
+      <span class="tok">9d11…3e4a</span>
+      <span class="when">2026-05-12T13:02:14Z</span>
+      <span class="who">verifier · v.prev</span>
+      <span class="sig">σ ok</span>
+    </div>
+    <div class="ev">
+      <div class="ix"><span class="dot"></span>#02</div>
+      <span class="tok">4b00…f1c2</span>
+      <span class="when">2026-05-11T22:48:09Z</span>
+      <span class="who">verifier · v.prev</span>
+      <span class="sig">σ ok</span>
+    </div>
+    <div class="ev">
+      <div class="ix"><span class="dot"></span>#01 · origin</div>
+      <span class="tok">2a17…0e8b</span>
+      <span class="when">2026-05-09T09:11:33Z</span>
+      <span class="who">issuer · genesis</span>
+      <span class="sig">σ ok</span>
+    </div>
+  </div>
+  <div class="ft">
+    <span><strong>Custody</strong> · sequential, no gaps · ledger height 4 · anchor TSA: <strong>did:web:tsa.vitalcv.health</strong></span>
+    <span>Independent verifier: <strong>vitalcv-verify@offline</strong></span>
+  </div>
+</div>
+
+<div style="height:14px;"></div>
+
+<div class="cust" data-tone="inverted">
+  <header class="cap">
+    <span><strong>Replay lineage</strong> · signed plane · re-verifiable against did:web:vitalcv.health</span>
+    <span class="meta">head · 7a2c…b8d3</span>
+    <span class="meta">σ chain · ok</span>
+  </header>
+  <div class="body">
+    <div class="ev" data-head="true">
+      <div class="ix"><span class="dot"></span>#04 · head</div>
+      <span class="tok">7a2c…b8d3</span>
+      <span class="when">14:31:58Z · 12 s ago</span>
+      <span class="who">σ: 6f0e…1d22</span>
+      <span class="sig">σ ok</span>
+    </div>
+    <div class="ev">
+      <div class="ix"><span class="dot"></span>#03</div>
+      <span class="tok">9d11…3e4a</span>
+      <span class="when">13:02:14Z</span>
+      <span class="who">σ: 6f0e…1d22</span>
+      <span class="sig">σ ok</span>
+    </div>
+    <div class="ev" data-gap="true">
+      <div class="ix"><span class="dot"></span>#02 · stale</div>
+      <span class="tok">— · gap</span>
+      <span class="when">— · upstream PECOS</span>
+      <span class="who">— · awaiting</span>
+      <span class="sig">σ defer</span>
+    </div>
+    <div class="ev">
+      <div class="ix"><span class="dot"></span>#01 · origin</div>
+      <span class="tok">2a17…0e8b</span>
+      <span class="when">2026-05-09T09:11:33Z</span>
+      <span class="who">σ: 6f0e…1d22</span>
+      <span class="sig">σ ok</span>
+    </div>
+  </div>
+  <div class="ft">
+    <span><strong>Custody</strong> · 1 gap · stale-but-signed permitted by §07.04</span>
+    <span>Signing key <strong>kid: 6f0e…1d22</strong> · in service 41 d</span>
+  </div>
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">Refinement · why chain-of-custody</div>
+  <p>v1 rendered receipts as hash tokens with arrows. Visually closer to a sparkline than an evidence ledger. v2 gives every receipt a <strong>custody record</strong>: index (<code>#04 · head</code>), hash, ISO-8601 timestamp, custodian (verifier instance or signing key fingerprint), and a counter-signature pill (<code>σ ok</code>). A gap renders as a dashed empty record with named cause (<code>upstream PECOS</code>) — never elided, never collapsed. <strong>Reads as evidence handed forward in time, not a metric trending up.</strong></p>
+</div>
+
+<!-- ================================================================ -->
+<!-- 03 · IssuerAttribution                                             -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">03 ·</span>
+  <h2>IssuerAttribution — signer continuity</h2>
+  <span class="ey">key · DID doc · status list · backup quorum</span>
+</div>
+
+<div class="iss">
+  <header class="cap">
+    <span>Issuer · did:web:vitalcv.health</span>
+    <span class="ok"><span class="d"></span>continuous · σ-chain ok · 4 of 4 signed</span>
+  </header>
+  <div class="body">
+    <div class="col">
+      <div class="k">Active key · kid</div>
+      <div class="v">6f0e 1d22 · Ed25519<span class="sub">EdDSA · RFC 8032</span></div>
+      <div class="age"><div class="f" style="width:34%;"></div>
+        <div class="mark" style="left:34%;"><span class="lb">41 d in service</span></div>
+        <div class="mark" style="left:100%;"><span class="lb">rotate · 120 d</span></div>
+      </div>
+      <div class="row2">
+        <span class="pill f">HSM-resident</span>
+        <span class="pill">attested</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="k">DID document</div>
+      <div class="v">did:web:vitalcv.health<span class="sub">/.well-known/did.json · 200 OK · 14 s ago</span></div>
+      <div class="row2">
+        <span class="pill f">ETag stable</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="k">Status list · 2021</div>
+      <div class="v">/credentials/status/1<span class="sub">256 KiB · 200 OK · 14 s ago</span></div>
+      <div class="row2">
+        <span class="pill f">bit 0 = active</span>
+        <span class="pill">bit 1 = revoked</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="k">Backup signer · quorum</div>
+      <div class="v">m = 2 of n = 3<span class="sub">cold HSM · armed · last drill 9 d ago</span></div>
+      <div class="row2">
+        <span class="pill f">armed</span>
+        <span class="pill">cold</span>
+        <span class="pill">2/3</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">Refinement · why the age bar carries marks</div>
+  <p>v1 showed a single fill. A reviewer could see the key was somewhere on its lifecycle but not <em>where</em>. v2 marks the current age (<code>41 d</code>) and the rotation horizon (<code>120 d</code>) on the same axis. The bar becomes a <strong>maintenance schedule</strong>, not a progress meter. Reads at one glance: "key in service, not approaching rotation."</p>
+</div>
+
+<!-- ================================================================ -->
+<!-- 04 · DegradedStateBanner · 5 modes                                 -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">04 ·</span>
+  <h2>DegradedStateBanner — 5-mode taxonomy</h2>
+  <span class="ey">A upstream · B auth · C VitalCV · D affirmative-negative · E issuer</span>
+</div>
+
+<div style="display:grid; gap:14px;">
+
+  <!-- A -->
+  <div class="fb" data-mode="A">
+    <div class="ic">
+      <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <path d="M4 22 L14 8 L24 22" stroke="#33322e" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" stroke-dasharray="3 2.5"/>
+        <line x1="4" y1="25" x2="24" y2="25" stroke="#33322e" stroke-width="1" stroke-dasharray="2 2"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb">Mode A · source unreachable</div>
+      <div class="ti">PECOS registry is timing out — last-known value rendered <strong>stale-but-signed</strong>.</div>
+      <div class="cause">Receipts remain re-verifiable offline. Freshness budget exhausted at 5.8 s (budget 4 s).</div>
+    </div>
+    <div class="owner"><span class="k">Upstream owner</span><span class="v">CMS · PECOS</span></div>
+    <a class="cta" href="#">Acknowledge</a>
+  </div>
+
+  <!-- B -->
+  <div class="fb" data-mode="B">
+    <div class="ic">
+      <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect x="7" y="13" width="14" height="10" stroke="#33322e" stroke-width="2" fill="none"/>
+        <path d="M10 13 V9 a4 4 0 0 1 8 0 V13" stroke="#33322e" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb">Mode B · auth restricted</div>
+      <div class="ti">Anonymous session — DEA roster is gated behind ownership claim.</div>
+      <div class="cause">Sign in and bind NPI to surface T3 source-checks on this field.</div>
+    </div>
+    <div class="owner"><span class="k">Policy gate</span><span class="v">vitalcv-web · auth</span></div>
+    <a class="cta" href="#">Sign in</a>
+  </div>
+
+  <!-- C -->
+  <div class="fb" data-mode="C">
+    <div class="ic">
+      <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect x="6" y="6" width="16" height="16" stroke="#ffffff" stroke-width="2" fill="#33322e"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb">Mode C · infrastructure outage</div>
+      <div class="ti">VitalCV verifier dispatcher degraded — read-only mode active.</div>
+      <div class="cause">Existing signed receipts remain re-verifiable offline. New issuance paused.</div>
+    </div>
+    <div class="owner"><span class="k">Owner</span><span class="v">vitalcv-platform · sre</span></div>
+    <a class="cta" href="#">Status page</a>
+  </div>
+
+  <!-- D · SUCCESS · NO ADVERSE FINDINGS -->
+  <div class="fb" data-mode="D">
+    <div class="ic">
+      <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <polyline points="6,15 12,21 22,9" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb">Mode D · affirmative negative · <strong>success</strong></div>
+      <div class="ti"><strong>0 records returned</strong> — and 0 records is the answer the source asserts. <span class="count">No adverse findings</span></div>
+      <div class="cause">OIG LEIE was queried at 2026-05-12T14:31:58Z. Subject is not on the exclusion list. The absence is the assertion.</div>
+    </div>
+    <div class="owner"><span class="k">Source</span><span class="v">HHS-OIG · LEIE</span></div>
+    <a class="cta" href="#">View receipt</a>
+  </div>
+
+  <!-- E -->
+  <div class="fb" data-mode="E">
+    <div class="ic">
+      <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <path d="M14 4 L24 14 L14 24 L4 14 Z" stroke="#ffffff" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb">Mode E · issuer cryptographic outage</div>
+      <div class="ti">Signing path unavailable — backup quorum armed but not yet active.</div>
+      <div class="cause">Existing signatures verify against the published DID document. New credentials cannot be issued.</div>
+    </div>
+    <div class="owner"><span class="k">Owner</span><span class="v">did:web:vitalcv.health</span></div>
+    <a class="cta" href="#">Run drill</a>
+  </div>
+
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">Refinement · why D reads as success</div>
+  <p>The single hardest semantic in the taxonomy. <strong>0 records ≠ failure</strong> for exclusion lists, sanction registries, and adverse-action databases — 0 records is the affirmative outcome the institution wants. v1 rendered Mode D with the same solid-border outline as Mode B, leaving the success undersold. v2 gives D its own visual: <strong>2 px ink-900 frame</strong> (heavier than every other mode), <strong>filled-square check glyph</strong> against ink-900, an explicit <code>SUCCESS</code> token in the eyebrow, and an inline <code>No adverse findings</code> count pill. The conclusion line names the inversion in words (<em>"the absence is the assertion"</em>). A reviewer cannot mistake D for absence — it reads as the strongest possible success state in the system.</p>
+</div>
+
+<!-- ================================================================ -->
+<!-- 05 · TrustStateBand                                                -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">05 ·</span>
+  <h2>TrustStateBand — runtime register strip</h2>
+  <span class="ey">label · state · context · receipt ref</span>
+</div>
+
+<div style="display:grid; gap:10px;">
+  <div class="tsb">
+    <span class="lb">Trust state</span>
+    <span class="nm">Signed</span>
+    <span class="ctx">issuer-signed VC · re-verifiable offline · σ ok 4 of 4</span>
+    <span class="ref">receipt · 7a2c…b8d3</span>
+  </div>
+  <div class="tsb" data-state="snapshot">
+    <span class="lb">Trust state</span>
+    <span class="nm">Snapshot</span>
+    <span class="ctx">authenticated session · NPI bound · not yet signed</span>
+    <span class="ref">batch · pending</span>
+  </div>
+  <div class="tsb" data-state="preview">
+    <span class="lb">Trust state</span>
+    <span class="nm">Preview</span>
+    <span class="ctx">anonymous · sample data · no claim asserted</span>
+    <span class="ref">— · non-committed</span>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- 06 · Passport proof surface (excerpt)                              -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">06 ·</span>
+  <h2>Passport proof surface — composed</h2>
+  <span class="ey">verdict + claims + chain + signer · trust-first column order</span>
+</div>
+
+<div class="frame">
+  <div class="lab"><strong>verify.vitalcv.health</strong> / npi 1356428912 · subject-bound</div>
+
+  <div class="verdict">
+    <div class="lh"><span class="d"></span>Verifiable</div>
+    <div class="facts-line">
+      <span>4 of 4 signed</span><span class="sep">|</span>
+      <span>0 gaps in chain</span><span class="sep">|</span>
+      <span>last check 12 s ago</span><span class="sep">|</span>
+      <span>no adverse findings</span>
+    </div>
+    <div class="rt">Read time · <strong>≈ 30 s</strong></div>
+  </div>
+
+  <table class="facts">
+    <thead>
+      <tr>
+        <th style="width:54px;">Tier</th>
+        <th style="width:110px;">Ownership</th>
+        <th style="width:170px;">checked_at</th>
+        <th>Claim</th>
+        <th style="width:220px;">Source</th>
+        <th style="width:170px;">Receipt</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tier" data-t="T4">T4</span></td>
+        <td><span class="own" data-s="subject"><span class="d"></span>Subject</span></td>
+        <td>14:31:58Z<span class="sub">12 s ago</span></td>
+        <td>Medical license · active · CA · A123456<span class="sub">primary specialty: Internal Medicine</span></td>
+        <td>California Medical Board<span class="sub">authority · medbd.ca.gov</span></td>
+        <td>7a2c…b8d3<span class="sub">σ kid 6f0e…1d22</span></td>
+      </tr>
+      <tr data-degraded="true">
+        <td><span class="tier" data-t="T3">T3</span></td>
+        <td><span class="own" data-s="subject"><span class="d"></span>Subject</span></td>
+        <td>14:26:11Z<span class="sub">stale · 5 m 59 s · within §07.04</span></td>
+        <td>DEA registration · active · BC4567890<span class="sub">schedules II–V</span></td>
+        <td>DEA · CSOS<span class="sub">authority · deadiversion.usdoj.gov</span></td>
+        <td>9d11…3e4a<span class="sub">σ kid 6f0e…1d22</span></td>
+      </tr>
+      <tr>
+        <td><span class="tier" data-t="T3">T3</span></td>
+        <td><span class="own" data-s="subject"><span class="d"></span>Subject</span></td>
+        <td>14:31:58Z<span class="sub">12 s ago</span></td>
+        <td>OIG exclusion list · 0 records · <em>affirmative negative</em><span class="sub">queried by NPI + last 4 SSN hash</span></td>
+        <td>HHS-OIG · LEIE<span class="sub">authority · oig.hhs.gov</span></td>
+        <td>4b00…f1c2<span class="sub">σ kid 6f0e…1d22</span></td>
+      </tr>
+      <tr>
+        <td><span class="tier" data-t="T4">T4</span></td>
+        <td><span class="own" data-s="delegated"><span class="d"></span>Delegated</span></td>
+        <td>14:31:58Z<span class="sub">12 s ago</span></td>
+        <td>Hospital privileges · UCSF · active<span class="sub">credentialing committee approved 2024-09-11</span></td>
+        <td>UCSF Medical Center<span class="sub">authority · ucsfmedical.org</span></td>
+        <td>2a17…0e8b<span class="sub">σ kid 6f0e…1d22</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cust" data-tone="inverted">
+    <header class="cap">
+      <span><strong>Replay lineage</strong> · signed plane</span>
+      <span class="meta">head · 7a2c…b8d3</span>
+      <span class="meta">σ chain · ok</span>
+    </header>
+    <div class="body">
+      <div class="ev" data-head="true">
+        <div class="ix"><span class="dot"></span>#04 · head</div>
+        <span class="tok">7a2c…b8d3</span>
+        <span class="when">14:31:58Z</span>
+        <span class="who">σ: 6f0e…1d22</span>
+        <span class="sig">σ ok</span>
+      </div>
+      <div class="ev">
+        <div class="ix"><span class="dot"></span>#03</div>
+        <span class="tok">9d11…3e4a</span>
+        <span class="when">13:02:14Z</span>
+        <span class="who">σ: 6f0e…1d22</span>
+        <span class="sig">σ ok</span>
+      </div>
+      <div class="ev">
+        <div class="ix"><span class="dot"></span>#02</div>
+        <span class="tok">4b00…f1c2</span>
+        <span class="when">2026-05-11T22:48Z</span>
+        <span class="who">σ: 6f0e…1d22</span>
+        <span class="sig">σ ok</span>
+      </div>
+      <div class="ev">
+        <div class="ix"><span class="dot"></span>#01 · origin</div>
+        <span class="tok">2a17…0e8b</span>
+        <span class="when">2026-05-09T09:11Z</span>
+        <span class="who">σ: 6f0e…1d22</span>
+        <span class="sig">σ ok</span>
+      </div>
+    </div>
+    <div class="ft">
+      <span><strong>Custody</strong> · sequential · 0 gaps · TSA-anchored</span>
+      <span>Verify URL · <strong>verify.vitalcv.health/r/7a2cb8d3</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- 07 · Verifier reading surface (excerpt)                            -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">07 ·</span>
+  <h2>Verifier reading surface — composed</h2>
+  <span class="ey">reference implementation · 30-second institutional read</span>
+</div>
+
+<div class="frame">
+  <div class="lab"><strong>verify.vitalcv.health</strong> / r / 7a2cb8d3 · public verifier zone · reader mode</div>
+
+  <div class="th" data-state="signed">
+    <header class="cap">
+      <span><strong>Lineage</strong> · subject-bound · receipt</span>
+      <span class="ord">read <b>01</b> → <b>06</b></span>
+    </header>
+    <div class="row">
+      <div class="c"><div class="k">Object</div><div class="v">Receipt · 7a2c…b8d3<span class="sub">Mira Chen, MD · NPI 1356428912</span></div></div>
+      <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>Subject</span></div></div>
+      <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+      <div class="c"><div class="k">Channel</div><div class="v">verify.vitalcv.health<span class="sub">public verifier zone</span></div></div>
+      <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip"><span class="d"></span>anchored</span></div></div>
+      <div class="c"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">batch · TSA anchored</span></div></div>
+    </div>
+    <div class="ticks">
+      <div class="tk"><span class="ix">01</span><span class="nm">Object</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">02</span><span class="nm">Ownership</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">03</span><span class="nm">checked_at</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">04</span><span class="nm">Channel</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">05</span><span class="nm">Replay</span><span class="ar">→</span></div>
+      <div class="tk"><span class="ix">06</span><span class="nm">run_id</span></div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="lh"><span class="d"></span>Verifiable</div>
+    <div class="facts-line">
+      <span>4 of 4 signed</span><span class="sep">|</span>
+      <span>0 gaps</span><span class="sep">|</span>
+      <span>issuer continuous</span><span class="sep">|</span>
+      <span>no adverse findings</span>
+    </div>
+    <div class="rt">Read time · <strong>≈ 30 s</strong> · then verify offline</div>
+  </div>
+
+  <div class="iss">
+    <header class="cap">
+      <span>Issuer · did:web:vitalcv.health</span>
+      <span class="ok"><span class="d"></span>continuous · 4 of 4 signed</span>
+    </header>
+    <div class="body">
+      <div class="col">
+        <div class="k">Active key</div>
+        <div class="v">kid 6f0e…1d22<span class="sub">Ed25519 · EdDSA</span></div>
+        <div class="age"><div class="f" style="width:34%;"></div></div>
+      </div>
+      <div class="col">
+        <div class="k">DID document</div>
+        <div class="v">200 OK<span class="sub">/.well-known/did.json · 14 s ago</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Status list</div>
+        <div class="v">/credentials/status/1<span class="sub">bit 0 = active</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Backup quorum</div>
+        <div class="v">2 of 3 · armed<span class="sub">cold HSM · drilled 9 d ago</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- 08 · Typography ramp + spacing hierarchy                           -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">08 ·</span>
+  <h2>Typography ramp + spacing hierarchy</h2>
+  <span class="ey">four sizes · four spacings · monospace identifiers</span>
+</div>
+
+<div class="two">
+  <div class="note">
+    <div class="h">Type ramp</div>
+    <ul>
+      <li><code>--t-eyebrow · 9.5 px</code> — keys, monospace labels, eyebrow text. Letter-spacing <code>0.18em</code>, uppercase.</li>
+      <li><code>--t-meta · 10.5 px</code> — operational metadata (sub-labels, run-time tokens). Sans, no-caps.</li>
+      <li><code>--t-body · 11.75 px</code> — identifiers and values. <strong>Always monospace, tabular-nums.</strong></li>
+      <li><code>--t-rule · 13 px</code> — row text, banner titles, verdict. Sans for prose, monospace for IDs.</li>
+      <li><code>--t-title · 15 px</code> — section heads. Sans, weight 600.</li>
+      <li><code>--t-h1 · 22 px</code> — one h1 per document. Sans, weight 600, tracking <code>-0.02em</code>.</li>
+    </ul>
+    <p><strong>Discipline</strong>: never introduce a fifth identifier size. Never set an identifier in sans. Never use color to indicate emphasis — use weight (500 → 600) or background (paper → ink-900) instead.</p>
+  </div>
+  <div class="note">
+    <div class="h">Spacing</div>
+    <ul>
+      <li><code>--sp-1 · 4 px</code> — within-cell vertical gap (key → value).</li>
+      <li><code>--sp-2 · 8 px</code> — chip gaps, between paired tokens.</li>
+      <li><code>--sp-3 · 12 px</code> — cell padding (row to row).</li>
+      <li><code>--sp-4 · 16 px</code> — section gutter, primitive padding.</li>
+      <li><code>--sp-5 · 20 px</code> — between adjacent primitives in a frame.</li>
+      <li><code>--sp-6 · 24 px</code> — masthead padding.</li>
+      <li><code>--sp-8 · 32 px</code> — between major sections.</li>
+    </ul>
+    <p><strong>Baseline</strong>: 4 px grid. Every border lands on a 0.5 px subpixel — hairlines remain crisp at 1× and sharper at 2×. <strong>No shadows. No glass. No gradients.</strong></p>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- 09 · Evidence readability report                                   -->
+<!-- ================================================================ -->
+<div class="t-sh">
+  <span class="n">09 ·</span>
+  <h2>Evidence readability report</h2>
+  <span class="ey">what a hospital reviewer sees in 30 seconds</span>
+</div>
+
+<div class="note">
+  <div class="h">30-second walk · Verifier surface</div>
+  <ul>
+    <li><strong>00–03 s</strong> · runtime band names commit + standards; document-control names form (<code>VCV-CAN-002</code>), revision, controller. Reads as regulated document, not SaaS product.</li>
+    <li><strong>03–08 s</strong> · trust-state stamp inverted to <code>SIGNED</code>. The state is named before any content is consumed.</li>
+    <li><strong>08–15 s</strong> · TrustHeader: object → ownership → checked_at → channel → replay → run_id. Tick rail teaches the order; reviewer learns it once.</li>
+    <li><strong>15–22 s</strong> · Verdict bar (<code>Verifiable · 4 of 4 signed · 0 gaps</code>) → IssuerAttribution (key, DID doc, status list, backup quorum). Operational continuity established without leaving the page.</li>
+    <li><strong>22–28 s</strong> · Facts table in trust-first column order — every claim carries tier, ownership, checked_at, source authority, and receipt. Per-row degraded chip is dashed, not coloured.</li>
+    <li><strong>28–30 s</strong> · Replay lineage (signed plane, inverted) renders the chain of custody · 4 receipts · 0 gaps. Verify URL on control footer for offline re-derivation.</li>
+  </ul>
+  <p><strong>Verdict</strong>: a hospital credentialing reviewer can articulate the verdict, the issuer's continuity, the replay anchor, and the per-fact trust tier within 30 seconds — without external glossary, without hover, without a marketing tooltip. The visual register holds the institutional contract on its own.</p>
+</div>
+
+<div class="note" style="margin-top:14px;">
+  <div class="h">What still needs to land · Wave 4 recomposition pass</div>
+  <ul>
+    <li><code>/replay</code> · mount <strong>IssuerAttribution</strong> + add <strong>TierBadge</strong> column + swap <code>data-degraded="true"</code> row tint to dashed-left-border (matches <code>.facts tbody tr[data-degraded]</code> rule above).</li>
+    <li><code>/trust</code> · mount <strong>ReplayLineage</strong> chain-of-custody in continuity section; render <strong>TierBadge</strong> inline in each banner cause line.</li>
+    <li><code>ReplayChip</code> · extend variant set 2 → 4: <code>anchored-fresh</code> / <code>anchored-stale</code> / <code>pending-degraded</code> / <code>pending-issuer-down</code>. Reuses existing <code>.chip[data-v]</code> vocabulary.</li>
+    <li>Receipt KV · add <strong>source-of-claim</strong> row before <code>issuer</code> row. Breaks issuer/authority conflation at artifact level.</li>
+  </ul>
+  <p>After these four recompositions the legibility score lifts from <strong>86</strong> to a projected <strong>92</strong>. No new visual vocabulary needed. The canon stays frozen.</p>
+</div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- Footer                                                        -->
+<!-- ============================================================ -->
+<div class="foot">
+  <span>VCV-CAN-002 · rev 2 · effective 2026-05-12 · controlled by did:web:vitalcv.health</span>
+  <span>Signed-by · <strong>kid 6f0e…1d22</strong> · TSA anchor 7a2c…b8d3</span>
+  <span>verify · <strong>verify.vitalcv.health/r/7a2cb8d3</strong></span>
+  <span>page 1 of 1</span>
+</div>
+
+</body>
+</html>

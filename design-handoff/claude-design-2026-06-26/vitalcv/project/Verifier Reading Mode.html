@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Verifier Reading Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1280px;margin:0 auto;padding:6px 28px;min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#fff;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  /* === READING-MODE MASTHEAD — terse · single-line ===
+     reads as a binder header, not a marketing page
+  */
+  .mast{background:var(--ink-0);border-bottom:1px solid var(--ink-900);}
+  .mast .in{max-width:1280px;margin:0 auto;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;}
+  .mast .l{display:flex;align-items:center;gap:14px;}
+  .mast .g{width:20px;height:20px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;}
+  .mast .t{font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:500;}
+  .mast .t .sl{color:var(--ink-300);margin:0 7px;}
+  .mast .meta{display:flex;gap:14px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);letter-spacing:.04em;align-items:center;flex-wrap:wrap;}
+  .mast .meta strong{color:var(--ink-900);font-weight:500;}
+  .mast .meta .sep{color:var(--ink-300);}
+  .mast .actions{display:flex;gap:8px;}
+  .mast .btn{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;padding:5px 9px;border:1px solid var(--ink-900);background:var(--ink-0);color:var(--ink-900);font-weight:500;cursor:pointer;}
+  .mast .btn.solid{background:var(--ink-900);color:#fff;}
+
+  main{max-width:1280px;margin:0 auto;padding:18px 28px 56px;}
+
+  /* === VERDICT BAR ===
+     single line, top of page — the only thing a reader needs in 5 seconds
+  */
+  .verd{border:1px solid var(--ink-900);background:var(--ink-0);display:grid;grid-template-columns:auto 1fr auto;gap:0;}
+  .verd .v{padding:13px 18px;background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;display:flex;align-items:center;gap:8px;}
+  .verd .v .d{width:7px;height:7px;background:#fff;border-radius:50%;}
+  .verd .b{padding:13px 18px;color:var(--ink-900);font-size:13px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .verd .b strong{font-weight:500;}
+  .verd .b .pipe{color:var(--ink-300);}
+  .verd .a{padding:13px 18px;border-left:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-700);letter-spacing:.04em;background:var(--ink-50);}
+  .verd .a strong{color:var(--ink-900);font-weight:500;}
+
+  /* === PROVENANCE STRIP === */
+  .prov{margin-top:14px;border:1px solid var(--ink-300);background:var(--ink-0);display:grid;grid-template-columns:repeat(6,1fr);gap:0;}
+  .prov .c{padding:11px 14px;border-right:1px solid var(--rule);}
+  .prov .c:last-child{border-right:0;}
+  .prov .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:3px;}
+  .prov .v{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;line-height:1.3;}
+  .prov .v .sub{display:block;font-family:'Geist',sans-serif;font-size:10.5px;color:var(--ink-500);font-weight:400;margin-top:2px;letter-spacing:0;}
+
+  /* === ISSUER CONTINUITY PANEL === */
+  .ic{margin-top:18px;border:1px solid var(--ink-300);background:var(--ink-0);}
+  .ic .h{padding:9px 16px;background:var(--ink-50);border-bottom:1px solid var(--ink-300);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;}
+  .ic .h strong{color:var(--ink-900);font-weight:500;}
+  .ic .body{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;}
+  .ic .body .col{padding:14px 16px;border-right:1px solid var(--rule);}
+  .ic .body .col:last-child{border-right:0;}
+  .ic .body .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px;}
+  .ic .body .v{font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink-900);font-weight:500;line-height:1.3;}
+  .ic .body .v .sub{display:block;font-family:'Geist',sans-serif;font-size:11px;color:var(--ink-600);font-weight:400;margin-top:3px;letter-spacing:0;}
+  .ic .age{height:5px;background:var(--ink-100);border:1px solid var(--ink-200);position:relative;margin-top:7px;}
+  .ic .age .f{position:absolute;left:0;top:0;bottom:0;background:var(--ink-900);}
+
+  /* === FACTS TABLE — condensed, trust-first ===
+     order: trust · ownership · checked_at · claim · source · receipt
+  */
+  .ft{margin-top:18px;border:1px solid var(--ink-300);background:var(--ink-0);}
+  .ft .h{display:grid;grid-template-columns:54px 100px 90px 1.4fr 1fr 110px;gap:0;background:var(--ink-50);border-bottom:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .ft .h .c{padding:10px 12px;border-right:1px solid var(--rule);}
+  .ft .h .c:last-child{border-right:0;}
+  .ft .r{display:grid;grid-template-columns:54px 100px 90px 1.4fr 1fr 110px;gap:0;border-bottom:1px solid var(--rule);align-items:stretch;}
+  .ft .r:last-child{border-bottom:0;}
+  .ft .r .c{padding:11px 12px;border-right:1px solid var(--rule);display:flex;align-items:center;}
+  .ft .r .c:last-child{border-right:0;}
+  .ft .r:hover{background:var(--ink-50);}
+  .ft .tier{font-family:'Geist Mono',monospace;font-size:10.5px;font-weight:600;color:#fff;background:var(--ink-900);padding:3px 6px;letter-spacing:.06em;display:inline-block;}
+  .ft .own{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-900);font-weight:500;display:inline-flex;align-items:center;gap:5px;}
+  .ft .own .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%;}
+  .ft .own.solid{background:var(--ink-900);color:#fff;padding:3px 7px;}
+  .ft .own.solid .d{background:#fff;}
+  .ft .own.dashed{color:var(--ink-700);}
+  .ft .own.dashed .d{background:transparent;border:1px solid var(--ink-700);}
+  .ft .when{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);font-weight:500;line-height:1.25;}
+  .ft .when .sub{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;font-weight:400;}
+  .ft .claim{font-size:13px;color:var(--ink-900);font-weight:500;line-height:1.3;}
+  .ft .claim .sub{display:block;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;font-weight:400;}
+  .ft .src{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-700);line-height:1.3;}
+  .ft .src .sub{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;}
+  .ft .rcpt{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-900);font-weight:500;}
+  .ft .rcpt .sub{display:block;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;font-weight:400;}
+  .ft .r.deg{background:var(--ink-50);}
+  .ft .r.deg .own.dashed{color:var(--ink-900);}
+
+  /* === REPLAY LINEAGE STRIP === */
+  .lin{margin-top:18px;background:var(--ink-950);color:#fff;border:1px solid var(--ink-950);}
+  .lin .h{padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);display:flex;justify-content:space-between;align-items:center;}
+  .lin .h strong{color:#fff;font-weight:500;}
+  .lin .body{padding:12px 16px;display:grid;grid-template-columns:1.2fr 2fr auto;gap:18px;align-items:center;}
+  .lin .body .kv{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-400);line-height:1.4;}
+  .lin .body .kv strong{color:#fff;font-weight:500;display:block;}
+  .lin .chain{display:flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace;font-size:11px;color:#fff;flex-wrap:wrap;}
+  .lin .chain .h-tok{padding:3px 7px;border:1px solid rgba(255,255,255,.2);}
+  .lin .chain .h-tok.now{background:#fff;color:var(--ink-950);border-color:#fff;}
+  .lin .chain .arr{color:var(--ink-500);}
+  .lin .verify{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#fff;border:1px solid #fff;padding:7px 12px;font-weight:500;cursor:pointer;background:transparent;}
+
+  /* === FOOTER NOTES === */
+  .notes{margin-top:18px;border:1px solid var(--rule);background:var(--ink-0);padding:14px 16px;font-size:11.5px;color:var(--ink-600);line-height:1.55;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+  .notes .n{}
+  .notes .n strong{display:block;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-900);margin-bottom:4px;font-weight:500;}
+  .notes .n em{color:var(--ink-900);font-style:normal;font-weight:500;}
+
+  footer.foot-page{max-width:1280px;margin:24px auto 0;padding:20px 28px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+
+  @media(max-width:1100px){
+    .prov{grid-template-columns:1fr 1fr;}
+    .prov .c{border-right:0;border-bottom:1px solid var(--rule);}
+    .ic .body{grid-template-columns:1fr 1fr;}
+    .ic .body .col:nth-child(2n){border-right:0;}
+    .ic .body .col{border-bottom:1px solid var(--rule);}
+    .ft .h,.ft .r{grid-template-columns:54px 1fr 90px;}
+    .ft .h > :nth-child(n+4):nth-child(-n+5),.ft .r > :nth-child(n+4):nth-child(-n+5){display:none;}
+    .lin .body{grid-template-columns:1fr;}
+    .notes{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Verifier Reading Mode</span>
+      <span class="sep">/</span>
+      <span>Condensed · provenance-first · trust-first hierarchy</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Audit-ready · single-screen</span>
+      <span class="sep">|</span>
+      <span>vc.2026.05.11-a · 14:32:08Z</span>
+    </div>
+  </div>
+</div>
+
+<!-- Reading-mode masthead — terse -->
+<div class="mast">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <span class="t">VitalCV<span class="sl">/</span>Reading mode</span>
+    </div>
+    <div class="meta">
+      <span>Subject · <strong>npi 1356428912 · mira chen, md</strong></span>
+      <span class="sep">|</span>
+      <span>Issuer · <strong>did:web:vitalcv.health</strong></span>
+      <span class="sep">|</span>
+      <span>Generated · <strong>2026-05-11 14:32:08Z</strong></span>
+      <span class="sep">|</span>
+      <span>Run · <strong>7a2c…b8d3</strong></span>
+    </div>
+    <div class="actions">
+      <button class="btn">Export .vc</button>
+      <button class="btn">Print</button>
+      <button class="btn solid">Verify →</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- Verdict bar -->
+  <div class="verd">
+    <div class="v"><span class="d"></span>Verdict · Verifiable</div>
+    <div class="b">
+      <span><strong>4 of 4 lanes signed.</strong></span>
+      <span class="pipe">|</span>
+      <span>3 fresh · 1 stale-but-signed</span>
+      <span class="pipe">|</span>
+      <span>0 revocations</span>
+      <span class="pipe">|</span>
+      <span>0 adverse findings</span>
+      <span class="pipe">|</span>
+      <span>Chain · 14 receipts · 0 gaps</span>
+    </div>
+    <div class="a"><strong>Read time · ≈ 30 s</strong><br/>Then verify offline.</div>
+  </div>
+
+  <!-- Provenance strip — 6 primitives -->
+  <div class="prov">
+    <div class="c"><div class="k">checked_at</div><div class="v">14:31:58Z<span class="sub">10 s ago · UTC</span></div></div>
+    <div class="c"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">18-row batch</span></div></div>
+    <div class="c"><div class="k">ownership</div><div class="v">subject<span class="sub">DID matches NPI</span></div></div>
+    <div class="c"><div class="k">replay</div><div class="v">anchored<span class="sub">RFC 3161 · 14:31:47Z</span></div></div>
+    <div class="c"><div class="k">issuer</div><div class="v">did:web:vitalcv.health<span class="sub">key 4f2a · ed25519</span></div></div>
+    <div class="c"><div class="k">channel</div><div class="v">verify.vitalcv.health<span class="sub">stateless · zone D</span></div></div>
+  </div>
+
+  <!-- Issuer continuity panel -->
+  <div class="ic">
+    <div class="h"><span><strong>Issuer continuity</strong> · the trust path goes around VitalCV — verifiable offline against did:web:vitalcv.health</span><span>last re-attested 2 d ago</span></div>
+    <div class="body">
+      <div class="col">
+        <div class="k">Active signing key</div>
+        <div class="v">4f2a · 91c5 · 7e08 · b8d3<span class="sub">ed25519 · in service 190 d</span></div>
+        <div class="age" title="190 / 365"><div class="f" style="width:52%"></div></div>
+      </div>
+      <div class="col">
+        <div class="k">DID document</div>
+        <div class="v">/.well-known/did.json<span class="sub">200 OK · pinned cert sha 8c11…a72b</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Status list</div>
+        <div class="v">StatusList2021<span class="sub">vitalcv.health/status/v1/list.jsonld · 15 m TTL</span></div>
+      </div>
+      <div class="col">
+        <div class="k">Backup signer</div>
+        <div class="v">key 8c91 · 0d44<span class="sub">HSM-resident · quorum 3 of 5 · armed</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Facts table — trust-first column order -->
+  <div class="ft">
+    <div class="h">
+      <div class="c">Tier</div>
+      <div class="c">Ownership</div>
+      <div class="c">checked_at</div>
+      <div class="c">Claim</div>
+      <div class="c">Source</div>
+      <div class="c">Receipt</div>
+    </div>
+
+    <div class="r">
+      <div class="c"><span class="tier">T4</span></div>
+      <div class="c"><span class="own solid"><span class="d"></span>Subject</span></div>
+      <div class="c"><span class="when">14:31:42Z<span class="sub">26 s ago</span></span></div>
+      <div class="c"><span class="claim">DEA registration · BC4821739<span class="sub">schedule II–V · expires 2029-04-30</span></span></div>
+      <div class="c"><span class="src">DEA CSOS<span class="sub">issuer-signed VC</span></span></div>
+      <div class="c"><span class="rcpt">#48,213<span class="sub">7a2c…b8d3</span></span></div>
+    </div>
+
+    <div class="r">
+      <div class="c"><span class="tier">T3</span></div>
+      <div class="c"><span class="own solid"><span class="d"></span>Subject</span></div>
+      <div class="c"><span class="when">14:31:58Z<span class="sub">10 s ago</span></span></div>
+      <div class="c"><span class="claim">CA medical license · A-148293<span class="sub">active · no board action</span></span></div>
+      <div class="c"><span class="src">CA Medical Board<span class="sub">authoritative · live</span></span></div>
+      <div class="c"><span class="rcpt">#48,214<span class="sub">9d11…3e4a</span></span></div>
+    </div>
+
+    <div class="r">
+      <div class="c"><span class="tier">T3</span></div>
+      <div class="c"><span class="own solid"><span class="d"></span>Subject</span></div>
+      <div class="c"><span class="when">14:31:55Z<span class="sub">13 s ago</span></span></div>
+      <div class="c"><span class="claim">OIG-LEIE · no adverse findings<span class="sub">exclusion list · 0 records</span></span></div>
+      <div class="c"><span class="src">OIG · HHS<span class="sub">federal authority · live</span></span></div>
+      <div class="c"><span class="rcpt">#48,215<span class="sub">4b00…f1c2</span></span></div>
+    </div>
+
+    <div class="r deg">
+      <div class="c"><span class="tier">T3</span></div>
+      <div class="c"><span class="own solid"><span class="d"></span>Subject</span></div>
+      <div class="c"><span class="when">14:29:14Z<span class="sub">2 m 54 s</span></span></div>
+      <div class="c"><span class="claim">PECOS enrollment · active<span class="sub">last value · upstream degraded</span></span></div>
+      <div class="c"><span class="src">PECOS · CMS<span class="sub">degraded · p95 5.8 s</span></span></div>
+      <div class="c"><span class="rcpt">#48,212<span class="sub">2a17…0e8b</span></span></div>
+    </div>
+  </div>
+
+  <!-- Replay lineage strip -->
+  <div class="lin">
+    <div class="h"><span><strong>Replay lineage</strong> · chain-linked · RFC 3161 anchored · re-verifiable offline</span><span>chain head · 7a2c…b8d3</span></div>
+    <div class="body">
+      <div class="kv"><strong>This batch · 4 receipts</strong>checked_at 14:31:42 → 14:31:58Z · same run_id · committed in order</div>
+      <div class="chain">
+        <span class="h-tok now">7a2c…b8d3</span>
+        <span class="arr">←</span>
+        <span class="h-tok">9d11…3e4a</span>
+        <span class="arr">←</span>
+        <span class="h-tok">4b00…f1c2</span>
+        <span class="arr">←</span>
+        <span class="h-tok">2a17…0e8b</span>
+        <span class="arr">…</span>
+      </div>
+      <button class="verify">Verify the chain →</button>
+    </div>
+  </div>
+
+  <!-- Footer notes — auditor-facing micro-context -->
+  <div class="notes">
+    <div class="n"><strong>What this view shows</strong>The subject&rsquo;s active claims, ordered by trust tier descending. <em>Every cell is signed</em>. Stale-but-signed values are kept visible — they remain valid as evidence at <code>checked_at</code>, not as the current state of the world.</div>
+    <div class="n"><strong>What VitalCV asserts</strong>That at <code>checked_at</code>, the named source returned the named value. <em>We do not credential</em>. The licensing body remains the source of truth.</div>
+    <div class="n"><strong>Where to verify</strong>This page is also rendered at <code>verify.vitalcv.health/r/48214</code>. Hand the URL — or the exported <code>.vc</code> file — to any verifier; nothing about the trust path depends on VitalCV being reachable.</div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Verifier Reading Mode · <span style="color:var(--ink-700);">trust-first · provenance-first · 30-second audit pass</span></div>
+  <div style="text-align:right;">
+    <div>Build <span style="color:var(--ink-700);">vc.2026.05.11-a</span> · run <span style="color:var(--ink-700);">7a2c…b8d3</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">verdict · provenance · issuer · facts · lineage</div>
+  </div>
+</footer>
+
+</body>
+</html>

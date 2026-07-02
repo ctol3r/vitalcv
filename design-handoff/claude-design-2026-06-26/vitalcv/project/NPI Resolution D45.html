@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · NPI Resolution · 1033806195</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-900:#0f172a;--rule:#1e293b;--muted:#334155;--dim:#64748b;--sub:#94a3b8;
+    --text:#cbd5e1;--bright:#fff;--green:#10b981;--green-dim:#34d399;
+    --amber:#fbbf24;--blue:#7dd3fc;
+    --surface:#080d18;--card:#0a0f1c;--page:#000;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--page);color:var(--text);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.5;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .sans{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;}
+
+  /* === Op bar === */
+  .op{background:var(--page);color:var(--dim);font-size:11px;border-bottom:1px solid var(--rule);}
+  .op .in{max-width:1280px;margin:0 auto;padding:0 28px;height:28px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+  .op .l{display:flex;align-items:center;gap:14px;}
+  .op strong{color:var(--bright);font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+  .op .sep{color:var(--muted);}
+  .op .r{display:flex;align-items:center;gap:14px;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:1px 7px;border:1px solid var(--muted);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:5px;height:5px;border-radius:50%;}
+  .op .pill.live .d{background:var(--green);}
+  .op .lag{color:var(--green-dim);font-weight:500;}
+
+  /* === Header === */
+  .hd{background:var(--page);border-bottom:2px solid var(--bright);}
+  .hd .in{max-width:1280px;margin:0 auto;padding:20px 28px 16px;}
+  .hd .crumb{display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;flex-wrap:wrap;}
+  .hd .crumb .lhs{display:flex;align-items:center;gap:10px;}
+  .hd .crumb .g{width:18px;height:18px;background:var(--bright);color:var(--page);display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .hd .crumb .nm{color:var(--bright);font-weight:600;font-size:11px;letter-spacing:.06em;}
+  .hd .crumb .path{color:var(--dim);letter-spacing:.06em;}
+  .hd .crumb .path strong{color:var(--bright);}
+  .hd h1{margin:0;font-size:20px;color:var(--bright);font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.2;}
+  .hd .sub{margin-top:6px;font-size:11px;color:var(--sub);max-width:80ch;line-height:1.6;}
+  .hd .sub strong{color:var(--text);}
+
+  /* === Federal ledger manifest banner === */
+  .manifest{background:var(--card);border-bottom:1px solid var(--rule);}
+  .manifest .in{max-width:1280px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:repeat(6,1fr);}
+  .manifest .c{padding:11px 0 11px 14px;border-right:1px solid var(--rule);}
+  .manifest .c:first-child{padding-left:0;}
+  .manifest .c:last-child{border-right:0;}
+  .manifest .c .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:4px;}
+  .manifest .c .v{font-size:11.5px;color:var(--bright);font-weight:600;letter-spacing:.04em;line-height:1.35;}
+  .manifest .c .v .g{color:var(--dim);font-weight:400;}
+  .manifest .c .v.status{color:var(--green-dim);}
+
+  /* === Section header === */
+  .sh{max-width:1280px;margin:0 auto;padding:16px 28px 5px;display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--bright);margin-top:0;}
+  .sh .n{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .sh h2{margin:0;font-size:12.5px;color:var(--bright);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+  .sh .ey{margin-left:auto;font-size:10px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;}
+
+  section{max-width:1280px;margin:0 auto;padding:0 28px;}
+
+  /* === Data grid === */
+  .ledger{margin-top:12px;border:1px solid var(--rule);background:var(--card);}
+  .ledger .row{display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--rule);}
+  .ledger .row:last-child{border-bottom:none;}
+  .ledger .row .k{padding:10px 14px;background:var(--surface);border-right:1px solid var(--rule);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;display:flex;align-items:center;}
+  .ledger .row .v{padding:10px 16px;font-size:12.5px;color:var(--bright);font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ledger .row .v .g{color:var(--dim);font-weight:400;font-size:11px;}
+  .ledger .row .v .badge{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border:1px solid var(--green);color:var(--green-dim);font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;}
+  .ledger .row .v .badge .m{width:5px;height:5px;background:var(--green);}
+  .ledger .row .v .badge-amber{border-color:var(--amber);color:var(--amber);}
+  .ledger .row .v .badge-amber .m{background:var(--amber);}
+  .ledger .row .v.active-v{color:var(--green-dim);}
+  .ledger .row .v .link{color:var(--blue);text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px;font-size:11px;}
+
+  /* === Source truth badge === */
+  .source-truth{margin-top:12px;display:grid;grid-template-columns:1fr auto;border:2px solid var(--green);background:rgba(16,185,129,.04);}
+  .source-truth .main{padding:12px 18px;}
+  .source-truth .main .k{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--green-dim);font-weight:700;margin-bottom:5px;}
+  .source-truth .main .v{color:var(--bright);font-size:12px;font-weight:500;line-height:1.5;}
+  .source-truth .main .v .g{color:var(--sub);font-weight:400;}
+  .source-truth .tick{display:flex;align-items:center;justify-content:center;padding:0 18px;border-left:1px solid var(--green);background:rgba(16,185,129,.06);}
+  .source-truth .tick .inner{display:grid;place-items:center;gap:4px;text-align:center;}
+  .source-truth .tick .check{width:28px;height:28px;background:var(--green);color:var(--page);display:grid;place-items:center;font-size:14px;font-weight:700;}
+  .source-truth .tick .label{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--green-dim);margin-top:4px;}
+
+  /* === Address grid === */
+  .addr-grid{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);background:var(--card);}
+  .addr-grid .col{padding:14px 18px;border-right:1px solid var(--rule);}
+  .addr-grid .col:last-child{border-right:none;}
+  .addr-grid .k{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:8px;}
+  .addr-grid .line{font-size:12px;color:var(--bright);line-height:1.65;}
+  .addr-grid .line .sub-line{color:var(--sub);}
+
+  /* === Footer === */
+  .sig-foot{background:var(--page);border-top:2px solid var(--bright);margin-top:18px;}
+  .sig-foot .in{max-width:1280px;margin:0 auto;padding:14px 28px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;}
+  .sig-foot .l{display:flex;flex-direction:column;gap:5px;}
+  .sig-foot .k{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;}
+  .sig-foot .v{font-size:11.5px;color:var(--text);}
+  .sig-foot .v strong{color:var(--bright);}
+  .sig-foot .r{display:flex;gap:0;border:1px solid var(--muted);}
+  .sig-foot .btn{padding:8px 14px;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text);background:none;border:none;border-right:1px solid var(--muted);cursor:pointer;}
+  .sig-foot .btn:last-child{border-right:none;}
+  .sig-foot .btn:hover{background:var(--card);color:var(--bright);}
+
+  .page-foot{max-width:1280px;margin:0 auto;padding:14px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:var(--dim);letter-spacing:.04em;flex-wrap:wrap;gap:10px;border-top:1px solid var(--rule);}
+  .page-foot .v{color:var(--sub);}
+  .page-foot a{color:var(--text);text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px;}
+
+  @media(max-width:900px){
+    .manifest .in{grid-template-columns:repeat(3,1fr);}
+    .manifest .c{border-bottom:1px solid var(--rule);}
+    .manifest .c:nth-child(3n){border-right:0;}
+    .ledger .row{grid-template-columns:140px 1fr;}
+    .addr-grid{grid-template-columns:1fr;}
+    .addr-grid .col{border-right:0;border-bottom:1px solid var(--rule);}
+    .addr-grid .col:last-child{border-bottom:0;}
+    .sig-foot .in{grid-template-columns:1fr;}
+    .sig-foot .r{width:fit-content;}
+  }
+</style>
+</head>
+<body data-screen-label="NPI Resolution D45">
+
+<div class="op">
+  <div class="in">
+    <div class="l">
+      <strong>NPPES Federal Registry</strong>
+      <span class="sep">·</span>
+      <span>NPI Resolution</span>
+      <span class="sep">·</span>
+      <span>npiregistry.cms.hhs.gov</span>
+    </div>
+    <div class="r">
+      <span class="pill live"><span class="d"></span>Read-only</span>
+      <span class="sep">·</span>
+      <span>Resolved <strong style="color:var(--text)">2026-05-19T14:32:08.412Z</strong></span>
+      <span class="sep">·</span>
+      <span class="lag">0.4s</span>
+    </div>
+  </div>
+</div>
+
+<header class="hd">
+  <div class="in">
+    <div class="crumb">
+      <div class="lhs">
+        <span class="g">V</span>
+        <span class="nm">VitalCV</span>
+        <span class="path">/ clinician / activation / <strong>preview</strong></span>
+      </div>
+      <div style="font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;">
+        No fields are editable · Federal primary source · No PHI
+      </div>
+    </div>
+    <h1>NPI Resolution · Federal Ledger</h1>
+    <p class="sub">Data fetched directly from the <strong>National Plan and Provider Enumeration System (NPPES)</strong>, administered by CMS. This record is read-only. No field is editable, derived, or interpolated. The source is npiregistry.cms.hhs.gov.</p>
+  </div>
+</header>
+
+<!-- Manifest banner -->
+<div class="manifest">
+  <div class="in">
+    <div class="c">
+      <div class="k">NPI</div>
+      <div class="v">1033806195</div>
+    </div>
+    <div class="c">
+      <div class="k">Provider name</div>
+      <div class="v">KILCH<span class="g">, CONNOR D</span></div>
+    </div>
+    <div class="c">
+      <div class="k">Credential</div>
+      <div class="v">MD<span class="g"> · Allopathic</span></div>
+    </div>
+    <div class="c">
+      <div class="k">Taxonomy</div>
+      <div class="v">207Q00000X<span class="g"> · FM</span></div>
+    </div>
+    <div class="c">
+      <div class="k">Status</div>
+      <div class="v status">ACTIVE</div>
+    </div>
+    <div class="c">
+      <div class="k">Fetched</div>
+      <div class="v">0.4s ago<span class="g"> · federal</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- §1 Provider Identity -->
+<div class="sh">
+  <span class="n">§1</span>
+  <h2>Provider Identity</h2>
+  <span class="ey">NPPES Type 1 · Individual provider · as returned</span>
+</div>
+
+<section>
+  <div class="ledger">
+    <div class="row">
+      <div class="k">NPI (primary)</div>
+      <div class="v">1033806195 <span class="badge"><span class="m"></span>NPPES-Confirmed</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Entity type</div>
+      <div class="v">Individual Provider <span class="g">· Type 1 NPI</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Legal name</div>
+      <div class="v">KILCH, CONNOR D</div>
+    </div>
+    <div class="row">
+      <div class="k">Credential</div>
+      <div class="v">MD <span class="g">· Doctor of Medicine · Allopathic Physician</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Sex (registry)</div>
+      <div class="v">Male <span class="g">· as filed with NPPES</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Sole proprietor</div>
+      <div class="v">Yes</div>
+    </div>
+    <div class="row">
+      <div class="k">Status</div>
+      <div class="v active-v">ACTIVE <span class="g" style="color:var(--dim);">· no deactivation on record</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- §2 Primary Taxonomy -->
+<div class="sh">
+  <span class="n">§2</span>
+  <h2>Primary Taxonomy</h2>
+  <span class="ey">NUCC Health Care Provider Taxonomy · primary designation only</span>
+</div>
+
+<section>
+  <div class="ledger">
+    <div class="row">
+      <div class="k">Taxonomy code</div>
+      <div class="v">207Q00000X <span class="badge"><span class="m"></span>Source-Checked</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Classification</div>
+      <div class="v">Allopathic &amp; Osteopathic Physicians <span class="g">· Grouping A</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Specialization</div>
+      <div class="v">Family Medicine <span class="g">· 207Q00000X</span></div>
+    </div>
+    <div class="row">
+      <div class="k">License no.</div>
+      <div class="v">MI-A0092841 <span class="g">· State of Michigan</span></div>
+    </div>
+    <div class="row">
+      <div class="k">License state</div>
+      <div class="v">MI <span class="g">· Michigan · as filed with NPPES</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Primary</div>
+      <div class="v">Yes <span class="g">· designated primary taxonomy in registry</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- §3 Enumeration -->
+<div class="sh">
+  <span class="n">§3</span>
+  <h2>Enumeration &amp; Provenance</h2>
+  <span class="ey">NPI issuance timestamps · source registry · receipt hash</span>
+</div>
+
+<section>
+  <div class="ledger">
+    <div class="row">
+      <div class="k">Enumeration date</div>
+      <div class="v">2010-04-15 <span class="g">· NPI first issued</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Last updated</div>
+      <div class="v">2024-11-07 <span class="g">· CMS registry record</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Certification date</div>
+      <div class="v">2010-04-15 <span class="g">· coincides with enumeration</span></div>
+    </div>
+    <div class="row">
+      <div class="k">Data source</div>
+      <div class="v">NPPES <span class="g">· National Plan and Provider Enumeration System · CMS / HHS</span></div>
+    </div>
+    <div class="row">
+      <div class="k">API endpoint</div>
+      <div class="v"><a class="link" href="https://npiregistry.cms.hhs.gov/api/?number=1033806195&version=2.1" target="_blank">npiregistry.cms.hhs.gov/api/?number=1033806195&amp;version=2.1 ↗</a></div>
+    </div>
+    <div class="row">
+      <div class="k">Response hash</div>
+      <div class="v">sha256:9c41e8a2f3b1d6e4<span class="g">…c2b50fa2f8b3d4a1</span> <span class="g">· receipt signed</span></div>
+    </div>
+  </div>
+
+  <div class="source-truth">
+    <div class="main">
+      <div class="k">Source-truth provenance · NPPES federal registry</div>
+      <div class="v">
+        Fetched from <strong>npiregistry.cms.hhs.gov</strong> at <strong>2026-05-19T14:32:08.412Z</strong> · response time <strong>0.4s</strong><br/>
+        <span class="g">Receipt ID: VCV-NPI-1033806195-20260519-A · Replayable 7 years · Signed ed25519:4f2a · No VitalCV required to re-verify</span>
+      </div>
+    </div>
+    <div class="tick">
+      <div class="inner">
+        <div class="check">✓</div>
+        <div class="label">Federal<br/>Source</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- §4 Address -->
+<div class="sh">
+  <span class="n">§4</span>
+  <h2>Address of Record</h2>
+  <span class="ey">As filed with NPPES · no derivation · no geocoding</span>
+</div>
+
+<section>
+  <div class="addr-grid">
+    <div class="col">
+      <div class="k">Practice location</div>
+      <div class="line">
+        3800 Reservoir Rd NW<br/>
+        <span class="sub-line">Washington, DC 20007<br/>
+        United States<br/>
+        Tel: (202) 444-0000</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="k">Mailing address</div>
+      <div class="line">
+        3800 Reservoir Rd NW<br/>
+        <span class="sub-line">Washington, DC 20007<br/>
+        United States<br/>
+        Fax: (202) 444-0001</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sig-foot" style="margin-top:24px;">
+  <div class="in">
+    <div class="l">
+      <div class="k">Source</div>
+      <div class="v">NPPES · npiregistry.cms.hhs.gov · <strong>Fetched 2026-05-19T14:32:08Z · 0.4s lag</strong></div>
+      <div class="v" style="font-size:10px;color:var(--dim);">No PHI · No session state · No editability · Receipt: VCV-NPI-1033806195-20260519-A</div>
+    </div>
+    <div class="r">
+      <button class="btn">↗ NPPES Registry</button>
+      <button class="btn">⊞ Copy Receipt</button>
+      <button class="btn">⊡ Replay Proof</button>
+    </div>
+  </div>
+</div>
+
+<footer class="page-foot">
+  <div>VitalCV · NPI resolution · <span class="v">read-only · federal primary source · no PHI, no PII in this view</span></div>
+  <div><a href="Trust Anchor.html">/trust →</a> · <a href="Verifier Replay.html">/replay →</a></div>
+</footer>
+
+</body>
+</html>

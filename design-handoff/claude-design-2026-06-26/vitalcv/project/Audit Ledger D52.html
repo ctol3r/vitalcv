@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Verification Ledger · NPI 1033806195</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --page:#000;--card:#080d18;--surface:#0a0f1c;
+    --rule:#1e293b;--muted:#334155;--dim:#475569;--sub:#64748b;
+    --txt:#94a3b8;--text:#cbd5e1;--bright:#fff;
+    --green:#10b981;--gd:#34d399;--blue:#7dd3fc;--amber:#fbbf24;
+    --purple:#c084fc;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--page);color:var(--text);font-family:'Geist Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased;font-size:12.5px;line-height:1.5;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+
+  /* Op bar */
+  .op{border-bottom:1px solid var(--rule);height:28px;}
+  .op .in{max-width:1240px;margin:0 auto;padding:0 28px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:10.5px;color:var(--sub);}
+  .op strong{color:var(--bright);font-weight:600;text-transform:uppercase;letter-spacing:.12em;}
+  .op .pill{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border:1px solid var(--muted);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;}
+  .op .pill .d{width:5px;height:5px;background:var(--bright);}
+  .op .immutable{color:var(--gd);font-weight:500;letter-spacing:.04em;}
+
+  /* Header */
+  .hd{border-bottom:2px solid var(--bright);padding:18px 0 14px;}
+  .hd .in{max-width:1240px;margin:0 auto;padding:0 28px;}
+  .hd .crumb{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--sub);flex-wrap:wrap;gap:8px;}
+  .hd .crumb .l{display:flex;align-items:center;gap:10px;}
+  .hd .crumb .g{width:18px;height:18px;background:var(--bright);color:var(--page);display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .hd h1{margin:0;font-size:18px;color:var(--bright);font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+  .hd .sub{margin-top:5px;font-size:11px;color:var(--txt);max-width:78ch;line-height:1.55;}
+  .hd .sub strong{color:var(--text);}
+
+  /* Clinician strip */
+  .clinician-strip{background:var(--card);border-bottom:1px solid var(--rule);}
+  .clinician-strip .in{max-width:1240px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:repeat(5,1fr);}
+  .clinician-strip .c{padding:11px 0 11px 14px;border-right:1px solid var(--rule);}
+  .clinician-strip .c:first-child{padding-left:0;}
+  .clinician-strip .c:last-child{border-right:0;}
+  .clinician-strip .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);font-weight:600;margin-bottom:3px;}
+  .clinician-strip .v{font-size:12px;color:var(--bright);font-weight:600;letter-spacing:.04em;}
+  .clinician-strip .v .g{color:var(--dim);font-weight:400;}
+
+  /* Section header */
+  .sh{border-bottom:1px solid var(--bright);}
+  .sh .in{max-width:1240px;margin:0 auto;padding:14px 28px 5px;display:flex;align-items:baseline;gap:12px;}
+  .sh .n{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);font-weight:600;}
+  .sh h2{margin:0;font-size:12px;color:var(--bright);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+  .sh .ey{margin-left:auto;font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.1em;}
+
+  section{max-width:1240px;margin:0 auto;padding:0 28px;}
+
+  /* === Ledger table === */
+  .ledger{margin-top:0;border:1px solid var(--rule);}
+  .ledger .lh{display:grid;grid-template-columns:200px 1fr 160px 120px 180px;background:var(--surface);border-bottom:1px solid var(--bright);}
+  .ledger .lh > div{padding:8px 12px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub);font-weight:600;border-right:1px solid var(--rule);}
+  .ledger .lh > div:last-child{border-right:0;}
+  .ledger .lr{display:grid;grid-template-columns:200px 1fr 160px 120px 180px;border-bottom:1px solid var(--rule);align-items:stretch;}
+  .ledger .lr:last-child{border-bottom:0;}
+  .ledger .lr:hover{background:var(--card);}
+  .ledger .lr > div{padding:12px;border-right:1px solid var(--rule);}
+  .ledger .lr > div:last-child{border-right:0;}
+
+  /* Timestamp cell */
+  .ts{font-size:11px;color:var(--txt);line-height:1.5;word-break:break-all;}
+  .ts .date{color:var(--sub);}
+  .ts .time{color:var(--text);font-weight:500;}
+  .ts .z{color:var(--dim);}
+
+  /* Event cell */
+  .ev{font-size:12px;color:var(--bright);font-weight:500;line-height:1.3;}
+  .ev .ev-sub{display:block;font-size:10px;color:var(--sub);font-weight:400;margin-top:3px;letter-spacing:.02em;}
+
+  /* Proof badge cell */
+  .badge-cell{}
+  .proof-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.12em;padding:2px 7px;border:1px solid;font-family:'Geist Mono',monospace;}
+  .pb-green{color:var(--gd);border-color:var(--green);}
+  .pb-blue{color:var(--blue);border-color:#1e40af;}
+  .pb-amber{color:var(--amber);border-color:#92400e;}
+  .pb-white{color:var(--bright);border-color:var(--muted);}
+  .pb-purple{color:var(--purple);border-color:#7e22ce;}
+
+  /* Source cell */
+  .src-cell{font-size:11px;color:var(--txt);line-height:1.45;}
+  .src-cell .src-nm{color:var(--text);font-weight:500;}
+  .src-cell .src-url{color:var(--dim);font-size:10px;display:block;margin-top:2px;}
+
+  /* Hash cell */
+  .hash-cell{font-size:10px;color:var(--dim);word-break:break-all;line-height:1.45;}
+  .hash-cell .hash-v{color:var(--muted);}
+
+  /* Append-only footer */
+  .append-foot{background:var(--surface);border-top:1px solid var(--bright);padding:12px 0;}
+  .append-foot .in{max-width:1240px;margin:0 auto;padding:0 28px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.14em;}
+  .append-foot strong{color:var(--bright);}
+  .append-foot .chain{display:flex;gap:8px;align-items:center;font-size:9.5px;}
+  .append-foot .chain .block{padding:2px 6px;border:1px solid var(--muted);color:var(--text);}
+  .append-foot .chain .arr{color:var(--dim);}
+
+  .pg-foot{max-width:1240px;margin:0 auto;padding:12px 28px 28px;display:flex;justify-content:space-between;font-size:10px;color:var(--dim);border-top:1px solid var(--rule);flex-wrap:wrap;gap:10px;margin-top:1px;}
+  .pg-foot a{color:var(--txt);text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px;}
+
+  @media(max-width:1080px){
+    .clinician-strip .in{grid-template-columns:repeat(3,1fr);}
+    .clinician-strip .c:nth-child(3n){border-right:0;}
+    .ledger .lh,.ledger .lr{grid-template-columns:180px 1fr 140px;}
+    .ledger .lh > div:nth-child(n+4),.ledger .lr > div:nth-child(n+4){display:none;}
+  }
+</style>
+</head>
+<body data-screen-label="Audit Ledger D52">
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <strong>VitalCV · Verification Ledger</strong>
+      <span style="color:var(--dim);">·</span>
+      <span>NPI 1033806195 · Kilch, Connor D</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="pill"><span class="d"></span>Append-only</span>
+      <span style="color:var(--dim);">·</span>
+      <span class="immutable">Immutable · No mutations permitted</span>
+    </div>
+  </div>
+</div>
+
+<header class="hd">
+  <div class="in">
+    <div class="crumb">
+      <div class="l">
+        <span class="g">V</span>
+        <span style="color:var(--bright);font-weight:600;font-size:11px;">VitalCV</span>
+        <span style="color:var(--sub);letter-spacing:.04em;">/ passport / <strong style="color:var(--bright);">1033806195</strong> / ledger</span>
+      </div>
+      <span>Chain of custody · Permanent · Legally defensible</span>
+    </div>
+    <h1>Verification Ledger · Chain of Custody</h1>
+    <p class="sub">Every federal ping is an <strong>atomic, immutable entry</strong>. This ledger accretes over the clinician's career and cannot be altered — only appended. No delete affordances exist. No edit pathways exist. The chain is the truth.</p>
+  </div>
+</header>
+
+<!-- Clinician strip -->
+<div class="clinician-strip">
+  <div class="in">
+    <div class="c"><div class="k">NPI</div><div class="v">1033806195</div></div>
+    <div class="c"><div class="k">Clinician</div><div class="v">KILCH, CONNOR D<span class="g"> · MD</span></div></div>
+    <div class="c"><div class="k">Taxonomy</div><div class="v">207Q00000X<span class="g"> · FM</span></div></div>
+    <div class="c"><div class="k">Ledger opened</div><div class="v">2026-05-19<span class="g"> · 14:32Z</span></div></div>
+    <div class="c"><div class="k">Total events</div><div class="v">9<span class="g"> · 0 mutations</span></div></div>
+  </div>
+</div>
+
+<!-- Ledger -->
+<div class="sh">
+  <div class="in">
+    <span class="n">§1</span>
+    <h2>Verification Event Log · ISO 8601 · Append-Only</h2>
+    <span class="ey">9 events · 0 deletions · 0 edits · replayable 7 years</span>
+  </div>
+</div>
+
+<section style="padding-top:0;">
+  <div class="ledger">
+    <div class="lh">
+      <div>Timestamp · ISO 8601</div>
+      <div>Event</div>
+      <div>Proof badge</div>
+      <div>Source</div>
+      <div>Receipt hash</div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:08.412</span><span class="z">Z</span></div>
+      <div class="ev">NPPES primary source query<span class="ev-sub">NPI 1033806195 · identity resolution · Type 1</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-green">[NPPES: ACTIVE]</span></div>
+      <div class="src-cell"><span class="src-nm">CMS NPPES</span><span class="src-url">npiregistry.cms.hhs.gov</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">9c41e8a2…a2f8b3d4</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:09.108</span><span class="z">Z</span></div>
+      <div class="ev">OIG/LEIE federal sanction check<span class="ev-sub">Exclusion database query · no match returned</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-green">[OIG: CLEAR]</span></div>
+      <div class="src-cell"><span class="src-nm">OIG / HHS</span><span class="src-url">exclusions.oig.hhs.gov</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">d41d8cd9…8d4bb200</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:10.204</span><span class="z">Z</span></div>
+      <div class="ev">State medical license verification<span class="ev-sub">Michigan Board of Medicine · license MI-A0092841</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-blue">[STATE: MI-A0092841]</span></div>
+      <div class="src-cell"><span class="src-nm">LARA Michigan</span><span class="src-url">lara.michigan.gov/bpl</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">b14a7b8c…9f43c12d</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:11.390</span><span class="z">Z</span></div>
+      <div class="ev">PECOS Medicare enrollment check<span class="ev-sub">Provider enrollment · billing eligibility confirmed</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-green">[PECOS: ENROLLED]</span></div>
+      <div class="src-cell"><span class="src-nm">CMS PECOS</span><span class="src-url">pecos.cms.hhs.gov</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">f7e21b44…a3d9c701</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:12.517</span><span class="z">Z</span></div>
+      <div class="ev">DEA registration verification<span class="ev-sub">Schedule authority confirmed · no restrictions</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-green">[DEA: ACTIVE]</span></div>
+      <div class="src-cell"><span class="src-nm">DEA Connect</span><span class="src-url">dea.gov/registration</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">c8a12ef3…7b205da9</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:32:14.002</span><span class="z">Z</span></div>
+      <div class="ev">VitalCV credential issuance<span class="ev-sub">Signed receipt issued · did:web:vitalcv.health · kid:4f2a</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-white">[VCV: ISSUED]</span></div>
+      <div class="src-cell"><span class="src-nm">VitalCV Issuer</span><span class="src-url">did:web:vitalcv.health</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">ed25519:88c1f3a2…207e09b7</span></div>
+    </div>
+
+    <div class="lr">
+      <div class="ts"><span class="date">2026-05-19T</span><span class="time">14:33:01.884</span><span class="z">Z</span></div>
+      <div class="ev">Employer acceptance event<span class="ev-sub">ref VCV-2026-051-KILCH · acceptance receipt logged</span></div>
+      <div class="badge-cell"><span class="proof-badge pb-white">[ACCEPT: VCV-2026-051]</span></div>
+      <div class="src-cell"><span class="src-nm">Verifier Receipt</span><span class="src-url">VCV audit log · sealed</span></div>
+      <div class="hash-cell">sha256:<span class="hash-v">3b07e2a1…d1f9c428</span></div>
+    </div>
+
+    <div class="lr" style="opacity:.45;pointer-events:none;">
+      <div class="ts" style="color:var(--dim);">Next event</div>
+      <div class="ev" style="color:var(--dim);font-size:11px;">Ledger open · awaiting next verification cycle<span class="ev-sub" style="color:var(--dim);">Appends only · no prior entries editable</span></div>
+      <div class="badge-cell"><span class="proof-badge" style="color:var(--dim);border-color:var(--muted);">[PENDING]</span></div>
+      <div class="src-cell"><span style="color:var(--dim);">—</span></div>
+      <div class="hash-cell"><span style="color:var(--dim);">—</span></div>
+    </div>
+
+  </div>
+</section>
+
+<div class="append-foot">
+  <div class="in">
+    <div>
+      <strong>Append-only ledger</strong> · No mutations permitted · No delete affordances exist · Replayable <strong>7 years</strong> · No VitalCV required to re-verify
+    </div>
+    <div class="chain">
+      <span class="block">E1</span><span class="arr">→</span>
+      <span class="block">E2</span><span class="arr">→</span>
+      <span class="block">E3</span><span class="arr">→</span>
+      <span class="block">…</span><span class="arr">→</span>
+      <span class="block">E7</span><span class="arr">→</span>
+      <span class="block" style="border-color:var(--green);color:var(--gd);">OPEN</span>
+    </div>
+  </div>
+</div>
+
+<footer class="pg-foot">
+  <div>Chain of custody · NPI 1033806195 · Ledger TRA-2026-05-19 · <strong style="color:var(--text);">No edits. No deletes. Only truth.</strong></div>
+  <div><a href="Antigravity Verifier D47.html">/verify →</a> · <a href="Trust Directory D46.html">/trust →</a></div>
+</footer>
+
+</body>
+</html>

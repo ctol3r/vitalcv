@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Design Mega Wave · Full Doctrine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:#fff; --ink-50:#f7f6f2; --ink-100:#efede7; --ink-200:#dddbd3;
+  --ink-300:#c2bfb5; --ink-400:#96938a; --ink-500:#6b6860; --ink-600:#474540;
+  --ink-700:#2d2c28; --ink-800:#1a1916; --ink-900:#0f0e0c; --ink-950:#050504;
+  --rule:#dddbd3; --rule-soft:#eceae4; --paper:#f4f2ec;
+  --ok:#2d6a4f; --watch:#7d5a1e; --block:#7a3020; --indigo:#4a4a9e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink-900);
+  font-family:'Geist',ui-sans-serif,system-ui,sans-serif;
+  font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;
+  font-size:13px;line-height:1.6;letter-spacing:-.003em}
+.mono,code,time{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ── Runtime bar ─────────────────────────── */
+.rt-bar{background:var(--ink-950);color:var(--ink-400);font-family:'Geist Mono',monospace;
+  font-size:10px;position:sticky;top:0;z-index:100}
+.rt-bar .in{max-width:1440px;margin:0 auto;padding:0 32px;height:28px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px}
+.rt-bar .grp{display:flex;align-items:center;gap:8px}
+.rt-bar .k{color:var(--ink-600);text-transform:uppercase;letter-spacing:.14em;font-size:9px}
+.rt-bar .v{color:#fff;font-weight:500}
+.rt-bar .sep{color:var(--ink-700)}
+
+/* ── Doc control ─────────────────────────── */
+.doc-ctrl{background:var(--ink-0);border-bottom:1px solid var(--ink-900)}
+.doc-ctrl .in{max-width:1440px;margin:0 auto;padding:14px 32px;
+  display:grid;grid-template-columns:1.4fr repeat(4,1fr) auto;gap:18px;align-items:end}
+.dc-cell{border-left:1px solid var(--rule);padding-left:14px}
+.dc-cell:first-child{border-left:0;padding-left:0}
+.dc-k{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink-500);margin-bottom:3px}
+.dc-v{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);font-weight:500}
+.dc-v .sub{display:block;font-family:'Geist',sans-serif;font-size:10px;color:var(--ink-500);
+  margin-top:2px;font-weight:400;letter-spacing:0;text-transform:none}
+.brand{display:flex;align-items:center;gap:8px}
+.brand .g{width:22px;height:22px;background:var(--ink-950);color:#fff;
+  display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:10px;font-weight:700}
+.brand .nm{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.stamp{display:inline-flex;flex-direction:column;gap:1px;padding:5px 10px;
+  border:1.5px solid var(--ink-950);font-family:'Geist Mono',monospace}
+.stamp .sl{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500)}
+.stamp .sv{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+
+/* ── Masthead ─────────────────────────────── */
+.mast{background:var(--ink-0);padding:32px 32px 28px;max-width:1440px;margin:0 auto;
+  border-bottom:1px solid var(--rule)}
+.mast .ey{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.20em;color:var(--ink-500);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.mast .ey .r{display:inline-block;width:16px;height:1px;background:var(--ink-300)}
+.mast h1{font-size:28px;font-weight:600;letter-spacing:-.026em;line-height:1.08;
+  margin:0 0 10px;color:var(--ink-900);max-width:820px}
+.mast h1 em{font-style:normal;color:var(--ink-500)}
+.mast .lede{font-size:13.5px;color:var(--ink-600);line-height:1.65;max-width:70ch;margin:0 0 18px}
+.mast .lede strong{color:var(--ink-900);font-weight:500}
+.mast .meta{display:flex;gap:20px;flex-wrap:wrap;font-family:'Geist Mono',monospace;
+  font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500)}
+.mast .meta span strong{color:var(--ink-900);font-weight:500}
+
+/* ── Layout ───────────────────────────────── */
+.layout{display:grid;grid-template-columns:220px 1fr;max-width:1440px;margin:0 auto}
+.toc{border-right:1px solid var(--rule);padding:24px 20px 60px;
+  position:sticky;top:28px;align-self:flex-start;height:calc(100vh - 28px);overflow-y:auto}
+.toc .tl{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink-400);font-weight:600;padding-bottom:8px;margin-bottom:8px;
+  border-bottom:1px solid var(--rule-soft)}
+.toc a{display:flex;align-items:baseline;gap:7px;padding:5px 0;text-decoration:none;
+  font-size:11.5px;font-weight:500;color:var(--ink-600);border-bottom:1px dashed var(--rule-soft);
+  transition:color .1s}
+.toc a:last-child{border-bottom:0}
+.toc a:hover{color:var(--ink-900)}
+.toc a .n{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);
+  font-weight:400;flex-shrink:0}
+.content{padding:0 40px 80px;min-width:0}
+
+/* ── Section ──────────────────────────────── */
+.sec{margin-top:52px}
+.sec:first-child{margin-top:36px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);
+  padding-bottom:8px;margin-bottom:18px}
+.sh .n{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:16px;margin:0;font-weight:600;letter-spacing:-.015em;color:var(--ink-900)}
+.sh .ey{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--ink-500);margin-left:auto}
+.prose{font-size:12.5px;color:var(--ink-700);line-height:1.65;max-width:70ch;margin-bottom:16px}
+.prose strong{color:var(--ink-900);font-weight:500}
+
+/* ── Tables ───────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;background:var(--ink-0);border:1px solid var(--rule)}
+.tbl thead th{background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;
+  font-size:9px;letter-spacing:.16em;text-transform:uppercase;text-align:left;
+  padding:8px 12px;border-right:1px solid rgba(255,255,255,.1);font-weight:500}
+.tbl thead th:last-child{border-right:0}
+.tbl tbody td{padding:8px 12px;border-bottom:1px solid var(--rule-soft);
+  border-right:1px solid var(--rule-soft);font-size:11.5px;color:var(--ink-700);
+  vertical-align:top;line-height:1.5}
+.tbl tbody td:last-child{border-right:0}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody td:first-child{font-family:'Geist Mono',monospace;font-size:10px;
+  color:var(--ink-900);font-weight:500;background:var(--ink-50)}
+.tbl tbody td strong{color:var(--ink-900);font-weight:500}
+.tbl tbody td code{font-family:'Geist Mono',monospace;font-size:10px;
+  color:var(--ink-900);background:var(--ink-50);padding:1px 4px;border:1px solid var(--rule)}
+
+/* ── Cards ────────────────────────────────── */
+.cards{display:grid;gap:0}
+.cards.two{grid-template-columns:1fr 1fr}
+.cards.three{grid-template-columns:1fr 1fr 1fr}
+.cards.four{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--ink-0);border:1px solid var(--rule);padding:16px 18px;margin-right:-1px;margin-bottom:-1px}
+.card .ck{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--ink-500);margin-bottom:7px;font-weight:600}
+.card .cv{font-size:13px;font-weight:600;color:var(--ink-900);margin-bottom:5px;letter-spacing:-.01em}
+.card .cb{font-size:11.5px;color:var(--ink-700);line-height:1.55}
+.card .cb strong{color:var(--ink-900);font-weight:500}
+.card-dark{background:var(--ink-950);border-color:var(--ink-950);color:#fff}
+.card-dark .ck{color:var(--ink-400)}
+.card-dark .cv{color:#fff}
+.card-dark .cb{color:var(--ink-300)}
+
+/* ── Chip vocabulary ──────────────────────── */
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:'Geist Mono',monospace;
+  font-size:9px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;
+  padding:2px 7px;white-space:nowrap;vertical-align:middle}
+.chip .d{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.c-ok   {border:1px solid #2d6a4f;color:#2d6a4f}
+.c-ok .d{background:#2d6a4f}
+.c-watch{border:1px dotted #7d5a1e;color:#7d5a1e}
+.c-watch .d{background:transparent;border:1.5px dotted #7d5a1e}
+.c-stale{border:1px dashed #7a4a1e;color:#7a4a1e}
+.c-stale .d{background:transparent;border:1.5px dashed #7a4a1e}
+.c-indigo{border:1px dotted #4a4a9e;color:#4a4a9e}
+.c-indigo .d{background:transparent;border:1.5px dotted #4a4a9e}
+.c-block{border:1px dashed #7a3020;color:#7a3020}
+.c-block .d{background:transparent;border:1.5px dashed #7a3020}
+.c-zinc{border:1px solid var(--ink-300);color:var(--ink-500)}
+.c-zinc .d{background:var(--ink-300)}
+.c-solid{background:var(--ink-900);color:#fff;border:1px solid var(--ink-900)}
+.c-solid .d{background:#fff}
+
+/* ── Avoid/Use pairs ──────────────────────── */
+.pair{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);
+  background:var(--ink-0);margin-bottom:4px}
+.pair .pa{padding:9px 12px;border-right:1px solid var(--rule-soft);background:var(--ink-50)}
+.pair .pu{padding:9px 12px}
+.pair .pl{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;
+  letter-spacing:.14em;font-weight:600;margin-bottom:4px}
+.pair .pl.avoid{color:var(--ink-400)}
+.pair .pl.use{color:var(--ok)}
+.pair .pt{font-size:11.5px;line-height:1.5}
+.pair .pt.avoid{font-family:'Geist Mono',monospace;font-size:10px;
+  color:var(--ink-400);text-decoration:line-through;text-decoration-color:var(--ink-200)}
+.pair .pt.use{color:var(--ink-900);font-weight:500}
+
+/* ── Wireframe components ─────────────────── */
+.wf{background:#0e1118;border:1px solid rgba(255,255,255,.08);padding:20px;
+  font-family:'Geist Mono',monospace;font-size:10px;color:rgba(255,255,255,.5);
+  line-height:1.6;margin-bottom:12px}
+.wf .wf-row{display:flex;gap:12px;margin-bottom:8px;align-items:flex-start}
+.wf .wf-box{border:1px solid rgba(255,255,255,.15);padding:6px 10px;
+  font-size:9.5px;color:rgba(255,255,255,.7);white-space:nowrap}
+.wf .wf-fill{background:rgba(255,255,255,.06)}
+.wf .wf-key{background:rgba(255,255,255,.10);color:#fff;font-weight:600}
+.wf .wf-sub{color:rgba(255,255,255,.3);font-size:8.5px}
+.wf .wf-label{color:rgba(255,255,255,.3);font-size:9px;text-transform:uppercase;
+  letter-spacing:.14em;margin-bottom:5px}
+
+/* ── Decision posture cards ───────────────── */
+.posture-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border:1px solid var(--ink-900)}
+.posture{padding:20px 18px;border-right:1px solid var(--rule)}
+.posture:last-child{border-right:0}
+.posture .ps{font-family:'Geist Mono',monospace;font-size:26px;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.posture .pm{font-size:12px;color:var(--ink-700);line-height:1.55;margin-bottom:8px}
+.posture .pt{font-family:'Geist Mono',monospace;font-size:9px;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px}
+.ps-ready{color:var(--ink-900)}
+.ps-partial{color:#7d5a1e}
+.ps-blocked{color:#7a3020}
+
+/* ── Source card ──────────────────────────── */
+.source-card{background:var(--ink-0);border:1px solid var(--rule);margin-bottom:-1px}
+.sc-head{display:grid;grid-template-columns:180px 1fr auto;
+  padding:9px 14px;align-items:center;gap:12px;border-bottom:1px solid var(--rule-soft)}
+.sc-name{font-size:12px;font-weight:600;color:var(--ink-900)}
+.sc-sub{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500);margin-top:1px}
+.sc-meta{display:flex;gap:12px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-600)}
+.sc-actions{display:flex;gap:6px}
+.sc-body{padding:8px 14px;font-size:11px;color:var(--ink-600);line-height:1.5;background:var(--ink-50)}
+.sc-body strong{color:var(--ink-700);font-weight:500}
+
+/* ── Node taxonomy ────────────────────────── */
+.node-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;
+  border:1px solid var(--rule);background:var(--ink-0)}
+.node-ex{padding:12px 14px;border-right:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:7px}
+.node-ex:nth-child(5n){border-right:0}
+.node-ex:nth-last-child(-n+5){border-bottom:0}
+.node-ex .nk{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-500);font-weight:600}
+.node-ex .nv{font-size:12px;font-weight:500;color:var(--ink-900);letter-spacing:-.005em}
+.node-ex .nd{font-size:11px;color:var(--ink-600);line-height:1.45}
+.node-icon{display:flex;align-items:center;gap:6px}
+.ni-circle{border-radius:50%;display:inline-block;flex-shrink:0}
+.ni-label{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-700)}
+
+/* ── Route table ──────────────────────────── */
+.p0{background:#7a3020;color:#fff;font-family:'Geist Mono',monospace;font-size:8.5px;
+  font-weight:700;padding:1px 6px;letter-spacing:.06em}
+.p1{background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;
+  font-size:8.5px;font-weight:700;padding:1px 6px;letter-spacing:.06em}
+.p2{background:var(--ink-400);color:#fff;font-family:'Geist Mono',monospace;
+  font-size:8.5px;font-weight:700;padding:1px 6px;letter-spacing:.06em}
+.ppost{background:var(--ink-200);color:var(--ink-600);font-family:'Geist Mono',monospace;
+  font-size:8.5px;font-weight:600;padding:1px 6px;letter-spacing:.06em}
+
+/* ── Implementation block ─────────────────── */
+.impl{background:var(--ink-950);border:1px solid var(--ink-800);padding:14px 16px;margin-bottom:6px}
+.impl-title{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.16em;color:var(--ink-500);font-weight:600;margin-bottom:10px}
+.impl-row{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--ink-800)}
+.impl-row:last-child{border-bottom:0}
+.ir-n{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-600)}
+.ir-t{font-size:11.5px;color:var(--ink-300);line-height:1.6}
+.ir-t strong{color:#fff;font-weight:500}
+.ir-t code{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);
+  background:var(--ink-800);padding:1px 4px}
+
+/* ── Final verdict ────────────────────────── */
+.verdict-final{border:2px solid var(--ink-900);background:var(--ink-0);padding:24px 28px;
+  display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
+.vf-big{font-family:'Geist Mono',monospace;font-size:42px;font-weight:600;
+  color:var(--ink-900);letter-spacing:-.01em;line-height:1}
+.vf-body .k{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink-500);margin-bottom:5px}
+.vf-body .v{font-size:14px;font-weight:600;color:var(--ink-900);letter-spacing:-.01em;margin-bottom:8px}
+.vf-body .d{font-size:12px;color:var(--ink-700);line-height:1.6}
+
+/* ── Graph canvas (dark) ──────────────────── */
+.graph-canvas{background:#0c1018;border:1px solid rgba(255,255,255,.06);
+  padding:24px;position:relative;min-height:280px}
+.graph-canvas svg{width:100%;height:260px}
+
+/* ── Footer ───────────────────────────────── */
+footer.ft{max-width:1440px;margin:0 auto;padding:18px 40px;
+  font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);
+  display:flex;justify-content:space-between;border-top:1px solid var(--rule);
+  text-transform:uppercase;letter-spacing:.12em;background:var(--ink-0)}
+footer.ft strong{color:var(--ink-900);font-weight:500}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .toc{display:none}
+  .content{padding:0 20px 60px}
+  .cards.three,.cards.four{grid-template-columns:1fr}
+  .cards.two{grid-template-columns:1fr}
+  .posture-grid{grid-template-columns:1fr}
+  .doc-ctrl .in{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr}
+  .node-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Runtime bar ── -->
+<div class="rt-bar">
+  <div class="in">
+    <div class="grp">
+      <span class="k">Build</span><span class="v">vc.2026.05.24-megawave</span>
+      <span class="sep">|</span>
+      <span class="k">Wave</span><span class="v">Trust Graph · Public · PearX-Ready UI</span>
+      <span class="sep">|</span>
+      <span class="k">Surfaces</span><span class="v">14 · Homepage · Readiness · Passport · Employer · Trust · Auth</span>
+    </div>
+    <div class="grp">
+      <span class="k">Posture</span><span class="v">Design-only · no backend · no fake traction</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Doc control ── -->
+<div class="doc-ctrl">
+  <div class="in">
+    <div class="dc-cell" style="border:0;padding:0">
+      <div class="brand"><span class="g">V</span><span class="nm">VitalCV · Design Wave</span></div>
+    </div>
+    <div class="dc-cell"><div class="dc-k">Document</div><div class="dc-v">VCV-DESIGN-MEGA-WAVE<span class="sub">Full doctrine · binding</span></div></div>
+    <div class="dc-cell"><div class="dc-k">Effective</div><div class="dc-v">2026-05-24<span class="sub">PearX preparation</span></div></div>
+    <div class="dc-cell"><div class="dc-k">Scope</div><div class="dc-v">14 surfaces<span class="sub">All public-facing pages</span></div></div>
+    <div class="dc-cell"><div class="dc-k">Status</div><div class="dc-v">Design-complete<span class="sub">Awaiting live hostname</span></div></div>
+    <div class="dc-cell" style="border:0"><div class="stamp"><span class="sl">trust state</span><span class="sv">doctrine</span></div></div>
+  </div>
+</div>
+
+<!-- ── Masthead ── -->
+<div class="mast">
+  <div class="ey"><span class="r"></span>VitalCV Design Mega Wave · Trust Graph Surface · Public Experience · PearX-Ready UI</div>
+  <h1>One canonical doctrine. <em>Fourteen surfaces. Evidence-first, every time.</em></h1>
+  <p class="lede">This document is the binding visual and copy reference for all VitalCV surfaces. <strong>Design-only wave.</strong> No production code. No backend modification. No fake data. No invented customers. Every decision here maps directly to a Claude Code implementation task.</p>
+  <div class="meta">
+    <span>Sections · <strong>14</strong></span>
+    <span>Surfaces · <strong>Homepage · Readiness · Passport · Employer · Trust · Auth</strong></span>
+    <span>Trust Graph · <strong>10 node types · 8 edge types · full interaction model</strong></span>
+    <span>PearX posture · <strong>evidence-bounded · institutionally honest</strong></span>
+  </div>
+</div>
+
+<!-- ── Layout ── -->
+<div class="layout">
+<aside class="toc">
+  <div class="tl">Contents</div>
+  <nav>
+    <a href="#doctrine"><span class="n">01</span>Design Doctrine</a>
+    <a href="#trust-graph"><span class="n">02</span>Trust Graph System</a>
+    <a href="#homepage"><span class="n">03</span>Homepage Spec</a>
+    <a href="#readiness"><span class="n">04</span>Readiness Page</a>
+    <a href="#passport"><span class="n">05</span>Passport</a>
+    <a href="#employer"><span class="n">06</span>Employer Review</a>
+    <a href="#trust-pages"><span class="n">07</span>Trust / Attribution</a>
+    <a href="#auth"><span class="n">08</span>Sign-in / Auth</a>
+    <a href="#routes"><span class="n">09</span>Route Map</a>
+    <a href="#copy-safety"><span class="n">10</span>Copy Safety</a>
+    <a href="#qa"><span class="n">11</span>QA / Motion / A11y</a>
+    <a href="#pearx"><span class="n">12</span>PearX Package</a>
+    <a href="#handoff"><span class="n">13</span>Code Handoff</a>
+    <a href="#status"><span class="n">14</span>Final Status</a>
+  </nav>
+</aside>
+
+<div class="content">
+
+<!-- ══════════════════════════════════════════════
+  01 · DESIGN DOCTRINE
+══════════════════════════════════════════════ -->
+<div class="sec" id="doctrine">
+  <div class="sh"><span class="n">01</span><h2>Design Doctrine</h2><span class="ey">binding on all surfaces</span></div>
+  <p class="prose"><strong>Core thesis:</strong> VitalCV makes credential evidence legible — not verified. The interface must never imply more certainty than the underlying source data provides. Every design decision is an epistemic act.</p>
+
+  <table class="tbl" style="margin-bottom:16px">
+    <thead><tr><th>Principle</th><th>Rule</th><th>Forbidden opposite</th></tr></thead>
+    <tbody>
+      <tr><td>Evidence-first</td><td>Show what is source-confirmed, what is missing, what requires access. Always.</td><td>Vague "verified" badges with no source attribution.</td></tr>
+      <tr><td>Institutional honesty</td><td>Every surface names its epistemic limits. VitalCV does not replace human credentialing review.</td><td>Copy implying automatic trust transfer or institutional acceptance.</td></tr>
+      <tr><td>Calm typography</td><td>Geist (narrative) + Geist Mono (data/identity). No other faces. No decorative type.</td><td>Mixed fonts, italics for emphasis, all-caps in body copy.</td></tr>
+      <tr><td>Border semantics</td><td>Status is encoded in border style: solid=confirmed, dotted=pending, dashed=stale/gap, none=unknown.</td><td>Color fills as the primary status signal. Opacity for degraded data.</td></tr>
+      <tr><td>Inverted register</td><td>Dark/inverted surfaces reserved for cryptographic plane: receipts, signatures, lineage strips.</td><td>Inverted surfaces for hero panels, marketing blocks, or KPI cards.</td></tr>
+      <tr><td>Reading order</td><td>Object → Ownership → checked_at → Channel → Replay → run_id. Never reordered.</td><td>generated_by before checked_at. Source after timestamp.</td></tr>
+      <tr><td>Warm minimalism</td><td>Paper background (#f4f2ec), ink scale, hairline rules. Space is a design element.</td><td>Gradient backgrounds. Shadow-heavy cards. Glossy UI treatments.</td></tr>
+      <tr><td>Agentic UX</td><td>Any automated action shows: what will happen, why, confidence level, interrupt option, and audit trail.</td><td>Silent automation. "AI is handling this." Invisible agent actions.</td></tr>
+      <tr><td>Skeleton screens</td><td>Loading = skeleton placeholders matching final layout. No spinners.</td><td>Spinning loaders. Progress bars without estimated time. "Loading..." text.</td></tr>
+      <tr><td>Status tables</td><td>Operational facts in tables with source, timestamp, freshness. Not marketing adjectives.</td><td>Animated counters. Big-number KPI cards. Dashboard tropes.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Approved visual vocabulary</p>
+  <div class="cards four" style="margin-bottom:12px">
+    <div class="card"><div class="ck">Typography</div><div class="cb">Geist 300–700 for narrative. Geist Mono 400–600 for all data, IDs, labels, timestamps. Zero other faces.</div></div>
+    <div class="card"><div class="ck">Color model</div><div class="cb">Single ink axis. OKLCH status tints only for state (not decoration). Paper + white surfaces. Warm neutral background.</div></div>
+    <div class="card"><div class="ck">Motion</div><div class="cb">150ms status rows. 200ms page fade. 300ms hero. No looping animation. No particles. prefers-reduced-motion: none at all.</div></div>
+    <div class="card" style="border-right:0"><div class="ck">Spacing</div><div class="cb">4px base unit. Generous vertical rhythm. Max 72ch prose width. Dense tables acceptable for operational surfaces.</div></div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Permanently prohibited</p>
+  <table class="tbl">
+    <thead><tr><th>Pattern</th><th>Why prohibited</th></tr></thead>
+    <tbody>
+      <tr><td>Gradient backgrounds</td><td>Reads as generic SaaS. Conflicts with evidence-first posture.</td></tr>
+      <tr><td>Emoji in product UI</td><td>Healthcare trust infrastructure. None. The emoji bar is zero.</td></tr>
+      <tr><td>Left-border accent containers</td><td>Overused trope. Status is in border style, not in left-side color strips.</td></tr>
+      <tr><td>Progress rings / donut charts</td><td>Implies a percentage model. No canonical derivation exists for credential completeness %.</td></tr>
+      <tr><td>SVG-drawn imagery</td><td>Use placeholders. Bad SVG illustrations degrade trust signal.</td></tr>
+      <tr><td>Particle / graph animations</td><td>Decorative theater. The graph explains provenance, it does not entertain.</td></tr>
+      <tr><td>"AI-powered" / "intelligent"</td><td>Describes tech, not outcome. Say what the system does, not how.</td></tr>
+      <tr><td>Standards as marketing copy</td><td>"VC 2.0 compatible" in a trust strip is the single line most likely to discount the whole surface to an institutional reader. Link to conformance assertions instead.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  02 · TRUST GRAPH SYSTEM
+══════════════════════════════════════════════ -->
+<div class="sec" id="trust-graph">
+  <div class="sh"><span class="n">02</span><h2>Trust Graph Visual System</h2><span class="ey">provenance · not decoration</span></div>
+  <p class="prose">The Trust Graph explains provenance. It is not a visualization of system health or AI capability. A reviewer should understand it in 10 seconds: clinician at center, sources as satellites, evidence as smaller nodes, gaps as dashed nodes. <strong>Dense enough to show the network. Sparse enough to read it.</strong></p>
+
+  <!-- Node taxonomy -->
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Node taxonomy · 10 types</p>
+  <div class="node-grid" style="margin-bottom:12px">
+    <div class="node-ex">
+      <div class="nk">01 · Identity</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="12" fill="#0f0e0c" stroke="#0f0e0c" stroke-width="2"/><circle cx="14" cy="14" r="9" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/></svg>
+        <span class="ni-label">Clinician</span>
+      </div>
+      <div class="nd">Center node. Largest. Dark fill + inner ring. NPI label below.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">02 · Source Authority</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="11" fill="rgba(45,106,79,.14)" stroke="#2d6a4f" stroke-width="2"/></svg>
+        <span class="ni-label">NPPES, DEA, OIG</span>
+      </div>
+      <div class="nd">Medium circles. Border color = status. No fill or status-tinted fill.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">03 · Credential</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="9" fill="rgba(45,106,79,.10)" stroke="#2d6a4f" stroke-width="1.5"/></svg>
+        <span class="ni-label">License, DEA cert</span>
+      </div>
+      <div class="nd">Smaller circle. Confirmed = solid border + sage tint.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">04 · Artifact</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><rect x="6" y="7" width="16" height="14" rx="1" fill="rgba(45,106,79,.08)" stroke="#2d6a4f" stroke-width="1.5"/></svg>
+        <span class="ni-label">PDF, scan</span>
+      </div>
+      <div class="nd">Rounded rectangle. Document metaphor. Smaller than credential.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">05 · Receipt</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><rect x="8" y="8" width="12" height="12" fill="rgba(15,14,12,.06)" stroke="#474540" stroke-width="1.5"/><text x="14" y="17" text-anchor="middle" font-family="Geist Mono" font-size="7" fill="#474540">σ</text></svg>
+        <span class="ni-label">Anchored receipt</span>
+      </div>
+      <div class="nd">Square. σ glyph inside. Inverted if signed plane.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">06 · Institution</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="11" fill="none" stroke="#7d5a1e" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="14" cy="14" r="7" fill="none" stroke="#7d5a1e" stroke-width="1"/></svg>
+        <span class="ni-label">Cedar Health</span>
+      </div>
+      <div class="nd">Double-ring, outer dashed = review in progress. Larger than source.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">07 · Review Action</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><polygon points="14,4 24,14 14,24 4,14" fill="rgba(45,106,79,.10)" stroke="#2d6a4f" stroke-width="1.5"/></svg>
+        <span class="ni-label">Reviewed · operator</span>
+      </div>
+      <div class="nd">Diamond. Confirmed = sage border. Pending = amber dotted border.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">08 · Gap / Blocker</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="10" fill="rgba(122,48,32,.10)" stroke="#7a3020" stroke-width="1.5" stroke-dasharray="4 3"/></svg>
+        <span class="ni-label">Blocker</span>
+      </div>
+      <div class="nd">Large dashed circle. Terracotta stroke. No fill or faint tint only.</div>
+    </div>
+    <div class="node-ex">
+      <div class="nk">09 · Stale / Expired</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="10" fill="rgba(122,74,30,.10)" stroke="#7a4a1e" stroke-width="1.5" stroke-dasharray="2 2"/></svg>
+        <span class="ni-label">Stale source</span>
+      </div>
+      <div class="nd">Dotted-dashed circle. Muted amber/terracotta. Never opacity-dimmed.</div>
+    </div>
+    <div class="node-ex" style="border-right:0">
+      <div class="nk">10 · Access-Required</div>
+      <div class="node-icon">
+        <svg width="28" height="28"><circle cx="14" cy="14" r="10" fill="rgba(74,74,158,.10)" stroke="#4a4a9e" stroke-width="1.5" stroke-dasharray="1 2"/></svg>
+        <span class="ni-label">Auth needed</span>
+      </div>
+      <div class="nd">Dotted circle. Indigo stroke. Lock icon overlay optional.</div>
+    </div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Edge taxonomy · 8 types</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Edge type</th><th>Visual treatment</th><th>Opacity model</th><th>Direction</th></tr></thead>
+    <tbody>
+      <tr><td>Source confirms claim</td><td>Solid line, 1px, sage tint on dark bg</td><td>confidence × 0.7 base</td><td>Source → Clinician</td></tr>
+      <tr><td>Artifact supports claim</td><td>Solid line, 0.75px</td><td>confidence × 0.5</td><td>Artifact → Source or Credential</td></tr>
+      <tr><td>Receipt anchors artifact</td><td>Dotted line, 0.75px</td><td>0.6 fixed</td><td>Receipt → Artifact</td></tr>
+      <tr><td>Institution reviews packet</td><td>Dashed line, 1px, amber on hover</td><td>0.5</td><td>Institution ← → Clinician</td></tr>
+      <tr><td>Gap blocks readiness</td><td>Dashed-thick, terracotta tint</td><td>0.65</td><td>Gap → affected node</td></tr>
+      <tr><td>Source unavailable</td><td>Dotted-faint, zinc</td><td>0.3</td><td>Source → Clinician (faded)</td></tr>
+      <tr><td>Refresh required</td><td>Dashed, amber, short dash</td><td>0.55</td><td>Stale node → Clinician</td></tr>
+      <tr><td>Human review required</td><td>Dash-dot, 1.5px</td><td>0.6</td><td>Review Action → Institution</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Status color model (dark bg canonical)</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;background:var(--ink-0);border:1px solid var(--rule)">
+    <span class="chip c-ok"><span class="d"></span>Source-confirmed</span>
+    <span class="chip c-watch"><span class="d"></span>Pending</span>
+    <span class="chip c-stale"><span class="d"></span>Stale — last known</span>
+    <span class="chip c-indigo"><span class="d"></span>Access required</span>
+    <span class="chip c-zinc"><span class="d"></span>Unavailable</span>
+    <span class="chip c-block"><span class="d"></span>Gap — blocking</span>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Interaction model</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Event</th><th>Node behavior</th><th>Edge behavior</th><th>Panel behavior</th></tr></thead>
+    <tbody>
+      <tr><td>Hover</td><td>Ring glow (box-shadow). Sublabel appears.</td><td>Connected edges brighten (opacity × 1.8). Others dim.</td><td>Tooltip: label, status, last checked, source.</td></tr>
+      <tr><td>Click</td><td>Selected ring (2px solid). Stays highlighted.</td><td>Connected edges remain bright. Others fade to 0.1.</td><td>Detail panel slides in from right: source name, status chip, checked_at stack, artifact/receipt links, action buttons.</td></tr>
+      <tr><td>Filter toggle</td><td>Cluster fades out smoothly (200ms). Edges connected to hidden nodes also fade.</td><td>Opacity transition 200ms.</td><td>Filter panel at top: Identity · Authority · Safety · Enrollment · Review · Receipts · Gaps.</td></tr>
+      <tr><td>Mobile (tap)</td><td>Tap = hover equivalent. Second tap = click/detail.</td><td>—</td><td>Detail panel = full-width bottom sheet.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Mobile fallback</p>
+  <p class="prose">On viewports &lt;768px: replace graph with a vertical source-status list (same data). Each row: source name, status chip, checked_at, action button. Graph toggle button at top of list: "View graph →". Graph renders in a full-screen modal overlay with pinch-to-zoom enabled.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  03 · HOMEPAGE SPEC
+══════════════════════════════════════════════ -->
+<div class="sec" id="homepage">
+  <div class="sh"><span class="n">03</span><h2>Homepage Spec</h2><span class="ey">10-second comprehension target</span></div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Wireframe — above fold</p>
+  <div class="wf">
+    <div class="wf-label">NAV</div>
+    <div class="wf-row">
+      <div class="wf-box wf-key">V VitalCV</div>
+      <div class="wf-box" style="flex:1">Product &nbsp;&nbsp; Trust &nbsp;&nbsp; Employers &nbsp;&nbsp; Developers</div>
+      <div class="wf-box wf-fill">Sign in</div>
+      <div class="wf-box wf-key">Check Credential Readiness →</div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="wf-label">HERO — two column · 60/40 split</div>
+    <div class="wf-row" style="align-items:stretch;gap:16px">
+      <div style="flex:6;display:flex;flex-direction:column;gap:8px">
+        <div class="wf-box wf-sub" style="font-size:8.5px">EYEBROW · MONO · UPPERCASE · ink-500</div>
+        <div class="wf-box" style="font-size:13px;color:#fff;font-weight:600;border-style:none;padding:0">Source-backed credential readiness for institution review.</div>
+        <div class="wf-box wf-sub">Subhead: See what is source-confirmed, what is missing, and where onboarding is stuck.</div>
+        <div class="wf-row" style="margin:0;gap:8px">
+          <div class="wf-box wf-fill" style="flex:1">NPI input · tabular mono · placeholder "Enter NPI number"</div>
+        </div>
+        <div class="wf-row" style="margin:0;gap:8px">
+          <div class="wf-box wf-key">Check Credential Readiness →</div>
+          <div class="wf-box">See employer review sample</div>
+        </div>
+      </div>
+      <div style="flex:4">
+        <div class="wf-box wf-fill" style="height:180px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4)">
+          MINI TRUST GRAPH<br/>
+          <span style="font-size:8px">Clinician node · 4 source rows · 1 gap · 1 review action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Section-by-section copy</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Section</th><th>Headline</th><th>Copy / structure</th><th>CTA</th></tr></thead>
+    <tbody>
+      <tr><td>Hero</td><td>Source-backed credential readiness for institution review.</td><td>See what is source-confirmed, what is missing, and where onboarding is stuck — using available federal and institutional evidence.</td><td>Primary: Check Credential Readiness. Secondary: See employer review sample.</td></tr>
+      <tr><td>Source strip</td><td>What VitalCV checks now.</td><td>Table rows: NPPES (Source-confirmed · &lt;1 min ago · active artifact), OIG/LEIE (Source-confirmed · 4 min ago · no adverse findings), PECOS (Pending · source cadence 24h · last known), State board (Access required · operator action).</td><td>See all sources →</td></tr>
+      <tr><td>How it works</td><td>Three steps.</td><td>Card 1: Enter NPI — "We look up the clinician from federal and state sources." Card 2: See what is known — "Source-confirmed items, gaps, and access-required sources are clearly labeled." Card 3: Share review packet — "Employer receives a source-attributed, time-stamped evidence packet."</td><td>Check readiness →</td></tr>
+      <tr><td>Employer preview</td><td>Designed for institution review.</td><td>Show compact employer review card with three actions: Accept as head start, Request refresh, Route to review. No approval language.</td><td>See full review surface →</td></tr>
+      <tr><td>Standards rail</td><td>—</td><td>Quiet mono text only: VC 2.0 · OpenID4VCI · SD-JWT · audit receipts · exportable evidence. No logos. No checkmarks.</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">CTA hierarchy</p>
+  <div class="cards three" style="margin-bottom:12px">
+    <div class="card card-dark"><div class="ck">Primary CTA</div><div class="cv">Check Credential Readiness</div><div class="cb">Full ink-950 fill. Geist Mono. Present on every above-fold view. Routes to /investigate/[npi] or NPI input step.</div></div>
+    <div class="card"><div class="ck">Secondary CTA</div><div class="cv">See employer review sample</div><div class="cb">Ghost style. Routes to a demo-safe static employer review page. Never implies logged-in state.</div></div>
+    <div class="card" style="border-right:0"><div class="ck">Tertiary</div><div class="cv">Sign in</div><div class="cb">Nav-level. Routes to /sign-in. Never styled as primary. Never color-filled on homepage.</div></div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">Mobile layout rules</p>
+  <p class="prose">Single column. NPI input stacked below headline. Mini graph replaced with source strip table (rows, no graph). How-it-works cards stack vertically. Nav collapses to hamburger (if used) or minimal top bar with CTA only. Sticky bottom bar on mobile: "Check Credential Readiness" full-width button.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  04 · READINESS PAGE
+══════════════════════════════════════════════ -->
+<div class="sec" id="readiness">
+  <div class="sh"><span class="n">04</span><h2>Readiness Page · /investigate/[npi]</h2><span class="ey">decision posture · source evidence · gaps</span></div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Decision posture component</p>
+  <div class="posture-grid" style="margin-bottom:12px">
+    <div class="posture">
+      <div class="posture .pt" style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:4px">Posture</div>
+      <div class="ps ps-ready">READY</div>
+      <div class="pm">This clinician can proceed to credentialing review. All checked sources confirm active status. No adverse findings from available sources.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip c-ok"><span class="d"></span>3 of 3 confirmed</span><span class="chip c-ok"><span class="d"></span>No adverse findings</span></div>
+    </div>
+    <div class="posture">
+      <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:4px">Posture</div>
+      <div class="ps ps-partial">PARTIAL</div>
+      <div class="pm">Some source evidence is available. Review gaps before onboarding. One source is checking again — last known result is shown.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip c-ok"><span class="d"></span>2 confirmed</span><span class="chip c-stale"><span class="d"></span>1 stale</span><span class="chip c-indigo"><span class="d"></span>1 access required</span></div>
+    </div>
+    <div class="posture" style="border-right:0">
+      <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:4px">Posture</div>
+      <div class="ps ps-blocked">BLOCKED</div>
+      <div class="pm">Blocking items found. Human review required before proceeding. Do not route for onboarding until gaps are resolved.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip c-block"><span class="d"></span>1 blocking</span><span class="chip c-watch"><span class="d"></span>Review required</span></div>
+    </div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Above-fold source rows (three only)</p>
+  <div style="border:1px solid var(--rule);margin-bottom:12px">
+    <div class="source-card">
+      <div class="sc-head">
+        <div><div class="sc-name">Identity — NPPES</div><div class="sc-sub">NPI Registry · federal</div></div>
+        <div class="sc-meta"><span class="chip c-ok"><span class="d"></span>Source-confirmed</span><span>Checked 22 s ago</span><span>Freshness: &lt;15 min SLO</span><span>Artifact: available</span></div>
+        <div class="sc-actions"><button style="font-family:'Geist Mono',monospace;font-size:9px;padding:4px 9px;border:1px solid var(--rule);background:transparent;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-700)">Details</button></div>
+      </div>
+    </div>
+    <div class="source-card">
+      <div class="sc-head">
+        <div><div class="sc-name">Safety — OIG / LEIE</div><div class="sc-sub">Exclusion Registry · federal</div></div>
+        <div class="sc-meta"><span class="chip c-ok"><span class="d"></span>Source-confirmed</span><span>Checked 4 min ago</span><span>Freshness: &lt;4 h SLO</span><span>Artifact: available</span></div>
+        <div class="sc-actions"><button style="font-family:'Geist Mono',monospace;font-size:9px;padding:4px 9px;border:1px solid var(--rule);background:transparent;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-700)">Details</button></div>
+      </div>
+    </div>
+    <div class="source-card">
+      <div class="sc-head">
+        <div><div class="sc-name">License — CA Medical Board</div><div class="sc-sub">State license · access required</div></div>
+        <div class="sc-meta"><span class="chip c-indigo"><span class="d"></span>Access required</span><span>Not yet checked</span><span>Operator action needed</span></div>
+        <div class="sc-actions"><button style="font-family:'Geist Mono',monospace;font-size:9px;padding:4px 9px;border:1px solid var(--ink-900);background:var(--ink-900);color:#fff;cursor:pointer;text-transform:uppercase;letter-spacing:.1em">Request access</button></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Source card component spec (full expanded)</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Field</th><th>Render</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Source name</td><td>Geist 600 12px</td><td>Never abbreviated in expanded view.</td></tr>
+      <tr><td>Status chip</td><td>Border-style chip per status vocabulary</td><td>Never use color fill as sole signal.</td></tr>
+      <tr><td>Timestamp</td><td>Geist Mono · absolute UTC + relative</td><td>Two-line stack: ISO above, relative below.</td></tr>
+      <tr><td>Freshness window</td><td>Mono · "within SLO" or "outside SLO · N h ago"</td><td>Dashed chip if stale.</td></tr>
+      <tr><td>Artifact available</td><td>Chip: "Artifact · PDF" or "—"</td><td>Link to artifact viewer if available.</td></tr>
+      <tr><td>What this does not prove</td><td>Italic prose · ink-600 · 11px</td><td>E.g., "NPPES confirms NPI is active. Does not confirm state license, DEA registration, or absence of exclusions."</td></tr>
+      <tr><td>Actions</td><td>Row of ghost buttons</td><td>Refresh source · Request access · Add artifact · Share packet · Route to review</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">States · loading / error / empty</p>
+  <table class="tbl">
+    <thead><tr><th>State</th><th>Treatment</th><th>Copy</th></tr></thead>
+    <tbody>
+      <tr><td>Loading</td><td>Skeleton rows matching final source card layout. No spinner.</td><td>"Checking available sources…" in mono below posture skeleton.</td></tr>
+      <tr><td>NPI not found</td><td>Single bordered card, posture area empty.</td><td>"NPI [number] was not found in NPPES. Verify the number and try again. This does not indicate a problem with the clinician."</td></tr>
+      <tr><td>All sources unavailable</td><td>All source rows show c-zinc chip. Posture = "PARTIAL".</td><td>"Sources are temporarily unavailable. Last known results are shown where available."</td></tr>
+      <tr><td>Partial sources only</td><td>Mixed chip states. Posture = "PARTIAL".</td><td>Posture copy as specified above.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  05 · PASSPORT
+══════════════════════════════════════════════ -->
+<div class="sec" id="passport">
+  <div class="sh"><span class="n">05</span><h2>Passport · /passport</h2><span class="ey">clinician-facing credential wallet</span></div>
+  <p class="prose">The passport is a portable, source-backed packet. It must feel less like a resume and more like a credential wallet with visible provenance. <strong>Critical:</strong> Every claim row must show ownership badge (subject/delegated/unbound) and the signer must appear above the fold. A passport without a visible signer is a screenshot, not a credential.</p>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Section</th><th>Components</th><th>Required fields</th><th>Defects to avoid</th></tr></thead>
+    <tbody>
+      <tr><td>Identity header</td><td>Masthead: name, NPI (mono), taxonomy, location, readiness posture chip</td><td>NPI in Geist Mono + tabular-nums. Posture chip visible above fold.</td><td>NPI in sans-serif. Posture below fold. Signer absent.</td></tr>
+      <tr><td>Credential cards</td><td>License, NPI, enrollment, certs, safety checks, uploaded artifacts</td><td>Each card: claim, ownership badge, source, checked_at stack, artifact link.</td><td>Missing ownership badge. Opacity-dimmed stale cards. No action button on gaps.</td></tr>
+      <tr><td>Evidence timeline</td><td>Vertical chain: source queried → result received → artifact generated → receipt anchored → shared → review requested</td><td>ISO timestamp per event. Custodian label per event. Chain head visible.</td><td>Analytics-style timeline. No timestamps. Chain rendered as progress bar.</td></tr>
+      <tr><td>Share panel</td><td>Share packet, copy secure link, export audit bundle, request refresh</td><td>Selective disclosure: show what will be shared, what will not, recipient, expiration.</td><td>No disclosure panel. "Share all" with no granularity. SSI jargon.</td></tr>
+      <tr><td>Trust Graph view</td><td>Toggle: list view ↔ graph view</td><td>Identity at center, credentials linked, source authorities as outer nodes.</td><td>Graph as default for non-technical users. No list fallback.</td></tr>
+      <tr><td>Signature panel</td><td>Collapsed by default. Key fingerprint + chain head visible in first 600px.</td><td>Active key, DID document pointer, backup signer, key age bar.</td><td>Absent entirely. Hidden below scroll. No chain head shown.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">Privacy disclosure panel — required copy template</p>
+  <div style="background:var(--ink-0);border:1px solid var(--rule);padding:14px 16px;font-size:11.5px;color:var(--ink-700);line-height:1.6;margin-bottom:12px">
+    <strong style="color:var(--ink-900);display:block;margin-bottom:8px">What will be shared</strong>
+    Included: NPI, NPPES status, OIG/LEIE result, PECOS enrollment status (if available), uploaded artifacts you have added.<br/>
+    <strong style="color:var(--ink-900)">Not included:</strong> DEA ARCOS (access required), state board details (access required).<br/>
+    <span style="color:var(--ink-500);font-family:'Geist Mono',monospace;font-size:9.5px;display:block;margin-top:8px">Recipient: Cedar Health · Expires: 2026-06-24 · Selective disclosure enabled · You control what is shared.</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  06 · EMPLOYER REVIEW
+══════════════════════════════════════════════ -->
+<div class="sec" id="employer">
+  <div class="sh"><span class="n">06</span><h2>Employer Review · /review/[id]</h2><span class="ey">decision panel left · evidence right</span></div>
+  <p class="prose">A reviewer lands here and must know within 30 seconds: what is source-confirmed, what requires review, and what is safe to do next. <strong>Two-column desktop layout.</strong> Decision panel on left (sticky). Evidence packet on right (scrollable).</p>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Decision action</th><th>Canonical copy</th><th>What it implies</th><th>What it must NOT imply</th></tr></thead>
+    <tbody>
+      <tr><td>Primary</td><td>Proceed as head start</td><td>Using this as starting point for your institution's own review.</td><td>VitalCV has verified or approved this clinician.</td></tr>
+      <tr><td>Secondary</td><td>Request refresh</td><td>Trigger a new source query on stale or pending items.</td><td>Current data is wrong or incomplete.</td></tr>
+      <tr><td>Tertiary</td><td>Route to human review</td><td>Flagging for a reviewer in the institution's workflow.</td><td>VitalCV is routing to its own review process.</td></tr>
+      <tr><td>Hold</td><td>Hold packet</td><td>Do not proceed. Record the hold action.</td><td>"Reject" (implies VitalCV adjudicating).</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Evidence table row spec</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Column</th><th>Render</th><th>Required</th></tr></thead>
+    <tbody>
+      <tr><td>Claim</td><td>Geist 500 13px</td><td>Always. Plain language. "Licensed · CA · Internal Medicine"</td></tr>
+      <tr><td>Source</td><td>Geist Mono 10px · ink-700</td><td>Always. "CA Medical Board"</td></tr>
+      <tr><td>Status</td><td>Border-style chip</td><td>Always. One of: source-confirmed, pending, access required, stale, gap.</td></tr>
+      <tr><td>Freshness</td><td>Mono timestamp stack</td><td>Always. Absolute + relative. Dashed if stale.</td></tr>
+      <tr><td>Artifact</td><td>Chip: "PDF" or "—"</td><td>When available.</td></tr>
+      <tr><td>Action</td><td>Ghost button per row</td><td>When actionable: Refresh, Request access, View artifact, Add note.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Audit drawer spec (expandable per row)</p>
+  <p class="prose">Each evidence row has an expandable audit drawer showing: source URL (mono chip), retrieval timestamp (UTC), checksum (truncated mono), method version, receipt ID, operator/agent label, replay status. This is the forensic tier — not shown by default.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  07 · TRUST / ATTRIBUTION PAGES
+══════════════════════════════════════════════ -->
+<div class="sec" id="trust-pages">
+  <div class="sh"><span class="n">07</span><h2>Trust / Attribution Pages · /trust · /trust/attribution</h2><span class="ey">reviewer-safe doctrine</span></div>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>/trust section</th><th>Purpose</th><th>Key copy block</th></tr></thead>
+    <tbody>
+      <tr><td>What VitalCV is</td><td>One paragraph. Plain language. First-time institutional reader.</td><td>"VitalCV collects available federal and institutional source evidence and organizes it into a reviewable packet. It does not issue credentials, approve clinicians, or replace institutional credentialing review."</td></tr>
+      <tr><td>Evidence model</td><td>Three-column: Source type → What is checked → What is not checked</td><td>Table with NPPES, OIG/LEIE, PECOS, State boards, DEA. Each row names the source, what it confirms, and what it explicitly does not confirm.</td></tr>
+      <tr><td>Source status vocabulary</td><td>Status table with canonical terms</td><td>Source-confirmed, pending, stale/last-known, access-required, unavailable, gap/blocking.</td></tr>
+      <tr><td>Institution review boundary</td><td>Explicit statement of what institutions must still do</td><td>"Every institution using VitalCV must apply its own credentialing standards. VitalCV provides evidence — not decisions."</td></tr>
+      <tr><td>Audit receipt model</td><td>How receipts work. Plain language, no blockchain jargon.</td><td>"Each source check generates a time-stamped record that can be independently verified later."</td></tr>
+      <tr><td>What VitalCV does not guarantee</td><td>Explicit limitations. Not hedging — factual.</td><td>Table: Does not guarantee · continuous monitoring · institutional acceptance · regulatory compliance · credential validity · identity verification beyond NPI match.</td></tr>
+    </tbody>
+  </table>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>/trust/attribution section</th><th>Key spec</th></tr></thead>
+    <tbody>
+      <tr><td>Attribution hierarchy</td><td>Three layers: System action (automated, audit-logged), Operator action (human, identity-bound), Institution decision (external, not attributed to VitalCV).</td></tr>
+      <tr><td>Source ownership</td><td>NPPES owned by CMS. OIG by HHS. DEA by DOJ. VitalCV retrieves but does not own source data.</td></tr>
+      <tr><td>Human override model</td><td>Any automated action can be overridden by an authorized operator. Override logged with actor, timestamp, reason.</td></tr>
+      <tr><td>Pilot-safe language</td><td>All claims from pilot data must include scope: "10 clinicians · Cedar Health pilot · Q2 2026". Never extrapolated as production claim.</td></tr>
+      <tr><td>Anti-patterns table</td><td>See copy safety section §10 for full table.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">Visual hierarchy rules for /trust</p>
+  <p class="prose">No decorative elements. No gradients. No hero images. Tables first. Prose second. Monospace metadata for anything quantitative. Dark runtime band at top (same as every surface). Max 72ch prose. Anchor links in TOC for every section. Print-safe styling (white background, no shadows).</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  08 · SIGN-IN / AUTH
+══════════════════════════════════════════════ -->
+<div class="sec" id="auth">
+  <div class="sh"><span class="n">08</span><h2>Sign-in / Auth · /sign-in</h2><span class="ey">healthcare-grade · calm · direct</span></div>
+
+  <div class="cards two" style="margin-bottom:12px">
+    <div class="card">
+      <div class="ck">Left column — sign-in form</div>
+      <div class="cv" style="font-size:14px">Sign in to review your credential readiness.</div>
+      <div class="cb" style="margin-top:8px">VitalCV uses available source evidence to help prepare institution-reviewable credential packets.<br/><br/>Primary button: <strong>Continue with [provider]</strong><br/>Secondary link: Use a different account<br/>Footer: Privacy · Terms (small, ink-500)</div>
+    </div>
+    <div class="card" style="border-right:0">
+      <div class="ck">Right column — credential workspace card</div>
+      <div class="cv" style="font-size:13px">Credential readiness workspace</div>
+      <div class="cb" style="margin-top:8px">
+        <strong>Bullet points (no icons — text only):</strong><br/>
+        · Source-backed where available<br/>
+        · Gaps and access-required items are clearly labeled<br/>
+        · You control what is shared<br/>
+        · Built for healthcare credential review workflows<br/><br/>
+        <span style="font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-500)">Free during pilot access period.</span>
+      </div>
+    </div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>Unsafe copy</th><th>Safe replacement</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Get verified</td><td>Sign in to review your credential readiness</td><td>VitalCV does not verify credentials.</td></tr>
+      <tr><td>Verified access</td><td>Credential workspace access</td><td>Not verified until institution completes review.</td></tr>
+      <tr><td>HIPAA-ready sign-in</td><td>Built for healthcare credential review</td><td>Never claim HIPAA readiness unless legally supported and reviewed.</td></tr>
+      <tr><td>Your credentials are safe with us</td><td>You control what is shared</td><td>Too broad. Scoped version is accurate.</td></tr>
+      <tr><td>Join [X] verified clinicians</td><td>—</td><td>Do not invent scale claims. No fake social proof.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  09 · ROUTE MAP
+══════════════════════════════════════════════ -->
+<div class="sec" id="routes">
+  <div class="sh"><span class="n">09</span><h2>Navigation &amp; Route Map</h2><span class="ey">visibility · priority · risk</span></div>
+  <table class="tbl">
+    <thead><tr><th>Route</th><th>Priority</th><th>Pre-PearX</th><th>Auth</th><th>Risk if unfinished</th></tr></thead>
+    <tbody>
+      <tr><td>/</td><td><span class="p0">P0</span></td><td>✓ visible</td><td>Public</td><td>Launch-critical. Unsafe copy = institutional credibility loss.</td></tr>
+      <tr><td>/trust</td><td><span class="p0">P0</span></td><td>✓ visible</td><td>Public</td><td>PearX reviewers will read this. Incomplete = credibility gap.</td></tr>
+      <tr><td>/trust/attribution</td><td><span class="p0">P0</span></td><td>✓ visible</td><td>Public</td><td>Same as /trust.</td></tr>
+      <tr><td>/sign-in</td><td><span class="p0">P0</span></td><td>✓ visible</td><td>Public</td><td>Unsafe copy = compliance risk.</td></tr>
+      <tr><td>/investigate/[npi]</td><td><span class="p0">P0</span></td><td>✓ visible</td><td>Public (demo mode)</td><td>Broken CTA = worst impression. Must show something useful.</td></tr>
+      <tr><td>/passport</td><td><span class="p1">P1</span></td><td>✓ after sign-in</td><td>Auth</td><td>Signer absent above fold = credibility defect.</td></tr>
+      <tr><td>/review/[id]</td><td><span class="p1">P1</span></td><td>✓ demo sample</td><td>Auth / demo</td><td>Decision actions using unsafe copy = reportable issue.</td></tr>
+      <tr><td>/trust/attribution (full)</td><td><span class="p1">P1</span></td><td>✓</td><td>Public</td><td>Incomplete anti-pattern table = PearX concern.</td></tr>
+      <tr><td>/status</td><td><span class="p1">P1</span></td><td>✓</td><td>Public</td><td>Dead status page = erodes confidence.</td></tr>
+      <tr><td>/pilot</td><td><span class="p1">P1</span></td><td>✓</td><td>Public</td><td>—</td></tr>
+      <tr><td>/pricing</td><td><span class="p2">P2</span></td><td>Hide or stub</td><td>Public</td><td>Premature pricing = wrong signal for PearX.</td></tr>
+      <tr><td>/intelligence</td><td><span class="p2">P2</span></td><td>Hide</td><td>Auth</td><td>Unfinished = confusing.</td></tr>
+      <tr><td>/roi</td><td><span class="p2">P2</span></td><td>Stub only</td><td>Auth</td><td>ROI claims without pilot data = unsafe.</td></tr>
+      <tr><td>/dossier/[id], /receipt/[id]</td><td><span class="ppost">Post-launch</span></td><td>Hide</td><td>Auth</td><td>—</td></tr>
+      <tr><td>/issuer, /holder</td><td><span class="ppost">Post-launch</span></td><td>Hide</td><td>Auth</td><td>Technical jargon. Not operator-facing yet.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  10 · COPY SAFETY
+══════════════════════════════════════════════ -->
+<div class="sec" id="copy-safety">
+  <div class="sh"><span class="n">10</span><h2>Copy Safety Audit</h2><span class="ey">high-risk phrases · safe replacements · page guidance</span></div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Replacement library</p>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">verified</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">source-confirmed / checked / evidence-received</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">get verified</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">check credential readiness</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">cleared / approved</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">ready for institution review / review-ready</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">accepted everywhere</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">designed for reusable evidence review</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">instant onboarding</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">designed to reduce credentialing review time</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">fully automated</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">workflow-assisted / source checks run automatically</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">tamper-proof</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">cryptographically anchored / time-stamped and linked</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">continuous monitoring</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">refreshable source checks / checked on a regular cadence</div></div></div>
+  <div class="pair"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">HIPAA-ready / SOC2 compliant</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">aligned with / designed for — only if formally supported</div></div></div>
+  <div class="pair" style="margin-bottom:12px"><div class="pa"><div class="pl avoid">Avoid</div><div class="pt avoid">trusted by [institution]</div></div><div class="pu"><div class="pl use">Use</div><div class="pt use">used in pilot with [institution] — only if contracted</div></div></div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">Launch-blocking copy issues</p>
+  <table class="tbl">
+    <thead><tr><th>Page</th><th>Phrase to remove before launch</th><th>Replacement</th></tr></thead>
+    <tbody>
+      <tr><td>Any homepage hero</td><td>"Verify your credentials" as CTA text</td><td>"Check Credential Readiness"</td></tr>
+      <tr><td>Employer review</td><td>"Approved" as decision action</td><td>"Proceed as head start"</td></tr>
+      <tr><td>Readiness page</td><td>Percentage complete (e.g., "85% verified")</td><td>Named posture: READY / PARTIAL / BLOCKED</td></tr>
+      <tr><td>Sign-in</td><td>"Join [X] verified clinicians"</td><td>Remove entirely. No social proof until real.</td></tr>
+      <tr><td>/trust</td><td>"VitalCV-verified" in any heading</td><td>"Source-confirmed by VitalCV"</td></tr>
+      <tr><td>Standards rail</td><td>"VC 2.0 compliant" as a marketing claim</td><td>"VC 2.0 · link to conformance assertion"</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  11 · QA / MOTION / A11Y
+══════════════════════════════════════════════ -->
+<div class="sec" id="qa">
+  <div class="sh"><span class="n">11</span><h2>Responsive / Accessibility / Motion QA</h2><span class="ey">breakpoints · a11y · motion rules</span></div>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>QA item</th><th>Target</th><th>Launch-blocking</th></tr></thead>
+    <tbody>
+      <tr><td>Mobile 390px — NPI input above fold</td><td>Input visible without scroll. CTA visible.</td><td>Yes</td></tr>
+      <tr><td>Mobile 390px — source table readable</td><td>No horizontal scroll. Chips stack gracefully.</td><td>Yes</td></tr>
+      <tr><td>Tablet — two-column employer review</td><td>Decision panel does not collapse to zero-width.</td><td>Yes</td></tr>
+      <tr><td>Desktop 1440px — max prose width</td><td>Body text max 72ch. No full-width prose lines.</td><td>No</td></tr>
+      <tr><td>Contrast — all chip text on white</td><td>WCAG AA minimum 4.5:1.</td><td>Yes</td></tr>
+      <tr><td>Contrast — ink-500 on paper</td><td>Check ratio. Muted text is at risk.</td><td>Yes</td></tr>
+      <tr><td>Keyboard nav — focus rings visible</td><td>2px outline, not browser default (which fades).</td><td>Yes</td></tr>
+      <tr><td>Status — not color-only</td><td>Every status chip has a text label. Border style reinforces.</td><td>Yes</td></tr>
+      <tr><td>Tables — scrollable on mobile</td><td>Horizontal scroll with scroll-shadow indicator.</td><td>No</td></tr>
+      <tr><td>Headings — semantic order</td><td>h1 once per page. h2 per section. No skipping.</td><td>Yes</td></tr>
+      <tr><td>CTAs — labeled clearly</td><td>"Check Credential Readiness" not "Submit".</td><td>Yes</td></tr>
+      <tr><td>prefers-reduced-motion</td><td>All transitions: 0ms. No fade-in. No skeleton animation.</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:8px">Motion rules · canonical</p>
+  <table class="tbl">
+    <thead><tr><th>Element</th><th>Duration</th><th>Easing</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td>Status row change</td><td>150ms</td><td>ease-out</td><td>Data update</td></tr>
+      <tr><td>Page fade-in</td><td>200ms</td><td>ease-out</td><td>Route transition</td></tr>
+      <tr><td>Hero fade-up</td><td>300ms</td><td>ease-out, 20px Y</td><td>Initial load only</td></tr>
+      <tr><td>Detail panel slide-in</td><td>250ms</td><td>ease-out, X-axis</td><td>Node click</td></tr>
+      <tr><td>Skeleton pulse</td><td>1.5s loop, 30% opacity range</td><td>ease-in-out</td><td>Loading state only — stop immediately on data</td></tr>
+      <tr><td>Graph node hover</td><td>120ms</td><td>ease-out</td><td>Mouse enter</td></tr>
+      <tr><td>Prohibited</td><td colspan="3">Looping celebration, particle storms, bounce easing, spring physics on data rows, animated counters ticking up</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  12 · PEARX PACKAGE
+══════════════════════════════════════════════ -->
+<div class="sec" id="pearx">
+  <div class="sh"><span class="n">12</span><h2>PearX Reviewer Package</h2><span class="ey">90-second path · safe claims · red flags</span></div>
+
+  <div class="impl" style="margin-bottom:12px">
+    <div class="impl-title">90-second reviewer script</div>
+    <div class="impl-row"><div class="ir-n">0:00</div><div class="ir-t"><strong>Homepage.</strong> "The problem: credentialing takes weeks because evidence is scattered across dozens of federal and state sources. VitalCV collects that evidence into a reviewable packet — starting with just an NPI."</div></div>
+    <div class="impl-row"><div class="ir-n">0:20</div><div class="ir-t"><strong>Enter NPI.</strong> "Enter a real NPI. You immediately see: what is source-confirmed from NPPES and OIG, what is pending from PECOS, and what requires access from state boards."</div></div>
+    <div class="impl-row"><div class="ir-n">0:40</div><div class="ir-t"><strong>Employer review sample.</strong> "This is what an employer sees: source-attributed evidence, timestamps, and three safe actions — not 'approve' — but proceed as head start, request refresh, or route to review."</div></div>
+    <div class="impl-row"><div class="ir-n">1:00</div><div class="ir-t"><strong>/trust page.</strong> "Here's what we're explicit about: VitalCV provides evidence, not decisions. Institutions still apply their own standards. We don't replace credentialing — we make it legible."</div></div>
+    <div class="impl-row" style="border-bottom:0"><div class="ir-n">1:20</div><div class="ir-t"><strong>Close.</strong> "This is a pilot stage — 10 clinicians at Cedar Health. The infrastructure is built. The question is whether this evidence model can compress weeks of credentialing friction."</div></div>
+  </div>
+
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Element</th><th>Show?</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Homepage hero + NPI input</td><td>✓ Show</td><td>Primary proof point. CTA must work.</td></tr>
+      <tr><td>Readiness page (PARTIAL posture)</td><td>✓ Show</td><td>PARTIAL is most honest and most interesting. Shows gap/stale model.</td></tr>
+      <tr><td>Employer review (demo mode)</td><td>✓ Show</td><td>Decision actions must show safe copy (no "Approved").</td></tr>
+      <tr><td>/trust page</td><td>✓ Show</td><td>Strongest institutional credibility signal.</td></tr>
+      <tr><td>/trust/attribution</td><td>✓ Show</td><td>Shows system maturity.</td></tr>
+      <tr><td>Passport (clinician view)</td><td>✓ Show (if complete)</td><td>Only if signer panel is present above fold.</td></tr>
+      <tr><td>/roi, /intelligence</td><td>✗ Hide</td><td>Unfinished or contains estimate-as-fact risk.</td></tr>
+      <tr><td>Any page with "verified" CTA</td><td>✗ Fix first</td><td>Launch-blocking copy issue.</td></tr>
+      <tr><td>Any page with broken CSS/blank state</td><td>✗ Fix first</td><td>P0.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);font-weight:600;margin-bottom:6px">Safe claims for PearX</p>
+  <table class="tbl">
+    <thead><tr><th>Safe to say</th><th>Not safe to say</th></tr></thead>
+    <tbody>
+      <tr><td>"10-clinician pilot at Cedar Health, Q2 2026."</td><td>"Trusted by Cedar Health" (implies contractual endorsement)</td></tr>
+      <tr><td>"Checks NPPES, OIG/LEIE, and PECOS automatically."</td><td>"Verifies all credentials automatically."</td></tr>
+      <tr><td>"Designed to reduce credentialing review time."</td><td>"Cuts credentialing time by 60%." (no canonical data)</td></tr>
+      <tr><td>"Source-confirmed where available. Gaps clearly labeled."</td><td>"Complete credential verification in seconds."</td></tr>
+      <tr><td>"Evidence packets are time-stamped and re-verifiable."</td><td>"Tamper-proof blockchain credentials."</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  13 · CLAUDE CODE HANDOFF
+══════════════════════════════════════════════ -->
+<div class="sec" id="handoff">
+  <div class="sh"><span class="n">13</span><h2>Claude Code Implementation Handoff</h2><span class="ey">P0 → P1 → P2 · severity order</span></div>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#7a3020;font-weight:600;margin-bottom:8px">P0 · Fix before public cutover</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Route / Component</th><th>Issue</th><th>Desired state</th><th>Acceptance criteria</th></tr></thead>
+    <tbody>
+      <tr><td>/</td><td>Hero CTA reads "Verify" or uses unsafe copy</td><td>CTA = "Check Credential Readiness" verbatim</td><td>No instance of "verify" or "approved" in above-fold copy</td></tr>
+      <tr><td>/investigate/[npi]</td><td>NPI input broken or blank on load</td><td>Input renders, accepts 10-digit NPI, routes to readiness page</td><td>Real NPI 1356428912 returns PARTIAL posture demo</td></tr>
+      <tr><td>/trust</td><td>Page missing or shows 404</td><td>Full doctrine page with sections 1–7 from §07</td><td>Page loads, all sections readable, no broken CSS</td></tr>
+      <tr><td>/trust/attribution</td><td>Page missing or incomplete</td><td>Attribution hierarchy + anti-patterns table</td><td>Page loads, anti-pattern table present</td></tr>
+      <tr><td>/sign-in</td><td>Unsafe copy or broken auth</td><td>Safe copy per §08. Clerk or equivalent renders cleanly.</td><td>No "get verified" or "verified access" copy present</td></tr>
+      <tr><td>Homepage employer preview</td><td>Decision button reads "Approve"</td><td>Three safe actions: Proceed as head start, Request refresh, Route to review</td><td>Zero instances of "approve" or "cleared" on /</td></tr>
+      <tr><td>Any page</td><td>Gradient background applied to main sections</td><td>Paper (#f4f2ec) or white (#fff) surfaces only</td><td>No CSS gradient in above-fold areas</td></tr>
+      <tr><td>Readiness page</td><td>Percentage displayed (e.g., "85% complete")</td><td>Named posture only: READY / PARTIAL / BLOCKED in Geist Mono</td><td>No percentage, no progress ring</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:600;margin-bottom:8px">P1 · Fix before PearX demo</p>
+  <table class="tbl" style="margin-bottom:12px">
+    <thead><tr><th>Route / Component</th><th>Issue</th><th>Desired state</th></tr></thead>
+    <tbody>
+      <tr><td>Passport</td><td>Signer panel absent above fold</td><td>Collapsed signature panel with key fingerprint visible in first 600px viewport height</td></tr>
+      <tr><td>Trust graph</td><td>Legend missing</td><td>10-node legend + 8-edge legend, toggleable, bottom-left overlay</td></tr>
+      <tr><td>Source cards</td><td>"What this does not prove" field absent</td><td>Italic prose field on every expanded source card</td></tr>
+      <tr><td>/status</td><td>404 or no content</td><td>Minimal status page showing last system check timestamp and source availability</td></tr>
+      <tr><td>Mobile nav</td><td>Nav items not accessible on 390px</td><td>Hamburger or minimal nav with CTA always visible</td></tr>
+      <tr><td>Readiness — stale source</td><td>Stale rendered as opacity-dimmed (not dashed)</td><td>Dashed border chip + explicit age in all stale source rows</td></tr>
+      <tr><td>Employer review copy</td><td>Any decision action using "approved" / "reject"</td><td>Safe action vocabulary per §06</td></tr>
+      <tr><td>Homepage source strip</td><td>No freshness / last-checked column</td><td>Each row: status chip + checked N min ago + freshness window</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-600);font-weight:600;margin-bottom:8px">P2 · Post-launch polish</p>
+  <table class="tbl">
+    <thead><tr><th>Item</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Graph filter panel</td><td>Cluster toggle buttons (Identity / Authority / Safety / Enrollment / Review / Receipts / Gaps)</td></tr>
+      <tr><td>Graph hover detail</td><td>Tooltip with label, status, checked_at, source on node hover</td></tr>
+      <tr><td>Audit drawer</td><td>Expandable per evidence row: source URL, checksum, method version, receipt ID, replay status</td></tr>
+      <tr><td>Skeleton screens</td><td>Skeleton layout for readiness page load state matching final source card structure</td></tr>
+      <tr><td>Motion refinement</td><td>Audit all transitions vs §11 motion rules. Remove any spring/bounce.</td></tr>
+      <tr><td>Print stylesheet</td><td>/trust and /trust/attribution print-clean: white bg, no shadows, header/footer with version.</td></tr>
+      <tr><td>Selective disclosure UI</td><td>Granular toggle in passport share panel showing per-field include/exclude</td></tr>
+    </tbody>
+  </table>
+
+  <div class="impl" style="margin-top:14px">
+    <div class="impl-title">Final instruction to Claude Code</div>
+    <div class="impl-row"><div class="ir-n">1</div><div class="ir-t"><strong>Implement P0 items only until the web is live and all pages load without errors.</strong> Do not work on P1 or P2 until P0 is complete and verified on the live hostname.</div></div>
+    <div class="impl-row"><div class="ir-n">2</div><div class="ir-t"><strong>Implement P1 items before the PearX demo.</strong> Priority order: (1) trust pages complete, (2) safe copy everywhere, (3) passport signer panel, (4) mobile nav, (5) stale state rendering.</div></div>
+    <div class="impl-row"><div class="ir-n">3</div><div class="ir-t"><strong>P2 items are post-launch polish.</strong> Do not block launch on any P2 item. Log them in the project backlog.</div></div>
+    <div class="impl-row" style="border-bottom:0"><div class="ir-n">!</div><div class="ir-t"><strong>Copy safety is non-negotiable at every priority level.</strong> If you encounter "verified," "approved," "cleared," or "accepted everywhere" in any surface while implementing any task — fix it immediately, regardless of priority tier.</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  14 · FINAL STATUS
+══════════════════════════════════════════════ -->
+<div class="sec" id="status">
+  <div class="sh"><span class="n">14</span><h2>Final Status</h2><span class="ey">design determination · 2026-05-24</span></div>
+
+  <div class="verdict-final">
+    <div>
+      <div class="vf-big">READY</div>
+      <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-top:4px">With warnings below</div>
+    </div>
+    <div class="vf-body">
+      <div class="k">Determination</div>
+      <div class="v">READY FOR LIVE QA WHEN URL IS PROVIDED</div>
+      <div class="d">
+        Design doctrine is complete. All 14 surfaces are specified. Trust Graph taxonomy, node/edge rendering, and interaction model are defined. Copy safety rules are binding. PearX reviewer path is clear.<br/><br/>
+        <strong style="color:var(--ink-900)">Blocking before public cutover (P0):</strong> Live hostname required for QA. Any instance of "verified" CTA, percentage-based posture, gradient background, or missing /trust page will fail the institutional credibility bar.<br/><br/>
+        <strong style="color:var(--ink-900)">Blocking before PearX (P1):</strong> Passport signer panel absent. Trust graph legend missing. Stale-as-opacity rendering on any surface.<br/><br/>
+        <strong style="color:var(--ink-900)">Design posture:</strong> Evidence-bounded. Institutionally honest. PearX-reviewer-safe. No fake traction. No invented customers. No claim of institutional acceptance.
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
+    <span class="chip c-ok"><span class="d"></span>Design doctrine · complete</span>
+    <span class="chip c-ok"><span class="d"></span>Trust graph · specified</span>
+    <span class="chip c-ok"><span class="d"></span>Copy safety rules · binding</span>
+    <span class="chip c-ok"><span class="d"></span>PearX script · ready</span>
+    <span class="chip c-watch"><span class="d"></span>Live URL · awaited for QA</span>
+    <span class="chip c-block"><span class="d"></span>P0 items · block public launch</span>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /layout -->
+
+<footer class="ft">
+  <div>VitalCV · Design Mega Wave · <strong>vc.2026.05.24-megawave</strong> · 14 surfaces · binding</div>
+  <div>Design-only wave · no backend modification · no fake traction · <strong>READY FOR LIVE QA WHEN URL PROVIDED</strong></div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Repo State Visibility System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:   #fff;
+  --ink-50:  #f7f6f2;
+  --ink-100: #efede7;
+  --ink-200: #dddbd3;
+  --ink-300: #c2bfb5;
+  --ink-400: #96938a;
+  --ink-500: #6b6860;
+  --ink-600: #474540;
+  --ink-700: #2d2c28;
+  --ink-800: #1a1916;
+  --ink-900: #0f0e0c;
+  --ink-950: #050504;
+  --rule:    #dddbd3;
+  --rule-soft: #eceae4;
+  --paper:   #f4f2ec;
+  --m-live:    #2d6a4f;
+  --m-partial: #7d5a1e;
+  --m-spec:    #6b6860;
+  --m-orphan:  #5a3a1e;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink-900); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-feature-settings: 'ss01','cv11'; -webkit-font-smoothing: antialiased; font-size: 13.5px; line-height: 1.55; letter-spacing: -.003em; }
+.mono, code { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+/* ── Op bar ──────────────────────────────────────── */
+.opbar { background: var(--ink-950); color: var(--ink-300); font-family: 'Geist Mono', monospace; font-size: 10.5px; position: sticky; top: 0; z-index: 50; }
+.opbar .in { max-width: 1380px; margin: 0 auto; padding: 0 36px; height: 32px; display: flex; align-items: center; justify-content: space-between; }
+.opbar .l { display: flex; align-items: center; gap: 14px; }
+.opbar .l .g { width: 17px; height: 17px; background: #fff; color: #000; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; }
+.opbar .l strong { color: #fff; font-weight: 600; }
+.opbar .r { display: flex; align-items: center; gap: 16px; color: var(--ink-500); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; }
+.opbar .r .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border: 1px solid var(--ink-700); font-size: 9px; color: var(--ink-300); }
+.opbar .r .dot { width: 5px; height: 5px; background: #10b981; border-radius: 50%; }
+
+.doc { max-width: 1380px; margin: 0 auto; background: var(--ink-0); box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 20px 60px -20px rgba(0,0,0,.10); }
+
+/* ── Masthead ────────────────────────────────────── */
+.mast { padding: 36px 56px 32px; border-bottom: 1px solid var(--ink-900); }
+.mast .crumb { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.mast .crumb .r { display: inline-block; width: 18px; height: 1px; background: var(--ink-300); }
+.mast h1 { font-size: 34px; line-height: 1.05; letter-spacing: -.028em; font-weight: 600; margin: 0 0 10px; }
+.mast h1 em { font-style: normal; color: var(--ink-500); font-weight: 400; }
+.mast .lede { font-size: 14.5px; color: var(--ink-600); line-height: 1.6; max-width: 74ch; margin: 0 0 24px; }
+.mast .lede strong { color: var(--ink-900); font-weight: 500; }
+.mast .meta { display: flex; gap: 24px; flex-wrap: wrap; font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.mast .meta span strong { color: var(--ink-900); font-weight: 500; }
+
+/* ── Layout ──────────────────────────────────────── */
+.body { display: grid; grid-template-columns: 220px 1fr; }
+.toc { border-right: 1px solid var(--rule); padding: 28px 24px 48px; position: sticky; top: 32px; align-self: flex-start; height: calc(100vh - 32px); overflow-y: auto; }
+.toc .lbl { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--rule-soft); }
+.toc a { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; text-decoration: none; font-size: 12px; font-weight: 500; color: var(--ink-700); border-bottom: 1px dashed var(--rule-soft); transition: color .1s; }
+.toc a:last-child { border-bottom: 0; }
+.toc a:hover { color: var(--ink-950); }
+.toc a .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-400); font-weight: 400; flex-shrink: 0; }
+
+.content { padding: 0 56px 80px; min-width: 0; }
+.sec { margin-top: 56px; }
+.sec:first-child { margin-top: 40px; }
+.sh { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--ink-900); padding-bottom: 9px; margin-bottom: 22px; }
+.sh .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-300); font-weight: 600; }
+.sh h2 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: -.015em; }
+.sh .ey { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); margin-left: auto; }
+.prose { font-size: 13.5px; color: var(--ink-700); line-height: 1.65; max-width: 74ch; margin-bottom: 20px; }
+.prose strong { color: var(--ink-900); font-weight: 500; }
+
+/* ── State badge ──────────────────────────────────── */
+.sb { display: inline-flex; align-items: center; gap: 5px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 7px; white-space: nowrap; }
+.sb .sd { width: 5px; height: 5px; border-radius: 50%; }
+.sb-live    { border: 1px solid var(--m-live);    color: var(--m-live); }
+.sb-live .sd    { background: var(--m-live); }
+.sb-partial { border: 1px dashed var(--m-partial); color: var(--m-partial); }
+.sb-partial .sd { border: 1.5px dashed var(--m-partial); border-radius: 50%; }
+.sb-spec    { border: 1px dashed var(--ink-400);   color: var(--ink-500); }
+.sb-spec .sd    { background: var(--ink-400); opacity: .4; }
+.sb-orphan  { border: 1px solid var(--m-orphan);   color: var(--m-orphan); }
+.sb-orphan .sd  { background: var(--m-orphan); }
+.sb-super   { border: 1px solid var(--ink-700); color: var(--ink-700); background: var(--ink-900); color: #fff; }
+.sb-super .sd   { background: #fff; }
+
+/* never / always */
+.never  { color: var(--m-orphan); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.never::before { content: "× "; }
+.always { color: var(--m-live); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.always::before { content: "✓ "; }
+
+/* ═══════════════════════════════════════════════════
+   00 · STATE MACHINE
+   ═══════════════════════════════════════════════════ */
+.state-machine { border: 1px solid var(--ink-900); display: flex; flex-direction: column; }
+.sm-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.sm-header strong { font-weight: 500; color: #fff; }
+
+/* State nodes row */
+.sm-nodes { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--rule); }
+.sm-node { padding: 18px 16px 14px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; position: relative; }
+.sm-node:last-child { border-right: 0; }
+.sm-node .sn-badge { }
+.sm-node .sn-def { font-size: 11.5px; color: var(--ink-700); line-height: 1.45; }
+.sm-node .sn-def strong { color: var(--ink-900); font-weight: 500; display: block; font-size: 12.5px; margin-bottom: 2px; }
+.sm-node .sn-left { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.sn-live    .sn-left { background: var(--m-live); }
+.sn-partial .sn-left { background: repeating-linear-gradient(to bottom, var(--m-partial) 0, var(--m-partial) 4px, transparent 4px, transparent 8px); }
+.sn-spec    .sn-left { background: repeating-linear-gradient(to bottom, var(--ink-300) 0, var(--ink-300) 4px, transparent 4px, transparent 8px); }
+.sn-orphan  .sn-left { background: var(--m-orphan); }
+.sn-super   .sn-left { background: var(--ink-900); }
+
+/* Transitions row */
+.sm-transitions { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--ink-50); }
+.sm-trans { padding: 10px 16px; border-right: 1px solid var(--rule); font-size: 11px; color: var(--ink-700); line-height: 1.45; }
+.sm-trans:last-child { border-right: 0; }
+.sm-trans .st-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); margin-bottom: 4px; }
+.sm-trans .st-arrow { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-700); font-weight: 500; }
+.sm-trans .st-arrow .from { color: var(--ink-500); }
+
+/* ═══════════════════════════════════════════════════
+   01 · WAVE-STATE HIERARCHY
+   ═══════════════════════════════════════════════════ */
+.wave-hierarchy { border: 1px solid var(--ink-900); }
+.wh-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.wh-header strong { font-weight: 500; color: #fff; }
+.wh-layer { border-top: 1px solid var(--rule); }
+.wh-layer-head { padding: 8px 20px; background: var(--ink-50); border-bottom: 1px solid var(--rule-soft); display: flex; align-items: center; justify-content: space-between; }
+.wh-layer-head .wlh-name { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); font-weight: 600; }
+.wh-layer-head .wlh-desc { font-size: 11.5px; color: var(--ink-600); }
+.wh-layer-head .wlh-count { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); }
+.wh-waves { display: flex; flex-wrap: wrap; gap: 0; padding: 12px 20px; gap: 8px; }
+.wave-chip { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--rule); min-width: 120px; position: relative; }
+.wave-chip.wc-live    { border-color: var(--m-live); border-left-width: 3px; }
+.wave-chip.wc-partial { border-color: var(--m-partial); border-left-width: 3px; border-style: dashed; border-left-style: solid; }
+.wave-chip.wc-spec    { border-color: var(--ink-300); border-left-width: 3px; border-style: dashed; opacity: .7; }
+.wave-chip.wc-orphan  { border-color: var(--m-orphan); border-left-width: 3px; background: var(--ink-50); }
+.wave-chip.wc-super   { border-color: var(--ink-700); border-left-width: 3px; background: var(--ink-50); opacity: .5; }
+.wave-chip .wc-num { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); font-weight: 600; }
+.wave-chip .wc-name { font-size: 11.5px; font-weight: 500; color: var(--ink-900); letter-spacing: -.008em; line-height: 1.2; }
+.wave-chip .wc-file { font-family: 'Geist Mono', monospace; font-size: 9px; color: var(--ink-500); }
+.wave-chip.wc-super .wc-name { color: var(--ink-500); }
+.wave-chip.wc-spec  .wc-name { color: var(--ink-600); }
+.supersede-tag { position: absolute; top: -1px; right: -1px; font-family: 'Geist Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: .10em; padding: 1px 5px; background: var(--ink-900); color: #fff; font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════
+   02 · ROUTE BINDING PROTOCOL
+   ═══════════════════════════════════════════════════ */
+.binding-diagram { border: 1px solid var(--ink-900); }
+.bd-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.bd-header strong { font-weight: 500; color: #fff; }
+.bd-columns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; border-bottom: 1px solid var(--rule); }
+.bd-col-head { padding: 10px 16px; background: var(--ink-50); border-right: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); font-weight: 600; }
+.bd-col-head:last-child { border-right: 0; }
+.bd-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; border-top: 1px solid var(--rule-soft); align-items: stretch; }
+.bd-row:hover { background: var(--ink-50); }
+.bd-cell { padding: 10px 16px; border-right: 1px solid var(--rule-soft); font-size: 11.5px; color: var(--ink-700); line-height: 1.4; }
+.bd-cell:last-child { border-right: 0; }
+.bd-cell.route { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); font-weight: 500; display: flex; align-items: center; }
+.bd-cell.component { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-700); display: flex; align-items: center; flex-direction: column; gap: 2px; align-items: flex-start; }
+.bd-cell.component .cf { font-size: 9.5px; color: var(--ink-500); }
+.bd-cell.data-src { font-size: 11.5px; color: var(--ink-600); display: flex; align-items: center; }
+.bd-cell.state-col { display: flex; align-items: center; }
+.bd-row.orphaned { opacity: .5; }
+.bd-row.orphaned .bd-cell.route { color: var(--m-orphan); text-decoration: line-through; text-decoration-color: var(--m-orphan); }
+
+/* Connector arrows between columns */
+.bind-arrow { color: var(--ink-300); font-size: 11px; padding: 0 2px; }
+
+/* ═══════════════════════════════════════════════════
+   03 · TOPOLOGY SYNCHRONIZATION PATTERN
+   ═══════════════════════════════════════════════════ */
+.sync-protocol { border: 1px solid var(--ink-900); }
+.sp-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.sp-header strong { font-weight: 500; color: #fff; }
+.sp-steps { display: grid; grid-template-columns: repeat(4, 1fr); }
+.sp-step { padding: 18px 18px 16px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; position: relative; }
+.sp-step:last-child { border-right: 0; }
+.sp-step .ss-num { font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); font-weight: 600; }
+.sp-step .ss-name { font-size: 13.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.012em; line-height: 1.2; }
+.sp-step .ss-body { font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.sp-step .ss-body strong { color: var(--ink-900); font-weight: 500; }
+.sp-step .ss-check { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-500); margin-top: 4px; }
+.sp-step .ss-check .ck { display: flex; gap: 5px; align-items: flex-start; padding: 3px 0; border-bottom: 1px dashed var(--rule-soft); line-height: 1.3; }
+.sp-step .ss-check .ck:last-child { border-bottom: 0; }
+.sp-step .ss-check .ck::before { content: "·"; color: var(--ink-400); flex-shrink: 0; }
+.sp-step .ss-arrow { position: absolute; right: -7px; top: 24px; width: 13px; height: 13px; background: var(--ink-0); border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); transform: rotate(45deg); z-index: 2; }
+.sp-step:last-child .ss-arrow { display: none; }
+.sp-foot { border-top: 1px solid var(--rule); background: var(--ink-50); padding: 10px 20px; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-600); display: flex; gap: 24px; flex-wrap: wrap; }
+.sp-foot strong { color: var(--ink-900); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════
+   04 · DRIFT DETECTION SYSTEM
+   ═══════════════════════════════════════════════════ */
+.drift-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--ink-900); }
+.drift-col { border-right: 1px solid var(--rule); }
+.drift-col:last-child { border-right: 0; }
+.drift-col-head { padding: 10px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-700); display: flex; justify-content: space-between; }
+.drift-col-head strong { color: var(--ink-900); font-weight: 600; }
+.drift-item { padding: 12px 18px; border-bottom: 1px solid var(--rule-soft); display: flex; flex-direction: column; gap: 5px; }
+.drift-item:last-child { border-bottom: 0; }
+.drift-item .di-signal { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); margin-bottom: 2px; }
+.drift-item .di-pattern { font-size: 12.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; line-height: 1.25; }
+.drift-item .di-detail { font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.drift-item .di-fix { font-size: 11.5px; color: var(--m-live); font-style: italic; margin-top: 2px; }
+.drift-item .di-fix::before { content: "Fix: "; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; font-style: normal; }
+
+/* ═══════════════════════════════════════════════════
+   05 · BOUNDARY LANGUAGE SYSTEM
+   ═══════════════════════════════════════════════════ */
+.boundary-language { border: 1px solid var(--ink-900); }
+.bl-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.bl-header strong { font-weight: 500; color: #fff; }
+.bl-row { display: grid; grid-template-columns: 140px 200px 1fr 1fr; border-top: 1px solid var(--rule); align-items: start; }
+.bl-row:hover { background: var(--ink-50); }
+.bl-row .bc { padding: 11px 16px; border-right: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.bl-row .bc:last-child { border-right: 0; }
+.bl-row .bc.state { background: var(--ink-50); display: flex; align-items: center; border-right: 1px solid var(--rule); }
+.bl-row .bc.in-ui { font-style: italic; color: var(--ink-600); }
+.bl-row .bc.in-code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-700); }
+.bl-row .bc.in-code code { background: var(--ink-50); border: 1px solid var(--rule); padding: 1px 5px; display: block; margin-bottom: 4px; color: var(--ink-900); font-size: 10px; }
+.bl-row .bc strong { color: var(--ink-900); font-weight: 500; }
+.bl-head-row { display: grid; grid-template-columns: 140px 200px 1fr 1fr; background: var(--ink-900); }
+.bl-head-row .bhc { padding: 10px 16px; border-right: 1px solid var(--ink-700); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.5); }
+.bl-head-row .bhc:last-child { border-right: 0; }
+.bl-head-row .bhc strong { color: #fff; font-size: 10.5px; font-weight: 600; display: block; }
+
+/* ═══════════════════════════════════════════════════
+   06 · AUDIT REFERENCE MAP
+   ═══════════════════════════════════════════════════ */
+.audit-map { border: 1px solid var(--ink-900); }
+.am-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.am-header strong { font-weight: 500; color: #fff; }
+.am-row { display: grid; grid-template-columns: 180px 1fr 1fr 120px; border-top: 1px solid var(--rule); align-items: start; }
+.am-row:hover { background: var(--ink-50); }
+.am-row .ac { padding: 11px 16px; border-right: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.45; }
+.am-row .ac:last-child { border-right: 0; }
+.am-row .ac:first-child { background: var(--ink-50); font-size: 12.5px; font-weight: 500; color: var(--ink-900); border-right: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .04em; display: flex; align-items: center; }
+.am-row .ac strong { color: var(--ink-900); font-weight: 500; }
+.am-row .ac code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); }
+.am-head-row { display: grid; grid-template-columns: 180px 1fr 1fr 120px; background: var(--ink-900); }
+.am-head-row .ahc { padding: 10px 16px; border-right: 1px solid var(--ink-700); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.5); }
+.am-head-row .ahc:last-child { border-right: 0; }
+.am-head-row .ahc strong { color: #fff; font-size: 10.5px; font-weight: 600; display: block; }
+
+/* ═══════════════════════════════════════════════════
+   07 · IMPLEMENTATION GUIDANCE
+   ═══════════════════════════════════════════════════ */
+.impl-block { border: 1px solid var(--rule); margin-bottom: -1px; }
+.ib-head { padding: 10px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; color: var(--ink-700); }
+.ib-head strong { color: var(--ink-900); font-weight: 600; font-size: 10.5px; }
+.ib-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 0; }
+.rule-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--rule-soft); align-items: start; }
+.rule-row:last-child { border-bottom: 0; }
+.rk { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); font-weight: 600; padding-top: 1px; }
+.rv { font-size: 12px; color: var(--ink-700); line-height: 1.55; }
+.rv strong { color: var(--ink-900); font-weight: 500; }
+.rv code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); background: var(--ink-50); padding: 1px 4px; border: 1px solid var(--rule); }
+
+footer.foot { padding: 20px 56px; border-top: 1px solid var(--rule); background: var(--ink-0); font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: .14em; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+footer.foot strong { color: var(--ink-900); font-weight: 600; }
+
+@media (max-width: 960px) {
+  .body { grid-template-columns: 1fr; }
+  .toc { display: none; }
+  .content { padding: 0 24px 48px; }
+  .mast { padding: 24px; }
+  .sm-nodes, .sm-transitions, .sp-steps { grid-template-columns: 1fr 1fr; }
+  .bd-columns, .bd-row { grid-template-columns: 1fr 1fr; }
+  .bd-cell.data-src, .bd-col-head:nth-child(3) { display: none; }
+  .drift-grid { grid-template-columns: 1fr; }
+  .bl-head-row, .bl-row, .am-head-row, .am-row { grid-template-columns: 1fr 1fr; }
+  footer.foot { padding: 20px 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span style="color:var(--ink-700);">/</span>
+      <span style="color:var(--ink-400);">repo state visibility · v1</span>
+    </div>
+    <div class="r">
+      <span>wave hierarchy · route binding · topology sync · drift detection</span>
+      <span style="color:var(--ink-700);">|</span>
+      <span class="pill"><span class="dot"></span>Reality-aware</span>
+      <span style="color:var(--ink-600);">vc.2026.05.21-f</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Repo state visibility · wave hierarchy · route binding · topology sync · Claude Code handoff</div>
+    <h1>Design and implementation, <em>visibly aligned.</em></h1>
+    <p class="lede">One system that keeps conceptual waves, materialized routes, audit references, and operational topology synchronized. <strong>Any drift between what is designed and what is built is immediately visible.</strong> No speculative navigation. No conceptual hallucination. No hidden incompleteness. Implementation state is a first-class design artifact.</p>
+    <div class="meta">
+      <span>States · <strong>live · partial · spec · orphan · superseded</strong></span>
+      <span>Layers · <strong>3 · foundation · view · composition</strong></span>
+      <span>Sync steps · <strong>4 · design → route → component → data</strong></span>
+      <span>Drift signals · <strong>6 · all detectable · all fixable</strong></span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="toc">
+      <div class="lbl">Contents</div>
+      <nav>
+        <a href="#statemachine"><span class="n">00</span>State Machine</a>
+        <a href="#hierarchy"><span class="n">01</span>Wave-State Hierarchy</a>
+        <a href="#binding"><span class="n">02</span>Route Binding Protocol</a>
+        <a href="#sync"><span class="n">03</span>Topology Sync Pattern</a>
+        <a href="#drift"><span class="n">04</span>Drift Detection</a>
+        <a href="#language"><span class="n">05</span>Boundary Language</a>
+        <a href="#audit"><span class="n">06</span>Audit Reference Map</a>
+        <a href="#impl"><span class="n">07</span>Implementation Guidance</a>
+      </nav>
+    </aside>
+
+    <div class="content">
+
+      <!-- ══ 00 · STATE MACHINE ═════════════════════════ -->
+      <div class="sec" id="statemachine">
+        <div class="sh"><span class="n">00</span><h2>Materialization state machine · five states · valid transitions only</h2><span class="ey">states are explicit · transitions are deliberate · never implicit</span></div>
+        <p class="prose">Every wave, route, and surface exists in exactly one materialization state. Transitions between states are explicit decisions — not automatic side effects of code changes. <strong>A state transition requires both a code change and an update to the topology map.</strong> A wave that transitions without updating the map is a drift event.</p>
+
+        <div class="state-machine">
+          <div class="sm-header"><strong>Five states · valid transitions · left-border encoding per state</strong><span style="color:rgba(255,255,255,.4);">binding · vc.2026.05.21</span></div>
+          <div class="sm-nodes">
+            <div class="sm-node sn-spec">
+              <div class="sn-left"></div>
+              <div class="sn-badge"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div>
+              <div class="sn-def"><strong>Design artifact only.</strong> No route. No component. No data. Exists in design docs or wave specs. Not navigable from the product.</div>
+            </div>
+            <div class="sm-node sn-partial">
+              <div class="sn-left"></div>
+              <div class="sn-badge"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div>
+              <div class="sn-def"><strong>Route exists. Component renders.</strong> At least one declared feature or data binding is incomplete. Boundary marker required on surface.</div>
+            </div>
+            <div class="sm-node sn-live">
+              <div class="sn-left"></div>
+              <div class="sn-badge"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+              <div class="sn-def"><strong>Fully materialized.</strong> Route, component, and data all connected. No unbuilt features referenced in UI copy. No mocked data without labels.</div>
+            </div>
+            <div class="sm-node sn-super">
+              <div class="sn-left"></div>
+              <div class="sn-badge"><span class="sb sb-super"><span class="sd"></span>Superseded</span></div>
+              <div class="sn-def"><strong>Higher wave is canonical.</strong> File stays in repo. Route is removed. Not imported in app.jsx. <code>// SUPERSEDED by wave{N}</code> comment at file top.</div>
+            </div>
+            <div class="sm-node sn-orphan">
+              <div class="sn-left"></div>
+              <div class="sn-badge"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div>
+              <div class="sn-def"><strong>Built but disconnected.</strong> No active route. No active import. May exist due to a refactor, abandoned feature, or missed cleanup after supersession.</div>
+            </div>
+          </div>
+          <div class="sm-transitions">
+            <div class="sm-trans">
+              <div class="st-label">Valid transitions from Spec</div>
+              <div class="st-arrow"><span class="from">Spec</span> → Partial <span style="color:var(--ink-400);">(build begins)</span></div>
+              <div class="st-arrow"><span class="from">Spec</span> → Orphaned <span style="color:var(--ink-400);">(built, not wired)</span></div>
+            </div>
+            <div class="sm-trans">
+              <div class="st-label">Valid transitions from Partial</div>
+              <div class="st-arrow"><span class="from">Partial</span> → Live <span style="color:var(--ink-400);">(build complete)</span></div>
+              <div class="st-arrow"><span class="from">Partial</span> → Superseded <span style="color:var(--ink-400);">(wave replaced)</span></div>
+              <div class="st-arrow"><span class="from">Partial</span> → Orphaned <span style="color:var(--ink-400);">(route removed)</span></div>
+            </div>
+            <div class="sm-trans">
+              <div class="st-label">Valid transitions from Live</div>
+              <div class="st-arrow"><span class="from">Live</span> → Superseded <span style="color:var(--ink-400);">(higher wave ships)</span></div>
+              <div class="st-arrow"><span class="from">Live</span> → Orphaned <span style="color:var(--ink-400);">(route removed without replacement)</span></div>
+            </div>
+            <div class="sm-trans">
+              <div class="st-label">Valid transitions from Superseded</div>
+              <div class="st-arrow"><span class="from">Superseded</span> → Orphaned <span style="color:var(--ink-400);">(file confirmed disconnected)</span></div>
+              <div style="margin-top:4px;font-size:10.5px;color:var(--ink-500);">Never: Superseded → Live. Restore means a new wave number.</div>
+            </div>
+            <div class="sm-trans">
+              <div class="st-label">Valid transitions from Orphaned</div>
+              <div class="st-arrow"><span class="from">Orphaned</span> → Live <span style="color:var(--ink-400);">(reconnected by new wave)</span></div>
+              <div style="margin-top:4px;font-size:10.5px;color:var(--ink-500);">Reconnection always creates a new wave number. No silent restoration.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 01 · WAVE-STATE HIERARCHY ═════════════════ -->
+      <div class="sec" id="hierarchy">
+        <div class="sh"><span class="n">01</span><h2>Wave-state hierarchy · three layers · dependency direction</h2><span class="ey">foundation → views → compositions · always upward</span></div>
+        <p class="prose">Waves are organized into three dependency layers. <strong>Foundation</strong> waves provide tokens, primitives, and shared components. <strong>View</strong> waves build individual surfaces. <strong>Composition</strong> waves assemble views into flows and prototypes. A wave's state is only as strong as its weakest dependency — a live composition on a partial view is effectively partial.</p>
+
+        <div class="wave-hierarchy">
+          <div class="wh-header"><strong>Wave dependency hierarchy · three layers · state per wave</strong><span style="color:rgba(255,255,255,.4);">chip color = left-border encoding</span></div>
+
+          <div class="wh-layer">
+            <div class="wh-layer-head">
+              <div>
+                <div class="wlh-name">Layer 01 · Foundation</div>
+                <div class="wlh-desc">Tokens, primitives, shared components — everything else depends on these</div>
+              </div>
+              <div class="wlh-count">6 waves · all live</div>
+            </div>
+            <div class="wh-waves">
+              <div class="wave-chip wc-live"><div class="wc-num">W05</div><div class="wc-name">Tokens v2</div><div class="wc-file">tokens-v2.css</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W07</div><div class="wc-name">Primitives</div><div class="wc-file">primitives.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W08</div><div class="wc-name">Icons</div><div class="wc-file">icons.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W28</div><div class="wc-name">Tweaks Panel</div><div class="wc-file">tweaks-panel.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">Shared Components</div><div class="wc-file">components-shared.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">Telemetry</div><div class="wc-file">telemetry.js</div></div>
+            </div>
+          </div>
+
+          <div class="wh-layer">
+            <div class="wh-layer-head">
+              <div>
+                <div class="wlh-name">Layer 02 · Views</div>
+                <div class="wlh-desc">Individual surface views — each maps to one or more routes</div>
+              </div>
+              <div class="wlh-count">18 waves · 15 live · 1 partial · 2 superseded</div>
+            </div>
+            <div class="wh-waves">
+              <div class="wave-chip wc-live"><div class="wc-num">W09</div><div class="wc-name">Home</div><div class="wc-file">view-home.jsx</div></div>
+              <div class="wave-chip wc-super"><div class="wc-num">W10</div><div class="wc-name">Activation v1</div><div class="wc-file">view-activation.jsx</div><span class="supersede-tag">→ W14b</span></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W14b</div><div class="wc-name">Activation v2</div><div class="wc-file">view-activation-v2.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W13</div><div class="wc-name">Inbox v1</div><div class="wc-file">wave13-inbox.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W20</div><div class="wc-name">Inbox v2</div><div class="wc-file">view-inbox-v2.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W15b</div><div class="wc-name">Autopilot v2</div><div class="wc-file">view-autopilot-v2.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W25</div><div class="wc-name">Autopilot v3</div><div class="wc-file">wave25-autopilot.jsx</div></div>
+              <div class="wave-chip wc-super"><div class="wc-num">W16</div><div class="wc-name">ROI v1</div><div class="wc-file">view-roi.jsx</div><span class="supersede-tag">→ W22</span></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W22</div><div class="wc-name">ROI v2</div><div class="wc-file">view-roi-v2.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W17</div><div class="wc-name">Proof Dossier</div><div class="wc-file">view-dossier.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W18</div><div class="wc-name">Verifier</div><div class="wc-file">wave18-verify.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W23</div><div class="wc-name">Verifier v2</div><div class="wc-file">wave23-verify-v2.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W19</div><div class="wc-name">Confidence</div><div class="wc-file">confidence.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W24</div><div class="wc-name">Application</div><div class="wc-file">view-application-v2.jsx</div></div>
+              <div class="wave-chip wc-partial"><div class="wc-num">W29</div><div class="wc-name">Admin Console</div><div class="wc-file">view-admin.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">Employer</div><div class="wc-file">view-employer.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">Passport</div><div class="wc-file">view-passport.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">File</div><div class="wc-file">view-file.jsx</div></div>
+            </div>
+          </div>
+
+          <div class="wh-layer">
+            <div class="wh-layer-head">
+              <div>
+                <div class="wlh-name">Layer 03 · Compositions</div>
+                <div class="wlh-desc">App shell, prototypes, design artifacts — assemble views into flows</div>
+              </div>
+              <div class="wlh-count">3 live · 12 spec-only</div>
+            </div>
+            <div class="wh-waves">
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">App Shell</div><div class="wc-file">app.jsx · router</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">W28</div><div class="wc-name">Tweaks Composition</div><div class="wc-file">wave28-tweaks.jsx</div></div>
+              <div class="wave-chip wc-live"><div class="wc-num">—</div><div class="wc-name">VitalCV Prototype</div><div class="wc-file">VitalCV.html</div></div>
+              <div class="wave-chip wc-spec"><div class="wc-num">D44</div><div class="wc-name">Why VitalCV</div><div class="wc-file">Why VitalCV.html</div></div>
+              <div class="wave-chip wc-spec"><div class="wc-num">D45–55</div><div class="wc-name">Wave Stack designs</div><div class="wc-file">standalone HTMLs</div></div>
+              <div class="wave-chip wc-orphan"><div class="wc-num">PR-B</div><div class="wc-name">Crypto Verifier</div><div class="wc-file">PR-B Crypto…html</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;padding:12px 16px;background:var(--ink-50);border:1px solid var(--rule);font-size:12px;color:var(--ink-700);line-height:1.6;">
+          <strong style="color:var(--ink-900);font-weight:500;">Dependency rule:</strong> A composition's effective state is the minimum state of its dependencies. An app shell importing a partial view is partially live — even if the shell itself is complete. The topology map must reflect the weakest link, not the strongest.
+        </div>
+      </div>
+
+      <!-- ══ 02 · ROUTE BINDING PROTOCOL ═══════════════ -->
+      <div class="sec" id="binding">
+        <div class="sh"><span class="n">02</span><h2>Route binding protocol · four columns · one source of truth</h2><span class="ey">route → component → data → state · all four required</span></div>
+        <p class="prose">Every live route is bound across four columns: the path, the component it renders, the data it consumes, and its materialization state. <strong>A route is only live when all four columns are complete.</strong> A route with a component but no data source is partial. A route with a declared path but no imported component is an orphan.</p>
+
+        <div class="binding-diagram">
+          <div class="bd-header"><strong>Route binding table · all zones · one entry per canonical route</strong><span style="color:rgba(255,255,255,.4);">superseded routes shown in grey · orphaned crossed out</span></div>
+          <div class="bd-columns">
+            <div class="bd-col-head">Route path</div>
+            <div class="bd-col-head">Component <span class="bind-arrow">→</span> file</div>
+            <div class="bd-col-head">Data source</div>
+            <div class="bd-col-head">State</div>
+          </div>
+
+          <!-- Clinician zone -->
+          <div style="padding:5px 16px 3px;border-top:1px solid var(--ink-900);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);font-weight:600;">Zone 1 · clinician.vitalcv.health</div>
+          <div class="bd-row"><div class="bd-cell route">/</div><div class="bd-cell component">view-home.jsx<span class="cf">wave9.jsx</span></div><div class="bd-cell data-src">Static props · no API</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/activate</div><div class="bd-cell component">view-activation-v2.jsx<span class="cf">wave14b-activation.jsx</span></div><div class="bd-cell data-src">NPI validation · DID binding</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/passport</div><div class="bd-cell component">view-passport.jsx<span class="cf">wave7.jsx</span></div><div class="bd-cell data-src">Credential lanes · source polling</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/inbox</div><div class="bd-cell component">view-inbox-v2.jsx<span class="cf">wave20-inbox.jsx</span></div><div class="bd-cell data-src">Verification queue · claim rows</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/autopilot</div><div class="bd-cell component">view-autopilot-v2.jsx<span class="cf">wave25-autopilot.jsx</span></div><div class="bd-cell data-src">SLO bands · gap detection</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+
+          <!-- Employer zone -->
+          <div style="padding:5px 16px 3px;border-top:1px solid var(--ink-900);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);font-weight:600;">Zone 2 · console.vitalcv.health</div>
+          <div class="bd-row"><div class="bd-cell route">/</div><div class="bd-cell component">view-employer.jsx<span class="cf">wave10.jsx</span></div><div class="bd-cell data-src">Org roster · coverage status</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/roi</div><div class="bd-cell component">view-roi-v2.jsx<span class="cf">wave22-roi.jsx</span></div><div class="bd-cell data-src">Waste delta · projection (labeled)</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/dossier/:id</div><div class="bd-cell component">view-dossier.jsx<span class="cf">wave17-dossier.jsx</span></div><div class="bd-cell data-src">Chain · source URLs · Tier 3</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/admin</div><div class="bd-cell component">view-admin.jsx<span class="cf">wave29-admin.jsx</span></div><div class="bd-cell data-src">Org mgmt · some actions mocked</div><div class="bd-cell state-col"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div></div>
+
+          <!-- Verifier zone -->
+          <div style="padding:5px 16px 3px;border-top:1px solid var(--ink-900);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);font-weight:600;">Zone 3 · verify.vitalcv.health</div>
+          <div class="bd-row"><div class="bd-cell route">/:token</div><div class="bd-cell component">wave23-verify-v2.jsx<span class="cf">canonical verifier</span></div><div class="bd-cell data-src">Reading order · chain · ownership</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="bd-row"><div class="bd-cell route">/trust/:id</div><div class="bd-cell component">confidence.jsx<span class="cf">wave19-confidence.jsx</span></div><div class="bd-cell data-src">Trust tier · Tier 0 verdict</div><div class="bd-cell state-col"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+
+          <!-- Orphaned / disconnected -->
+          <div style="padding:5px 16px 3px;border-top:1px solid var(--ink-900);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--m-orphan);font-weight:600;">Disconnected · not in active router</div>
+          <div class="bd-row orphaned"><div class="bd-cell route">/receipt/pr-b</div><div class="bd-cell component">PR-B Crypto Verifier…<span class="cf">superseded by W23</span></div><div class="bd-cell data-src">—</div><div class="bd-cell state-col"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div></div>
+          <div class="bd-row orphaned"><div class="bd-cell route">/activate/v1</div><div class="bd-cell component">view-activation.jsx<span class="cf">superseded by W14b</span></div><div class="bd-cell data-src">—</div><div class="bd-cell state-col"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 03 · TOPOLOGY SYNC PATTERN ════════════════ -->
+      <div class="sec" id="sync">
+        <div class="sh"><span class="n">03</span><h2>Topology synchronization pattern · four steps · run per wave</h2><span class="ey">design → route → component → data · all four in order</span></div>
+        <p class="prose">Every wave goes through four synchronization steps before its state can be marked live. The steps are sequential — you cannot mark a wave live if any step is incomplete. <strong>Running this protocol per wave is what prevents design-reality drift from accumulating.</strong></p>
+
+        <div class="sync-protocol">
+          <div class="sp-header"><strong>Sync protocol · four steps · run at wave completion · binding</strong><span style="color:rgba(255,255,255,.4);">all four required before live</span></div>
+          <div class="sp-steps">
+
+            <div class="sp-step">
+              <div class="ss-num">Step 01</div>
+              <div class="ss-name">Design audit</div>
+              <div class="ss-body">Compare the design artifact (HTML spec, wave doc) against the materialized view. <strong>Every feature mentioned in UI copy or shown in the design must exist in the component.</strong></div>
+              <div class="ss-check">
+                <div class="ck">All features in design copy are built</div>
+                <div class="ck">No speculative UI elements in the view</div>
+                <div class="ck">Mocked data labeled with // MOCK</div>
+                <div class="ck">Partial features carry boundary marker</div>
+              </div>
+              <div class="ss-arrow"></div>
+            </div>
+
+            <div class="sp-step">
+              <div class="ss-num">Step 02</div>
+              <div class="ss-name">Route audit</div>
+              <div class="ss-body">Confirm the route is declared in app.jsx, resolves to the correct component, and is reachable from at least one navigation entry point.</div>
+              <div class="ss-check">
+                <div class="ck">Route declared in router</div>
+                <div class="ck">Component imported (not orphaned)</div>
+                <div class="ck">Reachable from nav (not dead-end)</div>
+                <div class="ck">No superseded file at same path</div>
+              </div>
+              <div class="ss-arrow"></div>
+            </div>
+
+            <div class="sp-step">
+              <div class="ss-num">Step 03</div>
+              <div class="ss-name">Component audit</div>
+              <div class="ss-body">Verify the component renders without errors, all props are supplied, all child components are imported, and no TODOs remain in interactive paths.</div>
+              <div class="ss-check">
+                <div class="ck">No console errors on render</div>
+                <div class="ck">All props typed and supplied</div>
+                <div class="ck">No TODO handlers on buttons</div>
+                <div class="ck">All imports resolve (no orphaned deps)</div>
+              </div>
+              <div class="ss-arrow"></div>
+            </div>
+
+            <div class="sp-step">
+              <div class="ss-num">Step 04</div>
+              <div class="ss-name">Data audit</div>
+              <div class="ss-body">Confirm every data value comes from a real source or an explicitly labeled mock. Update the route binding table. Set wave state to live.</div>
+              <div class="ss-check">
+                <div class="ck">Real data or labeled mock per field</div>
+                <div class="ck">Route binding table updated</div>
+                <div class="ck">Topology map reflects new state</div>
+                <div class="ck">State machine transition logged</div>
+              </div>
+            </div>
+
+          </div>
+          <div class="sp-foot">
+            <span>Wave is <strong>Live</strong> only when all four steps pass.</span>
+            <span>Steps 1–3 pass but step 4 fails = <strong>Partial</strong></span>
+            <span>Step 2 fails (no route) = <strong>Orphaned</strong></span>
+            <span>Step 1 fails (design only) = <strong>Spec</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 04 · DRIFT DETECTION ═══════════════════════ -->
+      <div class="sec" id="drift">
+        <div class="sh"><span class="n">04</span><h2>Drift detection system · six signals · all fixable</h2><span class="ey">drift is detectable · fixable · never acceptable</span></div>
+        <p class="prose">Design-reality drift occurs when the design artifact and the materialized implementation diverge without the topology map being updated. <strong>Six drift signals cover the most common failure modes.</strong> Each signal is detectable by inspection — no automated tooling required, though automation is encouraged.</p>
+
+        <div class="drift-grid">
+          <div class="drift-col">
+            <div class="drift-col-head"><strong>Drift signals · design → implementation</strong><span>3 of 6</span></div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 01 · UI copy references unbuilt feature</div>
+              <div class="di-pattern">"This feature is mentioned in the surface but doesn't exist in the component."</div>
+              <div class="di-detail">A button label, status message, or section heading describes a feature (e.g., "Bulk revoke") that has no handler or backend. The design spec has it; the component doesn't.</div>
+              <div class="di-fix">Remove the copy, add a <code>data-materialization="partial"</code> marker, or build the feature before shipping the wave.</div>
+            </div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 02 · Design artifact links to non-existent route</div>
+              <div class="di-pattern">"Navigation in the design leads to a surface that has no live route."</div>
+              <div class="di-detail">A design artifact (e.g., a wave spec) shows a nav link to a spec-only surface. If that link is copied into the product, it creates a dead end or 404.</div>
+              <div class="di-fix">Audit every navigation element in design artifacts before porting to product. Remove links to spec-only surfaces.</div>
+            </div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 03 · Mocked data unlabeled</div>
+              <div class="di-pattern">"A data value in a live surface is hardcoded without a // MOCK comment."</div>
+              <div class="di-detail">A clinician count, source status, or timestamp is hardcoded but appears to be live data. The reviewer cannot distinguish real from mocked. This is an honesty failure.</div>
+              <div class="di-fix">Add <code>// MOCK</code> comment at every hardcoded value. Connect to real data source or mark surface as partial.</div>
+            </div>
+          </div>
+
+          <div class="drift-col">
+            <div class="drift-col-head"><strong>Drift signals · implementation → topology</strong><span>3 of 6</span></div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 04 · Superseded file still in router</div>
+              <div class="di-pattern">"A superseded view file is still imported in app.jsx with an active route."</div>
+              <div class="di-detail">wave14-activation.jsx was superseded by wave14b, but the old route still resolves. A user navigating via back-button or direct URL can reach the superseded view.</div>
+              <div class="di-fix">Remove superseded routes from app.jsx. Add <code>// SUPERSEDED by wave{N}</code> to the file. Update route binding table to orphaned.</div>
+            </div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 05 · Topology map not updated after wave ships</div>
+              <div class="di-pattern">"The route binding table says Partial but the component is now complete."</div>
+              <div class="di-detail">A wave completed all four sync steps but the topology map wasn't updated. The map shows partial; the product is live. Anyone reading the map makes a wrong decision.</div>
+              <div class="di-fix">Update topology map as part of step 4 of the sync protocol. Treat map updates as a required deliverable, not an optional cleanup task.</div>
+            </div>
+
+            <div class="drift-item">
+              <div class="di-signal">Signal 06 · Design artifact presented as product surface</div>
+              <div class="di-pattern">"A D44-D55 HTML file is linked from the product navigation."</div>
+              <div class="di-detail">A standalone design artifact (Why VitalCV, Wave Stack, etc.) is linked from the product's nav bar or sidebar. An institutional reviewer clicks it and lands on a design spec, not a product surface.</div>
+              <div class="di-fix">Remove all design artifact links from product navigation. Design artifacts are never imported in app.jsx. They are documentation, not routes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 05 · BOUNDARY LANGUAGE SYSTEM ═════════════ -->
+      <div class="sec" id="language">
+        <div class="sh"><span class="n">05</span><h2>Boundary language system · per state · in UI + in code</h2><span class="ey">language is explicit · never inferred · per-state vocabulary</span></div>
+        <p class="prose">Each materialization state has a specific language pattern used in two places: in the UI (what a reviewer sees) and in the code (what a developer writes). <strong>The language is the same state, expressed in two registers.</strong> Consistency between the two is what makes the system trustworthy.</p>
+
+        <div class="boundary-language">
+          <div class="bl-head-row">
+            <div class="bhc"><strong>State</strong></div>
+            <div class="bhc"><strong>UI language</strong>what the reviewer sees</div>
+            <div class="bhc"><strong>Code annotation</strong>what the developer writes</div>
+            <div class="bhc"><strong>Navigation rule</strong></div>
+          </div>
+          <div class="bl-row">
+            <div class="bc state"><span class="sb sb-live"><span class="sd"></span>Live</span></div>
+            <div class="bc in-ui">No boundary marker. The absence of a marker is the signal. Surface renders normally.</div>
+            <div class="bc in-code"><code>data-materialization="live"</code> on root element. No // MOCK comments. All handlers connected.</div>
+            <div class="bc"><strong>Navigable</strong> from product nav. Safe to link.</div>
+          </div>
+          <div class="bl-row">
+            <div class="bc state"><span class="sb sb-partial"><span class="sd"></span>Partial</span></div>
+            <div class="bc in-ui"><em>"Some actions on this surface are still being built."</em> Corner tag: "partial · some features in progress." Dashed border on incomplete cards.</div>
+            <div class="bc in-code"><code>data-materialization="partial"</code> on root. <code>// MOCK</code> on each mocked value. <code>// TODO: wire to API</code> on incomplete handlers.</div>
+            <div class="bc"><strong>Navigable</strong> from product nav. <strong>Boundary visible</strong> at all times.</div>
+          </div>
+          <div class="bl-row">
+            <div class="bc state"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div>
+            <div class="bc in-ui"><em>"Design artifact — not a product surface."</em> Op-bar label in design artifacts. Never appears in product nav.</div>
+            <div class="bc in-code"><code>// SPEC ONLY — not imported in app.jsx</code> at file top. No route declared. No import in composition layer.</div>
+            <div class="bc"><strong>Not navigable</strong> from product. Design artifacts only.</div>
+          </div>
+          <div class="bl-row">
+            <div class="bc state"><span class="sb sb-super"><span class="sd"></span>Superseded</span></div>
+            <div class="bc in-ui">Not visible in product. File exists in repo but no surface renders it.</div>
+            <div class="bc in-code"><code>// SUPERSEDED by wave{N} — do not import</code> at file top. Route removed from app.jsx. No navigation entry point.</div>
+            <div class="bc"><strong>Not navigable.</strong> Route removed. File retained for reference.</div>
+          </div>
+          <div class="bl-row">
+            <div class="bc state"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div>
+            <div class="bc in-ui">Not visible in product. If shown in design artifacts: "orphaned · superseded" corner tag on warm ink-50 background.</div>
+            <div class="bc in-code"><code>// ORPHANED — not connected to any route</code> at file top. No import in app.jsx. No router entry.</div>
+            <div class="bc"><strong>Not navigable.</strong> If shown in design docs: boundary tag required.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 06 · AUDIT REFERENCE MAP ══════════════════ -->
+      <div class="sec" id="audit">
+        <div class="sh"><span class="n">06</span><h2>Audit reference map · design artifacts → implemented surfaces</h2><span class="ey">every artifact has a known relationship to the product</span></div>
+        <p class="prose">Every design artifact (wave spec, D-series document, print output) has a known relationship to the materialized product. The audit reference map makes this relationship explicit so that a reviewer picking up a design document knows immediately whether it describes the current implementation, a prior iteration, or a conceptual direction that was never built.</p>
+
+        <div class="audit-map">
+          <div class="am-head-row">
+            <div class="ahc"><strong>Artifact</strong></div>
+            <div class="ahc"><strong>Relationship to product</strong></div>
+            <div class="ahc"><strong>Use in review</strong></div>
+            <div class="ahc"><strong>State</strong></div>
+          </div>
+
+          <div class="am-row"><div class="ac">Visual Grammar Canon</div><div class="ac"><strong>Binding spec.</strong> Defines 6 reading-order primitives, 8 component consolidations. All live surfaces must conform.</div><div class="ac">Use as conformance reference. Any surface that deviates is a drift event.</div><div class="ac"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="am-row"><div class="ac">Institutional Calmness System</div><div class="ac"><strong>Design system spec.</strong> Compression tiers, status semantics, typography hierarchy. Informs all view components.</div><div class="ac">Use when building new views. Not a product surface — a design constraint document.</div><div class="ac"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div></div>
+          <div class="am-row"><div class="ac">Operational Signal Hierarchy</div><div class="ac"><strong>Design system spec.</strong> Four-zone attention model, signal weights, action hierarchy. Binding on all operational surfaces.</div><div class="ac">Check all Zone A/B/C/D placements against this doc before wave completion.</div><div class="ac"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div></div>
+          <div class="am-row"><div class="ac">Wave Stack D44-D55</div><div class="ac"><strong>Design evolution record.</strong> Shows trust primitives, verifier designs, audit surfaces as they were designed. Some are implemented; some are not.</div><div class="ac">Use to understand design intent. Check each D-artifact against the route binding table to know its materialization state.</div><div class="ac"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div></div>
+          <div class="am-row"><div class="ac">PR-B Crypto Verifier</div><div class="ac"><strong>Explicitly superseded.</strong> Replaced by wave23-verify-v2. Retained as a design history artifact only.</div><div class="ac">Do not reference for implementation. Do not link from product. Historical reference only.</div><div class="ac"><span class="sb sb-orphan"><span class="sd"></span>Orphaned</span></div></div>
+          <div class="am-row"><div class="ac">Why VitalCV (D44)</div><div class="ac"><strong>Stakeholder narrative.</strong> Investor/institutional audience. Not a product surface. Not a spec for any specific component.</div><div class="ac">Use for stakeholder communication. Never link from product nav. Not an implementation reference.</div><div class="ac"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div></div>
+          <div class="am-row"><div class="ac">Operational Guardrails</div><div class="ac"><strong>Limitations vocabulary.</strong> Defines what VitalCV does not do, and the language for communicating those limits. Binding on UI copy.</div><div class="ac">Use when writing guardrail copy. Check any "limitation" or "boundary" message against this document.</div><div class="ac"><span class="sb sb-live"><span class="sd"></span>Live</span></div></div>
+          <div class="am-row"><div class="ac">Readiness Report</div><div class="ac"><strong>Output artifact.</strong> A rendered report for institutional delivery. Not a product surface — generated as a PDF artifact from the product.</div><div class="ac">Reference for report formatting. Informs view-dossier.jsx layout but is not itself a route.</div><div class="ac"><span class="sb sb-spec"><span class="sd"></span>Spec</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 07 · IMPLEMENTATION GUIDANCE ══════════════ -->
+      <div class="sec" id="impl">
+        <div class="sh"><span class="n">07</span><h2>Implementation guidance · Claude Code · binding rules</h2><span class="ey">state machine · sync protocol · drift prevention · all binding</span></div>
+
+        <div style="display:flex;flex-direction:column;gap:0;">
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>State machine enforcement</strong><span>transitions are decisions · never side effects</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">State declaration</div><div class="rv"><span class="always">declare materialization state explicitly on every view component root</span> using <code>data-materialization</code> attribute · <span class="never">infer state from rendering behavior</span></div></div>
+              <div class="rule-row"><div class="rk">Transition logging</div><div class="rv">Every state transition (spec→partial, partial→live, live→superseded) must be accompanied by a topology map update. <span class="never">change a wave's state without updating the binding table</span></div></div>
+              <div class="rule-row"><div class="rk">Restoration rule</div><div class="rv"><span class="never">restore a superseded or orphaned component by removing the supersession comment</span> — restoration requires a new wave number. This creates an auditable record of the change.</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Sync protocol enforcement</strong><span>four steps · all required · per wave</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Step 1 (design)</div><div class="rv">Before declaring a wave complete, read the design artifact and verify every feature mentioned in UI copy is built. <span class="never">ship a wave with UI copy that describes unbuilt features</span></div></div>
+              <div class="rule-row"><div class="rk">Step 2 (route)</div><div class="rv">Verify route is in app.jsx, component is imported, and nav has an entry point. <span class="never">declare live if any of these three are missing</span></div></div>
+              <div class="rule-row"><div class="rk">Step 3 (component)</div><div class="rv">Check browser console on render. Verify all props. Verify all handlers. <span class="never">declare live if any interactive path has a TODO handler</span></div></div>
+              <div class="rule-row"><div class="rk">Step 4 (data)</div><div class="rv">Audit every data value. <span class="always">add // MOCK comment to every hardcoded value</span>. Update route binding table. <span class="never">skip the table update as a cleanup task — it is a required step</span></div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Drift prevention</strong><span>six signals · detectable by inspection · fix immediately</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">UI copy audit</div><div class="rv"><span class="always">grep for feature names in UI copy and cross-reference with component handlers before each wave ships</span> · any unbuilt feature mentioned in copy = drift event</div></div>
+              <div class="rule-row"><div class="rk">Nav audit</div><div class="rv"><span class="always">audit every nav link in design artifacts before porting to product</span> · <span class="never">link to spec-only or orphaned surfaces from product navigation</span></div></div>
+              <div class="rule-row"><div class="rk">Supersession audit</div><div class="rv">After shipping any wave N that supersedes wave M: (1) remove wave M route from app.jsx, (2) add supersession comment to wave M file, (3) update binding table. <span class="never">ship a superseding wave without completing all three steps</span></div></div>
+              <div class="rule-row"><div class="rk">Map freshness</div><div class="rv">The route binding table and wave hierarchy must be updated within the same commit that changes a wave's state. A stale map is itself a drift artifact.</div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>VitalCV · Repo State Visibility System · v1 · <strong>5 states · 4 sync steps · 6 drift signals · binding</strong></div>
+    <div style="text-align:right;line-height:1.6;">
+      <div>Build <strong>vc.2026.05.21-f</strong> · topology v2</div>
+      <div style="color:var(--ink-400);">no hallucination · no orphaned nav · no hidden incompleteness</div>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

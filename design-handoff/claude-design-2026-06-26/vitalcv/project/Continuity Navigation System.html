@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Continuity Navigation System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink-0:   #fff;
+  --ink-50:  #f7f6f2;
+  --ink-100: #efede7;
+  --ink-200: #dddbd3;
+  --ink-300: #c2bfb5;
+  --ink-400: #96938a;
+  --ink-500: #6b6860;
+  --ink-600: #474540;
+  --ink-700: #2d2c28;
+  --ink-800: #1a1916;
+  --ink-900: #0f0e0c;
+  --ink-950: #050504;
+  --rule:    #dddbd3;
+  --rule-soft: #eceae4;
+  --paper:   #f4f2ec;
+  --s-ok:    #2d6a4f;
+  --s-watch: #7d5a1e;
+  --s-hold:  #5a3a1e;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink-900); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-feature-settings: 'ss01','cv11'; -webkit-font-smoothing: antialiased; font-size: 13.5px; line-height: 1.55; letter-spacing: -.003em; }
+.mono, code { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'zero','tnum'; }
+button { font-family: inherit; }
+
+/* ── Op bar ──────────────────────────────────────── */
+.opbar { background: var(--ink-950); color: var(--ink-300); font-family: 'Geist Mono', monospace; font-size: 10.5px; position: sticky; top: 0; z-index: 50; }
+.opbar .in { max-width: 1380px; margin: 0 auto; padding: 0 36px; height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.opbar .l { display: flex; align-items: center; gap: 14px; }
+.opbar .l .g { width: 17px; height: 17px; background: #fff; color: #000; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; }
+.opbar .l strong { color: #fff; font-weight: 600; letter-spacing: .04em; }
+.opbar .r { display: flex; align-items: center; gap: 16px; color: var(--ink-500); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; }
+.opbar .r .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border: 1px solid var(--ink-700); font-size: 9px; color: var(--ink-300); }
+.opbar .r .dot { width: 5px; height: 5px; background: #10b981; border-radius: 50%; animation: blink 2.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* ── Doc ─────────────────────────────────────────── */
+.doc { max-width: 1380px; margin: 0 auto; background: var(--ink-0); box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 20px 60px -20px rgba(0,0,0,.10); }
+
+/* ── Masthead ────────────────────────────────────── */
+.mast { padding: 36px 56px 32px; border-bottom: 1px solid var(--ink-900); }
+.mast .crumb { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.mast .crumb .r { display: inline-block; width: 18px; height: 1px; background: var(--ink-300); }
+.mast h1 { font-size: 34px; line-height: 1.05; letter-spacing: -.028em; font-weight: 600; margin: 0 0 10px; max-width: 920px; }
+.mast h1 em { font-style: normal; color: var(--ink-500); font-weight: 400; }
+.mast .lede { font-size: 14.5px; color: var(--ink-600); line-height: 1.6; max-width: 74ch; margin: 0 0 24px; letter-spacing: -.005em; }
+.mast .lede strong { color: var(--ink-900); font-weight: 500; }
+.mast .meta { display: flex; gap: 24px; flex-wrap: wrap; font-family: 'Geist Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.mast .meta span strong { color: var(--ink-900); font-weight: 500; }
+
+/* ── Layout ──────────────────────────────────────── */
+.body { display: grid; grid-template-columns: 220px 1fr; }
+.toc { border-right: 1px solid var(--rule); padding: 28px 24px 48px; position: sticky; top: 32px; align-self: flex-start; height: calc(100vh - 32px); overflow-y: auto; }
+.toc .lbl { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-400); font-weight: 600; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--rule-soft); }
+.toc nav { display: flex; flex-direction: column; }
+.toc a { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; text-decoration: none; font-size: 12px; font-weight: 500; color: var(--ink-700); border-bottom: 1px dashed var(--rule-soft); letter-spacing: -.005em; transition: color .1s; }
+.toc a:last-child { border-bottom: 0; }
+.toc a:hover { color: var(--ink-950); }
+.toc a .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; color: var(--ink-400); font-weight: 400; letter-spacing: .04em; flex-shrink: 0; }
+
+.content { padding: 0 56px 80px; min-width: 0; }
+.sec { margin-top: 56px; }
+.sec:first-child { margin-top: 40px; }
+.sh { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--ink-900); padding-bottom: 9px; margin-bottom: 22px; }
+.sh .n { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-300); font-weight: 600; }
+.sh h2 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: -.015em; }
+.sh .ey { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-500); margin-left: auto; }
+.prose { font-size: 13.5px; color: var(--ink-700); line-height: 1.65; max-width: 74ch; margin-bottom: 20px; }
+.prose strong { color: var(--ink-900); font-weight: 500; }
+.sec-lbl { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: var(--ink-500); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.sec-lbl::after { content: ""; flex: 1; height: 1px; background: var(--rule-soft); }
+
+/* Shared chip */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 7px; white-space: nowrap; }
+.chip .cd { width: 5px; height: 5px; border-radius: 50%; }
+.chip-solid   { border: 1px solid var(--ink-900); color: var(--ink-900); }
+.chip-solid .cd { background: var(--ink-900); }
+.chip-fill    { background: var(--ink-900); color: #fff; border: 1px solid var(--ink-900); }
+.chip-fill .cd { background: #fff; }
+.chip-dotted  { border: 1px dotted var(--ink-600); color: var(--ink-600); }
+.chip-dotted .cd { border: 1.5px dotted var(--ink-600); border-radius: 50%; }
+.chip-dashed  { border: 1px dashed var(--ink-500); color: var(--ink-500); }
+.chip-dashed .cd { border: 1.5px dashed var(--ink-500); border-radius: 50%; }
+.chip-muted   { border: 1px solid var(--ink-200); color: var(--ink-400); }
+
+/* ownership */
+.own { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; padding: 2px 7px; display: inline-flex; align-items: center; gap: 5px; }
+.own-system   { border: 1px solid var(--ink-200); color: var(--ink-500); }
+.own-reviewer { background: var(--ink-900); color: #fff; border: 1px solid var(--ink-900); }
+.own-org      { border: 1px solid var(--ink-700); color: var(--ink-700); }
+.own-shared   { border: 1px dashed var(--ink-600); color: var(--ink-600); }
+
+/* buttons */
+.btn-primary { background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 8px 16px; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.btn-outline  { background: var(--ink-0); color: var(--ink-900); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 7px 14px; border: 1px solid var(--rule); cursor: pointer; }
+.btn-ghost    { background: transparent; color: var(--ink-600); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 7px 0; border: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--ink-300); }
+
+/* never / always */
+.never  { color: var(--s-hold); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.never::before { content: "× "; }
+.always { color: var(--s-ok);   font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .10em; font-weight: 600; }
+.always::before { content: "✓ "; }
+
+/* ═══════════════════════════════════════════════════
+   00 · FLOW MAP
+   ═══════════════════════════════════════════════════ */
+.flow-map { border: 1px solid var(--ink-900); }
+.fm-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.fm-header strong { color: #fff; font-weight: 500; }
+.fm-flows { display: grid; grid-template-columns: repeat(4, 1fr); }
+.fm-flow { border-right: 1px solid var(--rule); padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+.fm-flow:last-child { border-right: 0; }
+.fm-flow .ff-num { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-400); font-weight: 600; }
+.fm-flow .ff-name { font-size: 14px; font-weight: 600; color: var(--ink-900); letter-spacing: -.012em; line-height: 1.2; }
+.fm-flow .ff-scope { font-size: 12px; color: var(--ink-600); line-height: 1.5; }
+.fm-flow .ff-steps { display: flex; flex-direction: column; gap: 0; margin-top: 4px; }
+.fm-step { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--rule-soft); font-size: 11.5px; color: var(--ink-700); }
+.fm-step:last-child { border-bottom: 0; }
+.fm-step .fs-n { font-family: 'Geist Mono', monospace; font-size: 8.5px; color: var(--ink-400); width: 16px; flex-shrink: 0; }
+.fm-step .fs-name { flex: 1; }
+.fm-step.done .fs-name { color: var(--s-ok); }
+.fm-step.done .fs-n::after { content: "✓"; color: var(--s-ok); font-size: 9px; }
+.fm-step.active { font-weight: 500; }
+.fm-step.active .fs-name { color: var(--ink-900); }
+.fm-step.active .fs-n { color: var(--ink-900); }
+.fm-foot { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--rule); background: var(--ink-50); }
+.fm-foot .c { padding: 8px 18px; border-right: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-600); display: flex; align-items: center; gap: 6px; }
+.fm-foot .c:last-child { border-right: 0; }
+.fm-foot .c .fd { width: 5px; height: 5px; border-radius: 50%; }
+
+/* ═══════════════════════════════════════════════════
+   01 · COMPLETION-CONFIRMATION SEMANTICS
+   ═══════════════════════════════════════════════════ */
+.completion-seq { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--ink-900); }
+.cs-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.cs-header strong { color: #fff; font-weight: 500; }
+.cs-step { display: grid; grid-template-columns: 48px 1fr 1fr 1fr; border-top: 1px solid var(--rule); align-items: stretch; }
+.cs-step .cs-n { padding: 16px 0 16px 18px; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink-400); font-weight: 600; border-right: 1px solid var(--rule-soft); }
+.cs-step .cs-col { padding: 14px 18px; border-right: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.cs-step .cs-col:last-child { border-right: 0; }
+.cs-step .cs-col .col-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); margin-bottom: 6px; }
+.cs-step .cs-col strong { color: var(--ink-900); font-weight: 500; }
+
+/* Completion card specimens */
+.comp-card { border: 1px solid var(--rule); padding: 14px 16px; background: var(--ink-0); display: flex; flex-direction: column; gap: 7px; }
+.comp-card.affirm { border-color: var(--ink-900); }
+.comp-card .cc-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-500); }
+.comp-card.affirm .cc-label { color: var(--s-ok); }
+.comp-card .cc-headline { font-size: 14px; font-weight: 600; color: var(--ink-900); letter-spacing: -.012em; line-height: 1.25; }
+.comp-card .cc-body { font-size: 12px; color: var(--ink-600); line-height: 1.5; }
+.comp-card .cc-next { font-size: 12px; font-weight: 500; color: var(--ink-900); padding-top: 6px; border-top: 1px dashed var(--rule-soft); }
+.comp-card .cc-next::before { content: "Next → "; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); font-weight: 600; }
+.comp-card .cc-meta { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); }
+
+/* ═══════════════════════════════════════════════════
+   02 · NEXT-STEP ARCHITECTURE PER FLOW
+   ═══════════════════════════════════════════════════ */
+.nextstep-table { border: 1px solid var(--ink-900); }
+.nt-head { display: grid; grid-template-columns: 140px 1fr 1fr 120px; background: var(--ink-900); }
+.nt-head .c { padding: 10px 14px; border-right: 1px solid var(--ink-700); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.5); }
+.nt-head .c:last-child { border-right: 0; }
+.nt-head .c strong { display: block; color: #fff; font-weight: 600; font-size: 10px; }
+.nt-row { display: grid; grid-template-columns: 140px 1fr 1fr 120px; border-top: 1px solid var(--rule); align-items: start; }
+.nt-row:hover { background: var(--ink-50); }
+.nt-row .c { padding: 11px 14px; border-right: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.nt-row .c:last-child { border-right: 0; }
+.nt-row .c:first-child { background: var(--ink-50); font-size: 12.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.008em; display: flex; align-items: center; }
+.nt-row .c strong { color: var(--ink-900); font-weight: 500; }
+.nt-row .c .lang { font-style: italic; color: var(--ink-600); font-size: 11.5px; display: block; margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════════
+   03 · INTERRUPTION RECOVERY PER FLOW
+   ═══════════════════════════════════════════════════ */
+.interrupt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ir-card { border: 1px solid var(--rule); display: flex; flex-direction: column; }
+.ir-head { padding: 9px 16px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-700); display: flex; justify-content: space-between; align-items: center; }
+.ir-head strong { color: var(--ink-900); font-weight: 600; }
+.ir-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.ir-type-row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--rule-soft); align-items: start; font-size: 12px; }
+.ir-type-row:last-child { border-bottom: 0; }
+.ir-type-row .irt-state { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); font-weight: 600; padding-top: 1px; display: flex; flex-direction: column; gap: 4px; }
+.ir-type-row .irt-state .border-note { font-size: 8.5px; color: var(--ink-400); font-weight: 400; }
+.ir-type-row .irt-lang { color: var(--ink-700); line-height: 1.5; }
+.ir-type-row .irt-lang strong { color: var(--ink-900); font-weight: 500; display: block; font-size: 12.5px; margin-bottom: 2px; }
+.ir-type-row .irt-lang em { font-style: italic; color: var(--ink-600); font-size: 11.5px; display: block; margin-top: 3px; }
+
+/* Border specimens */
+.b-solid  { width: 18px; height: 18px; border-left: 3px solid var(--ink-900); display: inline-block; vertical-align: middle; }
+.b-dashed { width: 18px; height: 18px; border-left: 3px dashed var(--ink-600); display: inline-block; vertical-align: middle; }
+.b-dotted { width: 18px; height: 18px; border-left: 3px dotted var(--ink-700); display: inline-block; vertical-align: middle; }
+.b-ok     { width: 18px; height: 18px; border-left: 3px solid var(--s-ok); display: inline-block; vertical-align: middle; }
+
+/* ═══════════════════════════════════════════════════
+   04 · BOUNDED SIMULATION LANGUAGE PER FLOW
+   ═══════════════════════════════════════════════════ */
+.simulation-flows { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--ink-900); }
+.sf-header { padding: 10px 20px; background: var(--ink-900); color: #fff; font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; }
+.sf-header strong { color: #fff; font-weight: 500; }
+.sf-row { display: grid; grid-template-columns: 160px 1fr 1fr; border-top: 1px solid var(--rule); align-items: stretch; }
+.sf-row .c { padding: 14px 18px; border-right: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.sf-row .c:last-child { border-right: 0; }
+.sf-row .c:first-child { background: var(--ink-50); font-size: 13px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; display: flex; align-items: center; border-right: 1px solid var(--rule); }
+.sf-row .c strong { color: var(--ink-900); font-weight: 500; }
+.sf-row .c .col-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); margin-bottom: 6px; }
+.pilot-badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 2px 7px; border: 1px dashed var(--ink-400); color: var(--ink-600); }
+.prod-badge  { display: inline-flex; align-items: center; gap: 5px; font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 2px 7px; background: var(--ink-900); color: #fff; border: 1px solid var(--ink-900); }
+.pilot-badge .bd { width: 5px; height: 5px; border: 1.5px dashed var(--ink-500); border-radius: 50%; }
+.prod-badge  .bd { width: 5px; height: 5px; background: #fff; border-radius: 50%; }
+
+/* ═══════════════════════════════════════════════════
+   05 · OPERATIONAL REASSURANCE SYSTEM
+   ═══════════════════════════════════════════════════ */
+.reassurance-system { display: flex; flex-direction: column; gap: 0; }
+.rs-flow { border: 1px solid var(--rule); margin-bottom: -1px; }
+.rs-flow-head { padding: 10px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; align-items: center; color: var(--ink-700); cursor: pointer; }
+.rs-flow-head strong { color: var(--ink-900); font-weight: 600; font-size: 10.5px; }
+.rs-flow-body { padding: 0 18px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 18px; }
+.ra-item { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1px solid var(--rule-soft); }
+.ra-item .ri-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); }
+.ra-item .ri-head { font-size: 13px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; line-height: 1.25; }
+.ra-item .ri-body { font-size: 12px; color: var(--ink-600); line-height: 1.5; }
+.ra-item .ri-meta { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); }
+
+/* ═══════════════════════════════════════════════════
+   06 · FLOW SPECIMENS — full live examples
+   ═══════════════════════════════════════════════════ */
+.flow-specimens { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--ink-900); }
+.fs-col { border-right: 1px solid var(--rule); display: flex; flex-direction: column; }
+.fs-col:last-child { border-right: 0; }
+.fs-col-head { padding: 9px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink-600); display: flex; justify-content: space-between; align-items: center; }
+.fs-col-head strong { color: var(--ink-900); font-weight: 600; }
+.fs-col-body { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+/* Step sequence within a specimen */
+.step-seq { display: flex; flex-direction: column; gap: 0; }
+.step-item { display: flex; align-items: stretch; gap: 0; }
+.step-track { display: flex; flex-direction: column; align-items: center; width: 28px; flex-shrink: 0; }
+.step-node { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 14px; z-index: 1; }
+.step-node.done   { background: var(--s-ok); }
+.step-node.active { background: var(--ink-900); box-shadow: 0 0 0 3px rgba(15,14,12,.10); }
+.step-node.future { background: transparent; border: 1.5px solid var(--ink-300); }
+.step-line { width: 1px; flex: 1; min-height: 12px; }
+.step-line.done   { background: var(--s-ok); opacity: .3; }
+.step-line.future { background: var(--rule); }
+.step-item:last-child .step-line { display: none; }
+.step-body { flex: 1; padding: 8px 10px 12px; }
+.step-body .sb-name { font-size: 12.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -.01em; line-height: 1.25; }
+.step-body.done .sb-name { color: var(--ink-600); font-weight: 400; }
+.step-body.future .sb-name { color: var(--ink-500); font-weight: 400; }
+.step-body .sb-state { font-family: 'Geist Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-400); margin-top: 2px; }
+.step-body.done .sb-state { color: var(--s-ok); }
+.step-body.active .sb-state { color: var(--ink-700); }
+.step-body .sb-content { margin-top: 6px; padding: 8px 10px; background: var(--ink-50); border: 1px solid var(--rule-soft); font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.step-body .sb-content.affirm { border-color: var(--ink-900); background: var(--ink-0); }
+.step-body .sb-content strong { color: var(--ink-900); font-weight: 500; }
+.step-body .sb-content.active-card { border-color: var(--ink-700); }
+.step-body .sb-action { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.step-body .sb-next { margin-top: 6px; padding: 7px 10px; background: var(--ink-0); border: 1px solid var(--rule-soft); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.step-body .sb-next .sbn-label { font-family: 'Geist Mono', monospace; font-size: 8.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-400); }
+.step-body .sb-next .sbn-text { font-size: 12px; font-weight: 500; color: var(--ink-900); letter-spacing: -.008em; }
+
+/* interrupt notice */
+.interrupt-notice { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; background: var(--ink-50); border: 1px dashed var(--ink-500); }
+.in-dot { width: 6px; height: 6px; border: 1.5px dashed var(--ink-600); border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.in-text { font-size: 12px; color: var(--ink-700); line-height: 1.5; }
+.in-text strong { color: var(--ink-900); font-weight: 500; display: block; margin-bottom: 1px; }
+
+/* ═══════════════════════════════════════════════════
+   07 · IMPLEMENTATION GUIDANCE
+   ═══════════════════════════════════════════════════ */
+.impl-block { border: 1px solid var(--rule); margin-bottom: -1px; }
+.ib-head { padding: 10px 18px; background: var(--ink-50); border-bottom: 1px solid var(--rule); font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .16em; display: flex; justify-content: space-between; align-items: center; color: var(--ink-700); }
+.ib-head strong { color: var(--ink-900); font-weight: 600; font-size: 10.5px; }
+.ib-body { padding: 14px 18px; }
+.rule-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--rule-soft); align-items: start; }
+.rule-row:last-child { border-bottom: 0; }
+.rk { font-family: 'Geist Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-500); font-weight: 600; padding-top: 1px; }
+.rv { font-size: 12px; color: var(--ink-700); line-height: 1.55; }
+.rv strong { color: var(--ink-900); font-weight: 500; }
+.rv code { font-family: 'Geist Mono', monospace; font-size: 10.5px; color: var(--ink-900); background: var(--ink-50); padding: 1px 4px; border: 1px solid var(--rule); }
+
+footer.foot { padding: 20px 56px; border-top: 1px solid var(--rule); background: var(--ink-0); font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: .14em; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+footer.foot strong { color: var(--ink-900); font-weight: 600; }
+
+@media (max-width: 960px) {
+  .body { grid-template-columns: 1fr; }
+  .toc { display: none; }
+  .content { padding: 0 24px 48px; }
+  .mast { padding: 24px; }
+  .fm-flows, .fm-foot, .flow-specimens { grid-template-columns: 1fr; }
+  .interrupt-grid, .rs-flow-body { grid-template-columns: 1fr; }
+  .cs-step { grid-template-columns: 40px 1fr; }
+  .cs-step .cs-col:nth-child(3), .cs-step .cs-col:nth-child(4) { display: none; }
+  .nt-head, .nt-row { grid-template-columns: 120px 1fr 1fr; }
+  .sf-row { grid-template-columns: 1fr 1fr; }
+  footer.foot { padding: 20px 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="opbar">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span style="color:var(--ink-700);">/</span>
+      <span style="color:var(--ink-400);">continuity navigation system · v1</span>
+    </div>
+    <div class="r">
+      <span>4 flows · completion semantics · interruption recovery · bounded simulation</span>
+      <span style="color:var(--ink-700);">|</span>
+      <span class="pill"><span class="dot"></span>Operational</span>
+      <span style="color:var(--ink-600);">vc.2026.05.21-e</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+
+  <header class="mast">
+    <div class="crumb"><span class="r"></span>Continuity navigation · completion semantics · interruption recovery · Claude Code handoff</div>
+    <h1>Every step confirmed. <em>Every interruption named. Every path forward visible.</em></h1>
+    <p class="lede">Four institutional flows — onboarding, review, verification-preparation, and deployment — each designed so the reviewer always knows exactly where they are, what just completed, what is paused, and what must happen next. <strong>No invisible state changes. No dead ends. No magical handoffs between stages.</strong> Psychological safety comes from operational clarity, not from optimistic copy.</p>
+    <div class="meta">
+      <span>Flows · <strong>4 · onboarding · review · verification-prep · deployment</strong></span>
+      <span>Completion patterns · <strong>3 · user-confirmed · system-confirmed · auto-advance</strong></span>
+      <span>Interruption types · <strong>5 · per flow · all recoverable</strong></span>
+      <span>Simulation · <strong>pilot vs. production · always labeled · per flow</strong></span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="toc">
+      <div class="lbl">Contents</div>
+      <nav>
+        <a href="#flowmap"><span class="n">00</span>Flow Map</a>
+        <a href="#completion"><span class="n">01</span>Completion Semantics</a>
+        <a href="#nextstep"><span class="n">02</span>Next-Step Architecture</a>
+        <a href="#interruption"><span class="n">03</span>Interruption Recovery</a>
+        <a href="#simulation"><span class="n">04</span>Bounded Simulation</a>
+        <a href="#reassurance"><span class="n">05</span>Reassurance System</a>
+        <a href="#specimens"><span class="n">06</span>Flow Specimens</a>
+        <a href="#impl"><span class="n">07</span>Implementation Guidance</a>
+      </nav>
+    </aside>
+
+    <div class="content">
+
+      <!-- ══ 00 · FLOW MAP ══════════════════════════════ -->
+      <div class="sec" id="flowmap">
+        <div class="sh"><span class="n">00</span><h2>Four institutional flows · relationship map</h2><span class="ey">each flow is operationally complete · not a funnel</span></div>
+        <p class="prose">The four flows are not stages in a linear funnel. They are <strong>operationally distinct contexts</strong> — each has its own ownership pattern, completion semantics, and interruption vocabulary. A reviewer may enter any flow at any point. Each flow must be self-contained enough that a new reviewer can orient in under 30 seconds.</p>
+
+        <div class="flow-map">
+          <div class="fm-header"><strong>Four flows · Cedar Health · Pilot R-2026-05-21</strong><span style="color:rgba(255,255,255,.4);">each flow is self-contained · not a funnel</span></div>
+          <div class="fm-flows">
+
+            <div class="fm-flow">
+              <div class="ff-num">Flow 01</div>
+              <div class="ff-name">Onboarding</div>
+              <div class="ff-scope">Org submits clinician list. System validates. Pilot scope is bounded and confirmed.</div>
+              <div class="ff-steps">
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">NPI list received</span></div>
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Format validated</span></div>
+                <div class="fm-step active"><span class="fs-n">→</span><span class="fs-name">Scope confirmed</span></div>
+                <div class="fm-step"><span class="fs-n">·</span><span class="fs-name">Pilot started</span></div>
+              </div>
+            </div>
+
+            <div class="fm-flow">
+              <div class="ff-num">Flow 02</div>
+              <div class="ff-name">Review</div>
+              <div class="ff-scope">Reviewer examines verifications, handles exceptions, and confirms stage completion.</div>
+              <div class="ff-steps">
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Queue opened</span></div>
+                <div class="fm-step active"><span class="fs-n">→</span><span class="fs-name">Exceptions reviewed</span></div>
+                <div class="fm-step"><span class="fs-n">·</span><span class="fs-name">Stage confirmed</span></div>
+                <div class="fm-step"><span class="fs-n">·</span><span class="fs-name">Audit record signed</span></div>
+              </div>
+            </div>
+
+            <div class="fm-flow">
+              <div class="ff-num">Flow 03</div>
+              <div class="ff-name">Verification-prep</div>
+              <div class="ff-scope">A clinician packet is assembled for a specific credentialing decision. Sources confirmed. Dossier generated.</div>
+              <div class="ff-steps">
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Clinician identified</span></div>
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Sources checked</span></div>
+                <div class="fm-step active"><span class="fs-n">→</span><span class="fs-name">Packet assembled</span></div>
+                <div class="fm-step"><span class="fs-n">·</span><span class="fs-name">Dossier delivered</span></div>
+              </div>
+            </div>
+
+            <div class="fm-flow">
+              <div class="ff-num">Flow 04</div>
+              <div class="ff-name">Deployment</div>
+              <div class="ff-scope">All readiness checks pass. Organization confirms production handoff. Bounded by explicit org decision.</div>
+              <div class="ff-steps">
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Pilot complete</span></div>
+                <div class="fm-step done"><span class="fs-n"></span><span class="fs-name">Readiness checked</span></div>
+                <div class="fm-step active"><span class="fs-n">→</span><span class="fs-name">Org confirms</span></div>
+                <div class="fm-step"><span class="fs-n">·</span><span class="fs-name">Production live</span></div>
+              </div>
+            </div>
+
+          </div>
+          <div class="fm-foot">
+            <div class="c"><span class="fd" style="background:var(--ink-600);border-radius:50%;"></span>Org ownership</div>
+            <div class="c"><span class="fd" style="background:var(--ink-900);border-radius:50%;"></span>Reviewer decision</div>
+            <div class="c"><span class="fd" style="background:transparent;border:1.5px dashed var(--ink-500);border-radius:50%;width:7px;height:7px;"></span>System acting</div>
+            <div class="c"><span class="fd" style="background:transparent;border:1.5px dotted var(--ink-400);border-radius:50%;width:7px;height:7px;"></span>Shared / pending</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 01 · COMPLETION-CONFIRMATION SEMANTICS ════ -->
+      <div class="sec" id="completion">
+        <div class="sh"><span class="n">01</span><h2>Completion-confirmation semantics · three patterns</h2><span class="ey">every stage closes explicitly · never silently</span></div>
+        <p class="prose">A stage is never "completed" because the user navigated away. Every completion is an explicit event — either the user confirms it, the system confirms it, or both. <strong>The moment of completion is visible, named, and includes the next step.</strong> Completion is never retroactive: a stage that completes while the reviewer is away is shown as "completed while you were away — here's what happened."</p>
+
+        <div class="completion-seq">
+          <div class="cs-header"><strong>Three completion patterns · when each applies · surface specimen · next-step hook</strong><span style="color:rgba(255,255,255,.4);">all three close explicitly</span></div>
+
+          <div class="cs-step">
+            <div class="cs-n">A</div>
+            <div class="cs-col">
+              <div class="col-label">Pattern · when used</div>
+              <strong>User-confirmed completion.</strong><br/>
+              When the stage outcome requires a human decision or sign-off. The system cannot advance without an explicit confirm action.
+              <br/><br/><span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);">Flows: Review · Deployment</span>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Surface specimen</div>
+              <div class="comp-card affirm">
+                <div class="cc-label">Stage complete · user-confirmed</div>
+                <div class="cc-headline">All 10 clinicians reviewed.</div>
+                <div class="cc-body">3 exceptions resolved by J. Martinez. No adverse findings remain. Confirm to close this stage and advance.</div>
+                <div style="display:flex;gap:8px;margin-top:4px;"><button class="btn-primary">Confirm and advance</button><button class="btn-ghost">Review again</button></div>
+                <div class="cc-meta">Confirmed by J. Martinez · recorded in audit trail</div>
+              </div>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Rules</div>
+              <span class="always">always show who is confirming</span><br/>
+              <span class="always">always name what is being confirmed</span><br/>
+              <span class="never">auto-advance without explicit confirm</span><br/>
+              <span class="never">confirm on behalf of a named reviewer</span>
+            </div>
+          </div>
+
+          <div class="cs-step">
+            <div class="cs-n">B</div>
+            <div class="cs-col">
+              <div class="col-label">Pattern · when used</div>
+              <strong>System-confirmed completion.</strong><br/>
+              When the stage completes automatically — sources responded, chain anchored, batch closed. System surfaces the result; user acknowledges.
+              <br/><br/><span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);">Flows: Onboarding · Verification-prep</span>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Surface specimen</div>
+              <div class="comp-card">
+                <div class="cc-label">System completed · 14:31:58Z UTC</div>
+                <div class="cc-headline">Verification complete — 10 of 10 clinicians checked.</div>
+                <div class="cc-body">All sources responded. One source gap documented (DEA · 5h). The record is intact and independently re-verifiable.</div>
+                <div class="cc-next">Generate waste analysis</div>
+                <div class="cc-meta">System · R-2026-05-21 · run 7a2c…b8d3</div>
+              </div>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Rules</div>
+              <span class="always">always show the completion timestamp</span><br/>
+              <span class="always">always name any gaps or caveats</span><br/>
+              <span class="always">always surface the next step immediately</span><br/>
+              <span class="never">present system completion as user achievement</span>
+            </div>
+          </div>
+
+          <div class="cs-step">
+            <div class="cs-n">C</div>
+            <div class="cs-col">
+              <div class="col-label">Pattern · when used</div>
+              <strong>Completion while away.</strong><br/>
+              The stage completed between sessions. The reviewer returns to a completed stage — it is shown with a clear "completed while you were away" marker and the completion details.
+              <br/><br/><span style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);">All flows · cross-session</span>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Surface specimen</div>
+              <div class="comp-card">
+                <div class="cc-label">Completed while you were away · 09:14Z today</div>
+                <div class="cc-headline">Pilot verification finished overnight.</div>
+                <div class="cc-body">All 10 clinicians verified between 21:00Z and 09:14Z. 2 exceptions were auto-resolved by the system. 1 required no action.</div>
+                <div class="cc-next">Review completed results</div>
+                <div class="cc-meta">Session gap · 8h 14m · results intact · nothing was lost</div>
+              </div>
+            </div>
+            <div class="cs-col">
+              <div class="col-label">Rules</div>
+              <span class="always">always name the session gap duration</span><br/>
+              <span class="always">always state "nothing was lost"</span><br/>
+              <span class="always">always show what completed and when</span><br/>
+              <span class="never">present cross-session completion as if synchronous</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 02 · NEXT-STEP ARCHITECTURE ═══════════════ -->
+      <div class="sec" id="nextstep">
+        <div class="sh"><span class="n">02</span><h2>Next-step architecture · per flow · four states</h2><span class="ey">always present · never ambiguous · per flow context</span></div>
+        <p class="prose">Every surface in every flow ends with a next-step indicator. The indicator is <strong>flow-aware</strong> — it knows which flow the reviewer is in and what the appropriate next action is for that flow's context. The same stage may have a different next step depending on which flow reached it.</p>
+
+        <div class="nextstep-table">
+          <div class="nt-head">
+            <div class="c"></div>
+            <div class="c"><strong>User-action next step</strong>reviewer must act</div>
+            <div class="c"><strong>System-action next step</strong>no action required</div>
+            <div class="c"><strong>Ownership</strong></div>
+          </div>
+
+          <div class="nt-row">
+            <div class="c">Onboarding</div>
+            <div class="c"><strong>Confirm pilot scope.</strong> 10 NPIs validated — confirm to start verification.
+              <span class="lang">"Ready to begin. Confirm your 10-clinician list to start."</span>
+            </div>
+            <div class="c"><strong>NPI format is being validated.</strong> Results in a moment.
+              <span class="lang">"Checking format — this takes a few seconds."</span>
+            </div>
+            <div class="c"><span class="own own-org">Org</span></div>
+          </div>
+
+          <div class="nt-row">
+            <div class="c">Review</div>
+            <div class="c"><strong>Resolve 1 exception.</strong> Dr. Park's DEA has an address mismatch — needs a reviewer decision.
+              <span class="lang">"One exception needs your decision before this stage closes."</span>
+            </div>
+            <div class="c"><strong>Verification running.</strong> Results appear as they arrive. No action needed.
+              <span class="lang">"Checking sources — you'll be notified when ready."</span>
+            </div>
+            <div class="c"><span class="own own-reviewer">Reviewer</span></div>
+          </div>
+
+          <div class="nt-row">
+            <div class="c">Verification-prep</div>
+            <div class="c"><strong>Confirm packet completeness.</strong> All sources checked — review the assembled packet before delivery.
+              <span class="lang">"Packet is ready — review before delivering to the credentialing committee."</span>
+            </div>
+            <div class="c"><strong>Assembling packet.</strong> Sources confirmed, dossier generating.
+              <span class="lang">"Assembling the packet now — ready in a moment."</span>
+            </div>
+            <div class="c"><span class="own own-shared">Shared</span></div>
+          </div>
+
+          <div class="nt-row">
+            <div class="c">Deployment</div>
+            <div class="c"><strong>Confirm production handoff.</strong> All checks passed — final sign-off required from your organization.
+              <span class="lang">"All checks passed. Your organization must confirm before we move to production."</span>
+            </div>
+            <div class="c"><strong>3 verifications still running.</strong> Check back shortly — no blocking issues.
+              <span class="lang">"Three are still running. We'll notify you when all are done."</span>
+            </div>
+            <div class="c"><span class="own own-org">Org</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 03 · INTERRUPTION RECOVERY ════════════════ -->
+      <div class="sec" id="interruption">
+        <div class="sh"><span class="n">03</span><h2>Interruption recovery · per flow · five types</h2><span class="ey">left border encodes state · language is plain · always</span></div>
+        <p class="prose">Interruptions are named, not hidden. Each flow has its own most-likely interruption types. <strong>The visual language is consistent across flows</strong> — left-border style encodes state — but the language is flow-specific so that a reviewer in the verification-prep flow hears about source degradation differently than a reviewer in the review flow.</p>
+
+        <div class="interrupt-grid">
+
+          <div class="ir-card">
+            <div class="ir-head"><strong>Flow 01 · Onboarding</strong><span>2 interruption types</span></div>
+            <div class="ir-body">
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dashed" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Format error</span><span class="border-note">dashed · ink-600</span></div>
+                <div class="irt-lang"><strong>3 IDs need correction before we can proceed.</strong><em>"These aren't matching the NPI format — they may be typos. Fix them and we'll continue."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dotted" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Duplicate found</span><span class="border-note">dotted · ink-700</span></div>
+                <div class="irt-lang"><strong>2 duplicate NPIs in your list.</strong><em>"Two clinicians appear twice — we'll count them once. Confirm to continue with 8 unique clinicians."</em></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ir-card">
+            <div class="ir-head"><strong>Flow 02 · Review</strong><span>3 interruption types</span></div>
+            <div class="ir-body">
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dashed" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Source degraded</span><span class="border-note">dashed · ink-500</span></div>
+                <div class="irt-lang"><strong>One source is checking again shortly.</strong><em>"DEA is not responding — last result from 5 hours ago is shown. The review can continue with this result."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dotted" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Reviewer blocked</span><span class="border-note">dotted · ink-700</span></div>
+                <div class="irt-lang"><strong>This exception is assigned to J. Martinez.</strong><em>"You can view it, but only J. Martinez can make the decision. Notify them to unblock."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-ok" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Recovered</span><span class="border-note">solid · s-ok</span></div>
+                <div class="irt-lang"><strong>Source is responding again — results updated.</strong><em>"DEA is back. The 5-hour gap is documented. Nothing was lost."</em></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ir-card">
+            <div class="ir-head"><strong>Flow 03 · Verification-prep</strong><span>3 interruption types</span></div>
+            <div class="ir-body">
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dashed" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Source stale</span><span class="border-note">dashed · ink-500</span></div>
+                <div class="irt-lang"><strong>One source in this packet is more than 24 hours old.</strong><em>"The DEA result is from yesterday. You can deliver the packet with this caveat noted, or wait for a fresh check."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dotted" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Chain gap</span><span class="border-note">dotted · ink-700</span></div>
+                <div class="irt-lang"><strong>This clinician's record has a 3-day gap in March.</strong><em>"The chain shows a 3-day period with no source checks. This is documented in the packet — the committee will see it."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-solid" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Packet incomplete</span><span class="border-note">solid · ink-900</span></div>
+                <div class="irt-lang"><strong>NPDB check is still running — packet cannot be delivered yet.</strong><em>"One required check isn't done. The packet will be ready when NPDB responds, usually within 10 minutes."</em></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ir-card">
+            <div class="ir-head"><strong>Flow 04 · Deployment</strong><span>2 interruption types</span></div>
+            <div class="ir-body">
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-dotted" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>Readiness hold</span><span class="border-note">dotted · ink-700</span></div>
+                <div class="irt-lang"><strong>Three verifications are still running.</strong><em>"Production handoff is available once all 10 are verified. These are in progress — not blocked. Check back shortly."</em></div>
+              </div>
+              <div class="ir-type-row">
+                <div class="irt-state"><span><span class="b-ok" style="display:inline-block;margin-right:6px;vertical-align:middle;"></span>All clear</span><span class="border-note">solid · s-ok</span></div>
+                <div class="irt-lang"><strong>All checks passed — ready for production handoff.</strong><em>"Every readiness check is complete. Your organization's confirmation is all that's needed."</em></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══ 04 · BOUNDED SIMULATION LANGUAGE ══════════ -->
+      <div class="sec" id="simulation">
+        <div class="sh"><span class="n">04</span><h2>Bounded simulation language · per flow · pilot vs. production</h2><span class="ey">honest always · never magical · per-flow language</span></div>
+        <p class="prose">Each flow uses different language when in pilot mode vs. production mode. The language shift is not cosmetic — it reflects a real operational difference. <strong>Pilot mode is bounded by the agreed NPI set. Production mode carries the full weight of institutional trust.</strong> The reviewer always knows which mode they are in.</p>
+
+        <div class="simulation-flows">
+          <div class="sf-header"><strong>Per-flow simulation language · pilot vs. production</strong><span style="color:rgba(255,255,255,.4);">both columns binding</span></div>
+
+          <div class="sf-row">
+            <div class="c">Onboarding</div>
+            <div class="c">
+              <div class="col-label"><span class="pilot-badge"><span class="bd"></span>Pilot</span></div>
+              <strong>"This pilot covers exactly 10 clinicians."</strong> Scope is confirmed before start. No extrapolation. The confirm step makes the boundary explicit before any verification runs.
+            </div>
+            <div class="c">
+              <div class="col-label"><span class="prod-badge"><span class="bd"></span>Production</span></div>
+              <strong>"Adding clinicians to your live roster."</strong> Scope is the full org. New clinicians are added to an existing verified set. The boundary is the organization, not an NPI list.
+            </div>
+          </div>
+
+          <div class="sf-row">
+            <div class="c">Review</div>
+            <div class="c">
+              <div class="col-label"><span class="pilot-badge"><span class="bd"></span>Pilot</span></div>
+              <strong>"Reviewing 7 of 10 pilot clinicians."</strong> Count always shown as X of Y (pilot scope). Exceptions noted as "within pilot scope." Results don't generalize to the full roster.
+            </div>
+            <div class="c">
+              <div class="col-label"><span class="prod-badge"><span class="bd"></span>Production</span></div>
+              <strong>"Reviewing 3 flagged records across your full roster."</strong> Count is absolute. Exceptions may reference prior verification history. Results apply to all credentialing decisions.
+            </div>
+          </div>
+
+          <div class="sf-row">
+            <div class="c">Verification-prep</div>
+            <div class="c">
+              <div class="col-label"><span class="pilot-badge"><span class="bd"></span>Pilot</span></div>
+              <strong>"Pilot packet for Dr. Chen — based on 28-day pilot data."</strong> Packet header names the pilot. Chain depth is bounded by pilot start date. Labeled "pilot packet" throughout.
+            </div>
+            <div class="c">
+              <div class="col-label"><span class="prod-badge"><span class="bd"></span>Production</span></div>
+              <strong>"Credentialing packet for Dr. Chen."</strong> Full chain depth. Sources are live. Packet is audit-grade. No "pilot" label — this is the actual credentialing document.
+            </div>
+          </div>
+
+          <div class="sf-row">
+            <div class="c">Deployment</div>
+            <div class="c">
+              <div class="col-label"><span class="pilot-badge"><span class="bd"></span>Pilot</span></div>
+              <strong>"Pilot complete — ready to confirm production setup."</strong> The pilot outcome is evidence, not production. The deployment step is where pilot becomes real. This transition is explicit.
+            </div>
+            <div class="c">
+              <div class="col-label"><span class="prod-badge"><span class="bd"></span>Production</span></div>
+              <strong>"All clinicians are live on your production roster."</strong> No pilot language. This is the operating state. Ongoing verifications run on schedule. No more "pilot" framing.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 05 · OPERATIONAL REASSURANCE SYSTEM ═══════ -->
+      <div class="sec" id="reassurance">
+        <div class="sh"><span class="n">05</span><h2>Operational reassurance system · per flow · five patterns</h2><span class="ey">specific always · never performative · earned by transparency</span></div>
+        <p class="prose">Operational reassurance is earned through specificity. A vague "you're all set!" provides no institutional confidence. A specific "the 17-minute gap between 09:14Z and 09:31Z is documented — nothing was lost" is reassuring because it is precise. <strong>Each flow has its own set of reassurance triggers and language.</strong></p>
+
+        <div class="reassurance-system">
+
+          <div class="rs-flow">
+            <div class="rs-flow-head"><strong>Flow 01 · Onboarding reassurance patterns</strong></div>
+            <div class="rs-flow-body">
+              <div class="ra-item">
+                <div class="ri-label">Trigger · NPI validation complete</div>
+                <div class="ri-head">10 IDs validated — no issues found.</div>
+                <div class="ri-body">All 10 NPIs match the NPPES format. No duplicates. No flagged identifiers. Ready to start.</div>
+                <div class="ri-meta">Validated at intake · 09:00:14Z</div>
+              </div>
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Scope boundary confirmed</div>
+                <div class="ri-head">Pilot scope is locked — these 10, no more.</div>
+                <div class="ri-body">This pilot covers exactly the clinicians on your list. Any additions would start a new pilot or require scope expansion. The current scope won't change.</div>
+                <div class="ri-meta">Pilot · R-2026-05-21 · 10 NPIs · bounded</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rs-flow">
+            <div class="rs-flow-head"><strong>Flow 02 · Review reassurance patterns</strong></div>
+            <div class="rs-flow-body">
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Source gap during review</div>
+                <div class="ri-head">The last known result is shown — nothing is missing.</div>
+                <div class="ri-body">DEA hasn't responded in 5 hours. The result from this morning is current enough for most review purposes. The gap is noted — it won't appear as a clean result.</div>
+                <div class="ri-meta">DEA ARCOS · last checked 09:14Z · 5h 17m</div>
+              </div>
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Exception resolved by another reviewer</div>
+                <div class="ri-head">J. Martinez resolved this — decision is recorded.</div>
+                <div class="ri-body">The address mismatch was reviewed and confirmed at 11:24Z. The decision is in the audit trail. You don't need to review it again unless you disagree with the decision.</div>
+                <div class="ri-meta">Reviewed by J. Martinez · 11:24Z · audit trail entry 0047</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rs-flow">
+            <div class="rs-flow-head"><strong>Flow 03 · Verification-prep reassurance patterns</strong></div>
+            <div class="rs-flow-body">
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Stale source in packet</div>
+                <div class="ri-head">DEA result is from yesterday — this is noted in the packet.</div>
+                <div class="ri-body">The credentialing committee will see that the DEA check is 23 hours old. It's within the 24-hour window for most credentialing decisions. You can deliver now or wait for a fresh check.</div>
+                <div class="ri-meta">DEA ARCOS · checked 2026-05-20 14:31Z · 23h ago</div>
+              </div>
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Chain gap in record</div>
+                <div class="ri-head">The 3-day gap is documented — the committee will see it.</div>
+                <div class="ri-body">Between March 12–15, no source checks ran. This is shown in the chain strip and noted in the packet header. The gap is honest — it won't appear as continuous coverage.</div>
+                <div class="ri-meta">Gap · 2026-03-12 → 2026-03-15 · 3 days · documented</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rs-flow">
+            <div class="rs-flow-head"><strong>Flow 04 · Deployment reassurance patterns</strong></div>
+            <div class="rs-flow-body">
+              <div class="ra-item">
+                <div class="ri-label">Trigger · Readiness hold</div>
+                <div class="ri-head">Three are still running — this is normal at this stage.</div>
+                <div class="ri-body">Verification runs take between 2 and 30 minutes depending on source response times. The remaining 3 are in progress — not stuck, not failed. Nothing needs to be done.</div>
+                <div class="ri-meta">3 pending · avg. completion 14 min · system running</div>
+              </div>
+              <div class="ra-item">
+                <div class="ri-label">Trigger · All clear · go state</div>
+                <div class="ri-head">Every check passed — this is your decision now.</div>
+                <div class="ri-body">The system has done everything it can. All sources responded, all records are anchored, all reviewers cleared. Moving to production requires your organization's explicit confirmation — not the system's.</div>
+                <div class="ri-meta">All 10 verified · chain anchored · human review complete</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══ 06 · FLOW SPECIMENS ════════════════════════ -->
+      <div class="sec" id="specimens">
+        <div class="sh"><span class="n">06</span><h2>Flow specimens · onboarding + deployment · full step sequence</h2><span class="ey">every step visible · completion explicit · next step always present</span></div>
+        <p class="prose">Two full flow specimens showing step sequences, completion moments, interruption handling, and next-step architecture in context. Each specimen is what a reviewer sees from start to finish — not a screen, but a flow.</p>
+
+        <div class="flow-specimens">
+
+          <!-- Onboarding flow -->
+          <div class="fs-col">
+            <div class="fs-col-head"><strong>Flow 01 · Onboarding</strong><span>4 steps · org ownership throughout</span></div>
+            <div class="fs-col-body">
+              <div class="step-seq">
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node done"></div><div class="step-line done"></div></div>
+                  <div class="step-body done">
+                    <div class="sb-name">NPI list received</div>
+                    <div class="sb-state">complete · 09:00Z</div>
+                    <div class="sb-content">
+                      <strong>10 NPIs received</strong> from Cedar Health intake form. Saved to pilot R-2026-05-21.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node done"></div><div class="step-line done"></div></div>
+                  <div class="step-body done">
+                    <div class="sb-name">Format validated</div>
+                    <div class="sb-state">complete · 09:00:14Z</div>
+                    <div class="sb-content">
+                      <strong>10 of 10 valid.</strong> No duplicates. No flagged identifiers.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node active"></div><div class="step-line future"></div></div>
+                  <div class="step-body active">
+                    <div class="sb-name">Scope confirmed</div>
+                    <div class="sb-state">→ waiting for org confirmation</div>
+                    <div class="sb-content affirm active-card">
+                      <strong>Ready to begin.</strong> 10 clinicians — no more will be added to this pilot. Confirm to start verification.
+                      <div style="margin-top:8px;display:flex;gap:8px;">
+                        <button class="btn-primary" style="font-size:9px;padding:6px 12px;">Confirm scope and begin</button>
+                        <button class="btn-ghost" style="font-size:9px;">Edit list</button>
+                      </div>
+                    </div>
+                    <div class="sb-next">
+                      <div><div class="sbn-label">Next step</div><div class="sbn-text">Verification begins automatically after confirm.</div></div>
+                      <span class="own own-org">Org</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node future"></div></div>
+                  <div class="step-body future">
+                    <div class="sb-name">Pilot started</div>
+                    <div class="sb-state">· pending org confirmation</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="interrupt-notice" style="margin-top:4px;">
+                <div class="in-dot"></div>
+                <div class="in-text"><strong>If org doesn't confirm within 48h</strong> The draft pilot is preserved. Nothing expires. A reminder goes to the org contact — not a deadline notice.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deployment flow -->
+          <div class="fs-col">
+            <div class="fs-col-head"><strong>Flow 04 · Deployment</strong><span>4 steps · shared → org ownership</span></div>
+            <div class="fs-col-body">
+              <div class="step-seq">
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node done"></div><div class="step-line done"></div></div>
+                  <div class="step-body done">
+                    <div class="sb-name">Pilot complete</div>
+                    <div class="sb-state">complete · 2026-05-21 14:31Z</div>
+                    <div class="sb-content">
+                      <strong>10 of 10 clinicians verified.</strong> One source gap documented. Audit record 28 days deep.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node done"></div><div class="step-line done"></div></div>
+                  <div class="step-body done">
+                    <div class="sb-name">Readiness checked</div>
+                    <div class="sb-state">complete · system-confirmed</div>
+                    <div class="sb-content">
+                      Chain anchored · human review complete · no open exceptions.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node active"></div><div class="step-line future"></div></div>
+                  <div class="step-body active">
+                    <div class="sb-name">Org confirmation</div>
+                    <div class="sb-state">→ waiting for Cedar Health</div>
+                    <div class="sb-content affirm active-card">
+                      <strong>All checks passed.</strong> Every readiness check is complete. Moving to production is your organization's decision — not the system's.
+                      <div style="margin-top:8px;display:flex;gap:8px;">
+                        <button class="btn-primary" style="font-size:9px;padding:6px 12px;">Confirm production handoff</button>
+                      </div>
+                    </div>
+                    <div class="sb-next">
+                      <div><div class="sbn-label">Next step</div><div class="sbn-text">Production goes live immediately after org confirms.</div></div>
+                      <span class="own own-org">Org</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="step-item">
+                  <div class="step-track"><div class="step-node future"></div></div>
+                  <div class="step-body future">
+                    <div class="sb-name">Production live</div>
+                    <div class="sb-state">· pending org confirmation</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="interrupt-notice" style="margin-top:4px;">
+                <div class="in-dot"></div>
+                <div class="in-text"><strong>If 3 verifications were still pending</strong> The confirm button is hidden — not disabled. It appears only when all checks pass. A plain-English message explains what's pending.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══ 07 · IMPLEMENTATION GUIDANCE ══════════════ -->
+      <div class="sec" id="impl">
+        <div class="sh"><span class="n">07</span><h2>Implementation guidance · Claude Code · binding rules</h2><span class="ey">flows · completion · interruption · simulation · all binding</span></div>
+
+        <div style="display:flex;flex-direction:column;gap:0;">
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Completion semantics</strong><span>explicit always · never silent · never retroactive</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Pattern A (user)</div><div class="rv"><span class="always">always show a confirm action before advancing</span> · name the reviewer who is confirming · record the timestamp in the audit trail · <span class="never">auto-advance past a user-confirmed completion</span></div></div>
+              <div class="rule-row"><div class="rk">Pattern B (system)</div><div class="rv"><span class="always">always surface the completion timestamp and any caveats</span> · show what completed and what (if anything) was noted · <span class="never">present system completion without a next-step hook</span></div></div>
+              <div class="rule-row"><div class="rk">Pattern C (while away)</div><div class="rv"><span class="always">always label cross-session completions explicitly</span> · always state "nothing was lost" · always show session gap duration · <span class="never">present a cross-session completion as synchronous</span></div></div>
+              <div class="rule-row"><div class="rk">Confirm button</div><div class="rv"><span class="never">show a confirm button when the stage cannot advance</span> — hide it entirely. A disabled button implies "almost there but blocked." A hidden button with a clear "what's missing" message is honest.</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Next-step architecture</strong><span>always present · flow-aware · never generic</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Footer position</div><div class="rv"><span class="always">always render the next-step footer at the bottom of every stage surface</span> · it updates when state changes · <span class="never">hide the footer when the state is auto-advance</span> — show "system is acting" language instead</div></div>
+              <div class="rule-row"><div class="rk">Flow awareness</div><div class="rv">The next-step text must be flow-specific. Pass the current flow context (<code>onboarding | review | verification-prep | deployment</code>) to the next-step component. <span class="never">reuse generic "proceed" language across flows</span></div></div>
+              <div class="rule-row"><div class="rk">Empty state</div><div class="rv"><span class="never">render an empty next-step footer</span> — if no action is available, show the auto-advance pattern: "System is acting — you'll be notified when ready." One sentence. No spinner.</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Interruption handling</strong><span>named · flow-specific language · never alarming for non-blocking states</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Left border</div><div class="rv">Solid ink-900 = normal · dashed ink-500 = source/format issue · dotted ink-700 = waiting for person · solid s-ok = recovered. <span class="always">always pair border with a plain-English message</span> — border alone is insufficient</div></div>
+              <div class="rule-row"><div class="rk">Flow language</div><div class="rv">Source degradation in the review flow: "last result is shown, review can continue." Same degradation in verification-prep: "noted in packet, committee will see it." <strong>Same event, different consequence per flow — use flow-specific language.</strong></div></div>
+              <div class="rule-row"><div class="rk">Alarm calibration</div><div class="rv"><span class="never">use alarm language for non-blocking interruptions</span> · "DEA is checking again shortly" is informational — not alarming · reserve direct language ("cannot proceed") only for states where the reviewer truly cannot advance</div></div>
+            </div>
+          </div>
+
+          <div class="impl-block">
+            <div class="ib-head"><strong>Bounded simulation</strong><span>pilot vs. production · labeled in UI · per-flow language</span></div>
+            <div class="ib-body">
+              <div class="rule-row"><div class="rk">Mode banner</div><div class="rv"><span class="always">render pilot or production mode indicator on every institutional surface</span> · <code>data-mode="pilot"</code> or <code>data-mode="production"</code> on root element · banner reads from this attribute</div></div>
+              <div class="rule-row"><div class="rk">Language fork</div><div class="rv">Each flow component receives <code>mode</code> prop and renders flow-specific pilot or production language. <span class="never">use the same copy in both modes</span> — the operational difference is real and the language must reflect it</div></div>
+              <div class="rule-row"><div class="rk">Transition moment</div><div class="rv">The onboarding-to-deployment arc includes exactly one mode transition: at the deployment confirm step, language shifts from pilot to production. <span class="always">make this transition explicit — name it in the confirm surface</span></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div>VitalCV · Continuity Navigation System · v1 · <strong>4 flows · 3 completion patterns · 5 interruption types · binding</strong></div>
+    <div style="text-align:right;line-height:1.6;">
+      <div>Build <strong>vc.2026.05.21-e</strong> · continuity v2</div>
+      <div style="color:var(--ink-400);">no dead ends · no invisible state · no magical handoffs</div>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
