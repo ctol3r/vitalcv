@@ -213,7 +213,7 @@ export function OpportunityGrid({
               >
                 <div className="flex items-start justify-between gap-3">
                   <Link
-                    href={`/opportunities/${encodeURIComponent(opportunity.id)}`}
+                    href={`/holder/opportunities/${encodeURIComponent(opportunity.id)}`}
                     onClick={() => selectOpportunity(opportunity.id)}
                     className="min-w-0 flex-1"
                   >
@@ -317,7 +317,7 @@ export function OpportunityGrid({
                     </button>
                   )}
                   <Link
-                    href={`/opportunities/${opportunity.id}`}
+                    href={`/holder/opportunities/${opportunity.id}`}
                     onClick={() => {
                       void trackClinicianEventOncePerSession(`opportunity-view:${opportunity.id}`, 'clinician.opportunity_viewed', {
                         npi: data.workspace?.personProfile?.npi ?? null,
@@ -536,7 +536,7 @@ export function ApplicationList({
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href={`/opportunities/${application.opportunity.id}`}
+                    href={`/holder/opportunities/${application.opportunity.id}`}
                     className="inline-flex items-center gap-1 text-sm text-white/55 transition hover:text-white"
                   >
                     <Building2 className="h-4 w-4" />
@@ -628,7 +628,7 @@ export function SelectedOpportunityBanner() {
           <ArrowRight className="h-4 w-4" />
         </Link>
         <Link
-          href={`/opportunities/${selectedOpportunity.id}`}
+          href={`/holder/opportunities/${selectedOpportunity.id}`}
           className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:border-white/20"
         >
           Open role details
