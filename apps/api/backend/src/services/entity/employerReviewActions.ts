@@ -35,6 +35,14 @@ export type EmployerReviewPersistenceTarget =
   | 'audit_event';
 export type EmployerAcceptanceScope = 'pilot' | 'full' | 'partial';
 
+/**
+ * Canonical public copy for an acceptance with no employer-provided reason.
+ * Private review notes (context.notes) must never stand in for it: the
+ * acceptance record feeds the anonymous acceptance-history read that renders
+ * on /verify/[npi] and /holder/recognition.
+ */
+export const DEFAULT_ACCEPTANCE_REASON = 'Accepted as head start using VitalCV verification.';
+
 export interface EmployerReviewAcceptanceRecord {
   acceptedByOrgId: string | null;
   acceptedAt: string;
@@ -853,8 +861,7 @@ export async function recordEmployerReviewAcceptance(input: {
     acceptanceScope: normalizeAcceptanceScope(input.acceptanceScope),
     acceptanceReason:
       sanitizeString(input.acceptanceReason, 280)
-      ?? context.notes
-      ?? 'Accepted as head start using VitalCV verification.',
+      ?? DEFAULT_ACCEPTANCE_REASON,
   };
 
   // ── Capture trust snapshot BEFORE transaction — immutable audit record ──
@@ -1262,6 +1269,26 @@ export async function loadEmployerReviewStatus(input: {
   return null;
 }
 
+/**
+ * Acceptance reason as served on the anonymous acceptance-history read.
+ * Records written before the write path stopped copying context.notes into
+ * acceptanceReason may still carry the private note — when the stored reason
+ * matches the note it is suppressed and the canonical copy served instead.
+ */
+function publicAcceptanceReason(metadata: EmployerReviewActionAuditMetadata): string | null {
+  const storedReason = metadata.acceptance?.acceptanceReason ?? null;
+  if (storedReason === null) {
+    return null;
+  }
+
+  const privateNotes = metadata.context.notes ?? null;
+  if (privateNotes !== null && storedReason === privateNotes) {
+    return DEFAULT_ACCEPTANCE_REASON;
+  }
+
+  return storedReason;
+}
+
 export async function loadEmployerAcceptanceHistory(input: {
   entityId: string;
   clinicianNpi: string;
@@ -1302,10 +1329,7 @@ export async function loadEmployerAcceptanceHistory(input: {
       acceptedByOrgId,
       acceptedAt,
       acceptanceScope,
-      acceptanceReason:
-        metadata.acceptance?.acceptanceReason
-        ?? metadata.context.notes
-        ?? null,
+      acceptanceReason: publicAcceptanceReason(metadata),
     }];
   }).sort((left, right) => Date.parse(right.acceptedAt) - Date.parse(left.acceptedAt));
 
@@ -1329,7 +1353,10 @@ export async function loadEmployerAcceptanceHistory(input: {
       acceptanceId: entry.acceptanceId,
       orgLabel: org.orgLabel,
       isAnonymized: org.isAnonymized,
-      acceptedByOrgId: entry.acceptedByOrgId,
+      // An anonymized label with the raw org id beside it would defeat the
+      // anonymization on this anonymous read; the id ships only when the
+      // organization is already named.
+      acceptedByOrgId: org.isAnonymized ? null : entry.acceptedByOrgId,
       acceptedAt: entry.acceptedAt,
       acceptanceScope: entry.acceptanceScope,
       acceptanceReason: entry.acceptanceReason,
