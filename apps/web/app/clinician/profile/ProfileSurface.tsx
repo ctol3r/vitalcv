@@ -13,7 +13,7 @@
  *   checking → signed_out | no_npi | load_error | ready
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ChevronRight, Loader2, UserRound } from 'lucide-react';
 import { ClinicianProfileSections } from '@/components/profile/ClinicianProfileSections';
@@ -53,6 +53,14 @@ export default function ProfileSurface() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveDone, setSaveDone] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const loadWorkspace = useCallback(async (cancelled?: () => boolean) => {
     try {
@@ -202,18 +210,21 @@ export default function ProfileSurface() {
 
       const responses = await Promise.all(requests);
       const failed = responses.find((r) => !r.ok);
+      if (!mountedRef.current) return;
       if (failed) {
         const body: unknown = await failed.json().catch(() => null);
+        if (!mountedRef.current) return;
         setSaveError(describeProfileSaveError(failed.status, body));
         return;
       }
 
       setSaveDone(true);
-      await loadWorkspace();
+      await loadWorkspace(() => !mountedRef.current);
     } catch {
+      if (!mountedRef.current) return;
       setSaveError(describeProfileSaveError(0, null));
     } finally {
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   }
 
