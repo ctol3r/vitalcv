@@ -111,10 +111,16 @@ function checksToLaneSnapshots(
 
 // ── Data fetching ──────────────────────────────────────────────────────────────
 
+/**
+ * Public passport read. /api/passport/npi/:npi is anonymous by design
+ * (value before login) and serves the PassportData contract this page
+ * renders — coverage states and readiness only, restricted credential
+ * labels redacted for unauthenticated viewers.
+ */
 async function fetchPassport(npi: string): Promise<PassportData | null> {
   try {
     const res = await fetch(
-      `${BACKEND}/api/trust-proof/${encodeURIComponent(npi)}`,
+      `${BACKEND}/api/passport/npi/${encodeURIComponent(npi)}`,
       {
         headers: { Accept: 'application/json' },
         next: { revalidate: 60 }, // 60s cache; verifier read is non-real-time

@@ -40,6 +40,21 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/clinician/activate')).toBe(false);
   });
 
+  it('skips tenant context for public verifier reads (trust proof)', () => {
+    expect(shouldSkipTenantContext('/api/trust-proof/1003000126')).toBe(true);
+  });
+
+  it('allows the trust-proof read through without organization context', () => {
+    const req = createRequest('/api/trust-proof/1003000126');
+    const res = createResponse();
+    const next = jest.fn();
+
+    requireTenantContextOrReadAccess(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
   it('allows health probes through without organization context', () => {
     const req = createRequest('/health');
     const res = createResponse();

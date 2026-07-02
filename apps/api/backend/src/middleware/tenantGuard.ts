@@ -75,6 +75,7 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/apply/')
     || normalized.startsWith('/api/trust-state/')
     || normalized.startsWith('/api/trust-decision/')
+    || normalized.startsWith('/api/trust-proof/')
     || normalized.startsWith('/api/verify')
     || normalized.startsWith('/api/verifier/accept')
     || normalized.startsWith('/api/pilot')
