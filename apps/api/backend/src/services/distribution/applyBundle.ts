@@ -207,6 +207,17 @@ export async function generateApplyBundle(
   return bundle;
 }
 
+// ── Bundle id validation ──────────────────────────────────────────────────────
+
+// Bundle ids are randomUUID() values stored in VerificationArtifact.id, a
+// Postgres uuid column — querying it with a non-uuid string makes Prisma
+// throw (a 500) instead of returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidBundleId(bundleId: string): boolean {
+  return UUID_RE.test(bundleId);
+}
+
 // ── Core: verify bundle ───────────────────────────────────────────────────────
 
 export async function verifyBundle(
@@ -214,6 +225,10 @@ export async function verifyBundle(
   signature: string,
 ): Promise<{ valid: boolean; bundle?: ApplyBundle }> {
   log('info', 'apply_bundle_verify', { bundleId });
+
+  if (!isValidBundleId(bundleId)) {
+    return { valid: false };
+  }
 
   const artifact = await prisma.verificationArtifact.findFirst({
     where: { id: bundleId, source: 'APPLY_BUNDLE' },
@@ -247,6 +262,7 @@ export async function verifyBundle(
 // ── Core: retrieve bundle by ID ───────────────────────────────────────────────
 
 export async function getApplyBundle(bundleId: string): Promise<ApplyBundle | null> {
+  if (!isValidBundleId(bundleId)) return null;
   const artifact = await prisma.verificationArtifact.findFirst({
     where: { id: bundleId, source: 'APPLY_BUNDLE' },
   });
