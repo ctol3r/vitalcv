@@ -155,13 +155,16 @@ const CONFIG_ALIASES = existsSync(NEXT_CONFIG_PATH)
   : new Map<string, string>();
 
 /** Does a concrete (or `[param]`-patterned) route path serve a page? */
-function routeExists(routePath: string, root = APP_ROOT): boolean {
+function routeExists(routePath: string, root = APP_ROOT, seenAliases?: Set<string>): boolean {
   const clean = stripQueryHash(routePath);
   // Rewrite/redirect sources are live iff their destination resolves.
-  // (Real app tree only — fixture trees have no next.config.)
-  if (root === APP_ROOT && CONFIG_ALIASES.has(clean)) {
+  // (Real app tree only — fixture trees have no next.config. The seen-set
+  // keeps a malformed config with an alias cycle from hanging the suite.)
+  if (root === APP_ROOT && CONFIG_ALIASES.has(clean) && !seenAliases?.has(clean)) {
     const destination = stripQueryHash(CONFIG_ALIASES.get(clean)!);
-    if (destination !== clean && routeExists(destination, root)) return true;
+    const seen = seenAliases ?? new Set<string>();
+    seen.add(clean);
+    if (destination !== clean && routeExists(destination, root, seen)) return true;
   }
   const dirs = resolveRouteDirs(clean, root);
   const isApi = clean === '/api' || clean.startsWith('/api/');
