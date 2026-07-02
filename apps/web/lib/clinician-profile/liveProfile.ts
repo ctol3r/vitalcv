@@ -16,6 +16,8 @@
  * completeness is filled-ness only — it never implies verification.
  */
 
+import type { ProfileProvenance } from '@/lib/profile/provenance';
+
 export const WORK_AUTH_OPTIONS = [
   { value: 'authorized', label: 'Authorized to work in the U.S.' },
   { value: 'visa_required', label: 'Visa sponsorship required' },
@@ -111,6 +113,81 @@ export function resumeFileNameFromUrl(url: string): string {
   return 'resume-link';
 }
 
+/** Editable form values on the live profile surface. */
+export interface ProfileFormValues {
+  linkedinUrl: string;
+  portfolioUrl: string;
+  resumeUrl: string;
+  workAuthStatus: string;
+}
+
+export interface ProfileFormDiff {
+  /** True when any field differs from the saved profile. */
+  dirty: boolean;
+  linksChanged: boolean;
+  resumeChanged: boolean;
+  workAuthChanged: boolean;
+  /**
+   * Labels of previously saved fields the form now leaves empty. The intake
+   * API only writes non-empty values (it cannot clear a saved field), so a
+   * save with cleared fields must be blocked with an honest explanation
+   * instead of silently leaving the old value in place.
+   */
+  clearedFields: string[];
+}
+
+function normalizedUrlOrRaw(raw: string): string {
+  const v = validateProfileUrl(raw);
+  return v.ok ? (v.url ?? '') : raw.trim();
+}
+
+/**
+ * Compares the form against the saved profile. URL fields compare on their
+ * normalized form so "linkedin.com/in/you" is not "dirty" against a saved
+ * "https://linkedin.com/in/you".
+ */
+export function computeProfileFormDiff(
+  profile: WorkspacePersonProfile,
+  form: ProfileFormValues,
+): ProfileFormDiff {
+  const savedLinkedin = profile.linkedinUrl ?? '';
+  const savedPortfolio = profile.portfolioUrl ?? '';
+  const savedResume = profile.resumeUrl ?? '';
+  const savedWorkAuth = profile.workAuthStatus ?? '';
+
+  const nextLinkedin = normalizedUrlOrRaw(form.linkedinUrl);
+  const nextPortfolio = normalizedUrlOrRaw(form.portfolioUrl);
+  const nextResume = normalizedUrlOrRaw(form.resumeUrl);
+  const nextWorkAuth = form.workAuthStatus;
+
+  const clearedFields: string[] = [];
+  if (savedLinkedin && nextLinkedin === '') clearedFields.push('LinkedIn');
+  if (savedPortfolio && nextPortfolio === '') clearedFields.push('Portfolio');
+  if (savedResume && nextResume === '') clearedFields.push('Resume link');
+  if (savedWorkAuth && nextWorkAuth === '') clearedFields.push('Work authorization');
+
+  const linksChanged =
+    (nextLinkedin !== savedLinkedin && nextLinkedin !== '') ||
+    (nextPortfolio !== savedPortfolio && nextPortfolio !== '');
+  const resumeChanged = nextResume !== savedResume && nextResume !== '';
+  const workAuthChanged = nextWorkAuth !== savedWorkAuth && nextWorkAuth !== '';
+
+  return {
+    dirty: linksChanged || resumeChanged || workAuthChanged || clearedFields.length > 0,
+    linksChanged,
+    resumeChanged,
+    workAuthChanged,
+    clearedFields,
+  };
+}
+
+/** Copy for a blocked save when the form clears previously saved fields. */
+export function describeClearedFieldsBlock(clearedFields: string[]): string {
+  return `Removing a saved value is not supported on this surface yet (${clearedFields.join(
+    ', ',
+  )}). Restore the previous value or enter a replacement.`;
+}
+
 export function describeProfileSaveError(status: number, body: unknown): string {
   const message =
     body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
@@ -132,4 +209,176 @@ export function describeProfileSaveError(status: number, body: unknown): string 
 export function completenessStatement(score: number): string {
   const bounded = Math.max(0, Math.min(100, Math.round(score)));
   return `${bounded}% of profile fields are filled in. Completeness measures filled-ness only — it is not verification.`;
+}
+
+/* ── Completeness guidance (GET /api/profile/completeness) ──────────────── */
+
+/** Boolean dimension breakdown computed by the backend intake service. */
+export interface CompletenessDimensions {
+  npiVerified: boolean;
+  resumeUploaded: boolean;
+  linksAdded: boolean;
+  workAuthProvided: boolean;
+  credentialsImported: boolean;
+}
+
+export interface CompletenessBreakdown {
+  score: number;
+  dimensions: CompletenessDimensions;
+}
+
+const DIMENSION_KEYS = [
+  'npiVerified',
+  'resumeUploaded',
+  'linksAdded',
+  'workAuthProvided',
+  'credentialsImported',
+] as const;
+
+/** Defensive parse of the completeness endpoint payload. */
+export function extractCompletenessBreakdown(payload: unknown): CompletenessBreakdown | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as { score?: unknown; dimensions?: unknown };
+  if (typeof p.score !== 'number' || !p.dimensions || typeof p.dimensions !== 'object') {
+    return null;
+  }
+  const raw = p.dimensions as Record<string, unknown>;
+  const dimensions = {} as CompletenessDimensions;
+  for (const key of DIMENSION_KEYS) {
+    if (typeof raw[key] !== 'boolean') return null;
+    dimensions[key] = raw[key] as boolean;
+  }
+  return { score: Math.max(0, Math.min(100, Math.round(p.score))), dimensions };
+}
+
+export interface CompletenessDimensionMeta {
+  key: keyof CompletenessDimensions;
+  /** Filled-ness label. Must never read as a verification claim. */
+  label: string;
+  /** Points this dimension adds to the 0–100 score (mirrors backend weights). */
+  weight: number;
+  whyItMatters: string;
+  /** Where the clinician goes to fill this dimension. */
+  fixHref: string;
+  fixLabel: string;
+}
+
+/**
+ * Mirrors the backend intake-service dimension weights (30/20/10/15/25).
+ * Copy rule: every line is about filled-ness and reviewer usefulness —
+ * completing a dimension never implies a source check passed.
+ */
+export const COMPLETENESS_DIMENSIONS: readonly CompletenessDimensionMeta[] = [
+  {
+    key: 'npiVerified',
+    label: 'NPI connected',
+    weight: 30,
+    whyItMatters:
+      'Your NPPES registry record anchors your profile and is where every source check starts.',
+    fixHref: '/get-ready',
+    fixLabel: 'Connect your NPI',
+  },
+  {
+    key: 'credentialsImported',
+    label: 'Credential evidence attached',
+    weight: 25,
+    whyItMatters:
+      'Uploaded credential documents are what source checks and employer review run against.',
+    fixHref: '/holder#evidence-upload',
+    fixLabel: 'Upload evidence',
+  },
+  {
+    key: 'resumeUploaded',
+    label: 'Resume attached',
+    weight: 20,
+    whyItMatters:
+      'Reviewers line up your stated employment history against source-backed checks faster with a resume on file.',
+    fixHref: '#self-attested',
+    fixLabel: 'Add your resume link below',
+  },
+  {
+    key: 'workAuthProvided',
+    label: 'Work authorization stated',
+    weight: 15,
+    whyItMatters:
+      'Employers ask about work authorization early — stating it now avoids a stall later in an application.',
+    fixHref: '#self-attested',
+    fixLabel: 'Choose a status below',
+  },
+  {
+    key: 'linksAdded',
+    label: 'Career links added',
+    weight: 10,
+    whyItMatters:
+      'LinkedIn or a portfolio gives reviewers self-attested context beyond your registry fields.',
+    fixHref: '#self-attested',
+    fixLabel: 'Add links below',
+  },
+];
+
+/* ── Identity field provenance (NPPES-bootstrapped header) ──────────────── */
+
+export type IdentityFieldKey = 'name' | 'npi' | 'specialty' | 'stateOfPractice';
+
+export interface IdentityFieldDescriptor {
+  key: IdentityFieldKey;
+  label: string;
+  value: string | null;
+  provenance: ProfileProvenance;
+  note: string;
+}
+
+/**
+ * Provenance for the PersonProfile identity header.
+ *
+ * Name / specialty / state only ever come from the NPPES lookup at connect
+ * time, so a present value is source-backed. The NPI row is only
+ * source-confirmed when the registry lookup actually hydrated (name present);
+ * otherwise it is the number the clinician entered, awaiting registry
+ * hydration — USER_ENTERED, never presented as confirmed.
+ */
+export function describeIdentityFields(
+  profile: WorkspacePersonProfile,
+): IdentityFieldDescriptor[] {
+  const name = displayName(profile);
+  const registryHydrated = name !== null;
+
+  return [
+    {
+      key: 'name',
+      label: 'Name',
+      value: name,
+      provenance: registryHydrated ? 'VERIFIED' : 'UNKNOWN',
+      note: registryHydrated
+        ? 'From your NPPES registry record at connect time.'
+        : 'Not returned by the registry lookup yet.',
+    },
+    {
+      key: 'npi',
+      label: 'NPI',
+      value: profile.npi,
+      provenance: registryHydrated ? 'VERIFIED' : 'USER_ENTERED',
+      note: registryHydrated
+        ? 'Matched to your NPPES registry record at connect time.'
+        : 'Entered at connect. Registry hydration has not completed for this NPI.',
+    },
+    {
+      key: 'specialty',
+      label: 'Specialty',
+      value: profile.specialty,
+      provenance: profile.specialty ? 'VERIFIED' : 'UNKNOWN',
+      note: profile.specialty
+        ? 'NPPES primary taxonomy. A specialty claim, not a board-certification claim.'
+        : 'Not listed in your registry record.',
+    },
+    {
+      key: 'stateOfPractice',
+      label: 'State of practice',
+      value: profile.stateOfPractice,
+      provenance: profile.stateOfPractice ? 'VERIFIED' : 'UNKNOWN',
+      note: profile.stateOfPractice
+        ? 'Practice address state from your NPPES registry record.'
+        : 'Not listed in your registry record.',
+    },
+  ];
 }

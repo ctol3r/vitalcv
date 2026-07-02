@@ -1,24 +1,44 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
+import { ClinicianIdentityPanel } from '@/components/identity/ClinicianIdentityPanel';
 import {
   buildIdentityProofingFoundationPolicy,
-  evaluateClinicianNpiBindingReadiness,
   explainIdentityProofingStatus,
 } from '@/lib/identity/identityProofingPolicy';
 
 export const metadata: Metadata = {
   title: 'Clinician Identity · VitalCV',
   description:
-    'Identity proofing policy and clinician-to-NPI binding status. NPI lookup is not government-ID identity proofing.',
+    'Your identity record with the origin of every value, plus the identity proofing policy. NPI lookup is not government-ID identity proofing.',
 };
+
+const RELATED_SURFACES = [
+  {
+    href: '/clinician/identity/verification',
+    label: 'Planned proofing controls',
+    detail: 'Government ID and liveness controls — planned, not live in this build.',
+  },
+  {
+    href: '/clinician/profile',
+    label: 'Full profile',
+    detail: 'Every profile field with its origin labeled.',
+  },
+  {
+    href: '/get-ready',
+    label: 'Claim or refresh your NPI',
+    detail: 'Resolve your NPI against NPPES and link it to your account.',
+  },
+  {
+    href: '/holder/readiness',
+    label: 'Readiness snapshot',
+    detail: 'Live source-check status and freshness for your record.',
+  },
+] as const;
 
 export default function ClinicianIdentityPage() {
   const policy = buildIdentityProofingFoundationPolicy();
-  const sampleBinding = evaluateClinicianNpiBindingReadiness({
-    identifierResolved: true,
-    selfAttestedName: true,
-  });
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
@@ -27,7 +47,7 @@ export default function ClinicianIdentityPage() {
           Clinician identity
         </p>
         <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-          Identity proofing policy and NPI binding
+          Your identity record and how it is sourced
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           <strong>NPI lookup is not government-ID identity proofing.</strong>{' '}
@@ -38,28 +58,7 @@ export default function ClinicianIdentityPage() {
         </p>
       </header>
 
-      <section
-        aria-labelledby="binding-status-heading"
-        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
-      >
-        <h2 id="binding-status-heading" className="text-base font-semibold sm:text-lg">
-          NPI binding status
-        </h2>
-        <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">
-              Sample binding (identifier resolved + self-attested name)
-            </dt>
-            <dd className="mt-1 font-mono">{sampleBinding}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">
-              Highest readiness this foundation can return
-            </dt>
-            <dd className="mt-1 text-muted-foreground">foundation_ready (not "verified")</dd>
-          </div>
-        </dl>
-      </section>
+      <ClinicianIdentityPanel />
 
       <section
         aria-labelledby="policy-summary-heading"
@@ -73,6 +72,11 @@ export default function ClinicianIdentityPage() {
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
           {explainIdentityProofingStatus(policy.status)}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          The strongest NPI-link status this surface reports is{' '}
+          <span className="font-mono">foundation_ready</span> — a documented,
+          self-attested link, never a proofed identity.
         </p>
       </section>
 
@@ -134,6 +138,28 @@ export default function ClinicianIdentityPage() {
                 </span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{req.explanation}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section
+        aria-labelledby="related-surfaces-heading"
+        className="mb-6 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+      >
+        <h2 id="related-surfaces-heading" className="text-base font-semibold sm:text-lg">
+          Related surfaces
+        </h2>
+        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {RELATED_SURFACES.map((surface) => (
+            <li key={surface.href} className="text-sm">
+              <Link
+                href={surface.href}
+                className="font-medium underline underline-offset-4"
+              >
+                {surface.label}
+              </Link>
+              <p className="mt-1 text-xs text-muted-foreground">{surface.detail}</p>
             </li>
           ))}
         </ul>
