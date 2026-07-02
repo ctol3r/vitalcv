@@ -25,6 +25,11 @@ function readValidationMessage(error: { issues?: Array<{ message?: string }> }):
   return error.issues?.[0]?.message ?? 'Invalid request payload.';
 }
 
+// Subscription.id and SubscriptionApiKey.id are Postgres uuid columns —
+// querying them with a non-uuid string makes Prisma throw (a 500) instead of
+// returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function registerSubscriptionRoutes(app: Express): void {
 
   // ── POST /api/subscriptions ──────────────────────────────────────
@@ -64,6 +69,10 @@ export function registerSubscriptionRoutes(app: Express): void {
   // ── DELETE /api/subscriptions/:id ───────────────────────────────
   app.delete('/api/subscriptions/:id', async (req: Request, res: Response) => {
     try {
+      if (!UUID_RE.test(req.params.id ?? '')) {
+        res.status(404).json({ error: 'Subscription not found' });
+        return;
+      }
       await cancelSubscription(req.params.id);
       res.json({ canceled: true });
     } catch (err) {
@@ -110,6 +119,10 @@ export function registerSubscriptionRoutes(app: Express): void {
   // ── DELETE /api/api-keys/:keyId ─────────────────────────────────
   app.delete('/api/api-keys/:keyId', async (req: Request, res: Response) => {
     try {
+      if (!UUID_RE.test(req.params.keyId ?? '')) {
+        res.status(404).json({ error: 'API key not found' });
+        return;
+      }
       await revokeApiKey(req.params.keyId);
       res.json({ revoked: true });
     } catch (err) {

@@ -64,6 +64,10 @@ function requireClerkUserId(req: Request): string {
   return id;
 }
 
+// VcvEntity.id is a Postgres uuid column — querying it with a non-uuid string
+// makes Prisma throw (a 500) instead of returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function resolvePacketExportFormat(req: Request): 'json' | 'zip' {
   const queryFormat = typeof req.query.format === 'string'
     ? req.query.format.trim().toLowerCase()
@@ -697,6 +701,9 @@ export function registerEmployerActionRoutes(app: Express): void {
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
+      if (!UUID_RE.test(entityId.trim())) {
+        throw new HttpError(404, `Entity ${entityId} not found.`);
+      }
 
       const [passport, entity] = await Promise.all([
         buildPassport(entityId),

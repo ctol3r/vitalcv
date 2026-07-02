@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { Eye, ShieldAlert } from 'lucide-react';
 import { ProvenanceStrip } from '@/components/verifier/ProvenanceStrip';
 import { ReceiptVerificationPane } from '@/components/verifier/ReceiptVerificationPane';
@@ -181,6 +182,11 @@ export default async function VerifierPage({
   params: Promise<{ npi: string }>;
 }) {
   const { npi } = await params;
+  // NPIs are 10-digit strings; anything else cannot resolve — 404 before any
+  // backend fetch (Wave 2F route contract: malformed public ids are 404s).
+  if (!/^\d{10}$/.test(npi)) {
+    notFound();
+  }
   const [passport, acceptanceHistory] = await Promise.all([
     fetchPassport(npi),
     fetchAcceptanceHistory(npi),

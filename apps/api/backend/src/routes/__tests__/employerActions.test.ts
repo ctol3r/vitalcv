@@ -174,7 +174,7 @@ function buildPacketFixture() {
     schema: 'vitalcv.employer.packet.v1',
     exportedAt: '2026-03-23T20:00:00.000Z',
     exportedBy: 'employer-1',
-    entityId: 'entity-1',
+    entityId: '11111111-1111-4111-8111-111111111111',
     clinicianNpi: '1234567890',
     displayName: 'Dr. Jane Doe',
     truth: {
@@ -188,7 +188,7 @@ function buildPacketFixture() {
       packetSchema: 'vitalcv.employer.packet.v1',
       exportedAt: '2026-03-23T20:00:00.000Z',
       exportedBy: 'employer-1',
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       clinicianNpi: '1234567890',
       bundleFiles: [
         'packet.json',
@@ -392,11 +392,11 @@ describe('employer action routes', () => {
     createEmployerEvidencePacketZipStreamMock.mockReset();
     issueTrustContainerManifestEntryMock.mockReset();
 
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({ entityId: "11111111-1111-4111-8111-111111111111", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     issueTrustContainerManifestEntryMock.mockResolvedValue(buildTrustContainerFixture());
 
     prismaMock.vcvEntity.findUnique.mockResolvedValue({
-      id: 'entity-1',
+      id: '11111111-1111-4111-8111-111111111111',
       npi: '1234567890',
     });
     prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
@@ -424,14 +424,14 @@ describe('employer action routes', () => {
 
   it('persists accept actions with a durable acceptance record and outbox handoff', async () => {
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/accept')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
       .set('x-clerk-user-id', 'employer-1')
       .send({ role: 'Recruiter', facility: 'Providence', notes: 'Head start only' })
       .expect(201);
 
     expect(response.body.state).toEqual(expect.objectContaining({
       action: 'accept',
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       clinicianNpi: '1234567890',
       auditEventId: 'audit-1',
       acceptance: {
@@ -507,7 +507,7 @@ describe('employer action routes', () => {
           employerReviewAction: {
             action: 'accept',
             employerId: 'employer-1',
-            entityId: 'entity-1',
+            entityId: '11111111-1111-4111-8111-111111111111',
             clinicianNpi: '1234567890',
             requestId: 'req-accept-1',
             attribution: {
@@ -555,7 +555,7 @@ describe('employer action routes', () => {
     ]);
 
     const response = await request(buildApp())
-      .get('/api/employer-review/entity-1/acceptance-history')
+      .get('/api/employer-review/11111111-1111-4111-8111-111111111111/acceptance-history')
       .expect(200);
 
     expect(response.body).toEqual({
@@ -583,7 +583,7 @@ describe('employer action routes', () => {
 
   it('resolves a 10-digit acceptance-history key as a clinician NPI without touching the uuid lookup', async () => {
     prismaMock.vcvEntity.findFirst.mockResolvedValue({
-      id: 'entity-1',
+      id: '11111111-1111-4111-8111-111111111111',
       npi: '1234567890',
     });
 
@@ -627,9 +627,31 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.findMany).not.toHaveBeenCalled();
   });
 
+  it('404s a malformed entity id before it can reach the uuid-typed lookup', async () => {
+    // VcvEntity.id is a Postgres uuid column — an unguarded non-uuid string
+    // makes Prisma throw (a 500) instead of returning null.
+    await request(buildApp())
+      .get('/api/employer-review/not-a-uuid/acceptance-history')
+      .expect(404);
+
+    expect(prismaMock.vcvEntity.findUnique).not.toHaveBeenCalled();
+    expect(prismaMock.vcvEntity.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.findMany).not.toHaveBeenCalled();
+  });
+
+  it('404s a malformed packet entity id before buildPassport runs', async () => {
+    await request(buildApp())
+      .get('/api/employer-review/not-a-uuid/packet?format=json')
+      .set('x-clerk-user-id', 'employer-1')
+      .expect(404);
+
+    expect(buildPassportMock).not.toHaveBeenCalled();
+    expect(prismaMock.vcvEntity.findUnique).not.toHaveBeenCalled();
+  });
+
   it('never serves private review notes on the anonymous acceptance-history read', async () => {
     prismaMock.vcvEntity.findFirst.mockResolvedValue({
-      id: 'entity-1',
+      id: '11111111-1111-4111-8111-111111111111',
       npi: '1234567890',
     });
     prismaMock.auditEvent.findMany.mockResolvedValue([
@@ -640,7 +662,7 @@ describe('employer action routes', () => {
           employerReviewAction: {
             action: 'accept',
             employerId: 'employer-1',
-            entityId: 'entity-1',
+            entityId: '11111111-1111-4111-8111-111111111111',
             clinicianNpi: '1234567890',
             requestId: 'req-accept-legacy',
             attribution: {
@@ -709,7 +731,7 @@ describe('employer action routes', () => {
 
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/request-refresh')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/request-refresh')
       .set('x-clerk-user-id', 'employer-1')
       .send({
         staleSources: ['CMS PECOS', 'CMS PECOS', '  OIG LEIE  ', '', 12],
@@ -742,7 +764,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_REFRESH_REQUESTED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         metadata: expect.objectContaining({
           employerReviewAction: expect.objectContaining({
             persistence: expect.objectContaining({
@@ -779,7 +801,7 @@ describe('employer action routes', () => {
     wireTransactionClient({ reviewItemId: 'review-item-1' });
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/route-to-review')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/route-to-review')
       .set('x-clerk-user-id', 'employer-1')
       .send({ reason: 'Manual check required', priority: 'high' })
       .expect(201);
@@ -808,7 +830,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_ROUTED_TO_REVIEW',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         metadata: expect.objectContaining({
           employerReviewAction: expect.objectContaining({
             persistence: expect.objectContaining({
@@ -831,7 +853,7 @@ describe('employer action routes', () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({ id: 'accept-existing' });
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/accept')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
       .set('x-clerk-user-id', 'employer-1')
       .send({})
       .expect(409);
@@ -845,7 +867,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -868,7 +890,7 @@ describe('employer action routes', () => {
 
   it('fails closed when a BLOCKED passport is accepted from the action route', async () => {
     buildPassportMock.mockResolvedValueOnce({
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       decisionPosture: {
         status: 'BLOCKED',
         blockers: ['OIG exclusion requires review'],
@@ -877,7 +899,7 @@ describe('employer action routes', () => {
     } as never);
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/accept')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
       .set('x-clerk-user-id', 'employer-1')
       .send({})
       .expect(422);
@@ -892,7 +914,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -908,7 +930,7 @@ describe('employer action routes', () => {
 
   it('generates share-packet bearer tokens with crypto randomness and stores only the token hash', async () => {
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/share-packet')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
       .set('x-clerk-user-id', 'employer-1')
       .send({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' })
       .expect(201);
@@ -944,7 +966,7 @@ describe('employer action routes', () => {
 
   it('rejects share-packet requests when the body NPI does not match the reviewed entity', async () => {
     await request(buildApp())
-      .post('/api/employer-review/entity-1/share-packet')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
       .set('x-clerk-user-id', 'employer-1')
       .send({ npi: '9999999999' })
       .expect(400);
@@ -952,7 +974,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -978,7 +1000,7 @@ describe('employer action routes', () => {
       metadata: {
         schema: 'vitalcv.employer.packet-shared.v1',
         employerId: 'employer-1',
-        entityId: 'entity-1',
+        entityId: '11111111-1111-4111-8111-111111111111',
         clinicianNpi: '1234567890',
         organizationContextId: 'ctx-1',
         bundleId: 'bundle-1',
@@ -1003,11 +1025,11 @@ describe('employer action routes', () => {
     }));
     expect(response.body).toEqual(expect.objectContaining({
       ok: true,
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       clinicianNpi: '1234567890',
       organizationContextId: 'ctx-1',
       bundleId: 'bundle-1',
-      reviewHref: '/review/entity-1?contextId=ctx-1&bundleId=bundle-1',
+      reviewHref: '/review/11111111-1111-4111-8111-111111111111?contextId=ctx-1&bundleId=bundle-1',
       shareEventAuditId: 'audit-share-1',
     }));
   });
@@ -1033,7 +1055,7 @@ describe('employer action routes', () => {
       metadata: {
         schema: 'vitalcv.employer.packet-shared.v1',
         employerId: 'employer-1',
-        entityId: 'entity-1',
+        entityId: '11111111-1111-4111-8111-111111111111',
         clinicianNpi: '1234567890',
         organizationContextId: null,
         bundleId: null,
@@ -1057,7 +1079,7 @@ describe('employer action routes', () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce(null);
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/confirm-start')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
       .set('x-clerk-user-id', 'employer-1')
       .send({
         startedAt: '2026-03-24',
@@ -1076,7 +1098,7 @@ describe('employer action routes', () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce(null);
 
     await request(buildApp())
-      .post('/api/employer-review/entity-1/confirm-start')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
       .set('x-clerk-user-id', 'employer-1')
       .send({
         acceptanceId: 'accept-other-npi',
@@ -1107,7 +1129,7 @@ describe('employer action routes', () => {
         employerReviewAction: {
           action: 'review',
           employerId: 'employer-1',
-          entityId: 'entity-1',
+          entityId: '11111111-1111-4111-8111-111111111111',
           clinicianNpi: '1234567890',
           requestId: 'req-1',
           persistence: {
@@ -1147,7 +1169,7 @@ describe('employer action routes', () => {
     }]);
 
     const response = await request(buildApp())
-      .get('/api/employer-review/entity-1/status')
+      .get('/api/employer-review/11111111-1111-4111-8111-111111111111/status')
       .set('x-clerk-user-id', 'employer-1')
       .expect(200);
 
@@ -1155,7 +1177,7 @@ describe('employer action routes', () => {
       ok: true,
       state: {
         action: 'review',
-        entityId: 'entity-1',
+        entityId: '11111111-1111-4111-8111-111111111111',
         clinicianNpi: '1234567890',
         auditEventId: 'audit-review-1',
         timestamp: '2026-03-23T19:30:00.000Z',
@@ -1199,7 +1221,7 @@ describe('employer action routes', () => {
           employerReviewAction: {
             action: 'accept',
             employerId: 'employer-1',
-            entityId: 'entity-1',
+            entityId: '11111111-1111-4111-8111-111111111111',
             clinicianNpi: '1234567890',
             requestId: 'req-accept-1',
             persistence: {
@@ -1281,7 +1303,7 @@ describe('employer action routes', () => {
     ]);
 
     const response = await request(buildApp())
-      .get('/api/employer-review/entity-1/status')
+      .get('/api/employer-review/11111111-1111-4111-8111-111111111111/status')
       .set('x-clerk-user-id', 'employer-1')
       .expect(200);
 
@@ -1289,7 +1311,7 @@ describe('employer action routes', () => {
       ok: true,
       state: {
         action: 'accept',
-        entityId: 'entity-1',
+        entityId: '11111111-1111-4111-8111-111111111111',
         clinicianNpi: '1234567890',
         auditEventId: 'audit-accept-1',
         timestamp: '2026-03-23T19:46:00.000Z',
@@ -1336,11 +1358,11 @@ describe('employer action routes', () => {
 
   it('emits an audit event when exporting the packet as JSON', async () => {
     const packet = buildPacketFixture();
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({ entityId: "11111111-1111-4111-8111-111111111111", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
 
     const response = await request(buildApp())
-      .get('/api/employer-review/entity-1/packet?format=json')
+      .get('/api/employer-review/11111111-1111-4111-8111-111111111111/packet?format=json')
       .set('x-clerk-user-id', 'employer-1')
       .expect(200);
 
@@ -1355,7 +1377,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'ARTIFACT_EXPORTED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           correlationId: expect.any(String),
@@ -1379,7 +1401,7 @@ describe('employer action routes', () => {
   it('streams the packet bundle as ZIP when requested', async () => {
     const packet = buildPacketFixture();
     const zipStream = new PassThrough();
-    buildPassportMock.mockResolvedValue({ entityId: "entity-1", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
+    buildPassportMock.mockResolvedValue({ entityId: "11111111-1111-4111-8111-111111111111", decisionPosture: { status: "READY", blockers: [], missing: [] } } as never);
     buildEmployerEvidencePacketMock.mockReturnValue(packet as never);
     createEmployerEvidencePacketZipStreamMock.mockReturnValue(zipStream);
 
@@ -1388,7 +1410,7 @@ describe('employer action routes', () => {
     });
 
     const response = await request(buildApp())
-      .get('/api/employer-review/entity-1/packet?format=zip')
+      .get('/api/employer-review/11111111-1111-4111-8111-111111111111/packet?format=zip')
       .set('x-clerk-user-id', 'employer-1')
       .buffer(true)
       .parse((res, callback) => {
@@ -1406,7 +1428,7 @@ describe('employer action routes', () => {
 
   it('blocks employer accept when the passport is in BLOCKED posture', async () => {
     buildPassportMock.mockResolvedValueOnce({
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       decisionPosture: {
         status: 'BLOCKED',
         blockers: ['STATE_BOARD access required'],
@@ -1415,7 +1437,7 @@ describe('employer action routes', () => {
     } as never);
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/accept')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
       .set('x-clerk-user-id', 'employer-1')
       .send({})
       .expect(422);
@@ -1430,7 +1452,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -1448,7 +1470,7 @@ describe('employer action routes', () => {
     process.env.APP_ORIGIN = 'https://app.vitalcv.test';
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/share-packet')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
       .set('x-clerk-user-id', 'employer-1')
       .send({ npi: '1234567890', organizationContextId: 'ctx-1', bundleId: 'bundle-1' })
       .expect(201);
@@ -1468,7 +1490,7 @@ describe('employer action routes', () => {
     expect(metadata).toEqual(expect.objectContaining({
       schema: 'vitalcv.employer.packet-shared.v1',
       employerId: 'employer-1',
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       clinicianNpi: '1234567890',
       organizationContextId: 'ctx-1',
       bundleId: 'bundle-1',
@@ -1487,7 +1509,7 @@ describe('employer action routes', () => {
 
   it('rejects share-packet requests for an NPI that does not match the reviewed entity', async () => {
     await request(buildApp())
-      .post('/api/employer-review/entity-1/share-packet')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/share-packet')
       .set('x-clerk-user-id', 'employer-1')
       .send({ npi: '1111111111' })
       .expect(400);
@@ -1495,7 +1517,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -1512,7 +1534,7 @@ describe('employer action routes', () => {
   it('resolves a valid share token to the review target and scoped context', async () => {
     prismaMock.auditEvent.findFirst.mockResolvedValueOnce({
       id: 'share-audit-1',
-      referenceId: 'entity-1',
+      referenceId: '11111111-1111-4111-8111-111111111111',
       clinicianId: '1234567890',
       createdAt: new Date('2026-03-23T18:00:00.000Z'),
       metadata: {
@@ -1539,11 +1561,11 @@ describe('employer action routes', () => {
     }));
     expect(response.body).toEqual({
       ok: true,
-      entityId: 'entity-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       clinicianNpi: '1234567890',
       organizationContextId: 'ctx-1',
       bundleId: 'bundle-1',
-      reviewHref: '/review/entity-1?contextId=ctx-1&bundleId=bundle-1',
+      reviewHref: '/review/11111111-1111-4111-8111-111111111111?contextId=ctx-1&bundleId=bundle-1',
       shareEventAuditId: 'share-audit-1',
       sharedAt: '2026-03-23T18:00:00.000Z',
       expiresAt: '2099-03-24T18:00:00.000Z',
@@ -1562,7 +1584,7 @@ describe('employer action routes', () => {
 
     prismaMock.auditEvent.findFirst.mockResolvedValueOnce({
       id: 'share-audit-1',
-      referenceId: 'entity-1',
+      referenceId: '11111111-1111-4111-8111-111111111111',
       clinicianId: '1234567890',
       createdAt: new Date('2026-03-23T18:00:00.000Z'),
       metadata: {
@@ -1578,7 +1600,7 @@ describe('employer action routes', () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce(null);
 
     await request(buildApp())
-      .post('/api/employer-review/entity-1/confirm-start')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
       .set('x-clerk-user-id', 'employer-1')
       .send({
         startedAt: '2026-03-25T18:00:00.000Z',
@@ -1591,7 +1613,7 @@ describe('employer action routes', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
-        referenceId: 'entity-1',
+        referenceId: '11111111-1111-4111-8111-111111111111',
         clinicianId: '1234567890',
         metadata: expect.objectContaining({
           runtimeTrust: expect.objectContaining({
@@ -1612,7 +1634,7 @@ describe('employer action routes', () => {
     });
 
     const response = await request(buildApp())
-      .post('/api/employer-review/entity-1/confirm-start')
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
       .set('x-clerk-user-id', 'employer-1')
       .send({
         startedAt: '2026-03-25T18:00:00.000Z',

@@ -788,10 +788,14 @@ async function writeEmployerReviewAuditEvent(
   });
 }
 
+// VcvEntity.id is a Postgres uuid column — querying it with a non-uuid string
+// makes Prisma throw (a 500) instead of returning null.
+const ENTITY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function resolveEmployerReviewSubject(
   entityId: string,
 ): Promise<EmployerReviewSubject | null> {
-  if (!entityId.trim()) return null;
+  if (!entityId.trim() || !ENTITY_UUID_RE.test(entityId.trim())) return null;
 
   const entity = await prisma.vcvEntity.findUnique({
     where: { id: entityId },
