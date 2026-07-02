@@ -172,11 +172,23 @@ function extractPublicAuditHashes(claimHashes: unknown): string[] {
 
 // ── Route handler ──────────────────────────────────────────────────────────
 
+// ShareLink.id is a Postgres uuid column — querying it with a non-uuid string
+// makes Prisma throw (a 500) instead of returning null, so a malformed slug
+// must 404 before it reaches the query.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function handlePublicProfile(req: Request, res: Response): Promise<void> {
   const { slug } = req.params;
 
   if (typeof slug !== 'string' || slug.trim().length === 0) {
     res.status(400).json({ error: 'Invalid slug' });
+    return;
+  }
+
+  // Test the raw value — it is what the queries below receive, so a padded
+  // uuid must fail here rather than reach Prisma.
+  if (!UUID_RE.test(slug)) {
+    res.status(404).json({ error: 'Profile not found' });
     return;
   }
 

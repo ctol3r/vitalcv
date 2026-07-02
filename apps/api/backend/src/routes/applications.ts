@@ -42,13 +42,25 @@ function requireClerkUserId(req: Request): string {
   return id;
 }
 
+// Opportunity.id and Application.id are Postgres uuid columns — querying them
+// with a non-uuid string makes Prisma throw (a 500) instead of returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function requireUuidParam(value: string | undefined, label: string): string {
+  const id = value?.trim();
+  if (!id || !UUID_RE.test(id)) {
+    throw new HttpError(404, `${label} not found.`);
+  }
+  return id;
+}
+
 export function registerApplicationRoutes(app: Express): void {
   /* ── Clinician: apply ── */
   app.post(
     '/api/opportunities/:id/apply',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { id: opportunityId } = req.params;
+      const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
       const { npi, coverNote } = req.body as { npi?: string; coverNote?: string };
 
       const application = await applyToOpportunity({ opportunityId, clerkUserId, npi, coverNote });
@@ -71,7 +83,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/withdraw',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
     }),
@@ -102,7 +114,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/opportunities/:id/applications',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { id: opportunityId } = req.params;
+      const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
       const applications = await listApplicationsForOpportunity(opportunityId, clerkUserId);
       res.json(applications);
     }),
@@ -113,7 +125,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/review',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId: applicationId } = req.params;
+      const applicationId = requireUuidParam(req.params.appId, 'Application');
       const { status, reviewNote } = req.body as { status?: string; reviewNote?: string };
 
       if (!status || !['REVIEWED', 'ACCEPTED', 'DECLINED'].includes(status)) {
@@ -158,7 +170,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/workflow',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const workflowApplication = await getEmployerWorkflowApplication(appId, clerkUserId);
       res.json(workflowApplication);
     }),
@@ -169,7 +181,7 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/workflow-action',
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
-      const { appId } = req.params;
+      const appId = requireUuidParam(req.params.appId, 'Application');
       const {
         action,
         requests,

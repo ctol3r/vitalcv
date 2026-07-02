@@ -423,10 +423,18 @@ export interface RevokeResult {
   revokedAt: string;
 }
 
+// BundleShareEvent.id is a Postgres uuid column — querying it with a non-uuid
+// string makes Prisma throw (a 500) instead of returning null.
+const SHARE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function revokeShare(
   shareId: string,
   clerkUserId: string,
 ): Promise<RevokeResult> {
+  if (!SHARE_ID_RE.test(shareId)) {
+    throw new ShareValidationError('Share not found.');
+  }
+
   const share = await prisma.bundleShareEvent.findUnique({ where: { id: shareId } });
 
   if (!share) {

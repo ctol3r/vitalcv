@@ -35,6 +35,12 @@ function clerkUserId(req: Request): string | undefined {
   return typeof raw === 'string' ? raw.trim() : undefined;
 }
 
+// Entity/context ids hit Postgres uuid columns — querying them with a
+// non-uuid string makes Prisma throw (a 500) instead of returning null.
+// (The `[0-9a-f-]{36}` route pattern below is looser than a real uuid, so
+// handlers still need this check.)
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function registerPassportEntityRoutes(app: Express): void {
 
   // ── GET /api/passport/entity/:id ────────────────────────────────────────────
@@ -42,6 +48,7 @@ export function registerPassportEntityRoutes(app: Express): void {
     '/api/passport/entity/:id([0-9a-f-]{36})',
     asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params as { id: string };
+      if (!UUID_RE.test(id)) throw new HttpError(404, 'Entity not found.');
       const passport = await buildPassport(id);
       if (!passport) throw new HttpError(404, 'Entity not found.');
       res.json(passport);
@@ -117,6 +124,12 @@ export function registerPassportEntityRoutes(app: Express): void {
       if (!requestorEntityId || !contextType) {
         throw new HttpError(400, 'requestorEntityId and contextType are required.');
       }
+      if (!UUID_RE.test(requestorEntityId)) {
+        throw new HttpError(404, `Requestor entity ${requestorEntityId} not found.`);
+      }
+      if (subjectEntityIds.some((sid) => !UUID_RE.test(sid))) {
+        throw new HttpError(400, 'subjectEntityIds must be valid entity ids.');
+      }
 
       const context = await createOrgContext({
         requestorEntityId,
@@ -163,6 +176,12 @@ export function registerPassportEntityRoutes(app: Express): void {
 
       if (!entityId || !organizationContextId) {
         throw new HttpError(400, 'entityId and organizationContextId are required.');
+      }
+      // Both ids hit Postgres uuid columns — a non-uuid string makes Prisma
+      // throw (a 500) instead of returning null.
+      if (!UUID_RE.test(entityId)) throw new HttpError(404, 'Entity not found.');
+      if (!UUID_RE.test(organizationContextId)) {
+        throw new HttpError(404, 'Organization context not found.');
       }
 
       // Verify entity exists

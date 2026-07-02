@@ -42,6 +42,10 @@ function requireClerkUserId(req: Request): string {
   return id;
 }
 
+// Opportunity.id is a Postgres uuid column — querying it with a non-uuid
+// string makes Prisma throw (a 500) instead of returning null.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parsePositiveInt(value: unknown, fallback: number): number {
   const n = typeof value === 'string' ? parseInt(value, 10) : Number(value);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
@@ -221,6 +225,9 @@ export function registerOpportunityRoutes(app: Express): void {
       const opportunityId = req.params.id?.trim();
       if (!opportunityId) {
         throw new HttpError(400, 'Opportunity id is required.');
+      }
+      if (!UUID_RE.test(opportunityId)) {
+        throw new HttpError(404, 'Opportunity not found.');
       }
 
       const opportunity = await getPublicOpportunityById(opportunityId, {
