@@ -309,6 +309,130 @@ describe('employerReviewActions service', () => {
     ]);
   });
 
+  it('never copies private review notes into the stored acceptance reason', async () => {
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+      organizationContextId: 'ctx-1',
+      notes: 'Internal fit assessment — do not circulate.',
+    });
+
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          employerReviewAction: expect.objectContaining({
+            acceptance: expect.objectContaining({
+              acceptanceReason: 'Accepted as head start using VitalCV verification.',
+            }),
+            context: expect.objectContaining({
+              notes: 'Internal fit assessment — do not circulate.',
+            }),
+          }),
+        }),
+      }),
+    }));
+  });
+
+  it('suppresses private notes from the public acceptance history read', async () => {
+    const buildAcceptanceEvent = (input: {
+      id: string;
+      acceptanceId: string;
+      notes: string;
+      acceptanceReason?: string;
+    }) => ({
+      id: input.id,
+      createdAt: new Date('2026-03-23T18:00:00.000Z'),
+      metadata: {
+        employerReviewAction: {
+          action: 'accept',
+          employerId: 'employer-1',
+          entityId: 'entity-1',
+          clinicianNpi: '1234567890',
+          requestId: `req-${input.id}`,
+          attribution: {
+            source: 'organization_context',
+            organizationContextId: 'ctx-1',
+            bundleShareEventId: null,
+            bundleId: null,
+            requestorEntityId: 'org-entity-1',
+            organizationId: 'org-entity-1',
+            organizationName: 'First Org',
+            purposeOfUse: 'Employment review',
+          },
+          persistence: {
+            mode: 'durable_record',
+            target: 'employer_acceptance',
+            acceptanceId: input.acceptanceId,
+            reviewItemId: null,
+            outboxEventId: null,
+            reviewItemCreated: false,
+          },
+          summary: {
+            title: 'Head start accepted',
+            description: 'The employer acceptance was persisted and linked to an audit event.',
+          },
+          details: {
+            staleSources: [],
+            missingDomains: [],
+            reason: null,
+            priority: null,
+          },
+          context: {
+            role: null,
+            facility: null,
+            notes: input.notes,
+          },
+          acceptance: {
+            acceptedByOrgId: 'org-entity-1',
+            acceptedAt: '2026-03-23T18:00:00.000Z',
+            acceptanceScope: 'pilot',
+            ...(input.acceptanceReason !== undefined
+              ? { acceptanceReason: input.acceptanceReason }
+              : {}),
+          },
+        },
+      },
+    });
+
+    // Legacy record: the old write path copied context.notes into
+    // acceptanceReason when the employer gave no explicit reason.
+    const legacyNotesCopy = buildAcceptanceEvent({
+      id: 'audit-legacy',
+      acceptanceId: 'accept-legacy',
+      notes: 'Great culture fit — internal only.',
+      acceptanceReason: 'Great culture fit — internal only.',
+    });
+    // Record with no stored reason at all: history must not fall back to notes.
+    const reasonAbsent = buildAcceptanceEvent({
+      id: 'audit-absent',
+      acceptanceId: 'accept-absent',
+      notes: 'Budget approved internally.',
+    });
+
+    prismaMock.auditEvent.findMany.mockResolvedValue([legacyNotesCopy, reasonAbsent]);
+
+    const history = await loadEmployerAcceptanceHistory({
+      entityId: 'entity-1',
+      clinicianNpi: '1234567890',
+    });
+
+    expect(history.history).toEqual([
+      expect.objectContaining({
+        acceptanceId: 'accept-legacy',
+        acceptanceReason: 'Accepted as head start using VitalCV verification.',
+      }),
+      expect.objectContaining({
+        acceptanceId: 'accept-absent',
+        acceptanceReason: null,
+      }),
+    ]);
+
+    const serialized = JSON.stringify(history);
+    expect(serialized).not.toContain('Great culture fit');
+    expect(serialized).not.toContain('Budget approved internally');
+  });
+
   it('persists bundle fallback attribution onto acceptance audit events using the canonical organization context', async () => {
     const state = await recordEmployerReviewAcceptance({
       entityId: 'entity-1',

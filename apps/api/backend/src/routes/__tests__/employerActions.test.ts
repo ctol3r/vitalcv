@@ -438,7 +438,8 @@ describe('employer action routes', () => {
         acceptedByOrgId: null,
         acceptedAt: expect.any(String),
         acceptanceScope: 'pilot',
-        acceptanceReason: 'Head start only',
+        // Private notes no longer stand in for a missing acceptance reason.
+        acceptanceReason: 'Accepted as head start using VitalCV verification.',
       },
       persistence: expect.objectContaining({
         mode: 'durable_record',
@@ -492,7 +493,7 @@ describe('employer action routes', () => {
       decision: 'PROCEED',
       metadata: expect.objectContaining({
         acceptanceScope: 'pilot',
-        acceptanceReason: 'Head start only',
+        acceptanceReason: 'Accepted as head start using VitalCV verification.',
       }),
     }));
   });
@@ -623,6 +624,84 @@ describe('employer action routes', () => {
 
     expect(prismaMock.vcvEntity.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.auditEvent.findMany).not.toHaveBeenCalled();
+  });
+
+  it('never serves private review notes on the anonymous acceptance-history read', async () => {
+    prismaMock.vcvEntity.findFirst.mockResolvedValue({
+      id: 'entity-1',
+      npi: '1234567890',
+    });
+    prismaMock.auditEvent.findMany.mockResolvedValue([
+      {
+        id: 'audit-accept-legacy',
+        createdAt: new Date('2026-03-23T18:00:00.000Z'),
+        metadata: {
+          employerReviewAction: {
+            action: 'accept',
+            employerId: 'employer-1',
+            entityId: 'entity-1',
+            clinicianNpi: '1234567890',
+            requestId: 'req-accept-legacy',
+            attribution: {
+              source: 'organization_context',
+              organizationContextId: 'ctx-1',
+              bundleShareEventId: null,
+              bundleId: null,
+              requestorEntityId: 'org-entity-1',
+              organizationId: 'org-entity-1',
+              organizationName: 'Providence',
+              purposeOfUse: 'Employment review',
+            },
+            persistence: {
+              mode: 'durable_record',
+              target: 'employer_acceptance',
+              acceptanceId: 'accept-legacy',
+              reviewItemId: null,
+              outboxEventId: 'outbox-1',
+              reviewItemCreated: false,
+            },
+            summary: {
+              title: 'Head start accepted',
+              description: 'The employer acceptance was persisted and linked to an audit event.',
+            },
+            details: {
+              staleSources: [],
+              missingDomains: [],
+              reason: null,
+              priority: null,
+            },
+            context: {
+              role: 'Hospitalist',
+              facility: 'Main campus',
+              // Old write path copied these notes into acceptanceReason.
+              notes: 'Salary band flexible for this candidate — internal only.',
+            },
+            acceptance: {
+              acceptedByOrgId: 'org-entity-1',
+              acceptedAt: '2026-03-23T18:00:00.000Z',
+              acceptanceScope: 'pilot',
+              acceptanceReason: 'Salary band flexible for this candidate — internal only.',
+            },
+          },
+        },
+      },
+    ]);
+
+    // No x-clerk-user-id, no x-org-id: this is the anonymous /verify/[npi] read.
+    const response = await request(buildApp())
+      .get('/api/employer-review/1234567890/acceptance-history')
+      .expect(200);
+
+    expect(response.body.history).toEqual([
+      expect.objectContaining({
+        acceptanceId: 'accept-legacy',
+        acceptanceReason: 'Accepted as head start using VitalCV verification.',
+      }),
+    ]);
+    const serialized = JSON.stringify(response.body);
+    expect(serialized).not.toContain('Salary band flexible');
+    expect(serialized).not.toContain('Hospitalist');
+    expect(serialized).not.toContain('Main campus');
   });
 
   it('persists refresh requests through the outbox and normalizes the refresh payload', async () => {

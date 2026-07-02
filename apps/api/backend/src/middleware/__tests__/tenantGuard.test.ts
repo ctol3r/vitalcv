@@ -44,6 +44,11 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/trust-proof/1003000126')).toBe(true);
   });
 
+  it('skips tenant context for the public verifier companion reads', () => {
+    expect(shouldSkipTenantContext('/api/passport/npi/1003000126')).toBe(true);
+    expect(shouldSkipTenantContext('/api/employer-review/1003000126/acceptance-history')).toBe(true);
+  });
+
   it('allows the trust-proof read through without organization context', () => {
     const req = createRequest('/api/trust-proof/1003000126');
     const res = createResponse();
