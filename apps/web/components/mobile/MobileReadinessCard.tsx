@@ -87,7 +87,7 @@ function deriveNextAction(
 export function MobileReadinessCard({
   npi,
   className,
-  readyActionHref = '/explore',
+  readyActionHref = '/holder/opportunities',
   readyActionLabel = 'Explore roles',
 }: MobileReadinessCardProps) {
   const [trustState, setTrustState] = useState<TrustStateResponse | null>(null);

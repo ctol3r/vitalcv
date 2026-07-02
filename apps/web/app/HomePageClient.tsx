@@ -46,7 +46,9 @@ const ROLE_DOORS = [
   {
     role: 'Issuer',
     action: 'Connect a source',
-    href: '/issuer',
+    // /issuer has no landing page (only per-request demo renders under
+    // /issuer/*/[requestId]) — route issuers to the intake form until one exists.
+    href: '/contact',
     blurb: 'Add a primary-source lane to the trust register.',
   },
 ] as const;
