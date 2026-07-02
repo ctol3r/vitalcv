@@ -18,6 +18,7 @@ import { CredentialPresentationActions } from '@/components/clinician/Credential
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel';
+import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 
 type WorkspaceProfile = {
   npi?: string | null;
@@ -148,6 +149,11 @@ export default function HolderPage() {
       {/* Trust State */}
       <div className="mx-auto max-w-3xl px-4 pb-0 pt-4 sm:px-6">
         <TrustStatePanel npi={npi!} />
+      </div>
+
+      {/* Recognition — employer acceptance record */}
+      <div className="mx-auto max-w-3xl px-4 pb-0 pt-4 sm:px-6">
+        <RecognitionCard npi={npi!} />
       </div>
 
       {/* Passport */}

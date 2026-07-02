@@ -24,6 +24,7 @@ import type { MobileQuickAction } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
@@ -370,6 +371,8 @@ export default function ClinicianHomeSurface() {
           </div>
         </div>
       </section>
+
+      {/^\d{10}$/.test(npi) && <RecognitionCard npi={npi} />}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
