@@ -798,6 +798,30 @@ export async function resolveEmployerReviewSubject(
   };
 }
 
+/**
+ * Resolve a clinician NPI to the same subject shape used by entity-id lookups.
+ * Earliest entity row wins when an NPI has more than one (deterministic).
+ * Read-only: never creates an entity, unlike resolveEntityFromNpi.
+ */
+export async function resolveEmployerReviewSubjectByNpi(
+  npi: string,
+): Promise<EmployerReviewSubject | null> {
+  if (!npi.trim()) return null;
+
+  const entity = await prisma.vcvEntity.findFirst({
+    where: { npi },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, npi: true },
+  });
+
+  if (!entity?.npi) return null;
+
+  return {
+    entityId: entity.id,
+    clinicianNpi: entity.npi,
+  };
+}
+
 export async function recordEmployerReviewAcceptance(input: {
   entityId: string;
   employerId: string;
