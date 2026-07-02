@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 import {
   ONBOARD_STATUS_META,
@@ -35,11 +36,15 @@ const TONE_BADGE: Record<string, string> = {
   purple: 'border-purple-500/30 bg-purple-500/10 text-purple-700',
 };
 
+const DEMO_CASE_SLUG = 'demo-001';
+
 export default async function ActivationCasePage({ params }: PageProps) {
-  // The caseId from the URL is intentionally unused in Phase 1 — the
-  // page always renders the demoCase. A later phase wires this to a
-  // real ActivationCase row.
-  await params;
+  // Only the designated demo slug renders. Any other caseId is a 404:
+  // a real case id in the URL must never display fabricated case data.
+  const { caseId } = await params;
+  if (caseId !== DEMO_CASE_SLUG) {
+    notFound();
+  }
   const c = demoCase();
   const counts = computeActivationCounts(c);
   const completion = criticalPathCompletion(c);
