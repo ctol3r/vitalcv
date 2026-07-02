@@ -258,6 +258,8 @@ export default function ClinicianHomeSurface() {
           tone="error"
           title="Home state could not refresh"
           detail={refreshError}
+          onAction={() => { void refresh(); }}
+          onActionLabel={isRefreshing ? 'Retrying…' : 'Retry now'}
           actionHref="/holder/readiness"
           actionLabel="Open readiness"
         />
