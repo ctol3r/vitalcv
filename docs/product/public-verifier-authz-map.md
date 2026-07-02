@@ -181,11 +181,12 @@ closed, zero PHI on-chain, no banned strings, no bare "Verified" label.
 
 ## 9. Rollback plan
 
-- This wave's change is a **single additive commit**: one service-file fix (three edits), test
-  additions, and this document. No schema changes, no migrations, no config or env changes, no
-  route additions/removals, no tenant-guard changes.
-- **Rollback:** `git revert` of the wave commit restores the previous read/write fallback
-  behavior exactly. Nothing else depends on the new constant or helper.
+- This wave's change is **additive only**: one service-file fix (notes suppression + org-id
+  withholding), test additions, and this document — a short series of commits on the PR branch,
+  landing on `main` as a single squash-merge commit. No schema changes, no migrations, no config
+  or env changes, no route additions/removals, no tenant-guard changes.
+- **Rollback:** `git revert` of the squash-merge commit on `main` restores the previous
+  read/write fallback behavior exactly. Nothing else depends on the new constant or helper.
 - The fix only narrows what the public read serves; org-gated surfaces are untouched, so
   rollback cannot widen or narrow organizational access. The tenant-guard pins added here keep
   protecting `/api/trust-proof` and companions independently of rollback.
