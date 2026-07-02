@@ -27,6 +27,9 @@ export default defineConfig({
     setupFiles: ['./test/setup.ts'],
     exclude: [...configDefaults.exclude, 'tests/**', ...STALE_TEST_FILES],
   },
+  // Match Next's automatic JSX runtime so components without a `React` import
+  // (the app's prevailing style) also render under jsdom tests.
+  esbuild: { jsx: 'automatic' },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
