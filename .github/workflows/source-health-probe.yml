@@ -2,8 +2,8 @@
 #
 # Required GitHub repository secrets:
 #   - CRON_SECRET: must match the CRON_SECRET configured on the deployed
-#     Vercel/Next.js app. Used as the Bearer token to authenticate this
-#     scheduled caller.
+#     Railway/Next.js web service. Used as the Bearer token to authenticate
+#     this scheduled caller.
 #   - PROBE_URL: https origin of the deployed web app, e.g.
 #     "https://app.vitalcv.example". The workflow appends
 #     /api/internal/source-health/probe.

@@ -19,7 +19,8 @@ export const BACKEND_URL: string = (() => {
   if (backendUrl && backendUrl.length > 0) return backendUrl;
 
   // Production or any deployed environment → Railway
-  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  // (VERCEL retained only as a backwards-compatible legacy signal)
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL || process.env.NODE_ENV === 'production') {
     return RAILWAY_PRODUCTION;
   }
 

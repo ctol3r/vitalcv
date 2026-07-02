@@ -70,3 +70,11 @@ Replay renders as evidence and chronology — not telemetry, not analytics.
 
 The operator console at /ops surfaces this doctrine in machine-checkable form.
 The machine-readable doctrine endpoint is at /.well-known/trust-register.
+
+## Deployment
+
+Railway is the canonical deployment platform; GitHub is the source of truth.
+Vercel is deprecated legacy infrastructure and must not be reintroduced as a
+deploy assumption. Deploy provenance (commit SHA, branch, environment) is read
+from `RAILWAY_*` env, with `VERCEL_*` retained only as backwards-compatible
+fallbacks. See `docs/deployment/railway-migration.md`.

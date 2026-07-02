@@ -163,9 +163,9 @@ renders without hydration errors in the dev console.
 
 ## What is intentionally NOT done in this PR
 
-- **Vercel-coupled GitHub Actions workflows** are left in place but
-  already disabled to `workflow_dispatch` only (`deploy-demo.yml`).
-  They do not interfere with the Railway deploy.
+- **Vercel-coupled GitHub Actions workflows** have been removed
+  (`deploy-demo.yml` deleted in the Vercel-deprecation PR). Railway is the
+  canonical deploy target (`deploy-api.yml` + `deploy-web.yml`).
 - **`output: 'standalone'` in `next.config.mjs`** is NOT enabled.
   The default Next.js output works on Railway. Switching to
   standalone is an optional optimization for a future PR.

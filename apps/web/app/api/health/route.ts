@@ -8,10 +8,12 @@ import { BACKEND_URL as B } from '@/lib/backend-url';
 export async function GET() {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
-  // Probe backend connectivity (non-blocking — degraded, not failed)
+  // Probe backend connectivity (non-blocking — degraded, not failed).
+  // Use the API's UNAUTHENTICATED canonical health route (/health); /api/health
+  // is behind the API auth middleware (401) and would always read as degraded.
   let backendStatus: 'ok' | 'degraded' | 'unreachable' = 'unreachable';
   try {
-    const probe = await fetch(`${B}/api/health`, {
+    const probe = await fetch(`${B}/health`, {
       signal: AbortSignal.timeout(3000),
       headers: { 'x-org-id': 'vcv-system' },
     });
