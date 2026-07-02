@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Verifier Trust Registry · Receipt Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink-0:#fff;--ink-50:#f7f7f5;--ink-100:#eeede9;--ink-200:#dcdbd5;--ink-300:#c0bfb8;--ink-400:#9a998f;--ink-500:#6e6d66;--ink-600:#4d4c47;--ink-700:#33322e;--ink-800:#1f1e1c;--ink-900:#121110;--ink-950:#000;--rule:#dcdbd5;--paper:#f4f1ea}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:"Geist",ui-sans-serif,system-ui,sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;background:var(--ink-50);color:var(--ink-900);font-size:13px;line-height:1.45}
+.mono,code{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+.tdoc{background:var(--ink-0);border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900)}
+.tdoc .in{max-width:1480px;margin:0 auto;padding:14px 28px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr 1fr;gap:18px;align-items:end}
+.tdoc .cell{border-left:1px solid var(--rule);padding-left:16px}
+.tdoc .cell:first-child{border-left:0;padding-left:0}
+.tdoc .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.tdoc .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.tdoc .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0;text-transform:none}
+.tdoc .form{display:flex;flex-direction:column;gap:6px}
+.tdoc .form .g{display:flex;align-items:center;gap:8px}
+.tdoc .form .glyph{width:24px;height:24px;background:var(--ink-950);color:#fff;display:grid;place-items:center;font-family:"Geist Mono",monospace;font-size:9.5px;font-weight:600}
+.tdoc .form .nm{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.tdoc .form .title{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;color:var(--ink-500);text-transform:uppercase}
+.stamp{display:inline-flex;flex-direction:column;gap:2px;padding:8px 11px;border:1.5px solid var(--ink-950);font-family:"Geist Mono",monospace;min-width:130px}
+.stamp .lb{font-size:8.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-500)}
+.stamp .v{font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-950);font-weight:600}
+.stamp[data-state="signed"]{background:var(--ink-950);border-color:var(--ink-950)}
+.stamp[data-state="signed"] .lb{color:var(--ink-400)}
+.stamp[data-state="signed"] .v{color:#fff}
+
+.mast{background:var(--ink-0);border-bottom:1px solid var(--ink-900);padding:22px 28px;max-width:1480px;margin:0 auto}
+.mast .l1{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.mast h1{font-size:22px;margin:6px 0;font-weight:600;letter-spacing:-0.02em;color:var(--ink-900)}
+.mast .l2{font-family:"Geist",sans-serif;font-size:13px;color:var(--ink-600);max-width:1100px;line-height:1.55}
+.mast .l2 strong{color:var(--ink-900);font-weight:500}
+
+.wrap{max-width:1480px;margin:0 auto;padding:18px 28px 36px}
+.sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin:24px 0 12px}
+.sh .n{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-300);font-weight:600}
+.sh h2{font-size:15px;margin:0;font-weight:600;letter-spacing:-0.015em;color:var(--ink-900)}
+.sh .ey{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-left:auto}
+
+.lh{display:grid;grid-template-columns:1.4fr 0.9fr 1fr 1fr 0.85fr 1fr;background:var(--ink-0);border:1px solid var(--ink-900)}
+.lh .c{padding:12px 16px;border-right:1px solid var(--rule)}
+.lh .c:last-child{border-right:0}
+.lh .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500}
+.lh .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.25}
+.lh .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+.own{font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;display:inline-flex;align-items:center;gap:5px;padding:3px 7px;font-weight:500}
+.own[data-s="subject"]{background:var(--ink-900);color:#fff}
+.own[data-s="subject"] .d{width:5px;height:5px;background:#fff;border-radius:50%}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;font-family:"Geist Mono",monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.10em;font-weight:500}
+.chip[data-r="anchored"]{border:1px solid var(--ink-900);color:var(--ink-900)}
+.chip[data-r="anchored"] .d{width:5px;height:5px;background:var(--ink-900);border-radius:50%}
+
+.plane-band{background:var(--ink-50);border:1px solid var(--rule);padding:8px 16px;margin:14px 0;font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.plane-band strong{color:var(--ink-900);font-weight:600}
+
+.pane{border:1px solid var(--ink-900);background:var(--ink-0);margin-bottom:14px}
+.pane .ph{padding:11px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.pane .ph .h{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600}
+.pane .ph .ix{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;color:var(--ink-400);font-weight:600}
+.pane .pb{padding:14px 16px}
+
+.kvrow{display:grid;grid-template-columns:1fr 1.5fr;padding:9px 0;border-bottom:1px solid var(--rule);gap:14px;align-items:center}
+.kvrow:last-child{border-bottom:0}
+.kvrow .k{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.kvrow .v{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em;line-height:1.3}
+.kvrow .v .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+
+.bar{height:6px;background:var(--ink-100);position:relative;margin-top:6px;margin-bottom:11px}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink-950)}
+.bar .rot{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--ink-900)}
+.bar .lab{position:absolute;font-family:"Geist Mono",monospace;font-size:8.5px;color:var(--ink-500);letter-spacing:0.10em;text-transform:uppercase;top:9px}
+
+.chain{background:var(--ink-950);color:#fff;padding:14px 18px}
+.chain .h{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400);margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
+.chain .h strong{color:#fff;font-weight:500}
+.chain .nodes{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chain .n{display:inline-flex;align-items:center;gap:5px;font-family:"Geist Mono",monospace;font-size:11px;padding:4px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);letter-spacing:0.04em}
+.chain .n[data-h="true"]{background:#fff;color:var(--ink-950);border-color:#fff;font-weight:600}
+.chain .n[data-g="true"]{background:transparent;border-style:dashed;color:var(--ink-400)}
+.chain .link{color:rgba(255,255,255,0.3);font-family:"Geist Mono",monospace}
+.chain .f{font-family:"Geist Mono",monospace;font-size:9.5px;color:var(--ink-400);margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.10);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.chain .f strong{color:#fff;font-weight:500}
+
+.ok-pill{display:inline-block;padding:2px 6px;background:var(--ink-950);color:#fff;font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600;margin-top:6px}
+.defer-pill{display:inline-block;padding:2px 6px;border:1px dashed var(--ink-400);color:var(--ink-500);font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;font-weight:600;margin-top:6px}
+
+.tbl{width:100%;border-collapse:collapse;font-family:"Geist Mono",monospace;font-size:11px;background:var(--ink-0)}
+.tbl th,.tbl td{padding:10px 14px;border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);text-align:left;vertical-align:top}
+.tbl th:last-child,.tbl td:last-child{border-right:0}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th{background:var(--ink-50);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);font-weight:500}
+.tbl td.when{font-family:"Geist Mono",monospace;font-size:11px;color:var(--ink-900);font-weight:500;letter-spacing:0.04em}
+.tbl td.when .rel{display:block;font-family:"Geist",sans-serif;font-size:10px;color:var(--ink-500);margin-top:2px;letter-spacing:0;font-weight:400}
+.tbl td .note{display:block;font-family:"Geist",sans-serif;font-size:10px;color:var(--ink-500);margin-top:3px;letter-spacing:0;line-height:1.4;font-weight:400}
+
+/* Bootstrap ladder */
+.boot{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--ink-950);background:var(--ink-0)}
+.boot .step{padding:14px 16px;border-right:1px solid var(--rule);position:relative}
+.boot .step:last-child{border-right:0}
+.boot .step::before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;background:var(--ink-950)}
+.boot .ix{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;color:var(--ink-400);font-weight:600;margin-bottom:6px}
+.boot .ti{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-900);font-weight:600;margin-bottom:5px}
+.boot .ds{font-family:"Geist",sans-serif;font-size:11px;line-height:1.5;color:var(--ink-600);margin-bottom:8px}
+.boot .ds strong{color:var(--ink-900);font-weight:500}
+.boot .cmd{font-family:"Geist Mono",monospace;font-size:10px;background:var(--ink-950);color:#fff;padding:5px 8px;letter-spacing:0.02em;display:inline-block}
+
+/* JWKS Card */
+.jwks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:1100px){.jwks{grid-template-columns:1fr}}
+.jcard{border:1px solid var(--ink-900);background:var(--ink-0);padding:14px}
+.jcard.head{border-width:1.5px;background:var(--ink-50)}
+.jcard .kx{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:4px;font-weight:500;display:flex;justify-content:space-between}
+.jcard .vx{font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--ink-900);font-weight:600;letter-spacing:0.04em;margin-bottom:10px}
+.jcard .kv{display:grid;grid-template-columns:1fr 1.4fr;padding:6px 0;border-bottom:1px dotted var(--rule);font-family:"Geist Mono",monospace;font-size:10.5px;gap:10px}
+.jcard .kv:last-of-type{border-bottom:0}
+.jcard .kv .k{color:var(--ink-500);letter-spacing:0.10em;text-transform:uppercase;font-size:9px;font-weight:500}
+.jcard .kv .v{color:var(--ink-900);font-weight:500}
+.jcard .badge{display:inline-block;padding:2px 7px;font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;font-weight:600;margin-top:8px}
+.jcard .badge[data-s="active"]{background:var(--ink-950);color:#fff}
+.jcard .badge[data-s="retired"]{border:1px solid var(--ink-900);color:var(--ink-900)}
+.jcard .badge[data-s="next"]{background:transparent;border:1px dashed var(--ink-500);color:var(--ink-500)}
+
+/* Inspector */
+.inspector{border:2px solid var(--ink-950);background:var(--ink-0)}
+.inspector .head{padding:18px 22px;border-bottom:1.5px solid var(--ink-900);display:grid;grid-template-columns:1fr 1fr 0.7fr;gap:20px;align-items:center}
+.inspector .head .col .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px;font-weight:500}
+.inspector .head .col .v{font-family:"Geist Mono",monospace;font-size:13px;font-weight:600;color:var(--ink-900);letter-spacing:0.06em}
+.inspector .head .col .sub{display:block;font-family:"Geist",sans-serif;font-size:10.5px;color:var(--ink-500);margin-top:3px;font-weight:400;letter-spacing:0}
+.vpill{display:inline-block;padding:3px 9px;background:var(--ink-950);color:#fff;font-family:"Geist Mono",monospace;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;font-weight:600}
+.inspector .body{padding:18px 22px}
+
+/* Verification trace */
+.trace{border:1px solid var(--ink-900);background:var(--ink-0);overflow:hidden}
+.trace .step{display:grid;grid-template-columns:50px 1fr 100px;border-bottom:1px solid var(--rule)}
+.trace .step:last-child{border-bottom:0}
+.trace .ix{padding:14px 14px;background:var(--ink-50);font-family:"Geist Mono",monospace;font-size:11px;font-weight:600;color:var(--ink-950);letter-spacing:0.06em;border-right:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.trace .body-s{padding:12px 16px;border-right:1px solid var(--rule)}
+.trace .body-s .name{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:0.06em;color:var(--ink-900);font-weight:600;margin-bottom:3px}
+.trace .body-s .desc{font-family:"Geist",sans-serif;font-size:11.5px;color:var(--ink-600);line-height:1.45;margin-bottom:5px}
+.trace .body-s .out{font-family:"Geist Mono",monospace;font-size:10px;color:var(--ink-500);letter-spacing:0.04em}
+.trace .body-s .out strong{color:var(--ink-900);font-weight:600}
+.trace .state{padding:14px 14px;display:flex;align-items:center;justify-content:center}
+
+/* Score */
+.score{border:1px solid var(--ink-900);background:var(--ink-0);display:grid;grid-template-columns:240px 1fr;margin-top:18px}
+@media (max-width:900px){.score{grid-template-columns:1fr}}
+.score .head{background:var(--ink-950);color:#fff;padding:18px 22px}
+.score .head .lb{font-family:"Geist Mono",monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-400)}
+.score .head .val{font-family:"Geist Mono",monospace;font-size:44px;font-weight:600;margin-top:4px;line-height:1}
+.score .head .val .of{font-size:20px;color:var(--ink-400)}
+.score .head .sub{font-size:10.5px;color:var(--ink-300);margin-top:8px;font-family:"Geist Mono",monospace;letter-spacing:0.04em}
+.score .body-s{padding:16px 8px;display:grid;grid-template-columns:repeat(4,1fr)}
+.score .ax{border-right:1px solid var(--rule);padding:0 14px}
+.score .ax:last-child{border-right:0}
+.score .ax .k{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);margin-bottom:6px}
+.score .ax .v{font-family:"Geist Mono",monospace;font-size:20px;font-weight:600;color:var(--ink-900);line-height:1}
+.score .ax .v .of{font-size:11px;color:var(--ink-400)}
+.score .ax .nm{font-size:10.5px;color:var(--ink-700);margin-top:8px;line-height:1.4}
+
+.foot{max-width:1480px;margin:32px auto 0;padding:16px 28px;border-top:2px solid var(--ink-950);border-bottom:1px solid var(--ink-900);background:var(--ink-0);font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.foot strong{color:var(--ink-900);font-weight:500}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="tdoc">
+  <div class="in">
+    <div class="cell form">
+      <div class="g"><span class="glyph">V</span><span class="nm">VitalCV · Registry</span></div>
+      <div class="title">Verifier trust registry · receipt inspection runtime</div>
+    </div>
+    <div class="cell"><div class="k">Form</div><div class="v">VCV-REG-001<span class="sub">+ VCV-INS-001 inspector</span></div></div>
+    <div class="cell"><div class="k">Revision</div><div class="v">r.1.0<span class="sub">2026-05-12 effective</span></div></div>
+    <div class="cell"><div class="k">Scope</div><div class="v">issuer · JWKS · bootstrap<span class="sub">+ per-receipt inspection</span></div></div>
+    <div class="cell"><div class="k">Controller</div><div class="v">did:web:vitalcv.health<span class="sub">registry of record</span></div></div>
+    <div class="cell" style="border-left:0;"><div class="stamp" data-state="signed"><span class="lb">artifact state</span><span class="v">signed</span></div></div>
+  </div>
+</div>
+
+<div class="mast">
+  <div class="l1">Verifier trust registry · receipt inspection runtime · canon</div>
+  <h1>What a verifier loads. How a receipt is inspected. Same vocabulary, both ends.</h1>
+  <div class="l2">A third-party verifier bootstrapping against VitalCV consumes <strong>one signed registry document</strong>: issuer DID, signing keys (JWKS), key rotation horizon, trust-registry attestation, and the independent TSA anchor. Once bootstrapped, every receipt the verifier inspects renders the same primitives — signature chain, issuer continuity, verification trace, chronology — without ever calling back to VitalCV. The registry survives our absence.</div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ REGISTRY LINEAGE ============ -->
+<div class="sh"><span class="n">L ·</span><h2>This registry · canonical lineage</h2><span class="ey">the registry is itself a signed artifact</span></div>
+
+<div class="lh">
+  <div class="c"><div class="k">Object</div><div class="v">Registry document<span class="sub">issuer · JWKS · bootstrap · TSA</span></div></div>
+  <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>VitalCV</span></div></div>
+  <div class="c"><div class="k">checked_at</div><div class="v">2026-05-12T14:31:58Z<span class="sub">12 s ago</span></div></div>
+  <div class="c"><div class="k">Channel</div><div class="v">registry<span class="sub">/.well-known/openid-federation</span></div></div>
+  <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip" data-r="anchored"><span class="d"></span>anchored</span></div></div>
+  <div class="c"><div class="k">run_id</div><div class="v">reg.b2c1…8e09<span class="sub">registry digest · head</span></div></div>
+</div>
+
+<!-- ============ ISSUER DID ============ -->
+<div class="sh"><span class="n">01 ·</span><h2>Issuer DID · identity of record</h2><span class="ey">resolution · authority · admit lineage</span></div>
+
+<div class="plane-band"><span><strong>IDENTITY PLANE</strong> · DID document hash 2e1f…cc44 · unchanged 41 d</span><span>3 mirrors agree</span></div>
+
+<div class="grid2">
+  <div class="pane">
+    <div class="ph"><span class="h">did:web:vitalcv.health</span><span class="ix">authoritative</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">DID method</div><div class="v">did:web<span class="sub">resolves at https://vitalcv.health/.well-known/did.json</span></div></div>
+      <div class="kvrow"><div class="k">DID document hash</div><div class="v">2e1f…cc44<span class="sub">BLAKE3 · stable 41 d · matches all mirrors</span></div></div>
+      <div class="kvrow"><div class="k">Controller</div><div class="v">did:web:vitalcv.health<span class="sub">self-controlled · no external controller</span></div></div>
+      <div class="kvrow"><div class="k">Service endpoint · verify</div><div class="v">verify.vitalcv.health<span class="sub">OpenID4VCI · DIF PE</span></div></div>
+      <div class="kvrow"><div class="k">Service endpoint · status</div><div class="v">vitalcv.health/status/1<span class="sub">StatusList2021</span></div></div>
+      <div class="kvrow"><div class="k">Service endpoint · TSA</div><div class="v">tsa.vitalcv.health<span class="sub">RFC 3161 · independent · separate key custody</span></div></div>
+    </div>
+  </div>
+
+  <div class="pane">
+    <div class="ph"><span class="h">Resolution health</span><span class="ix">3 mirrors</span></div>
+    <div class="pb">
+      <div class="kvrow"><div class="k">us-west · primary</div><div class="v">200 OK · 14 s ago<span class="sub">ETag 2e1f…cc44 · TLS valid 287 d</span></div></div>
+      <div class="kvrow"><div class="k">eu-central</div><div class="v">200 OK · 16 s ago<span class="sub">ETag matches</span></div></div>
+      <div class="kvrow"><div class="k">ap-northeast</div><div class="v">200 OK · 19 s ago<span class="sub">ETag matches</span></div></div>
+      <div class="kvrow"><div class="k">Mirror consensus</div><div class="v">3 of 3 agree<span class="sub">no drift · 41 d</span></div></div>
+      <div class="kvrow"><div class="k">Registry admit</div><div class="v">2025-08-04 · 281 d ago<span class="sub">did:web:registry.healthcredentials.org · node 0x2e1f</span></div></div>
+      <div class="kvrow"><div class="k">Standing</div><div class="v">in good standing<span class="sub">no actions · next audit 2026-07-22 · 71 d</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SIGNER CONTINUITY ============ -->
+<div class="sh"><span class="n">02 ·</span><h2>Signer continuity · key rotation lineage</h2><span class="ey">co-signed cutover at every rotation · σ chain unbroken</span></div>
+
+<div class="plane-band"><span><strong>SIGNER PLANE</strong> · 1 active · 1 next · 2 retired · 1 origin · all co-signed cutovers</span><span>head · kid 6f0e…1d22 · 41 d in service</span></div>
+
+<div class="pane">
+  <div class="ph"><span class="h">Key rotation horizon · 41 d of 120 d</span><span class="ix">in service</span></div>
+  <div class="pb">
+    <div class="bar" style="margin:6px 0 22px;">
+      <div class="fill" style="width:34%;"></div>
+      <div class="rot" style="left:0;"></div>
+      <div class="rot" style="left:34%;"></div>
+      <div class="rot" style="left:100%;"></div>
+      <span class="lab" style="left:0;">in-service · 0</span>
+      <span class="lab" style="left:34%;">now · 41 d</span>
+      <span class="lab" style="right:0;">scheduled rotate · 120 d</span>
+    </div>
+  </div>
+</div>
+
+<div class="jwks">
+  <div class="jcard head">
+    <div class="kx"><span>Active</span><span>kid 6f0e…1d22</span></div>
+    <div class="vx">Primary signer</div>
+    <div class="kv"><span class="k">Algorithm</span><span class="v">Ed25519 · EdDSA</span></div>
+    <div class="kv"><span class="k">Curve</span><span class="v">Ed25519</span></div>
+    <div class="kv"><span class="k">In service</span><span class="v">2026-04-01 · 41 d</span></div>
+    <div class="kv"><span class="k">Custody</span><span class="v">HSM · FIPS 140-3 L3</span></div>
+    <div class="kv"><span class="k">σ count · 24 h</span><span class="v">14 · 0 fail</span></div>
+    <div class="kv"><span class="k">Last sign</span><span class="v">12 s ago · receipt #14</span></div>
+    <span class="badge" data-s="active">Active</span>
+  </div>
+
+  <div class="jcard">
+    <div class="kx"><span>Pre-armed</span><span>kid 8c2a…44b1</span></div>
+    <div class="vx">Next primary</div>
+    <div class="kv"><span class="k">Algorithm</span><span class="v">Ed25519 · EdDSA</span></div>
+    <div class="kv"><span class="k">Curve</span><span class="v">Ed25519</span></div>
+    <div class="kv"><span class="k">Generated</span><span class="v">2026-05-05 · 7 d ago</span></div>
+    <div class="kv"><span class="k">Custody</span><span class="v">HSM · L3 · separate slot</span></div>
+    <div class="kv"><span class="k">σ count · 24 h</span><span class="v">0 · not yet active</span></div>
+    <div class="kv"><span class="k">Scheduled cutover</span><span class="v">2026-08-01 · 80 d</span></div>
+    <span class="badge" data-s="next">Pre-armed</span>
+  </div>
+
+  <div class="jcard">
+    <div class="kx"><span>Retired · last</span><span>kid 0e7a…99c1</span></div>
+    <div class="vx">Prior primary</div>
+    <div class="kv"><span class="k">Algorithm</span><span class="v">Ed25519 · EdDSA</span></div>
+    <div class="kv"><span class="k">In service</span><span class="v">2025-12-01 → 2026-04-01</span></div>
+    <div class="kv"><span class="k">Duration</span><span class="v">120 d · scheduled</span></div>
+    <div class="kv"><span class="k">Retirement reason</span><span class="v">cadence · no anomalies</span></div>
+    <div class="kv"><span class="k">Cutover σ</span><span class="v">co-signed · 0e7a…99c1 + 6f0e…1d22</span></div>
+    <div class="kv"><span class="k">σ lifetime</span><span class="v">18,402 · 0 fail</span></div>
+    <span class="badge" data-s="retired">Retired</span>
+  </div>
+</div>
+
+<!-- ============ JWKS CONTINUITY ============ -->
+<div class="sh"><span class="n">03 ·</span><h2>JWKS continuity · published key set</h2><span class="ey">overlap window at rotation · verifier always has both keys</span></div>
+
+<div class="plane-band"><span><strong>JWKS</strong> · /.well-known/jwks.json · co-signed by old + new during rotation · 30 d overlap window</span><span>publication σ on every key set version</span></div>
+
+<div class="pane">
+  <div class="ph"><span class="h">JWKS publication history</span><span class="ix">each version signed by its primary kid</span></div>
+  <div class="pb" style="padding:0;">
+    <table class="tbl">
+      <thead><tr><th>Version</th><th>Published</th><th>Keys</th><th>Signed by</th><th>Verifiers loading</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr style="background:var(--ink-50);">
+          <td><strong>v.014 · head</strong></td>
+          <td class="when">2026-04-01T00:00:00Z<span class="rel">41 d ago</span></td>
+          <td>2 active<span class="note">6f0e…1d22 · 8c2a…44b1 (pre-armed)</span></td>
+          <td>6f0e…1d22<span class="note">σ ok · published with rotation</span></td>
+          <td>1,842<span class="note">distinct verifiers polled 24 h</span></td>
+          <td>current<span class="note">pre-armed key visible to verifiers · no σ on production traffic yet</span></td>
+        </tr>
+        <tr>
+          <td>v.013</td>
+          <td class="when">2025-12-01T00:00:00Z<span class="rel">163 d ago</span></td>
+          <td>2 active<span class="note">0e7a…99c1 · 6f0e…1d22 (pre-armed)</span></td>
+          <td>0e7a…99c1<span class="note">σ ok</span></td>
+          <td>—<span class="note">superseded · cache TTL respected</span></td>
+          <td>cutover<span class="note">overlap window 30 d · co-signed receipt</span></td>
+        </tr>
+        <tr>
+          <td>v.012</td>
+          <td class="when">2025-08-04T00:00:00Z<span class="rel">281 d ago</span></td>
+          <td>2 active<span class="note">3b21…f00e · 0e7a…99c1 (pre-armed)</span></td>
+          <td>3b21…f00e<span class="note">σ ok</span></td>
+          <td>—<span class="note">superseded</span></td>
+          <td>admit JWKS<span class="note">first JWKS following trust-registry admit</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="chain" style="margin-top:14px;">
+  <div class="h"><span><strong>Co-signed rotation chain</strong> · σ continuity across every key change</span><span>0 chain breaks in 281 d</span></div>
+  <div class="nodes">
+    <span class="n">c4ee…01a8 · admit · 281 d</span>
+    <span class="link">─ co-sign ─</span>
+    <span class="n">3b21…f00e · 162 d</span>
+    <span class="link">─ co-sign ─</span>
+    <span class="n">0e7a…99c1 · 41 d ago</span>
+    <span class="link">─ co-sign ─</span>
+    <span class="n" data-h="true">6f0e…1d22 · active</span>
+    <span class="link">─ planned ─</span>
+    <span class="n" data-g="true">8c2a…44b1 · pre-armed</span>
+  </div>
+  <div class="f"><span><strong>Anchor</strong> · did:web:tsa.vitalcv.health · independent timestamp on every rotation</span><span><strong>Verify</strong> · vitalcv-verify --jwks --offline</span></div>
+</div>
+
+<!-- ============ VERIFIER BOOTSTRAP ============ -->
+<div class="sh"><span class="n">04 ·</span><h2>Verifier bootstrap · 5-step ladder</h2><span class="ey">third-party reaches σ-verifying state without ever calling VitalCV at runtime</span></div>
+
+<div class="boot">
+  <div class="step">
+    <div class="ix">STEP 01</div>
+    <div class="ti">Resolve DID</div>
+    <div class="ds">Fetch <strong>/.well-known/did.json</strong>. Verify TLS chain. Compare against trust-registry-attested hash from at least one independent mirror.</div>
+    <div class="cmd">curl https://vitalcv.health/.well-known/did.json</div>
+  </div>
+  <div class="step">
+    <div class="ix">STEP 02</div>
+    <div class="ti">Cross-check registry</div>
+    <div class="ds">Resolve <strong>did:web:registry.healthcredentials.org</strong>. Confirm VitalCV is admitted as node 0x2e1f with hash 2e1f…cc44. Registry is independent of VitalCV.</div>
+    <div class="cmd">vitalcv-verify --registry-check</div>
+  </div>
+  <div class="step">
+    <div class="ix">STEP 03</div>
+    <div class="ti">Load JWKS</div>
+    <div class="ds">Fetch <strong>/.well-known/jwks.json</strong>. Verify its signature against the kid named in did.json. Cache for 24 h with stale-while-revalidate.</div>
+    <div class="cmd">curl https://vitalcv.health/.well-known/jwks.json</div>
+  </div>
+  <div class="step">
+    <div class="ix">STEP 04</div>
+    <div class="ti">Pin TSA anchor</div>
+    <div class="ds">Resolve <strong>did:web:tsa.vitalcv.health</strong>. Confirm independent key custody — different controller, different operator account. Cache TSA cert.</div>
+    <div class="cmd">vitalcv-verify --tsa-pin</div>
+  </div>
+  <div class="step">
+    <div class="ix">STEP 05</div>
+    <div class="ti">Self-test verify</div>
+    <div class="ds">Verify one canonical receipt offline. Expected outcome: <strong>σ ok · chain ok · TSA ok · count 0</strong>. Failure aborts bootstrap with named error code.</div>
+    <div class="cmd">vitalcv-verify --self-test --offline</div>
+  </div>
+</div>
+
+<div class="pane" style="margin-top:14px;">
+  <div class="ph"><span class="h">Bootstrap failure semantics</span><span class="ix">named errors only</span></div>
+  <div class="pb" style="padding:0;">
+    <table class="tbl">
+      <thead><tr><th>Step</th><th>Error code</th><th>Cause</th><th>Verifier action</th></tr></thead>
+      <tbody>
+        <tr><td>01</td><td>BOOT-DID-RESOLVE</td><td>did.json unreachable or TLS invalid</td><td>retry 3× then halt · do not accept receipts</td></tr>
+        <tr><td>02</td><td>BOOT-REG-MISMATCH</td><td>registry hash ≠ did.json hash · mode K (trust failure)</td><td>halt · contact registry liaison · log incident</td></tr>
+        <tr><td>03</td><td>BOOT-JWKS-SIG</td><td>JWKS not signed by kid in did.json</td><td>halt · suspected mode K</td></tr>
+        <tr><td>04</td><td>BOOT-TSA-CUSTODY</td><td>TSA controller = issuer controller</td><td>halt · independence not satisfied · escalate</td></tr>
+        <tr><td>05</td><td>BOOT-SELF-TEST</td><td>canonical receipt fails offline verify</td><td>halt · suspected mode J (replay failure)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============ RECEIPT INSPECTOR ============ -->
+<div class="sh"><span class="n">05 ·</span><h2>Receipt inspector · runtime</h2><span class="ey">per-receipt forensic surface · same primitives</span></div>
+
+<div class="surface" style="border:1px solid var(--ink-900);background:var(--ink-0);margin-bottom:18px;">
+<div style="padding:9px 16px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+  <span><strong style="color:var(--ink-900);font-weight:600;">Inspector</strong> · receipt forensics · third-party</span>
+  <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-950);letter-spacing:0.04em;text-transform:none;font-weight:600;">inspect.vitalcv.health/r/7a2c-b8d3</span>
+</div>
+
+<div style="padding:16px;">
+
+<div class="inspector">
+  <div class="head">
+    <div class="col">
+      <div class="k">Verification state</div>
+      <div class="v"><span class="vpill">Verifiable</span></div>
+      <span class="sub">all 4 checks σ ok · chain ok · TSA ok</span>
+    </div>
+    <div class="col">
+      <div class="k">Receipt-ID</div>
+      <div class="v">7a2c…b8d3</div>
+      <span class="sub">BLAKE3 · #14 · 12 s ago</span>
+    </div>
+    <div class="col">
+      <div class="k">Inspected by</div>
+      <div class="v">vitalcv-cli<span class="sub">offline · v.2.4.0 · third-party host</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="lh">
+      <div class="c"><div class="k">Object</div><div class="v">Bundle<span class="sub">4 claims · subject-bound</span></div></div>
+      <div class="c"><div class="k">Ownership</div><div class="v" style="padding-top:2px;"><span class="own" data-s="subject"><span class="d"></span>Subject</span></div></div>
+      <div class="c"><div class="k">checked_at</div><div class="v">14:31:58Z<span class="sub">2026-05-12 · 12 s ago</span></div></div>
+      <div class="c"><div class="k">Channel</div><div class="v">inspector<span class="sub">offline · CLI</span></div></div>
+      <div class="c"><div class="k">Replay</div><div class="v" style="padding-top:2px;"><span class="chip" data-r="anchored"><span class="d"></span>anchored</span></div></div>
+      <div class="c"><div class="k">run_id</div><div class="v">7a2c…b8d3<span class="sub">receipt-ID = head</span></div></div>
+    </div>
+
+    <div class="plane-band" style="margin-top:14px;"><span><strong>VERIFICATION TRACE</strong> · five steps · all σ ok</span><span>3.2 s · offline · no VitalCV contact</span></div>
+
+    <div class="trace">
+      <div class="step">
+        <div class="ix">01</div>
+        <div class="body-s">
+          <div class="name">Resolve issuer DID</div>
+          <div class="desc">Read <code>iss</code> claim · did:web:vitalcv.health · resolve from cache · hash matches 2e1f…cc44.</div>
+          <div class="out"><strong>OUT</strong> · DID document hash 2e1f…cc44 · 41 d stable</div>
+        </div>
+        <div class="state"><span class="ok-pill" style="margin:0;">σ ok</span></div>
+      </div>
+      <div class="step">
+        <div class="ix">02</div>
+        <div class="body-s">
+          <div class="name">Locate signing kid</div>
+          <div class="desc">Read <code>kid</code> header · 6f0e…1d22 · look up in cached JWKS v.014 · key is currently <strong>active</strong>.</div>
+          <div class="out"><strong>OUT</strong> · kid present · Ed25519 · 41 d in service · not retired</div>
+        </div>
+        <div class="state"><span class="ok-pill" style="margin:0;">σ ok</span></div>
+      </div>
+      <div class="step">
+        <div class="ix">03</div>
+        <div class="body-s">
+          <div class="name">Verify signature</div>
+          <div class="desc">EdDSA verify over canonical receipt bytes using public key from JWKS. Signature 64 bytes.</div>
+          <div class="out"><strong>OUT</strong> · signature valid · receipt bytes unmodified</div>
+        </div>
+        <div class="state"><span class="ok-pill" style="margin:0;">σ ok</span></div>
+      </div>
+      <div class="step">
+        <div class="ix">04</div>
+        <div class="body-s">
+          <div class="name">Replay chain check</div>
+          <div class="desc">Verify <code>prev_hash</code> matches receipt #13 · 9d11…3e4a. Walk chain back to origin #01 · 88 d. One σ defer at #11 · recovered at #12. No forks.</div>
+          <div class="out"><strong>OUT</strong> · 14 of 14 receipts · 13 σ ok · 1 σ defer (recovered) · no fork</div>
+        </div>
+        <div class="state"><span class="ok-pill" style="margin:0;">σ ok</span></div>
+      </div>
+      <div class="step">
+        <div class="ix">05</div>
+        <div class="body-s">
+          <div class="name">TSA counter-signature</div>
+          <div class="desc">Verify RFC 3161 timestamp from did:web:tsa.vitalcv.health · independent controller · pinned at bootstrap.</div>
+          <div class="out"><strong>OUT</strong> · TSA σ valid · timestamp matches checked_at · custody independent</div>
+        </div>
+        <div class="state"><span class="ok-pill" style="margin:0;">σ ok</span></div>
+      </div>
+    </div>
+
+    <div class="plane-band" style="margin-top:14px;"><span><strong>ISSUER CONTINUITY</strong> · at receipt time</span><span>did:web:vitalcv.health · in good standing</span></div>
+
+    <div class="grid2">
+      <div class="pane" style="margin:0;">
+        <div class="ph"><span class="h">Issuer state at sign-time</span><span class="ix">recorded in receipt</span></div>
+        <div class="pb">
+          <div class="kvrow"><div class="k">Issuer DID</div><div class="v">did:web:vitalcv.health<span class="sub">hash 2e1f…cc44 · matched at inspect-time</span></div></div>
+          <div class="kvrow"><div class="k">Signing kid</div><div class="v">6f0e…1d22<span class="sub">active at 14:31:58Z · still active at inspect-time</span></div></div>
+          <div class="kvrow"><div class="k">JWKS version</div><div class="v">v.014<span class="sub">no rotation between sign-time and inspect-time</span></div></div>
+          <div class="kvrow"><div class="k">Registry standing</div><div class="v">in good standing<span class="sub">node 0x2e1f · 281 d</span></div></div>
+          <div class="kvrow"><div class="k">Trust mode</div><div class="v">no K · no drift<span class="sub">all 3 mirrors agree at inspect-time</span></div></div>
+        </div>
+      </div>
+      <div class="pane" style="margin:0;">
+        <div class="ph"><span class="h">Chronology context</span><span class="ix">where this receipt sits</span></div>
+        <div class="pb">
+          <div class="kvrow"><div class="k">Position</div><div class="v">#14 · head<span class="sub">latest in subject's 88-d chain</span></div></div>
+          <div class="kvrow"><div class="k">Prior receipt</div><div class="v">#13 · 9d11…3e4a<span class="sub">1 h 30 m before</span></div></div>
+          <div class="kvrow"><div class="k">Origin receipt</div><div class="v">#01 · e004…51c9<span class="sub">88 d before · subject admit</span></div></div>
+          <div class="kvrow"><div class="k">Incidents in chain</div><div class="v">1 σ defer · 0 fail<span class="sub">#11 · mode A · CMS PECOS · recovered #12</span></div></div>
+          <div class="kvrow"><div class="k">Cadence</div><div class="v">14 receipts · 88 d<span class="sub">≈ every 6 d · within nominal</span></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- ============ READINESS ============ -->
+<div class="sh"><span class="n">R ·</span><h2>Registry + inspector readiness</h2><span class="ey">survives VitalCV's absence</span></div>
+
+<div class="score">
+  <div class="head">
+    <div class="lb">Bootstrap survivability</div>
+    <div class="val">97<span class="of">/100</span></div>
+    <div class="sub">5-step ladder · independent anchor · 281 d in good standing</div>
+  </div>
+  <div class="body-s">
+    <div class="ax"><div class="k">Issuer DID</div><div class="v">25<span class="of">/25</span></div><div class="nm">3 mirrors agree · 41 d stable · registry-attested</div></div>
+    <div class="ax"><div class="k">Signer continuity</div><div class="v">24<span class="of">/25</span></div><div class="nm">0 chain breaks across 4 keys · co-signed cutovers · HSM L3</div></div>
+    <div class="ax"><div class="k">JWKS continuity</div><div class="v">25<span class="of">/25</span></div><div class="nm">3 versions · 30 d overlap · publication σ on every version</div></div>
+    <div class="ax"><div class="k">Bootstrap</div><div class="v">23<span class="of">/25</span></div><div class="nm">5-step · named error codes · self-test mandatory · offline-verifiable</div></div>
+  </div>
+</div>
+
+</div>
+
+<div class="foot">
+  <span>VCV-REG-001 + VCV-INS-001 · r.1.0 · effective 2026-05-12</span>
+  <span>Controller · <strong>did:web:vitalcv.health</strong></span>
+  <span>Registry · <strong>did:web:registry.healthcredentials.org</strong> · independent</span>
+  <span>Anchor · <strong>did:web:tsa.vitalcv.health</strong> · RFC 3161 · independent</span>
+  <span>Verify · <strong>vitalcv-verify --bootstrap --offline</strong></span>
+</div>
+
+</body>
+</html>

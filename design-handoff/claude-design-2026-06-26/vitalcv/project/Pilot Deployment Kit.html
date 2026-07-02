@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Pilot deployment kit · Cedar Health · q2-2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#fafaf7;--ink-100:#f3f3ef;--ink-200:#e6e4dd;--ink-300:#cbc8be;
+    --ink-400:#928f84;--ink-500:#5f5d56;--ink-600:#3e3c37;--ink-700:#262521;
+    --ink-800:#151412;--ink-900:#0b0b0a;
+    --paper:#faf9f5;
+    --rule:#262521;
+    --soft-rule:#cbc8be;
+    --hair:#e6e4dd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#e6e4dd;color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.55;letter-spacing:-.003em;}
+  .mono,code,time{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero','tnum';}
+
+  /* ─── Screen-only chrome — hidden on print ─── */
+  .chrome{background:var(--ink-900);color:var(--ink-200);font-family:'Geist Mono',monospace;font-size:11px;border-bottom:1px solid #000;}
+  .chrome .in{max-width:880px;margin:0 auto;padding:0 36px;height:34px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .chrome .l{display:flex;align-items:center;gap:12px;}
+  .chrome .l .g{width:18px;height:18px;background:#fff;color:#000;display:grid;place-items:center;font-size:10px;font-weight:700;}
+  .chrome .l strong{color:#fff;font-weight:600;letter-spacing:.04em;}
+  .chrome .l span.path{color:var(--ink-400);}
+  .chrome .r{display:flex;align-items:center;gap:14px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .chrome .r .clock{color:#fff;text-transform:none;letter-spacing:.04em;}
+  .chrome .r .print{background:#fff;color:#000;padding:4px 11px;font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-family:'Geist',sans-serif;font-weight:600;border:0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+  .chrome .r .print:hover{background:var(--ink-200);}
+
+  /* ─── Paper ─── */
+  .doc{max-width:880px;margin:36px auto 60px;background:var(--paper);box-shadow:0 1px 0 rgba(0,0,0,.04),0 24px 80px -32px rgba(0,0,0,.18);position:relative;}
+
+  /* Running header (on every page when printed) */
+  .running{padding:18px 60px 0;display:flex;justify-content:space-between;align-items:baseline;font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);}
+  .running .l{display:flex;gap:10px;align-items:center;}
+  .running .l strong{color:var(--ink-900);font-weight:600;}
+  .running .r{color:var(--ink-500);}
+  .running .r strong{color:var(--ink-900);font-weight:600;}
+
+  /* ─── Cover page ─── */
+  .cover{padding:48px 60px 56px;border-bottom:1px solid var(--ink-900);position:relative;}
+  .cover .meta-strip{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border:1px solid var(--rule);margin-bottom:64px;font-family:'Geist Mono',monospace;}
+  .cover .meta-strip .cell{padding:9px 13px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px;}
+  .cover .meta-strip .cell:last-child{border-right:0;}
+  .cover .meta-strip .k{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .cover .meta-strip .v{font-size:12px;color:var(--ink-900);font-weight:600;letter-spacing:.02em;}
+  .cover .doc-no{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-500);font-weight:600;display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+  .cover .doc-no .nm{color:var(--ink-900);font-weight:700;}
+  .cover .doc-no .rule{flex:1;height:1px;background:var(--ink-200);max-width:120px;}
+  .cover h1{font-size:54px;line-height:.98;letter-spacing:-.032em;font-weight:600;margin:0 0 18px;max-width:680px;color:var(--ink-900);}
+  .cover h1 em{font-style:normal;color:var(--ink-500);font-weight:400;}
+  .cover .sub{font-size:18px;line-height:1.4;color:var(--ink-600);max-width:600px;font-weight:400;letter-spacing:-.012em;margin-bottom:48px;}
+  .cover .sub strong{color:var(--ink-900);font-weight:500;}
+  .cover .for{display:grid;grid-template-columns:1fr 1fr;gap:24px;border-top:1px solid var(--ink-900);border-bottom:1px solid var(--ink-200);padding:18px 0;}
+  .cover .for .blk{display:flex;flex-direction:column;gap:3px;}
+  .cover .for .k{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .cover .for .v{font-size:14.5px;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .cover .for .v small{display:block;color:var(--ink-500);font-weight:400;font-size:11.5px;margin-top:1px;font-family:'Geist Mono',monospace;letter-spacing:.02em;}
+  .cover .stamp{position:absolute;right:60px;bottom:56px;border:1px solid var(--ink-900);padding:6px 11px;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-900);font-weight:700;background:var(--paper);}
+
+  /* ─── Section shell ─── */
+  section.s{padding:36px 60px;border-bottom:1px solid var(--soft-rule);}
+  section.s:last-of-type{border-bottom:0;}
+  section.s .sh{display:grid;grid-template-columns:62px 1fr auto;gap:18px;align-items:baseline;margin-bottom:22px;padding-bottom:11px;border-bottom:1px solid var(--ink-900);}
+  section.s .sh .no{font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.06em;color:var(--ink-900);font-weight:600;}
+  section.s .sh h2{font-size:24px;line-height:1.15;letter-spacing:-.018em;font-weight:600;margin:0;color:var(--ink-900);}
+  section.s .sh h2 em{font-style:normal;color:var(--ink-500);font-weight:400;}
+  section.s .sh .ref{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);letter-spacing:.14em;text-transform:uppercase;font-weight:600;}
+
+  /* Body type rhythm */
+  section.s p{margin:0 0 12px;font-size:13.5px;line-height:1.65;color:var(--ink-700);text-wrap:pretty;max-width:62ch;}
+  section.s p strong{color:var(--ink-900);font-weight:500;}
+  section.s p:last-child{margin-bottom:0;}
+  section.s .lede{font-size:15.5px;line-height:1.55;color:var(--ink-900);font-weight:400;letter-spacing:-.008em;max-width:62ch;margin-bottom:20px;}
+  section.s .lede strong{font-weight:500;}
+
+  /* RFC-style hanging list */
+  ol.rfc{margin:0 0 16px;padding:0;list-style:none;counter-reset:rfc;display:flex;flex-direction:column;gap:14px;}
+  ol.rfc > li{counter-increment:rfc;display:grid;grid-template-columns:62px 1fr;gap:18px;font-size:13.5px;line-height:1.6;color:var(--ink-700);}
+  ol.rfc > li::before{content:counter(rfc, decimal-leading-zero);font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;color:var(--ink-900);letter-spacing:.06em;padding-top:3px;}
+  ol.rfc > li > .h{grid-column:2;display:block;font-weight:500;color:var(--ink-900);margin-bottom:2px;letter-spacing:-.005em;}
+  ol.rfc > li > .b{grid-column:2;color:var(--ink-700);}
+  ol.rfc > li > .b strong{color:var(--ink-900);font-weight:500;}
+
+  /* In/out grid (Section 02) */
+  .inout{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900);margin-bottom:18px;}
+  .inout .col{padding:18px 22px;display:flex;flex-direction:column;gap:11px;}
+  .inout .col + .col{border-left:1px solid var(--ink-900);}
+  .inout .col .hd{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;display:flex;justify-content:space-between;align-items:center;padding-bottom:9px;border-bottom:1px solid var(--ink-900);}
+  .inout .col .hd strong{color:var(--ink-900);font-weight:700;font-size:11px;}
+  .inout .col ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .inout .col li{font-size:12.5px;line-height:1.5;color:var(--ink-700);display:grid;grid-template-columns:14px 1fr;gap:9px;letter-spacing:-.003em;}
+  .inout .col li .dash{font-family:'Geist Mono',monospace;color:var(--ink-400);font-weight:600;padding-top:1px;}
+  .inout .col li strong{color:var(--ink-900);font-weight:500;}
+
+  /* Posture table (Section 03) */
+  .posture{width:100%;border-collapse:collapse;border:1px solid var(--ink-900);margin-bottom:18px;font-variant-numeric:tabular-nums;}
+  .posture th{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-900);font-weight:600;text-align:left;padding:9px 14px;border-bottom:1px solid var(--ink-900);background:var(--ink-200);}
+  .posture td{padding:11px 14px;border-bottom:1px solid var(--soft-rule);font-size:12.5px;color:var(--ink-700);vertical-align:top;line-height:1.5;letter-spacing:-.003em;}
+  .posture tr:last-child td{border-bottom:0;}
+  .posture td.label{font-family:'Geist',sans-serif;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;width:24%;}
+  .posture td.touched{width:14%;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);font-weight:600;letter-spacing:.04em;}
+  .posture td.touched.no{color:var(--ink-400);font-weight:400;}
+  .posture td strong{color:var(--ink-900);font-weight:500;}
+
+  /* Architecture rail (Section 04) */
+  .rail{border:1px solid var(--ink-900);margin-bottom:18px;background:var(--ink-0);}
+  .rail .rh{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--ink-900);background:var(--ink-200);}
+  .rail .rh .cell{padding:9px 14px;border-right:1px solid var(--ink-900);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-900);font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+  .rail .rh .cell:last-child{border-right:0;}
+  .rail .rh .cell small{font-weight:400;color:var(--ink-500);letter-spacing:.04em;text-transform:none;font-size:9.5px;}
+  .rail .body{display:grid;grid-template-columns:repeat(4,1fr);}
+  .rail .body .col{border-right:1px solid var(--soft-rule);padding:14px 14px;display:flex;flex-direction:column;gap:11px;min-height:240px;}
+  .rail .body .col:last-child{border-right:0;}
+  .rail .body .nd{display:flex;flex-direction:column;gap:4px;padding:9px 12px;background:var(--ink-0);border:1px solid var(--ink-900);}
+  .rail .body .nd .k{font-family:'Geist Mono',monospace;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .rail .body .nd .v{font-size:12.5px;font-weight:500;color:var(--ink-900);letter-spacing:-.005em;line-height:1.3;}
+  .rail .body .nd .v .mono{font-family:'Geist Mono',monospace;color:var(--ink-700);font-size:11px;font-weight:400;letter-spacing:.02em;}
+  .rail .body .nd.muted{background:repeating-linear-gradient(135deg,var(--paper) 0 4px,var(--ink-100) 4px 8px);}
+  .rail .body .nd.muted .v{color:var(--ink-500);}
+  .rail .arrow-row{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--soft-rule);border-bottom:1px solid var(--soft-rule);background:var(--ink-100);}
+  .rail .arrow-row .ar{padding:7px 14px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);border-right:1px solid var(--soft-rule);display:flex;align-items:center;justify-content:flex-end;gap:5px;letter-spacing:.04em;}
+  .rail .arrow-row .ar:last-child{border-right:0;color:var(--ink-300);}
+  .rail .arrow-row .ar .arr{color:var(--ink-900);font-weight:700;font-size:12px;}
+  .rail .arrow-row .ar .lbl{color:var(--ink-700);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;font-weight:600;}
+  .rail .ft{padding:9px 14px;border-top:1px solid var(--ink-900);background:var(--ink-100);font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);display:flex;justify-content:space-between;letter-spacing:.06em;}
+  .rail .ft strong{color:var(--ink-900);font-weight:600;letter-spacing:.04em;}
+
+  /* Success criteria (Section 05) */
+  .crit{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-900);margin-bottom:18px;}
+  .crit .row{display:contents;}
+  .crit .item{padding:14px 18px;border-right:1px solid var(--soft-rule);border-bottom:1px solid var(--soft-rule);display:flex;flex-direction:column;gap:6px;}
+  .crit .item:nth-child(2n){border-right:0;}
+  .crit .item:nth-last-child(-n+2){border-bottom:0;}
+  .crit .item .k{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+  .crit .item .k strong{color:var(--ink-900);font-weight:700;}
+  .crit .item .v{font-size:13.5px;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;line-height:1.4;}
+  .crit .item .v em{font-style:normal;color:var(--ink-500);font-weight:400;}
+  .crit .item .b{font-size:12px;line-height:1.55;color:var(--ink-600);letter-spacing:-.003em;margin-top:auto;}
+  .crit .item .b strong{color:var(--ink-900);font-weight:500;}
+  .crit .item .targ{display:flex;justify-content:space-between;align-items:baseline;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-700);border-top:1px dashed var(--ink-300);padding-top:6px;margin-top:6px;}
+  .crit .item .targ .lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;}
+  .crit .item .targ .num{font-size:14px;color:var(--ink-900);font-weight:600;letter-spacing:.02em;}
+
+  /* Appendix tables */
+  .appx{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .appx .box{border:1px solid var(--ink-900);}
+  .appx .box .hd{padding:8px 14px;border-bottom:1px solid var(--ink-900);background:var(--ink-200);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-900);font-weight:700;display:flex;justify-content:space-between;}
+  .appx .box .body{padding:0;}
+  .appx .box .body .ln{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:6px 14px;border-bottom:1px solid var(--soft-rule);font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-700);letter-spacing:.02em;}
+  .appx .box .body .ln:last-child{border-bottom:0;}
+  .appx .box .body .ln .k{color:var(--ink-500);text-transform:uppercase;font-size:9px;letter-spacing:.16em;font-weight:600;padding-top:2px;}
+  .appx .box .body .ln .v{color:var(--ink-900);font-weight:500;text-align:right;}
+
+  /* Signature block */
+  .sig{display:grid;grid-template-columns:1fr 1fr;gap:48px;padding:24px 60px 60px;border-top:1px solid var(--ink-900);}
+  .sig .blk{display:flex;flex-direction:column;gap:8px;}
+  .sig .blk .line{border-bottom:1px solid var(--ink-900);height:48px;}
+  .sig .blk .k{font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-500);font-weight:600;display:flex;justify-content:space-between;}
+  .sig .blk .k strong{color:var(--ink-900);font-weight:600;}
+  .sig .blk .v{font-size:13px;color:var(--ink-900);font-weight:500;letter-spacing:-.005em;}
+  .sig .blk .v small{display:block;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);font-weight:400;margin-top:1px;letter-spacing:.02em;}
+
+  /* Colophon */
+  .colophon{padding:14px 60px 22px;font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px dashed var(--soft-rule);}
+  .colophon strong{color:var(--ink-900);font-weight:600;}
+
+  /* ─── Print stylesheet ─── */
+  @page {
+    size: Letter;
+    margin: 0.85in 0.75in;
+  }
+  @media print {
+    html, body { background: #fff; }
+    .chrome { display: none !important; }
+    .doc { box-shadow: none; margin: 0; max-width: none; background: #fff; }
+    section.s { border-bottom: 1px solid var(--ink-900); break-inside: avoid; }
+    section.s .sh { break-after: avoid; }
+    .cover { break-after: page; }
+    section.s { break-before: page; padding: 24px 0 32px; }
+    section.s:first-of-type { break-before: auto; }
+    .running { padding: 0 0 18px; border-bottom: 1px solid var(--soft-rule); margin-bottom: 18px; }
+    .cover { padding: 0 0 56px; border-bottom: 1px solid var(--ink-900); }
+    .colophon { padding: 14px 0; }
+    .sig { padding: 24px 0 0; }
+    .crit, .rail, .inout, .posture, .appx { break-inside: avoid; }
+    a { color: var(--ink-900); text-decoration: none; }
+    h1 { font-size: 44pt; }
+    section.s .sh h2 { font-size: 18pt; }
+    section.s p, ol.rfc > li, .lede { font-size: 10.5pt; }
+    body { font-size: 10pt; }
+  }
+</style>
+</head>
+<body data-screen-label="Pilot Deployment Kit">
+
+<div class="chrome">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <strong>VitalCV</strong>
+      <span class="path">/ pilot / deployment-kit · cedar-q2-26</span>
+    </div>
+    <div class="r">
+      <span>Doc · D43</span>
+      <span class="clock" id="clock">14:32:08Z</span>
+      <a class="print" href="#" id="print">Print to PDF →</a>
+    </div>
+  </div>
+</div>
+
+<article class="doc">
+
+  <!-- ─── Running header ─── -->
+  <div class="running">
+    <div class="l"><strong>VitalCV</strong><span>·</span><span>Pilot Deployment Kit</span></div>
+    <div class="r"><span>Confidential ·</span> <strong>Cedar Health</strong> <span>·</span> Q2-2026</div>
+  </div>
+
+  <!-- ─── Cover ─── -->
+  <header class="cover">
+    <div class="doc-no"><span class="nm">VC-PDK-CEDAR-Q2-26</span><span class="rule"></span><span>Revision 1.0 · 11 May 2026</span></div>
+
+    <h1>Credentialing by proxy: <em>a 30-day pilot for ten clinicians.</em></h1>
+    <div class="sub">
+      A discrete, source-backed verification node for Cedar Health Credentialing — operating in parallel to your incumbent CVO, scoped to ten provisional NPIs, with <strong>no data retention beyond the pilot window</strong> and no integration into upstream Cedar systems.
+    </div>
+
+    <div class="for">
+      <div class="blk">
+        <div class="k">Prepared for</div>
+        <div class="v">Cedar Health Credentialing<small>Attn: K. Aldana, VP Workforce Operations</small></div>
+      </div>
+      <div class="blk">
+        <div class="k">Prepared by</div>
+        <div class="v">VitalCV, Inc.<small>did:web:vitalcv.health · founder@vitalcv.health</small></div>
+      </div>
+      <div class="blk">
+        <div class="k">Scope</div>
+        <div class="v">10 NPIs · 30 days<small>federal sources only · state board manual</small></div>
+      </div>
+      <div class="blk">
+        <div class="k">Engagement</div>
+        <div class="v">Read-only pilot<small>no production cutover · no SLA</small></div>
+      </div>
+    </div>
+
+    <div class="meta-strip" style="margin-top:48px;margin-bottom:0;">
+      <div class="cell"><div class="k">Class</div><div class="v">Pilot deployment</div></div>
+      <div class="cell"><div class="k">Touches PHI?</div><div class="v">No</div></div>
+      <div class="cell"><div class="k">Touches PII?</div><div class="v">Name · NPI only</div></div>
+      <div class="cell"><div class="k">BAA required?</div><div class="v">No</div></div>
+    </div>
+
+    <div class="stamp">Confidential</div>
+  </header>
+
+  <!-- ─── 01 · Executive summary ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">01</span>
+      <h2>Executive summary <em>— in three paragraphs.</em></h2>
+      <span class="ref">D43 · S01</span>
+    </div>
+    <p class="lede">
+      VitalCV is a <strong>read-only verification node</strong>. It does not replace a credentialing verification organization. It resolves the eight federal primary sources Cedar's CVO already resolves — only faster, with a signed, replayable receipt for each clinician — and surfaces the boundary where state-level and clinical-privileging work remains a manual administrative step.
+    </p>
+    <p>
+      For this pilot, we are proposing a <strong>fixed cohort of ten provisional NPIs</strong>, intake'd through Cedar's existing Okta tenant, processed through VitalCV's federal resolver, and returned to Cedar as a side-channel artifact for comparison against your CVO's output. The pilot generates one signed receipt per clinician, hosted at a single revocable URL.
+    </p>
+    <p>
+      We are not asking Cedar to change a single line of its credentialing workflow during the pilot window. We are asking for thirty days to demonstrate that federal-source resolution can be <strong>accelerated by an order of magnitude</strong> without sacrificing audit fidelity — and to define, jointly, what a production engagement would look like if the receipts hold up.
+    </p>
+  </section>
+
+  <!-- ─── 02 · Pilot scope ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">02</span>
+      <h2>Pilot scope <em>— what is in, what is explicitly out.</em></h2>
+      <span class="ref">D43 · S02</span>
+    </div>
+
+    <p class="lede">The pilot is bounded on four axes: <strong>cohort, surface, data, time.</strong> Each axis is enumerated below. Items in the right column are not deferred — they are categorically outside the pilot's responsibility.</p>
+
+    <div class="inout">
+      <div class="col">
+        <div class="hd"><span>In scope</span><strong>10 NPIs / 30 days</strong></div>
+        <ul>
+          <li><span class="dash">+</span><span><strong>Identity resolution</strong> against NPPES and PECOS, returning normalized name, taxonomy, enrollment status.</span></li>
+          <li><span class="dash">+</span><span><strong>Sanction screening</strong> against OIG/LEIE and SAM.gov, returning a binary clear/excluded on intake date.</span></li>
+          <li><span class="dash">+</span><span><strong>DEA registration</strong> resolution with expiration and schedule grants.</span></li>
+          <li><span class="dash">+</span><span><strong>NPDB self-query token</strong> minting, returned to the clinician for verifier proxy.</span></li>
+          <li><span class="dash">+</span><span><strong>One signed receipt</strong> per clinician, resolvable from a Cedar-revocable URL.</span></li>
+          <li><span class="dash">+</span><span><strong>Read-only replay surface</strong> for Cedar's audit team, scoped to the pilot cohort.</span></li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="hd"><span>Out of scope</span><strong>verifier responsibility</strong></div>
+        <ul>
+          <li><span class="dash">−</span><span><strong>State medical board PSV.</strong> Resolved manually by Cedar's CVO or a partner CVO operating under their own credential.</span></li>
+          <li><span class="dash">−</span><span><strong>Privileging decisions.</strong> No assertion is made about scope of practice or clinical privileges at any Cedar facility.</span></li>
+          <li><span class="dash">−</span><span><strong>Employment eligibility.</strong> I-9, work authorization, OFAC screening remain in Cedar's HRIS workflow.</span></li>
+          <li><span class="dash">−</span><span><strong>Malpractice adjudication.</strong> NPDB query results are the verifier's to read; VitalCV mints the token, never the determination.</span></li>
+          <li><span class="dash">−</span><span><strong>Re-credentialing cycles.</strong> The pilot covers initial verification only; re-credentialing remains in Cedar's CVO cadence.</span></li>
+          <li><span class="dash">−</span><span><strong>Integration with Cedar's EMR, HRIS, or scheduling systems.</strong> No upstream writes; pilot artifacts are side-channel only.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <p>
+      The pilot ends on day 30. On termination, all subject records are <strong>cryptographically deleted</strong> from VitalCV's pilot cluster within 72 hours, with a signed deletion receipt issued to Cedar. Pilot URLs revoke immediately on Cedar's instruction at any point in the window.
+    </p>
+  </section>
+
+  <!-- ─── 03 · Security posture ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">03</span>
+      <h2>Security posture <em>— what data is touched, what isn't.</em></h2>
+      <span class="ref">D43 · S03</span>
+    </div>
+
+    <p class="lede">VitalCV's pilot architecture is <strong>structurally incapable</strong> of touching Cedar PHI or Cedar HRIS records. The table below enumerates every data class the pilot can encounter and the posture under which it is handled.</p>
+
+    <table class="posture">
+      <thead>
+        <tr><th style="width:24%;">Data class</th><th style="width:14%;">Touched?</th><th>Handling posture</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="label">NPI number</td><td class="touched">Yes</td><td>Public federal identifier. Stored as the run's subject id. Discarded with cohort at day-30 deletion.</td></tr>
+        <tr><td class="label">Clinician legal name</td><td class="touched">Yes</td><td>Read from NPPES on resolution; never accepted from Cedar's HRIS. Retained only in the signed receipt during pilot window.</td></tr>
+        <tr><td class="label">Date of birth</td><td class="touched no">No</td><td>Not requested at intake. Federal sources used in the pilot do not require DOB for resolution.</td></tr>
+        <tr><td class="label">Social Security Number</td><td class="touched no">No</td><td>Categorically out of scope. VitalCV will refuse SSN if Cedar's HRIS adapter attempts to send it.</td></tr>
+        <tr><td class="label">Patient PHI</td><td class="touched no">No</td><td>VitalCV does not connect to any Cedar clinical system. PHI cannot reach the pilot cluster by design — no integration surface exists.</td></tr>
+        <tr><td class="label">Cedar HRIS records</td><td class="touched no">No</td><td>Pilot accepts only the NPI list from Cedar's credentialing team. HRIS connectors are explicitly disabled in the pilot tenant.</td></tr>
+        <tr><td class="label">DEA registration</td><td class="touched">Yes</td><td>Resolved against the public DEA registration registry; only registration class, status, and expiration retained.</td></tr>
+        <tr><td class="label">NPDB query results</td><td class="touched no">No</td><td>VitalCV mints the subject's NPDB self-query token. The query result is returned directly to the verifier, never persisted by VitalCV.</td></tr>
+      </tbody>
+    </table>
+
+    <ol class="rfc">
+      <li><span class="h">Issuer key</span><span class="b">All pilot receipts are signed under <strong>did:web:vitalcv.health</strong>, ed25519 key fingerprint <strong>4f2a</strong>, rotated quarterly. Public key resolvable from the issuer's well-known endpoint at any time.</span></li>
+      <li><span class="h">Network posture</span><span class="b">Pilot cluster operates on a <strong>single-tenant container</strong>, isolated from any production workload, behind a Cloudflare tunnel revocable by Cedar with a 5-minute SLA.</span></li>
+      <li><span class="h">Encryption</span><span class="b">All subject records encrypted at rest (AES-256-GCM); transport TLS 1.3 only. Per-record keys derived from a pilot-cohort master key, destroyed on day-30 termination.</span></li>
+      <li><span class="h">Audit</span><span class="b">Every read, write, and signing operation is logged to an append-only audit ledger, exportable to Cedar's audit team in CSV or JSON-LD on request.</span></li>
+      <li><span class="h">Termination</span><span class="b">Cedar may terminate the pilot at any point. Termination triggers immediate revocation of all pilot URLs, followed by cryptographic deletion within 72 hours and a signed deletion receipt.</span></li>
+    </ol>
+  </section>
+
+  <!-- ─── 04 · Architecture ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">04</span>
+      <h2>Architecture <em>— credentialing by proxy, four columns.</em></h2>
+      <span class="ref">D43 · S04</span>
+    </div>
+
+    <p class="lede">VitalCV is a <strong>typed pipeline between four named parties</strong>. The diagram below reads left to right; each column owns its data plane and signs its outputs. Cedar reads the right-most column.</p>
+
+    <div class="rail">
+      <div class="rh">
+        <div class="cell"><span>Source</span><small>federal registries</small></div>
+        <div class="cell"><span>Issuer</span><small>VitalCV</small></div>
+        <div class="cell"><span>Subject</span><small>the clinician</small></div>
+        <div class="cell"><span>Verifier</span><small>Cedar credentialing</small></div>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div class="nd"><div class="k">Registry 01</div><div class="v">NPPES enumeration<span class="mono">cms.gov/nppes</span></div></div>
+          <div class="nd"><div class="k">Registry 02</div><div class="v">PECOS enrollment<span class="mono">cms.gov/pecos</span></div></div>
+          <div class="nd"><div class="k">Registry 03</div><div class="v">OIG / LEIE<span class="mono">oig.hhs.gov</span></div></div>
+          <div class="nd"><div class="k">Registry 04</div><div class="v">SAM.gov debarment<span class="mono">sam.gov</span></div></div>
+          <div class="nd"><div class="k">Registry 05</div><div class="v">DEA registration<span class="mono">deadiversion.usdoj.gov</span></div></div>
+          <div class="nd"><div class="k">Registry 06</div><div class="v">NPDB · self-query<span class="mono">npdb.hrsa.gov</span></div></div>
+          <div class="nd muted"><div class="k">Out · 07</div><div class="v">State medical boards<span class="mono">CVO channel</span></div></div>
+        </div>
+        <div class="col">
+          <div class="nd"><div class="k">Service</div><div class="v">Federal resolver<span class="mono">pilot tenant · isolated</span></div></div>
+          <div class="nd"><div class="k">Key</div><div class="v">did:web:vitalcv.health<span class="mono">ed25519 · 4f2a</span></div></div>
+          <div class="nd"><div class="k">Output</div><div class="v">Signed receipt<span class="mono">application/jws + json-ld</span></div></div>
+          <div class="nd"><div class="k">Audit ledger</div><div class="v">Append-only<span class="mono">read/write/sign logged</span></div></div>
+          <div class="nd muted"><div class="k">Retention</div><div class="v">30 days, then cryptographically deleted</div></div>
+        </div>
+        <div class="col">
+          <div class="nd"><div class="k">Identity</div><div class="v">Macie Miller, PA-C<span class="mono">npi 1346053246</span></div></div>
+          <div class="nd"><div class="k">Auth</div><div class="v">Cedar Okta SSO<span class="mono">existing tenant</span></div></div>
+          <div class="nd"><div class="k">Attestation</div><div class="v">Self-attest on intake<span class="mono">signed by subject</span></div></div>
+          <div class="nd"><div class="k">Share</div><div class="v">Vault-key sharing<span class="mono">subject controls</span></div></div>
+          <div class="nd muted"><div class="k">Cohort</div><div class="v">9 more NPIs<span class="mono">q2-2026-pilot</span></div></div>
+        </div>
+        <div class="col">
+          <div class="nd"><div class="k">Read surface</div><div class="v">/verify/r-7a2c-b8d3<span class="mono">read-only · signed</span></div></div>
+          <div class="nd"><div class="k">Operator</div><div class="v">Cedar credentialing<span class="mono">audit team scoped</span></div></div>
+          <div class="nd"><div class="k">Action</div><div class="v">Accept · revoke · escalate<span class="mono">Cedar discretion</span></div></div>
+          <div class="nd"><div class="k">Audit export</div><div class="v">CSV · JSON-LD on request</div></div>
+          <div class="nd muted"><div class="k">Manual lane</div><div class="v">State board PSV<span class="mono">Cedar CVO retains</span></div></div>
+        </div>
+      </div>
+      <div class="arrow-row">
+        <div class="ar"><span class="lbl">primary fetch</span><span class="arr">→</span></div>
+        <div class="ar"><span class="lbl">sign &amp; emit</span><span class="arr">→</span></div>
+        <div class="ar"><span class="lbl">deliver</span><span class="arr">→</span></div>
+        <div class="ar"><span class="lbl">read · accept</span></div>
+      </div>
+      <div class="ft"><span><strong>4 parties · 7 federal sources · 1 signed receipt per clinician</strong></span><span>credentialing-by-proxy v1.2</span></div>
+    </div>
+
+    <ol class="rfc">
+      <li><span class="h">No HRIS write-back</span><span class="b">The pilot is read-only with respect to Cedar systems. VitalCV emits artifacts; Cedar reads them. There is no upstream integration to be hardened, audited, or rolled back.</span></li>
+      <li><span class="h">Subject-controlled share</span><span class="b">The clinician — not VitalCV, not Cedar — holds the vault key. Cedar's access is mediated by the subject's share grant and is revocable by either party.</span></li>
+      <li><span class="h">Receipts, not databases</span><span class="b">The unit of trust is the <strong>signed receipt</strong>, not a row in our database. Receipts are portable, replayable, and survive VitalCV's eventual sunset.</span></li>
+    </ol>
+  </section>
+
+  <!-- ─── 05 · 30-day criteria ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">05</span>
+      <h2>30-day success criteria <em>— what we measure, jointly.</em></h2>
+      <span class="ref">D43 · S05</span>
+    </div>
+
+    <p class="lede">Four criteria. Each has an operational target measured against Cedar's current CVO baseline. We pass the pilot if we hit three of four; we discuss continuation if we hit fewer.</p>
+
+    <div class="crit">
+      <div class="item">
+        <div class="k"><span>Criterion 01</span><strong>Time-to-receipt</strong></div>
+        <div class="v">Median time from intake to signed receipt across the cohort.</div>
+        <div class="b">Cedar CVO baseline for federal-source resolution: <strong>4–6 business days</strong>. VitalCV pilot target: under one hour.</div>
+        <div class="targ"><span class="lbl">Target</span><span class="num">≤ 1 h</span></div>
+      </div>
+      <div class="item">
+        <div class="k"><span>Criterion 02</span><strong>Source fidelity</strong></div>
+        <div class="v">Receipt fields must reconcile to Cedar CVO output on independent review.</div>
+        <div class="b">Cedar's audit team blind-compares VitalCV receipts to CVO records. <strong>Zero substantive discrepancies</strong> across the cohort.</div>
+        <div class="targ"><span class="lbl">Target</span><span class="num">0 / 10</span></div>
+      </div>
+      <div class="item">
+        <div class="k"><span>Criterion 03</span><strong>Operator load</strong></div>
+        <div class="v">Minutes of Cedar-team time required to operate the pilot.</div>
+        <div class="b">Total hands-on minutes from Cedar credentialing across the 30 days, excluding the audit-comparison work in criterion 02.</div>
+        <div class="targ"><span class="lbl">Target</span><span class="num">≤ 90 min</span></div>
+      </div>
+      <div class="item">
+        <div class="k"><span>Criterion 04</span><strong>Audit defensibility</strong></div>
+        <div class="v">Cedar audit lead can defend the receipt to a regulator on a single read.</div>
+        <div class="b">Tested on day 28 with a structured walk-through of a randomly chosen cohort receipt. Pass criterion: <strong>no follow-up artifacts required</strong>.</div>
+        <div class="targ"><span class="lbl">Target</span><span class="num">1-shot</span></div>
+      </div>
+    </div>
+
+    <ol class="rfc">
+      <li><span class="h">What we will not measure</span><span class="b">Net Promoter Score. Engagement minutes. "Time saved" estimates without a baseline. We do not run feel-good metrics in a credentialing pilot.</span></li>
+      <li><span class="h">What constitutes a "no"</span><span class="b">Cedar passes on continuation if any single criterion drops below half its target. We will not negotiate the threshold mid-pilot.</span></li>
+      <li><span class="h">What constitutes a "yes"</span><span class="b">Cedar and VitalCV scope a 90-day production engagement covering 50–100 NPIs and a joint definition of when state-board PSV moves in-platform under a partner CVO umbrella.</span></li>
+    </ol>
+  </section>
+
+  <!-- ─── 06 · Appendix ─── -->
+  <section class="s">
+    <div class="sh">
+      <span class="no">06</span>
+      <h2>Appendix <em>— references, contacts, glossary.</em></h2>
+      <span class="ref">D43 · S06</span>
+    </div>
+
+    <div class="appx">
+      <div class="box">
+        <div class="hd"><span>Federal sources</span><span>resolved by pilot</span></div>
+        <div class="body">
+          <div class="ln"><div class="k">NPPES</div><div class="v">National Plan &amp; Provider Enumeration System</div></div>
+          <div class="ln"><div class="k">PECOS</div><div class="v">Provider Enrollment, Chain &amp; Ownership</div></div>
+          <div class="ln"><div class="k">OIG / LEIE</div><div class="v">List of Excluded Individuals &amp; Entities</div></div>
+          <div class="ln"><div class="k">SAM.gov</div><div class="v">Federal procurement debarment</div></div>
+          <div class="ln"><div class="k">DEA</div><div class="v">Diversion Control Registration</div></div>
+          <div class="ln"><div class="k">NPDB</div><div class="v">National Practitioner Data Bank · self-query</div></div>
+          <div class="ln"><div class="k">NCCPA</div><div class="v">PA board certification (where applicable)</div></div>
+        </div>
+      </div>
+      <div class="box">
+        <div class="hd"><span>Cedar contacts</span><span>30-day window</span></div>
+        <div class="body">
+          <div class="ln"><div class="k">Pilot owner</div><div class="v">K. Aldana, VP</div></div>
+          <div class="ln"><div class="k">Credentialing lead</div><div class="v">M. Tran-Nguyen</div></div>
+          <div class="ln"><div class="k">Audit lead</div><div class="v">P. Okafor</div></div>
+          <div class="ln"><div class="k">Security review</div><div class="v">J. Lindgren, CISO</div></div>
+          <div class="ln"><div class="k">Legal contact</div><div class="v">S. Berenstein</div></div>
+          <div class="ln"><div class="k">VitalCV founder</div><div class="v">founder@vitalcv.health</div></div>
+          <div class="ln"><div class="k">Escalation</div><div class="v">+1 (415) 555-0142 · 24/7</div></div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="rfc" style="margin-top:18px;">
+      <li><span class="h">Glossary · CVO</span><span class="b">Credentials Verification Organization. The entity that resolves a clinician's credentials against primary sources. Cedar's incumbent CVO continues to operate during the pilot.</span></li>
+      <li><span class="h">Glossary · PSV</span><span class="b">Primary-Source Verification. The act of resolving a credential directly against its issuing authority, not a derivative database.</span></li>
+      <li><span class="h">Glossary · Receipt</span><span class="b">A signed, replayable artifact emitted by the issuer (VitalCV) that captures the state of a subject's verification at a moment in time. Cryptographically verifiable without network access to VitalCV.</span></li>
+      <li><span class="h">Glossary · Subject</span><span class="b">The clinician being verified. The subject holds their vault key; VitalCV cannot read their record without their grant.</span></li>
+    </ol>
+  </section>
+
+  <!-- ─── Signature ─── -->
+  <div class="sig">
+    <div class="blk">
+      <div class="k"><span>Authorized · Cedar Health</span><strong>execute on signature</strong></div>
+      <div class="line"></div>
+      <div class="v">K. Aldana, VP Workforce Operations<small>cedarhealth.org · / credentialing</small></div>
+    </div>
+    <div class="blk">
+      <div class="k"><span>Authorized · VitalCV</span><strong>issuer</strong></div>
+      <div class="line"></div>
+      <div class="v">Founder, VitalCV, Inc.<small>did:web:vitalcv.health · 11 May 2026</small></div>
+    </div>
+  </div>
+
+  <div class="colophon">
+    <span>Document <strong>VC-PDK-CEDAR-Q2-26</strong> · Rev 1.0 · 11 May 2026</span>
+    <span>Print-ready · 6 sections · 1 cover · 1 signature page</span>
+  </div>
+
+</article>
+
+<script>
+  function tickClock(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent =
+      `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  document.getElementById('print').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.print();
+  });
+</script>
+
+</body>
+</html>

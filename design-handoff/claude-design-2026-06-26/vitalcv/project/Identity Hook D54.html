@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Claim Your Passport · NPI Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;
+    --rule:#e2e8f0;--paper:#f8f6f1;
+    --serif:'Newsreader',Georgia,serif;
+    --mono:'Geist Mono',ui-monospace,monospace;
+    --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh;}
+
+  /* Page shell — centered, single column */
+  .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;}
+  .wordmark{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);margin-bottom:48px;display:flex;align-items:center;gap:10px;}
+  .wordmark .g{width:16px;height:16px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:700;}
+
+  /* === STATE 0: Search entry === */
+  #state-search{width:100%;max-width:600px;text-align:center;}
+  #state-search .headline{font-family:var(--serif);font-size:42px;line-height:1.08;letter-spacing:-.025em;font-weight:500;color:var(--ink-900);margin:0 0 14px;text-wrap:balance;}
+  #state-search .headline .it{font-style:italic;color:var(--ink-600);}
+  #state-search .sub{font-size:15px;color:var(--ink-500);line-height:1.55;margin:0 0 36px;max-width:46ch;margin-left:auto;margin-right:auto;}
+  .npi-input-wrap{border:2px solid var(--ink-900);background:var(--ink-0);display:flex;}
+  .npi-input-wrap input{flex:1;padding:18px 22px;font-family:var(--mono);font-size:22px;letter-spacing:.06em;border:none;background:transparent;color:var(--ink-900);outline:none;font-variant-numeric:tabular-nums;min-width:0;}
+  .npi-input-wrap input::placeholder{color:var(--ink-300);}
+  .npi-input-wrap button{padding:18px 24px;background:var(--ink-900);color:#fff;border:none;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.2em;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+  .npi-input-wrap button:hover{background:var(--ink-800);}
+  .hint{margin-top:12px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);text-align:center;}
+
+  /* === STATE 1: Skeleton loading === */
+  #state-loading{width:100%;max-width:560px;display:none;}
+  .skel-card{background:var(--ink-0);border:1px solid var(--ink-200);padding:28px;}
+  .skel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);}
+  .skel-top .resolving{display:flex;align-items:center;gap:8px;}
+  .skel-top .dot{width:6px;height:6px;background:var(--ink-300);animation:pulse 1.2s ease-in-out infinite;}
+  .skel-top .dot:nth-child(2){animation-delay:.2s;}
+  .skel-top .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+  /* Skeleton blocks — they mimic the exact shape of the resolved card */
+  .skel-name{height:58px;background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 50%,var(--ink-100) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:12px;width:72%;}
+  .skel-cred{height:34px;background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 50%,var(--ink-100) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:16px;width:42%;animation-delay:.1s;}
+  .skel-taxonomy{height:18px;background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 50%,var(--ink-100) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:6px;width:88%;animation-delay:.15s;}
+  .skel-taxonomy-2{height:18px;background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 50%,var(--ink-100) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;width:64%;animation-delay:.2s;}
+  .skel-divider{height:1px;background:var(--rule);margin:16px 0;}
+  .skel-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .skel-field{height:44px;background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-50) 50%,var(--ink-100) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
+  .skel-field:nth-child(1){animation-delay:.25s;}
+  .skel-field:nth-child(2){animation-delay:.3s;}
+  .skel-field:nth-child(3){animation-delay:.35s;}
+  .skel-field:nth-child(4){animation-delay:.4s;}
+  .skel-caption{margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em;text-align:center;}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* === STATE 2: Resolved identity === */
+  #state-resolved{width:100%;max-width:560px;display:none;}
+  .resolved-card{background:var(--ink-0);border:1px solid var(--ink-900);}
+  .resolved-top{background:var(--ink-900);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;}
+  .resolved-top .badge{color:#34d399;border:1px solid #047857;padding:1px 7px;font-size:9.5px;display:flex;align-items:center;gap:5px;}
+  .resolved-top .badge .d{width:5px;height:5px;background:#34d399;}
+
+  /* The ego-hook: name first, huge, serif */
+  .identity-reveal{padding:32px 28px 24px;background:var(--paper);}
+  .big-name{font-family:var(--serif);font-size:64px;line-height:.92;letter-spacing:-.04em;font-weight:500;color:var(--ink-900);margin-bottom:4px;animation:reveal-name .4s ease-out both;}
+  .big-cred{font-family:var(--serif);font-style:italic;font-size:40px;line-height:1;letter-spacing:-.02em;color:var(--ink-600);margin-bottom:16px;animation:reveal-name .4s ease-out .08s both;}
+  @keyframes reveal-name{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .npi-confirm{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-400);display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:reveal-name .4s ease-out .16s both;}
+  .npi-confirm .npi-v{color:var(--ink-900);font-weight:600;}
+  .npi-confirm .sep{color:var(--ink-300);}
+
+  .resolved-fields{padding:16px 28px;display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--rule);animation:reveal-name .4s ease-out .24s both;}
+  .rf{padding:10px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .rf:nth-child(2n){border-right:0;}
+  .rf:nth-last-child(-n+2){border-bottom:0;}
+  .rfk{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);font-weight:600;margin-bottom:3px;}
+  .rfv{font-family:var(--mono);font-size:12px;color:var(--ink-900);font-weight:500;}
+  .rfv .g{color:var(--ink-500);font-weight:400;}
+
+  .resolved-action{padding:18px 28px;border-top:1px solid var(--rule);animation:reveal-name .4s ease-out .32s both;}
+  .claim-btn{display:block;width:100%;padding:15px 24px;background:var(--ink-900);color:#fff;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.2em;font-weight:700;border:none;cursor:pointer;text-align:center;}
+  .claim-btn:hover{background:var(--ink-800);}
+  .not-you{margin-top:10px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.14em;}
+  .not-you a{color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;cursor:pointer;}
+
+  .resolved-foot{padding:10px 28px;border-top:1px solid var(--rule);background:var(--ink-50);font-family:var(--mono);font-size:9.5px;color:var(--ink-400);display:flex;gap:12px;flex-wrap:wrap;animation:reveal-name .4s ease-out .4s both;}
+  .resolved-foot span .v{color:var(--ink-700);}
+</style>
+</head>
+<body data-screen-label="Identity Hook D54">
+
+<div class="page">
+
+  <div class="wordmark">
+    <span class="g">V</span>
+    VitalCV · / start
+  </div>
+
+  <!-- STATE 0: Search -->
+  <div id="state-search">
+    <h1 class="headline">Enter your NPI to claim your <span class="it">portable passport.</span></h1>
+    <p class="sub">Your federal identity already exists. We'll resolve it from the primary source — no forms, no uploads, no friction.</p>
+    <div class="npi-input-wrap">
+      <input type="text" id="npi-field" placeholder="10-digit NPI" maxlength="10" />
+      <button id="resolve-btn" onclick="startResolve()">Resolve →</button>
+    </div>
+    <div class="hint">e.g. 1033806195 · no account required to search</div>
+  </div>
+
+  <!-- STATE 1: Skeleton loading -->
+  <div id="state-loading">
+    <div class="skel-card">
+      <div class="skel-top">
+        <span>Resolving from NPPES · CMS.HHS.GOV</span>
+        <div class="resolving">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+      <!-- Skeleton matches the exact shape of the resolved card -->
+      <div class="skel-name"></div>
+      <div class="skel-cred"></div>
+      <div class="skel-taxonomy"></div>
+      <div class="skel-taxonomy-2"></div>
+      <div class="skel-divider"></div>
+      <div class="skel-fields">
+        <div class="skel-field"></div>
+        <div class="skel-field"></div>
+        <div class="skel-field"></div>
+        <div class="skel-field"></div>
+      </div>
+      <div class="skel-caption">Fetching from federal primary source · 0.4s</div>
+    </div>
+  </div>
+
+  <!-- STATE 2: Resolved identity — the ego hook -->
+  <div id="state-resolved">
+    <div class="resolved-card">
+      <div class="resolved-top">
+        <span>Resolved · NPPES · CMS.HHS.GOV · 0.4s</span>
+        <span class="badge"><span class="d"></span>NPPES-Confirmed</span>
+      </div>
+      <div class="identity-reveal">
+        <div class="big-name">Connor Kilch</div>
+        <div class="big-cred">MD</div>
+        <div class="npi-confirm">
+          <span class="npi-v">NPI 1033806195</span>
+          <span class="sep">·</span>
+          <span>Family Medicine</span>
+          <span class="sep">·</span>
+          <span>207Q00000X</span>
+          <span class="sep">·</span>
+          <span>Active · Michigan</span>
+        </div>
+      </div>
+      <div class="resolved-fields">
+        <div class="rf">
+          <div class="rfk">Taxonomy</div>
+          <div class="rfv">207Q00000X <span class="g">· FM</span></div>
+        </div>
+        <div class="rf">
+          <div class="rfk">License</div>
+          <div class="rfv">MI-A0092841 <span class="g">· Michigan</span></div>
+        </div>
+        <div class="rf">
+          <div class="rfk">Enumeration</div>
+          <div class="rfv">2010-04-15</div>
+        </div>
+        <div class="rf">
+          <div class="rfk">Last updated</div>
+          <div class="rfv">2024-11-07</div>
+        </div>
+      </div>
+      <div class="resolved-action">
+        <button class="claim-btn">This is me — Claim Portable Trust Passport →</button>
+        <div class="not-you"><a onclick="resetFlow()">Not you? Search a different NPI</a></div>
+      </div>
+      <div class="resolved-foot">
+        <span>Source <span class="v">npiregistry.cms.hhs.gov</span></span>
+        <span>·</span>
+        <span>Issued by <span class="v">did:web:vitalcv.health</span></span>
+        <span>·</span>
+        <span>Sig <span class="v">ed25519:4f2a</span></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function startResolve() {
+  var val = document.getElementById('npi-field').value.trim();
+  if (!val) {
+    document.getElementById('npi-field').value = '1033806195';
+    val = '1033806195';
+  }
+  // Show skeleton
+  document.getElementById('state-search').style.display = 'none';
+  document.getElementById('state-loading').style.display = 'block';
+  document.getElementById('state-resolved').style.display = 'none';
+
+  // After 820ms (the 400ms perception window + some delay), show resolved
+  setTimeout(function() {
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('state-resolved').style.display = 'block';
+  }, 820);
+}
+
+function resetFlow() {
+  document.getElementById('state-search').style.display = 'block';
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-resolved').style.display = 'none';
+  document.getElementById('npi-field').value = '';
+  document.getElementById('npi-field').focus();
+}
+
+// Allow Enter key on the input
+document.getElementById('npi-field').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') startResolve();
+});
+</script>
+</body>
+</html>

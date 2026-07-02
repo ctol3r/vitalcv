@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV · Operational Safety System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f7f6f2;--ink-100:#efede7;--ink-200:#dddbd3;
+  --ink-300:#c2bfb5;--ink-400:#96938a;--ink-500:#6b6860;--ink-600:#474540;
+  --ink-700:#2d2c28;--ink-800:#1a1916;--ink-900:#0f0e0c;--ink-950:#050504;
+  --rule:#dddbd3;--rule-soft:#eceae4;--paper:#f4f2ec;
+  --ok:#2d6a4f;--watch:#7d5a1e;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Geist',ui-sans-serif,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.6;letter-spacing:-.003em;color:var(--ink-900);background:var(--paper)}
+.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer}
+
+.doc-header{position:sticky;top:0;z-index:100;background:var(--ink-950);display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 28px}
+.dh-brand{display:flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400)}
+.dh-brand .g{width:15px;height:15px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700;flex-shrink:0}
+.dh-brand strong{color:#fff;font-weight:600}
+.dh-brand .sl{color:var(--ink-700);margin:0 2px}
+.dh-brand .sc{color:var(--ink-500)}
+.doc-nav{display:flex;align-items:center}
+.dn-item{padding:0 10px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-500);text-decoration:none;height:34px;display:flex;align-items:center;border-left:1px solid var(--ink-800);transition:color .1s}
+.dn-item:hover{color:var(--ink-300)}
+
+.page{max-width:780px;margin:0 auto;padding:36px 28px 80px}
+
+.title-block{padding:0 0 28px;border-bottom:1px solid var(--rule);margin-bottom:32px}
+.tb-eyebrow{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.20em;color:var(--ink-400);font-weight:600;margin-bottom:8px}
+.tb-title{font-size:28px;font-weight:600;letter-spacing:-.026em;color:var(--ink-900);line-height:1.1;margin-bottom:9px}
+.tb-desc{font-size:13px;color:var(--ink-600);max-width:540px;line-height:1.65}
+.tb-desc strong{color:var(--ink-900);font-weight:500}
+
+.section{margin-bottom:44px}
+.sec-eyebrow{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.20em;color:var(--ink-400);font-weight:600;margin-bottom:5px}
+.sec-title{font-size:17px;font-weight:600;letter-spacing:-.016em;color:var(--ink-900);margin-bottom:7px;line-height:1.2}
+.sec-desc{font-size:12.5px;color:var(--ink-600);line-height:1.65;margin-bottom:16px;max-width:600px}
+.sec-desc strong{color:var(--ink-900);font-weight:500}
+
+/* ── DEGRADED STATE HIERARCHY ── */
+.ds-levels{border:1px solid var(--rule);background:var(--ink-0)}
+.ds-row{display:grid;grid-template-columns:88px 1fr;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background .1s}
+.ds-row:last-child{border-bottom:0}
+.ds-row:hover{background:var(--ink-50)}
+.ds-lev{padding:12px 12px;border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:4px}
+.ds-n{font-family:'Geist Mono',monospace;font-size:22px;font-weight:600;color:var(--ink-200);line-height:1}
+.ds-name{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.12em;font-weight:600;color:var(--ink-400)}
+.ds-row.d3 .ds-name{color:var(--watch)}
+.ds-row.d4 .ds-name{color:var(--watch)}
+.ds-row.d5 .ds-lev{background:var(--ink-900);border-right-color:var(--ink-800)}
+.ds-row.d5 .ds-n{color:var(--ink-700)} .ds-row.d5 .ds-name{color:var(--ink-500)}
+.ds-body{padding:12px 14px;background:var(--ink-0)}
+.ds-signal{font-size:13.5px;font-weight:500;color:var(--ink-900);letter-spacing:-.01em;margin-bottom:3px;line-height:1.35}
+.ds-when{font-size:12px;color:var(--ink-600);line-height:1.5;margin-bottom:5px}
+.ds-render{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-400);margin-bottom:0}
+.ds-ex{margin-top:8px}
+/* inline UI examples */
+.ex-bar{display:flex;align-items:center;gap:8px;background:var(--ink-50);border:1px dashed var(--ink-400);padding:6px 10px;font-size:11.5px}
+.ex-bar .sig{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--watch);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.ex-bar .d{width:6px;height:6px;border:1.5px dashed var(--watch);border-radius:50%}
+.ex-bar .txt{color:var(--ink-700)} .ex-bar .txt strong{color:var(--ink-900);font-weight:500}
+.ex-panel{background:var(--ink-50);border:1px solid var(--rule);padding:10px 12px}
+.ex-panel .ep-t{font-size:13px;font-weight:600;color:var(--ink-900);margin-bottom:3px;letter-spacing:-.01em}
+.ex-panel .ep-b{font-size:12px;color:var(--ink-700);margin-bottom:8px;line-height:1.5} .ep-b strong{color:var(--ink-900);font-weight:500}
+.ex-panel .ep-a{display:flex;gap:8px}
+.btn-xs{background:var(--ink-900);color:#fff;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;padding:5px 10px;border:0}
+.btn-xs-g{background:transparent;color:var(--ink-700);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;font-weight:500;padding:5px 0;border:0;text-decoration:underline;text-decoration-color:var(--ink-300)}
+
+/* ── CONFIRMATION CHAIN ── */
+.conf-chain{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);background:var(--ink-0);margin-bottom:10px}
+.cc-row{display:grid;grid-template-columns:120px 1fr 1fr;gap:0;border-bottom:1px solid var(--rule-soft)}
+.cc-row:last-child{border-bottom:0}
+.cc-type{padding:10px 12px;background:var(--ink-50);border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:3px}
+.cc-type .ct-name{font-size:12px;font-weight:600;color:var(--ink-900);letter-spacing:-.008em}
+.cc-type .ct-when{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-500);margin-top:2px}
+.cc-copy{padding:10px 12px;font-size:12.5px;color:var(--ink-900);font-weight:500;line-height:1.4;border-right:1px solid var(--rule-soft)}
+.cc-rule{padding:10px 12px;font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.cc-rule strong{color:var(--ink-900);font-weight:500}
+
+/* ── OWNERSHIP MATRIX ── */
+.own-matrix{border:1px solid var(--rule);background:var(--ink-0);margin-bottom:10px}
+.om-head{display:grid;grid-template-columns:100px 1fr 1fr 1fr;padding:5px 12px;background:var(--ink-50);border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);gap:10px}
+.om-row{display:grid;grid-template-columns:100px 1fr 1fr 1fr;padding:8px 12px;border-top:1px solid var(--rule-soft);gap:10px;align-items:start}
+.om-row:hover{background:var(--ink-50)}
+.om-act{font-size:12px;font-weight:500;color:var(--ink-900)}
+.om-cell{font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.om-cell.yes{color:var(--ink-900);font-weight:500}
+.om-cell.yes::before{content:"✓ ";color:var(--ok)}
+.om-cell.no{color:var(--ink-300)}
+.om-cell.no::before{content:"— "}
+.om-cell.partial::before{content:"△ ";color:var(--watch)}
+.om-cell.partial{color:var(--ink-600)}
+.own-chip{display:inline-flex;font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.10em;font-weight:600;padding:1px 5px}
+.oc-sys{border:1px solid var(--ink-200);color:var(--ink-500)}
+.oc-rev{background:var(--ink-900);color:#fff;border:1px solid var(--ink-900)}
+.oc-org{border:1px solid var(--ink-700);color:var(--ink-700)}
+
+/* ── SAFETY LANGUAGE ── */
+.sl-pair{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);background:var(--ink-0);margin-bottom:8px}
+.slp-col{padding:11px 13px}
+.slp-col:first-child{border-right:1px solid var(--rule-soft);background:var(--ink-50)}
+.slp-lbl{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.14em;font-weight:600;margin-bottom:5px}
+.slp-lbl.unsafe{color:var(--ink-400)}
+.slp-lbl.safe{color:var(--ok)}
+.slp-copy{font-size:12px;line-height:1.6}
+.slp-copy.unsafe{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-400);letter-spacing:.01em}
+.slp-copy.safe{color:var(--ink-900);font-weight:500}
+.slp-why{font-size:11px;color:var(--ink-500);line-height:1.5;margin-top:5px;font-style:italic}
+
+/* ── RECOVERY FLOW ── */
+.recovery-flow{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);background:var(--ink-0)}
+.rf-step{display:flex;align-items:stretch;border-bottom:1px solid var(--rule-soft)}
+.rf-step:last-child{border-bottom:0}
+.rf-track{display:flex;flex-direction:column;align-items:center;width:40px;flex-shrink:0}
+.rf-node{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:16px;z-index:1}
+.rf-line{width:1px;flex:1;min-height:10px}
+.rf-step:last-child .rf-line{display:none}
+.rf-n-nominal{background:var(--ok)} .rf-n-check{background:transparent;border:2px dashed var(--watch)} .rf-n-gap{background:transparent;border:2px dashed var(--watch)} .rf-n-hold{background:var(--ink-900)} .rf-n-ok{background:var(--ok)}
+.rf-l-ok{background:var(--ok);opacity:.25} .rf-l-check{background:repeating-linear-gradient(to bottom,var(--watch) 0,var(--watch) 3px,transparent 3px,transparent 6px);opacity:.4} .rf-l-gap{background:var(--rule)} .rf-l-hold{background:var(--rule)} .rf-l-clear{background:var(--ok);opacity:.25}
+.rf-body{flex:1;padding:10px 12px 12px 0}
+.rf-state{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:2px}
+.rf-title{font-size:12.5px;font-weight:600;color:var(--ink-900);letter-spacing:-.008em;margin-bottom:2px}
+.rf-desc{font-size:11.5px;color:var(--ink-600);line-height:1.5}
+.rf-desc strong{color:var(--ink-900);font-weight:500}
+.rf-action{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-500);margin-top:4px}
+.rf-action.rev{color:var(--ink-900);font-weight:600}
+
+/* ── IMPL ── */
+.impl{background:var(--ink-950);border:1px solid var(--ink-800);padding:11px 13px;margin-bottom:8px}
+.impl-title{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600;margin-bottom:8px}
+.impl-rule{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--ink-800)}
+.impl-rule:last-child{border-bottom:0}
+.ir-n{font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-600);width:20px;flex-shrink:0;padding-top:1px}
+.ir-text{font-size:12px;color:var(--ink-300);line-height:1.6}
+.ir-text strong{color:#fff;font-weight:500}
+.ir-text code{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);background:var(--ink-800);padding:1px 4px}
+
+/* ── TWEAKS ── */
+.tweaks-panel{position:fixed;bottom:20px;right:20px;width:220px;background:var(--ink-0);border:1px solid var(--rule);box-shadow:0 4px 24px rgba(0,0,0,.09);z-index:200;display:none}
+.tweaks-panel.on{display:block}
+.tp-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);font-weight:600}
+.tp-close{background:none;border:0;color:var(--ink-400);font-family:'Geist Mono',monospace;font-size:11px;padding:0}
+.tp-body{padding:10px 12px;display:flex;flex-direction:column;gap:9px}
+.tp-row{display:flex;flex-direction:column;gap:4px}
+.tp-lbl{font-family:'Geist Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500)}
+.tp-seg{display:flex;border:1px solid var(--rule)}
+.ts-btn{flex:1;padding:4px 0;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:500;background:transparent;color:var(--ink-500);border:0;border-right:1px solid var(--rule);transition:all .1s}
+.ts-btn:last-child{border-right:0}
+.ts-btn.on{background:var(--ink-900);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="dh-brand">
+    <span class="g">V</span>
+    <strong>VitalCV</strong><span class="sl">/</span><span class="sc">operational safety system</span>
+  </div>
+  <nav class="doc-nav">
+    <a href="#degraded" class="dn-item">Degraded States</a>
+    <a href="#confirmation" class="dn-item">Confirmation</a>
+    <a href="#ownership" class="dn-item">Ownership</a>
+    <a href="#safety-lang" class="dn-item">Safety Language</a>
+    <a href="#recovery" class="dn-item">Recovery</a>
+    <a href="#impl" class="dn-item">Claude Code</a>
+  </nav>
+</div>
+
+<div class="page">
+
+<div class="title-block">
+  <div class="tb-eyebrow">VitalCV · Operational Safety System · v2026.05.21</div>
+  <div class="tb-title">Evidence-bounded trust. No fake certainty.</div>
+  <div class="tb-desc">Every visible confidence signal must be defensible. <strong>No silent failures. No magical continuity. No confirmations beyond the evidence.</strong> This document defines six degraded states, three confirmation types, a four-party ownership model, and the recovery arc — for institutional PearX readiness.</div>
+</div>
+
+<!-- ── §1 DEGRADED STATE HIERARCHY ── -->
+<div class="section" id="degraded">
+  <div class="sec-eyebrow">§1</div>
+  <div class="sec-title">Degraded-state hierarchy.</div>
+  <div class="sec-desc">Six named states. The state governs what the operator sees, what copy is shown, and whether action is required. <strong>No state is silent about its own existence.</strong> Levels 0–1 need no display. Levels 2–5 require explicit UI acknowledgment.</div>
+
+  <div class="ds-levels">
+    <div class="ds-row d0">
+      <div class="ds-lev"><div class="ds-n">0</div><div class="ds-name">Nominal</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">All sources responding. All records current.</div>
+        <div class="ds-when">Normal operation. No display needed. Absence of signal is the signal.</div>
+        <div class="ds-render">No indicator · Level 1 (Ambient) in sidebar sources only</div>
+      </div>
+    </div>
+    <div class="ds-row d1">
+      <div class="ds-lev"><div class="ds-n">1</div><div class="ds-name">Latent</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">One source slower than usual. No operator impact yet.</div>
+        <div class="ds-when">Source still responding, but response time elevated. No stale data. No operator action needed. Log internally, do not surface.</div>
+        <div class="ds-render">No display · internal log only · threshold: response time &gt;30s but within last check window</div>
+      </div>
+    </div>
+    <div class="ds-row d2">
+      <div class="ds-lev"><div class="ds-n">2</div><div class="ds-name">Checking</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">Source not responding. Last result shown. Retrying.</div>
+        <div class="ds-when">One source missed its check window. Last valid result is displayed. No operator action required — but must be disclosed. Dashed source bar + age label in sidebar. Attention notice bar if actively viewing affected records.</div>
+        <div class="ds-render">Dashed source bar · stale age label · attention notice (Level 3) · threshold: 1 missed check window</div>
+        <div class="ds-ex">
+          <div class="ex-bar">
+            <div class="sig"><span class="d"></span>DEA checking again</div>
+            <div class="txt"><strong>DEA</strong> last responded 5 hours ago — last result is shown. Resuming automatically. No action needed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ds-row d3">
+      <div class="ds-lev"><div class="ds-n">3</div><div class="ds-name">Extended gap</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">Source not responding for 4+ hours. Records noted as aged.</div>
+        <div class="ds-when">Named callout in the affected stage view. Every affected record must show "Last result from [time]." Operator sees what is and is not confirmed. No auto-advance past this state.</div>
+        <div class="ds-render">Named source callout in stage view · age shown on every affected record · threshold: &gt;4h without response</div>
+      </div>
+    </div>
+    <div class="ds-row d4">
+      <div class="ds-lev"><div class="ds-n">4</div><div class="ds-name">Multiple sources</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">Two or more sources not responding. Verification may be incomplete.</div>
+        <div class="ds-when">Stage-level attention. The stage header must name which sources are affected. No verification can be claimed as complete while multiple sources are down. Operator must acknowledge before advancing.</div>
+        <div class="ds-render">Stage header warning · named sources · operator acknowledgment required · threshold: 2+ sources at Level 2 or above</div>
+      </div>
+    </div>
+    <div class="ds-row d5">
+      <div class="ds-lev"><div class="ds-n">5</div><div class="ds-name">Decision required</div></div>
+      <div class="ds-body">
+        <div class="ds-signal">Verification cannot complete automatically. Your decision is needed.</div>
+        <div class="ds-when">Full recovery panel. Named gap. Four Q&amp;A items (what happened / what's showing / what happens next / what you need to do). One primary action, one ghost. Never called "error."</div>
+        <div class="ds-render">Full recovery panel · Q&amp;A structure · Level 4 (Decision) trust signal · primary + ghost action</div>
+        <div class="ds-ex">
+          <div class="ex-panel">
+            <div class="ep-t">DEA cannot confirm at this time.</div>
+            <div class="ep-b">Last result from <strong>this morning</strong> is shown. Two clinicians are affected. Review their records before advancing.</div>
+            <div class="ep-a"><button class="btn-xs">Review affected records</button><button class="btn-xs-g">View record notes</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── §2 BOUNDED CONFIRMATION ── -->
+<div class="section" id="confirmation">
+  <div class="sec-eyebrow">§2</div>
+  <div class="sec-title">Bounded confirmation patterns.</div>
+  <div class="sec-desc">Three confirmation types. The type must match the evidence. <strong>Never confirm more than the evidence supports.</strong> If one source is stale, the confirmation is bounded — not silent about the gap.</div>
+  <div class="conf-chain">
+    <div class="cc-row">
+      <div class="cc-type"><div class="ct-name">Full</div><div class="ct-when">All sources live</div></div>
+      <div class="cc-copy">Verified. Licensed and active in all 5 checked registries.</div>
+      <div class="cc-rule">Use when every source has a current, successful result. No qualifiers needed. This is the only state where "Verified" stands alone.</div>
+    </div>
+    <div class="cc-row">
+      <div class="cc-type"><div class="ct-name">Bounded</div><div class="ct-when">One source stale</div></div>
+      <div class="cc-copy">Verified across 4 of 5 sources. DEA result from this morning is shown.</div>
+      <div class="cc-rule"><strong>Must name the gap.</strong> Which source, how old the result is. Never say "Verified" without the qualifier when any source is stale.</div>
+    </div>
+    <div class="cc-row" style="border-bottom:0">
+      <div class="cc-type"><div class="ct-name">Honest void</div><div class="ct-when">Source unavailable</div></div>
+      <div class="cc-copy">DEA status cannot be confirmed at this time. Last known result from this morning is shown.</div>
+      <div class="cc-rule"><strong>Use when the source has not responded long enough to cast genuine uncertainty.</strong> Name the source. Name the last known state. Never omit or hide.</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--ink-500);padding:9px 12px;background:var(--ink-50);border:1px solid var(--rule-soft);line-height:1.6">
+    <strong style="color:var(--ink-900);font-weight:500">Confirmation grammar rule:</strong> "Verified" alone = full confidence, all sources current. "Verified across N of M" = bounded. "Cannot confirm" = honest void. Never use "Verified" with an asterisk, caveat, or footnote — demote to Bounded instead.
+  </div>
+</div>
+
+<!-- ── §3 OWNERSHIP ── -->
+<div class="section" id="ownership">
+  <div class="sec-eyebrow">§3</div>
+  <div class="sec-title">Review-ownership architecture.</div>
+  <div class="sec-desc">Four parties. Every action belongs to exactly one. The <span class="own-chip oc-sys">System</span> <span class="own-chip oc-rev">Reviewer</span> <span class="own-chip oc-org">Org</span> chips on every stage header are not decorative — they define <strong>who can advance the flow and who is accountable for a decision.</strong></div>
+  <div class="own-matrix">
+    <div class="om-head"><span>Action</span><span>System</span><span>Reviewer</span><span>Org</span></div>
+    <div class="om-row"><div class="om-act">Source queries</div><div class="om-cell yes">Owns entirely</div><div class="om-cell no">Cannot modify</div><div class="om-cell no">Cannot modify</div></div>
+    <div class="om-row"><div class="om-act">Retry / recovery</div><div class="om-cell yes">Owns entirely</div><div class="om-cell no">No action needed</div><div class="om-cell no">No action needed</div></div>
+    <div class="om-row"><div class="om-act">Record saving</div><div class="om-cell yes">Automatic</div><div class="om-cell no">Cannot modify</div><div class="om-cell no">Cannot modify</div></div>
+    <div class="om-row"><div class="om-act">Stale result judgment</div><div class="om-cell no">Cannot decide</div><div class="om-cell yes">Owns decision</div><div class="om-cell no">Advisory only</div></div>
+    <div class="om-row"><div class="om-act">Exception approval</div><div class="om-cell no">Cannot approve</div><div class="om-cell yes">Owns approval</div><div class="om-cell partial">Can request</div></div>
+    <div class="om-row"><div class="om-act">Pilot scope / NPI list</div><div class="om-cell no">Read-only</div><div class="om-cell no">Read-only</div><div class="om-cell yes">Owns at intake</div></div>
+    <div class="om-row"><div class="om-act">Deployment sign-off</div><div class="om-cell partial">Readiness check</div><div class="om-cell yes">Final review</div><div class="om-cell partial">Authorization</div></div>
+    <div class="om-row"><div class="om-act">Time-savings projection</div><div class="om-cell yes">Calculates</div><div class="om-cell partial">Can review</div><div class="om-cell yes">Decision to share</div></div>
+  </div>
+  <div style="font-size:12px;color:var(--ink-500);padding:9px 12px;background:var(--ink-50);border:1px solid var(--rule-soft);line-height:1.6">
+    <strong style="color:var(--ink-900);font-weight:500">Handoff rule:</strong> When ownership transitions (e.g. System completes a check → Reviewer must decide), the stage view must explicitly name the handoff. The ownership chip changes. The copy changes to active voice. The next footer shows a primary action button.
+  </div>
+</div>
+
+<!-- ── §4 SAFETY LANGUAGE ── -->
+<div class="section" id="safety-lang">
+  <div class="sec-eyebrow">§4</div>
+  <div class="sec-title">Psychological-safety language.</div>
+  <div class="sec-desc">Unsafe copy creates anxiety, distrust, or confusion. The patterns below are <strong>psychologically unsafe</strong> — they imply failure, alarm, or false certainty. Each has a calm, honest alternative.</div>
+
+  <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:7px">Infinite loading / no feedback</div>
+  <div class="sl-pair">
+    <div class="slp-col"><div class="slp-lbl unsafe">Unsafe</div><div class="slp-copy unsafe">Verifying… (spinner, no timeout, no message)</div><div class="slp-why">Operator doesn't know if the system is working or broken.</div></div>
+    <div class="slp-col"><div class="slp-lbl safe">Safe</div><div class="slp-copy safe">Checking NPDB. Usually takes a few minutes. Last checked: 2 min ago.</div></div>
+  </div>
+
+  <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:7px;margin-top:14px">Silent failure</div>
+  <div class="sl-pair">
+    <div class="slp-col"><div class="slp-lbl unsafe">Unsafe</div><div class="slp-copy unsafe">Verified ✓ (DEA result quietly omitted from check)</div><div class="slp-why">Operator believes full check passed when it didn't.</div></div>
+    <div class="slp-col"><div class="slp-lbl safe">Safe</div><div class="slp-copy safe">Verified across 4 of 5 sources. DEA result from this morning is shown.</div></div>
+  </div>
+
+  <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:7px;margin-top:14px">Magical continuity</div>
+  <div class="sl-pair">
+    <div class="slp-col"><div class="slp-lbl unsafe">Unsafe</div><div class="slp-copy unsafe">All records secured on the blockchain. Immutable. Tamper-proof. ✓</div><div class="slp-why">Overclaims what the system does; institutional buyers will probe it.</div></div>
+    <div class="slp-col"><div class="slp-lbl safe">Safe</div><div class="slp-copy safe">Records saved. Can be re-checked at any time. Last saved at 2:31 PM.</div></div>
+  </div>
+
+  <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:7px;margin-top:14px">Theatrical automation</div>
+  <div class="sl-pair">
+    <div class="slp-col"><div class="slp-lbl unsafe">Unsafe</div><div class="slp-copy unsafe">AI is continuously monitoring all sources and automatically resolving discrepancies in real time.</div><div class="slp-why">Unverifiable claim; implies capability the system may not have.</div></div>
+    <div class="slp-col"><div class="slp-lbl safe">Safe</div><div class="slp-copy safe">Sources checked every 15 minutes. Results update automatically. Gaps are named when they occur.</div></div>
+  </div>
+
+  <div style="font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);font-weight:600;margin-bottom:7px;margin-top:14px">Alarm without resolution</div>
+  <div class="sl-pair">
+    <div class="slp-col"><div class="slp-lbl unsafe">Unsafe</div><div class="slp-copy unsafe">⚠ ERROR: DEA ARCOS source failure. Verification incomplete. Action required.</div><div class="slp-why">Alarm without guidance causes operator paralysis and escalation anxiety.</div></div>
+    <div class="slp-col"><div class="slp-lbl safe">Safe</div><div class="slp-copy safe">DEA is checking again. Last result from this morning is shown. No action needed — continue reviewing other clinicians.</div></div>
+  </div>
+</div>
+
+<!-- ── §5 RECOVERY FLOW ── -->
+<div class="section" id="recovery">
+  <div class="sec-eyebrow">§5</div>
+  <div class="sec-title">Continuity-recovery arc.</div>
+  <div class="sec-desc">Five states, one arc. Every recovery is a named, visible progression — not a silent background process. <strong>The operator always knows which state the system is in.</strong></div>
+  <div class="recovery-flow">
+    <div class="rf-step">
+      <div class="rf-track"><div class="rf-node rf-n-nominal"></div><div class="rf-line rf-l-ok"></div></div>
+      <div class="rf-body"><div class="rf-state">State 1 — Nominal</div><div class="rf-title">All sources responding.</div><div class="rf-desc">Silent operation. Sidebar sources show current ages. No notice displayed.</div><div class="rf-action">No action · System</div></div>
+    </div>
+    <div class="rf-step">
+      <div class="rf-track"><div class="rf-node rf-n-check"></div><div class="rf-line rf-l-check"></div></div>
+      <div class="rf-body"><div class="rf-state">State 2 — Checking again</div><div class="rf-title">Source missed its check window. Last result shown.</div><div class="rf-desc">Attention notice bar shown. Dashed source bar in sidebar. <strong>Automatic retry every 15 min.</strong> Age label on affected records.</div><div class="rf-action">No action required · System handling</div></div>
+    </div>
+    <div class="rf-step">
+      <div class="rf-track"><div class="rf-node rf-n-gap"></div><div class="rf-line rf-l-gap"></div></div>
+      <div class="rf-body"><div class="rf-state">State 3 — Extended gap</div><div class="rf-title">Source not responding 4+ hours. Records aged.</div><div class="rf-desc">Named callout in stage view. Every affected record shows "Last result from [time]." <strong>Gap documented in record notes.</strong></div><div class="rf-action">Reviewer should note — may need to acknowledge</div></div>
+    </div>
+    <div class="rf-step">
+      <div class="rf-track"><div class="rf-node rf-n-hold"></div><div class="rf-line rf-l-hold"></div></div>
+      <div class="rf-body"><div class="rf-state">State 4 — Decision needed</div><div class="rf-title">Cannot advance without reviewer judgment.</div><div class="rf-desc">Full recovery panel. Q&amp;A structure (what happened / what's showing / what happens next / what to do). One primary action, one ghost. <strong>Flow does not advance automatically.</strong></div><div class="rf-action rf-action rev">Reviewer must act · primary button shown</div></div>
+    </div>
+    <div class="rf-step">
+      <div class="rf-track"><div class="rf-node rf-n-ok"></div></div>
+      <div class="rf-body"><div class="rf-state">State 5 — Recovered</div><div class="rf-title">Source responding. Records updated.</div><div class="rf-desc">Gap documented in record notes. Records updated with new result. Attention notice dismissed. <strong>Recovery is named, not silent.</strong> "DEA responded — record updated."</div><div class="rf-action">System · gap documented</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── §6 CLAUDE CODE ── -->
+<div class="section" id="impl">
+  <div class="sec-eyebrow">§6</div>
+  <div class="sec-title">Implementation guidance for Claude Code.</div>
+
+  <div class="impl">
+    <div class="impl-title">Safety rules — never do these</div>
+    <div class="impl-rule"><div class="ir-n">S1</div><div class="ir-text"><strong>Never show a spinner without a timeout message.</strong> After 30s: show "Still checking — this sometimes takes a few minutes." After 5m: escalate to degraded state 3.</div></div>
+    <div class="impl-rule"><div class="ir-n">S2</div><div class="ir-text"><strong>Never confirm what hasn't been checked.</strong> If a source is stale, the confirmation must be bounded: <code>"Verified across N of M sources."</code> Never omit the gap.</div></div>
+    <div class="impl-rule"><div class="ir-n">S3</div><div class="ir-text"><strong>Never use alarm language without a resolution path.</strong> Every attention state must include: what happened + what's showing + what to do (even if the answer is "nothing").</div></div>
+    <div class="impl-rule"><div class="ir-n">S4</div><div class="ir-text"><strong>Never auto-advance past a Decision state.</strong> If the operator hasn't acknowledged, the flow stays on the recovery panel. No silent progressions.</div></div>
+    <div class="impl-rule"><div class="ir-n">S5</div><div class="ir-text"><strong>Never hide a source gap from the operator.</strong> Degraded state 2 or higher always surfaces — in the sidebar age label, the attention notice, or both.</div></div>
+  </div>
+
+  <div class="impl">
+    <div class="impl-title">Degraded-state detection logic</div>
+    <div class="impl-rule"><div class="ir-n">1</div><div class="ir-text">Track <code>lastSuccessfulCheck</code> per source. If <code>age &lt; 1 check window</code> → State 0 (nominal). If <code>age &gt; 1 window</code> → State 2 (checking). If <code>age &gt; 4h</code> → State 3 (extended gap).</div></div>
+    <div class="impl-rule"><div class="ir-n">2</div><div class="ir-text">Count sources in State 2+. If <code>count &gt;= 2</code> → escalate affected stage to State 4 (multiple sources). Show stage-level attention, not just notice bar.</div></div>
+    <div class="impl-rule"><div class="ir-n">3</div><div class="ir-text">Recovery: when source responds after a gap, emit a named recovery event: <code>"DEA responded — record updated."</code> Show in notice bar for 30s, then dismiss. Log in record notes permanently.</div></div>
+  </div>
+
+  <div class="impl">
+    <div class="impl-title">Confirmation boundary logic</div>
+    <div class="impl-rule"><div class="ir-n">1</div><div class="ir-text">Before writing <code>"Verified"</code>: check all required sources. If any source is at State 2+, demote to <code>"Verified across N of M sources"</code> automatically.</div></div>
+    <div class="impl-rule"><div class="ir-n">2</div><div class="ir-text">For projections: always append <code>"— a projection based on pilot results, not a confirmed outcome."</code> Never let a projected number stand alone.</div></div>
+    <div class="impl-rule"><div class="ir-n">3</div><div class="ir-text">For pilot-scope claims: replace "clinicians" with "these [N] clinicians" and append "in this pilot" for any claim derived from bounded data.</div></div>
+  </div>
+
+  <div class="impl">
+    <div class="impl-title">Ownership transition rules</div>
+    <div class="impl-rule"><div class="ir-n">1</div><div class="ir-text">When a stage transitions from <code>own-sys</code> to <code>own-rev</code>: the stage header chip changes, the copy switches to active voice ("Review" not "Being reviewed"), and a primary action button appears.</div></div>
+    <div class="impl-rule"><div class="ir-n">2</div><div class="ir-text">When an operator completes a review item: emit confirmation copy specific to what was done: <code>"James Park, DO reviewed. 2 remaining."</code> Never generic "Done!" or "Success!"</div></div>
+    <div class="impl-rule"><div class="ir-n">3</div><div class="ir-text">The deployment decision requires both <code>own-rev</code> (final review) and <code>own-org</code> (authorization). Neither can advance alone. Both must be explicitly checked.</div></div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<div class="tweaks-panel" id="tweaks">
+  <div class="tp-head">Tweaks <button class="tp-close" id="tweaks-close">✕</button></div>
+  <div class="tp-body">
+    <div class="tp-row">
+      <div class="tp-lbl">Degraded state preview</div>
+      <div class="tp-seg">
+        <button class="ts-btn on" id="tw-ds-all" onclick="setDSView('all')">All</button>
+        <button class="ts-btn" id="tw-ds-checking" onclick="setDSView('checking')">Checking</button>
+        <button class="ts-btn" id="tw-ds-hold" onclick="setDSView('hold')">Decision</button>
+      </div>
+    </div>
+    <div class="tp-row">
+      <div class="tp-lbl">Density</div>
+      <div class="tp-seg">
+        <button class="ts-btn on" id="tw-den-full" onclick="setDensity('full')">Full</button>
+        <button class="ts-btn" id="tw-den-compact" onclick="setDensity('compact')">Compact</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "dsView": "all",
+  "density": "full"
+}/*EDITMODE-END*/;
+let T = Object.assign({}, TWEAK_DEFAULTS);
+
+function setDSView(v) {
+  T.dsView = v;
+  const rows = document.querySelectorAll('.ds-row');
+  rows.forEach(r => {
+    const level = parseInt(r.className.match(/d(\d)/)?.[1] ?? 0);
+    if (v === 'all') r.style.display = '';
+    else if (v === 'checking') r.style.display = (level === 2 || level === 0) ? '' : 'none';
+    else if (v === 'hold') r.style.display = (level === 5 || level === 4) ? '' : 'none';
+  });
+  ['tw-ds-all','tw-ds-checking','tw-ds-hold'].forEach(id => document.getElementById(id)?.classList.remove('on'));
+  document.getElementById('tw-ds-' + v)?.classList.add('on');
+  window.parent.postMessage({type:'__edit_mode_set_keys', edits: T}, '*');
+}
+
+function setDensity(d) {
+  T.density = d;
+  document.querySelectorAll('.section').forEach(s => s.style.marginBottom = d === 'compact' ? '28px' : '');
+  document.querySelectorAll('.ds-body,.cc-row,.om-row,.slp-col,.rf-body').forEach(el => el.style.padding = d === 'compact' ? '8px 10px' : '');
+  ['tw-den-full','tw-den-compact'].forEach(id => document.getElementById(id)?.classList.remove('on'));
+  document.getElementById('tw-den-' + d)?.classList.add('on');
+  window.parent.postMessage({type:'__edit_mode_set_keys', edits: T}, '*');
+}
+
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('on');
+  if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('on');
+});
+document.getElementById('tweaks-close').onclick = () => {
+  document.getElementById('tweaks').classList.remove('on');
+  window.parent.postMessage({type:'__edit_mode_dismissed'}, '*');
+};
+window.parent.postMessage({type:'__edit_mode_available'}, '*');
+setDSView(T.dsView);
+</script>
+</body>
+</html>

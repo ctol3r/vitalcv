@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV · Railway QA Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f7f6f2;--ink-100:#efede7;--ink-200:#dddbd3;
+  --ink-300:#c2bfb5;--ink-400:#96938a;--ink-500:#6b6860;--ink-600:#474540;
+  --ink-700:#2d2c28;--ink-800:#1a1916;--ink-900:#0f0e0c;--ink-950:#050504;
+  --rule:#dddbd3;--rule-soft:#eceae4;--paper:#f4f2ec;
+  --ok:#1c5c38;--ok-bg:#f0faf5;--ok-rule:#86c9a6;
+  --watch:#7d5a1e;--watch-bg:#fdf4e7;--watch-rule:#c9a84c;
+  --p0:#7a1414;--p0-bg:#fef2f2;--p0-rule:#f5a5a5;
+  --p1:#7d3c0a;--p1-bg:#fff7ed;--p1-rule:#fbc589;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Geist',ui-sans-serif,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.6;letter-spacing:-.003em;color:var(--ink-900);background:var(--paper)}
+
+.doc-header{position:sticky;top:0;z-index:100;background:var(--ink-950);display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 24px;border-bottom:1px solid var(--ink-800)}
+.dh-brand{display:flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400)}
+.dh-brand .g{width:16px;height:16px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700;flex-shrink:0}
+.dh-brand strong{color:#fff;font-weight:600}
+.dh-brand .sl{color:var(--ink-700);margin:0 3px}
+.dh-status{display:flex;align-items:center;gap:6px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--watch)}
+.dh-status .dot{width:6px;height:6px;border-radius:50%;background:var(--watch);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.page{max-width:860px;margin:0 auto;padding:36px 24px 100px}
+
+.title-block{padding:0 0 26px;border-bottom:2px solid var(--ink-900);margin-bottom:36px}
+.tb-eyebrow{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.tb-eyebrow .line{flex:1;height:1px;background:var(--rule)}
+.tb-title{font-size:24px;font-weight:600;letter-spacing:-.024em;color:var(--ink-900);line-height:1.1;margin-bottom:10px}
+.tb-desc{font-size:13px;color:var(--ink-600);max-width:640px;line-height:1.65}
+.tb-meta{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.tb-m{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.tb-m strong{color:var(--ink-900);font-weight:600}
+
+/* Steps */
+.step-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--rule);background:var(--rule)}
+.step{background:var(--ink-0);display:grid;grid-template-columns:48px 1fr;gap:0}
+.step-n{background:var(--ink-950);color:var(--ink-400);font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:flex-start;justify-content:center;padding:14px 0 0;letter-spacing:.06em}
+.step-body{padding:14px 18px;border-left:1px solid var(--rule)}
+.step-title{font-size:13px;font-weight:600;letter-spacing:-.01em;color:var(--ink-900);margin-bottom:6px}
+.step-desc{font-size:12px;color:var(--ink-600);line-height:1.6}
+.step-desc strong{color:var(--ink-900);font-weight:500}
+.step-desc code{font-family:'Geist Mono',monospace;font-size:11px;background:var(--ink-50);border:1px solid var(--rule-soft);padding:1px 5px}
+.step-desc .path{font-family:'Geist Mono',monospace;font-size:11px;color:var(--watch);font-weight:600}
+.step-desc ul{margin-top:6px;display:flex;flex-direction:column;gap:3px;padding-left:0;list-style:none}
+.step-desc ul li{padding-left:12px;position:relative}
+.step-desc ul li::before{content:'→';position:absolute;left:0;color:var(--ink-300);font-size:10px}
+.step-desc ul li.ok::before{content:'✓';color:var(--ok)}
+.step-desc ul li.bad::before{content:'✗';color:var(--p0)}
+.step-desc ul li.key{font-weight:600;color:var(--ink-900)}
+
+/* Checklist */
+.checklist{border:1px solid var(--rule);background:var(--ink-0);margin-top:6px}
+.cl-head{background:var(--ink-900);color:#fff;padding:7px 16px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.18em;font-weight:600;display:flex;justify-content:space-between}
+.cl-row{display:grid;grid-template-columns:1fr 130px 80px;border-bottom:1px solid var(--rule-soft);padding:9px 16px;gap:12px;align-items:center}
+.cl-row:last-child{border-bottom:0}
+.cl-row .route{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);font-weight:500}
+.cl-row .expect{font-size:11.5px;color:var(--ink-600)}
+.cl-row .status{font-family:'Geist Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;text-align:right}
+.cl-row .status.pending{color:var(--ink-400)}
+.cl-row .status.pass{color:var(--ok)}
+.cl-row .status.fail{color:var(--p0)}
+.cl-row .status.warn{color:var(--watch)}
+
+/* Return format */
+.return-card{border:1px solid var(--rule);background:var(--ink-0);margin-top:6px}
+.return-card .rh{background:var(--ink-50);border-bottom:1px solid var(--rule);padding:8px 16px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);font-weight:600}
+.return-card .rb{padding:12px 16px;font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-700);line-height:2;white-space:pre-wrap}
+.return-card .rb strong{color:var(--ink-900);font-weight:600}
+
+/* Blocks */
+.note-box{font-size:11.5px;color:var(--ink-600);padding:10px 14px;border:1px solid var(--rule-soft);line-height:1.65;margin:10px 0}
+.note-box.ok{background:var(--ok-bg);border-color:var(--ok-rule);color:var(--ok)}
+.note-box.watch{background:var(--watch-bg);border-color:var(--watch-rule);color:var(--watch)}
+.note-box.p0{background:var(--p0-bg);border-color:var(--p0-rule);color:var(--p0)}
+.note-box strong{color:var(--ink-900);font-weight:500}
+.note-box.ok strong{color:var(--ok)}
+.note-box.watch strong{color:#5a3e0a}
+.note-box.p0 strong{color:var(--p0)}
+
+.ph-header{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:16px;margin-top:40px}
+.ph-num{font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400)}
+.ph-title{font-size:16px;font-weight:600;letter-spacing:-.014em;color:var(--ink-900)}
+
+/* Hostname input area */
+.hostname-drop{border:2px dashed var(--rule);background:var(--ink-0);padding:20px 24px;display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.hd-label{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400)}
+.hd-field{font-family:'Geist Mono',monospace;font-size:14px;color:var(--ink-400);letter-spacing:.04em}
+.hd-sub{font-size:11.5px;color:var(--ink-500)}
+
+/* GO/NOGO */
+.gonogo{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);background:var(--ink-0);margin-top:12px}
+.gn-col{padding:14px 16px}
+.gn-col:first-child{border-right:1px solid var(--rule)}
+.gn-head{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:700;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--rule-soft)}
+.gn-col.go .gn-head{color:var(--ok)}
+.gn-col.nogo .gn-head{color:var(--p0)}
+.gn-col ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+.gn-col ul li{font-size:12px;color:var(--ink-700);padding-left:14px;position:relative;line-height:1.5}
+.gn-col.go ul li::before{content:'✓';position:absolute;left:0;color:var(--ok);font-size:11px}
+.gn-col.nogo ul li::before{content:'✗';position:absolute;left:0;color:var(--p0);font-size:11px}
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="dh-brand">
+    <span class="g">V</span>
+    <strong>VitalCV</strong>
+    <span class="sl">/</span>
+    <span>Railway QA Protocol · eadac9bd</span>
+  </div>
+  <div class="dh-status">
+    <span class="dot"></span>
+    Awaiting hostname
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="title-block">
+    <div class="tb-eyebrow">Railway · vitalcv-web · wave-10a/docs-status <span class="line"></span></div>
+    <h1 class="tb-title">Railway QA Protocol — eadac9bd</h1>
+    <p class="tb-desc">Claude Design cannot access the Railway dashboard directly — that requires authenticated browser access. This document defines exactly what to find in Railway, what to send, and what QA will run the moment the hostname is provided.</p>
+    <div class="tb-meta">
+      <span class="tb-m">Commit <strong>eadac9bd</strong></span>
+      <span class="tb-m">Branch <strong>wave-10a/docs-status</strong></span>
+      <span class="tb-m">Service <strong>vitalcv-web</strong></span>
+      <span class="tb-m">Project <strong>inspiring-reflection</strong></span>
+      <span class="tb-m">Status <strong>Awaiting hostname</strong></span>
+    </div>
+  </div>
+
+  <div class="note-box watch">
+    <strong>Claude Design cannot access Railway dashboards, build logs, or trigger deploys.</strong> Railway requires an authenticated session — Claude operates via web fetch only against public URLs. Your job: find the hostname in Railway. Claude's job: QA every route the moment you drop it.
+  </div>
+
+  <!-- ─── STEP 1: FIND DEPLOYMENT ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Step 01</span>
+    <h2 class="ph-title">Find the deployment in Railway</h2>
+  </div>
+
+  <div class="step-list">
+    <div class="step">
+      <div class="step-n">A</div>
+      <div class="step-body">
+        <div class="step-title">Navigate to the correct service</div>
+        <div class="step-desc">
+          Open Railway → project <span class="path">inspiring-reflection</span> → service <span class="path">vitalcv-web</span> → <strong>Deployments</strong> tab.
+          <ul>
+            <li>Do NOT look at the <code>vitalcv-api</code> service — that is what's currently serving the broken JSON on production.</li>
+            <li>You want <code>vitalcv-web</code> — the Next.js frontend.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">B</div>
+      <div class="step-body">
+        <div class="step-title">Find commit eadac9bd</div>
+        <div class="step-desc">
+          In the deployments list, look for the entry with commit SHA <code>eadac9bd</code> on branch <code>wave-10a/docs-status</code>.<br><br>
+          Status should be one of:
+          <ul>
+            <li class="ok"><strong>SUCCESS</strong> — deployment complete. Proceed to Step 02.</li>
+            <li><strong>BUILDING</strong> — wait. Watch for the build to complete (may take 3–8 min with turbo).</li>
+            <li class="bad"><strong>FAILED</strong> — copy the last 40 lines of build logs. Send to Claude. Do not touch anything.</li>
+            <li><strong>No entry</strong> — trigger manual redeploy: Settings → Deploy → Deploy Latest, confirm branch is <code>wave-10a/docs-status</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── STEP 2: BUILD SUCCESS SIGNALS ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Step 02</span>
+    <h2 class="ph-title">Watch build log — success signals</h2>
+  </div>
+
+  <div class="step-list">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <div class="step-title">pnpm install succeeds</div>
+        <div class="step-desc">Look for: <code>Done in [N]s</code> after <code>pnpm install --frozen-lockfile</code>. No red errors.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <div class="step-title">Turbo build starts and workspaces complete</div>
+        <div class="step-desc">
+          Look for: <code>pnpm turbo run build --filter @vitalcv/web</code> starting.<br>
+          Then each workspace completes in order:
+          <ul>
+            <li><code>@vitalcv/domain-common</code> — this was the previous failing package. Should now pass.</li>
+            <li><code>@vitalcv/domain</code></li>
+            <li><code>@vitalcv/psv-adapters</code> (if present)</li>
+            <li><code>@vitalcv/psv</code></li>
+            <li><code>@vitalcv/domain-core</code></li>
+            <li><code>@vitalcv/ingest</code></li>
+            <li><code>@vitalcv/trust-state</code></li>
+            <li><code>@vitalcv/crs</code></li>
+            <li><code>@vitalcv/domain-events</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <div class="step-title">Next.js build completes</div>
+        <div class="step-desc">
+          Look for these lines in the log (must appear, in order):<br><br>
+          <code>▲ Next.js [version]</code><br>
+          <code>Creating an optimized production build...</code><br>
+          <code>✓ Compiled successfully</code> (or <code>Compiled with warnings</code> — warnings are non-blocking)<br>
+          <code>Route (app)</code> table printed with all page routes listed.<br><br>
+          <strong>The previous failure was:</strong> <code>@vitalcv/domain-common</code> tsc including <code>vitest.config.ts</code> in production build. The fix excluded it. If it now passes tsc, Next.js build will proceed.
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-body">
+        <div class="step-title">Container starts + healthcheck passes</div>
+        <div class="step-desc">
+          After build: container start logged. Look for:<br>
+          <code>▶ Starting Next.js server</code> or <code>ready - started server on 0.0.0.0:[port]</code><br>
+          Then Railway healthcheck: <code>GET /api/health → 200</code><br>
+          Deployment status flips to <strong>SUCCESS</strong> (green).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── STEP 3: CAPTURE HOSTNAME ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Step 03</span>
+    <h2 class="ph-title">Capture the public hostname</h2>
+  </div>
+
+  <div class="step-list">
+    <div class="step">
+      <div class="step-n">A</div>
+      <div class="step-body">
+        <div class="step-title">Enable Public Networking (if not already on)</div>
+        <div class="step-desc">
+          In Railway → <code>vitalcv-web</code> service → <strong>Settings</strong> → <strong>Networking</strong>.<br>
+          If "Generate Domain" button is visible → click it.<br>
+          If a Railway URL already exists → copy it. Do not add a custom domain here yet.
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">B</div>
+      <div class="step-body">
+        <div class="step-title">Copy the generated hostname</div>
+        <div class="step-desc">
+          The hostname will look like one of these patterns:<br><br>
+          <code>https://vitalcv-web-production-[hash].up.railway.app</code><br>
+          <code>https://inspiring-reflection-[hash].up.railway.app</code><br>
+          <code>https://[service-slug].up.railway.app</code><br><br>
+          Copy the <strong>full https URL including the trailing domain</strong>. Drop it in chat. Claude will immediately probe all required routes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── HOSTNAME DROP ─── -->
+  <div class="hostname-drop">
+    <div class="hd-label">→ Drop Railway hostname here in chat</div>
+    <div class="hd-field">https://[vitalcv-web-host].up.railway.app</div>
+    <div class="hd-sub">Claude will fetch all routes below within seconds of receiving the URL and return the full QA result table.</div>
+  </div>
+
+  <!-- ─── WHAT CLAUDE WILL TEST ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Step 04</span>
+    <h2 class="ph-title">What Claude will test — immediately on hostname receipt</h2>
+  </div>
+
+  <div class="checklist">
+    <div class="cl-head">Route checks — execute on hostname receipt <span style="color:var(--ink-400);font-weight:400">Priority order</span></div>
+    <div class="cl-row">
+      <div class="route">[host]/</div>
+      <div class="expect">text/html — Next.js homepage. Must NOT be API JSON.</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/api/health</div>
+      <div class="expect">200 OK — health endpoint</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/trust</div>
+      <div class="expect">text/html — trust model page</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/trust/attribution</div>
+      <div class="expect">text/html — attribution hierarchy page</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/contact</div>
+      <div class="expect">text/html — contact page with working CTA</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/sign-in</div>
+      <div class="expect">text/html — Clerk sign-in widget loads</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/.well-known/jwks.json</div>
+      <div class="expect">application/json — JWKS keys present</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/status</div>
+      <div class="expect">text/html — honest status page</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/pricing</div>
+      <div class="expect">text/html — pilot pricing or contact CTA</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/holder</div>
+      <div class="expect">text/html — clinician landing</div>
+      <div class="status pending">Pending</div>
+    </div>
+    <div class="cl-row">
+      <div class="route">[host]/employer</div>
+      <div class="expect">text/html — employer landing</div>
+      <div class="status pending">Pending</div>
+    </div>
+  </div>
+
+  <!-- ─── RETURN FORMAT ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Step 05</span>
+    <h2 class="ph-title">What Claude will return</h2>
+  </div>
+
+  <div class="return-card">
+    <div class="rh">Return format — per-route QA result</div>
+    <div class="rb"><strong>RAILWAY HOSTNAME:</strong> https://[host].up.railway.app
+<strong>COMMIT:</strong> eadac9bd
+<strong>BRANCH:</strong> wave-10a/docs-status
+<strong>QA DATE:</strong> [timestamp]
+
+<strong>ROUTE RESULTS:</strong>
+/              → [HTML | API JSON | 404 | 500] · [PASS | FAIL | WARN]
+/api/health    → [200 | error] · [PASS | FAIL]
+/trust         → [HTML | 404 | 500] · [PASS | FAIL | WARN]
+/trust/attribution → [HTML | 404 | 500] · [PASS | FAIL | WARN]
+/contact       → [HTML | 404 | 500] · [PASS | FAIL | WARN]
+/sign-in       → [HTML | 404 | 500] · [PASS | FAIL | WARN]
+/.well-known/jwks.json → [JSON | 404 | error] · [PASS | FAIL]
+/status        → [HTML | 404] · [PASS | FAIL | WARN]
+/pricing       → [HTML | 404] · [PASS | FAIL | WARN]
+/holder        → [HTML | 404] · [PASS | FAIL | WARN]
+/employer      → [HTML | 404] · [PASS | FAIL | WARN]
+
+<strong>LAUNCH BLOCKERS:</strong>
+[list or NONE]
+
+<strong>COPY SAFETY FINDINGS:</strong>
+[list or NONE DETECTED]
+
+<strong>DESIGN QA DETERMINATION:</strong>
+DESIGN PASS
+DESIGN PASS WITH WARNINGS
+DESIGN BLOCKED
+
+<strong>GO / NO-GO — Railway hostname visual QA:</strong>
+GO / NO-GO
+
+<strong>GO / NO-GO — Apex/www DNS cutover:</strong>
+GO / NO-GO — [requires confirming hostname QA passes first]
+
+<strong>PEARX READINESS:</strong>
+READY / READY WITH WARNINGS / NOT READY</div>
+  </div>
+
+  <!-- ─── IF BUILD FAILED ─── -->
+  <div class="ph-header">
+    <span class="ph-num">If Failed</span>
+    <h2 class="ph-title">If Railway build failed on eadac9bd</h2>
+  </div>
+
+  <div class="note-box p0">
+    <strong>Do not modify anything.</strong> Do not change tsconfig, secrets, Railway settings, or DNS. Copy the last 40 lines of the build log exactly and send them in chat. Claude will identify the failing command and root cause.
+  </div>
+
+  <div class="step-list">
+    <div class="step">
+      <div class="step-n">→</div>
+      <div class="step-body">
+        <div class="step-title">How to copy Railway build logs</div>
+        <div class="step-desc">
+          Railway → <code>vitalcv-web</code> → Deployments → click the failed deploy → <strong>Build Logs</strong> tab.<br>
+          Scroll to the bottom. Copy from the last successful workspace build output to the final error line.<br>
+          Include the exact failing command (usually a tsc or next build error with a file path).<br><br>
+          <strong>What to look for specifically:</strong>
+          <ul>
+            <li>Any line containing <code>error TS</code> — TypeScript compile error</li>
+            <li>Any line containing <code>Cannot find module</code></li>
+            <li>Any line containing <code>vitest</code> — means tsconfig exclude fix didn't propagate</li>
+            <li>The name of the <code>@vitalcv/</code> package that failed</li>
+            <li>The exact file path that caused the error</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GO/NOGO GATES ─── -->
+  <div class="ph-header">
+    <span class="ph-num">Gates</span>
+    <h2 class="ph-title">GO / NO-GO Decision Gates</h2>
+  </div>
+
+  <div class="gonogo">
+    <div class="gn-col go">
+      <div class="gn-head">✓ GO — DNS cutover allowed when</div>
+      <ul>
+        <li>eadac9bd deploys SUCCESS on Railway</li>
+        <li>Railway hostname / returns <code>text/html</code></li>
+        <li>/trust and /trust/attribution both return HTML</li>
+        <li>/contact returns HTML with working CTA</li>
+        <li>/sign-in loads Clerk widget</li>
+        <li>/api/health returns 200</li>
+        <li>No P0 copy safety violations on homepage</li>
+        <li>No P0 layout defects at desktop view</li>
+      </ul>
+    </div>
+    <div class="gn-col nogo">
+      <div class="gn-head">✗ NO-GO — DNS cutover blocked when</div>
+      <ul>
+        <li>Railway build still failing</li>
+        <li>Railway hostname not yet provided</li>
+        <li>/ returns API JSON at Railway hostname</li>
+        <li>/trust or /trust/attribution 404</li>
+        <li>/contact CTA is dead</li>
+        <li>Clerk auth broken on Railway hostname</li>
+        <li>Homepage has unsafe copy ("verified", "cleared")</li>
+        <li>Current state — vitalcv.com → API JSON</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note-box watch" style="margin-top:14px">
+    <strong>Current production state (confirmed May 24 2026):</strong> vitalcv.com and www.vitalcv.com both return <code>{"name":"VitalCV API","version":"mvp"}</code>. DNS is currently pointed at the API service. Do not remap DNS until Railway web service passes full visual QA at its temporary hostname. Remapping DNS to a failing or unconfirmed service will repeat the same P0 defect.
+  </div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Clinician Activation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink-0:#fff; --ink-50:#f8fafc; --ink-100:#f1f5f9; --ink-200:#e2e8f0;
+    --ink-300:#cbd5e1; --ink-400:#94a3b8; --ink-500:#64748b; --ink-600:#475569;
+    --ink-700:#334155; --ink-800:#1e293b; --ink-900:#0f172a; --ink-950:#020617;
+    --ok:#047857; --pend:#b45309; --gate:#4338ca; --fail:#b91c1c;
+    --rule:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);}
+  body{font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  .mono,code,time{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:'zero';}
+
+  /* Op bar */
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1240px;margin:0 auto;padding:0 32px;height:30px;display:flex;align-items:center;justify-content:space-between;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--ink-300);}
+  .op .pill .d{width:6px;height:6px;background:#10b981;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  /* Degraded state band — appears when any registry is down */
+  .degraded{background:#fff7ed;border-bottom:1px solid #fed7aa;font-family:'Geist Mono',monospace;font-size:11.5px;color:#9a3412;}
+  .degraded .in{max-width:1240px;margin:0 auto;padding:9px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .degraded .lhs{display:flex;align-items:center;gap:10px;}
+  .degraded .dot{width:8px;height:8px;background:#ea580c;display:inline-block;}
+  .degraded .key{text-transform:uppercase;letter-spacing:.14em;color:#7c2d12;font-weight:600;}
+
+  /* Masthead */
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .mh-rt{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);display:flex;gap:14px;align-items:center;}
+  .mh-rt .v{color:var(--ink-900);text-transform:none;letter-spacing:0;}
+
+  /* Page shell */
+  main{max-width:1240px;margin:0 auto;padding:36px 32px 64px;display:grid;grid-template-columns:1fr 420px;gap:48px;align-items:start;}
+
+  /* LEFT — Activation flow */
+  .lede{margin-bottom:28px;}
+  .lede .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .lede .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  .lede h1{font-size:30px;line-height:1.1;letter-spacing:-.025em;font-weight:600;margin:0 0 8px;max-width:22ch;}
+  .lede h1 .muted{color:var(--ink-500);}
+  .lede p{font-size:14.5px;color:var(--ink-700);line-height:1.6;margin:0;max-width:60ch;}
+
+  /* Progress strip */
+  .prog{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--rule);background:var(--ink-0);margin-bottom:24px;}
+  .prog .c{padding:12px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;}
+  .prog .c:last-child{border-right:0;}
+  .prog .c .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);}
+  .prog .c .t{font-size:13px;font-weight:500;color:var(--ink-900);}
+  .prog .c .est{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);}
+  .prog .c.done .n{color:var(--ok);}
+  .prog .c.done .n::before{content:"✓ ";color:var(--ok);}
+  .prog .c.active{background:var(--ink-50);}
+  .prog .c.active .n{color:var(--ink-900);}
+
+  /* Step card */
+  .step{background:var(--ink-0);border:1px solid var(--ink-300);}
+  .step.done{border-color:var(--rule);}
+  .step.future{border-color:var(--rule);opacity:.55;}
+  .step .hd{padding:14px 18px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--ink-50);}
+  .step .hd .lhs{display:flex;align-items:center;gap:12px;}
+  .step .hd .num{font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .step .hd .ttl{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .step .hd .right{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-500);}
+  .step .bd{padding:20px 22px 22px;}
+  .step + .step{margin-top:18px;}
+
+  /* Step 01 sign-in */
+  .idp-btn{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:14px 16px;background:var(--ink-900);color:#fff;border:0;
+    font-family:'Geist',sans-serif;font-size:14px;font-weight:500;letter-spacing:-.005em;
+    cursor:pointer;text-align:left;
+  }
+  .idp-btn:hover{background:#000;}
+  .idp-btn .lhs{display:flex;align-items:center;gap:12px;}
+  .idp-btn .glyph{width:22px;height:22px;background:#fff;color:var(--ink-900);display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:700;border-radius:3px;}
+  .idp-btn .rhs{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-300);letter-spacing:.06em;}
+  .idp-btn .arrow{font-size:16px;color:var(--ink-300);margin-left:8px;}
+  .alt{margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);}
+  .alt a{color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  /* Step 02 NPI */
+  .field-wrap{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;}
+  .field{
+    position:relative;background:var(--ink-0);border:1px solid var(--ink-300);
+    padding:14px 16px 12px;
+  }
+  .field.focused{border-color:var(--ink-900);}
+  .field .lbl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:6px;}
+  .field input{
+    width:100%;border:0;outline:none;background:transparent;
+    font-family:'Geist Mono',monospace;font-size:22px;letter-spacing:.04em;color:var(--ink-900);
+    font-variant-numeric:tabular-nums;
+  }
+  .field input::placeholder{color:var(--ink-300);}
+  .field-cta{
+    background:var(--ink-900);color:#fff;border:0;padding:0 22px;font-weight:500;font-size:13px;cursor:pointer;letter-spacing:-.005em;
+    display:flex;align-items:center;gap:8px;
+  }
+  .field-cta .k{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);border:1px solid var(--ink-700);padding:1px 5px;letter-spacing:.06em;}
+  .npi-help{margin-top:10px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);display:flex;justify-content:space-between;gap:14px;}
+  .npi-help .ok{color:var(--ok);}
+
+  /* NPI live preview */
+  .preview{margin-top:16px;border:1px solid var(--rule);background:var(--ink-0);}
+  .preview .ph{padding:9px 14px;border-bottom:1px solid var(--rule);background:var(--ink-50);font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;}
+  .preview .ph .auth{color:var(--ink-700);text-transform:none;letter-spacing:0;}
+  .preview table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .preview td{padding:8px 14px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  .preview tr:last-child td{border-bottom:0;}
+  .preview td.k{width:160px;font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-500);white-space:nowrap;}
+  .preview td.v{color:var(--ink-900);}
+  .preview td.v.mono{font-family:'Geist Mono',monospace;font-size:11.5px;word-break:break-all;}
+  .preview td.v .gray{color:var(--ink-500);}
+
+  /* Step 03 review */
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);}
+  .summary > div{padding:12px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .summary > div:nth-child(2n){border-right:0;}
+  .summary > div:nth-last-child(-n+2){border-bottom:0;}
+  .summary .k{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px;}
+  .summary .v{font-size:13px;font-weight:500;color:var(--ink-900);}
+  .summary .v.mono{font-family:'Geist Mono',monospace;font-size:12px;word-break:break-all;font-weight:400;}
+
+  .bind-row{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+  .bind-row .note{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);max-width:38ch;}
+  .bind-row button{
+    background:var(--ink-900);color:#fff;border:0;padding:13px 22px;font-weight:500;font-size:13.5px;cursor:pointer;letter-spacing:-.005em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .bind-row button:hover{background:#000;}
+  .bind-row .k{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);border:1px solid var(--ink-700);padding:1px 5px;letter-spacing:.06em;}
+
+  /* RIGHT — Trust ledger */
+  aside.ledger{
+    background:var(--ink-0);border:1px solid var(--rule);
+    position:sticky;top:18px;
+  }
+  .ledger .hd{padding:14px 16px;border-bottom:1px solid var(--rule);background:var(--ink-50);display:flex;align-items:center;justify-content:space-between;}
+  .ledger .hd .ttl{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:600;}
+  .ledger .hd .sub{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em;}
+  .ledger .ev{padding:12px 16px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:start;font-size:12.5px;}
+  .ledger .ev:last-of-type{border-bottom:0;}
+  .ledger .ev .m{width:8px;height:8px;margin-top:6px;display:inline-block;}
+  .ledger .ev.ok .m{background:var(--ok);}
+  .ledger .ev.pend .m{background:var(--pend);}
+  .ledger .ev.gate .m{background:var(--gate);}
+  .ledger .ev.slate .m{background:var(--ink-400);}
+  .ledger .ev .body .t{font-weight:500;color:var(--ink-900);}
+  .ledger .ev .body .h{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);margin-top:3px;word-break:break-all;}
+  .ledger .ev .ts{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+
+  /* Boundary panel */
+  .boundary{border-top:1px solid var(--rule);padding:14px 16px;background:var(--ink-50);}
+  .boundary .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:600;margin-bottom:8px;}
+  .boundary .row{display:grid;grid-template-columns:18px 1fr;gap:10px;padding:6px 0;font-size:12px;color:var(--ink-700);line-height:1.5;}
+  .boundary .row .ic{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-900);font-weight:600;}
+  .boundary .row.yes .ic::before{content:"●";color:var(--ink-900);}
+  .boundary .row.no .ic::before{content:"○";color:var(--ink-900);}
+  .boundary .row strong{color:var(--ink-900);font-weight:600;}
+
+  /* Source health */
+  .health{border-top:1px solid var(--rule);padding:12px 16px;background:var(--ink-0);}
+  .health .ttl{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:8px;display:flex;justify-content:space-between;}
+  .health .ttl .now{color:var(--ink-700);text-transform:none;letter-spacing:0;}
+  .health .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:5px 0;font-size:11.5px;font-family:'Geist Mono',monospace;color:var(--ink-700);}
+  .health .row .name{color:var(--ink-900);}
+  .health .row.dn .lag{color:var(--fail);}
+  .health .row .lag{color:var(--ink-500);}
+  .health .row .st{padding:1px 6px;border:1px solid var(--rule);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;}
+  .health .row.ok .st{color:var(--ok);border-color:var(--ok);}
+  .health .row.dn .st{color:var(--fail);border-color:var(--fail);}
+  .health .row.pend .st{color:var(--pend);border-color:var(--pend);}
+
+  /* Footer */
+  footer.foot{max-width:1240px;margin:0 auto;padding:24px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+  footer .v{color:var(--ink-700);}
+
+  /* Responsive */
+  @media (max-width: 1000px){
+    main{grid-template-columns:1fr;}
+    aside.ledger{position:static;}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:var(--ink-400);font-weight:500;">Activation</span>
+      <span class="sep">/</span>
+      <span>clinician.vitalcv.health/start</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Live</span>
+      <span class="sep">|</span>
+      <span>Env <span style="color:var(--ink-200)">sandbox</span></span>
+      <span class="sep">|</span>
+      <span>Build <span style="color:var(--ink-200)">vc.2026.05.11-a</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- Degraded-state band: present and visible. Demonstrates real-time honesty. -->
+<div class="degraded">
+  <div class="in">
+    <div class="lhs">
+      <span class="dot"></span>
+      <span class="key">DEGRADED · 1 OF 4</span>
+      <span>PECOS at 2.4× normal latency. Your bind still completes — the PECOS lane surfaces as <strong style="color:#7c2d12;">pending</strong> and finishes on its own. This is what honest infrastructure looks like.</span>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;color:#7c2d12;">
+      <span>status.vitalcv.health</span>
+      <span>·</span>
+      <span>updated 09:41:58 UTC</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="mh-rt">
+      <span>Issuer <span class="v">did:web:vitalcv.health</span></span>
+      <span style="color:var(--ink-300)">|</span>
+      <span>Stage <span class="v">Activation · 02 of 03</span></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- LEFT: flow -->
+  <section>
+    <div class="lede">
+      <div class="eyebrow"><span class="r"></span>Activation · three steps · under three minutes</div>
+      <h1>Bind your NPI to a session. <span class="muted">No password. No upload.</span></h1>
+      <p>You will sign in through your institution's identity provider, enter your 10-digit NPI, and confirm a binding. VitalCV resolves the NPI against the federal registry in front of you and produces a signed receipt. Nothing is stored before you confirm Step 03.</p>
+    </div>
+
+    <div class="prog">
+      <div class="c done">
+        <div class="n">01 · Sign in</div>
+        <div class="t">OIDC + PKCE</div>
+        <div class="est">9s · cleared at 09:42:08 UTC</div>
+      </div>
+      <div class="c active">
+        <div class="n">02 · Claim NPI</div>
+        <div class="t">Federal resolution</div>
+        <div class="est">in progress · ~30s</div>
+      </div>
+      <div class="c">
+        <div class="n">03 · Bind</div>
+        <div class="t">Sign + create passport</div>
+        <div class="est">~10s</div>
+      </div>
+    </div>
+
+    <!-- STEP 01 — done -->
+    <div class="step done">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">01 / 03</span>
+          <span class="ttl">Sign in</span>
+        </div>
+        <span class="right">Cleared · 09:42:08 UTC</span>
+      </div>
+      <div class="bd" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 22px 18px;">
+        <div>
+          <div style="font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px;">Identity provider</div>
+          <div style="font-size:13.5px;font-weight:500;">Cedar Health · Okta</div>
+          <div style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);margin-top:2px;">cedarhealth.okta.com · WebAuthn passed</div>
+        </div>
+        <div>
+          <div style="font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500);margin-bottom:4px;">Subject</div>
+          <div style="font-size:13.5px;font-weight:500;">mmiller@cedarhealth.org</div>
+          <div style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-500);margin-top:2px;">vc_session · DPoP-bound · 15m</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 02 — active -->
+    <div class="step">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">02 / 03</span>
+          <span class="ttl">Claim your NPI</span>
+        </div>
+        <span class="right">CMS NPPES · live</span>
+      </div>
+      <div class="bd">
+        <div class="field-wrap">
+          <div class="field focused">
+            <div class="lbl">NPI · 10 digits</div>
+            <input type="text" value="1346053246" inputmode="numeric" autocomplete="off" />
+          </div>
+          <button class="field-cta">Resolve <span class="k">↵</span></button>
+        </div>
+        <div class="npi-help">
+          <span>Resolves against CMS NPPES Type 1 enumeration · ~400ms</span>
+          <span class="ok">✓ Luhn checksum valid</span>
+        </div>
+
+        <!-- Live preview rendered immediately on valid input -->
+        <div class="preview">
+          <div class="ph">
+            <span>Authoritative preview · NPPES</span>
+            <span class="auth">Observed 2026-05-11 09:42:11 UTC · lag 412ms</span>
+          </div>
+          <table>
+            <tr><td class="k">Legal name</td><td class="v">MILLER, MACIE E.</td></tr>
+            <tr><td class="k">Entity</td><td class="v">Type 1 · individual</td></tr>
+            <tr><td class="k">Taxonomy</td><td class="v">363A00000X — Physician Assistant</td></tr>
+            <tr><td class="k">Enumerated</td><td class="v">2025-01-14 <span class="gray">· 16 months ago</span></td></tr>
+            <tr><td class="k">Primary address</td><td class="v">Irvine, CA 92614</td></tr>
+            <tr><td class="k">Status</td><td class="v">Active</td></tr>
+            <tr><td class="k">Receipt</td><td class="v mono">vc2:nppes:0x8a41 f0b9 e2f6 7d4c 1a3e 9b0a 2c7d 2e5f</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 03 — future -->
+    <div class="step future">
+      <div class="hd">
+        <div class="lhs">
+          <span class="num">03 / 03</span>
+          <span class="ttl">Bind &amp; create passport</span>
+        </div>
+        <span class="right">Pending · ed25519 sign</span>
+      </div>
+      <div class="bd">
+        <div class="summary">
+          <div>
+            <div class="k">IdP subject</div>
+            <div class="v">mmiller@cedarhealth.org</div>
+          </div>
+          <div>
+            <div class="k">Federal NPI</div>
+            <div class="v">1346053246 · PA-C</div>
+          </div>
+          <div>
+            <div class="k">Binding hash</div>
+            <div class="v mono">0xd02f 7a14 6c8b e391 …</div>
+          </div>
+          <div>
+            <div class="k">Passport DID</div>
+            <div class="v mono">did:key:z6Mki…MillerPA</div>
+          </div>
+        </div>
+        <div class="bind-row">
+          <div class="note">By confirming, a hash-linked receipt is written to your chain. No PHI is uploaded; only the binding root.</div>
+          <button>Confirm bind <span class="k">⌘ ↵</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: trust ledger sidebar -->
+  <aside class="ledger">
+    <div class="hd">
+      <span class="ttl">Trust ledger · this session</span>
+      <span class="sub">live</span>
+    </div>
+    <div class="ev ok">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">IdP session opened</div>
+        <div class="h">id evt_01HZF8C2QK · DPoP-bound</div>
+      </div>
+      <span class="ts">09:42:08</span>
+    </div>
+    <div class="ev ok">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">NPPES · identity resolved</div>
+        <div class="h">prev 0xa1d3 … · hash 0x8a41 f0b9 …</div>
+      </div>
+      <span class="ts">09:42:11</span>
+    </div>
+    <div class="ev pend">
+      <span class="m"></span>
+      <div class="body">
+        <div class="t">Binding receipt — awaiting confirm</div>
+        <div class="h">will commit: 0xd02f 7a14 …</div>
+      </div>
+      <span class="ts">—</span>
+    </div>
+
+    <div class="boundary">
+      <div class="ttl">Trust boundary</div>
+      <div class="row no"><span class="ic"></span><span><strong>VitalCV does NOT</strong> hold your password, your MFA secrets, or any documents.</span></div>
+      <div class="row yes"><span class="ic"></span><span><strong>VitalCV does</strong> sign the receipt of what NPPES returned for the NPI you claimed.</span></div>
+      <div class="row no"><span class="ic"></span><span><strong>You can leave at any step before Step 03</strong> — nothing is persisted until you confirm.</span></div>
+    </div>
+
+    <div class="health">
+      <div class="ttl"><span>Registry health</span><span class="now">09:42:14 UTC</span></div>
+      <div class="row ok"><span class="name">NPPES</span><span class="lag">410ms · 24h uptime 99.98%</span><span class="st">OK</span></div>
+      <div class="row ok"><span class="name">OIG/LEIE</span><span class="lag">280ms · 24h uptime 100%</span><span class="st">OK</span></div>
+      <div class="row dn"><span class="name">PECOS</span><span class="lag">2.4× normal · queued</span><span class="st">Degraded</span></div>
+      <div class="row pend"><span class="name">CA PA Board</span><span class="lag">requires employer invocation</span><span class="st">Gated</span></div>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="foot">
+  <div>VitalCV · Activation runtime · <span class="v">3-step bind</span></div>
+  <div style="text-align:right;">
+    <div>Issuer <span class="v">did:web:vitalcv.health</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">Signing key · ed25519 · org-key:vitalcv/prod/2026</div>
+  </div>
+</footer>
+
+</body>
+</html>

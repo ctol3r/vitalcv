@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV — Wave Execution Skill · Merge Card</title>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0a0a0a;
+    --ink-2: #1f1f1f;
+    --mute: #6b6b6b;
+    --hair: #d8d8d8;
+    --paper: #ffffff;
+    --shade: #f6f6f6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #ececec; color: var(--ink); }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .card {
+    width: 560px;
+    max-width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 0 1px 0 #fff inset, 0 24px 60px -30px rgba(0,0,0,0.25);
+  }
+
+  /* Top strip */
+  .strip {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .strip .id { color: #d8d8d8; }
+
+  /* Header block */
+  .head {
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  h1 {
+    margin: 8px 0 0;
+    font-family: ui-serif, Georgia, 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .sub {
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* Status row */
+  .status {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--hair);
+  }
+  .status > div {
+    padding: 10px 14px;
+    border-right: 1px solid var(--hair);
+  }
+  .status > div:last-child { border-right: 0; }
+  .status .k {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .status .v {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+  .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--ink);
+    margin-right: 6px;
+    transform: translateY(-1px);
+  }
+  .dot.open { background: #fff; border: 1px solid var(--ink); }
+
+  /* Section */
+  section.s {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--hair);
+  }
+  section.s:last-of-type { border-bottom: 0; }
+  .s-eyebrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .s-eyebrow .label {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .s-eyebrow .tag {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* Default chain */
+  .chain {
+    display: grid;
+    grid-template-columns: 1fr 14px 1fr 14px 1fr;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--ink);
+  }
+  .chain .node {
+    padding: 10px 12px;
+    background: #fff;
+  }
+  .chain .node .n {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .chain .node .t {
+    margin-top: 3px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .chain .node .r {
+    margin-top: 2px;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .chain .arrow {
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  /* Required add-on */
+  .addon {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+  .addon .body {
+    padding: 12px 14px;
+  }
+  .addon .body .t {
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .addon .body .d {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #d0d0d0;
+    line-height: 1.45;
+  }
+  .addon .pill {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    border-left: 1px solid #2a2a2a;
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  /* Rules list */
+  .rules {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rules li {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 8px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .rules .ix {
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    color: var(--mute);
+    padding-top: 3px;
+  }
+
+  /* Paused row */
+  .paused {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px dashed var(--ink);
+    background: repeating-linear-gradient(
+      135deg,
+      #fff 0 6px,
+      #f4f4f4 6px 12px
+    );
+  }
+  .paused .name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .paused .desc {
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .paused .state {
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 4px 8px;
+  }
+
+  /* Footer */
+  .foot {
+    padding: 10px 22px;
+    border-top: 1px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .foot .right { text-align: right; color: var(--ink); }
+  .foot .center { text-align: center; }
+
+  @media (max-width: 520px) {
+    .chain { grid-template-columns: 1fr; }
+    .chain .arrow { padding: 4px 0; }
+    .status { grid-template-columns: 1fr; }
+    .status > div { border-right: 0; border-bottom: 1px solid var(--hair); }
+    .status > div:last-child { border-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+  <article class="card" aria-label="Wave Execution Skill merge handoff card">
+
+    <div class="strip mono">
+      <span>VitalCV · Internal Handoff</span>
+      <span class="id">CARD · WAVE-SKILL-MERGE</span>
+    </div>
+
+    <header class="head">
+      <div class="eyebrow mono">Skill merge · effective immediately</div>
+      <h1>VitalCV Wave Execution Skill</h1>
+      <p class="sub">
+        Single skill replaces the previous split workflow. Use the default chain
+        for every wave; close every wave with a Design bundle.
+      </p>
+    </header>
+
+    <div class="status">
+      <div>
+        <div class="k mono">Skill</div>
+        <div class="v"><span class="dot"></span>Merged</div>
+      </div>
+      <div>
+        <div class="k mono">Default chain</div>
+        <div class="v mono">Desktop · Code · Codex</div>
+      </div>
+      <div>
+        <div class="k mono">Bundle</div>
+        <div class="v">Required at wave end</div>
+      </div>
+    </div>
+
+    <section class="s" aria-label="Default chain">
+      <div class="s-eyebrow">
+        <span class="label mono">§1 · New default</span>
+        <span class="tag mono">Run in order</span>
+      </div>
+      <div class="chain">
+        <div class="node">
+          <div class="n mono">01</div>
+          <div class="t">Claude Desktop</div>
+          <div class="r mono">Supervisor</div>
+        </div>
+        <div class="arrow mono">→</div>
+        <div class="node">
+          <div class="n mono">02</div>
+          <div class="t">Claude Code Terminal</div>
+          <div class="r mono">Builder</div>
+        </div>
+        <div class="arrow mono">→</div>
+        <div class="node">
+          <div class="n mono">03</div>
+          <div class="t">Codex</div>
+          <div class="r mono">Verifier</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="s" aria-label="Required add-on">
+      <div class="s-eyebrow">
+        <span class="label mono">§2 · Required add-on</span>
+        <span class="tag mono">Every wave</span>
+      </div>
+      <div class="addon">
+        <div class="body">
+          <div class="t">Claude Design — bundle</div>
+          <div class="d">
+            Run at the end of every wave. Registers the artifact, packages the
+            visual record, and closes the wave for handoff.
+          </div>
+        </div>
+        <div class="pill mono">Required</div>
+      </div>
+    </section>
+
+    <section class="s" aria-label="Operating rules">
+      <div class="s-eyebrow">
+        <span class="label mono">§3 · Operating rules</span>
+        <span class="tag mono">04 items</span>
+      </div>
+      <ul class="rules">
+        <li><span class="ix mono">01</span><span>Default chain runs in order. No skipping roles.</span></li>
+        <li><span class="ix mono">02</span><span>Codex rejection returns to Code; scope conflicts return to Desktop.</span></li>
+        <li><span class="ix mono">03</span><span>Design bundle is produced only after a clean Codex verdict.</span></li>
+        <li><span class="ix mono">04</span><span>Secondary tools (Browser, Cowork) are optional and do not replace a role.</span></li>
+      </ul>
+    </section>
+
+    <section class="s" aria-label="Paused tools">
+      <div class="s-eyebrow">
+        <span class="label mono">§4 · Paused</span>
+        <span class="tag mono">Do not invoke</span>
+      </div>
+      <div class="paused">
+        <div>
+          <div class="name">OpenClaw</div>
+        </div>
+        <div class="desc">
+          Paused. Do not invoke inside a wave unless the supervisor explicitly
+          restores it in the brief. If a wave appears to need it, re-scope at §1·01.
+        </div>
+        <div class="state mono">Paused</div>
+      </div>
+    </section>
+
+    <footer class="foot mono">
+      <span>VitalCV · internal</span>
+      <span class="center">CARD · WAVE-SKILL-MERGE · v1.0</span>
+      <span class="right tnum">01 / 01</span>
+    </footer>
+
+  </article>
+</body>
+</html>

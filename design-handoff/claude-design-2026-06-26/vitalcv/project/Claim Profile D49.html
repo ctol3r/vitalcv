@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Claim Your Passport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;
+    --ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;
+    --ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;
+    --rule:#e2e8f0;--paper:#f8f6f1;
+    --serif:'Newsreader',Georgia,serif;
+    --mono:'Geist Mono',ui-monospace,monospace;
+    --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-0);color:var(--ink-900);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+
+  /* === Quiet top mark === */
+  .mark{border-bottom:1px solid var(--rule);padding:12px 0;}
+  .mark .in{max-width:640px;margin:0 auto;padding:0 28px;display:flex;align-items:center;justify-content:space-between;}
+  .mark .l{display:flex;align-items:center;gap:10px;}
+  .mark .g{width:18px;height:18px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;}
+  .mark .nm{font-weight:600;font-size:13px;letter-spacing:-.005em;}
+  .mark .r{font-family:var(--mono);font-size:10.5px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.14em;}
+
+  /* === Centered column === */
+  .col{max-width:640px;margin:0 auto;padding:60px 28px 80px;}
+
+  /* === Entry headline === */
+  .headline{margin-bottom:40px;}
+  .headline .eyebrow{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);margin-bottom:16px;}
+  .headline h1{font-family:var(--serif);font-size:44px;line-height:1.06;letter-spacing:-.025em;font-weight:500;color:var(--ink-900);margin:0 0 14px;max-width:20ch;text-wrap:balance;}
+  .headline h1 .it{font-style:italic;color:var(--ink-700);}
+  .headline p{font-size:16px;color:var(--ink-600);line-height:1.55;margin:0;max-width:46ch;}
+
+  /* === Search zone === */
+  .search-zone{margin-bottom:32px;}
+  .tabs{display:flex;gap:0;margin-bottom:0;border:1px solid var(--ink-900);border-bottom:0;}
+  .tabs button{flex:1;padding:9px 14px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;font-weight:600;border:none;background:var(--ink-50);color:var(--ink-500);cursor:pointer;border-right:1px solid var(--ink-200);}
+  .tabs button:last-child{border-right:0;}
+  .tabs button.active{background:var(--ink-900);color:#fff;}
+  .input-row{display:flex;border:1px solid var(--ink-900);}
+  .input-row input{flex:1;padding:14px 18px;font-family:var(--mono);font-size:16px;letter-spacing:.04em;border:none;background:var(--ink-0);color:var(--ink-900);outline:none;font-variant-numeric:tabular-nums;}
+  .input-row input::placeholder{color:var(--ink-300);}
+  .input-row .go{padding:14px 20px;background:var(--ink-900);color:#fff;border:none;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .input-row .go:hover{background:var(--ink-800);}
+
+  /* === Resolved clinician card === */
+  .resolved{border:1px solid var(--ink-900);margin-top:0;}
+  .resolved .r-top{background:var(--ink-900);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#94a3b8;}
+  .resolved .r-top strong{color:#fff;font-weight:500;}
+  .resolved .r-top .badge{display:inline-flex;align-items:center;gap:5px;color:#34d399;border:1px solid #047857;padding:1px 7px;font-size:9.5px;}
+  .resolved .r-top .badge .d{width:5px;height:5px;background:#34d399;}
+  .resolved .r-body{padding:28px 28px 24px;background:var(--paper);}
+  .resolved .clinician-name{font-family:var(--serif);font-size:52px;line-height:.95;letter-spacing:-.03em;font-weight:500;color:var(--ink-900);margin-bottom:10px;}
+  .resolved .clinician-name .cred{font-family:var(--serif);font-style:italic;color:var(--ink-600);font-size:36px;}
+  .resolved .clinician-name .g{color:var(--ink-400);}
+  .resolved .taxonomy{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .resolved .taxonomy .sep{color:var(--ink-300);}
+  .resolved .fields{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink-200);}
+  .resolved .field{padding:10px 14px;border-right:1px solid var(--ink-200);border-bottom:1px solid var(--ink-200);}
+  .resolved .field:nth-child(2n){border-right:0;}
+  .resolved .field:nth-last-child(-n+2){border-bottom:0;}
+  .resolved .field .fk{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);font-weight:600;margin-bottom:3px;}
+  .resolved .field .fv{font-family:var(--mono);font-size:12px;color:var(--ink-900);font-weight:500;}
+  .resolved .field .fv .g{color:var(--ink-500);font-weight:400;}
+  .resolved .r-action{padding:20px 28px;border-top:1px solid var(--ink-200);}
+  .resolved .claim-btn{display:block;width:100%;padding:16px 24px;background:var(--ink-900);color:#fff;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.2em;font-weight:700;border:none;cursor:pointer;text-align:center;}
+  .resolved .claim-btn:hover{background:var(--ink-800);}
+  .resolved .r-foot{padding:12px 28px;border-top:1px solid var(--ink-200);background:var(--ink-50);}
+  .resolved .r-foot .keys{font-family:var(--mono);font-size:9.5px;color:var(--ink-400);letter-spacing:.06em;display:flex;gap:14px;flex-wrap:wrap;}
+  .resolved .r-foot .keys .kv{color:var(--ink-700);}
+
+  /* === Not you link === */
+  .not-you{text-align:center;margin-top:16px;font-family:var(--mono);font-size:10.5px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.14em;}
+  .not-you a{color:var(--ink-700);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;}
+
+  @media(max-width:480px){
+    .col{padding:40px 20px 60px;}
+    .headline h1{font-size:32px;}
+    .resolved .clinician-name{font-size:36px;}
+    .resolved .clinician-name .cred{font-size:26px;}
+    .resolved .fields{grid-template-columns:1fr;}
+    .resolved .field{border-right:0;}
+    .resolved .field:nth-last-child(-n+2){border-bottom:1px solid var(--ink-200);}
+    .resolved .field:last-child{border-bottom:0;}
+  }
+</style>
+</head>
+<body data-screen-label="Claim Profile D49">
+
+<div class="mark">
+  <div class="in">
+    <div class="l">
+      <span class="g">V</span>
+      <span class="nm">VitalCV</span>
+    </div>
+    <div class="r">/ launch</div>
+  </div>
+</div>
+
+<div class="col">
+
+  <div class="headline">
+    <div class="eyebrow">For clinicians · Entry</div>
+    <h1>Claim your <span class="it">portable</span> trust passport.</h1>
+    <p>Your federal identity already exists. Enter your NPI and we'll resolve your record from the primary source — no forms, no uploads.</p>
+  </div>
+
+  <!-- Search zone — showing post-resolve state -->
+  <div class="search-zone">
+    <div class="tabs">
+      <button class="active">Search by NPI</button>
+      <button>Search by Name</button>
+    </div>
+    <div class="input-row">
+      <input type="text" value="1033806195" placeholder="Enter your 10-digit NPI" />
+      <button class="go">Resolve →</button>
+    </div>
+  </div>
+
+  <!-- Resolved card — the ego-hook moment -->
+  <div class="resolved">
+    <div class="r-top">
+      <span>Resolved from NPPES · CMS.HHS.GOV · 0.4s</span>
+      <span class="badge"><span class="d"></span>NPPES-Confirmed</span>
+    </div>
+    <div class="r-body">
+      <div class="clinician-name">Connor Kilch<span class="g">,</span> <span class="cred">MD</span></div>
+      <div class="taxonomy">
+        <span>NPI 1033806195</span>
+        <span class="sep">·</span>
+        <span>Family Medicine</span>
+        <span class="sep">·</span>
+        <span>207Q00000X</span>
+        <span class="sep">·</span>
+        <span>Active</span>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <div class="fk">Taxonomy code</div>
+          <div class="fv">207Q00000X <span class="g">· Family Medicine</span></div>
+        </div>
+        <div class="field">
+          <div class="fk">License</div>
+          <div class="fv">MI-A0092841 <span class="g">· Michigan</span></div>
+        </div>
+        <div class="field">
+          <div class="fk">Enumeration date</div>
+          <div class="fv">2010-04-15</div>
+        </div>
+        <div class="field">
+          <div class="fk">Last updated</div>
+          <div class="fv">2024-11-07 <span class="g">· CMS registry</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="r-action">
+      <button class="claim-btn">Claim Portable Trust Passport →</button>
+    </div>
+    <div class="r-foot">
+      <div class="keys">
+        <span>NPI <span class="kv">1033806195</span></span>
+        <span>·</span>
+        <span>did:web <span class="kv">vitalcv.health</span></span>
+        <span>·</span>
+        <span>sig <span class="kv">ed25519:4f2a</span></span>
+        <span>·</span>
+        <span>Source <span class="kv">npiregistry.cms.hhs.gov</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="not-you">
+    Not you? <a href="#">Search a different NPI</a>
+  </div>
+
+</div>
+</body>
+</html>

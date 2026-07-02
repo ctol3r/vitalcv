@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VitalCV · Re-QA Precondition Gate · Mega Wave 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#fff;--ink-50:#f7f6f2;--ink-100:#efede7;--ink-200:#dddbd3;
+  --ink-300:#c2bfb5;--ink-400:#96938a;--ink-500:#6b6860;--ink-600:#474540;
+  --ink-700:#2d2c28;--ink-800:#1a1916;--ink-900:#0f0e0c;--ink-950:#050504;
+  --rule:#dddbd3;--rule-soft:#eceae4;--paper:#f4f2ec;
+  --ok:#1c5c38;--ok-bg:#f0faf5;--ok-rule:#86c9a6;
+  --watch:#7d5a1e;--watch-bg:#fdf4e7;--watch-rule:#c9a84c;
+  --p0:#7a1414;--p0-bg:#fef2f2;--p0-rule:#f5a5a5;
+  --p1:#7d3c0a;--p1-bg:#fff7ed;--p1-rule:#fbc589;
+  --p2:#1a3e6b;--p2-bg:#eff6ff;--p2-rule:#bfdbfe;
+  --unknown:#3f3d38;--unknown-bg:#f1efe9;--unknown-rule:#c8c4ba;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Geist',ui-sans-serif,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.6;letter-spacing:-.003em;color:var(--ink-900);background:var(--paper)}
+
+/* ─── HEADER ─── */
+.doc-header{position:sticky;top:0;z-index:100;background:var(--ink-950);display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 24px;border-bottom:1px solid var(--ink-800)}
+.dh-brand{display:flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400)}
+.dh-brand .g{width:16px;height:16px;background:#fff;color:#000;display:grid;place-items:center;font-size:9px;font-weight:700;flex-shrink:0}
+.dh-brand strong{color:#fff;font-weight:600}
+.dh-brand .sl{color:var(--ink-700);margin:0 3px}
+.dh-nav{display:flex;align-items:center}
+.dn-item{padding:0 10px;font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-500);text-decoration:none;height:36px;display:flex;align-items:center;border-left:1px solid var(--ink-800);transition:color .12s;cursor:pointer}
+.dn-item:hover{color:var(--ink-200)}
+
+/* ─── ALERT BANNER ─── */
+.alert-banner{background:var(--p0-bg);border-bottom:2px solid var(--p0-rule);padding:14px 24px;display:flex;align-items:flex-start;gap:14px}
+.ab-tag{font-family:'Geist Mono',monospace;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--p0);border:1px solid var(--p0-rule);padding:3px 9px;flex-shrink:0;margin-top:1px;background:#fff}
+.ab-body{}
+.ab-title{font-size:14px;font-weight:600;color:var(--p0);margin-bottom:5px;letter-spacing:-.012em}
+.ab-sub{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--p1);letter-spacing:.02em;line-height:1.7}
+.ab-sub code{background:#fff;border:1px solid var(--p0-rule);padding:1px 5px;border-radius:2px;color:var(--p0)}
+.ab-sub strong{color:var(--p0)}
+
+/* ─── LAYOUT ─── */
+.page{max-width:1080px;margin:0 auto;padding:36px 24px 100px}
+
+/* ─── TITLE ─── */
+.title-block{padding:0 0 26px;border-bottom:2px solid var(--ink-900);margin-bottom:36px}
+.tb-eyebrow{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-400);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.tb-eyebrow .line{flex:1;height:1px;background:var(--rule)}
+.tb-title{font-size:28px;font-weight:600;letter-spacing:-.028em;color:var(--ink-900);line-height:1.06;margin-bottom:10px}
+.tb-desc{font-size:13.5px;color:var(--ink-600);max-width:720px;line-height:1.65}
+.tb-meta{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.tb-m{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.12em}
+.tb-m strong{color:var(--ink-900);font-weight:600}
+.verdict-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em}
+.verdict-pill.blocked{background:var(--p0);color:#fff}
+.verdict-pill.warn{background:var(--watch);color:#fff}
+.verdict-pill.pass{background:var(--ok);color:#fff}
+
+/* ─── SECTIONS ─── */
+.phase{margin-bottom:54px;scroll-margin-top:48px}
+.ph-header{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:20px}
+.ph-num{font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400)}
+.ph-title{font-size:18px;font-weight:600;letter-spacing:-.018em;color:var(--ink-900)}
+.ph-badge{margin-left:auto;font-family:'Geist Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;padding:3px 10px;border:1px solid}
+.ph-badge.p0{color:var(--p0);border-color:var(--p0-rule);background:var(--p0-bg)}
+.ph-badge.watch{color:var(--watch);border-color:var(--watch-rule);background:var(--watch-bg)}
+.ph-badge.ok{color:var(--ok);border-color:var(--ok-rule);background:var(--ok-bg)}
+.ph-badge.unknown{color:var(--unknown);border-color:var(--unknown-rule);background:var(--unknown-bg)}
+
+/* ─── PRECONDITION TABLE ─── */
+.precon{border:1px solid var(--rule);background:var(--ink-0)}
+.pc-head{background:var(--ink-900);color:#fff;padding:9px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;font-weight:600;display:grid;grid-template-columns:40px 1fr 130px 120px;gap:14px}
+.pc-row{display:grid;grid-template-columns:40px 1fr 130px 120px;gap:14px;padding:11px 16px;border-bottom:1px solid var(--rule-soft);align-items:start}
+.pc-row:last-child{border-bottom:0}
+.pc-num{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-400);font-weight:700;padding-top:2px}
+.pc-name{font-size:12.5px;color:var(--ink-900);line-height:1.5}
+.pc-name .det{font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);margin-top:3px;line-height:1.55}
+.pc-name code{font-family:'Geist Mono',monospace;font-size:11px;background:var(--ink-50);border:1px solid var(--rule-soft);padding:1px 5px}
+.pc-state{font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;padding-top:2px;line-height:1.45}
+.pc-state.fail{color:var(--p0)}
+.pc-state.pass{color:var(--ok)}
+.pc-state.unknown{color:var(--unknown)}
+.pc-source{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.10em;padding-top:3px;line-height:1.5}
+
+/* ─── ROUTE TABLE ─── */
+.route-table{border:1px solid var(--rule);background:var(--ink-0);margin-bottom:16px;overflow:hidden}
+.rt-head{background:var(--ink-900);color:#fff;padding:9px 14px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;font-weight:600;display:grid;grid-template-columns:180px 130px 1fr 110px;gap:12px}
+.rt-row{display:grid;grid-template-columns:180px 130px 1fr 110px;gap:12px;padding:11px 14px;border-bottom:1px solid var(--rule-soft);align-items:start}
+.rt-row:last-child{border-bottom:0}
+.rt-route{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;color:var(--ink-900);line-height:1.45}
+.rt-expect{font-family:'Geist Mono',monospace;font-size:10px;color:var(--ink-500);line-height:1.55}
+.rt-actual{font-size:12px;color:var(--ink-700);line-height:1.55}
+.rt-actual code{font-family:'Geist Mono',monospace;font-size:10.5px;background:var(--ink-50);border:1px solid var(--rule-soft);padding:1px 5px}
+.rt-actual.bad{color:var(--p0)}
+.rt-actual.unknown{color:var(--unknown)}
+.rt-actual.ok{color:var(--ok)}
+.rt-sev{font-family:'Geist Mono',monospace;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;padding-top:2px}
+.rt-sev.p0{color:var(--p0)}
+.rt-sev.p1{color:var(--p1)}
+.rt-sev.p2{color:var(--p2)}
+.rt-sev.unknown{color:var(--unknown)}
+.rt-sev.ok{color:var(--ok)}
+
+/* ─── COPY DIFF ─── */
+.copy-diff{border:1px solid var(--rule);background:var(--ink-0);margin-bottom:14px}
+.cd-head{background:var(--ink-900);color:#fff;padding:8px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;font-weight:600;display:flex;justify-content:space-between}
+.cd-row{border-bottom:1px solid var(--rule-soft);padding:14px 16px}
+.cd-row:last-child{border-bottom:0}
+.cd-tag-line{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cd-tag-line .n{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-400);font-weight:700}
+.cd-tag-line .loc{font-family:'Geist Mono',monospace;font-size:9.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.10em}
+.cd-tag-line .ml{margin-left:auto}
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cd-col{}
+.cd-l{font-family:'Geist Mono',monospace;font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-400);margin-bottom:5px}
+.cd-quote{font-size:13px;line-height:1.55;padding:10px 12px;border:1px solid var(--rule-soft);background:var(--ink-50);color:var(--ink-700);font-weight:500}
+.cd-quote.bad{background:var(--p0-bg);border-color:var(--p0-rule);color:var(--p0)}
+.cd-quote.ok{background:var(--ok-bg);border-color:var(--ok-rule);color:var(--ok)}
+.cd-quote.expected{background:var(--ok-bg);border-color:var(--ok-rule);color:var(--ok)}
+
+/* ─── TAGS ─── */
+.tag{display:inline-block;font-family:'Geist Mono',monospace;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;padding:2px 6px;border:1px solid;line-height:1.4}
+.tag.p0{color:var(--p0);border-color:var(--p0-rule);background:var(--p0-bg)}
+.tag.p1{color:var(--p1);border-color:var(--p1-rule);background:var(--p1-bg)}
+.tag.p2{color:var(--p2);border-color:var(--p2-rule);background:var(--p2-bg)}
+.tag.ok{color:var(--ok);border-color:var(--ok-rule);background:var(--ok-bg)}
+.tag.unknown{color:var(--unknown);border-color:var(--unknown-rule);background:var(--unknown-bg)}
+
+/* ─── BLOCKER LIST ─── */
+.blocker-list{border:1px solid var(--rule);background:var(--ink-0)}
+.bl-head{background:var(--ink-900);color:#fff;padding:8px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.bl-row{display:grid;grid-template-columns:56px 1fr auto;border-bottom:1px solid var(--rule-soft);padding:11px 16px;gap:14px;align-items:start}
+.bl-row:last-child{border-bottom:0}
+.bl-row .sev{font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.bl-row .sev.p0{color:var(--p0)}
+.bl-row .sev.p1{color:var(--p1)}
+.bl-row .sev.p2{color:var(--p2)}
+.bl-row .desc{font-size:12.5px;color:var(--ink-700);line-height:1.6}
+.bl-row .desc strong{color:var(--ink-900);font-weight:500}
+.bl-row .desc code{font-family:'Geist Mono',monospace;font-size:10.5px;background:var(--ink-50);border:1px solid var(--rule-soft);padding:1px 5px}
+.bl-row .owner{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-400);white-space:nowrap;padding-top:2px}
+
+/* ─── REASON CARDS ─── */
+.evidence-card{border:1px solid var(--p0-rule);background:var(--p0-bg);padding:14px 16px;margin-bottom:12px}
+.ev-h{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--p0);font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--p0-rule)}
+.ev-list{display:flex;flex-direction:column;gap:6px}
+.ev-list li{font-size:12.5px;color:var(--p0);line-height:1.55;padding-left:14px;position:relative;list-style:none}
+.ev-list li::before{content:'✗';position:absolute;left:0;color:var(--p0);font-weight:700}
+.ev-list li strong{font-weight:600;color:var(--ink-900)}
+.ev-list li code{font-family:'Geist Mono',monospace;font-size:11px;background:#fff;border:1px solid var(--p0-rule);padding:1px 5px;color:var(--p0)}
+
+/* ─── PEARX BLOCK ─── */
+.pearx-block{background:var(--ink-900);color:#fff;padding:18px 20px;border:2px solid var(--ink-900);margin-top:12px}
+.pb-head{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);margin-bottom:10px}
+.pb-title{font-size:18px;font-weight:600;color:#fca5a5;letter-spacing:-.02em;margin-bottom:10px}
+.pb-body{font-size:12.5px;color:var(--ink-300);line-height:1.65}
+.pb-body strong{color:#fff;font-weight:500}
+
+/* ─── FINAL VERDICT ─── */
+.final-verdict{background:var(--ink-900);color:#fff;padding:24px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:36px;border:2px solid var(--ink-900)}
+.fv-left .fv-label{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);margin-bottom:8px}
+.fv-left .fv-value{font-size:22px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.fv-left .fv-value.blocked{color:#fca5a5}
+.fv-left .fv-value.warn{color:#fcd34d}
+.fv-left .fv-value.pass{color:#86efac}
+.fv-right{text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.fv-right .fv-sub{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-500)}
+.fv-right .fv-item{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-300)}
+
+/* ─── NOTES ─── */
+.note-box{font-size:12px;color:var(--ink-600);padding:11px 14px;background:var(--ink-50);border:1px solid var(--rule-soft);line-height:1.65;margin:10px 0}
+.note-box.p0{background:var(--p0-bg);border-color:var(--p0-rule);color:var(--p0)}
+.note-box.p0 strong{color:var(--p0)}
+.note-box.watch{background:var(--watch-bg);border-color:var(--watch-rule);color:var(--watch)}
+.note-box.unknown{background:var(--unknown-bg);border-color:var(--unknown-rule);color:var(--unknown)}
+.note-box strong{color:var(--ink-900);font-weight:500}
+.note-box code{font-family:'Geist Mono',monospace;font-size:11px;background:#fff;border:1px solid var(--rule-soft);padding:1px 5px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.card{border:1px solid var(--rule);background:var(--ink-0);padding:14px 16px}
+.card .ch{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:700;color:var(--ink-400);margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--rule-soft)}
+.card ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.card ul li{font-size:11.5px;color:var(--ink-600);padding-left:12px;position:relative;line-height:1.55}
+.card ul li::before{content:'—';position:absolute;left:0;color:var(--ink-300);font-size:10px}
+.card ul li.bad{color:var(--p0)}
+.card ul li.bad::before{content:'✗';color:var(--p0)}
+.card ul li.good{color:var(--ok)}
+.card ul li.good::before{content:'✓';color:var(--ok)}
+.card ul li strong{color:var(--ink-900);font-weight:500}
+.mono{font-family:'Geist Mono',monospace}
+.divider{height:1px;background:var(--rule);margin:46px 0;position:relative}
+.divider::before{content:attr(data-n);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--paper);padding:0 12px;font-family:'Geist Mono',monospace;font-size:9px;color:var(--ink-400);text-transform:uppercase;letter-spacing:.16em}
+
+/* ─── REVIEWER NEXT ─── */
+.next-block{border:1px solid var(--rule);background:var(--ink-0);margin-top:12px}
+.nb-head{background:var(--ink-50);padding:9px 16px;font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:700;color:var(--ink-700);border-bottom:1px solid var(--rule-soft)}
+.nb-row{display:grid;grid-template-columns:42px 1fr auto;gap:12px;padding:11px 16px;border-bottom:1px solid var(--rule-soft);align-items:start}
+.nb-row:last-child{border-bottom:0}
+.nb-row .n{font-family:'Geist Mono',monospace;font-size:10px;font-weight:700;color:var(--ink-400);padding-top:2px}
+.nb-row .b{font-size:12.5px;color:var(--ink-700);line-height:1.6}
+.nb-row .b strong{color:var(--ink-900);font-weight:500}
+.nb-row .b code{font-family:'Geist Mono',monospace;font-size:10.5px;background:var(--ink-50);border:1px solid var(--rule-soft);padding:1px 5px}
+.nb-row .o{font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.10em;color:var(--ink-400);white-space:nowrap;padding-top:3px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="doc-header">
+  <div class="dh-brand">
+    <span class="g">V</span>
+    <strong>VitalCV</strong>
+    <span class="sl">/</span>
+    <span>Mega Wave 2 · Re-QA Precondition Gate</span>
+  </div>
+  <nav class="dh-nav">
+    <a class="dn-item" href="#precon">Preconditions</a>
+    <a class="dn-item" href="#routes">Routes</a>
+    <a class="dn-item" href="#copy">Copy</a>
+    <a class="dn-item" href="#trust">Trust Path</a>
+    <a class="dn-item" href="#nav">Nav / Footer</a>
+    <a class="dn-item" href="#pearx">PearX</a>
+    <a class="dn-item" href="#verdict">Verdict</a>
+  </nav>
+</header>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">
+  <span class="ab-tag">P0 · Confirmed</span>
+  <div class="ab-body">
+    <div class="ab-title">Post-claim re-test · PR #417 still not live · DESIGN BLOCKED</div>
+    <div class="ab-sub">
+      OpenClaw reported all P0s "patched and deployed live." Live re-fetch of <code>vitalcv-web-production.up.railway.app/</code> at gate time returns a payload <strong>byte-identical</strong> to the prior failing build. All four P0 unsafe strings still present. Trust nav still absent. Trust/Attribution/Status footer links still absent. <strong>The patch has not propagated to the URL under test.</strong> Apex/www DNS cutover <strong>NO-GO</strong>. PearX <strong>NOT READY</strong>. Determination: <strong>DESIGN BLOCKED</strong>.
+    </div>
+  </div>
+</div>
+
+<main class="page">
+
+  <!-- TITLE -->
+  <div class="title-block">
+    <div class="tb-eyebrow">Mega Wave 2 · Precondition Gate · May 24 2026 <span class="line"></span></div>
+    <h1 class="tb-title">VitalCV Re-QA Precondition Gate</h1>
+    <p class="tb-desc">Gate review before route-by-route P0 re-QA on <span class="mono">vitalcv-web-production.up.railway.app</span>. Eight deployment preconditions must clear before live visual QA may proceed. PearX certification depends on this gate.</p>
+    <div class="tb-meta">
+      <span class="tb-m">PR <strong>#417 / 0e5e2391</strong></span>
+      <span class="tb-m">Base <strong>wave-10a/docs-status</strong></span>
+      <span class="tb-m">Preconditions <strong>3 / 8 cleared</strong></span>
+      <span class="tb-m">Re-QA <strong>blocked</strong></span>
+      <span class="verdict-pill blocked">⬛ Design Re-QA Blocked</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       1. PRECONDITION CHECKLIST
+  ════════════════════════════════════ -->
+  <section class="phase" id="precon">
+    <div class="ph-header">
+      <span class="ph-num">Section 01</span>
+      <h2 class="ph-title">Precondition Checklist</h2>
+      <span class="ph-badge p0">5 of 8 failing or unknown</span>
+    </div>
+
+    <div class="precon">
+      <div class="pc-head">
+        <div>#</div><div>Precondition</div><div>State</div><div>Source of truth</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">01</div>
+        <div class="pc-name">PR #417 merged into <code>wave-10a/docs-status</code> or otherwise deployed to vitalcv-web.<div class="det">Detect: PR-shipped copy strings present on /; new routes mounted; new nav/footer links present.</div></div>
+        <div class="pc-state fail">✗ Fail</div>
+        <div class="pc-source">Live HTML diff</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">02</div>
+        <div class="pc-name">vitalcv-web has restarted/redeployed after PR #417.<div class="det">Detect: PR-shipped copy strings present on /. Same payload as prior QA pass — service has not picked up PR #417.</div></div>
+        <div class="pc-state fail">✗ Fail</div>
+        <div class="pc-source">Live HTML diff</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">03</div>
+        <div class="pc-name"><code>RECEIPT_PRIVATE_KEY_JWK</code> present in Railway vitalcv-web env.<div class="det">Detect: /trust returns HTML, not the 500 from the prior QA pass.</div></div>
+        <div class="pc-state unknown">? Unknown</div>
+        <div class="pc-source">Operator must confirm</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">04</div>
+        <div class="pc-name"><code>RECEIPT_KID</code> present in Railway vitalcv-web env.<div class="det">Detect: /.well-known/jwks.json returns JSON or a documented non-blocking 4xx — not a raw 500.</div></div>
+        <div class="pc-state unknown">? Unknown</div>
+        <div class="pc-source">Operator must confirm</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">05</div>
+        <div class="pc-name"><code>/api/health</code> returns 200.<div class="det">Not directly probed this turn — route URL not in fetch allow-list. Inferred from the fact that <code>/</code> serves 200 HTML.</div></div>
+        <div class="pc-state unknown">? Unknown</div>
+        <div class="pc-source">Operator probe</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">06</div>
+        <div class="pc-name"><code>/</code> returns HTML.<div class="det">Confirmed. Root returns full Next.js HTML payload with nav, hero, body, footer.</div></div>
+        <div class="pc-state pass">✓ Pass</div>
+        <div class="pc-source">Live fetch</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">07</div>
+        <div class="pc-name"><code>/trust</code> no longer returns 500.<div class="det">Cannot retest this turn (URL allow-list). Prior QA = 500. PR #417 claims fix exists; deploy state above says PR is not live. <strong>High-confidence still 500.</strong></div></div>
+        <div class="pc-state unknown">? Unknown — assumed 500</div>
+        <div class="pc-source">Prior QA + deploy state</div>
+      </div>
+
+      <div class="pc-row">
+        <div class="pc-num">08</div>
+        <div class="pc-name"><code>/trust/attribution</code> no longer returns 404.<div class="det">Cannot retest this turn (URL allow-list). Prior QA = 404 (route missing). PR #417 claims to <em>add</em> this page. Deploy state above says PR is not live. <strong>High-confidence still 404.</strong></div></div>
+        <div class="pc-state unknown">? Unknown — assumed 404</div>
+        <div class="pc-source">Prior QA + deploy state</div>
+      </div>
+    </div>
+
+    <!-- Evidence -->
+    <div class="evidence-card" style="margin-top:14px">
+      <div class="ev-h">Evidence — Why precondition 01 + 02 fail</div>
+      <ul class="ev-list">
+        <li>Nav still renders the string <code>Verify a Provider</code> (PR #417 was supposed to replace with <strong>"Check Clinician Readiness"</strong>).</li>
+        <li>Clinicians bullet still reads <code>Walk into any new role already verified</code> (PR #417 was supposed to replace <strong>"already verified"</strong>).</li>
+        <li>Issuers section H2 still reads <code>Verify once. Trust everywhere.</code> (PR #417 claims this exact replacement).</li>
+        <li>Trust strip still includes <code>Readiness score generated</code> (PR #417 was supposed to update).</li>
+        <li>Onboarding strip reads <code>Identity confirmed against NPPES</code> — PR #417 claims it should now say <strong>"source-confirmed against NPPES"</strong>.</li>
+        <li>No <strong>Trust</strong> item is present in the header nav (PR #417 claims to add one).</li>
+        <li>Footer renders only <strong>Privacy / Terms / DPA / Cookies / Start a Pilot / Contact</strong> — no <strong>Trust / Attribution / Status</strong> links (PR #417 claims to add all three).</li>
+      </ul>
+    </div>
+
+    <div class="note-box p0">
+      <strong>Determination: PR #417 has not been merged, has not been deployed, or has been deployed to a service Railway is not routing.</strong> The live build at <code>vitalcv-web-production.up.railway.app</code> is the same artifact the prior QA pass evaluated. Receipt env vars cannot be verified without operator access, but they are downstream of the deploy — there is no path to test them until the deploy itself ships.
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 02"></div>
+
+  <!-- ════════════════════════════════════
+       2. ROUTE-BY-ROUTE
+  ════════════════════════════════════ -->
+  <section class="phase" id="routes">
+    <div class="ph-header">
+      <span class="ph-num">Section 02</span>
+      <h2 class="ph-title">Route-by-Route Re-QA</h2>
+      <span class="ph-badge p0">/ pass · 4 unknown · 0 cleared from prior P0</span>
+    </div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Route</div><div>Expected</div><div>Observed</div><div>Severity</div>
+      </div>
+
+      <div class="rt-row">
+        <div class="rt-route">/</div>
+        <div class="rt-expect">HTML homepage<br>200 · text/html</div>
+        <div class="rt-actual">200 HTML. Renders Next.js page with nav, hero, two-persona split, issuer section, footer. <strong>BUT</strong>: serves the pre-PR-#417 artifact — 4 P0 unsafe strings still present (see §03). CSS/layout intact. No raw error leakage. Reviewer hits the "what do I do next?" moment because nav still routes to <code>/verify</code> (renamed in PR #417 but still in code here).</div>
+        <div class="rt-sev p0">P0 · Unsafe Copy</div>
+      </div>
+
+      <div class="rt-row">
+        <div class="rt-route">/trust</div>
+        <div class="rt-expect">HTML doctrine page<br>200 · text/html</div>
+        <div class="rt-actual unknown">Not retested this turn (fetch URL allow-list). Prior QA: <strong>500</strong> due to missing <code>RECEIPT_PRIVATE_KEY_JWK</code>. PR #417 does not ship env vars; it only ships code. Since (a) PR #417 is not deployed and (b) env vars are operator-side, this route is assumed <strong>still 500</strong> until the operator confirms <code>RECEIPT_PRIVATE_KEY_JWK</code> + <code>RECEIPT_KID</code> are set and the service has restarted.</div>
+        <div class="rt-sev p0">P0 · Blocking</div>
+      </div>
+
+      <div class="rt-row">
+        <div class="rt-route">/trust/attribution</div>
+        <div class="rt-expect">HTML attribution page<br>200 · text/html</div>
+        <div class="rt-actual unknown">Not retested this turn. Prior QA: <strong>404</strong> — route did not exist. PR #417 claims to add <code>apps/web/app/trust/attribution/page.tsx</code>. Since PR #417 is not deployed, this route is assumed <strong>still 404</strong>.</div>
+        <div class="rt-sev p0">P0 · Blocking</div>
+      </div>
+
+      <div class="rt-row">
+        <div class="rt-route">/.well-known/jwks.json</div>
+        <div class="rt-expect">JSON / public key<br>or documented non-blocking response</div>
+        <div class="rt-actual unknown">Not retested this turn. Depends on <code>RECEIPT_KID</code> being set. If env var is missing, route will likely raw-500 — which is a P0 blocker (raw internal error visible). If env var is set but route is documented as not-yet-implemented and returns a clean 404 or empty 200 JSON, that is non-blocking.</div>
+        <div class="rt-sev unknown">P0 if 500</div>
+      </div>
+
+      <div class="rt-row">
+        <div class="rt-route">/api/health</div>
+        <div class="rt-expect">JSON health response<br>200</div>
+        <div class="rt-actual unknown">Not retested this turn. Inferred reachable because <code>/</code> returns 200 HTML, so the Next.js server is alive. Required for operator verification of deploy state but not strictly a P0 design blocker unless it leaks an internal error or returns a misleading "healthy" while <code>/trust</code> is 500.</div>
+        <div class="rt-sev unknown">P1 if mismatched</div>
+      </div>
+    </div>
+
+    <div class="note-box unknown">
+      <strong>Why most routes show "unknown" this turn.</strong> The web-fetch tool restricts fetches to URLs that have appeared in prior user messages or fetch results. The subpaths above were listed as path fragments in the brief but not as fully qualified URLs, so the tool refused them. This does <em>not</em> matter for the gate determination — precondition 01 (PR #417 deployed) already fails on the homepage payload alone, which is sufficient to block re-QA. Operator should: (a) deploy PR #417, (b) set env vars, (c) restart service, (d) confirm by curling each route, (e) re-request live re-QA with subroute URLs surfaced explicitly so the visual pass can proceed.
+    </div>
+
+    <!-- P0 cleared yes/no -->
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <div class="ch">P0s cleared from prior QA</div>
+        <ul>
+          <li class="bad">P0-1 · /trust 500 — <strong>not cleared</strong> (env vars not confirmed; PR not deployed)</li>
+          <li class="bad">P0-2 · /trust/attribution 404 — <strong>not cleared</strong> (PR not deployed)</li>
+          <li class="bad">P0-3 · "Verify a Provider" — <strong>not cleared</strong> (still in nav)</li>
+          <li class="bad">P0-4 · "already verified" — <strong>not cleared</strong> (still in clinician bullet)</li>
+          <li class="bad">P0-5 · "Verify once. Trust everywhere." — <strong>not cleared</strong> (still in issuer H2)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch">New P0s discovered this re-QA</div>
+        <ul>
+          <li>None new. Same five P0s from prior QA remain. No additional defects surfaced because the build is identical to the previously-evaluated build.</li>
+          <li class="bad">Watch · <code>readiness score generated</code> in trust strip should also flip to <strong>"readiness status generated"</strong> per PR #417 — counted as part of P0-3 / P0-4 cluster, not a new defect.</li>
+          <li class="bad">Watch · onboarding strip <code>Identity confirmed against NPPES</code> should flip to <strong>"source-confirmed against NPPES"</strong> per PR #417 — counted as part of the same copy cluster.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 03"></div>
+
+  <!-- ════════════════════════════════════
+       3. COPY SAFETY
+  ════════════════════════════════════ -->
+  <section class="phase" id="copy">
+    <div class="ph-header">
+      <span class="ph-num">Section 03</span>
+      <h2 class="ph-title">Homepage Copy Safety — Targeted Diff</h2>
+      <span class="ph-badge p0">4 of 4 P0 strings still present</span>
+    </div>
+
+    <div class="copy-diff">
+      <div class="cd-head">Targeted P0 string diff <span style="color:var(--ink-400);font-weight:400">vs PR #417 claim</span></div>
+
+      <!-- 1 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">01</span>
+          <span class="loc">Header nav — top-right, second link</span>
+          <span class="ml"><span class="tag p0">P0 · Still Present</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live string (bad)</div>
+            <div class="cd-quote bad">Verify a Provider</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">Required (per PR #417)</div>
+            <div class="cd-quote expected">Check Clinician Readiness</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">02</span>
+          <span class="loc">Clinicians section — third bullet</span>
+          <span class="ml"><span class="tag p0">P0 · Still Present</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live string (bad)</div>
+            <div class="cd-quote bad">Walk into any new role already verified</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">Required (safe replacement)</div>
+            <div class="cd-quote expected">Walk into any new role with an evidence packet ready</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">03</span>
+          <span class="loc">Issuers &amp; Verifiers section — H2</span>
+          <span class="ml"><span class="tag p0">P0 · Still Present</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live string (bad)</div>
+            <div class="cd-quote bad">Verify once. Trust everywhere.</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">Required (safe replacement)</div>
+            <div class="cd-quote expected">Evidence submitted once. Reusable for institution review.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">04</span>
+          <span class="loc">Trust strip under NPI form — third pill</span>
+          <span class="ml"><span class="tag p0">P0 · Still Present</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live string (bad)</div>
+            <div class="cd-quote bad">Readiness score generated</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">Required (safe replacement)</div>
+            <div class="cd-quote expected">Readiness status generated</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">05</span>
+          <span class="loc">Onboarding trust strip — first pill</span>
+          <span class="ml"><span class="tag p1">P1 · Watch</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live string (watch)</div>
+            <div class="cd-quote bad">Identity confirmed against NPPES</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">PR #417 target</div>
+            <div class="cd-quote expected">Source-confirmed against NPPES</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="cd-row">
+        <div class="cd-tag-line">
+          <span class="n">06</span>
+          <span class="loc">Issuer bullets</span>
+          <span class="ml"><span class="tag p1">P1 · Watch</span></span>
+        </div>
+        <div class="cd-grid">
+          <div class="cd-col">
+            <div class="cd-l">Live strings (watch)</div>
+            <div class="cd-quote bad">"Provide trusted evidence once" · "Reuse verification across employers" · "Eliminate redundant verification requests"</div>
+          </div>
+          <div class="cd-col">
+            <div class="cd-l">Safer reframe</div>
+            <div class="cd-quote expected">"Submit source-confirmed evidence once" · "Reuse evidence packets across institutions" · "Reduce redundant credentialing review cycles"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- High-risk variant audit -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);margin-bottom:10px;margin-top:18px">High-Risk Variant Sweep · Homepage</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="ch">Not present on live build — good</div>
+        <ul>
+          <li class="good">"get verified"</li>
+          <li class="good">"verified access"</li>
+          <li class="good">"fully verified"</li>
+          <li class="good">"cleared"</li>
+          <li class="good">"approved"</li>
+          <li class="good">"accepted everywhere"</li>
+          <li class="good">"guaranteed"</li>
+          <li class="good">"instant onboarding"</li>
+          <li class="good">"continuous monitoring"</li>
+          <li class="good">"tamper-proof"</li>
+          <li class="good">"HIPAA-ready"</li>
+          <li class="good">"SOC2 compliant"</li>
+          <li class="good">"NCQA compliant"</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch">Present — soft watch</div>
+        <ul>
+          <li class="bad"><strong>"already verified"</strong> — P0 cluster (covered above)</li>
+          <li class="bad"><strong>"Verify a Provider"</strong> — P0 cluster (covered above)</li>
+          <li class="bad"><strong>"Verify once. Trust everywhere."</strong> — P0 cluster (covered above)</li>
+          <li><strong>"30-second result"</strong> — P2 watch: implies guaranteed completion time. Soften to "30-second readiness check."</li>
+          <li><strong>"Live federal data"</strong> — acceptable. Bounded; verifiable; not overclaiming.</li>
+          <li><strong>"No account required"</strong> — acceptable. Factual.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note-box p0">
+      <strong>Determination: Homepage copy is NOT launch-safe.</strong> Four of four P0 strings flagged in the prior QA pass are still present verbatim on the live build. Two additional copy items (NPPES strip, issuer bullets) carry the same overclaiming pattern that PR #417 was designed to soften. Re-running visual QA on a build that still ships these strings cannot return PASS.
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 04"></div>
+
+  <!-- ════════════════════════════════════
+       4. TRUST PATH
+  ════════════════════════════════════ -->
+  <section class="phase" id="trust">
+    <div class="ph-header">
+      <span class="ph-num">Section 04</span>
+      <h2 class="ph-title">Core Trust Path · /trust + /trust/attribution</h2>
+      <span class="ph-badge p0">Both routes blocked</span>
+    </div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Route</div><div>Required to show</div><div>Status this gate</div><div>PearX impact</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/trust</div>
+        <div class="rt-expect">
+          (1) what VitalCV is<br>
+          (2) evidence model<br>
+          (3) source status vocabulary<br>
+          (4) institution review boundary<br>
+          (5) audit receipt model<br>
+          (6) what VitalCV does NOT guarantee<br>
+          (7) interoperability posture
+        </div>
+        <div class="rt-actual bad">Cannot evaluate. Route assumed still 500 (missing <code>RECEIPT_PRIVATE_KEY_JWK</code> + PR #417 undeployed). A 500 on the reviewer's second click destroys the journey — there is no recovery path from a raw 500.</div>
+        <div class="rt-sev p0">Blocks PearX</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/trust/attribution</div>
+        <div class="rt-expect">
+          (1) attribution hierarchy<br>
+          (2) source ownership<br>
+          (3) VitalCV/system action ownership<br>
+          (4) institution review ownership<br>
+          (5) human review boundary<br>
+          (6) safe language examples<br>
+          (7) anti-patterns
+        </div>
+        <div class="rt-actual bad">Cannot evaluate. Route assumed still 404 (PR #417 adds the page; PR #417 undeployed). A 404 on the reviewer's third click is the worst possible outcome for the technical-credibility hop.</div>
+        <div class="rt-sev p0">Blocks PearX</div>
+      </div>
+    </div>
+
+    <div class="note-box p0">
+      <strong>Both pages remain unreviewable until PR #417 ships and receipt env vars are set.</strong> Existing internal design refs (<code>Institutional Trust Canon</code>, <code>Attribution Integrity System</code>, <code>Trust Language System</code>) already articulate the seven required sections — when the routes return HTML, copy-safety and clarity audits can be performed in a single pass.
+    </div>
+
+    <div class="grid-2" style="margin-top:8px">
+      <div class="card">
+        <div class="ch">Launch-blocking trust issues</div>
+        <ul>
+          <li class="bad">/trust 500 (env-var dependent)</li>
+          <li class="bad">/trust/attribution 404 (PR-dependent)</li>
+          <li class="bad">No reachable page articulates "what VitalCV does NOT do" or institution-review ownership for a reviewer arriving today</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch">PearX-blocking clarity issues</div>
+        <ul>
+          <li class="bad">Reviewer journey breaks at step 2 (Trust)</li>
+          <li class="bad">Technical-credibility step (Attribution) is a 404</li>
+          <li class="bad">Without these, the reviewer's narrative collapses to "an unsafely-worded homepage with no model behind it"</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 05"></div>
+
+  <!-- ════════════════════════════════════
+       5. NAV / FOOTER
+  ════════════════════════════════════ -->
+  <section class="phase" id="nav">
+    <div class="ph-header">
+      <span class="ph-num">Section 05</span>
+      <h2 class="ph-title">Nav + Footer · After PR #417</h2>
+      <span class="ph-badge p0">PR-required links missing</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="ch">Header / nav · live state</div>
+        <ul>
+          <li class="bad"><strong>Trust link absent</strong> — PR #417 was supposed to add it. Reviewer cannot reach /trust from the homepage.</li>
+          <li class="bad"><strong>"Verify a Provider" still present</strong> — should be "Check Clinician Readiness."</li>
+          <li class="bad"><strong>"For Employers"</strong> present — acceptable, but should sit next to a Trust item, not stand alone.</li>
+          <li>Primary CTA <strong>"Check Readiness"</strong> — safe wording, kept.</li>
+          <li><strong>Sign In</strong> routes to <code>/passport</code> instead of Clerk — not tested this turn; behavior depends on Clerk config. Watch for hard-crash.</li>
+          <li class="bad">Net effect: nav <em>creates</em> the "what do I do next?" moment, because the only credibility-establishing path (/trust) is invisible.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch">Footer · live state</div>
+        <ul>
+          <li>Privacy ✓</li>
+          <li>Terms ✓</li>
+          <li>DPA ✓</li>
+          <li>Cookies ✓</li>
+          <li>Start a Pilot ✓</li>
+          <li>Contact ✓</li>
+          <li class="bad"><strong>Trust missing</strong> — PR #417 claims to add. Not present.</li>
+          <li class="bad"><strong>Attribution missing</strong> — PR #417 claims to add. Not present.</li>
+          <li class="bad"><strong>Status missing</strong> — PR #417 claims to add. Not present.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note-box p0">
+      <strong>Reviewer path · current state.</strong> Homepage → ??? — there is no nav or footer link to /trust, so a reviewer who lands on / has no on-page route into the trust documentation. The intended journey (Homepage → Trust → Attribution → Status / Contact / Sign-in) is broken at step 1 → 2.
+    </div>
+
+    <div class="route-table" style="margin-top:8px">
+      <div class="rt-head">
+        <div>Link</div><div>Required by</div><div>Status</div><div>Severity</div>
+      </div>
+      <div class="rt-row"><div class="rt-route">Nav · Trust</div><div class="rt-expect">PR #417</div><div class="rt-actual bad">Missing</div><div class="rt-sev p0">P0</div></div>
+      <div class="rt-row"><div class="rt-route">Nav · Verify a Provider</div><div class="rt-expect">PR #417 removal</div><div class="rt-actual bad">Still present</div><div class="rt-sev p0">P0</div></div>
+      <div class="rt-row"><div class="rt-route">Footer · Trust</div><div class="rt-expect">PR #417</div><div class="rt-actual bad">Missing</div><div class="rt-sev p0">P0</div></div>
+      <div class="rt-row"><div class="rt-route">Footer · Attribution</div><div class="rt-expect">PR #417</div><div class="rt-actual bad">Missing</div><div class="rt-sev p0">P0</div></div>
+      <div class="rt-row"><div class="rt-route">Footer · Status</div><div class="rt-expect">PR #417</div><div class="rt-actual bad">Missing</div><div class="rt-sev p0">P0</div></div>
+      <div class="rt-row"><div class="rt-route">Footer · Privacy / Terms / DPA / Cookies / Contact / Start a Pilot</div><div class="rt-expect">retained</div><div class="rt-actual ok">All present</div><div class="rt-sev ok">OK</div></div>
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 06"></div>
+
+  <!-- ════════════════════════════════════
+       6. SECONDARY ROUTES
+  ════════════════════════════════════ -->
+  <section class="phase" id="secondary">
+    <div class="ph-header">
+      <span class="ph-num">Section 06</span>
+      <h2 class="ph-title">Secondary Routes · /status · /contact · /sign-in</h2>
+      <span class="ph-badge unknown">Deferred — gate blocks</span>
+    </div>
+
+    <div class="note-box unknown">
+      <strong>Per gate rules ("Do not continue to PearX certification if preconditions fail"), secondary route QA is deferred</strong> until the precondition gate clears. The brief asked these be tested only "if P0 routes pass." P0 routes have not passed.
+    </div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Route</div><div>Required check</div><div>This-gate status</div><div>PearX impact</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/status</div>
+        <div class="rt-expect">no fake uptime · honest source/system status</div>
+        <div class="rt-actual unknown">Deferred. Cannot run until /trust + /trust/attribution clear. Note: PR #417 also adds the <strong>Status</strong> footer link — page is unreachable from nav until PR ships.</div>
+        <div class="rt-sev unknown">Defer</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/contact</div>
+        <div class="rt-expect">clear contact path · no broken form/CTA</div>
+        <div class="rt-actual unknown">Deferred. Footer link present today, but visual + form-submit check waits for gate clearance.</div>
+        <div class="rt-sev unknown">Defer</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/sign-in</div>
+        <div class="rt-expect">no "Get Verified" / "verified access" / fake HIPAA · Clerk does not crash</div>
+        <div class="rt-actual unknown">Deferred. Current homepage routes "Sign In" to <code>/passport</code>; behavior of <code>/sign-in</code> proper not probed.</div>
+        <div class="rt-sev unknown">Defer</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" data-n="Section 07"></div>
+
+  <!-- ════════════════════════════════════
+       7. PEARX
+  ════════════════════════════════════ -->
+  <section class="phase" id="pearx">
+    <div class="ph-header">
+      <span class="ph-num">Section 07</span>
+      <h2 class="ph-title">PearX Reviewer Journey · Certification</h2>
+      <span class="ph-badge p0">Not certifiable</span>
+    </div>
+
+    <div class="pearx-block">
+      <div class="pb-head">Certification result</div>
+      <div class="pb-title">NOT PEARX READY</div>
+      <div class="pb-body">
+        Per the gate rules — and per the prior-QA P0 list still standing in full — VitalCV cannot be presented to a PearX reviewer in its current deployed state. The reviewer journey collapses on click two: <code style="color:#fca5a5;background:#1a1916;padding:1px 5px;border-radius:2px">/trust</code> is the trust-credibility hop, and a raw 500 there destroys the narrative. <strong style="color:#fff">Do not share the URL with PearX until the precondition gate clears.</strong>
+      </div>
+    </div>
+
+    <div class="route-table" style="margin-top:14px">
+      <div class="rt-head">
+        <div>Journey step</div><div>Required to land</div><div>Today's state</div><div>Score</div>
+      </div>
+      <div class="rt-row"><div class="rt-route">1 · /</div><div class="rt-expect">"VitalCV is for clinician credential readiness"</div><div class="rt-actual bad">Loads, but trust-unsafe copy actively damages reviewer perception</div><div class="rt-sev p0">2 / 5</div></div>
+      <div class="rt-row"><div class="rt-route">2 · /trust</div><div class="rt-expect">"Founder understands the workflow"</div><div class="rt-actual bad">Assumed 500</div><div class="rt-sev p0">0 / 5</div></div>
+      <div class="rt-row"><div class="rt-route">3 · /trust/attribution</div><div class="rt-expect">"Team has thought through provenance"</div><div class="rt-actual bad">Assumed 404</div><div class="rt-sev p0">0 / 5</div></div>
+      <div class="rt-row"><div class="rt-route">4 · /status</div><div class="rt-expect">"Honest about system limits"</div><div class="rt-actual unknown">Unreachable — no nav link until PR #417</div><div class="rt-sev unknown">—</div></div>
+      <div class="rt-row"><div class="rt-route">5 · /contact or /sign-in</div><div class="rt-expect">Working low-friction next step</div><div class="rt-actual unknown">Reachable; not retested</div><div class="rt-sev unknown">—</div></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <div class="ch">Score across PearX axes</div>
+        <ul>
+          <li><strong>Clarity</strong> — 1 / 5 (trust path broken)</li>
+          <li><strong>Trustworthiness</strong> — 1 / 5 (overclaiming copy live)</li>
+          <li><strong>Institutional honesty</strong> — 2 / 5 (no /trust/attribution reachable)</li>
+          <li><strong>Visual polish</strong> — 3 / 5 (homepage renders cleanly)</li>
+          <li><strong>Route completeness</strong> — 1 / 5 (PR-dependent routes missing)</li>
+          <li><strong>Copy safety</strong> — 1 / 5 (4 of 4 P0 strings present)</li>
+          <li><strong>Reviewer confidence</strong> — 1 / 5</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch">Pages to show / avoid when ready</div>
+        <ul>
+          <li class="good">Show · /</li>
+          <li class="good">Show · /trust (after fix)</li>
+          <li class="good">Show · /trust/attribution (after fix)</li>
+          <li class="good">Show · /contact</li>
+          <li class="bad">Avoid · /verify (until renamed in nav)</li>
+          <li class="bad">Avoid · /intelligence, /review, /operator, /ops, /file/[id], /apply/[id] — defer per prior QA</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note-box p0" style="margin-top:8px">
+      <strong>90-second narrative viability today: 0%.</strong> Reviewer cannot complete the journey. Step 2 likely dies on a 500; step 3 likely dies on a 404. Step 1 leaves the reviewer reading copy that promises "verified access" and "verify once, trust everywhere" — exactly the overclaiming pattern the PR was filed to remove. The probability that a PearX reviewer leaves with a positive impression on this build is effectively zero.
+    </div>
+  </section>
+
+  <div class="divider" data-n="Reviewer Next"></div>
+
+  <!-- ════════════════════════════════════
+       8. NEXT
+  ════════════════════════════════════ -->
+  <section class="phase" id="next">
+    <div class="ph-header">
+      <span class="ph-num">Section 08</span>
+      <h2 class="ph-title">What Has To Happen Before Re-QA Runs</h2>
+      <span class="ph-badge p0">Operator action required</span>
+    </div>
+
+    <div class="next-block">
+      <div class="nb-head">Sequence — must be done in order</div>
+      <div class="nb-row">
+        <div class="n">01</div>
+        <div class="b"><strong>Confirm PR #417 status.</strong> Verify the PR is actually merged into <code>wave-10a/docs-status</code> at <code>0e5e2391</code>, not just "ready to merge." If not merged, merge it.</div>
+        <div class="o">Claude Code / Operator</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">02</div>
+        <div class="b"><strong>Confirm Railway is deploying from the branch PR #417 lands on.</strong> If vitalcv-web's Railway service deploys from <code>main</code> or another branch, PR #417 may be merged in git but invisible to production. Promote the change to the deploy branch or change the deploy branch.</div>
+        <div class="o">Operator</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">03</div>
+        <div class="b"><strong>Set Railway env vars on vitalcv-web service:</strong> <code>RECEIPT_PRIVATE_KEY_JWK</code> and <code>RECEIPT_KID</code>. These are not in PR #417 (it is code-only) — they must be set in the Railway dashboard.</div>
+        <div class="o">Operator</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">04</div>
+        <div class="b"><strong>Trigger a fresh deploy.</strong> After both the merge and the env vars are in place, force a redeploy. Confirm build success in Railway logs.</div>
+        <div class="o">Operator</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">05</div>
+        <div class="b"><strong>Smoke-test from operator's curl, in order:</strong> <code>/api/health</code> → 200 · <code>/</code> → 200 HTML containing <em>"Check Clinician Readiness"</em> · <code>/trust</code> → 200 HTML · <code>/trust/attribution</code> → 200 HTML · <code>/.well-known/jwks.json</code> → 200 JSON or documented 4xx.</div>
+        <div class="o">Operator</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">06</div>
+        <div class="b"><strong>Re-request design re-QA.</strong> Paste the URL again with the smoke-test results. Re-QA runs route-by-route and produces a PASS / PASS-WITH-WARNINGS / BLOCKED verdict.</div>
+        <div class="o">Operator → Design QA</div>
+      </div>
+      <div class="nb-row">
+        <div class="n">07</div>
+        <div class="b"><strong>If re-QA returns PASS:</strong> only then proceed to PearX certification and apex/www DNS cutover. Apex cutover remains <strong>NO-GO</strong> until live re-QA passes.</div>
+        <div class="o">Design QA</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" data-n="Claude Code Handoff"></div>
+
+  <!-- ════════════════════════════════════
+       10. CLAUDE CODE HANDOFF
+  ════════════════════════════════════ -->
+  <section class="phase" id="handoff">
+    <div class="ph-header">
+      <span class="ph-num">Section 10</span>
+      <h2 class="ph-title">Claude Code Handoff · Implementation-Ready</h2>
+      <span class="ph-badge p0">P0 only · do not build features</span>
+    </div>
+
+    <div class="note-box">
+      Rules in force: <strong>(a)</strong> no speculative features, <strong>(b)</strong> prefer hide/deprioritize over build, <strong>(c)</strong> prefer copy correction over redesign, <strong>(d)</strong> route stability over visual novelty, <strong>(e)</strong> trust-graph enhancements are P2 unless implemented and broken.
+    </div>
+
+    <!-- P0 HANDOFF -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--p0);margin:18px 0 10px">P0 Handoff — Blocks apex/www cutover</div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Route · target</div><div>Visible problem</div><div>Action</div><div>Severity</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">DEPLOY · vitalcv-web<div class="rt-expect" style="margin-top:4px">Branch: deploy branch of vitalcv-web service</div></div>
+        <div class="rt-expect">PR #417 changes are not visible on the production URL. Live HTML matches the pre-PR build.</div>
+        <div class="rt-actual"><strong>1.</strong> Confirm <code>0e5e2391</code> is on the Railway deploy branch (likely <code>main</code>, not <code>wave-10a/docs-status</code>). <strong>2.</strong> Trigger redeploy on <strong>vitalcv-web</strong> service. <strong>3.</strong> Purge edge cache if any. <strong>4.</strong> Curl <code>/</code> from outside, grep for "Evidence submitted once." If absent — patch did not land.</div>
+        <div class="rt-sev p0">P0</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">ENV · vitalcv-web<div class="rt-expect" style="margin-top:4px">Railway env vars</div></div>
+        <div class="rt-expect">Receipt env vars not confirmed in Railway. /trust prior 500 was caused by their absence.</div>
+        <div class="rt-actual">Set on vitalcv-web service: <code>RECEIPT_PRIVATE_KEY_JWK</code> + <code>RECEIPT_KID</code>. Restart service. These are operator-side; they are NOT shipped by PR #417.</div>
+        <div class="rt-sev p0">P0</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/<div class="rt-expect" style="margin-top:4px">Likely file: <code>apps/web/app/page.tsx</code> + nav/footer components</div></div>
+        <div class="rt-expect">After deploy lands, four copy strings must visibly change on /.</div>
+        <div class="rt-actual">Verify on live URL — do not trust PR diff. Required strings <strong>present</strong>: "Check Clinician Readiness", "evidence packet ready", "Evidence submitted once. Reusable for institution review.", "Readiness status generated", Trust nav item, Trust/Attribution/Status footer items.</div>
+        <div class="rt-sev p0">P0</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/trust<div class="rt-expect" style="margin-top:4px">Likely file: <code>apps/web/app/trust/page.tsx</code></div></div>
+        <div class="rt-expect">Must return 200 HTML once env vars are set.</div>
+        <div class="rt-actual">After ENV fix + redeploy: curl <code>/trust</code>, expect 200 HTML containing product description, source-confirmation model, institution-review boundary, "VitalCV does not verify on behalf of institutions" copy. No raw error trace.</div>
+        <div class="rt-sev p0">P0</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/trust/attribution<div class="rt-expect" style="margin-top:4px">PR #417 adds: <code>apps/web/app/trust/attribution/page.tsx</code></div></div>
+        <div class="rt-expect">Must return 200 HTML after PR ships.</div>
+        <div class="rt-actual">After deploy: curl <code>/trust/attribution</code>, expect 200 HTML containing attribution tier hierarchy, source / system / institution / human-review ownership, safe-language examples, anti-patterns. No 404.</div>
+        <div class="rt-sev p0">P0</div>
+      </div>
+    </div>
+
+    <!-- P0 Copy table -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--p0);margin:18px 0 10px">P0 Copy · Exact strings · Homepage</div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Location</div><div>Current</div><div>Replacement</div><div>Verify</div>
+      </div>
+      <div class="rt-row"><div class="rt-route">Header nav · slot 2<div class="rt-expect" style="margin-top:4px">links to <code>/verify</code></div></div><div class="rt-expect">Verify a Provider</div><div class="rt-actual">Check Clinician Readiness</div><div class="rt-sev p0">grep "/verify" anchor text</div></div>
+      <div class="rt-row"><div class="rt-route">Clinicians · bullet 3</div><div class="rt-expect">Walk into any new role already verified</div><div class="rt-actual">Walk into any new role with an evidence packet ready</div><div class="rt-sev p0">grep "already verified"</div></div>
+      <div class="rt-row"><div class="rt-route">Issuers &amp; Verifiers · H2</div><div class="rt-expect">Verify once. Trust everywhere.</div><div class="rt-actual">Evidence submitted once. Reusable for institution review.</div><div class="rt-sev p0">grep "Verify once"</div></div>
+      <div class="rt-row"><div class="rt-route">Trust strip · pill 3</div><div class="rt-expect">Readiness score generated</div><div class="rt-actual">Readiness status generated</div><div class="rt-sev p0">grep "score generated"</div></div>
+      <div class="rt-row"><div class="rt-route">Trust strip · pill 1</div><div class="rt-expect">Identity confirmed against NPPES</div><div class="rt-actual">Source-confirmed against NPPES</div><div class="rt-sev p1">grep "Identity confirmed"</div></div>
+      <div class="rt-row"><div class="rt-route">Header nav · add</div><div class="rt-expect">(missing)</div><div class="rt-actual">Trust → <code>/trust</code></div><div class="rt-sev p0">DOM: nav contains "Trust"</div></div>
+      <div class="rt-row"><div class="rt-route">Footer · add</div><div class="rt-expect">(missing)</div><div class="rt-actual">Trust · Attribution · Status</div><div class="rt-sev p0">DOM: footer has all 3</div></div>
+      <div class="rt-row"><div class="rt-route">Issuers · bullets (P1)</div><div class="rt-expect">Provide trusted evidence once · Reuse verification across employers · Eliminate redundant verification requests</div><div class="rt-actual">Submit source-confirmed evidence once · Reuse evidence packets across institutions · Reduce redundant credentialing review cycles</div><div class="rt-sev p1">grep "Reuse verification"</div></div>
+    </div>
+
+    <!-- P1 HANDOFF -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--p1);margin:24px 0 10px">P1 Handoff — Blocks PearX / demo</div>
+
+    <div class="route-table">
+      <div class="rt-head">
+        <div>Route · target</div><div>Visible problem</div><div>Action</div><div>Severity</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/status</div>
+        <div class="rt-expect">Page must exist + be honest if PR #417 footer link points at it.</div>
+        <div class="rt-actual">Minimum viable: a single page with "Source status reporting in progress" and last-checked timestamp. NO fake uptime ticker, NO animated green pulse without data. If page does not exist, hide the footer link instead — do not ship a dead link.</div>
+        <div class="rt-sev p1">P1</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/contact</div>
+        <div class="rt-expect">CTA must not be dead.</div>
+        <div class="rt-actual">Option A: working form (POST → "We'll respond within 2 business days"). Option B: visible team email + expected response time. Pilot-reviewer label.</div>
+        <div class="rt-sev p1">P1</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">/sign-in</div>
+        <div class="rt-expect">Clerk widget must load on Railway domain; no "verified access" copy.</div>
+        <div class="rt-actual">Confirm <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> includes Railway domain in Clerk allowed origins. Post-sign-in: route to <code>/passport</code> (not 404). Branded /auth/error page — no stack traces.</div>
+        <div class="rt-sev p1">P1</div>
+      </div>
+      <div class="rt-row">
+        <div class="rt-route">Homepage · NPI strip P1 copy</div>
+        <div class="rt-expect">"30-second result" implies guarantee.</div>
+        <div class="rt-actual">Soften to "30-second readiness check." Keep "No account required" and "Live federal data" as-is.</div>
+        <div class="rt-sev p2">P2 (soft watch)</div>
+      </div>
+    </div>
+
+    <!-- P2 HANDOFF -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--p2);margin:24px 0 10px">P2 Handoff — Post-launch polish</div>
+
+    <div class="note-box">
+      Defer until after apex/www cutover and PearX submission: persona-page depth (<code>/holder</code>, <code>/clinician</code>, <code>/employer</code>), ROI analytics, motion restraint audit, secondary copy polish, footer link completeness beyond P0 set, support page, slug pages (<code>/p/[slug]</code>, <code>/for/[slug]</code>), <code>/intelligence</code>, <code>/review</code>, accessibility deep audit, dark-mode consistency. <strong>Hide from public nav/footer pre-PearX:</strong> <code>/intelligence</code> <code>/review</code> <code>/operator</code> <code>/ops</code> <code>/file/[fileId]</code> <code>/apply/[bundleId]</code>. They must return a clean auth gate or graceful 404, never a raw 500.
+    </div>
+
+    <!-- Exact message -->
+    <div style="font-family:'Geist Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-400);margin:20px 0 10px">Exact message to Claude Code</div>
+
+    <div class="note-box" style="background:var(--ink-900);color:var(--ink-200);border-color:var(--ink-800);font-family:'Geist Mono',monospace;font-size:11.5px;line-height:1.7">
+      <strong style="color:#fff">VitalCV Mega Wave 2 — Re-QA failed. PR #417 did not propagate to production.</strong><br><br>
+      <span style="color:var(--ink-400)">// Step 0 — Confirm the deploy actually shipped</span><br>
+      curl -s https://vitalcv-web-production.up.railway.app/ | grep -c "Evidence submitted once"<br>
+      <span style="color:var(--ink-400)">// If 0 → PR #417 is not live. Do NOT continue until this is &gt;= 1.</span><br><br>
+      <span style="color:var(--ink-400)">// Step 1 — Diagnose why PR #417 is not live</span><br>
+      1. Verify Railway vitalcv-web service deploys from the branch that contains <strong style="color:#fff">0e5e2391</strong>.<br>
+      2. If service deploys from <code style="color:#fff">main</code>, merge wave-10a/docs-status → main, or change deploy branch.<br>
+      3. Trigger redeploy. Watch Railway build logs for success.<br>
+      4. Purge any CDN/edge cache.<br><br>
+      <span style="color:var(--ink-400)">// Step 2 — Set receipt env vars on vitalcv-web</span><br>
+      RECEIPT_PRIVATE_KEY_JWK = (operator-supplied)<br>
+      RECEIPT_KID = (operator-supplied)<br>
+      Restart service after setting.<br><br>
+      <span style="color:var(--ink-400)">// Step 3 — Smoke test from a clean session</span><br>
+      curl https://vitalcv-web-production.up.railway.app/api/health → 200<br>
+      curl https://vitalcv-web-production.up.railway.app/ | grep "Check Clinician Readiness" → &gt;=1<br>
+      curl https://vitalcv-web-production.up.railway.app/ | grep "Evidence submitted once" → &gt;=1<br>
+      curl https://vitalcv-web-production.up.railway.app/ | grep -E "Verify a Provider|already verified|Verify once. Trust everywhere|Readiness score generated" → 0<br>
+      curl -I https://vitalcv-web-production.up.railway.app/trust → 200<br>
+      curl -I https://vitalcv-web-production.up.railway.app/trust/attribution → 200<br>
+      curl -I https://vitalcv-web-production.up.railway.app/.well-known/jwks.json → 200 or documented 4xx (NOT 500)<br><br>
+      <span style="color:var(--ink-400)">// Step 4 — Do NOT</span><br>
+      Do not build new features. Do not add /status content beyond an honest "reporting in progress" line. Do not redesign /trust or /trust/attribution — copy PR #417 as written. Do not re-approve PR #417 status before the grep tests in Step 3 all pass against the live URL. Do not propose apex/www DNS cutover.<br><br>
+      <span style="color:var(--ink-400)">// Step 5 — Then</span><br>
+      Reply to design QA with: the curl outputs from Step 3, the Railway deploy SHA, and a sentence stating the H2 in the Issuers homepage section. Only then will re-QA run.
+    </div>
+  </section>
+  <div class="final-verdict" id="verdict">
+    <div class="fv-left">
+      <div class="fv-label">Re-QA Determination · May 24 2026</div>
+      <div class="fv-value blocked">⬛ DESIGN RE-QA BLOCKED</div>
+    </div>
+    <div class="fv-right">
+      <div class="fv-sub">PearX</div>
+      <div class="fv-item">NOT PEARX READY</div>
+      <div class="fv-sub" style="margin-top:6px">Apex / www DNS</div>
+      <div class="fv-item">NO-GO</div>
+      <div class="fv-sub" style="margin-top:6px">Blocking precondition</div>
+      <div class="fv-item">PR #417 not deployed</div>
+    </div>
+  </div>
+
+  <div class="divider" data-n="Post-Claim Re-Test"></div>
+
+  <!-- ════════════════════════════════════
+       9. POST-CLAIM RE-TEST
+  ════════════════════════════════════ -->
+  <section class="phase" id="postclaim">
+    <div class="ph-header">
+      <span class="ph-num">Section 09</span>
+      <h2 class="ph-title">Post-OpenClaw-Claim Re-Test</h2>
+      <span class="ph-badge p0">Claim contradicted by live payload</span>
+    </div>
+
+    <div class="evidence-card">
+      <div class="ev-h">OpenClaw claim vs live re-fetch · same URL</div>
+      <ul class="ev-list">
+        <li><strong>Claim:</strong> "All previous P0 blockers patched and deployed live on https://vitalcv-web-production.up.railway.app." <strong>Live re-fetch result:</strong> homepage payload is byte-identical to the pre-claim build. None of the five P0s are cleared.</li>
+        <li>Claim: <code>/trust 500 → now 200 HTML</code>. <strong>Cannot confirm</strong> from fetch (URL allow-list). Strongly likely still failing because the deploy carrying this fix has not landed at this URL (see remaining bullets).</li>
+        <li>Claim: <code>/trust/attribution 404 → now 200 HTML</code>. <strong>Cannot confirm</strong> from fetch. Likely still 404 — the PR that adds this route is the same PR whose homepage changes have not landed.</li>
+        <li>Claim: <code>Nav "Verify a Provider" → now "Check Clinician Readiness"</code>. <strong>Live: still "Verify a Provider"</strong> in the second nav slot, routing to <code>/verify</code>.</li>
+        <li>Claim: <code>Clinician section "already verified" → now "evidence packet ready"</code>. <strong>Live: still "Walk into any new role already verified"</strong> in the clinicians bullet list.</li>
+        <li>Claim: <code>Issuer section "Verify once. Trust everywhere." → now "Evidence submitted once. Reusable for institution review."</code> <strong>Live: H2 still reads "Verify once. Trust everywhere."</strong> with the unchanged three "verification" bullets.</li>
+        <li>Claim: <code>"readiness score generated" fixed</code>. <strong>Live: trust strip still reads "Readiness score generated."</strong></li>
+        <li>Claim: <code>Trust/Attribution/Status footer links added</code>. <strong>Live footer still:</strong> Privacy / Terms / DPA / Cookies / Start a Pilot / Contact. No Trust. No Attribution. No Status.</li>
+        <li>Claim: <code>Trust nav link added</code>. <strong>Live nav:</strong> still only "For Employers" + "Verify a Provider" + "Sign In" + "Check Readiness." No Trust item.</li>
+        <li>Claim: <code>Onboarding "already verified" copy fixed</code>. <strong>Live onboarding strip:</strong> still "Identity confirmed against NPPES · Sanctions checked via OIG · Readiness score generated." Unchanged.</li>
+      </ul>
+    </div>
+
+    <div class="note-box p0">
+      <strong>Diagnosis (most likely → least likely):</strong>
+      <br>· (a) PR #417 merged into <code>wave-10a/docs-status</code>, but Railway's vitalcv-web service deploys from a <em>different</em> branch (e.g. <code>main</code>) — so the merge is invisible to production. Verify Railway's "Deploy from branch" setting.
+      <br>· (b) Deploy succeeded but on a different Railway service (vitalcv-api or a sibling). The production URL is routed to the stale service.
+      <br>· (c) Build failed silently — Railway logs will show. Service kept serving the previous artifact.
+      <br>· (d) Cloudflare / Vercel / CDN edge cache is serving the previous build. A purge is required.
+      <br>· (e) PR #417 was never actually merged — only marked ready. Re-verify with <code>git log</code> on the deploy branch for SHA <code>0e5e2391</code>.
+    </div>
+
+    <div class="note-box p0">
+      <strong>What to do, exactly.</strong> Before reporting "fixed" again: from a fresh, cache-busted browser session, hit <code>https://vitalcv-web-production.up.railway.app/?_=1</code> and confirm the H2 in the Issuers section reads <em>"Evidence submitted once. Reusable for institution review."</em> If it still reads <em>"Verify once. Trust everywhere."</em> — the patch did not deploy, no matter what the Railway dashboard or the PR page say. Live HTML at the URL under test is the only source of truth for this gate.
+    </div>
+  </section>
+
+  <div class="note-box p0" style="margin-top:14px">
+    <strong>Missing preconditions, exact list:</strong>
+    <br>· 01 — PR #417 not deployed (live homepage proves the PR-shipped strings and nav/footer links are absent).
+    <br>· 02 — vitalcv-web has not restarted on a build containing PR #417 (same artifact as prior QA).
+    <br>· 03 — <code>RECEIPT_PRIVATE_KEY_JWK</code> not confirmed in Railway (operator-only visibility).
+    <br>· 04 — <code>RECEIPT_KID</code> not confirmed in Railway (operator-only visibility).
+    <br>· 07 — <code>/trust</code> assumed still 500 (downstream of 01–03).
+    <br>· 08 — <code>/trust/attribution</code> assumed still 404 (downstream of 01).
+    <br><br>
+    <strong>Cleared preconditions:</strong> 05 (/api/health — inferred reachable from /), 06 (/ returns HTML).
+    <br><br>
+    <strong>May live re-QA proceed?</strong> No. Re-QA is blocked. PearX certification is blocked. Apex/www DNS cutover is NO-GO.
+  </div>
+
+</main>
+</body>
+</html>

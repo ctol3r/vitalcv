@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VitalCV · Failure Taxonomy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--ink-0:#fff;--ink-50:#f8fafc;--ink-100:#f1f5f9;--ink-200:#e2e8f0;--ink-300:#cbd5e1;--ink-400:#94a3b8;--ink-500:#64748b;--ink-600:#475569;--ink-700:#334155;--ink-800:#1e293b;--ink-900:#0f172a;--ink-950:#020617;--rule:#e2e8f0;}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--ink-50);color:var(--ink-900);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-feature-settings:'ss01','cv11';-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5;}
+  code,.mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+
+  .op{background:var(--ink-950);color:var(--ink-300);font-family:'Geist Mono',monospace;font-size:11px;}
+  .op .in{max-width:1320px;margin:0 auto;padding:6px 32px;min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .op .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border:1px solid var(--ink-700);text-transform:uppercase;letter-spacing:.12em;font-size:10px;}
+  .op .pill .d{width:6px;height:6px;background:#fff;border-radius:50%;}
+  .op .sep{color:var(--ink-600);}
+
+  header.mh{background:var(--ink-0);border-bottom:1px solid var(--rule);}
+  .mh .in{max-width:1320px;margin:0 auto;padding:22px 32px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+  .brand .g{width:22px;height:22px;background:var(--ink-900);color:#fff;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;}
+  .brand .nm{font-weight:600;letter-spacing:-.01em;font-size:15px;}
+  .brand .nm .sl{color:var(--ink-400);font-weight:400;}
+  .brand .nm .sub{color:var(--ink-500);font-weight:400;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-500);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .eyebrow .r{display:inline-block;width:22px;height:1px;background:var(--ink-300);}
+  h1{font-size:26px;line-height:1.12;letter-spacing:-.025em;font-weight:600;margin:0;max-width:780px;}
+  h1 .muted{color:var(--ink-500);}
+  .meta-h{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.14em;}
+  .meta-h span strong{color:var(--ink-900);font-weight:500;}
+
+  main{max-width:1320px;margin:0 auto;padding:24px 32px 56px;}
+
+  .sec{margin-top:34px;}
+  .sec:first-child{margin-top:0;}
+  .sh{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink-900);padding-bottom:8px;margin-bottom:18px;}
+  .sh .n{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-300);font-weight:600;}
+  .sh h2{font-size:17px;margin:0;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);}
+  .sh .ey{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+
+  /* === 5 FAILURE CARDS === */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .fc{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .fc .band{padding:9px 16px;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);}
+  .fc .band strong{font-weight:500;}
+  .fc .band .who{color:var(--ink-500);}
+
+  /* the five state styles — all monochrome, distinguished by border + iconography + label */
+  .fc.A .band{background:var(--ink-50);color:var(--ink-700);border-bottom-color:var(--ink-300);}
+  .fc.A{border-color:var(--ink-300);}
+  .fc.A .icon{border-style:dashed;}
+
+  .fc.B .band{background:var(--ink-0);color:var(--ink-900);border-bottom-color:var(--ink-300);}
+  .fc.B{border-color:var(--ink-300);}
+
+  .fc.C .band{background:var(--ink-900);color:#fff;border-bottom:0;}
+
+  .fc.D .band{background:var(--ink-0);color:var(--ink-900);border-bottom-color:var(--ink-900);}
+  .fc.D{border-color:var(--ink-900);}
+
+  .fc.E .band{background:var(--ink-950);color:#fff;border-bottom:0;}
+  .fc.E{border-color:var(--ink-950);}
+
+  .fc .body{padding:18px;display:grid;grid-template-columns:48px 1fr;gap:16px;}
+  .fc .icon{width:40px;height:40px;border:1.5px solid var(--ink-900);display:grid;place-items:center;color:var(--ink-900);}
+  .fc .icon svg{display:block;}
+  .fc.C .icon,.fc.E .icon{border-color:var(--ink-900);background:var(--ink-900);color:#fff;}
+
+  .fc h3{margin:0 0 4px;font-size:16px;font-weight:600;letter-spacing:-.015em;color:var(--ink-900);}
+  .fc .lede{font-size:13px;color:var(--ink-700);line-height:1.5;margin-bottom:12px;}
+  .fc .lede strong{color:var(--ink-900);font-weight:500;}
+
+  .fc .kv{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:7px 0;border-bottom:1px dashed var(--rule);align-items:baseline;}
+  .fc .kv:last-child{border-bottom:0;}
+  .fc .kv .k{font-family:'Geist Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-500);}
+  .fc .kv .v{font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink-900);}
+  .fc .kv .v.prose{font-family:'Geist',sans-serif;font-size:12.5px;color:var(--ink-700);line-height:1.45;font-variant-numeric:normal;}
+  .fc .kv .v.prose strong{color:var(--ink-900);font-weight:500;}
+
+  /* === DECISION TABLE === */
+  .dt{border:1px solid var(--ink-300);background:var(--ink-0);}
+  .dt .h{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr 1fr;background:var(--ink-50);border-bottom:1px solid var(--ink-900);}
+  .dt .h .c{padding:11px 14px;border-right:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-500);}
+  .dt .h .c:last-child{border-right:0;}
+  .dt .h .c strong{color:var(--ink-900);font-weight:500;display:block;font-size:10.5px;letter-spacing:.12em;margin-bottom:2px;}
+  .dt .r{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--rule);}
+  .dt .r:last-child{border-bottom:0;}
+  .dt .r .c{padding:11px 14px;border-right:1px solid var(--rule);font-size:11.5px;color:var(--ink-700);line-height:1.45;}
+  .dt .r .c:last-child{border-right:0;}
+  .dt .r .c.rk{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-900);font-weight:500;background:var(--ink-50);}
+  .dt .r .c strong{color:var(--ink-900);font-weight:500;}
+  .dt .yn{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-900);font-weight:500;letter-spacing:.04em;}
+
+  /* === NOT-THIS WIDGET === */
+  .notthis{margin-top:24px;border:1px solid var(--ink-900);padding:16px 18px;}
+  .notthis .h{font-family:'Geist Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-900);font-weight:500;margin-bottom:10px;}
+  .notthis .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+  .notthis .pair{font-size:12.5px;color:var(--ink-700);line-height:1.55;}
+  .notthis .pair strong{color:var(--ink-900);font-weight:500;display:block;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;}
+  .notthis .pair em{color:var(--ink-900);font-style:normal;font-weight:500;}
+
+  footer.foot-page{max-width:1320px;margin:24px auto 0;padding:20px 32px;font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink-500);display:flex;justify-content:space-between;border-top:1px solid var(--rule);background:var(--ink-0);}
+
+  @media(max-width:1000px){
+    .grid{grid-template-columns:1fr;}
+    .dt .h,.dt .r{grid-template-columns:1fr;}
+    .dt .h .c,.dt .r .c{border-right:0;border-bottom:1px solid var(--rule);}
+    .notthis .grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="op">
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="letter-spacing:.16em;text-transform:uppercase;color:#fff;font-weight:500;">Failure Taxonomy</span>
+      <span class="sep">/</span>
+      <span>Five things that look like "no result" — they are not the same</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span class="pill"><span class="d"></span>Spec · v1</span>
+      <span class="sep">|</span>
+      <span>vc.2026.05.11-a · 14:32:08Z</span>
+    </div>
+  </div>
+</div>
+
+<header class="mh">
+  <div class="in">
+    <div class="brand">
+      <span class="g">V</span>
+      <span class="nm">VitalCV<span class="sl">/</span><span class="sub">trust</span></span>
+    </div>
+    <div class="eyebrow"><span class="r"></span>Operational honesty · what failed · whose problem it is · what to do</div>
+    <h1>Empty results have causes. <span class="muted">Five failure modes look similar on first glance; the system distinguishes them so a user never has to guess.</span></h1>
+    <div class="meta-h">
+      <span>Modes · <strong>source unreachable · anonymous restriction · infrastructure outage · no adverse findings · issuer unavailable</strong></span>
+      <span>Rule · <strong>name the cause · name the owner · name the next action</strong></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Five failure cards -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">01</span>
+      <h2>Five failure modes · five distinct surfaces</h2>
+      <span class="ey">never collapsed into "something went wrong"</span>
+    </div>
+
+    <div class="grid">
+
+      <!-- A · source unreachable -->
+      <div class="fc A">
+        <div class="band"><strong>A · Source unreachable</strong><span class="who">degraded · upstream</span></div>
+        <div class="body">
+          <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2 10 H18 M10 2 V18" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/></svg></div>
+          <div>
+            <h3>The source didn&rsquo;t answer in time.</h3>
+            <p class="lede">A specific registry is slow or unresponsive. The rest of the system continues; this lane simply isn&rsquo;t fresh. <strong>Receipts still issue</strong> with <code>source.X.degraded=true</code> recorded inline.</p>
+            <div class="kv"><span class="k">Owner</span><span class="v prose">Upstream registry. Not VitalCV, not the holder.</span></div>
+            <div class="kv"><span class="k">User sees</span><span class="v prose">Dashed lane chip · stale <code>checked_at</code> · honest age label.</span></div>
+            <div class="kv"><span class="k">Action</span><span class="v prose">Wait or retry. Anything older than the source&rsquo;s last confirmed value is treated as <em>not yet checked</em>, not as adverse.</span></div>
+            <div class="kv"><span class="k">Example</span><span class="v">PECOS · p95 5.8 s · 2 m 54 s ago</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B · anonymous restriction -->
+      <div class="fc B">
+        <div class="band"><strong>B · Anonymous restriction</strong><span class="who">policy · not technical</span></div>
+        <div class="body">
+          <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 16 Q10 12 15 16" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></div>
+          <div>
+            <h3>This lane requires sign-in.</h3>
+            <p class="lede">Some sources reveal protected fields only when the holder is authenticated. The check did not fail — it was <strong>not attempted under your identity</strong>. The lane is empty by design.</p>
+            <div class="kv"><span class="k">Owner</span><span class="v prose">VitalCV policy + the holder. Authentication is required to ask.</span></div>
+            <div class="kv"><span class="k">User sees</span><span class="v prose">Lane greyed out · &ldquo;sign in to verify&rdquo; affordance · no claim asserted.</span></div>
+            <div class="kv"><span class="k">Action</span><span class="v prose">Sign in (or have the subject sign in). This is not an outage.</span></div>
+            <div class="kv"><span class="k">Example</span><span class="v">DEA full registration · subject auth required</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C · infrastructure outage -->
+      <div class="fc C">
+        <div class="band"><strong>C · Infrastructure outage</strong><span style="color:var(--ink-300);">VitalCV-side</span></div>
+        <div class="body">
+          <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="5" stroke="currentColor" stroke-width="1.4" fill="none"/><rect x="3" y="11" width="14" height="5" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="6" cy="6.5" r="0.7" fill="currentColor"/><circle cx="6" cy="13.5" r="0.7" fill="currentColor"/><path d="M15 18 L17 16 M17 18 L15 16" stroke="currentColor" stroke-width="1.4"/></svg></div>
+          <div>
+            <h3>VitalCV is down.</h3>
+            <p class="lede">A VitalCV service can&rsquo;t serve this request right now. <strong>Existing signed receipts remain valid</strong> — they verify offline against did:web:vitalcv.health and don&rsquo;t need our servers.</p>
+            <div class="kv"><span class="k">Owner</span><span class="v prose">VitalCV. We name it. We page ourselves.</span></div>
+            <div class="kv"><span class="k">User sees</span><span class="v prose">Black status banner · incident id · link to status.vitalcv.health · current SLO impact stated.</span></div>
+            <div class="kv"><span class="k">Action</span><span class="v prose">If holding a signed receipt, verify it against the public verifier — no VitalCV server needed. Otherwise wait.</span></div>
+            <div class="kv"><span class="k">Example</span><span class="v">inc-2026-0511-c · wallet API 5xx · 12 m elapsed</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D · no adverse findings -->
+      <div class="fc D">
+        <div class="band"><strong>D · No adverse findings</strong><span class="who">success · not a failure</span></div>
+        <div class="body">
+          <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M6.5 10.5 L9 13 L14 7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="square"/></svg></div>
+          <div>
+            <h3>The source answered. Nothing was found.</h3>
+            <p class="lede">The exclusion list / sanction registry returned an empty result. This is the <strong>desired outcome</strong> for a clean provider — and it is materially different from &ldquo;we couldn&rsquo;t check.&rdquo; The receipt records the negative finding.</p>
+            <div class="kv"><span class="k">Owner</span><span class="v prose">No one. The system worked.</span></div>
+            <div class="kv"><span class="k">User sees</span><span class="v prose">Solid lane chip · &ldquo;no findings · confirmed&rdquo; · fresh <code>checked_at</code>.</span></div>
+            <div class="kv"><span class="k">Action</span><span class="v prose">None. This is the affirmative state. The receipt is signed and re-verifiable.</span></div>
+            <div class="kv"><span class="k">Example</span><span class="v">OIG-LEIE · 0 records · 10 s ago</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- E · issuer unavailable -->
+      <div class="fc E" style="grid-column:1 / -1;">
+        <div class="band"><strong>E · Issuer unavailable</strong><span style="color:var(--ink-400);">cryptographic · the signing path</span></div>
+        <div class="body">
+          <div class="icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M9.5 9.5 L17 17 M14 14 L16 14 M15 15 L15 17" stroke="currentColor" stroke-width="1.4" stroke-linecap="square"/><path d="M3 17 L17 3" stroke="currentColor" stroke-width="1.4"/></svg></div>
+          <div>
+            <h3>The signing key can&rsquo;t be reached or trusted.</h3>
+            <p class="lede">The most serious mode. The active signing key is unreachable, expired, or compromised. <strong>New receipts cannot issue</strong> until the issuer continuity plane recovers (active key, backup signer, or rotation). Existing signed receipts remain valid — until and unless one is explicitly revoked via Status List 2021.</p>
+            <div class="kv"><span class="k">Owner</span><span class="v prose" style="color:var(--ink-400);">VitalCV · keyholder quorum.</span></div>
+            <div class="kv"><span class="k">User sees</span><span class="v prose" style="color:var(--ink-400);">Inverted black banner across signed surfaces · &ldquo;issuance paused · existing credentials unaffected unless revoked&rdquo;.</span></div>
+            <div class="kv"><span class="k">Action</span><span class="v prose" style="color:var(--ink-400);">Verifiers: continue to trust existing receipts. Operators: rotate to backup signer per runbook.</span></div>
+            <div class="kv"><span class="k">Example</span><span class="v" style="color:#fff;">key 4f2a unreachable · backup 8c91 ready · quorum 3 of 5 pending</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Decision table -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">02</span>
+      <h2>Decision matrix · five modes, five questions</h2>
+      <span class="ey">read across each row to identify the mode</span>
+    </div>
+
+    <div class="dt">
+      <div class="h">
+        <div class="c"><strong>Mode</strong></div>
+        <div class="c"><strong>Who failed?</strong></div>
+        <div class="c"><strong>Receipt written?</strong></div>
+        <div class="c"><strong>Existing creds OK?</strong></div>
+        <div class="c"><strong>User can act?</strong></div>
+        <div class="c"><strong>Visual cue</strong></div>
+      </div>
+      <div class="r">
+        <div class="c rk">A · Source unreachable</div>
+        <div class="c">Upstream registry</div>
+        <div class="c yn">yes · with <code>degraded</code></div>
+        <div class="c yn">yes</div>
+        <div class="c">retry · wait</div>
+        <div class="c">dashed chip · age label</div>
+      </div>
+      <div class="r">
+        <div class="c rk">B · Anonymous restriction</div>
+        <div class="c">No one — policy gate</div>
+        <div class="c yn">no</div>
+        <div class="c yn">yes</div>
+        <div class="c">sign in</div>
+        <div class="c">greyed lane · "sign in" cta</div>
+      </div>
+      <div class="r">
+        <div class="c rk">C · Infrastructure outage</div>
+        <div class="c">VitalCV</div>
+        <div class="c yn">no</div>
+        <div class="c yn">yes · offline-verifiable</div>
+        <div class="c">use the verifier directly</div>
+        <div class="c">black banner · inc-id · status link</div>
+      </div>
+      <div class="r">
+        <div class="c rk">D · No adverse findings</div>
+        <div class="c">No one — success</div>
+        <div class="c yn">yes · signed</div>
+        <div class="c yn">yes</div>
+        <div class="c">none</div>
+        <div class="c">solid chip · "no findings"</div>
+      </div>
+      <div class="r">
+        <div class="c rk">E · Issuer unavailable</div>
+        <div class="c">VitalCV · keyholders</div>
+        <div class="c yn">no · until rotation</div>
+        <div class="c yn">yes · unless revoked</div>
+        <div class="c">rely on prior receipts</div>
+        <div class="c">inverted black banner</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Not-this pairs -->
+  <div class="sec">
+    <div class="sh">
+      <span class="n">03</span>
+      <h2>Confusions to prevent</h2>
+      <span class="ey">three pairs that look identical without the rules above</span>
+    </div>
+
+    <div class="notthis">
+      <div class="grid">
+        <div class="pair"><strong>D &ne; A</strong>&ldquo;Nothing found&rdquo; in an exclusion list is a <em>signed negative finding</em>. &ldquo;Source unreachable&rdquo; is the absence of a check. Conflating them lets a degraded source masquerade as a clean record. The system never lets this happen — D is solid, A is dashed.</div>
+        <div class="pair"><strong>B &ne; C</strong>&ldquo;Sign in to verify&rdquo; is a policy gate; the user can resolve it themselves. &ldquo;VitalCV is down&rdquo; is a platform incident; the user can&rsquo;t. We never tell a user to authenticate when the cause is our service.</div>
+        <div class="pair"><strong>C &ne; E</strong>An ordinary outage suspends <em>new</em> work. An issuer-unavailable event suspends <em>signing</em> specifically — receipts already in the wild are not affected. The inverted register on E signals that this is the cryptographic plane, not the runtime plane.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="foot-page">
+  <div>VitalCV · Failure Taxonomy · <span style="color:var(--ink-700);">name the cause · name the owner · name the next action</span></div>
+  <div style="text-align:right;">
+    <div>Build <span style="color:var(--ink-700);">vc.2026.05.11-a</span> · spec <span style="color:var(--ink-700);">v1</span></div>
+    <div style="color:var(--ink-400);margin-top:2px;">A · source · B · auth · C · platform · D · success · E · issuer</div>
+  </div>
+</footer>
+
+</body>
+</html>

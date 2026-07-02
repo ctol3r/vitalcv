@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VitalCV — Professional Trust Infrastructure for the Healthcare Workforce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;420;450;500;520;540;560;580;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="trust-os.css" />
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────── -->
+<nav class="nav" id="nav">
+  <div class="in">
+    <a class="brand" href="#top">
+      <span class="glyph">V</span>
+      <span class="wm">VitalCV<span> / trust</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#career">Career</a>
+      <a href="#trust">Trust</a>
+      <a href="#growth">Growth</a>
+      <a href="#organizations">Organizations</a>
+      <a href="#platform">Platform</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#graph">See the career graph</a>
+      <a class="btn btn-primary" href="#close">Get started <span class="btn-arrow">→</span></a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <div class="in">
+      <div class="eyebrow accent reveal"><span class="dot"></span> Professional Trust Infrastructure</div>
+      <div class="why reveal d1"><span class="q">Why VitalCV exists</span> — before what it does</div>
+      <h1 class="reveal d1">Professional trust should <span class="grad">compound across an entire healthcare career.</span></h1>
+      <p class="lead reveal d2">Today it resets at every transition — re-verified, re-doubted, re-collected from zero. VitalCV is the layer where a clinician's evidence is proven <b>once</b>, signed, and carried <b>forever</b>: the connective tissue between identity, employers, and opportunity.</p>
+      <div class="actions reveal d3">
+        <a class="btn btn-primary" href="#graph" style="padding:12px 20px;">Explore the career graph <span class="btn-arrow">→</span></a>
+        <a class="btn btn-ghost" href="#products" style="padding:12px 20px;">Five products, one system</a>
+      </div>
+    </div>
+
+    <div class="claim reveal d3">
+      <div class="big">
+        This isn't <span class="strike">another credentialing platform.</span><br />
+        It's the <em>infrastructure that powers an entire healthcare career.</em>
+      </div>
+      <div class="meta">
+        <div class="row"><span>Category</span><b>Professional Trust Infrastructure</b></div>
+        <div class="row"><span>For</span><b>The healthcare workforce</b></div>
+        <div class="row"><span>Primitive</span><b>The portable, signed receipt</b></div>
+        <div class="row"><span>Replayable for</span><b>7 years · any verifier</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CAREER GRAPH ────────────────────────────────────────────────────── -->
+<section class="sec graph-sec" id="graph">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow"><span class="dot"></span> The Career Graph</div>
+      <h2>Every credential is a node. Every node compounds.</h2>
+      <p>A clinician's career is not a résumé — it's a <b>graph of verified evidence</b> that accrues from the first day of training to the last day of practice. Each stage signs the one before it. Trust never starts over.</p>
+    </div>
+
+    <div class="graph-shell reveal d1" id="graphShell">
+      <div class="graph-top">
+        <div class="lab">Career trust, <b>compounding over time</b></div>
+        <div class="graph-index">
+          <span class="num" id="trustNum" data-target="100">0</span>
+          <span class="of">/ 100 trust index</span>
+          <span class="tag">VERIFIABLE OUTSIDE THE ISSUER</span>
+        </div>
+      </div>
+
+      <div class="graph-stage" id="graphStage">
+        <!-- SVG (curve + area) and HTML nodes injected by career-graph.js -->
+      </div>
+
+      <div class="graph-detail" id="graphDetail">
+        <!-- stage detail injected by JS -->
+      </div>
+
+      <div class="graph-foot">
+        <div class="hint">Education → Training → Licensure → Evidence → Trust → Organizations → Leadership → Legacy</div>
+        <div class="hint"><kbd>←</kbd> <kbd>→</kbd> walk the graph · click a node</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FIVE PRODUCTS ───────────────────────────────────────────────────── -->
+<section class="sec" id="products">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow"><span class="dot"></span> Product Architecture</div>
+      <h2>Dozens of surfaces, collapsed into five products.</h2>
+      <p>No feature-first thinking. Every navigation item belongs to exactly one product, and every product produces one outcome. Together they are a <b>single operating system</b> for professional trust.</p>
+    </div>
+
+    <div class="prod-grid reveal d1">
+      <div class="prod wide" id="career" style="--hue:var(--career);">
+        <div class="ptop">
+          <span class="pmark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </span>
+          <span class="pname">Career</span>
+        </div>
+        <h3>Everything about the clinician.</h3>
+        <p>One canonical professional identity — the profile, the timeline, the portable passport — owned by the clinician, not the employer.</p>
+        <div class="items"><span>Profile</span><span>Timeline</span><span>Passport</span><span>Identity</span></div>
+      </div>
+
+      <div class="prod wide" id="trust" style="--hue:var(--trust);">
+        <div class="ptop">
+          <span class="pmark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <span class="pname">Trust</span>
+        </div>
+        <h3>Evidence that verifies itself.</h3>
+        <p>Federal sources asked once, signed, and reissued as receipts any verifier can replay — without VitalCV in the loop.</p>
+        <div class="items"><span>Evidence</span><span>Verification</span><span>Recognition</span><span>Readiness</span></div>
+      </div>
+
+      <div class="prod" id="growth" style="--hue:var(--growth);">
+        <div class="ptop">
+          <span class="pmark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18L10 12l4 4 6-7"/><path d="M15 9h5v5"/></svg>
+          </span>
+          <span class="pname">Growth</span>
+        </div>
+        <h3>A career that keeps moving.</h3>
+        <p>Education, intelligence, mentorship and leadership — built on the same verified record.</p>
+        <div class="items"><span>Education</span><span>Career Intelligence</span><span>Mentorship</span><span>Leadership</span></div>
+      </div>
+
+      <div class="prod" id="organizations" style="--hue:var(--orgs);">
+        <div class="ptop">
+          <span class="pmark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V5l8-2v18"/><path d="M12 21V9l8 2v10"/><path d="M3 21h18"/></svg>
+          </span>
+          <span class="pname">Organizations</span>
+        </div>
+        <h3>Hire on proof, not paperwork.</h3>
+        <p>Employers, recruiters and credentialing teams advance enrollment in parallel — on evidence already attested.</p>
+        <div class="items"><span>Employers</span><span>Recruiters</span><span>Credentialing</span><span>Hiring</span></div>
+      </div>
+
+      <div class="prod" id="platform" style="--hue:var(--platform);">
+        <div class="ptop">
+          <span class="pmark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/></svg>
+          </span>
+          <span class="pname">Platform</span>
+        </div>
+        <h3>Trust other systems build on.</h3>
+        <p>APIs, developer tooling and integrations so the portals you already run stop redoing each other's work.</p>
+        <div class="items"><span>APIs</span><span>Developers</span><span>Integrations</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STORYTELLING SPINE ──────────────────────────────────────────────── -->
+<section class="sec spine-sec" id="story">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow"><span class="dot"></span> The Through-Line</div>
+      <h2>One story, reinforced on every screen.</h2>
+      <p>From the first verified document to a career-long legacy, the experience moves in a single direction. Each stage is the foundation the next one compounds on.</p>
+    </div>
+
+    <div class="spine reveal d1" id="spine">
+      <div class="step" style="--p:14%;"><div class="n">01</div><div class="w">Identity</div><div class="d">Who the clinician is, canonically.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:28%;"><div class="n">02</div><div class="w">Evidence</div><div class="d">Federal facts, asked at the source.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:44%;"><div class="n">03</div><div class="w">Trust</div><div class="d">Signed receipts, replayable.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:60%;"><div class="n">04</div><div class="w">Growth</div><div class="d">Education and recognition accrue.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:74%;"><div class="n">05</div><div class="w">Mobility</div><div class="d">Move without starting over.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:88%;"><div class="n">06</div><div class="w">Opportunity</div><div class="d">Matched on proof, not promise.</div><div class="bar"><i></i></div><div class="arrow">→</div></div>
+      <div class="step" style="--p:100%;"><div class="n">07</div><div class="w">Legacy</div><div class="d">A record that outlives employers.</div><div class="bar"><i></i></div></div>
+    </div>
+
+    <div class="proof reveal d2" style="margin-top:48px;">
+      <div class="p"><div class="k">Time-to-bill</div><div class="v">−67<span class="u">days</span></div><div class="d">103 → 36, cohort median.</div></div>
+      <div class="p"><div class="k">Captured per hire</div><div class="v">$278k<span class="u">+</span></div><div class="d">Lost revenue + locum offset.</div></div>
+      <div class="p"><div class="k">Replayable</div><div class="v">7<span class="u">yrs</span></div><div class="d">Any verifier, no issuer.</div></div>
+      <div class="p"><div class="k">Stores PHI</div><div class="v">0</div><div class="d">Rejected by validation.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CLOSING ─────────────────────────────────────────────────────────── -->
+<section class="close" id="close">
+  <div class="wrap">
+    <div class="in">
+      <div class="eyebrow accent reveal" style="justify-content:center;"><span class="dot"></span> Understood in 20 seconds</div>
+      <h2 class="reveal d1">Not another credentialing tool. <span class="grad">The infrastructure beneath a career.</span></h2>
+      <p class="reveal d2">Professional identity becomes evidence. Evidence becomes trust. Trust becomes growth, mobility, opportunity — and, eventually, legacy. One operating system, compounding for the entire healthcare workforce.</p>
+      <div class="actions reveal d3">
+        <a class="btn btn-primary" href="#top" style="padding:13px 24px;">Run VitalCV on 10 of your NPIs <span class="btn-arrow">→</span></a>
+        <a class="btn btn-ghost" href="#graph" style="padding:13px 24px;">Replay the career graph</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="in">
+      <div class="col about">
+        <a class="brand" href="#top"><span class="glyph">V</span><span class="wm">VitalCV<span> / trust</span></span></a>
+        <p>Professional Trust Infrastructure for the healthcare workforce. Verified once. Carried forever.</p>
+      </div>
+      <div class="col">
+        <h5>Products</h5>
+        <a href="#career">Career</a>
+        <a href="#trust">Trust</a>
+        <a href="#growth">Growth</a>
+        <a href="#organizations">Organizations</a>
+        <a href="#platform">Platform</a>
+      </div>
+      <div class="col">
+        <h5>The Graph</h5>
+        <a href="#graph">Career Graph</a>
+        <a href="#story">The through-line</a>
+        <a href="#products">Architecture</a>
+      </div>
+      <div class="col">
+        <h5>Trust model</h5>
+        <a href="#graph">Signed receipts</a>
+        <a href="#story">Replay & audit</a>
+        <a href="#close">No PHI, ever</a>
+      </div>
+    </div>
+    <div class="legal">
+      <span>VitalCV · Wave 600 · Category-Defining Experience</span>
+      <span>Verifiable outside the issuer · Edition 2026</span>
+    </div>
+  </div>
+</footer>
+
+<script src="career-graph.js"></script>
+</body>
+</html>
