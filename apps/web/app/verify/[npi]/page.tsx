@@ -21,6 +21,11 @@ import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPan
 import { ReplayChronologyPanel } from '@/components/verifier/ReplayChronologyPanel';
 import type { LaneSnapshot } from '@/components/proof/trust-types';
 import type { PassportData } from '@/lib/trust/passport-contract';
+import {
+  normalizeEmployerAcceptanceHistoryResponse,
+  type EmployerAcceptanceHistoryResponse,
+} from '@/lib/employer-review-actions';
+import { acceptanceScopeLabel, formatAcceptedAt } from '@/lib/recognition/acceptance-recognition';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -122,6 +127,30 @@ async function fetchPassport(npi: string): Promise<PassportData | null> {
   }
 }
 
+/**
+ * Recorded employer acceptances (Recognition → Acceptance → Start, middle
+ * step). Public read, same anonymized payload the review surface shows.
+ * Null means the lookup failed — rendered as a system state, never as an
+ * empty record.
+ */
+async function fetchAcceptanceHistory(
+  npi: string,
+): Promise<EmployerAcceptanceHistoryResponse | null> {
+  try {
+    const res = await fetch(
+      `${BACKEND}/api/employer-review/${encodeURIComponent(npi)}/acceptance-history`,
+      {
+        headers: { Accept: 'application/json' },
+        next: { revalidate: 60 },
+      },
+    );
+    if (!res.ok) return null;
+    return normalizeEmployerAcceptanceHistoryResponse(await res.json());
+  } catch {
+    return null;
+  }
+}
+
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
@@ -146,7 +175,10 @@ export default async function VerifierPage({
   params: Promise<{ npi: string }>;
 }) {
   const { npi } = await params;
-  const passport = await fetchPassport(npi);
+  const [passport, acceptanceHistory] = await Promise.all([
+    fetchPassport(npi),
+    fetchAcceptanceHistory(npi),
+  ]);
 
   if (!passport) {
     return <NotFound npi={npi} />;
@@ -255,6 +287,11 @@ export default async function VerifierPage({
           <ProvenanceStrip lanes={lanes} />
         </Section>
 
+        {/* ── Section: Employer acceptances (Recognition) ────────────────── */}
+        <Section title="Employer acceptances">
+          <AcceptancePanel history={acceptanceHistory} />
+        </Section>
+
         {/* ── Section: Receipt Verification ─────────────────────────────── */}
         <Section title="Verification receipt">
           {firstReceiptLane ? (
@@ -327,6 +364,57 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="border border-dashed border-gray-200 rounded px-3 py-4 text-sm text-gray-400 text-center">
       {message}
+    </div>
+  );
+}
+
+/**
+ * Recorded employer acceptances for the reviewed NPI. Three explicit states:
+ * entries, an honest zero-state, and a system-state line when the lookup
+ * failed (never rendered as "no acceptances").
+ */
+function AcceptancePanel({
+  history,
+}: {
+  history: EmployerAcceptanceHistoryResponse | null;
+}) {
+  if (!history) {
+    return (
+      <EmptyState message="Acceptance record temporarily unavailable. This is a system state — not a finding about this clinician." />
+    );
+  }
+
+  if (!history.summary.hasPriorAcceptances) {
+    return <EmptyState message="No employer acceptances recorded for this NPI." />;
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+      <div className="px-4 py-3">
+        <p className="text-sm font-semibold text-gray-900">{history.summary.headline}</p>
+        {history.summary.trustCopy && (
+          <p className="mt-1 text-xs leading-5 text-gray-500">{history.summary.trustCopy}</p>
+        )}
+      </div>
+      {history.history.map((entry, index) => (
+        <div
+          key={entry.acceptanceId ?? `${entry.acceptedAt}-${index}`}
+          className="px-4 py-3 flex flex-wrap items-center justify-between gap-2"
+        >
+          <div>
+            <p className="text-sm text-gray-800">{entry.orgLabel}</p>
+            {entry.acceptanceReason && (
+              <p className="mt-0.5 text-xs text-gray-500">{entry.acceptanceReason}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="border border-gray-200 rounded-full px-2 py-0.5">
+              {acceptanceScopeLabel(entry.acceptanceScope)}
+            </span>
+            {formatAcceptedAt(entry.acceptedAt) && <span>{formatAcceptedAt(entry.acceptedAt)}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

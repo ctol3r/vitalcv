@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Award, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
+import { ShareRecognitionPanel } from '@/components/recognition/ShareRecognitionPanel';
 import {
   acceptanceScopeLabel,
   fetchAcceptanceRecognition,
@@ -194,6 +195,10 @@ export function RecognitionSurface() {
               ))}
             </section>
           </>
+        )}
+
+        {'npi' in phase && phase.npi && (
+          <ShareRecognitionPanel npi={phase.npi} />
         )}
 
         <section

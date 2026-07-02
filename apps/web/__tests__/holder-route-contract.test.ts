@@ -28,6 +28,7 @@ const SURFACE_FILES = [
   'components/clinician/MobileBottomNav.tsx',
   'components/recognition/RecognitionCard.tsx',
   'components/recognition/RecognitionSurface.tsx',
+  'components/recognition/ShareRecognitionPanel.tsx',
 ];
 
 /** Extract internal href path literals (static + template-literal heads). */
