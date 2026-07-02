@@ -119,7 +119,7 @@ describe('/verify/[npi] acceptance panel', () => {
   }) {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes('/api/trust-proof/')) return routes.passport();
+      if (url.includes('/api/passport/npi/')) return routes.passport();
       if (url.includes('/acceptance-history')) return routes.acceptance();
       throw new Error(`Unexpected fetch: ${url}`);
     }));
