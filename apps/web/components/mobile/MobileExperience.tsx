@@ -697,7 +697,7 @@ function RoleCard({
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Link
-          href={`/opportunities/${opportunity.id}`}
+          href={`/holder/opportunities/${opportunity.id}`}
           className="flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-white/80 transition hover:bg-white/[0.06] hover:text-white"
         >
           Details
