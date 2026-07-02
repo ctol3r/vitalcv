@@ -185,7 +185,9 @@ async function handlePublicProfile(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  if (!UUID_RE.test(slug.trim())) {
+  // Test the raw value — it is what the queries below receive, so a padded
+  // uuid must fail here rather than reach Prisma.
+  if (!UUID_RE.test(slug)) {
     res.status(404).json({ error: 'Profile not found' });
     return;
   }

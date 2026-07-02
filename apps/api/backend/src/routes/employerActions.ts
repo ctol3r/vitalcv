@@ -701,7 +701,9 @@ export function registerEmployerActionRoutes(app: Express): void {
       const { entityId } = req.params;
 
       if (!entityId?.trim()) throw new HttpError(400, 'entityId is required.');
-      if (!UUID_RE.test(entityId.trim())) {
+      // Test the raw value — it is what buildPassport and the query below
+      // receive, so a padded uuid must fail here rather than reach Prisma.
+      if (!UUID_RE.test(entityId)) {
         throw new HttpError(404, `Entity ${entityId} not found.`);
       }
 

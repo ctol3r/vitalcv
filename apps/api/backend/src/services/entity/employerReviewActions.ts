@@ -795,7 +795,9 @@ const ENTITY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 export async function resolveEmployerReviewSubject(
   entityId: string,
 ): Promise<EmployerReviewSubject | null> {
-  if (!entityId.trim() || !ENTITY_UUID_RE.test(entityId.trim())) return null;
+  // Test the raw value — it is what the query below receives, so a padded
+  // uuid must fail here rather than reach Prisma.
+  if (!ENTITY_UUID_RE.test(entityId)) return null;
 
   const entity = await prisma.vcvEntity.findUnique({
     where: { id: entityId },
