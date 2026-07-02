@@ -30,8 +30,10 @@ function shortId(id: string | null | undefined, len = 8): string {
   return id.slice(0, len);
 }
 
+// Truth contract: never the bare word "Verified" as a status label —
+// 'SOURCE-BACKED' matches the ProvenanceStrip vocabulary for this state.
 const STATUS_LABEL: Record<string, string> = {
-  verified: 'VERIFIED',
+  verified: 'SOURCE-BACKED',
   in_progress: 'IN PROGRESS',
   not_checked: 'NOT CHECKED',
   stale: 'STALE',
