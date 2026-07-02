@@ -70,14 +70,18 @@ function buildEvents(lanes: LaneSnapshot[], prior: LaneSnapshot[]): RunEvent[] {
     .filter((l) => l.checkedAt !== null)
     .map((l) => {
       const def = KNOWN_LANES.find((d) => d.laneId === l.laneId);
+      // Normalize before label/color lookups so a runtime status like
+      // 'VERIFIED' resolves through STATUS_LABEL instead of falling back
+      // to the banned bare label via toUpperCase().
+      const status = String(l.status).trim().toLowerCase();
       return {
         isoTs: toIsoFull(l.checkedAt),
         tsMs: l.checkedAt ?? 0,
         lane: def?.displayName ?? l.laneId,
         source: l.source ?? def?.source ?? l.laneId,
-        status: l.status,
+        status,
         receiptId: l.receiptId,
-        tier: l.status === 'verified' ? 'T3' : 'T1',
+        tier: status === 'verified' ? 'T3' : 'T1',
       };
     })
     .sort((a, b) => b.tsMs - a.tsMs);

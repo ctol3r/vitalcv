@@ -12,6 +12,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ReplayChronologyPanel } from '../../components/verifier/ReplayChronologyPanel';
+import type { LaneSnapshot } from '../../components/proof/trust-types';
 
 describe('ReplayChronologyPanel status labels', () => {
   it('renders verified lanes as SOURCE-BACKED, never the bare VERIFIED label', () => {
@@ -21,6 +22,26 @@ describe('ReplayChronologyPanel status labels', () => {
           {
             laneId: 'NPPES_API',
             status: 'verified',
+            checkedAt: Date.UTC(2026, 5, 30, 12, 0, 0),
+            source: 'https://npiregistry.cms.hhs.gov',
+            receiptId: 'rcpt-12345678',
+          },
+        ]}
+      />,
+    );
+
+    expect(html).toContain('SOURCE-BACKED');
+    expect(html).not.toMatch(/·\s*VERIFIED/);
+    expect(html).not.toMatch(/>\s*VERIFIED\s*</);
+  });
+
+  it('normalizes unmapped runtime status casing instead of falling back to the bare label', () => {
+    const html = renderToStaticMarkup(
+      <ReplayChronologyPanel
+        lanes={[
+          {
+            laneId: 'NPPES_API',
+            status: 'VERIFIED' as LaneSnapshot['status'],
             checkedAt: Date.UTC(2026, 5, 30, 12, 0, 0),
             source: 'https://npiregistry.cms.hhs.gov',
             receiptId: 'rcpt-12345678',
