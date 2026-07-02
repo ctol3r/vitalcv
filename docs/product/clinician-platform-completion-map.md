@@ -6,16 +6,16 @@ Baseline: origin/main `2622def4c` (2026-07-01). Sources: 4 parallel Explore audi
 
 | # | Surface | Status | Reality | Gap to close |
 |---|---------|--------|---------|--------------|
-| 1 | Professional Profile | **BUILT (PR #476)** | `/clinician/profile` rebuilt live: workspace PersonProfile + passport-driven ClinicianProfileSections; self-attested links/resume/work-auth save through existing intake endpoints; completeness from backend; linked from holder home. | Gate + merge #476. |
+| 1 | Professional Profile | **BUILT** | `/clinician/profile` rebuilt live (PR #476, merged + production-verified): workspace PersonProfile + passport-driven ClinicianProfileSections; self-attested links/resume/work-auth save through existing intake endpoints; completeness from backend; linked from holder home. | Done. |
 | 2 | Credential Readiness | **BUILT** | `/holder/readiness` live passport-derived snapshot (PR #468, merged 2026-07-01). Conservative state mapping; only `checked` reads as verified. | Done. |
 | 3 | Recognition | **PARTIAL** | Backend models exist (Recognition/Acceptance/Start); recognition events flow through `/api/timeline` projection (RecognitionImpact) + application workflow updates. No dedicated clinician recognition display. | Surface recognition in holder home / timeline UI. |
 | 4 | Career Passport | **BUILT** | `/passport` live SSE ingest (NPPES→OIG→PECOS→license), `/passport/[id]` public share, wallet passport view. | Polish only. |
-| 5 | Opportunity Center | **BUILT (+detail in PR #477)** | `/holder/opportunities` ← provider ← marketplace backend + MATCHA. PR #477 adds the missing `/holder/opportunities/[id]` role detail (match explanation + apply reuse) and fixes 5 dead `/opportunities/[id]` links. | Gate + merge #477. |
+| 5 | Opportunity Center | **BUILT** | `/holder/opportunities` ← provider ← marketplace backend + MATCHA. PR #477 (merged) added the `/holder/opportunities/[id]` role detail (match explanation + apply reuse) and fixed 5 dead `/opportunities/[id]` links. | Done. |
 | 6 | Applications | **BUILT** | `/holder/applications` ← real backend proxy, Clerk-gated. | Verify states (Phase 4). |
 | 7 | Application Detail | **BUILT** | `/holder/applications/[id]` with timeline + workflow actions. | Verify states (Phase 4). |
-| 8 | Career Timeline | **BUILT (staged)** | Workspace cluster (activity/career-map/career-intelligence/professional-growth/network) is already unified by WorkspaceNav (Wave 600) — the missing edge was holder → cluster. `/holder/timeline` (branch feat/holder-career-timeline) resolves the clinician's NPI server-side and lands on `/activity/[npi]`; linked from holder home. | Open PR after #476 merges (stacked). |
+| 8 | Career Timeline | **BUILT** | Workspace cluster (activity/career-map/career-intelligence/professional-growth/network) was already unified by WorkspaceNav (Wave 600) — the missing edge was holder → cluster. `/holder/timeline` (PR #479, merged) resolves the clinician's NPI server-side and lands on `/activity/[npi]`; linked from holder home. | Done. |
 | 9 | Wallet | **BUILT** | `/holder` renders WalletPassport + CredentialWallet + TrustStatePanel from real APIs. Fake-data WalletDashboard deleted (PR #474, merged 2026-07-01). ClinicianProfileSections kept and now consumed by the live profile (PR #476). | Done. |
-| 10 | Settings | **BUILT (staged)** | `/holder/settings` built on branch feat/holder-settings: Clerk account row + sign-out, identity-binding status, profile link, honest data-&-sharing section (real controls only, no decorative toggles). | Open PR after #476 merges (stacked). |
+| 10 | Settings | **BUILT** | `/holder/settings` (PR #480, merged): Clerk account row + sign-out, identity-binding status, profile link, honest data-&-sharing section (real controls only, no decorative toggles). | Done. |
 
 ## Journey stages beyond the 10
 
