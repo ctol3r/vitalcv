@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Holder Page — Clinician Your readiness
+ * Holder Page — Clinician wallet & passport
  *
  * Loads the logged-in clinician's real NPI from their workspace profile.
  * If no NPI is set up yet, shows an onboarding empty state → /get-ready.

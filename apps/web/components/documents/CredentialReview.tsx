@@ -205,7 +205,7 @@ export function CredentialReview({ documentId, documentType, fields, onBack }: C
             boxShadow: '0 0 20px rgba(16,185,129,0.3)',
           }}
         >
-          View your Your readiness →
+          View your readiness →
         </Link>
       </div>
     );
