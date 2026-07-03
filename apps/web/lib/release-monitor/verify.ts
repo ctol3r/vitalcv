@@ -56,9 +56,6 @@ export interface VerifyDeps {
   reach: (session: ClinicianSession, path: string) => Promise<NavOutcome>;
   runDeployCheck: () => Promise<{ ok: boolean; detail: string }>;
   cleanup: (created: { userId: string | null; orgId: string | null }) => Promise<CleanupResult>;
-  /** Invoked as soon as mint reports created ids, so a caller can clean up on
-   *  a hard process kill (e.g. a GitHub step timeout) that skips the finally. */
-  onCreated?: (created: { userId: string | null; orgId: string | null }) => void;
 }
 
 function short(sha: string | null | undefined): string {
@@ -103,7 +100,6 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
     // 3. Mint a synthetic clinician session.
     const minted = await deps.mint();
     created = minted.created;
-    deps.onCreated?.(created);
     if (!minted.ok || !minted.session) {
       checks.push({ name: 'synthetic_session', ok: false, critical: true, detail: minted.error ?? 'mint failed' });
       for (const r of routes) {

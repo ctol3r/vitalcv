@@ -101,6 +101,26 @@ describe('mintClinicianSession', () => {
     expect(r.ok).toBe(false);
     expect(r.created).toEqual({ userId: 'user_x', orgId: 'org_x' });
   });
+
+  it('reports created ids INCREMENTALLY (before mint returns) so a mid-mint kill can clean up', async () => {
+    const snapshots: Array<{ userId: string | null; orgId: string | null }> = [];
+    const fetchImpl = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes('/v1/users')) return jsonRes({ id: 'user_x' });
+      if (u.includes('/v1/organizations')) return jsonRes({ id: 'org_x' });
+      // Hang-analogue: fail right after both resources exist.
+      if (u.includes('/v1/sign_in_tokens')) return jsonRes({ errors: [{ code: 'x' }] }, { status: 500 });
+      return jsonRes({});
+    });
+    await mintClinicianSession({
+      ...base,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      onResourceCreated: (c) => snapshots.push({ ...c }),
+    });
+    // The user id was reported the instant it existed — not only at return.
+    expect(snapshots[0]).toEqual({ userId: 'user_x', orgId: null });
+    expect(snapshots.at(-1)).toEqual({ userId: 'user_x', orgId: 'org_x' });
+  });
 });
 
 describe('cleanupClinician', () => {

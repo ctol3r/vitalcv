@@ -176,8 +176,10 @@ echo the short-lived sign-in ticket.
 
 **Hard-kill window:** a GitHub step timeout (or SIGKILL) can terminate the
 process before the normal `finally` cleanup. The runner registers a
-SIGTERM/SIGINT handler for best-effort cleanup, but a hard kill can still leak
-one synthetic identity.
+SIGTERM/SIGINT handler for best-effort cleanup, and the synthetic layer reports
+each created id *incrementally* (the instant the Clerk user, then org, exists) —
+so a kill mid-mint still cleans up a just-created user. A SIGKILL (no grace) or
+the microsecond gap before the id is reported can still leak one identity.
 
 **Required backstop (guaranteed cleanup):** a periodic reconciliation sweep MUST
 delete any stale synthetic identities — Clerk users with

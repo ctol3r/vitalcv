@@ -122,13 +122,24 @@ async function main(): Promise<void> {
 
   const containerSha = await pollContainerSha(base, effectiveTarget, waitMs, 10_000);
 
-  const scDeps: SyntheticClinicianDeps = { fetchImpl: fetch, clerkSecretKey, fapiBase, appBase: base, runId };
-
   // Best-effort cleanup if the process is hard-killed (e.g. a GitHub step
   // timeout) before the normal finally runs — otherwise a hung run leaks a
-  // synthetic identity. The reconciliation sweep (see the doc) is the
-  // guaranteed backstop; this narrows the window.
+  // synthetic identity. `liveCreated` is updated INCREMENTALLY the instant each
+  // Clerk resource exists (onResourceCreated fires inside mint), so a kill
+  // mid-mint still cleans up a just-created user. The reconciliation sweep (see
+  // the doc) remains the guaranteed backstop for SIGKILL / the microsecond gap.
   let liveCreated: { userId: string | null; orgId: string | null } = { userId: null, orgId: null };
+  const scDeps: SyntheticClinicianDeps = {
+    fetchImpl: fetch,
+    clerkSecretKey,
+    fapiBase,
+    appBase: base,
+    runId,
+    onResourceCreated: (created) => {
+      liveCreated = created;
+    },
+  };
+
   let cleaningOnSignal = false;
   const onSignal = (sig: string) => {
     if (cleaningOnSignal) return;
@@ -144,9 +155,6 @@ async function main(): Promise<void> {
     containerSha,
     mainSha,
     targetSha,
-    onCreated: (created) => {
-      liveCreated = created;
-    },
     probeResolving: () => probeResolving(base),
     mint: () => mintClinicianSession(scDeps),
     warmUp: (s: ClinicianSession) => warmUpClinicianSession(scDeps, s),

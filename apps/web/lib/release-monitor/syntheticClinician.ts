@@ -54,6 +54,10 @@ export interface SyntheticClinicianDeps {
   /** Deterministic run id — seeds the synthetic email/org name (no Math.random). */
   runId: string;
   now?: () => number;
+  /** Invoked with a snapshot of created ids the instant each Clerk resource
+   *  exists (user, then org), so a hard-kill handler can clean up resources
+   *  created mid-mint — before mintClinicianSession() returns. */
+  onResourceCreated?: (created: { userId: string | null; orgId: string | null }) => void;
 }
 
 export interface ClinicianSession {
@@ -206,6 +210,10 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
     }
     const user = (await userRes.json()) as { id: string };
     created.userId = user.id;
+    // Report the id THE INSTANT it exists — a hard kill (step timeout) during the
+    // subsequent FAPI work must still be able to clean this user up. Reporting
+    // only after mint() returns would leak a user created mid-mint.
+    deps.onResourceCreated?.({ ...created });
 
     // 2. Create an org owned by the user (satisfies instances that require an active org).
     try {
@@ -218,6 +226,7 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
       if (orgRes.ok) {
         const org = (await orgRes.json()) as { id: string };
         created.orgId = org.id;
+        deps.onResourceCreated?.({ ...created });
       }
     } catch {
       /* org is best-effort — instances without orgs still yield a usable session */

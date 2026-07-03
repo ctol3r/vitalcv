@@ -98,12 +98,6 @@ describe('runReleaseVerification', () => {
     expect(r.checks.some((c) => c.name === 'cleanup')).toBe(false);
   });
 
-  it('invokes onCreated with the minted ids (for hard-kill cleanup)', async () => {
-    const onCreated = vi.fn();
-    await runReleaseVerification(baseDeps({ onCreated }));
-    expect(onCreated).toHaveBeenCalledWith({ userId: 'u', orgId: 'o' });
-  });
-
   it('treats SHA mismatch as critical for a deploy-scoped run, reported for a scheduled run', async () => {
     const deployScoped = await runReleaseVerification(baseDeps({ containerSha: 'old', targetSha: 'new', mainSha: 'new' }));
     expect(deployScoped.failedChecks).toContain('web_sha');
