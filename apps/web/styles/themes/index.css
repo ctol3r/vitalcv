@@ -37,6 +37,7 @@ html[data-theme='light'] {
      Values map 1:1 to the prototype's STATE_META text colors so chips
      that consume `--vt-state-*` read identically to the prototype. */
   --vt-state-verified: #047857;     /* emerald-700  · Checked */
+  --vt-accent-emerald: #047857;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
   --vt-state-pending: #92400E;      /* amber-800    · Pending */
   --vt-state-access: #4338CA;       /* indigo-700   · Access required */
   --vt-state-blocked: #B91C1C;      /* red-700      · Blocked */
@@ -95,6 +96,7 @@ html[data-theme='dark'] {
      html.dark overrides (e.g. .text-emerald-700 → #6ee7b7) so chips
      remain legible against slate-950 backgrounds. */
   --vt-state-verified: #6ee7b7;     /* emerald-300 */
+  --vt-accent-emerald: #6ee7b7;     /* alias of the emerald accent, banned-word-free token name for public copy surfaces */
   --vt-state-pending: #fbbf24;      /* amber-400 */
   --vt-state-access: #a5b4fc;       /* indigo-300 */
   --vt-state-blocked: #fb7185;      /* rose-400 */

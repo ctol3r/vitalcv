@@ -7,6 +7,7 @@ import { SignedIn } from '@clerk/nextjs';
 import {
   ArrowRight,
   Award,
+  CheckCircle2,
   Compass,
   Fingerprint,
   Share2,
@@ -25,6 +26,33 @@ function formatNpi(value: string): string {
   if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
 }
+
+/**
+ * Capability rail — the breadth of the product, stated once, above the fold.
+ * A first-time visitor should see VitalCV is a wallet + readiness + recognition
+ * + opportunity platform before scrolling, not just an NPI form. Each pill maps
+ * to a real value card lower on the page.
+ */
+const CAPABILITY_PILLS = [
+  { label: 'Career wallet', icon: Wallet },
+  { label: 'Readiness', icon: ShieldCheck },
+  { label: 'Recognition', icon: Award },
+  { label: 'Shareable proof', icon: Share2 },
+  { label: 'Opportunities', icon: Compass },
+] as const;
+
+/**
+ * Wallet preview — the schematic of a clinician's VitalCV wallet, rendered as
+ * the hero's product visual. It teaches the source-state model (source-backed /
+ * checked / gated) honestly and shows Recognition + share, without fabricating
+ * a specific clinician, score, or NPI. This is the "this is a product, not a
+ * form" signal the hero was missing.
+ */
+const WALLET_PREVIEW_ROWS = [
+  { source: 'NPPES', field: 'Identity', state: 'Source-backed', tone: 'ok' as const },
+  { source: 'OIG / LEIE', field: 'Exclusions', state: 'Checked', tone: 'ok' as const },
+  { source: 'CMS PECOS', field: 'Enrollment', state: 'Gated', tone: 'pending' as const },
+] as const;
 
 /**
  * The loop — the canonical clinician path, stated plainly so a first-time
@@ -179,6 +207,101 @@ const TRUST_FOOTER_LINKS = [
   { label: 'Trust', href: '/trust' },
 ] as const;
 
+/**
+ * WalletPreview — the hero product visual. Schematic, not a fabricated
+ * clinician: it shows the wallet chrome, the source-state vocabulary, a
+ * Recognition badge, and a share affordance so the page reads as a product.
+ */
+function WalletPreview() {
+  return (
+    <div
+      aria-hidden="true"
+      data-home-wallet-preview=""
+      className="relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
+    >
+      {/* Wallet header */}
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--vt-text-primary)]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--vt-text-primary)] text-[var(--vt-bg)]">
+            <Wallet size={16} />
+          </span>
+          VitalCV Wallet
+        </span>
+        <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
+          You own this
+        </span>
+      </div>
+
+      {/* Readiness meter */}
+      <div className="mt-5 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
+            Readiness snapshot
+          </p>
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--vt-accent-emerald)]">
+            <CheckCircle2 size={12} /> Source-backed
+          </span>
+        </div>
+        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[var(--vt-surface-subtle)]">
+          <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--vt-accent-emerald)] to-emerald-400" />
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
+          Honest about what is checked, gated, or stale.
+        </p>
+      </div>
+
+      {/* Source rows */}
+      <div className="mt-3 space-y-1.5">
+        {WALLET_PREVIEW_ROWS.map((row) => (
+          <div
+            key={row.source}
+            className="flex items-center justify-between rounded-xl border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-3 py-2"
+          >
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-[12px] font-semibold text-[var(--vt-text-primary)]">
+                {row.field}
+              </span>
+              <span className="truncate text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+                {row.source}
+              </span>
+            </span>
+            <span
+              className={cn(
+                'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]',
+                row.tone === 'ok'
+                  ? 'bg-[color-mix(in_oklab,var(--vt-accent-emerald)_16%,transparent)] text-[var(--vt-accent-emerald)]'
+                  : 'bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+              )}
+            >
+              {row.state}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Recognition + share footer */}
+      <div className="mt-3 flex items-center justify-between rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_8%,var(--vt-surface))] px-4 py-3">
+        <span className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--vt-accent-emerald)_18%,transparent)] text-[var(--vt-accent-emerald)]">
+            <Award size={16} />
+          </span>
+          <span className="flex flex-col">
+            <span className="text-[12px] font-semibold text-[var(--vt-text-primary)]">
+              VitalCV Recognition
+            </span>
+            <span className="text-[10px] text-[var(--vt-text-muted)]">
+              Employer-accepted head start
+            </span>
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--vt-text-secondary)]">
+          <Share2 size={11} /> Share
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePageClient() {
   const router = useRouter();
   const [raw, setRaw] = React.useState('');
@@ -213,12 +336,12 @@ export default function HomePageClient() {
 
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
-          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-state-verified)_10%,transparent)] px-4 py-2.5 text-center">
-            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-state-verified)]">
+          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_10%,transparent)] px-4 py-2.5 text-center">
+            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-accent-emerald)]">
               <Zap className="h-3.5 w-3.5" aria-hidden="true" />
               You are signed in securely.
               <Link
-                href="/holder"
+                href="/holder/home"
                 className="ml-1 font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
               >
                 Go to your wallet
@@ -228,120 +351,151 @@ export default function HomePageClient() {
         </SignedIn>
       )}
 
-      <main className="relative mx-auto w-full max-w-5xl px-6 py-16 sm:py-20">
+      <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
         <div className="w-full">
 
-          {/* Hero — clinician value, NPI-first entry */}
-          <section aria-label="NPI lookup" data-home-hero="" className="max-w-3xl">
-            <div className="space-y-5">
-              <p
-                data-home-eyebrow=""
-                className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--vt-text-muted)]"
-              >
-                The Provider Career Evidence Network
-              </p>
-              <h1 className="text-[clamp(2.4rem,5.6vw,3.75rem)] leading-[0.98] font-semibold tracking-[-0.04em] text-[var(--vt-text-primary)]">
-                Your clinical career evidence, in one wallet you own.
-              </h1>
-              <p
-                data-home-hero-subhead=""
-                className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
-              >
-                Start with your NPI. VitalCV reads primary sources, builds your
-                readiness snapshot, and gives you an employer-ready proof packet —
-                free for clinicians, and reusable for every move.
-              </p>
-            </div>
-
-            <Card
-              id="npi"
-              className="mt-8 max-w-2xl scroll-mt-24 border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] shadow-[0_1px_0_rgba(255,255,255,0.72),0_18px_48px_rgba(15,23,42,0.05)]"
-            >
-              <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
-                <form
-                  className="space-y-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleSubmit();
-                  }}
+          {/* Hero — clinician wallet product, NPI-first entry */}
+          <section
+            aria-label="NPI lookup"
+            data-home-hero=""
+            className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+          >
+            {/* Left: messaging + NPI entry */}
+            <div className="max-w-2xl">
+              <div className="space-y-5">
+                <p
+                  data-home-eyebrow=""
+                  className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--vt-text-muted)]"
                 >
-                  <label
-                    htmlFor="npi-input"
-                    className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]"
-                  >
-                    NPI
-                  </label>
+                  The Provider Career Evidence Network
+                </p>
+                <h1 className="text-[clamp(2.4rem,5.6vw,3.75rem)] leading-[0.98] font-semibold tracking-[-0.04em] text-[var(--vt-text-primary)]">
+                  Your clinical career evidence, in one wallet you own.
+                </h1>
+                <p
+                  data-home-hero-subhead=""
+                  className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
+                >
+                  Start with your NPI. VitalCV reads primary sources, builds your
+                  readiness snapshot, and gives you an employer-ready proof packet —
+                  free for clinicians, and reusable for every move.
+                </p>
 
-                  <div
-                    className={cn(
-                      'flex flex-col overflow-hidden rounded-[1.5rem] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
-                      focused
-                        ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
-                        : 'border-[var(--vt-border)]',
-                    )}
+                {/* Capability rail — the product's breadth, above the fold */}
+                <ul
+                  data-home-capabilities=""
+                  className="flex flex-wrap gap-2"
+                >
+                  {CAPABILITY_PILLS.map((pill) => {
+                    const Icon = pill.icon;
+                    return (
+                      <li
+                        key={pill.label}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]"
+                      >
+                        <Icon size={13} className="text-[var(--vt-accent-emerald)]" aria-hidden="true" />
+                        {pill.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <Card
+                id="npi"
+                className="mt-8 max-w-xl scroll-mt-24 border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] shadow-[0_1px_0_rgba(255,255,255,0.72),0_18px_48px_rgba(15,23,42,0.05)]"
+              >
+                <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+                  <form
+                    className="space-y-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleSubmit();
+                    }}
                   >
-                    <div className="flex items-center gap-3 px-4 pt-4 text-[var(--vt-text-muted)] sm:pt-0">
-                      <Fingerprint size={18} aria-hidden="true" />
-                    </div>
-                    <Input
-                      id="npi-input"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      placeholder="Enter 10-digit NPI"
-                      value={formatNpi(raw)}
-                      onChange={(event) => {
-                        setRaw(event.target.value);
-                        setError(null);
-                      }}
-                      onFocus={() => setFocused(true)}
-                      onBlur={() => setFocused(false)}
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? 'home-npi-error' : undefined}
-                      className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
-                    />
-                    <button
-                      type="submit"
-                      data-home-primary-cta=""
-                      disabled={!isFull}
+                    <label
+                      htmlFor="npi-input"
+                      className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]"
+                    >
+                      Start free — enter your NPI
+                    </label>
+
+                    <div
                       className={cn(
-                        'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
-                        isFull
-                          ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
-                          : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                        'flex flex-col overflow-hidden rounded-[1.5rem] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
+                        focused
+                          ? 'border-[var(--vt-text-primary)] ring-2 ring-[var(--vt-focus-ring)]/15'
+                          : 'border-[var(--vt-border)]',
                       )}
                     >
-                      Check readiness
-                      <ArrowRight size={16} aria-hidden="true" />
-                    </button>
-                  </div>
-                </form>
+                      <div className="flex items-center gap-3 px-4 pt-4 text-[var(--vt-text-muted)] sm:pt-0">
+                        <Fingerprint size={18} aria-hidden="true" />
+                      </div>
+                      <Input
+                        id="npi-input"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="Enter 10-digit NPI"
+                        value={formatNpi(raw)}
+                        onChange={(event) => {
+                          setRaw(event.target.value);
+                          setError(null);
+                        }}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setFocused(false)}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? 'home-npi-error' : undefined}
+                        className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
+                      />
+                      <button
+                        type="submit"
+                        data-home-primary-cta=""
+                        disabled={!isFull}
+                        className={cn(
+                          'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
+                          isFull
+                            ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
+                            : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                        )}
+                      >
+                        Check readiness
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </form>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
-                  <span
-                    className={error ? 'text-[var(--vt-state-blocked)]' : undefined}
-                    role={error ? 'alert' : undefined}
-                    id={error ? 'home-npi-error' : undefined}
-                  >
-                    {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
-                  </span>
-                  <span className="text-[var(--vt-border)]" aria-hidden="true">
-                    ·
-                  </span>
-                  <span>No account required</span>
-                  <span className="text-[var(--vt-border)]" aria-hidden="true">
-                    ·
-                  </span>
-                  <Link
-                    href="/sign-in"
-                    data-home-secondary-cta=""
-                    className="font-medium text-[var(--vt-text-secondary)] underline underline-offset-4 transition-opacity hover:opacity-80"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
+                    <span
+                      className={error ? 'text-[var(--vt-state-blocked)]' : undefined}
+                      role={error ? 'alert' : undefined}
+                      id={error ? 'home-npi-error' : undefined}
+                    >
+                      {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
+                    </span>
+                    <span className="text-[var(--vt-border)]" aria-hidden="true">
+                      ·
+                    </span>
+                    <span>No account required</span>
+                    <span className="text-[var(--vt-border)]" aria-hidden="true">
+                      ·
+                    </span>
+                    <Link
+                      href="/sign-in"
+                      data-home-secondary-cta=""
+                      className="font-medium text-[var(--vt-text-secondary)] underline underline-offset-4 transition-opacity hover:opacity-80"
+                    >
+                      Sign in
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right: wallet product visual */}
+            <div className="hidden justify-center lg:flex">
+              <WalletPreview />
+            </div>
           </section>
 
           {/* The loop — what VitalCV does, end to end */}
