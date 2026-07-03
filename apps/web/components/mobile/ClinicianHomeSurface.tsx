@@ -26,6 +26,7 @@ import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
+import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
@@ -126,6 +127,7 @@ export default function ClinicianHomeSurface() {
   const shareHref = hasValidNpi ? `/verify/${npi}` : '/holder';
   const completeness = data.profileCompleteness?.score ?? data.workspace?.personProfile?.completeness ?? 0;
   const completedProfileChecks = countCompletedProfileChecks(data.profileCompleteness?.dimensions);
+  const profileComplete = completeness >= 100 || completedProfileChecks >= 5;
   const previousVisitMs = previousVisitAt ? Date.parse(previousVisitAt) : 0;
   const changesSinceLastVisit = previousVisitMs > 0
     ? visibleNotifications.filter((notification) => Date.parse(notification.occurredAt) > previousVisitMs)
@@ -295,6 +297,12 @@ export default function ClinicianHomeSurface() {
       ) : null}
 
       <SelectedOpportunityBanner />
+
+      <ProductLoopRail
+        npi={hasValidNpi ? npi : null}
+        profileComplete={profileComplete}
+        hasReadiness={Boolean(readiness)}
+      />
 
       <section className={`rounded-[28px] border p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)] ${
         primaryAction.tone === 'sky'
