@@ -5,24 +5,51 @@ import {
   isPublicRoute,
   getRequiredRole,
   getMismatchRedirect,
-  ROLE_LANDING,
   type UserRoleType,
 } from '@/lib/auth/roles';
+import {
+  ROLE_COOKIE_NAME,
+  ROLE_COOKIE_TTL_SECONDS,
+  signRoleCookie,
+  verifyRoleCookie,
+} from '@/lib/auth/roleCookie';
 import { checkCorsAllowlist, getAllowedOrigins } from '@/lib/security/corsAllowlist';
 
 /**
  * Role-based middleware for VitalCV.
  *
- * Fast path: reads role from Clerk JWT claim (publicMetadata.vitalcv.role).
- * Fallback: if no claim exists, calls /api/auth/resolve-role (Node runtime)
- *           to look up or create the User row in Prisma, then redirects to
- *           force a JWT refresh.
+ * Role resolution order, first hit wins:
+ *   1. Clerk JWT claim (session.sessionClaims.vitalcv.role) — the fast path
+ *      once Clerk session-token customization is enabled.
+ *   2. Signed `vitalcv_role` cookie — set after a successful resolve so
+ *      subsequent requests skip the backend round-trip.
+ *   3. /api/auth/resolve-role backend fallback — upserts the User row and
+ *      returns the role. On success we set the cookie and pass the request
+ *      through (previously this redirected to ROLE_LANDING "to force a JWT
+ *      refresh", which looped forever because the refreshed JWT still carried
+ *      no role claim). On failure we redirect to /auth/error.
  *
  * Intelligence and investigation API routes attempt Clerk but gracefully
  * degrade when Clerk edge processing fails (missing keys, timeout, etc.).
  * Route handlers use resolveIntelligenceAuthContext() which returns
  * missing_session when Clerk is unavailable.
  */
+
+/** Attach the signed, short-lived role cookie to an outgoing response. */
+async function attachRoleCookie(
+  res: NextResponse,
+  role: UserRoleType,
+): Promise<void> {
+  const value = await signRoleCookie(role);
+  if (!value) return;
+  res.cookies.set(ROLE_COOKIE_NAME, value, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ROLE_COOKIE_TTL_SECONDS,
+  });
+}
 
 const isSignInPage = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 
@@ -62,7 +89,18 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
   let userRole: UserRoleType | undefined =
     session.sessionClaims?.vitalcv?.role as UserRoleType | undefined;
 
-  // 5. Fallback: no role claim in JWT
+  // 4b. Read role from the signed cookie set by a prior resolve. Avoids the
+  //     backend round-trip on every navigation and works even though the JWT
+  //     carries no role claim.
+  if (!userRole) {
+    const cookieRole = await verifyRoleCookie(
+      req.cookies.get(ROLE_COOKIE_NAME)?.value,
+    );
+    if (cookieRole) userRole = cookieRole;
+  }
+
+  // 5. Fallback: no role from JWT or cookie — resolve via backend.
+  let resolvedViaFallback = false;
   if (!userRole) {
     try {
       const resolveUrl = new URL('/api/auth/resolve-role', req.nextUrl.origin);
@@ -75,9 +113,10 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
       if (resolveRes.ok) {
         const data = await resolveRes.json();
         userRole = data.role as UserRoleType;
+        resolvedViaFallback = Boolean(userRole);
       }
     } catch {
-      // Fallback failed — redirect to error page (circuit breaker)
+      // Fallback failed — fall through to the /auth/error circuit breaker.
     }
 
     if (!userRole) {
@@ -85,24 +124,28 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
       errorUrl.pathname = '/auth/error';
       return NextResponse.redirect(errorUrl);
     }
-
-    // Redirect to role landing to force JWT refresh on next request
-    const landingUrl = req.nextUrl.clone();
-    landingUrl.pathname = ROLE_LANDING[userRole];
-    return NextResponse.redirect(landingUrl);
   }
 
-  // 6. Check role matches route
-  //    AUTHENTICATED routes accept any authenticated user regardless of role
+  // 6. Check role matches route, then build the response.
+  //    AUTHENTICATED routes accept any authenticated user regardless of role.
+  let res: NextResponse;
   if (requiredRole !== 'AUTHENTICATED' && userRole !== requiredRole) {
-    const redirectPath = getMismatchRedirect(pathname, userRole);
     const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = redirectPath;
-    return NextResponse.redirect(redirectUrl);
+    redirectUrl.pathname = getMismatchRedirect(pathname, userRole);
+    res = NextResponse.redirect(redirectUrl);
+  } else {
+    // 7. Authorized — pass through.
+    res = NextResponse.next();
   }
 
-  // 7. Authorized — pass through
-  return NextResponse.next();
+  // 8. Persist the resolved role so the next request uses the cookie fast path
+  //    instead of hitting the backend again (and never loops on a JWT refresh
+  //    that will not carry the claim).
+  if (resolvedViaFallback) {
+    await attachRoleCookie(res, userRole);
+  }
+
+  return res;
 });
 
 export default async function middleware(req: NextRequest, event: NextFetchEvent) {

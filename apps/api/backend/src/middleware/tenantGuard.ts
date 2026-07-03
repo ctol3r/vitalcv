@@ -57,6 +57,11 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/psv')
     || normalized.startsWith('/identity')
     || normalized.startsWith('/api/identity')
+    // Role bootstrap: resolves a user by Clerk id alone (no org context yet).
+    // Same rationale as /api/identity — a first-time signed-in user has no org
+    // when the middleware asks "what role is this?", so requiring tenant
+    // context here 401s and dead-ends the entire signed-in experience.
+    || normalized === '/api/me/role'
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')
