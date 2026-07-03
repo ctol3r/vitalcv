@@ -122,7 +122,7 @@ import { registerOID4VCIRoutes } from './routes/oid4vci';                  // Wa
 import { registerOID4VPRoutes } from './routes/oid4vp';                    // Wave 110: OID4VP Presentation
 import { registerFederationMetadataRoutes } from './routes/federationMetadata'; // Wave 113: OpenID Federation
 import { registerConformanceRoutes } from './routes/conformance';          // Wave 114: Conformance + Receipts
-import { registerSubscriptionRoutes } from './routes/subscriptions';       // Wave 115: Subscription Billing
+import { registerApiKeyRoutes } from './routes/apiKeys';                   // Wave 115: API Keys
 import { registerAnalyticsRoutes } from './routes/analytics';              // Wave 116: Analytics
 import { registerNetworkAnalyticsRoutes } from './routes/networkAnalytics'; // Wave 140: Network Telemetry
 import { registerDocsRoutes } from './routes/docs';                        // Wave 117: Developer Docs
@@ -3558,7 +3558,7 @@ registerOID4VCIRoutes(app);           // Wave 109: OpenID4VCI Issuance Layer
 registerOID4VPRoutes(app);            // Wave 110: OpenID4VP Presentation Layer
 registerFederationMetadataRoutes(app); // Wave 113: OpenID Federation Trust Metadata
 registerConformanceRoutes(app);       // Wave 114: Conformance Suite + Audit Receipts
-registerSubscriptionRoutes(app);      // Wave 115: Subscription Billing & API Keys
+registerApiKeyRoutes(app);            // Wave 115: API Keys
 registerAnalyticsRoutes(app);         // Wave 116: Analytics Dashboard
 registerNetworkAnalyticsRoutes(app);  // Wave 140: Network Telemetry Intelligence
 registerDocsRoutes(app);              // Wave 117: Developer Docs & OpenAPI
