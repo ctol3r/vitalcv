@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Holder Page — Clinician Your readiness
+ * Holder Page — Clinician wallet & passport
  *
  * Loads the logged-in clinician's real NPI from their workspace profile.
  * If no NPI is set up yet, shows an onboarding empty state → /get-ready.
@@ -78,7 +78,7 @@ export default function HolderPage() {
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your your readiness</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Set up your readiness</h1>
             <p className="text-zinc-400 leading-relaxed text-sm">
               Verify your NPI to activate your clinician profile. Takes 2 minutes.
               VitalCV pulls your credentials directly from public registries — no document uploads required to get started.
