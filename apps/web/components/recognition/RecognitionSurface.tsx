@@ -56,44 +56,52 @@ export function RecognitionSurface() {
     void load();
   }, [load]);
 
+  const npi = 'npi' in phase ? phase.npi : undefined;
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-foreground">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
-        <Link
-          href="/holder"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition hover:text-zinc-300"
-        >
+    <div className="vcv-doc min-h-screen">
+      {/* Top bar — signed-artifact register (D57 dark op-bar) */}
+      <div className="vcv-register text-xs px-6 py-2 flex items-center justify-between">
+        <Link href="/holder" className="vcv-mono inline-flex items-center gap-1.5 transition-opacity hover:opacity-80">
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Back to your readiness
         </Link>
+        <span className="vcv-eyebrow">Recognition</span>
+        <span className="vcv-mono text-[10px] opacity-70">{npi ? `NPI ${npi}` : '…'}</span>
+      </div>
 
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
         <header className="space-y-2">
           <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-emerald-400" aria-hidden />
-            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Recognition</p>
+            <Award className="h-5 w-5" style={{ color: 'var(--accent)' }} aria-hidden />
+            <p className="vcv-eyebrow">Recognition</p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Your recognition record</h1>
-          <p className="text-sm leading-6 text-zinc-400">
+          <h1 className="vcv-title text-3xl">Your recognition record</h1>
+          <p className="text-sm leading-6 vcv-muted">
             Employer acceptances recorded against your source-backed evidence. Each entry is an
             employer decision captured with an audit event at the moment it was made.
           </p>
         </header>
 
         {phase.state === 'loading' && (
-          <div className="flex items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-sm text-zinc-500">
+          <div className="vcv-panel flex items-center gap-2 p-5 text-sm vcv-muted">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             Loading your acceptance record…
           </div>
         )}
 
         {phase.state === 'profile_error' && (
-          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <p className="text-sm font-medium text-zinc-200">Couldn&apos;t load your profile</p>
-            <p className="text-sm leading-6 text-zinc-400">
+          <div
+            className="vcv-panel space-y-3 p-5"
+            style={{ borderColor: 'color-mix(in oklch, var(--state-blocked) 30%, transparent)' }}
+          >
+            <p className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>Couldn&apos;t load your profile</p>
+            <p className="text-sm leading-6 vcv-muted">
               This is a system state — not a finding about your record. Try again shortly.
             </p>
             <button
               onClick={() => { void load(); }}
-              className="rounded-lg border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 transition hover:text-white"
+              className="text-sm transition"
+              style={{ border: 'var(--hairline)', borderRadius: 'var(--r-3)', padding: '6px 16px', color: 'var(--ink-mute)' }}
             >
               Try again
             </button>
@@ -101,15 +109,15 @@ export function RecognitionSurface() {
         )}
 
         {phase.state === 'no_npi' && (
-          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <p className="text-sm font-medium text-zinc-200">Set up your readiness first</p>
-            <p className="text-sm leading-6 text-zinc-400">
+          <div className="vcv-panel space-y-3 p-5">
+            <p className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>Set up your readiness first</p>
+            <p className="text-sm leading-6 vcv-muted">
               Recognition builds on your NPI-anchored evidence. Verify your NPI to activate your
               clinician profile, and acceptances will be recorded here.
             </p>
             <Link
               href="/get-ready"
-              className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+              className="vcv-link inline-flex items-center gap-1 text-sm font-medium"
             >
               Verify my NPI <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
@@ -117,16 +125,20 @@ export function RecognitionSurface() {
         )}
 
         {phase.state === 'unavailable' && (
-          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <p className="text-sm font-medium text-zinc-200">
+          <div
+            className="vcv-panel space-y-3 p-5"
+            style={{ borderColor: 'color-mix(in oklch, var(--state-blocked) 30%, transparent)' }}
+          >
+            <p className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>
               Recognition status is temporarily unavailable
             </p>
-            <p className="text-sm leading-6 text-zinc-400">
+            <p className="text-sm leading-6 vcv-muted">
               This is a system state — not a finding about your record. Try again shortly.
             </p>
             <button
               onClick={() => { void load(); }}
-              className="rounded-lg border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 transition hover:text-white"
+              className="text-sm transition"
+              style={{ border: 'var(--hairline)', borderRadius: 'var(--r-3)', padding: '6px 16px', color: 'var(--ink-mute)' }}
             >
               Try again
             </button>
@@ -134,18 +146,18 @@ export function RecognitionSurface() {
         )}
 
         {phase.state === 'none_recorded' && (
-          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <p className="text-base font-semibold text-zinc-100">
+          <div className="vcv-panel space-y-3 p-5">
+            <p className="text-base font-semibold" style={{ color: 'var(--ink-strong)' }}>
               No employer acceptances recorded yet
             </p>
-            <p className="text-sm leading-6 text-zinc-400">
+            <p className="text-sm leading-6 vcv-muted">
               When an employer reviews your evidence and accepts it as a head start, the
               acceptance is recorded here and stays part of your career record. Keeping your
               readiness current is what makes that decision easy.
             </p>
             <Link
               href="/holder/readiness"
-              className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+              className="vcv-link inline-flex items-center gap-1 text-sm font-medium"
             >
               Review your readiness <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
@@ -156,40 +168,44 @@ export function RecognitionSurface() {
           <>
             <section
               aria-label="Acceptance summary"
-              className="rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-5"
+              className="vcv-panel p-5"
+              style={{ background: 'var(--state-verified-wash)', borderColor: 'color-mix(in oklch, var(--state-verified) 30%, transparent)' }}
             >
-              <p className="text-lg font-semibold text-zinc-100">
+              <p className="text-lg font-semibold" style={{ color: 'var(--ink-strong)' }}>
                 {phase.recognition.summary.headline}
               </p>
               {phase.recognition.summary.trustCopy && (
-                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                <p className="mt-2 text-sm leading-6 vcv-muted">
                   {phase.recognition.summary.trustCopy}
                 </p>
               )}
             </section>
 
             <section aria-label="Acceptance history" className="space-y-3">
-              <h2 className="text-xs uppercase tracking-wider text-zinc-500">
+              <h2 className="vcv-eyebrow">
                 Recorded acceptances
               </h2>
               {phase.recognition.history.map((entry, index) => (
                 <div
                   key={entry.acceptanceId ?? `${entry.acceptedAt}-${index}`}
-                  className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
+                  className="vcv-panel p-5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-zinc-100">{entry.orgLabel}</p>
-                    <span className="rounded-full border border-zinc-700 px-2.5 py-0.5 text-xs text-zinc-400">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--ink-strong)' }}>{entry.orgLabel}</p>
+                    <span
+                      className="text-xs"
+                      style={{ border: 'var(--hairline)', borderRadius: 'var(--r-2)', padding: '2px 8px', color: 'var(--ink-mute)' }}
+                    >
                       {acceptanceScopeLabel(entry.acceptanceScope)}
                     </span>
                   </div>
                   {formatAcceptedAt(entry.acceptedAt) && (
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="mt-1 text-xs vcv-subtle">
                       Accepted {formatAcceptedAt(entry.acceptedAt)}
                     </p>
                   )}
                   {entry.acceptanceReason && (
-                    <p className="mt-2 text-sm leading-6 text-zinc-400">{entry.acceptanceReason}</p>
+                    <p className="mt-2 text-sm leading-6 vcv-muted">{entry.acceptanceReason}</p>
                   )}
                 </div>
               ))}
@@ -203,13 +219,13 @@ export function RecognitionSurface() {
 
         <section
           aria-label="What recognition means"
-          className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5"
+          className="vcv-panel-inset space-y-3 p-5"
         >
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" aria-hidden />
-            <h2 className="text-sm font-semibold text-zinc-200">What an acceptance means</h2>
+            <ShieldCheck className="h-4 w-4" style={{ color: 'var(--accent)' }} aria-hidden />
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--ink-strong)' }}>What an acceptance means</h2>
           </div>
-          <ul className="space-y-2 text-sm leading-6 text-zinc-400">
+          <ul className="space-y-2 text-sm leading-6 vcv-muted">
             <li>
               An employer reviewed your source-backed evidence and accepted it as a head start —
               a decision recorded with an audit event at the moment it was made.
@@ -225,7 +241,7 @@ export function RecognitionSurface() {
           </ul>
           <Link
             href="/holder/applications"
-            className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+            className="vcv-link inline-flex items-center gap-1 text-sm font-medium"
           >
             View your applications <ChevronRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
