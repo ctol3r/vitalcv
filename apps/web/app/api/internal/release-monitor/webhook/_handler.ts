@@ -51,6 +51,35 @@ export function readWebhookEnv(): WebhookEnv {
   };
 }
 
+/** Railway deploy payloads are small; anything bigger is not a deploy event. */
+const MAX_WEBHOOK_BODY_BYTES = 100_000;
+
+const HEX_SHA = /^[0-9a-f]{7,40}$/i;
+
+/**
+ * Bound + validate the fields forwarded to the workflow. The webhook payload
+ * is authenticated but still EXTERNAL input, and client_payload values are
+ * consumed by CI — never forward them verbatim. `commit` must be a hex SHA
+ * (the workflow additionally re-validates before use); free-text fields are
+ * truncated.
+ */
+export function sanitizeClientPayload(event: {
+  deploymentId: string | null;
+  commit: string | null;
+  serviceName: string | null;
+  environmentName: string | null;
+} | null): Record<string, string | null> {
+  const bounded = (v: string | null | undefined, max = 200): string | null =>
+    v ? v.slice(0, max) : null;
+  return {
+    source: 'railway-webhook',
+    deploymentId: bounded(event?.deploymentId ?? null),
+    commit: event?.commit && HEX_SHA.test(event.commit) ? event.commit : null,
+    service: bounded(event?.serviceName ?? null),
+    environment: bounded(event?.environmentName ?? null),
+  };
+}
+
 function safeEqual(a: string, b: string): boolean {
   const aBuf = Buffer.from(a, 'utf-8');
   const bBuf = Buffer.from(b, 'utf-8');
@@ -102,9 +131,20 @@ export async function handleWebhook(req: Request, deps: WebhookDeps = {}): Promi
     return NextResponse.json(auth.body, { status: auth.status });
   }
 
+  // Bound the body before parsing — a deploy event is a few KB; anything
+  // larger is not one. Content-Length catches the declared case, the
+  // post-read length check catches chunked bodies.
+  const declaredLength = Number(req.headers.get('content-length') ?? '0');
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+    return NextResponse.json({ ok: false, error: 'payload too large' }, { status: 413 });
+  }
+
   let payload: unknown = null;
   try {
     const text = await req.text();
+    if (text.length > MAX_WEBHOOK_BODY_BYTES) {
+      return NextResponse.json({ ok: false, error: 'payload too large' }, { status: 413 });
+    }
     payload = text ? JSON.parse(text) : null;
   } catch {
     payload = null;
@@ -128,28 +168,23 @@ export async function handleWebhook(req: Request, deps: WebhookDeps = {}): Promi
     return NextResponse.json({ ok: false, error: 'GITHUB_DISPATCH_TOKEN not configured' }, { status: 500 });
   }
 
+  const clientPayload = sanitizeClientPayload(event);
   const dispatch = deps.dispatch ?? dispatchReleaseVerify;
-  const result = await dispatch(
-    {
-      token: env.githubToken,
-      repo: env.repo,
-      clientPayload: {
-        source: 'railway-webhook',
-        deploymentId: event?.deploymentId ?? null,
-        commit: event?.commit ?? null,
-        service: event?.serviceName ?? null,
-        environment: event?.environmentName ?? null,
-      },
-    },
-    deps.fetchImpl,
-  );
+  const result = await dispatch({ token: env.githubToken, repo: env.repo, clientPayload }, deps.fetchImpl);
 
   if (!result.ok) {
+    // Also visible in the Railway service logs, not just the webhook-delivery
+    // response Railway records — the failure must be findable from either side.
+    console.error('[release-monitor] github dispatch FAILED:', result.detail);
     return NextResponse.json({ ok: false, action: 'dispatch_failed', error: result.detail }, { status: 502 });
   }
 
+  console.log('[release-monitor] release-verify dispatched', {
+    commit: clientPayload.commit,
+    deploymentId: clientPayload.deploymentId,
+  });
   return NextResponse.json(
-    { ok: true, action: 'dispatched', commit: event?.commit ?? null, deploymentId: event?.deploymentId ?? null },
+    { ok: true, action: 'dispatched', commit: clientPayload.commit, deploymentId: clientPayload.deploymentId },
     { status: 202 },
   );
 }
