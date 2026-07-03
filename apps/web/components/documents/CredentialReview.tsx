@@ -185,7 +185,7 @@ export function CredentialReview({ documentId, documentType, fields, onBack }: C
             }}
           >
             Your {documentType.replace(/_/g, ' ')} has been queued for primary-source verification.
-            You&apos;ll see the result in your your readiness.
+            You&apos;ll see the result in your readiness.
           </p>
         </div>
 
