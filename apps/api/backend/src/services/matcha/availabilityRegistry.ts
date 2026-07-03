@@ -22,7 +22,13 @@ type AvailabilityRow = {
 };
 
 const NPI_RE = /^\d{10}$/;
-const AVAILABILITY_PLACEHOLDER_PREFIX = 'marketplace-availability';
+/**
+ * Clerk-id namespace for platform-minted marketplace-availability placeholder
+ * rows (`marketplace-availability:<npi>`). Exported so account-reconciliation
+ * logic (workspaceService) can allowlist exactly these rows without hardcoding
+ * — and drifting from — the prefix.
+ */
+export const AVAILABILITY_PLACEHOLDER_PREFIX = 'marketplace-availability';
 const TRUST_BAND_ORDER: Record<'L0' | TrustBand, number> = {
   L0: 0,
   L1: 1,

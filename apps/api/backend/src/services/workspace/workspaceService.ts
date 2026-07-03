@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { fetchNpiFromCMS, normalizeProvider } from '../../modules/identity';
+import { AVAILABILITY_PLACEHOLDER_PREFIX } from '../matcha/availabilityRegistry';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
@@ -75,6 +76,17 @@ export interface PersonProfileInput {
   completeness: number;
 }
 
+/**
+ * True only for a platform-minted marketplace-availability placeholder row that
+ * is eligible to be reconciled onto a real Clerk id. This is an explicit
+ * allowlist (not "anything that isn't a `user_` id"): real Clerk accounts, seed
+ * rows, and any legacy/unknown row are all NOT eligible and must never be
+ * silently rebound. The prefix is imported from the minter so it cannot drift.
+ */
+export function isReconcilablePlaceholderId(id: string): boolean {
+  return id.startsWith(`${AVAILABILITY_PLACEHOLDER_PREFIX}:`);
+}
+
 export async function ensureWorkspaceUser(
   clerkUserId: string,
   email?: string,
@@ -97,6 +109,22 @@ export async function ensureWorkspaceUser(
   });
 
   if (byEmail) {
+    // Account-takeover guard. `email` reaches this function from a
+    // caller-supplied header (`x-clerk-user-email`) and the backend cannot
+    // verify it belongs to `clerkUserId`. Silently rebinding an existing row's
+    // clerkUserId to the incoming one would let an attacker who supplies a
+    // victim's email (with any Clerk id) hijack the victim's account.
+    //
+    // Reconcile onto the incoming id ONLY for a platform-minted placeholder row
+    // (explicit allowlist). Real Clerk accounts, seed rows, and any legacy row
+    // are refused. Note: every placeholder/seed minter uses a non-colliding
+    // synthetic `@*.local` address, so a real user's real email never reaches
+    // this branch for a real account — a match here is either a genuine
+    // placeholder handoff (allowed) or an attempt to rebind an established
+    // account (refused).
+    if (!isReconcilablePlaceholderId(byEmail.clerkUserId)) {
+      throw new HttpError(409, 'Email is already associated with another account.');
+    }
     return prisma.user.update({
       where: { id: byEmail.id },
       data: {
