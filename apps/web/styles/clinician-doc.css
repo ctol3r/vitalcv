@@ -1,0 +1,156 @@
+/*
+ * clinician-doc.css — VitalCV "document" design system for signed-in clinician
+ * surfaces, ported faithfully from the Claude Design handoff D57 Visual System
+ * (design-handoff/claude-design-2026-06-26/vitalcv/project/VitalCV Visual
+ * System.html) and its Readiness Report / Clinician Profile / Acceptance Proof
+ * lineage. See docs/design/design-lineage-policy.md.
+ *
+ * Namespaced under `.vcv-doc` so it never leaks into the dark app chrome or the
+ * operator/intelligence surfaces. Wrap a clinician surface's root in
+ * `.vcv-doc` and its children inherit the paper/ink substrate, the single
+ * indigo accent, the six trust-state colors, hairline rules, document-grade
+ * radii, and the serif-title / mono-proof typography.
+ *
+ * Design commitments (D57): off-white paper, near-black ink, ONE accent used
+ * surgically, states paired with soft washes (never neon), 1px hairline rules,
+ * nothing rounder than 10px, monospace for proof/identifiers.
+ */
+
+.vcv-doc {
+  /* Paper substrate */
+  --paper: oklch(98.5% 0.004 85);
+  --paper-warm: oklch(97% 0.008 85);
+  --paper-inset: oklch(95% 0.008 85);
+  --paper-edge: oklch(92% 0.008 85);
+
+  /* Ink scale */
+  --ink: oklch(18% 0.012 265);
+  --ink-strong: oklch(12% 0.012 265);
+  --ink-mute: oklch(46% 0.010 265);
+  --ink-subtle: oklch(62% 0.008 265);
+  --ink-ghost: oklch(78% 0.006 265);
+
+  /* One accent, used surgically */
+  --accent: oklch(38% 0.14 274);
+  --accent-ink: oklch(28% 0.10 274);
+  --accent-wash: oklch(94% 0.025 274);
+  --accent-edge: oklch(82% 0.06 274);
+
+  /* Six trust states — ink + soft wash pairs */
+  --state-verified: oklch(46% 0.10 152);
+  --state-verified-wash: oklch(94% 0.03 152);
+  --state-pending: oklch(54% 0.10 78);
+  --state-pending-wash: oklch(95% 0.04 78);
+  --state-blocked: oklch(48% 0.16 25);
+  --state-blocked-wash: oklch(94% 0.04 25);
+  --state-contradicted: oklch(42% 0.14 305);
+  --state-contradicted-wash: oklch(94% 0.03 305);
+  --state-unknown: oklch(58% 0.008 265);
+  --state-unknown-wash: oklch(94% 0.005 265);
+
+  /* Document-grade radii — nothing over 10px */
+  --r-2: 4px;
+  --r-3: 6px;
+  --r-4: 8px;
+  --r-5: 10px;
+
+  /* Hairline + soft elevation */
+  --hairline: 1px solid var(--paper-edge);
+  --shadow-1: 0 0.5px 0 rgba(15, 23, 42, 0.04), 0 1px 6px -1px rgba(15, 23, 42, 0.06);
+
+  /* Typography — system stacks exposed by the root layout */
+  --doc-serif: var(--font-serif, ui-serif, Georgia, 'Iowan Old Style', serif);
+  --doc-sans: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  --doc-mono: var(--font-mono, ui-monospace, 'Geist Mono', monospace);
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--doc-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Structure ─────────────────────────────────────────────────────────── */
+
+.vcv-panel {
+  background: #fff;
+  border: var(--hairline);
+  border-radius: var(--r-4);
+  box-shadow: var(--shadow-1);
+}
+
+.vcv-panel-inset {
+  background: var(--paper-warm);
+  border: var(--hairline);
+  border-radius: var(--r-4);
+}
+
+/* Signed-artifact register — inverted ink card for verdicts and ledger rows
+   (D11 "the row is the proof": no confetti, no green checks). */
+.vcv-register {
+  background: var(--ink-strong);
+  color: var(--paper);
+  border-radius: var(--r-4);
+}
+.vcv-register .vcv-eyebrow { color: color-mix(in oklch, var(--paper) 55%, transparent); }
+.vcv-register .vcv-mono { color: var(--paper); }
+
+/* ── Typography ────────────────────────────────────────────────────────── */
+
+.vcv-title {
+  font-family: var(--doc-serif);
+  color: var(--ink-strong);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.vcv-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.vcv-mono {
+  font-family: var(--doc-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.vcv-muted { color: var(--ink-mute); }
+.vcv-subtle { color: var(--ink-subtle); }
+
+/* ── Accent action ─────────────────────────────────────────────────────── */
+
+.vcv-cta {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--r-3);
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+.vcv-cta:hover { background: var(--accent-ink); }
+
+.vcv-link { color: var(--accent); }
+.vcv-link:hover { color: var(--accent-ink); }
+
+/* ── State chips — ink text on soft wash, hairline edge ────────────────── */
+
+.vcv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: var(--r-2);
+  border: 1px solid transparent;
+}
+.vcv-chip[data-state='verified'] { color: var(--state-verified); background: var(--state-verified-wash); border-color: color-mix(in oklch, var(--state-verified) 25%, transparent); }
+.vcv-chip[data-state='pending'] { color: var(--state-pending); background: var(--state-pending-wash); border-color: color-mix(in oklch, var(--state-pending) 25%, transparent); }
+.vcv-chip[data-state='blocked'] { color: var(--state-blocked); background: var(--state-blocked-wash); border-color: color-mix(in oklch, var(--state-blocked) 25%, transparent); }
+.vcv-chip[data-state='contradicted'] { color: var(--state-contradicted); background: var(--state-contradicted-wash); border-color: color-mix(in oklch, var(--state-contradicted) 25%, transparent); }
+.vcv-chip[data-state='unknown'] { color: var(--state-unknown); background: var(--state-unknown-wash); border-color: color-mix(in oklch, var(--state-unknown) 25%, transparent); }

@@ -120,21 +120,21 @@ export default function ReadinessSurface() {
   const activeSnapshot = snapshot && snapshot.npi === npi ? snapshot : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <div className="bg-slate-900 text-slate-300 text-xs px-6 py-2 flex items-center justify-between">
-        <Link href="/holder/home" className="text-slate-400 hover:text-white transition-colors">← Dashboard</Link>
-        <span className="font-mono uppercase tracking-widest font-bold">Readiness</span>
-        <span className="font-mono text-slate-500 text-[10px]">{npi ? `NPI ${npi}` : '…'}</span>
+    <div className="vcv-doc min-h-screen">
+      {/* Top bar — signed-artifact register (D57 dark op-bar) */}
+      <div className="vcv-register text-xs px-6 py-2 flex items-center justify-between">
+        <Link href="/holder/home" className="vcv-mono transition-opacity hover:opacity-80">← Dashboard</Link>
+        <span className="vcv-eyebrow">Readiness</span>
+        <span className="vcv-mono text-[10px] opacity-70">{npi ? `NPI ${npi}` : '…'}</span>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* Posture header */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Identity + posture header — serif title, mono identifier */}
         {activeSnapshot && (
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-end gap-4">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">{activeSnapshot.name}</h1>
-              <p className="font-mono text-sm text-slate-500 mt-0.5 tracking-wide">NPI {activeSnapshot.npi}</p>
+              <h1 className="vcv-title text-3xl">{activeSnapshot.name}</h1>
+              <p className="vcv-mono text-sm vcv-muted mt-1">NPI {activeSnapshot.npi}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 ml-auto">
               <PostureBadge posture={activeSnapshot.posture} size="md" />
@@ -148,9 +148,9 @@ export default function ReadinessSurface() {
 
         {/* No NPI — honest CTA, not demo */}
         {loadState === 'no-npi' && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-3">
-            <p className="text-sm text-slate-700">Add your NPI to see your source-backed readiness.</p>
-            <Link href="/get-ready" className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition-colors">
+          <div className="vcv-panel p-8 text-center space-y-3">
+            <p className="text-sm" style={{ color: 'var(--ink)' }}>Add your NPI to see your source-backed readiness.</p>
+            <Link href="/get-ready" className="vcv-cta inline-flex items-center px-4 py-2 text-sm">
               Connect your NPI →
             </Link>
           </div>
@@ -161,16 +161,19 @@ export default function ReadinessSurface() {
 
         {/* Loading */}
         {loadState === 'loading' && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-            <p className="font-mono text-sm text-slate-500 animate-pulse">Checking sources…</p>
+          <div className="vcv-panel p-8 text-center">
+            <p className="vcv-mono text-sm vcv-muted animate-pulse">Checking sources…</p>
           </div>
         )}
 
         {/* Error — honest, not demo */}
         {loadState === 'error' && (
-          <div className="bg-white border border-rose-200 rounded-xl p-8 text-center space-y-2">
-            <p className="text-sm text-rose-700">Source-backed readiness is temporarily unavailable.</p>
-            <p className="text-xs text-slate-500">This is a system state — not a finding about your credentials. Try again shortly.</p>
+          <div
+            className="vcv-panel p-8 text-center space-y-2"
+            style={{ borderColor: 'color-mix(in oklch, var(--state-blocked) 30%, transparent)' }}
+          >
+            <p className="text-sm" style={{ color: 'var(--state-blocked)' }}>Source-backed readiness is temporarily unavailable.</p>
+            <p className="text-xs vcv-subtle">This is a system state — not a finding about your credentials. Try again shortly.</p>
           </div>
         )}
 
@@ -188,19 +191,22 @@ export default function ReadinessSurface() {
             />
 
             {activeSnapshot.nextStep && (
-              <div className="bg-white border border-slate-200 rounded-xl px-5 py-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Next Step</p>
-                <p className="text-sm text-slate-700">{activeSnapshot.nextStep}</p>
+              <div className="vcv-panel px-5 py-4">
+                <p className="vcv-eyebrow mb-2">Next Step</p>
+                <p className="text-sm" style={{ color: 'var(--ink)' }}>{activeSnapshot.nextStep}</p>
               </div>
             )}
 
             {limitations.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-amber-700 mb-3">Limitations</p>
+              <div
+                className="vcv-panel px-5 py-4"
+                style={{ background: 'var(--state-pending-wash)', borderColor: 'color-mix(in oklch, var(--state-pending) 30%, transparent)' }}
+              >
+                <p className="vcv-eyebrow mb-3" style={{ color: 'var(--state-pending)' }}>Limitations</p>
                 <ul className="space-y-1">
                   {limitations.map((limitation, index) => (
-                    <li key={index} className="text-xs text-amber-800 flex gap-2">
-                      <span className="flex-shrink-0 text-amber-400">·</span>{limitation}
+                    <li key={index} className="text-xs flex gap-2" style={{ color: 'var(--state-pending)' }}>
+                      <span className="flex-shrink-0" style={{ color: 'var(--state-pending)', opacity: 0.6 }}>·</span>{limitation}
                     </li>
                   ))}
                 </ul>
