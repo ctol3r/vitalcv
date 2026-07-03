@@ -56,6 +56,9 @@ export interface VerifyDeps {
   reach: (session: ClinicianSession, path: string) => Promise<NavOutcome>;
   runDeployCheck: () => Promise<{ ok: boolean; detail: string }>;
   cleanup: (created: { userId: string | null; orgId: string | null }) => Promise<CleanupResult>;
+  /** Invoked as soon as mint reports created ids, so a caller can clean up on
+   *  a hard process kill (e.g. a GitHub step timeout) that skips the finally. */
+  onCreated?: (created: { userId: string | null; orgId: string | null }) => void;
 }
 
 function short(sha: string | null | undefined): string {
@@ -100,6 +103,7 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
     // 3. Mint a synthetic clinician session.
     const minted = await deps.mint();
     created = minted.created;
+    deps.onCreated?.(created);
     if (!minted.ok || !minted.session) {
       checks.push({ name: 'synthetic_session', ok: false, critical: true, detail: minted.error ?? 'mint failed' });
       for (const r of routes) {
@@ -146,6 +150,14 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
     } catch (err) {
       cleanup = { attempted: true, ok: false, detail: `cleanup threw: ${(err as Error).message}` };
     }
+  }
+
+  // A failed cleanup leaves a synthetic clinician identity live in production
+  // Clerk — for a trust product that must NOT pass silently. Critical, so it
+  // reddens the status and lands in failedChecks. (The upserted backend User
+  // row has no delete API and is a separately-documented residual, not this.)
+  if (cleanup.attempted && !cleanup.ok) {
+    checks.push({ name: 'cleanup', ok: false, critical: true, detail: `synthetic identity NOT deleted: ${cleanup.detail}` });
   }
 
   const failedChecks = checks.filter((c) => c.critical && !c.ok).map((c) => c.name);

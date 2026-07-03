@@ -142,7 +142,7 @@ export async function handleWebhook(req: Request, deps: WebhookDeps = {}): Promi
   let payload: unknown = null;
   try {
     const text = await req.text();
-    if (text.length > MAX_WEBHOOK_BODY_BYTES) {
+    if (Buffer.byteLength(text, 'utf8') > MAX_WEBHOOK_BODY_BYTES) {
       return NextResponse.json({ ok: false, error: 'payload too large' }, { status: 413 });
     }
     payload = text ? JSON.parse(text) : null;

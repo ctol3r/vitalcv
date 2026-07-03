@@ -3,9 +3,31 @@ import {
   cleanupClinician,
   mintClinicianSession,
   reachRoute,
+  safeErrorBody,
   warmUpClinicianSession,
   type SyntheticClinicianDeps,
 } from '../lib/release-monitor/syntheticClinician';
+
+describe('safeErrorBody', () => {
+  it('keeps only code + message from a Clerk error envelope', () => {
+    const out = safeErrorBody(JSON.stringify({ errors: [{ code: 'form_identifier_exists', message: 'taken', meta: {} }] }));
+    expect(out).toContain('form_identifier_exists');
+    expect(out).toContain('taken');
+  });
+
+  it('redacts long token-like fragments and never echoes a raw ticket/secret body', () => {
+    const leaky = JSON.stringify({ errors: [{ code: 'x', message: 'ticket abcdef0123456789ABCDEFghij failed' }], ticket: 'st_supersecretvalue_0123456789' });
+    const out = safeErrorBody(leaky);
+    expect(out).not.toContain('supersecretvalue');
+    expect(out).not.toContain('abcdef0123456789ABCDEFghij');
+    expect(out).toContain('[redacted]');
+  });
+
+  it('never throws on non-JSON or empty bodies', () => {
+    expect(safeErrorBody('<html>502</html>')).toBe('clerk error (unparseable body)');
+    expect(safeErrorBody('{}')).toBe('clerk error (no safe fields)');
+  });
+});
 
 function jsonRes(body: unknown, opts: { status?: number; setCookie?: string[] } = {}): Response {
   const headers = new Headers();

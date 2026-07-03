@@ -96,8 +96,16 @@ in a Railway webhook URL. The receiver holds the GitHub token server-side
 | `holder:cold-start` | Critical | A fresh session reaching `/holder` resolves to a 200 **on `/holder`** rather than bouncing to `/auth/error` — the direct P0 detector. |
 | `holder:/holder…` (×6) | Critical | Each required surface returns 200 **on the requested path** (`wrong_destination` otherwise — a role-mismatch redirect that 200s on another role's landing must fail, not pass), never passing through `/auth/error`, never looping. |
 | `deploy_integrity` | Critical | `pnpm check:deploy` exits 0 (no cross-service drift). |
+| `cleanup` (only if it fails) | Critical | The synthetic Clerk user + org were deleted. A failed delete leaves a synthetic identity live in production Clerk — for a trust product that must **not** pass green, so it reddens the status. |
 
 Overall = **fail** if any critical check fails.
+
+The webhook trigger **fails closed**: `shouldTriggerVerification` fires only when
+the payload positively proves a web-service SUCCESS deploy in the target
+environment (service **and** environment name present and matching). An
+absent/ambiguous service or env is skipped — a non-web deploy arriving in a
+drifted payload must never run web verification and paint a false-red status on
+an unrelated commit. A genuinely-missed webhook is backstopped by the schedule.
 
 ## Durable signal
 
@@ -160,12 +168,25 @@ user + org** — always, even on a mid-run failure (the runner passes the create
 ids to `cleanupClinician` from a `finally`).
 
 Every synthetic identity uses an `@vitalcv-monitor.local` email so it can never
-collide with, or rebind (per #504), a real user row.
+collide with, or rebind (per #504), a real user row. A **failed** delete is a
+critical check → red status (a leaked synthetic identity is never silently
+green). Error bodies from Clerk/FAPI are reduced to safe code+message fields
+(`safeErrorBody`) before they can reach logs or `report.json` — a raw body could
+echo the short-lived sign-in ticket.
 
-**Known residual:** the backend has no delete API for the `User` row it upserts
-on first role-resolve, so each run leaves one orphan DB row (placeholder-pattern
-email, non-colliding). A backend cleanup endpoint or a periodic reconciliation
-sweep is a follow-up.
+**Hard-kill window:** a GitHub step timeout (or SIGKILL) can terminate the
+process before the normal `finally` cleanup. The runner registers a
+SIGTERM/SIGINT handler for best-effort cleanup, but a hard kill can still leak
+one synthetic identity.
+
+**Required backstop (guaranteed cleanup):** a periodic reconciliation sweep MUST
+delete any stale synthetic identities — Clerk users with
+`public_metadata.synthetic === true` / `@vitalcv-monitor.local` emails and their
+orgs older than a few minutes. This covers both the hard-kill window and any
+transient Clerk delete failure. **Known residual:** the backend has no delete API
+for the `User` row it upserts on first role-resolve, so each run also leaves one
+orphan DB row (placeholder-pattern email, non-colliding); the same sweep (or a
+backend cleanup endpoint) should reap it.
 
 ## Rollout & rollback
 
@@ -230,6 +251,9 @@ secret can produce a false green.
 
 - Ops Center card at `/admin/platform` reading the commit status.
 - Slack notification (`SLACK_WEBHOOK_URL`), status-doc committer.
-- Backend cleanup endpoint / reconciliation sweep for the orphaned `User` row.
+- **Reconciliation sweep (recommended before heavy reliance):** reap stale
+  synthetic Clerk identities (`public_metadata.synthetic` / `@vitalcv-monitor.local`)
+  + a backend cleanup endpoint for the orphaned `User` row. Guarantees no leak
+  survives a hard-kill or a transient Clerk delete failure.
 - Retire the now-redundant fixed-`sleep 120` smoke test in `deploy-web.yml`
   (this system supersedes its intent).

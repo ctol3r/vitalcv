@@ -59,8 +59,18 @@ describe('shouldTriggerVerification', () => {
     ).toBe(false);
   });
 
-  it('biases to run when the service name is absent (payload drift)', () => {
-    expect(shouldTriggerVerification(ev({ status: 'SUCCESS' })).trigger).toBe(true);
+  it('fails CLOSED when the service name is absent (no false-red on an unrelated commit)', () => {
+    expect(shouldTriggerVerification(ev({ status: 'SUCCESS', environment: { name: 'production' } })).trigger).toBe(false);
+  });
+
+  it('fails CLOSED when the environment is absent', () => {
+    expect(shouldTriggerVerification(ev({ status: 'SUCCESS', service: { name: 'vitalcv-web' } })).trigger).toBe(false);
+  });
+
+  it('parses a nested deployment.environment shape', () => {
+    const e = ev({ status: 'SUCCESS', service: { name: 'vitalcv-web' }, deployment: { environment: { name: 'production' } } });
+    expect(e?.environmentName).toBe('production');
+    expect(shouldTriggerVerification(e).trigger).toBe(true);
   });
 
   it('honors service/env overrides', () => {
@@ -129,6 +139,18 @@ describe('webhook handler', () => {
   it('413s an oversized body without dispatching', async () => {
     const dispatch = vi.fn();
     const big = { ...good, junk: 'z'.repeat(150_000) };
+    const res = await __handleForTests(req(big, { bearer: 'sekret' }), {
+      env: { cronSecret: 'sekret', githubToken: 'ght' },
+      dispatch,
+    });
+    expect(res.status).toBe(413);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('413s a multibyte body that exceeds the BYTE cap despite a shorter char length', async () => {
+    const dispatch = vi.fn();
+    // ~60k × 3-byte chars = ~180KB bytes but 60k chars (< the 100k char count).
+    const big = { ...good, junk: '✓'.repeat(60_000) };
     const res = await __handleForTests(req(big, { bearer: 'sekret' }), {
       env: { cronSecret: 'sekret', githubToken: 'ght' },
       dispatch,

@@ -124,11 +124,29 @@ async function main(): Promise<void> {
 
   const scDeps: SyntheticClinicianDeps = { fetchImpl: fetch, clerkSecretKey, fapiBase, appBase: base, runId };
 
+  // Best-effort cleanup if the process is hard-killed (e.g. a GitHub step
+  // timeout) before the normal finally runs — otherwise a hung run leaks a
+  // synthetic identity. The reconciliation sweep (see the doc) is the
+  // guaranteed backstop; this narrows the window.
+  let liveCreated: { userId: string | null; orgId: string | null } = { userId: null, orgId: null };
+  let cleaningOnSignal = false;
+  const onSignal = (sig: string) => {
+    if (cleaningOnSignal) return;
+    cleaningOnSignal = true;
+    console.error(`\n  received ${sig} — attempting synthetic-identity cleanup before exit`);
+    void cleanupClinician(scDeps, liveCreated).finally(() => process.exit(1));
+  };
+  process.once('SIGTERM', () => onSignal('SIGTERM'));
+  process.once('SIGINT', () => onSignal('SIGINT'));
+
   const report = await runReleaseVerification({
     base,
     containerSha,
     mainSha,
     targetSha,
+    onCreated: (created) => {
+      liveCreated = created;
+    },
     probeResolving: () => probeResolving(base),
     mint: () => mintClinicianSession(scDeps),
     warmUp: (s: ClinicianSession) => warmUpClinicianSession(scDeps, s),

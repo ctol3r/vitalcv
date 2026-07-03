@@ -43,6 +43,8 @@ export function parseRailwayDeployEvent(payload: unknown): RailwayDeployEvent | 
   const environment = obj(p.environment);
   const project = obj(p.project);
 
+  const deploymentEnv = obj(deployment.environment);
+
   const type = str(p.type) ?? str(deployment.type);
   const status = str(p.status) ?? str(deployment.status);
   if (!type && !status) return null;
@@ -51,7 +53,7 @@ export function parseRailwayDeployEvent(payload: unknown): RailwayDeployEvent | 
     type,
     status,
     serviceName: str(service.name) ?? str(p.serviceName),
-    environmentName: str(environment.name) ?? str(p.environmentName),
+    environmentName: str(environment.name) ?? str(deploymentEnv.name) ?? str(p.environmentName),
     deploymentId: str(deployment.id) ?? str(p.deploymentId),
     commit: str(meta.commitHash) ?? str(meta.commit) ?? str(deployment.commitHash),
     projectId: str(project.id) ?? str(p.projectId),
@@ -73,11 +75,16 @@ export interface TriggerDecision {
 /**
  * Decide whether a parsed event should kick a release verification.
  *
- * Fires only on a **web-service SUCCESS deploy** in the target environment.
- * Bias-to-run on ambiguity: a missing service name (payload drift) still
- * triggers — over-running is safe (the verify run just re-confirms web and the
- * scheduled net runs anyway), whereas missing a real web deploy is the failure
- * we're guarding against. A present-but-mismatched service/env always skips.
+ * Fails CLOSED: fires only when the payload POSITIVELY proves a web-service
+ * SUCCESS deploy in the target environment — service name AND environment name
+ * must be present and match. An absent/ambiguous service or env skips.
+ *
+ * Rationale (was previously bias-to-run on absent service): a non-web deploy
+ * (e.g. the API service) arriving in a drifted payload with an absent service
+ * name would otherwise trigger a web verification, whose SHA check fails against
+ * the non-web deploy commit, posting a FALSE-RED `vitalcv/release-verified`
+ * status on an unrelated commit. Missing a real web webhook is cheap — the
+ * scheduled run backstops it; painting the wrong commit red is not.
  */
 export function shouldTriggerVerification(
   event: RailwayDeployEvent | null,
@@ -94,14 +101,14 @@ export function shouldTriggerVerification(
 
   const wantService = (opts.webServiceName ?? 'vitalcv-web').toLowerCase();
   const svc = (event.serviceName ?? '').toLowerCase();
-  if (svc && svc !== wantService) {
-    return { trigger: false, reason: `service ${event.serviceName} is not ${opts.webServiceName ?? 'vitalcv-web'}` };
+  if (svc !== wantService) {
+    return { trigger: false, reason: `service ${event.serviceName ?? '∅'} is not ${opts.webServiceName ?? 'vitalcv-web'}` };
   }
 
   const wantEnv = (opts.environmentName ?? 'production').toLowerCase();
   const env = (event.environmentName ?? '').toLowerCase();
-  if (env && env !== wantEnv) {
-    return { trigger: false, reason: `environment ${event.environmentName} is not ${opts.environmentName ?? 'production'}` };
+  if (env !== wantEnv) {
+    return { trigger: false, reason: `environment ${event.environmentName ?? '∅'} is not ${opts.environmentName ?? 'production'}` };
   }
 
   return { trigger: true, reason: 'web SUCCESS deploy' };

@@ -75,6 +75,32 @@ export interface MintResult {
   error?: string;
 }
 
+/**
+ * Reduce a Clerk / FAPI error body to safe, structured fields before it can
+ * reach logs, the Actions job summary, or report.json. Clerk error responses
+ * are `{ errors: [{ code, message, long_message }] }`; a raw-body dump risked
+ * echoing credential-adjacent material (the sign-in ticket, request echoes).
+ * We keep only code + message, and defensively redact any long token-like
+ * fragment that slips through.
+ */
+export function safeErrorBody(text: string): string {
+  try {
+    const parsed = JSON.parse(text) as { errors?: Array<{ code?: unknown; message?: unknown }> };
+    const errs = Array.isArray(parsed?.errors) ? parsed.errors : [];
+    const fields = errs
+      .flatMap((e) => [typeof e?.code === 'string' ? e.code : '', typeof e?.message === 'string' ? e.message : ''])
+      .filter(Boolean)
+      .slice(0, 4);
+    const joined = fields.join('; ').slice(0, 160);
+    // Redact token-like runs (≥16 chars containing a digit — tickets/JWTs/keys)
+    // while leaving readable word-codes like `form_identifier_exists` intact.
+    const redacted = joined.replace(/[A-Za-z0-9_-]{16,}/g, (m) => (/\d/.test(m) ? '[redacted]' : m));
+    return redacted || 'clerk error (no safe fields)';
+  } catch {
+    return 'clerk error (unparseable body)';
+  }
+}
+
 // ── cookie-jar helpers ──────────────────────────────────────────────────────
 
 function getSetCookies(res: Response): string[] {
@@ -176,7 +202,7 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
       signal: AbortSignal.timeout(15000),
     });
     if (!userRes.ok) {
-      return { ok: false, created, error: `create user ${userRes.status}: ${(await userRes.text()).slice(0, 200)}` };
+      return { ok: false, created, error: `create user ${userRes.status}: ${safeErrorBody(await userRes.text())}` };
     }
     const user = (await userRes.json()) as { id: string };
     created.userId = user.id;
@@ -205,7 +231,7 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
       signal: AbortSignal.timeout(15000),
     });
     if (!tokenRes.ok) {
-      return { ok: false, created, error: `sign_in_tokens ${tokenRes.status}: ${(await tokenRes.text()).slice(0, 200)}` };
+      return { ok: false, created, error: `sign_in_tokens ${tokenRes.status}: ${safeErrorBody(await tokenRes.text())}` };
     }
     const ticket = ((await tokenRes.json()) as { token: string }).token;
 
@@ -218,7 +244,7 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
     });
     mergeSetCookie(jar, signInRes);
     if (!signInRes.ok) {
-      return { ok: false, created, error: `FAPI sign_ins ${signInRes.status}: ${(await signInRes.text()).slice(0, 200)}` };
+      return { ok: false, created, error: `FAPI sign_ins ${signInRes.status}: ${safeErrorBody(await signInRes.text())}` };
     }
     const signIn = (await signInRes.json()) as {
       response?: { created_session_id?: string; status?: string };
@@ -257,7 +283,7 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
     });
     mergeSetCookie(jar, jwtRes);
     if (!jwtRes.ok) {
-      return { ok: false, created, error: `FAPI session tokens ${jwtRes.status}: ${(await jwtRes.text()).slice(0, 200)}` };
+      return { ok: false, created, error: `FAPI session tokens ${jwtRes.status}: ${safeErrorBody(await jwtRes.text())}` };
     }
     const jwt = ((await jwtRes.json()) as { jwt: string }).jwt;
     if (!jwt) return { ok: false, created, error: 'no jwt returned from session tokens' };
