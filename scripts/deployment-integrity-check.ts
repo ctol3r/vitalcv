@@ -12,6 +12,7 @@ import { execSync } from 'node:child_process';
 import {
   parseRailwayStatus,
   evaluateIntegrity,
+  buildIntegrityReport,
   fetchGithubMainSha,
   probeHealth,
   EXPECTED_SERVICES,
@@ -29,22 +30,32 @@ function railwayStatusJson(): unknown | null {
 
 async function main() {
   const project = railwayStatusJson();
-  if (!project) {
-    console.error('deployment-integrity: could not read `railway status --json` (is the Railway CLI linked? `railway link`).');
+
+  // Source of Railway state, in priority: the linked CLI (local), else the
+  // Railway GraphQL API via RAILWAY_API_TOKEN (CI / GitHub Actions runner —
+  // there is no linked CLI there). buildIntegrityReport() also cross-checks
+  // GitHub main HEAD + service health, so the two branches yield the same shape.
+  let report;
+  if (project) {
+    const states = parseRailwayStatus(project);
+    const githubMainSha = await fetchGithubMainSha();
+
+    const health: Record<string, 'ok' | 'degraded' | 'unreachable'> = {};
+    await Promise.all(
+      EXPECTED_SERVICES.filter((s) => s.healthUrl).map(async (s) => {
+        health[s.name] = await probeHealth(s.healthUrl!);
+      }),
+    );
+
+    report = evaluateIntegrity({ states, githubMainSha, health, railwayReachable: true, nowMs: Date.now() });
+  } else if (process.env.RAILWAY_API_TOKEN) {
+    report = await buildIntegrityReport({ railwayToken: process.env.RAILWAY_API_TOKEN });
+  } else {
+    console.error(
+      'deployment-integrity: no `railway status --json` (CLI not linked — run `railway link`) and no RAILWAY_API_TOKEN for the GraphQL fallback.',
+    );
     process.exit(2);
   }
-
-  const states = parseRailwayStatus(project);
-  const githubMainSha = await fetchGithubMainSha();
-
-  const health: Record<string, 'ok' | 'degraded' | 'unreachable'> = {};
-  await Promise.all(
-    EXPECTED_SERVICES.filter((s) => s.healthUrl).map(async (s) => {
-      health[s.name] = await probeHealth(s.healthUrl!);
-    }),
-  );
-
-  const report = evaluateIntegrity({ states, githubMainSha, health, railwayReachable: true, nowMs: Date.now() });
 
   const icon = (ok: boolean) => (ok ? '🟢' : '🔴');
   console.log('\n  Deployment Integrity Check');

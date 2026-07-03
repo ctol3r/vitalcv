@@ -1,0 +1,155 @@
+name: Release verify
+
+# Durable, external post-deploy verification of the VitalCV web service.
+#
+# Triggered by the Railway deploy webhook — Railway POSTs to
+# /api/internal/release-monitor/webhook, which fires a repository_dispatch here.
+# Also runs on a schedule (safety net if a webhook is ever missed) and can be
+# dispatched manually. The verification runs on a GitHub runner — an EXTERNAL
+# vantage, never inside the web container it tests (the P0 root cause was an
+# in-container hairpin self-fetch).
+#
+# It mints a synthetic clinician, reaches the six signed-in /holder surfaces
+# with no /auth/error and no redirect loop, checks the served SHA + the
+# /auth/resolving interstitial, runs `pnpm check:deploy`, and records a DURABLE
+# GitHub commit status (context "vitalcv/release-verified") on the verified SHA.
+#
+# Required repo secrets: CLERK_SECRET_KEY, RAILWAY_API_TOKEN. Optional:
+# CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
+# (default https://vitalcv.com). GITHUB_TOKEN is automatic (statuses: write).
+# See docs/deployment/release-monitoring.md.
+
+on:
+  repository_dispatch:
+    types: [release-verify]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: 'Deploy commit to verify (optional; defaults to main HEAD)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '*/30 * * * *'
+
+concurrency:
+  # Never run two verifications against prod at once; do not cancel one mid-run.
+  group: release-verify
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    name: Verify signed-in release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No `pnpm install`: the runner imports only local .ts + Node built-ins,
+      # and the check:deploy subprocess is self-contained. Skipping the monorepo
+      # install keeps this fast.
+
+      - name: Resolve target commit
+        id: target
+        env:
+          # UNTRUSTED input (repository_dispatch client_payload / manual input).
+          # Passed via env — never interpolated into shell source (classic GHA
+          # script-injection channel) — and reduced to a hex SHA or empty before
+          # any later step consumes it.
+          RAW_SHA: ${{ github.event.client_payload.commit || github.event.inputs.target_sha }}
+        run: |
+          SHA=""
+          if printf '%s' "${RAW_SHA}" | grep -qiE '^[0-9a-f]{7,40}$'; then
+            SHA="${RAW_SHA}"
+          elif [ -n "${RAW_SHA}" ]; then
+            echo "::warning::Ignoring non-SHA target input"
+          fi
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "Target SHA: ${SHA:-(main HEAD)}"
+
+      - name: Run release verification
+        id: verify
+        continue-on-error: true
+        # Bounded below the job budget so the status-recording step ALWAYS has
+        # time to run — a hung verification must still yield a red commit status.
+        timeout-minutes: 12
+        env:
+          RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
+          RELEASE_TARGET_SHA: ${{ steps.target.outputs.sha }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_FAPI_URL: ${{ secrets.CLERK_FAPI_URL }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RELEASE_REPORT_OUT: report.json
+        run: pnpm verify:release
+
+      - name: Record commit status + job summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          if [ "$VERIFY_OUTCOME" = "success" ]; then STATE=success; else STATE=failure; fi
+
+          SHA=""
+          DESC="release verification"
+          if [ -f report.json ]; then
+            # The status lands on the commit we INTENDED to verify (the deploy
+            # commit), falling back to the served/main sha for scheduled runs.
+            # Never containerSha-first: a failed rollout would repaint the OLD
+            # still-serving commit's green status red and leave the new commit
+            # with no status at all.
+            SHA=$(jq -r '.targetSha // .containerSha // .mainSha // empty' report.json)
+            OVERALL=$(jq -r '.overall // "unknown"' report.json)
+            FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
+            HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
+            HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
+            DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+          fi
+          [ -z "$SHA" ] && SHA="$TARGET_SHA"
+          [ -z "$SHA" ] && SHA="$HEAD_SHA"
+          # Defense in depth: only ever POST a status to a hex commit ref.
+          if ! printf '%s' "$SHA" | grep -qiE '^[0-9a-f]{7,40}$'; then SHA="$HEAD_SHA"; fi
+          DESC=$(printf '%s' "$DESC" | cut -c1-140)
+
+          echo "commit status → $STATE @ $SHA — $DESC"
+          gh api -X POST "repos/${REPO}/statuses/${SHA}" \
+            -f state="$STATE" \
+            -f context="vitalcv/release-verified" \
+            -f description="$DESC" \
+            -f target_url="$RUN_URL" >/dev/null
+
+          {
+            echo "## Release verification: ${STATE}"
+            echo ""
+            echo "- Commit: \`${SHA}\`"
+            echo "- ${DESC}"
+            echo "- [Run details](${RUN_URL})"
+            if [ -f report.json ]; then
+              echo ""
+              echo '```json'
+              jq '{overall, targetSha, mainSha, containerSha, failedChecks, cleanup}' report.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail the job when verification failed
+        if: steps.verify.outcome != 'success'
+        run: |
+          echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          exit 1
