@@ -2,7 +2,7 @@
  * The signed-in clinician surfaces the release monitor must reach, plus the
  * pure navigation-outcome classifier.
  *
- * These six `/holder/*` routes are CLINICIAN-gated (`lib/auth/roles.ts`). The
+ * These six routes under `/holder` are CLINICIAN-gated (`lib/auth/roles.ts`). The
  * signed-in-clinician P0 was that every authenticated clinician was redirected
  * to `/auth/error` before any of them rendered, so the monitor's hard gate is:
  * a real synthetic clinician session reaches all six with a terminal 200, never

@@ -2,7 +2,7 @@
  * Synthetic signed-in-clinician harness (Clerk Backend API + FAPI).
  *
  * Reproduces a real active Clerk clinician session end-to-end so the release
- * monitor can black-box the signed-in `/holder/*` flow the way a real user
+ * monitor can black-box the signed-in `/holder` flow the way a real user
  * experiences it — the same technique used to diagnose the signed-in-clinician
  * P0 (memory `signed_in_clinician_auth_p0.md`), promoted here from a throwaway
  * session script into tested, reusable code.
