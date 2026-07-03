@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { Award, Share2 } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { ProofSplitPane } from '@/components/proof/LanePanel';
 import { LiveStateLog } from '@/components/proof/LiveStateLog';
@@ -180,6 +181,36 @@ export default function ReadinessSurface() {
         {/* Split pane */}
         {activeSnapshot && loadState === 'ready' && (
           <>
+            {/* Share / prove + recognition — close the readiness → proof → recognition loop */}
+            <div
+              data-readiness-share=""
+              className="vcv-panel flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="vcv-eyebrow mb-1">Share your evidence</p>
+                <p className="text-sm vcv-muted">
+                  Send the public, source-backed view an employer can read — or see where you have been recognized.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/verify/${activeSnapshot.npi}`}
+                  className="vcv-cta inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+                >
+                  <Share2 className="h-4 w-4" aria-hidden />
+                  Share proof
+                </Link>
+                <Link
+                  href="/holder/recognition"
+                  className="vcv-link inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm"
+                  style={{ borderColor: 'color-mix(in oklch, var(--accent) 32%, transparent)' }}
+                >
+                  <Award className="h-4 w-4" aria-hidden />
+                  Your recognition
+                </Link>
+              </div>
+            </div>
+
             <ProofSplitPane
               lanes={activeSnapshot.lanes}
               npi={activeSnapshot.npi}
