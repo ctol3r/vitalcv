@@ -9,9 +9,10 @@ import {
   History,
   RefreshCw,
   Settings,
+  Share2,
   ShieldCheck,
-  Sparkles,
   UserRound,
+  Wallet,
 } from 'lucide-react';
 import {
   ApplicationList,
@@ -58,7 +59,7 @@ function resumeLabel(path: string | null): { title: string; href: string } | nul
   }
 
   if (path.startsWith('/holder')) {
-    return { title: 'Return to your your readiness', href: path };
+    return { title: 'Return to your readiness', href: path };
   }
 
   return { title: 'Continue where you left off', href: path };
@@ -114,7 +115,15 @@ export default function ClinicianHomeSurface() {
   } = useClinicianMobile();
   const resume = resumeLabel(resumePath);
   const readiness = data.trustState;
-  const npi = data.workspace?.personProfile?.npi ?? 'unknown';
+  const profile = data.workspace?.personProfile;
+  const npi = profile?.npi ?? 'unknown';
+  const hasValidNpi = /^\d{10}$/.test(npi);
+  const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
+  const displayName = fullName || 'Your VitalCV Wallet';
+  // Share the real, public, source-backed proof (what an employer actually
+  // reads) — never the demo-backed presentation flow. Falls back to the wallet
+  // when no NPI is bound yet.
+  const shareHref = hasValidNpi ? `/verify/${npi}` : '/holder';
   const completeness = data.profileCompleteness?.score ?? data.workspace?.personProfile?.completeness ?? 0;
   const completedProfileChecks = countCompletedProfileChecks(data.profileCompleteness?.dimensions);
   const previousVisitMs = previousVisitAt ? Date.parse(previousVisitAt) : 0;
@@ -139,10 +148,10 @@ export default function ClinicianHomeSurface() {
       }
     : {
         eyebrow: data.recommendedAction?.kind === 'finish_onboarding' ? 'Start here' : 'Next step',
-        title: data.recommendedAction?.title ?? 'Open your your readiness',
+        title: data.recommendedAction?.title ?? 'Open your readiness',
         detail: highlightedChange
-          ? `${data.recommendedAction?.description ?? 'Keep your verified identity ready to share.'} Latest: ${highlightedChange.title}.`
-          : data.recommendedAction?.description ?? 'Keep your verified identity ready to share.',
+          ? `${data.recommendedAction?.description ?? 'Keep your source-backed identity ready to share.'} Latest: ${highlightedChange.title}.`
+          : data.recommendedAction?.description ?? 'Keep your source-backed identity ready to share.',
         href: data.recommendedAction?.href ?? '/holder',
         label: data.recommendedAction?.kind === 'resolve_gap'
           ? data.recommendedAction.ctaLabel
@@ -229,29 +238,48 @@ export default function ClinicianHomeSurface() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12 lg:px-8">
-      <header className="flex items-start justify-between gap-4">
-        <div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
-            <Sparkles className="h-3.5 w-3.5" />
-            Active
+            <Wallet className="h-3.5 w-3.5" />
+            Your VitalCV Wallet
           </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">
-            Keep moving
+          <h1 className="mt-4 truncate text-3xl font-semibold tracking-tight text-white">
+            {displayName}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Pick up where you left off and take the next clear step.
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-6 text-white/65">
+            {hasValidNpi ? (
+              <span className="font-mono text-white/50">NPI {npi}</span>
+            ) : (
+              <span>Add your NPI to build your source-backed readiness.</span>
+            )}
+            {profile?.specialty ? (
+              <>
+                <span aria-hidden="true" className="text-white/25">·</span>
+                <span>{profile.specialty}</span>
+              </>
+            ) : null}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          disabled={isRefreshing}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={shareHref}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/50 hover:bg-emerald-400/15"
+          >
+            <Share2 className="h-4 w-4" />
+            {hasValidNpi ? 'Share / prove' : 'Set up sharing'}
+          </Link>
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            disabled={isRefreshing}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </header>
 
       {refreshError ? (
