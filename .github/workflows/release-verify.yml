@@ -1,0 +1,131 @@
+name: Release verify
+
+# Durable, external post-deploy verification of the VitalCV web service.
+#
+# Triggered by the Railway deploy webhook — Railway POSTs to
+# /api/internal/release-monitor/webhook, which fires a repository_dispatch here.
+# Also runs on a schedule (safety net if a webhook is ever missed) and can be
+# dispatched manually. The verification runs on a GitHub runner — an EXTERNAL
+# vantage, never inside the web container it tests (the P0 root cause was an
+# in-container hairpin self-fetch).
+#
+# It mints a synthetic clinician, reaches the six signed-in /holder surfaces
+# with no /auth/error and no redirect loop, checks the served SHA + the
+# /auth/resolving interstitial, runs `pnpm check:deploy`, and records a DURABLE
+# GitHub commit status (context "vitalcv/release-verified") on the verified SHA.
+#
+# Required repo secrets: CLERK_SECRET_KEY, RAILWAY_API_TOKEN. Optional:
+# CLERK_FAPI_URL (default https://clerk.vitalcv.com), RELEASE_PROBE_BASE
+# (default https://vitalcv.com). GITHUB_TOKEN is automatic (statuses: write).
+# See docs/deployment/release-monitoring.md.
+
+on:
+  repository_dispatch:
+    types: [release-verify]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: 'Deploy commit to verify (optional; defaults to main HEAD)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '*/30 * * * *'
+
+concurrency:
+  # Never run two verifications against prod at once; do not cancel one mid-run.
+  group: release-verify
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    name: Verify signed-in release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No `pnpm install`: the runner imports only local .ts + Node built-ins,
+      # and the check:deploy subprocess is self-contained. Skipping the monorepo
+      # install keeps this fast.
+
+      - name: Resolve target commit
+        id: target
+        run: |
+          SHA="${{ github.event.client_payload.commit || github.event.inputs.target_sha }}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "Target SHA: ${SHA:-<main HEAD>}"
+
+      - name: Run release verification
+        id: verify
+        continue-on-error: true
+        env:
+          RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
+          RELEASE_TARGET_SHA: ${{ steps.target.outputs.sha }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_FAPI_URL: ${{ secrets.CLERK_FAPI_URL }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RELEASE_REPORT_OUT: report.json
+        run: pnpm verify:release
+
+      - name: Record commit status + job summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then STATE=success; else STATE=failure; fi
+
+          SHA=""
+          DESC="release verification"
+          if [ -f report.json ]; then
+            # Mark the commit the container was actually serving.
+            SHA=$(jq -r '.containerSha // .targetSha // .mainSha // empty' report.json)
+            OVERALL=$(jq -r '.overall // "unknown"' report.json)
+            FAILED=$(jq -r '(.failedChecks // []) | join(", ")' report.json)
+            HOLDER_OK=$(jq -r '[.checks[]? | select((.name|startswith("holder")) and .ok)] | length' report.json)
+            HOLDER_TOTAL=$(jq -r '[.checks[]? | select(.name|startswith("holder"))] | length' report.json)
+            DESC="${OVERALL}: holder ${HOLDER_OK}/${HOLDER_TOTAL}${FAILED:+; failed ${FAILED}}"
+          fi
+          [ -z "$SHA" ] && SHA="${{ steps.target.outputs.sha }}"
+          [ -z "$SHA" ] && SHA="${{ github.sha }}"
+          DESC=$(printf '%s' "$DESC" | cut -c1-140)
+
+          echo "commit status → $STATE @ $SHA — $DESC"
+          gh api -X POST "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state="$STATE" \
+            -f context="vitalcv/release-verified" \
+            -f description="$DESC" \
+            -f target_url="$RUN_URL" >/dev/null
+
+          {
+            echo "## Release verification: ${STATE}"
+            echo ""
+            echo "- Commit: \`${SHA}\`"
+            echo "- ${DESC}"
+            echo "- [Run details](${RUN_URL})"
+            if [ -f report.json ]; then
+              echo ""
+              echo '```json'
+              jq '{overall, targetSha, mainSha, containerSha, failedChecks, cleanup}' report.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail the job when verification failed
+        if: steps.verify.outcome != 'success'
+        run: |
+          echo "::error::Release verification failed — see the vitalcv/release-verified commit status and the job summary." >&2
+          exit 1

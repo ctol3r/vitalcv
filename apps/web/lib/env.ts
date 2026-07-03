@@ -111,6 +111,20 @@ export const ENV_SCHEMA: ReadonlyArray<EnvVarSchema> = [
     rationale: 'Legacy x-monitoring-secret header for source-health probe. CRON_SECRET preferred for new code.',
   },
 
+  // ── Release monitoring (Railway deploy webhook → release-verify) ────
+  {
+    name: 'GITHUB_DISPATCH_TOKEN',
+    kind: 'optional',
+    visibility: 'server',
+    rationale: 'GitHub token the release-monitor webhook receiver uses to fire the release-verify repository_dispatch. Fine-grained PAT with contents:write on the repo. Held server-side, never in the Railway webhook URL.',
+  },
+  {
+    name: 'RELEASE_WEBHOOK_TOKEN',
+    kind: 'optional',
+    visibility: 'server',
+    rationale: 'Shared secret gating POST /api/internal/release-monitor/webhook (Bearer / x-monitoring-secret / ?token=). Falls back to CRON_SECRET / MONITORING_SECRET when unset.',
+  },
+
   // ── Observability ──────────────────────────────────────────────────
   {
     name: 'NEXT_PUBLIC_SENTRY_DSN',

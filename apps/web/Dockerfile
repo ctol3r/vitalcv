@@ -36,6 +36,14 @@ RUN pnpm turbo run build --filter @vitalcv/web
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# Build-time commit provenance fallback. On Railway, RAILWAY_GIT_COMMIT_SHA is
+# injected at RUNTIME and takes precedence (see lib/deployInfo.ts) — this ARG
+# only backs a plain `docker build --build-arg GIT_COMMIT_SHA=$(git rev-parse HEAD)`
+# so /api/version still reports a real SHA off-Railway. Uses a distinct var name
+# (GIT_SHA, not RAILWAY_GIT_COMMIT_SHA) so an empty build-arg can never shadow
+# Railway's runtime injection.
+ARG GIT_COMMIT_SHA=""
+ENV GIT_SHA=${GIT_COMMIT_SHA}
 COPY --from=build /app/apps/web/.next ./apps/web/.next
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/apps/web/package.json ./apps/web/

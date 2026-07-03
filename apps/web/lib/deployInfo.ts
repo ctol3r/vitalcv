@@ -89,3 +89,40 @@ export function getPublicDeployInfo(): PublicDeployInfo {
   const { env, sha, message, branch, deployedAt, platform, isRailway, isVercel } = getDeployInfo();
   return { env, sha, message, branch, deployedAt, platform, isRailway, isVercel };
 }
+
+/**
+ * Machine-readable build/version fact for release monitoring.
+ *
+ * Unlike PublicDeployInfo (footer LiveBadge — 7-char `sha`), this exposes the
+ * FULL commit so an external monitor can assert deployed-SHA == GitHub main
+ * HEAD. Consumed by GET /api/version. `commit` is '' when the SHA is unknown
+ * (local dev / a Docker build with no injected commit) — an honest empty, never
+ * a fabricated value.
+ */
+export interface VersionInfo {
+  service: 'web';
+  /** Full 40-char commit SHA, or '' when unknown. */
+  commit: string;
+  /** 7-char short SHA, or 'local' when unknown. */
+  commitShort: string;
+  branch: string;
+  environment: DeployEnv;
+  platform: DeployPlatform;
+  /** Railway deployment id (RAILWAY_DEPLOYMENT_ID) for webhook correlation. */
+  deploymentId: string | null;
+  builtAt: string;
+}
+
+export function getVersionInfo(): VersionInfo {
+  const info = getDeployInfo();
+  return {
+    service: 'web',
+    commit: info.shaFull,
+    commitShort: info.sha,
+    branch: info.branch,
+    environment: info.env,
+    platform: info.platform,
+    deploymentId: process.env.RAILWAY_DEPLOYMENT_ID?.trim() || null,
+    builtAt: info.deployedAt,
+  };
+}
