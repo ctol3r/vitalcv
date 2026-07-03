@@ -1,0 +1,262 @@
+/**
+ * MATCHA Preferences — the honest preference spine for the clinician intelligence layer.
+ *
+ * Design contract (truth-first):
+ *  - Everything in this module operates on preferences the clinician *states about themselves*.
+ *    It is not credential verification and never asserts a verified fact about the clinician.
+ *  - Every derived insight in {@link deriveMatchaProfile} carries `provenance` — the exact
+ *    preference fields it was computed from. Nothing is fabricated. If the inputs are absent,
+ *    the insight is omitted rather than invented.
+ *  - Only a subset of these fields currently influence the MATCHA matching engine
+ *    (see {@link ENGINE_BACKED_FIELDS} and {@link toCandidateIntent}). Fields outside that set
+ *    are captured for the clinician's own profile and future matching, and the UI says so.
+ *
+ * The engine itself lives in apps/api/backend/src/services/matcha and emits a MatchExplanation
+ * with its own provenance (fitReasons / blockers). This module is the *preference* half of the
+ * story; the engine is the *match* half.
+ */
+
+// ── Scalar vocabularies ─────────────────────────────────────────────────────
+
+/** A three-point importance scale used for benefit/priority questions. */
+export type Importance = 'low' | 'medium' | 'high';
+
+/** A four-point interest scale used for "how interested are you in X" questions. */
+export type Interest = 'none' | 'curious' | 'interested' | 'passionate';
+
+export type ShiftPreference = 'days' | 'nights' | 'rotating' | 'flexible';
+
+/** Employment arrangements — superset of the engine's HiringType. */
+export type EmploymentType =
+  | 'full_time'
+  | 'part_time'
+  | 'per_diem'
+  | 'contract'
+  | 'locums'
+  | 'telehealth';
+
+export type GreenCardStatus =
+  | 'citizen'
+  | 'permanent_resident'
+  | 'ead'
+  | 'visa_holder'
+  | 'needs_sponsorship'
+  | 'prefer_not_to_say';
+
+/** How soon the clinician wants to start — mirrors the engine's StartUrgency band. */
+export type StartUrgency = 'immediate' | 'within_2_weeks' | 'within_month' | 'flexible';
+
+// ── The preference model ────────────────────────────────────────────────────
+
+/**
+ * The full clinician preference set. Every field is optional: the model is built up
+ * incrementally as the clinician answers, and completeness is measured against what's present.
+ */
+export interface MatchaPreferences {
+  // Career direction
+  careerGoals?: string[];
+  careerDirection?: string;
+  leadershipAspiration?: Interest;
+
+  // Specialties
+  currentSpecialties?: string[];
+  desiredSpecialties?: string[];
+  favoriteProcedures?: string[];
+  populationPreferences?: string[];
+
+  // Location & mobility
+  geographicFlexibility?: Importance;
+  preferredStates?: string[];
+  statesWillingToLicense?: string[];
+  commuteRadiusMiles?: number;
+  remoteInterest?: Interest;
+  travelInterest?: Interest;
+
+  // Work type & schedule
+  employmentTypes?: EmploymentType[];
+  shiftPreference?: ShiftPreference;
+  scheduleFlexibility?: Importance;
+  startUrgency?: StartUrgency;
+
+  // Compensation & benefits
+  desiredSalary?: number;
+  minimumSalary?: number;
+  signOnBonusImportance?: Importance;
+  ptoImportance?: Importance;
+  retirementImportance?: Importance;
+  healthInsuranceImportance?: Importance;
+
+  // Eligibility & background
+  visaSponsorshipNeeded?: boolean;
+  greenCardStatus?: GreenCardStatus;
+  military?: boolean;
+  newGraduate?: boolean;
+  yearsExperience?: number;
+
+  // Interests & growth
+  academicMedicineInterest?: Interest;
+  researchInterest?: Interest;
+  teachingInterest?: Interest;
+  managementInterest?: Interest;
+  telehealthInterest?: Interest;
+  aiInterest?: Interest;
+  blockchainInterest?: Interest;
+  entrepreneurInterest?: Interest;
+  workLifeBalanceImportance?: Importance;
+
+  // Organization fit
+  missionDrivenImportance?: Importance;
+  communityHospitalInterest?: Interest;
+  academicHospitalInterest?: Interest;
+  privatePracticeInterest?: Interest;
+  largeHealthSystemInterest?: Interest;
+  startupInterest?: Interest;
+  culturePreference?: string[];
+  diversityImportance?: Importance;
+  teamSizePreference?: 'small' | 'medium' | 'large' | 'no_preference';
+  patientVolumePreference?: 'low' | 'moderate' | 'high' | 'no_preference';
+
+  // Credentials & capabilities
+  certifications?: string[];
+  futureCertifications?: string[];
+  licenses?: string[];
+  languagesSpoken?: string[];
+  preferredEMRs?: string[];
+}
+
+export type PreferenceField = keyof MatchaPreferences;
+
+/** An empty, well-typed starting point. */
+export function emptyPreferences(): MatchaPreferences {
+  return {};
+}
+
+// ── Completeness ────────────────────────────────────────────────────────────
+
+/**
+ * A field is "answered" when it holds a meaningful value:
+ * a non-empty array, a non-empty string, a finite number, or a boolean.
+ */
+export function isFieldAnswered(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return true;
+  return false;
+}
+
+/** The canonical list of fields completeness is measured against. */
+export const ALL_PREFERENCE_FIELDS: readonly PreferenceField[] = [
+  'careerGoals', 'careerDirection', 'leadershipAspiration',
+  'currentSpecialties', 'desiredSpecialties', 'favoriteProcedures', 'populationPreferences',
+  'geographicFlexibility', 'preferredStates', 'statesWillingToLicense', 'commuteRadiusMiles',
+  'remoteInterest', 'travelInterest',
+  'employmentTypes', 'shiftPreference', 'scheduleFlexibility', 'startUrgency',
+  'desiredSalary', 'minimumSalary', 'signOnBonusImportance', 'ptoImportance',
+  'retirementImportance', 'healthInsuranceImportance',
+  'visaSponsorshipNeeded', 'greenCardStatus', 'military', 'newGraduate', 'yearsExperience',
+  'academicMedicineInterest', 'researchInterest', 'teachingInterest', 'managementInterest',
+  'telehealthInterest', 'aiInterest', 'blockchainInterest', 'entrepreneurInterest',
+  'workLifeBalanceImportance',
+  'missionDrivenImportance', 'communityHospitalInterest', 'academicHospitalInterest',
+  'privatePracticeInterest', 'largeHealthSystemInterest', 'startupInterest',
+  'culturePreference', 'diversityImportance', 'teamSizePreference', 'patientVolumePreference',
+  'certifications', 'futureCertifications', 'licenses', 'languagesSpoken', 'preferredEMRs',
+] as const;
+
+export function countAnsweredFields(prefs: MatchaPreferences): number {
+  return ALL_PREFERENCE_FIELDS.reduce(
+    (n, field) => (isFieldAnswered(prefs[field]) ? n + 1 : n),
+    0,
+  );
+}
+
+/** Completeness as a 0–100 integer. Drives MATCHA's honest "confidence" and learning progress. */
+export function completenessPercent(prefs: MatchaPreferences): number {
+  const total = ALL_PREFERENCE_FIELDS.length;
+  if (total === 0) return 0;
+  return Math.round((countAnsweredFields(prefs) / total) * 100);
+}
+
+// ── Engine mapping ──────────────────────────────────────────────────────────
+
+/**
+ * The preference fields that currently influence the MATCHA matching engine.
+ * The UI uses this set to honestly label which answers change matches *today* vs.
+ * which are captured for the clinician's profile and future matching.
+ */
+export const ENGINE_BACKED_FIELDS: readonly PreferenceField[] = [
+  'preferredStates',
+  'desiredSpecialties',
+  'currentSpecialties',
+  'employmentTypes',
+  'minimumSalary',
+  'remoteInterest',
+  'startUrgency',
+  'telehealthInterest',
+] as const;
+
+/**
+ * The engine's CandidateIntent shape (mirrors matchaModels.ts CandidateIntent).
+ * Kept local to avoid a cross-package import into the web bundle.
+ */
+export interface CandidateIntentPayload {
+  npi: string;
+  preferredStates?: string[];
+  preferredSpecialties?: string[];
+  preferredHiringTypes?: string[];
+  payMin?: number;
+  remoteOnly?: boolean;
+  startUrgency?: StartUrgency;
+  openToLocums?: boolean;
+  openToTelehealth?: boolean;
+  capturedAt?: string;
+}
+
+const ENGINE_HIRING_TYPES = new Set(['locums', 'perm', 'part-time', 'telehealth', 'prn', 'short-term']);
+
+/** Map the rich preference model down to the engine's CandidateIntent subset. */
+export function toCandidateIntent(
+  npi: string,
+  prefs: MatchaPreferences,
+  capturedAt?: string,
+): CandidateIntentPayload {
+  const hiringTypes = (prefs.employmentTypes ?? [])
+    .map((t): string | null => {
+      switch (t) {
+        case 'full_time': return 'perm';
+        case 'part_time': return 'part-time';
+        case 'per_diem': return 'prn';
+        case 'contract': return 'short-term';
+        case 'locums': return 'locums';
+        case 'telehealth': return 'telehealth';
+        default: return null;
+      }
+    })
+    .filter((t): t is string => t !== null && ENGINE_HIRING_TYPES.has(t));
+
+  const specialties = [
+    ...(prefs.desiredSpecialties ?? []),
+    ...(prefs.currentSpecialties ?? []),
+  ];
+  const uniqueSpecialties = Array.from(new Set(specialties));
+
+  const payload: CandidateIntentPayload = { npi };
+  if (prefs.preferredStates?.length) payload.preferredStates = prefs.preferredStates;
+  if (uniqueSpecialties.length) payload.preferredSpecialties = uniqueSpecialties;
+  if (hiringTypes.length) payload.preferredHiringTypes = Array.from(new Set(hiringTypes));
+  if (Number.isFinite(prefs.minimumSalary)) payload.payMin = prefs.minimumSalary;
+  if (prefs.remoteInterest === 'passionate') payload.remoteOnly = true;
+  if (prefs.startUrgency) payload.startUrgency = prefs.startUrgency;
+  if (prefs.employmentTypes?.includes('locums')) payload.openToLocums = true;
+  if (
+    prefs.employmentTypes?.includes('telehealth') ||
+    prefs.telehealthInterest === 'interested' ||
+    prefs.telehealthInterest === 'passionate'
+  ) {
+    payload.openToTelehealth = true;
+  }
+  if (capturedAt) payload.capturedAt = capturedAt;
+  return payload;
+}

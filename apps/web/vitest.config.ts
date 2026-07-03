@@ -21,6 +21,9 @@ const STALE_TEST_FILES = [
 ];
 
 export default defineConfig({
+  // Match the Next app's automatic JSX runtime so component modules under test
+  // don't need an explicit `import React`. Modules that still import React keep working.
+  esbuild: { jsx: 'automatic' },
   test: {
     globals: true,
     environment: 'node',
