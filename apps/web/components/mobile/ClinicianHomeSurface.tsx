@@ -11,6 +11,7 @@ import {
   Settings,
   Share2,
   ShieldCheck,
+  Sparkles,
   UserRound,
   Wallet,
 } from 'lucide-react';
@@ -309,11 +310,17 @@ export default function ClinicianHomeSurface() {
           ? 'border-sky-400/20 bg-sky-400/10'
           : 'border-emerald-400/20 bg-emerald-400/10'
       }`}>
-        <p className={`text-[11px] uppercase tracking-[0.18em] ${
-          primaryAction.tone === 'sky' ? 'text-sky-100/80' : 'text-emerald-100/80'
-        }`}>
-          {primaryAction.eyebrow}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+            <Sparkles className="h-3 w-3 text-emerald-300" aria-hidden="true" />
+            MATCHA · Your next step
+          </span>
+          <p className={`text-[11px] uppercase tracking-[0.18em] ${
+            primaryAction.tone === 'sky' ? 'text-sky-100/80' : 'text-emerald-100/80'
+          }`}>
+            {primaryAction.eyebrow}
+          </p>
+        </div>
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold text-white">{primaryAction.title}</h2>
@@ -321,6 +328,10 @@ export default function ClinicianHomeSurface() {
               primaryAction.tone === 'sky' ? 'text-sky-50/85' : 'text-emerald-50/85'
             }`}>
               {primaryAction.detail}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/45">
+              Reasoned from your source-backed readiness signals — VitalCV shows the evidence
+              behind every step and never invents a credential.
             </p>
             {highlightedChange?.occurredAt ? (
               <p className={`mt-3 text-xs ${
