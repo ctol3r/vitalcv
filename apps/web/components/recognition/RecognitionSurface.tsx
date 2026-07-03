@@ -81,10 +81,27 @@ export function RecognitionSurface() {
           </div>
           <h1 className="vcv-title text-3xl">Your recognition record</h1>
           <p className="text-sm leading-6 vcv-muted">
-            Employer acceptances recorded against your source-backed evidence. Each entry is an
-            employer decision captured with an audit event at the moment it was made.
+            Recognition is the career asset you earn: an employer&apos;s recorded decision to accept
+            your source-backed evidence as a head start. Each entry is captured with an audit event
+            at the moment it was made — yours to keep and prove.
           </p>
         </header>
+
+        {/* Earn · Prove · Reuse — why Recognition matters, in every state */}
+        <div data-recognition-value="" className="grid gap-2.5 sm:grid-cols-3">
+          {[
+            { label: 'Earn it', text: 'An employer reviews your source-backed evidence and accepts it as a head start.' },
+            { label: 'Prove it', text: 'A timestamped, source-backed decision you can share with the next team.' },
+            { label: 'Reuse it', text: 'It stays on your career record and travels with you to the next move.' },
+          ].map((item, idx) => (
+            <div key={item.label} className="vcv-panel-inset p-4">
+              <p className="vcv-eyebrow mb-1">
+                {idx + 1} · {item.label}
+              </p>
+              <p className="text-sm leading-6 vcv-muted">{item.text}</p>
+            </div>
+          ))}
+        </div>
 
         {phase.state === 'loading' && (
           <div className="vcv-panel flex items-center gap-2 p-5 text-sm vcv-muted">
