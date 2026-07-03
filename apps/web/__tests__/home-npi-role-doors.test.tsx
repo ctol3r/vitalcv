@@ -1,11 +1,14 @@
 /**
- * home-npi-role-doors.test.tsx — Wave I coverage.
+ * home-npi-role-doors.test.tsx — Visible Product Wave coverage.
  *
  * Asserts the homepage renders:
- *   - the canonical NPI-first headline + subhead,
- *   - "Look up an NPI" as the primary CTA label,
+ *   - the Career Evidence Network eyebrow + clinician-value headline + subhead,
+ *   - "Check readiness" as the primary NPI CTA label,
  *   - a "Sign in" secondary link,
- *   - four role doors (Verifier / Clinician / Employer / Issuer)
+ *   - the five-step "how it works" loop,
+ *   - the "what you get" value cards (wallet / readiness / recognition /
+ *     proof / opportunities / time-to-start),
+ *   - four role doors (Clinician / Verifier / Employer / Issuer)
  *     each with the documented action label,
  *   - a three-column proof strip (Source / State / Review boundary),
  *   - a trust footer row (Status / Source attribution / Trust),
@@ -59,20 +62,26 @@ function assertNoBannedPhrases(html: string): void {
   }
 }
 
-describe('HomePageClient — NPI-first hero', () => {
-  it('renders the canonical hero headline and subhead', () => {
+describe('HomePageClient — clinician-value hero', () => {
+  it('renders the network eyebrow and clinician-value headline', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Look up an NPI.');
-    expect(html).toContain('data-home-hero-subhead');
-    expect(html).toContain(
-      'See what is source-backed, what is gated, and what still needs institution review.',
-    );
+    expect(html).toContain('data-home-eyebrow');
+    expect(html).toContain('The Provider Career Evidence Network');
+    expect(html).toContain('Your clinical career evidence, in one wallet you own.');
   });
 
-  it('renders "Look up an NPI" as the primary CTA label', () => {
+  it('renders the NPI-first subhead', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-hero-subhead');
+    expect(html).toContain('Start with your NPI.');
+    expect(html).toContain('employer-ready proof packet');
+    expect(html).toContain('reusable for every move');
+  });
+
+  it('renders "Check readiness" as the primary CTA label', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-primary-cta');
-    expect(html).toMatch(/Look up an NPI[^<]*<svg/);
+    expect(html).toMatch(/Check readiness[^<]*<svg/);
   });
 
   it('renders a "Sign in" secondary link', () => {
@@ -80,6 +89,54 @@ describe('HomePageClient — NPI-first hero', () => {
     expect(html).toContain('data-home-secondary-cta');
     expect(html).toContain('href="/sign-in"');
     expect(html).toContain('>Sign in<');
+  });
+});
+
+describe('HomePageClient — how-it-works loop', () => {
+  it('renders the five loop steps', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-loop');
+    for (const n of ['1', '2', '3', '4', '5']) {
+      expect(html).toContain(`data-home-loop-step="${n}"`);
+    }
+  });
+
+  it('names the canonical clinician path in the loop copy', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('Start with your NPI');
+    expect(html).toContain('We check primary sources');
+    expect(html).toContain('Get your readiness snapshot');
+    expect(html).toContain('Share an employer-ready packet');
+    expect(html).toContain('Get accepted as a head start');
+  });
+});
+
+describe('HomePageClient — value cards', () => {
+  it('renders the six value cards', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-value');
+    for (const key of [
+      'wallet',
+      'readiness',
+      'recognition',
+      'proof',
+      'opportunities',
+      'time-to-start',
+    ]) {
+      expect(html).toContain(`data-home-value-card="${key}"`);
+    }
+  });
+
+  it('communicates the clinician product in the value copy', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('A free career wallet you own');
+    expect(html).toContain('NPI-first readiness');
+    expect(html).toContain('VitalCV Recognition');
+    expect(html).toContain('Shareable proof');
+    expect(html).toContain('Opportunity matching');
+    expect(html).toContain('Start working faster');
+    // MATCHA named as the matching engine (a substrate, not the headline).
+    expect(html).toContain('MATCHA');
   });
 });
 
@@ -95,8 +152,8 @@ describe('HomePageClient — role doors', () => {
 
   it('each role door advertises its canonical action label', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Look up an NPI'); // verifier (also matches the primary CTA above the doors)
     expect(html).toContain('Claim my NPI record'); // clinician
+    expect(html).toContain('Look up an NPI'); // verifier
     expect(html).toContain('Review a passport'); // employer
     expect(html).toContain('Connect a source'); // issuer
   });
