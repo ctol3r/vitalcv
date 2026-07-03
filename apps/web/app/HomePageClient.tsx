@@ -7,11 +7,18 @@ import { SignedIn } from '@clerk/nextjs';
 import {
   ArrowRight,
   Award,
+  Building2,
   CheckCircle2,
+  ClipboardCheck,
   Compass,
   Fingerprint,
+  LineChart,
+  Route,
   Share2,
   ShieldCheck,
+  Sparkles,
+  Stethoscope,
+  Target,
   Wallet,
   Zap,
 } from 'lucide-react';
@@ -208,6 +215,76 @@ const TRUST_FOOTER_LINKS = [
 ] as const;
 
 /**
+ * AI layer — MATCHA presented as an intelligence layer, not "AI-powered" fluff.
+ * Every claim is grounded: it reasons over source-backed signals and shows its
+ * work; it never invents a credential. Names the four honest jobs it does.
+ */
+const AI_CAPABILITIES = [
+  {
+    key: 'explain',
+    icon: Sparkles,
+    title: 'Explains your gaps',
+    text: 'Turns a wall of credential fields into plain language — what is source-backed, what is stale, and what to fix first.',
+  },
+  {
+    key: 'recommend',
+    icon: Route,
+    title: 'Recommends your next step',
+    text: 'Ranks your single next best move from your readiness signals — so you always know what to do now, not someday.',
+  },
+  {
+    key: 'match',
+    icon: Target,
+    title: 'Matches readiness to opportunity',
+    text: 'Connects what you can already prove to open roles, so you apply where you are ready instead of guessing.',
+  },
+  {
+    key: 'trust',
+    icon: ShieldCheck,
+    title: 'Helps employers trust faster',
+    text: 'Gives a reviewer a source-backed starting point with its reasoning attached — so a yes takes minutes, not weeks.',
+  },
+] as const;
+
+/**
+ * Buyer audiences — the whole hire buys into one network. Clinician leads; each
+ * row is a single honest value line, no overclaim. Investors/partners name the
+ * moat (a reusable career-evidence network) without inventing metrics.
+ */
+const BUYER_AUDIENCES = [
+  {
+    key: 'clinicians',
+    icon: Stethoscope,
+    audience: 'Clinicians',
+    value: 'A free career wallet you own — readiness, Recognition, and proof that move with you to the next role.',
+  },
+  {
+    key: 'employers',
+    icon: Building2,
+    audience: 'Employers & recruiters',
+    value: 'Start from a source-backed head start, not a stack of documents — and trust candidates faster.',
+  },
+  {
+    key: 'credentialing',
+    icon: ClipboardCheck,
+    audience: 'Credentialing & medical staff teams',
+    value: 'See source, state, and freshness up front, so review begins from evidence instead of intake.',
+  },
+  {
+    key: 'verifiers',
+    icon: Fingerprint,
+    audience: 'Verifiers & issuers',
+    value: 'Look up source-backed facts, and bring a primary source online into the trust register.',
+  },
+  {
+    key: 'investors',
+    icon: LineChart,
+    audience: 'Investors & partners',
+    value: 'A reusable clinician career-evidence network — the provider identity layer under every hire.',
+  },
+] as const;
+
+/**
  * WalletPreview — the hero product visual. Schematic, not a fabricated
  * clinician: it shows the wallet chrome, the source-state vocabulary, a
  * Recognition badge, and a share affordance so the page reads as a product.
@@ -217,7 +294,7 @@ function WalletPreview() {
     <div
       aria-hidden="true"
       data-home-wallet-preview=""
-      className="relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
+      className="vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
     >
       {/* Wallet header */}
       <div className="flex items-center justify-between">
@@ -243,7 +320,7 @@ function WalletPreview() {
           </span>
         </div>
         <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[var(--vt-surface-subtle)]">
-          <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--vt-accent-emerald)] to-emerald-400" />
+          <div className="vt-animate-grow-x h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--vt-accent-emerald)] to-emerald-400" />
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
           Honest about what is checked, gated, or stale.
@@ -490,6 +567,18 @@ export default function HomePageClient() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Secondary path — the wallet is free; the lookup is just the door */}
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+                <Link
+                  href="/get-ready"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)] transition-colors hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]"
+                >
+                  <Wallet size={14} aria-hidden="true" />
+                  Get your free CV Wallet
+                </Link>
+                <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
+              </div>
             </div>
 
             {/* Right: wallet product visual */}
@@ -522,6 +611,54 @@ export default function HomePageClient() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          {/* AI layer — MATCHA as the honest intelligence layer */}
+          <section aria-label="How AI helps" data-home-ai="" className="mt-16">
+            <div className="overflow-hidden rounded-[1.75rem] border border-[var(--vt-border)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--vt-accent-emerald)_9%,var(--vt-surface))_0%,var(--vt-surface)_60%)]">
+              <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-10">
+                <div className="flex flex-col justify-center gap-4">
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                    <Sparkles size={13} className="text-[var(--vt-accent-emerald)]" aria-hidden="true" />
+                    The intelligence layer
+                  </span>
+                  <h2 className="text-[clamp(1.5rem,3vw,2.1rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--vt-text-primary)]">
+                    MATCHA reads your evidence and tells you what to do next.
+                  </h2>
+                  <p className="text-[14px] leading-relaxed text-[var(--vt-text-secondary)]">
+                    VitalCV&apos;s matching engine works from your source-backed signals — not a
+                    marketing promise. It shows its reasoning, points to the source behind every
+                    call, and never invents a credential.
+                  </p>
+                </div>
+
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {AI_CAPABILITIES.map((cap) => {
+                    const Icon = cap.icon;
+                    return (
+                      <li
+                        key={cap.key}
+                        data-home-ai-card={cap.key}
+                        className="flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]"
+                        >
+                          <Icon size={16} />
+                        </span>
+                        <p className="text-[14px] font-semibold leading-snug text-[var(--vt-text-primary)]">
+                          {cap.title}
+                        </p>
+                        <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
+                          {cap.text}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
           </section>
 
           {/* Value cards — the clinician's answer to "what do I get?" */}
@@ -563,6 +700,40 @@ export default function HomePageClient() {
                         <ArrowRight size={14} aria-hidden="true" />
                       </Link>
                     ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Buyer audiences — the whole hire buys into one network */}
+          <section aria-label="Who VitalCV is for" data-home-audiences="" className="mt-16">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              Who buys in
+            </p>
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {BUYER_AUDIENCES.map((row) => {
+                const Icon = row.icon;
+                return (
+                  <div
+                    key={row.key}
+                    data-home-audience={row.key}
+                    className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
+                    >
+                      <Icon size={16} />
+                    </span>
+                    <span className="flex flex-col gap-1">
+                      <span className="text-[13px] font-semibold leading-snug text-[var(--vt-text-primary)]">
+                        {row.audience}
+                      </span>
+                      <span className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
+                        {row.value}
+                      </span>
+                    </span>
                   </div>
                 );
               })}

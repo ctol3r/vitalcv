@@ -173,3 +173,28 @@ html[data-theme='dark'] {
 .ops-shell {
   background: var(--vt-bg);
 }
+
+/* Lightweight, accessible entrance motion for public product surfaces.
+   GPU-friendly (transform/opacity only) and fully disabled under
+   prefers-reduced-motion so nothing depends on animation to be legible. */
+@keyframes vt-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vt-grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.vt-animate-rise {
+  animation: vt-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.vt-animate-grow-x {
+  transform-origin: left center;
+  animation: vt-grow-x 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-animate-rise,
+  .vt-animate-grow-x {
+    animation: none;
+  }
+}
