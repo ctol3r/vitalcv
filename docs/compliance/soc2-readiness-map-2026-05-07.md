@@ -110,7 +110,7 @@ deferred to a later report.
 |---|---|---|
 | A1.1 — Maintains, monitors, evaluates current processing capacity | Source-health probe across upstream sources | `scripts/deploy-health-probe.sh` (#252) |
 | A1.2 — Implements environmental protections | inherits hosting provider (Vercel + Railway + Postgres provider) | provider documentation |
-| A1.3 — Tests recovery plan procedures | scaffold — `docs/ops/database-migration-baseline.md` (deferred PR #237 covers the recovery flow) |
+| A1.3 — Tests recovery plan procedures | Prisma migration baseline is the recovery substrate; the migration files are on main | `apps/api/backend/prisma/migrations/` (scaffold — a dedicated recovery-runbook doc is pending in unmerged PR #237, not yet on main) |
 
 ## Confidentiality (C) — applicable when included in scope
 
