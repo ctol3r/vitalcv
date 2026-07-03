@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Award, Share2 } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { ProofSplitPane } from '@/components/proof/LanePanel';
 import { LiveStateLog } from '@/components/proof/LiveStateLog';
 import { PostureBadge, ProofTierBadge, MetricBadge } from '@/components/proof/TrustLabel';
@@ -130,6 +131,15 @@ export default function ReadinessSurface() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Product loop — Profile → Readiness → Recognition → Share → Opportunity */}
+        <ProductLoopRail
+          variant="doc"
+          activeStage="readiness"
+          npi={npi}
+          profileComplete={(data.profileCompleteness?.score ?? 0) >= 100}
+          hasReadiness={loadState === 'ready'}
+        />
+
         {/* Identity + posture header — serif title, mono identifier */}
         {activeSnapshot && (
           <div className="flex flex-wrap items-end gap-4">
