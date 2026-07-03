@@ -11,8 +11,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Award, Share2 } from 'lucide-react';
+import { Award, Building2, Share2, TrendingUp } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { ProofSplitPane } from '@/components/proof/LanePanel';
 import { LiveStateLog } from '@/components/proof/LiveStateLog';
 import { PostureBadge, ProofTierBadge, MetricBadge } from '@/components/proof/TrustLabel';
@@ -24,6 +25,19 @@ import {
 } from '@/lib/readiness/passport-readiness-snapshot';
 
 type LoadState = 'loading' | 'ready' | 'no-npi' | 'error';
+
+/**
+ * Provenance legend — readiness is a map, not a score. Each row names where a
+ * fact stands and what it means, so a clinician (and later a reviewer) can read
+ * trust at a glance. Colors map to the .vcv-doc state tokens.
+ */
+const PROVENANCE_LEGEND = [
+  { label: 'NPI-confirmed', meaning: 'Matched to your federal NPPES record.', token: 'var(--accent)' },
+  { label: 'Source-backed', meaning: 'Read from a primary source and current.', token: 'var(--state-verified)' },
+  { label: 'Self-attested', meaning: 'You entered it — not yet source-backed.', token: 'var(--state-pending)' },
+  { label: 'Needs review', meaning: 'Flagged for a closer look before it counts.', token: 'var(--state-pending)' },
+  { label: 'Missing', meaning: 'Not provided yet — add it to lift readiness.', token: 'var(--ink-mute)' },
+] as const;
 
 function laneLogMessage(laneId: string, status: string): { message: string; level: StateLogEntry['level'] } {
   const def = KNOWN_LANES.find((lane) => lane.laneId === laneId);
@@ -130,6 +144,15 @@ export default function ReadinessSurface() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Product loop — Profile → Readiness → Recognition → Share → Opportunity */}
+        <ProductLoopRail
+          variant="doc"
+          activeStage="readiness"
+          npi={npi}
+          profileComplete={(data.profileCompleteness?.score ?? 0) >= 100}
+          hasReadiness={loadState === 'ready'}
+        />
+
         {/* Identity + posture header — serif title, mono identifier */}
         {activeSnapshot && (
           <div className="flex flex-wrap items-end gap-4">
@@ -208,6 +231,56 @@ export default function ReadinessSurface() {
                   <Award className="h-4 w-4" aria-hidden />
                   Your recognition
                 </Link>
+              </div>
+            </div>
+
+            {/* Reading your readiness — provenance legend + what it unlocks.
+                Makes readiness a map (source · state · what to do), not a bare score. */}
+            <div data-readiness-explainer="" className="vcv-panel px-5 py-5">
+              <p className="vcv-eyebrow mb-1">Reading your readiness</p>
+              <p className="text-sm vcv-muted mb-4">
+                Readiness is a map, not a grade. Every row below names its source and where it
+                stands — so you can see what is trusted, what is missing, and what to do next.
+              </p>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {PROVENANCE_LEGEND.map((item) => (
+                  <li key={item.label} className="flex items-start gap-2.5">
+                    <span
+                      aria-hidden
+                      className="mt-1.5 h-2.5 w-2.5 flex-none rounded-full"
+                      style={{ background: item.token }}
+                    />
+                    <span className="min-w-0">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--ink-strong)' }}>
+                        {item.label}
+                      </span>
+                      <span className="text-sm vcv-muted"> — {item.meaning}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div
+                  className="flex items-start gap-2.5 rounded-lg p-3"
+                  style={{ background: 'var(--state-verified-wash)', border: 'var(--hairline)' }}
+                >
+                  <TrendingUp className="mt-0.5 h-4 w-4 flex-none" style={{ color: 'var(--state-verified)' }} aria-hidden />
+                  <p className="text-sm vcv-muted">
+                    <span className="font-semibold" style={{ color: 'var(--ink-strong)' }}>Improves your Recognition.</span>{' '}
+                    Source-backed rows are what an employer accepts as a head start.
+                  </p>
+                </div>
+                <div
+                  className="flex items-start gap-2.5 rounded-lg p-3"
+                  style={{ background: 'var(--state-verified-wash)', border: 'var(--hairline)' }}
+                >
+                  <Building2 className="mt-0.5 h-4 w-4 flex-none" style={{ color: 'var(--accent)' }} aria-hidden />
+                  <p className="text-sm vcv-muted">
+                    <span className="font-semibold" style={{ color: 'var(--ink-strong)' }}>Helps employers trust faster.</span>{' '}
+                    A reviewer starts from evidence and freshness, not a fresh intake pile.
+                  </p>
+                </div>
               </div>
             </div>
 
