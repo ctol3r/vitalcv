@@ -27,6 +27,7 @@ import {
   isAuthErrorPath,
   isResolvingPath,
   isSignInPath,
+  pathOf,
   type NavHop,
   type NavOutcome,
 } from './holderRoutes';
@@ -154,6 +155,12 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
   const email = `svc-monitor+${deps.runId}@vitalcv-monitor.local`;
   const created: { userId: string | null; orgId: string | null } = { userId: null, orgId: null };
   const jar: Record<string, string> = {};
+
+  // Fail fast with a crisp operator message — an empty key would otherwise
+  // surface as a cryptic Clerk 401 ("Invalid Authorization header format").
+  if (!deps.clerkSecretKey.trim()) {
+    return { ok: false, created, error: 'CLERK_SECRET_KEY is not set — cannot mint a synthetic clinician' };
+  }
 
   try {
     // 1. Create the synthetic user (role hint in metadata; the backend upsert is authoritative).
@@ -340,7 +347,16 @@ export async function warmUpClinicianSession(
     const location = res.headers.get('location');
     hops.push({ url: relPath(url), status: res.status, location });
 
-    if (res.status === 200) return { ok: true, hops };
+    if (res.status === 200) {
+      // The 200 must be ON the clinician surface. A role-mismatch redirect
+      // (middleware sends a wrong-role user to its ROLE_LANDING, which 200s)
+      // must fail, not pass — the whole point is that a CLINICIAN reaches /holder.
+      const finalPath = pathOf(url);
+      if (finalPath !== '/holder' && !finalPath.startsWith('/holder/')) {
+        return { ok: false, hops, reason: `wrong_destination ${finalPath}` };
+      }
+      return { ok: true, hops };
+    }
 
     if (res.status >= 300 && res.status < 400 && location) {
       if (isAuthErrorPath(location)) return { ok: false, hops, reason: 'auth_error' };
@@ -397,7 +413,9 @@ export async function reachRoute(
     }
     break;
   }
-  return analyzeNavigation(hops);
+  // Enforce the terminal path is the requested surface (or under it) — a
+  // role-mismatch redirect that 200s elsewhere is a failure, not a pass.
+  return analyzeNavigation(hops, pathOf(path));
 }
 
 export interface CleanupResult {

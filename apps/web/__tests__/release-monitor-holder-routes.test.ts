@@ -63,6 +63,25 @@ describe('analyzeNavigation', () => {
     expect(out.reason).toBe('sign_in');
   });
 
+  it('fails a role-mismatch redirect that 200s on the WRONG surface', () => {
+    // middleware getMismatchRedirect: wrong-role user → its ROLE_LANDING, which 200s.
+    const hops: NavHop[] = [
+      { url: '/holder', status: 307, location: '/verifier' },
+      { url: '/verifier', status: 200 },
+    ];
+    const out = analyzeNavigation(hops, '/holder');
+    expect(out.ok).toBe(false);
+    expect(out.reason).toBe('wrong_destination');
+  });
+
+  it('accepts the expected path exactly, as a parent, and with query strings', () => {
+    expect(analyzeNavigation([{ url: '/holder/home', status: 200 }], '/holder/home').ok).toBe(true);
+    expect(analyzeNavigation([{ url: '/holder/home?tab=x', status: 200 }], '/holder/home').ok).toBe(true);
+    expect(analyzeNavigation([{ url: '/holder/home/detail', status: 200 }], '/holder/home').ok).toBe(true);
+    // /holder-admin must NOT satisfy /holder (prefix, not path-segment, match)
+    expect(analyzeNavigation([{ url: '/holder-admin', status: 200 }], '/holder').reason).toBe('wrong_destination');
+  });
+
   it('fails a terminal 3xx as too_many_hops', () => {
     expect(analyzeNavigation([{ url: '/holder', status: 307, location: '/elsewhere' }]).reason).toBe('too_many_hops');
   });

@@ -59,6 +59,14 @@ describe('mintClinicianSession', () => {
     ]);
   });
 
+  it('fails fast with a clear message when CLERK_SECRET_KEY is empty', async () => {
+    const fetchImpl = vi.fn();
+    const r = await mintClinicianSession({ ...base, clerkSecretKey: '', fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain('CLERK_SECRET_KEY');
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('returns the created ids for cleanup even when a later step fails', async () => {
     const fetchImpl = vi.fn(async (url: string | URL) => {
       const u = String(url);
@@ -135,6 +143,16 @@ describe('warmUpClinicianSession', () => {
     const r = await warmUpClinicianSession(deps(fetchImpl), { ...session, cookies: { ...session.cookies } });
     expect(r.ok).toBe(true);
   });
+
+  it('fails when the session resolves to the WRONG role landing (200 off /holder)', async () => {
+    // e.g. role resolved as AUTHENTICATED → middleware redirects /holder → /intelligence, which 200s
+    const fetchImpl = vi.fn(async (url: string | URL) =>
+      String(url).includes('/intelligence') ? jsonRes({}) : redirectRes('/intelligence'),
+    );
+    const r = await warmUpClinicianSession(deps(fetchImpl), { ...session, cookies: { ...session.cookies } });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('wrong_destination');
+  });
 });
 
 describe('reachRoute', () => {
@@ -149,5 +167,14 @@ describe('reachRoute', () => {
     const r = await reachRoute(deps(vi.fn(async () => redirectRes('/auth/error'))), session, '/holder/home');
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('auth_error');
+  });
+
+  it('a role-mismatch redirect that 200s elsewhere → wrong_destination fail', async () => {
+    const fetchImpl = vi.fn(async (url: string | URL) =>
+      String(url).includes('/verifier') ? jsonRes({}) : redirectRes('/verifier'),
+    );
+    const r = await reachRoute(deps(fetchImpl), session, '/holder/home');
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('wrong_destination');
   });
 });

@@ -39,6 +39,7 @@ export type NavFailureReason =
   | 'auth_error' // passed through /auth/error — the P0 signature
   | 'redirect_loop' // a URL repeated in the chain
   | 'sign_in' // bounced to /sign-in (session was not accepted as signed-in)
+  | 'wrong_destination' // settled 200, but NOT on the requested surface (e.g. a role-mismatch redirect)
   | 'non_200' // terminal status was not 200
   | 'too_many_hops' // never settled within the hop budget
   | 'no_hops'; // empty chain (harness error)
@@ -77,12 +78,18 @@ export function isResolvingPath(pathOrUrl: string): boolean {
  * Classify a manually-followed redirect chain for one target route.
  *
  * PASS = the chain settled on a 200 whose path is not /auth/error or /sign-in,
- * with no repeated path. A hop through /auth/error fails as `auth_error` even
- * if a later hop 200s, because /auth/error is the circuit-breaker the P0
- * tripped. Used for the steady-state per-route checks, where the role is
- * already resolved so a healthy chain is a single 200 with no redirects.
+ * with no repeated path — and, when `expectedPath` is given, ON the requested
+ * surface (the terminal path must equal it or live under it). Without that
+ * last constraint a role-mismatch redirect would fool the monitor: middleware
+ * bounces a wrong-role user to their ROLE_LANDING (e.g. /holder → /verifier),
+ * which 200s — a clean-looking chain that never reached the clinician surface.
+ *
+ * A hop through /auth/error fails as `auth_error` even if a later hop 200s,
+ * because /auth/error is the circuit-breaker the P0 tripped. Used for the
+ * steady-state per-route checks, where the role is already resolved so a
+ * healthy chain is a single 200 with no redirects.
  */
-export function analyzeNavigation(hops: NavHop[]): NavOutcome {
+export function analyzeNavigation(hops: NavHop[], expectedPath?: string): NavOutcome {
   if (hops.length === 0) {
     return { ok: false, finalStatus: null, finalUrl: null, hops: 0, reason: 'no_hops' };
   }
@@ -106,6 +113,13 @@ export function analyzeNavigation(hops: NavHop[]): NavOutcome {
   if (last.status !== 200) {
     const reason: NavFailureReason = last.status >= 300 && last.status < 400 ? 'too_many_hops' : 'non_200';
     return { ok: false, finalStatus: last.status, finalUrl: last.url, hops: hops.length, reason };
+  }
+
+  if (expectedPath) {
+    const finalPath = pathOf(last.url);
+    if (finalPath !== expectedPath && !finalPath.startsWith(`${expectedPath}/`)) {
+      return { ok: false, finalStatus: 200, finalUrl: last.url, hops: hops.length, reason: 'wrong_destination' };
+    }
   }
 
   return { ok: true, finalStatus: 200, finalUrl: last.url, hops: hops.length };
