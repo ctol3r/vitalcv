@@ -93,8 +93,8 @@ in a Railway webhook URL. The receiver holds the GitHub token server-side
 | `web_sha` | Critical **only** for a webhook run | Container-served commit vs the target. For a webhook run the target is the deploy commit (exact). For a scheduled run the target is main HEAD, and a lag can be a *benign non-web commit* (web isn't redeployed by an API/docs-only merge), so it is reported, not fatal. |
 | `auth_resolving` | Reported | `GET /auth/resolving` → 200. 404 until the interstitial (#507) ships; the hard gate below is fix-shape-agnostic. |
 | `synthetic_session` | Critical | A synthetic CLINICIAN session was minted. |
-| `holder:cold-start` | Critical | A fresh session reaching `/holder` resolves (200) rather than bouncing to `/auth/error` — the direct P0 detector. |
-| `holder:/holder…` (×6) | Critical | Each required surface returns 200, never passing through `/auth/error`, never looping. |
+| `holder:cold-start` | Critical | A fresh session reaching `/holder` resolves to a 200 **on `/holder`** rather than bouncing to `/auth/error` — the direct P0 detector. |
+| `holder:/holder…` (×6) | Critical | Each required surface returns 200 **on the requested path** (`wrong_destination` otherwise — a role-mismatch redirect that 200s on another role's landing must fail, not pass), never passing through `/auth/error`, never looping. |
 | `deploy_integrity` | Critical | `pnpm check:deploy` exits 0 (no cross-service drift). |
 
 Overall = **fail** if any critical check fails.
@@ -128,8 +128,15 @@ https://vitalcv.com/api/internal/release-monitor/webhook?token=<RELEASE_WEBHOOK_
 
 | Var | Purpose |
 | --- | --- |
-| `GITHUB_DISPATCH_TOKEN` | Fine-grained PAT, **contents: write** on `ctol3r/vitalcv`, to fire `repository_dispatch`. |
+| `GITHUB_DISPATCH_TOKEN` | Fine-grained PAT to fire `repository_dispatch`. **Minimal scope:** single repository (`ctol3r/vitalcv`), Contents: read+write, nothing else, with an expiry. It can trigger workflows but cannot read secrets or push (branch protection applies). |
 | `RELEASE_WEBHOOK_TOKEN` | Shared secret in the webhook URL. May reuse the existing `CRON_SECRET` instead (the receiver accepts it as a fallback). |
+
+> **Token-in-URL caveat:** Railway webhooks cannot attach custom headers, so the
+> secret rides in the `?token=` query string, which can surface in edge/access
+> logs. Accepted risk: the endpoint is not destructive — a leaked token lets an
+> attacker *trigger verification runs* (bounded by workflow concurrency), never
+> deploy, mutate, or read anything. Rotate it if a leak is suspected; the
+> receiver also accepts `Authorization: Bearer` if Railway adds header support.
 
 **3. GitHub repository secrets** (for the workflow)
 
@@ -160,6 +167,35 @@ on first role-resolve, so each run leaves one orphan DB row (placeholder-pattern
 email, non-colliding). A backend cleanup endpoint or a periodic reconciliation
 sweep is a follow-up.
 
+## Rollout & rollback
+
+**Rollout is inherently staged and safe:**
+
+1. **Merge = no-op.** Nothing calls the receiver, and the workflow's
+   `repository_dispatch` never fires until the Railway webhook exists. The
+   scheduled run starts reporting (red today — see `/auth/resolving` note),
+   but posts statuses only; it gates nothing.
+2. Add the GitHub secrets → `workflow_dispatch` a manual run to validate.
+3. Add the Railway webhook + service vars → per-deploy verification is live.
+
+**Rollback / disable (any of these, no state to clean up):**
+
+- Delete the webhook in Railway (stops per-deploy triggers), and/or
+- Disable the *Release verify* workflow in the Actions UI (stops everything,
+  including the schedule), and/or
+- Remove `GITHUB_DISPATCH_TOKEN` from the web service (receiver returns 500,
+  fail-closed, and logs it).
+
+Commit statuses already posted are inert history; nothing consumes them as a
+gate. The receiver route itself is harmless when unwired — it fails closed
+(500) with no secrets configured.
+
+**Fail-closed matrix:** no receiver secret → 500, never dispatches · missing
+`GITHUB_DISPATCH_TOKEN` → 500 + container log · missing `CLERK_SECRET_KEY` on
+the runner → crisp `synthetic_session` failure → red status · missing
+`RAILWAY_API_TOKEN` → `deploy_integrity` failure → red status. No missing
+secret can produce a false green.
+
 ## Failure modes
 
 - **Webhook missed / receiver briefly down** → the `*/30` scheduled run catches
@@ -169,6 +205,12 @@ sweep is a follow-up.
 - **Benign SHA lag** (web not redeployed by a non-web commit) → `web_sha` is
   reported, not fatal, on scheduled runs; exact on webhook runs.
 - **JWT 60s TTL** → the runner re-mints the session token before the route sweep.
+- **Hung verification** → the verify step is bounded (12 min) below the job
+  budget (15 min), so the status-recording step always runs — a hang yields a
+  red status, never a silently-killed job with no status.
+- **Role mis-resolution** → a wrong-role session that 200s on another role's
+  landing fails as `wrong_destination`; a clean-looking redirect chain that
+  never reached `/holder` cannot pass.
 
 ## Runbook
 
