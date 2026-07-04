@@ -6,6 +6,7 @@ import {
   BellRing,
   BriefcaseBusiness,
   Compass,
+  Gauge,
   History,
   RefreshCw,
   Settings,
@@ -182,6 +183,14 @@ export default function ClinicianHomeSurface() {
   }, [npi, previousVisitAt, resumePath, unreadNotifications.length]);
 
   const quickActions: MobileQuickAction[] = [
+    {
+      id: 'open-scoreboard',
+      label: 'Career scoreboard',
+      description: 'Your career at a glance — readiness, recognition, live roles, and the next clear step.',
+      href: '/holder/scoreboard',
+      icon: Gauge,
+      tone: 'emerald',
+    },
     {
       id: 'finish-onboarding',
       label: readiness ? 'View readiness' : 'Start onboarding',
