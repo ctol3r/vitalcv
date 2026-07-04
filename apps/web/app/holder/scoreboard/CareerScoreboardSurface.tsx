@@ -18,6 +18,7 @@ import { fetchAcceptanceRecognition } from '@/lib/recognition/acceptance-recogni
 import { completenessPercent } from '@/lib/matcha/preferences';
 import { loadStoredPreferences } from '@/lib/matcha/storage';
 import { FEATURES } from '@/lib/features';
+import { OpportunitySimulator } from '@/components/matcha/OpportunitySimulator';
 import {
   buildCareerScoreboard,
   type RecognitionSummaryInput,
@@ -132,6 +133,8 @@ export default function CareerScoreboardSurface() {
             <TileCard key={tile.key} tile={tile} />
           ))}
         </div>
+
+        <OpportunitySimulator npi={npi} />
 
         <p className="text-xs vcv-subtle max-w-2xl leading-relaxed border-t pt-4" style={{ borderColor: 'var(--hairline, #e3e7e3)' }}>
           {board.note}

@@ -46,6 +46,7 @@ import {
 import {
   getLiveMatchesForNpi,
   scoreOpportunityForNpi,
+  simulateForNpi,
 } from '../services/matcha/liveMatchaService';
 import type {
   CanonicalFactSummary,
@@ -633,6 +634,33 @@ export function registerMatchaRoutes(app: Express): void {
         error: 'Failed to load MATCHA opportunities',
         detail: error instanceof Error ? error.message : String(error),
       });
+    }
+  });
+
+  /**
+   * GET /api/matcha/simulate/:npi
+   * Deterministic "what if" impact: for each credential that currently blocks
+   * the clinician's real live roles, re-scores the whole set with it earned and
+   * reports how many roles would become cleared to apply. No estimates — every
+   * number is the engine's own recomputed output.
+   */
+  app.get('/api/matcha/simulate/:npi', async (req: Request, res: Response) => {
+    try {
+      const { npi } = req.params;
+      if (!npi || !NPI_RE.test(npi)) {
+        res.status(400).json({ error: 'Invalid NPI — expected 10 digits' });
+        return;
+      }
+
+      const result = await simulateForNpi(npi);
+      res.json(result);
+    } catch (error) {
+      // Detail is logged server-side only — never leaked in the response body
+      // (the web proxy mirrors this JSON to the browser).
+      log('error', 'matcha: simulate_failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Failed to simulate MATCHA impact' });
     }
   });
 

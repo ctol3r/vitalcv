@@ -14,6 +14,7 @@
 import { PrismaClient } from '@prisma/client';
 
 import { matchOpportunities, scoreOpportunity } from './matchaEngine';
+import { simulateCredentialImpact } from './matchaSimulator';
 import type {
   ClinicianProfile,
   HeldCredential,
@@ -307,6 +308,33 @@ export async function getLiveMatchesForNpi(
         .filter(c => c.status === 'pending' || c.claimLevel === 'L1')
         .map(c => c.key),
     },
+  };
+}
+
+/**
+ * Deterministic "what if" simulation for a clinician's real live roles.
+ * Loads the same real ClinicianProfile + active Opportunity set as the live
+ * match, then re-scores with each blocking credential hypothetically earned.
+ * Never mutates evidence; every number is the engine's own recomputed output.
+ */
+export async function simulateForNpi(npi: string) {
+  const [profile, dbOpportunities] = await Promise.all([
+    buildClinicianProfile(npi),
+    prisma.opportunity.findMany({
+      where: { status: 'ACTIVE' },
+      include: { organization: { select: { id: true, name: true } } },
+      take: 50,
+    }),
+  ]);
+
+  const matchaOpps = dbOpportunities.map(dbOppToMatcha);
+  const result = simulateCredentialImpact(profile, matchaOpps, new Date().toISOString());
+
+  return {
+    npi,
+    clinicianName: profile.name,
+    specialty: profile.specialty,
+    ...result,
   };
 }
 
