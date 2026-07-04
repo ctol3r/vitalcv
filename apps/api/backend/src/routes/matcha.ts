@@ -655,13 +655,12 @@ export function registerMatchaRoutes(app: Express): void {
       const result = await simulateForNpi(npi);
       res.json(result);
     } catch (error) {
+      // Detail is logged server-side only — never leaked in the response body
+      // (the web proxy mirrors this JSON to the browser).
       log('error', 'matcha: simulate_failed', {
         error: error instanceof Error ? error.message : String(error),
       });
-      res.status(500).json({
-        error: 'Failed to simulate MATCHA impact',
-        detail: error instanceof Error ? error.message : String(error),
-      });
+      res.status(500).json({ error: 'Failed to simulate MATCHA impact' });
     }
   });
 
