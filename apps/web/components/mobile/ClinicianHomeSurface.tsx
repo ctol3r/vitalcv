@@ -28,6 +28,7 @@ import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
+import CareerCompass from '@/components/matcha/CareerCompass';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
 import { FEATURES } from '@/lib/features';
 import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
@@ -310,6 +311,8 @@ export default function ClinicianHomeSurface() {
           </button>
         </div>
       </header>
+
+      <CareerCompass />
 
       {refreshError ? (
         <ClinicianStatusBanner
