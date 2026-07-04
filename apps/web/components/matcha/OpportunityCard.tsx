@@ -13,6 +13,7 @@ import {
   type IntelligenceOpportunity,
 } from './OpportunityIntelligenceCard';
 import { Livability } from './Livability';
+import { CoverLetterDrafter } from './CoverLetterDrafter';
 import type { ExplanationReason } from './MatchaExplanation';
 import type { OpportunityBucket, OpportunityStatus } from '@/lib/matcha/opportunityActions';
 
@@ -86,6 +87,16 @@ export function OpportunityCard({ opportunity, explanation, preferenceReasons, b
 
         {/* Livability */}
         <Livability location={opportunity.location} state={opportunity.state} remote={opportunity.remote} />
+
+        {/* AI cover-letter draft */}
+        <CoverLetterDrafter
+          opportunity={{
+            title: opportunity.title,
+            organization: opportunity.organization,
+            specialty: opportunity.specialty,
+            location: opportunity.location,
+          }}
+        />
       </OpportunityIntelligenceCard>
     </div>
   );
