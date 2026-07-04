@@ -54,7 +54,7 @@ export function CandidateCard({ candidate, now }: { candidate: PoolCandidate; no
   }
 
   return (
-    <div style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 16, padding: 20 }}>
+    <div className="matcha-lift" style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 16, padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
