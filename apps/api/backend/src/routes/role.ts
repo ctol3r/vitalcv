@@ -16,9 +16,16 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
 import { inferRoleFromNpi } from '../services/auth/roleInferenceService';
+import { isInternalRoleCallAuthorized } from '../auth/internalRoleAuth';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import prisma from '../graphql/prisma_client';
+
+// Transport-auth for this internet-reachable route (Wave 2B follow-up to #504).
+// Default OFF so shipping is a no-op; armed only after MONITORING_SECRET is set
+// on both web + backend tiers. See docs/product/me-role-transport-auth.md.
+const MONITORING_SECRET = process.env.MONITORING_SECRET?.trim();
+const ENFORCE_INTERNAL_AUTH = process.env.ENFORCE_ME_ROLE_INTERNAL_AUTH === 'true';
 
 function asyncHandler(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
@@ -39,12 +46,21 @@ export function registerRoleRoutes(app: Express): void {
    * GET /api/me/role
    *
    * Returns { role: UserRole, userId: string, inferred?: boolean }
-   * Requires: x-clerk-user-id header
+   * Requires: x-clerk-user-id header; x-monitoring-secret when enforcement is on
    * Optional: x-clerk-user-email header (needed for first-time user creation)
    */
   app.get(
     '/api/me/role',
     asyncHandler(async (req: Request, res: Response) => {
+      // ── Transport-auth gate (must run before any DB access) ──────────────
+      // Only our own web tier holds MONITORING_SECRET. When enforcement is off
+      // (default) this is a no-op so the signed-in P0 fix cannot regress.
+      const providedSecret = getHeaderValue(req.headers['x-monitoring-secret']);
+      if (!isInternalRoleCallAuthorized(providedSecret, MONITORING_SECRET, ENFORCE_INTERNAL_AUTH)) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
       const clerkUserId = getHeaderValue(req.headers['x-clerk-user-id'])?.trim();
       if (!clerkUserId) {
         throw new HttpError(401, 'Missing x-clerk-user-id header.');
