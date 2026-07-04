@@ -52,6 +52,9 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
   const [memory, setMemory] = useState<MemoryNote[]>([]);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Flips true on the first local edit so an in-flight server hydration can
+  // never clobber a live edit the clinician just made.
+  const userEditedRef = useRef(false);
 
   // Hydrate from local storage on mount (instant, offline-safe).
   useEffect(() => {
@@ -88,6 +91,9 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
         const body = (await res.json()) as { preferences?: unknown };
         const server = sanitizeStoredPreferences(body?.preferences ?? {});
         if (cancelled) return;
+        // The clinician started editing while this GET was in flight — their
+        // live edit (already persisted via its own PUT) wins; never overwrite it.
+        if (userEditedRef.current) return;
         if (countAnsweredFields(server) > 0) {
           setPreferences(server);
           savePreferences(server, nowIso());
@@ -139,6 +145,7 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
 
   const setField = useCallback(
     (field: PreferenceField, value: MatchaPreferences[PreferenceField]) => {
+      userEditedRef.current = true;
       setPreferences((prev) => {
         const next: MatchaPreferences = { ...prev, [field]: value };
         const notes = diffPreferences(prev, next, [field]);
@@ -155,6 +162,7 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
   );
 
   const reset = useCallback(() => {
+    userEditedRef.current = true;
     clearStoredPreferences();
     setPreferences({});
     setMemory([]);
