@@ -39,14 +39,28 @@ const SELF = "'self'";
 const POSTHOG_INGESTION = 'https://us.i.posthog.com';
 const POSTHOG_ASSETS = 'https://us-assets.i.posthog.com';
 
+// Clerk auth hosts. In production the pk_live key resolves to the custom
+// Frontend API domain clerk.vitalcv.com, which matches NEITHER *.clerk.accounts.dev
+// NOR *.clerk.com (the latter requires "clerk" as the FIRST label — here it's a
+// subdomain of vitalcv.com). Omitting it makes the browser block ClerkJS and its
+// FAPI calls, so sign-in cannot run at all. Keep the dev/accounts wildcards too.
+const CLERK_HOSTS =
+  'https://*.clerk.accounts.dev https://*.clerk.com https://clerk.vitalcv.com';
+// Clerk's bot protection (Cloudflare Turnstile) is enabled by default for pk_live
+// and loads a script + iframe from this host.
+const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
+
 const cspDirectives = [
   `default-src ${SELF}`,
-  `script-src ${SELF} 'unsafe-inline' 'unsafe-eval' ${STRIPE_HOSTS} ${VERCEL_LIVE_HOSTS} https://*.clerk.accounts.dev https://*.clerk.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
+  `script-src ${SELF} 'unsafe-inline' 'unsafe-eval' ${STRIPE_HOSTS} ${VERCEL_LIVE_HOSTS} ${CLERK_HOSTS} ${TURNSTILE_HOST} ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
   `style-src ${SELF} 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src ${SELF} data: https://fonts.gstatic.com`,
   `img-src ${SELF} data: blob: https:`,
-  `connect-src ${SELF} https://*.clerk.accounts.dev https://*.clerk.com https://api.stripe.com https://*.ingest.sentry.io wss://*.vitalcv.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
-  `frame-src ${STRIPE_HOSTS} https://*.clerk.accounts.dev`,
+  `connect-src ${SELF} ${CLERK_HOSTS} https://api.stripe.com https://*.ingest.sentry.io wss://*.vitalcv.com ${POSTHOG_INGESTION} ${POSTHOG_ASSETS}`,
+  `frame-src ${STRIPE_HOSTS} https://*.clerk.accounts.dev https://clerk.vitalcv.com ${TURNSTILE_HOST}`,
+  // ClerkJS runs part of its runtime in a Web Worker created from a blob: URL;
+  // without this it falls back to default-src 'self' and the worker is blocked.
+  `worker-src ${SELF} blob:`,
   `frame-ancestors 'none'`,
   `form-action ${SELF}`,
   `base-uri ${SELF}`,

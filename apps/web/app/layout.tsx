@@ -145,6 +145,15 @@ export default async function RootLayout({
     return hydratedContent;
   }
 
-  return <ClerkProvider>{hydratedContent}</ClerkProvider>;
+  // Land signed-in users on their clinician hub instead of the marketing home
+  // (Clerk otherwise defaults to "/", which reads as "sign-in did nothing").
+  return (
+    <ClerkProvider
+      signInFallbackRedirectUrl="/holder"
+      signUpFallbackRedirectUrl="/holder"
+    >
+      {hydratedContent}
+    </ClerkProvider>
+  );
 }
 // polish wave
