@@ -1,0 +1,225 @@
+/**
+ * matcha-zen.css — VitalCV "Calm Wave D56 / Zenlike" design layer for the MATCHA surfaces.
+ *
+ * Ported from the design handoff (docs/design/zenlike-ui-doctrine.md). Paper + ink, Geist prose,
+ * mono eyebrows/tokens, editorial serif display with italic indigo accents, near-sharp borders,
+ * semantic truth-state chips. Calm 320ms motion, single-shot only — NO gradients, NO looping
+ * animations, NO decorative visuals (doctrine §1.4 / §3).
+ *
+ * Everything is scoped under `.mz` so it never bleeds into the rest of the app. A surface adds
+ * className="mz" on its root; children use `.mz-*` classes.
+ */
+
+.mz {
+  /* Paper & ink */
+  --paper: #f4f2ec;
+  --paper-2: #efede7;
+  --card: #ffffff;
+  --ink-950: #050504;
+  --ink-900: #0f0e0c;
+  --ink-800: #1a1916;
+  --ink-700: #2d2c28;
+  --ink-600: #474540;
+  --ink-500: #6b6860;
+  --ink-400: #96938a;
+  --ink-300: #c2bfb5;
+  --ink-200: #dddbd3;
+  --ink-100: #efede7;
+  --ink-50: #f7f6f2;
+  --rule: #dddbd3;
+  --rule-soft: #eceae4;
+
+  /* Truth states */
+  --ok: #1c5c38;        --ok-bg: #f0faf5;      --ok-rule: #86c9a6;
+  --watch: #7d5a1e;     --watch-bg: #fdf4e7;   --watch-rule: #c9a84c;
+  --unknown: #3f3d38;   --unknown-bg: #f1efe9; --unknown-rule: #c8c4ba;
+  --p0: #7a1414;        --p0-bg: #fef2f2;      --p0-rule: #f5a5a5;
+
+  /* Editorial accent (italic display words) */
+  --accent: #4f46e5;
+
+  /* Fonts — reuse the app's exposed variables (Geist/serif/mono → system fallbacks) */
+  --mz-sans: var(--font-geist, var(--vt-font-body, ui-sans-serif, system-ui, sans-serif));
+  --mz-mono: var(--font-geist-mono, var(--font-mono, ui-monospace, 'JetBrains Mono', monospace));
+  --mz-serif: var(--vt-font-display, var(--font-fraunces, Georgia, 'Times New Roman', serif));
+
+  --mz-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --mz-dur: 320ms;
+
+  color: var(--ink-900);
+  font-family: var(--mz-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Opt-in paper canvas for full standalone surfaces. */
+.mz-paper { background: var(--paper); }
+
+/* ── Typography ───────────────────────────────────────────────────────────── */
+
+.mz-display {
+  margin: 0;
+  font-family: var(--mz-serif);
+  font-weight: 500;
+  font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--ink-950);
+}
+.mz-accent { font-style: italic; color: var(--accent); }
+
+.mz-h1 { margin: 0; font-family: var(--mz-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.1rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink-950); }
+.mz-h2 { margin: 0; font-weight: 600; font-size: 1.05rem; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink-900); }
+.mz-lede { margin: 0; font-size: 1.0625rem; line-height: 1.55; color: var(--ink-600); }
+.mz-body { margin: 0; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-700); }
+.mz-small { font-size: 0.8125rem; color: var(--ink-500); }
+.mz-mono { font-family: var(--mz-mono); font-variant-numeric: tabular-nums; }
+
+.mz-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mz-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ink-400);
+}
+.mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.mz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--ink-900);
+  background: var(--ink-900);
+  color: #fff;
+  border-radius: 3px;
+  font-family: var(--mz-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--mz-dur) var(--mz-ease), transform 80ms var(--mz-ease);
+}
+.mz-btn:hover { background: var(--ink-700); }
+.mz-btn:active { transform: translateY(1px); }
+
+.mz-btn-ghost {
+  background: transparent;
+  color: var(--ink-900);
+  border-color: var(--rule);
+}
+.mz-btn-ghost:hover { background: var(--ink-50); border-color: var(--ink-300); }
+
+.mz-btn-sm { padding: 7px 13px; font-size: 12.5px; }
+
+/* ── Cards / surfaces ─────────────────────────────────────────────────────── */
+
+.mz-card {
+  border: 1px solid var(--rule);
+  background: var(--card);
+  border-radius: 3px;
+}
+.mz-card-pad { padding: 20px; }
+.mz-card-hd {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mz-card-ttl { font-size: 13.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -0.005em; }
+.mz-inset { background: var(--paper-2); border: 1px solid var(--rule-soft); border-radius: 3px; }
+
+/* Hairline-lift for interactive cards — border darkens, no shadow bloom, no lift bounce. */
+.mz-interactive { transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease); }
+.mz-interactive:hover { border-color: var(--ink-400); }
+
+/* ── State chips ──────────────────────────────────────────────────────────── */
+
+.mz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 2px;
+  font-family: var(--mz-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mz-gl { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 1px; }
+.mz-chip-ok { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-rule); }
+.mz-chip-ok .mz-gl { background: var(--ok); }
+.mz-chip-watch { color: var(--watch); background: var(--watch-bg); border-color: var(--watch-rule); }
+.mz-chip-watch .mz-gl { background: var(--watch); border-radius: 50%; }
+.mz-chip-unknown { color: var(--unknown); background: var(--unknown-bg); border-color: var(--unknown-rule); }
+.mz-chip-unknown .mz-gl { background: var(--unknown); opacity: 0.5; }
+.mz-chip-p0 { color: var(--p0); background: var(--p0-bg); border-color: var(--p0-rule); }
+.mz-chip-p0 .mz-gl { background: var(--p0); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+
+/* ── Inputs / field ───────────────────────────────────────────────────────── */
+
+.mz-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--ink-300);
+  background: var(--card);
+  color: var(--ink-900);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--mz-dur) var(--mz-ease);
+}
+.mz-input:focus { border-color: var(--ink-900); }
+.mz-input::placeholder { color: var(--ink-400); }
+
+.mz-field { display: flex; border: 1px solid var(--ink-900); background: var(--card); border-radius: 3px; overflow: hidden; }
+.mz-field .mz-prefix { padding: 0 14px; display: flex; align-items: center; font-family: var(--mz-mono); font-size: 10px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.14em; border-right: 1px solid var(--rule); background: var(--ink-50); }
+.mz-field input { flex: 1; border: 0; padding: 13px 15px; font: inherit; font-size: 15px; color: var(--ink-900); background: transparent; outline: none; font-variant-numeric: tabular-nums; }
+
+/* ── Selectable chips (options) ───────────────────────────────────────────── */
+
+.mz-opt {
+  padding: 8px 13px;
+  border: 1px solid var(--ink-200);
+  background: var(--card);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-700);
+  cursor: pointer;
+  transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease);
+}
+.mz-opt:hover { border-color: var(--ink-400); }
+.mz-opt[aria-pressed='true'] { border-color: var(--ink-900); background: var(--ink-900); color: #fff; }
+
+/* ── Progress meter (ink, no gradient) ────────────────────────────────────── */
+
+.mz-meter { height: 5px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
+.mz-meter > span { display: block; height: 100%; background: var(--ink-800); border-radius: 999px; transition: width var(--mz-dur) var(--mz-ease); }
+
+/* ── Dotted grid backdrop (static, calm) ──────────────────────────────────── */
+
+.mz-dotgrid {
+  background-image: radial-gradient(var(--ink-200) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ── Motion respect ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .mz *, .mz *::before, .mz *::after { transition: none !important; animation: none !important; }
+}
