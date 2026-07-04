@@ -29,7 +29,7 @@ export function MatchaOpportunitiesSurface() {
   const bucketCounts = counts(ids);
 
   return (
-    <div className="matcha-enter" style={{ maxWidth: 820, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 16 }}>
+    <div className="mz mz-paper matcha-enter" style={{ maxWidth: 820, margin: '0 auto', padding: '28px 24px 96px', display: 'grid', gap: 16, minHeight: '100vh' }}>
       <header style={{ marginBottom: 4 }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
           Opportunities MATCHA found

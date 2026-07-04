@@ -15,7 +15,7 @@ export function MatchaOnboardingSurface() {
   const person = data.workspace?.personProfile;
 
   return (
-    <div style={{ padding: '28px 20px 96px' }}>
+    <div className="mz mz-paper" style={{ padding: '28px 24px 96px', minHeight: '100vh' }}>
       <MatchaOnboarding
         npi={person?.npi ?? undefined}
         clinicianName={person?.firstName ?? undefined}

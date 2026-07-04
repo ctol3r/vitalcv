@@ -69,7 +69,7 @@ export function MatchaHub() {
   const hasMatches = oppState === 'ready' && matches.length > 0;
 
   return (
-    <div className="matcha-enter" style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 24 }}>
+    <div className="mz mz-paper matcha-enter" style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px 96px', display: 'grid', gap: 24, minHeight: '100vh' }}>
       {/* Greeting + what to do next */}
       <Panel>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: 'var(--vt-text-primary)', letterSpacing: '-0.01em' }}>
