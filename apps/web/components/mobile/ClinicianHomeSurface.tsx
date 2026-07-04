@@ -29,6 +29,7 @@ import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
+import { FEATURES } from '@/lib/features';
 import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
@@ -248,6 +249,21 @@ export default function ClinicianHomeSurface() {
       tone: 'zinc',
     },
   ];
+
+  // The full MATCHA experience (Career DNA, preference tuning, live matches) is
+  // real + honest but pilot-gated behind NEXT_PUBLIC_FEATURE_MATCHA_V2. Surface a
+  // discoverable entry exactly when the pilot is enabled, so the experience is
+  // reachable from the dashboard instead of orphaned at a URL only.
+  if (FEATURES.MATCHA_V2) {
+    quickActions.unshift({
+      id: 'open-matcha',
+      label: 'Your Career DNA',
+      description: 'Meet MATCHA — teach it what you want, and see the career it understands.',
+      href: '/holder/matcha',
+      icon: Sparkles,
+      tone: 'emerald',
+    });
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12 lg:px-8">
