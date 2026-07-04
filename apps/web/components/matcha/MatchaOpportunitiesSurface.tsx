@@ -6,14 +6,16 @@
  * on from the clinician's own stored answers. Honest empty / loading / error states.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useMatchaPreferences } from './useMatchaPreferences';
 import {
-  OpportunityIntelligenceCard,
   type IntelligenceExplanation,
   type IntelligenceOpportunity,
 } from './OpportunityIntelligenceCard';
+import { OpportunityCard } from './OpportunityCard';
+import { useOpportunityActions } from './useOpportunityActions';
+import { BUCKET_LABEL, BUCKET_ORDER } from '@/lib/matcha/opportunityActions';
 import { preferenceMatchReasons, type FitOpportunity } from '@/lib/matcha/opportunityFit';
 
 interface RawMatch {
@@ -27,9 +29,16 @@ export function MatchaOpportunitiesSurface() {
   const { data } = useClinicianMobile();
   const npi = data.workspace?.personProfile?.npi ?? null;
   const { preferences } = useMatchaPreferences(npi ?? undefined);
+  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions();
 
   const [matches, setMatches] = useState<RawMatch[]>([]);
   const [state, setState] = useState<LoadState>('loading');
+
+  const ids = useMemo(
+    () => matches.map((m) => m.opportunity?.id).filter((id): id is string => Boolean(id)),
+    [matches],
+  );
+  const bucketCounts = counts(ids);
 
   useEffect(() => {
     if (!npi) {
@@ -64,6 +73,18 @@ export function MatchaOpportunitiesSurface() {
         </p>
       </header>
 
+      {/* Status counters — New / Saved / Connected / Declined */}
+      {state === 'ready' && matches.length > 0 && actionsLoaded && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {BUCKET_ORDER.map((b) => (
+            <div key={b} style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--vt-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{bucketCounts[b]}</div>
+              <div style={{ fontSize: 11, color: 'var(--vt-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{BUCKET_LABEL[b]}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {state === 'no-npi' && (
         <EmptyNote title="Add your NPI to get matches" body="Once your NPI is on file, MATCHA can score real opportunities for you." />
       )}
@@ -81,12 +102,13 @@ export function MatchaOpportunitiesSurface() {
           if (!opp?.id) return null;
           const reasons = preferenceMatchReasons(preferences, opp);
           return (
-            <OpportunityIntelligenceCard
+            <OpportunityCard
               key={opp.id ?? i}
               opportunity={opp}
               explanation={m.explanation}
               preferenceReasons={reasons}
-              href={`/holder/opportunities`}
+              bucket={bucketOf(opp.id)}
+              onSetStatus={(status) => setStatus(opp.id, status)}
             />
           );
         })}
