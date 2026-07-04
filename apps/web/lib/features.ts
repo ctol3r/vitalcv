@@ -32,8 +32,14 @@ export const FEATURES = {
   /** Wave 186: Employer knowledge pages — PUBLIC */
   EMPLOYER_PAGES:      flag('NEXT_PUBLIC_FEATURE_EMPLOYER_PAGES',       true),
 
-  /** Wave 187: MATCHA v2 engine — PILOT */
-  MATCHA_V2:           flag('NEXT_PUBLIC_FEATURE_MATCHA_V2',            false),
+  /**
+   * Wave 187: MATCHA v2 engine — GA (default ON).
+   * The signed-in MATCHA experience (Career DNA, preference tuning, live
+   * matches) and the employer candidate pool are real-data-backed and honest;
+   * default-on makes them visible. Set NEXT_PUBLIC_FEATURE_MATCHA_V2=false to
+   * disable.
+   */
+  MATCHA_V2:           flag('NEXT_PUBLIC_FEATURE_MATCHA_V2',            true),
 
   /** Wave 188: Enhanced explore surface — PUBLIC */
   EXPLORE_V2:          flag('NEXT_PUBLIC_FEATURE_EXPLORE_V2',           true),
@@ -111,7 +117,7 @@ export const ROLLOUT_TIERS: Record<FeatureKey, 'INTERNAL' | 'PILOT' | 'PUBLIC'> 
   PREQUALIFY_FLOW_V2:    'INTERNAL',
   ASK_VITALCV:           'PILOT',
   EMPLOYER_PAGES:        'PUBLIC',
-  MATCHA_V2:             'PILOT',
+  MATCHA_V2:             'PUBLIC',
   EXPLORE_V2:            'PUBLIC',
   ASSESSMENTS:           'PILOT',
   VERIFIER_PIPELINE:     'PILOT',
