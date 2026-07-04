@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useMatchaPreferences } from './useMatchaPreferences';
 import { MatchaProfile } from './MatchaProfile';
+import { CATEGORY_META, CATEGORY_ORDER, allCategoryProgress } from '@/lib/matcha/categories';
 
 const ACCENT = 'var(--vt-accent, #0A7B7F)';
 
@@ -19,7 +20,8 @@ export function MatchaHub() {
   const npi = person?.npi ?? undefined;
   const firstName = person?.firstName ?? undefined;
 
-  const { derived, completeness, memory, loaded } = useMatchaPreferences(npi);
+  const { preferences, derived, completeness, memory, loaded } = useMatchaPreferences(npi);
+  const categoryProgress = allCategoryProgress(preferences);
 
   const started = completeness > 0;
 
@@ -87,6 +89,39 @@ export function MatchaHub() {
         >
           {started ? 'Continue' : 'Start'}
         </Link>
+      </div>
+
+      {/* Match questions — Personal / Professional / Place */}
+      <div style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 16, padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--vt-text-primary)' }}>Match questions</h2>
+          <Link href="/holder/matcha/assessment" style={{ fontSize: 13, fontWeight: 600, color: ACCENT, textDecoration: 'none' }}>
+            Answer more →
+          </Link>
+        </div>
+        <p style={{ margin: '6px 0 14px', fontSize: 13, color: 'var(--vt-text-secondary)' }}>
+          The more you answer across these three areas, the sharper MATCHA&rsquo;s matches.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+          {CATEGORY_ORDER.map((cat) => {
+            const prog = categoryProgress.find((p) => p.category === cat)!;
+            return (
+              <Link
+                key={cat}
+                href="/holder/matcha/assessment"
+                style={{ display: 'block', textDecoration: 'none', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 12, padding: '14px 16px' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--vt-text-primary)' }}>{CATEGORY_META[cat].label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--vt-text-muted)', fontVariantNumeric: 'tabular-nums' }}>{prog.answered}/{prog.total}</span>
+                </div>
+                <div style={{ marginTop: 10, height: 5, borderRadius: 999, background: 'var(--vt-border, #E2E8E6)', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.max(2, prog.percent)}%`, height: '100%', background: ACCENT, borderRadius: 999 }} />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* Wave 2 profile */}
