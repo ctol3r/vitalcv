@@ -51,6 +51,7 @@ truth contract: **nothing is fabricated; every score and insight traces to real 
 | 6 | Recruiter buyer landing | `app/matcha/recruiters/page.tsx` |
 | 7 | Hospital buyer landing | `app/matcha/hospitals/page.tsx` |
 | 8 | Investor buyer landing + ecosystem map | `app/matcha/investors/page.tsx`, `components/matcha/buyer/*` |
+| Public | **Interactive MATCHA on the homepage** (no signup, unflagged, live) | `components/matcha/PublicMatchaExperience.tsx`, `app/HomePageClient.tsx` |
 
 **Verification:** 23/23 MATCHA tests pass; full web typecheck 0 errors; `next build` green with
 all routes registered. The 21 failing suite tests are pre-existing page-copy contract failures
