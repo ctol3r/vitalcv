@@ -6,61 +6,27 @@
  * on from the clinician's own stored answers. Honest empty / loading / error states.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useMatchaPreferences } from './useMatchaPreferences';
-import {
-  type IntelligenceExplanation,
-  type IntelligenceOpportunity,
-} from './OpportunityIntelligenceCard';
 import { OpportunityCard } from './OpportunityCard';
 import { useOpportunityActions } from './useOpportunityActions';
+import { useMatchaOpportunities } from './useMatchaOpportunities';
 import { BUCKET_LABEL, BUCKET_ORDER } from '@/lib/matcha/opportunityActions';
-import { preferenceMatchReasons, type FitOpportunity } from '@/lib/matcha/opportunityFit';
-
-interface RawMatch {
-  opportunity?: Record<string, unknown> & IntelligenceOpportunity & FitOpportunity;
-  explanation?: IntelligenceExplanation;
-}
-
-type LoadState = 'loading' | 'ready' | 'error' | 'no-npi';
+import { preferenceMatchReasons } from '@/lib/matcha/opportunityFit';
 
 export function MatchaOpportunitiesSurface() {
   const { data } = useClinicianMobile();
   const npi = data.workspace?.personProfile?.npi ?? null;
   const { preferences } = useMatchaPreferences(npi ?? undefined);
   const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions();
-
-  const [matches, setMatches] = useState<RawMatch[]>([]);
-  const [state, setState] = useState<LoadState>('loading');
+  const { matches, state } = useMatchaOpportunities(npi);
 
   const ids = useMemo(
     () => matches.map((m) => m.opportunity?.id).filter((id): id is string => Boolean(id)),
     [matches],
   );
   const bucketCounts = counts(ids);
-
-  useEffect(() => {
-    if (!npi) {
-      setState('no-npi');
-      return;
-    }
-    let cancelled = false;
-    setState('loading');
-    fetch(`/api/matcha/opportunities/${encodeURIComponent(npi)}`, { signal: AbortSignal.timeout(16_000) })
-      .then((r) => r.json())
-      .then((payload: { matches?: RawMatch[] }) => {
-        if (cancelled) return;
-        setMatches(Array.isArray(payload.matches) ? payload.matches : []);
-        setState('ready');
-      })
-      .catch(() => {
-        if (!cancelled) setState('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [npi]);
 
   return (
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 16 }}>
