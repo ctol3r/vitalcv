@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
+import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -19,13 +20,13 @@ function formatNpi(value: string): string {
 
 const CLINICIAN_BULLETS = [
   'See your NPI status in 30 seconds',
-  'Get a portable credential readiness passport',
-  'Walk into any new role with your evidence packet ready.',
+  'Build a portable readiness packet that grows over time',
+  'Carry your evidence into every new opportunity — no restart',
 ];
 
 const EMPLOYER_BULLETS = [
-  'Review candidate readiness before day one',
-  'Request missing credentials directly',
+  'Start with a review-ready proof packet, not scattered documents',
+  'See source coverage, freshness, and blockers before day one',
   'Reduce onboarding delays to hours, not weeks',
 ];
 
@@ -33,6 +34,15 @@ const ISSUER_BULLETS = [
   'Provide trusted evidence once',
   'Reuse verification across employers',
   'Eliminate redundant verification requests',
+];
+
+const PACKET_DELIVERABLES = [
+  'NPI identity snapshot',
+  'Credential readiness summary',
+  'Source coverage and freshness',
+  'Known blockers or missing evidence',
+  'Recruiter-ready career summary',
+  'Employer-facing proof packet',
 ];
 
 export default function HomePageClient() {
@@ -88,20 +98,21 @@ export default function HomePageClient() {
         <div className="w-full max-w-3xl space-y-6">
           {/* Eyebrow */}
           <p className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
-            Healthcare Credential Readiness
+            The Provider Career Evidence Network
           </p>
 
           {/* Headline */}
           <h1 className="max-w-2xl text-[clamp(2.8rem,7vw,4.8rem)] font-semibold leading-[0.93] tracking-[-0.055em] text-[var(--vt-text-primary)]">
-            Know your credential readiness.
+            Stop starting over.
             <br />
-            Right now.
+            Start ready.
           </h1>
 
           {/* Sub-headline */}
           <p className="max-w-xl text-[18px] leading-[1.65] text-[var(--vt-text-secondary)]">
-            Enter your NPI. VitalCV checks federal registries instantly and shows you exactly where
-            you stand — no account needed, no waiting.
+            VitalCV turns your NPI into a source-backed career readiness packet you can carry across
+            healthcare opportunities — so you know what is ready, what is missing, and what evidence
+            moves with you.
           </p>
 
           {/* Who it's for */}
@@ -217,7 +228,7 @@ export default function HomePageClient() {
                 </span>
               </div>
               <h2 className="mb-3 text-[17px] font-semibold leading-tight text-[var(--vt-text-primary)]">
-                Your credential passport, always ready.
+                Career evidence that travels with you.
               </h2>
               <ul className="space-y-2">
                 {CLINICIAN_BULLETS.map((b) => (
@@ -294,10 +305,75 @@ export default function HomePageClient() {
             </CardContent>
           </Card>
         </div>
+      </section>
 
-        {/* ── Bottom tagline ────────────────────────────────────────────── */}
+      {/* ── MATCHA intelligence layer (interactive, no signup) ──────────── */}
+      <section className="relative mx-auto w-full max-w-5xl px-6 pb-12 pt-4">
+        <div className="mb-6 max-w-2xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            Meet MATCHA
+          </p>
+          <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--vt-text-primary)]">
+            Not a job board. A career operating system.
+          </h2>
+          <p className="mt-4 text-[15px] leading-[1.65] text-[var(--vt-text-secondary)]">
+            MATCHA is the intelligence layer that learns what you want, then works in the background
+            to surface roles worth your time — and it explains every recommendation instead of hiding
+            it behind a score. Try it below. No signup, and everything it says traces to what you tell it.
+          </p>
+        </div>
+        <PublicMatchaExperience />
+      </section>
+
+      {/* ── First-revenue offer: Verified Clinician Career Packet ───────── */}
+      <section className="relative mx-auto w-full max-w-5xl px-6 pb-12">
+        <Card className="border-[var(--vt-border)] bg-[var(--vt-surface)]">
+          <CardContent className="px-6 py-8 sm:px-8 sm:py-10">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              Verified Clinician Career Packet
+            </p>
+            <h2 className="max-w-2xl text-[clamp(1.6rem,3.5vw,2.4rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--vt-text-primary)]">
+              Get recruiter-ready in 48 hours.
+            </h2>
+            <p className="mt-4 max-w-2xl text-[15px] leading-[1.65] text-[var(--vt-text-secondary)]">
+              VitalCV turns your NPI, CV, and public credential signals into a source-backed career
+              readiness packet — showing what is ready, what is missing, and what can be shared with
+              recruiters or employers.
+            </p>
+
+            <ul className="mt-6 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              {PACKET_DELIVERABLES.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2 text-[13px] text-[var(--vt-text-secondary)]"
+                >
+                  <CheckCircle2
+                    size={13}
+                    className="mt-0.5 shrink-0 text-[var(--vt-state-verified)]"
+                    aria-hidden="true"
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--vt-text-primary)] px-5 py-2.5 text-[13px] font-semibold text-[var(--vt-bg)] transition-colors hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]"
+              >
+                Request a readiness review <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+              <span className="text-[12px] text-[var(--vt-text-muted)]">
+                A source-backed readiness review — honest about what is checked, gated, or missing.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Ecosystem line ────────────────────────────────────────────── */}
         <p className="mt-12 text-center text-[13px] font-medium text-[var(--vt-text-muted)]">
-          Stop starting over. Start ready.
+          Every accepted packet makes the next opportunity easier.
         </p>
       </section>
     </div>
