@@ -28,6 +28,7 @@ import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
+import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
@@ -298,6 +299,8 @@ export default function ClinicianHomeSurface() {
       ) : null}
 
       <SelectedOpportunityBanner />
+
+      <MatchaHomeActivity />
 
       <ProductLoopRail
         npi={hasValidNpi ? npi : null}

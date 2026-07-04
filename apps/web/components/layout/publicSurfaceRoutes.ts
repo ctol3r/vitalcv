@@ -63,6 +63,7 @@ const PREFIX_MATCHERS = [
   '/review',
   '/verify',
   '/clip',
+  '/matcha',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
