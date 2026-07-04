@@ -14,6 +14,8 @@ import { useMatchaPreferences } from './useMatchaPreferences';
 import { useMatchaOpportunities } from './useMatchaOpportunities';
 import { useOpportunityActions } from './useOpportunityActions';
 import { MatchaProfile } from './MatchaProfile';
+import { MatchaDailyBrief } from './MatchaDailyBrief';
+import { MatchaConstellation } from './MatchaConstellation';
 import { OpportunityCard } from './OpportunityCard';
 import { CATEGORY_META, CATEGORY_ORDER, allCategoryProgress } from '@/lib/matcha/categories';
 import { deriveNextActions } from '@/lib/matcha/nextActions';
@@ -70,6 +72,9 @@ export function MatchaHub() {
 
   return (
     <div className="mz mz-paper matcha-enter" style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px 96px', display: 'grid', gap: 24, minHeight: '100vh' }}>
+      {/* Daily brief — the come-back-every-day hook */}
+      <MatchaDailyBrief />
+
       {/* Greeting + what to do next */}
       <Panel>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: 'var(--vt-text-primary)', letterSpacing: '-0.01em' }}>
@@ -104,6 +109,24 @@ export function MatchaHub() {
           ))}
         </div>
       </Panel>
+
+      {/* Your constellation — the signed-in hero, built from your real evidence */}
+      {started && (
+        <div>
+          <p className="mz-eyebrow" style={{ marginBottom: 10 }}>Your career, in motion</p>
+          <MatchaConstellation
+            height={420}
+            profile={{
+              specialty: preferences.currentSpecialties?.[0] ?? preferences.desiredSpecialties?.[0],
+              readinessScore: data.trustState?.readinessScore ?? null,
+              matchCount: matches.length,
+            }}
+          />
+          <p className="mz-mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--ink-400)' }}>
+            Drag to rotate · pull the slider to travel your career. Past &amp; future are projected; your real evidence lives in your wallet.
+          </p>
+        </div>
+      )}
 
       {/* Recently learned — memory */}
       {loaded && memory.length > 0 && (

@@ -42,8 +42,15 @@ const PALETTE: Record<Kind, string> = {
   future: '#8b8cf0',
 };
 
+/** Optional real signed-in data — relabels the "now" stars so the sky is the clinician's own. */
+export interface ConstellationProfile {
+  specialty?: string;
+  readinessScore?: number | null;
+  matchCount?: number;
+}
+
 // Deterministic layout (no Math.random at module scope; twinkle phase derived from index).
-function buildStars(): Star[] {
+function buildStars(profile?: ConstellationProfile): Star[] {
   const defs: Array<Omit<Star, 'angle' | 'twinkle'>> = [
     { id: 'you', label: 'You', kind: 'you', era: 'now', t: 0.5, ring: 1 },
     // origin era
@@ -72,12 +79,22 @@ function buildStars(): Star[] {
     2: defs.filter((d) => d.ring === 2).length,
     3: defs.filter((d) => d.ring === 3).length,
   };
-  return defs.map((d, i) => {
+  const stars = defs.map((d, i) => {
     if (d.id === 'you') return { ...d, angle: 0, twinkle: 0 };
     const idx = perRing[d.ring]++;
     const angle = (idx / Math.max(1, ringCount[d.ring])) * Math.PI * 2 + d.ring * 0.6;
     return { ...d, angle, twinkle: (i * 1.7) % (Math.PI * 2) };
   });
+
+  // Relabel the "now" stars with the clinician's real values when signed in.
+  if (profile) {
+    for (const s of stars) {
+      if (s.id === 'specialty' && profile.specialty) s.label = profile.specialty;
+      if (s.id === 'readiness' && profile.readinessScore != null) s.label = `Readiness ${profile.readinessScore}`;
+      if (s.id === 'opp1' && profile.matchCount && profile.matchCount > 0) s.label = `${profile.matchCount} matched`;
+    }
+  }
+  return stars;
 }
 
 const ERA_LABEL: Record<Era, string> = {
@@ -92,10 +109,10 @@ function eraForTime(t: number): Era {
   return 'now';
 }
 
-export function MatchaConstellation({ height = 460 }: { height?: number }) {
+export function MatchaConstellation({ height = 460, profile }: { height?: number; profile?: ConstellationProfile }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const stars = useMemo(() => buildStars(), []);
+  const stars = useMemo(() => buildStars(profile), [profile]);
   const [time, setTime] = useState(0.5);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const timeRef = useRef(0.5);
