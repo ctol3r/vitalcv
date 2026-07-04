@@ -98,6 +98,9 @@ export const FEATURES = {
 
   /** Wave 245: Continuous credential monitoring — PILOT */
   CONTINUOUS_MONITORING: flag('NEXT_PUBLIC_FEATURE_CONTINUOUS_MONITORING', false),
+
+  /** MATCHA buyer landing pages (recruiter / hospital / investor) — PILOT, copy-review gated */
+  MATCHA_BUYER_PAGES:    flag('NEXT_PUBLIC_FEATURE_MATCHA_BUYER_PAGES',    false),
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;
@@ -131,4 +134,5 @@ export const ROLLOUT_TIERS: Record<FeatureKey, 'INTERNAL' | 'PILOT' | 'PUBLIC'> 
   CONTRACT_REGISTRY:     'INTERNAL',
   // Wave 3
   CONTINUOUS_MONITORING: 'PILOT',
+  MATCHA_BUYER_PAGES:    'PILOT',
 };
