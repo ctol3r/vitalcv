@@ -71,10 +71,10 @@ export default function HomePageClient() {
   }, [digits, isFull, router]);
 
   return (
-    <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(15,118,110,0.08),_transparent_50%),linear-gradient(180deg,var(--vt-bg)_0%,color-mix(in_oklab,var(--vt-bg)_94%,white)_100%)] text-[var(--vt-text-primary)]">
+    <div className="mz relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_62%)]"
+        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-60"
       />
 
       {CLERK_PROVIDER_ENABLED && (

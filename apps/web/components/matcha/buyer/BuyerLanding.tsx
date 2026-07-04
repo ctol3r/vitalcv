@@ -53,7 +53,7 @@ export function BuyerLanding({
   children,
 }: BuyerLandingProps) {
   return (
-    <main style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 20px 96px', color: 'var(--vt-text-primary)' }}>
+    <main className="mz mz-paper" style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 20px 96px', color: 'var(--vt-text-primary)', minHeight: '100vh' }}>
       {/* Hero */}
       <header style={{ maxWidth: 760 }}>
         <p style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT }}>
