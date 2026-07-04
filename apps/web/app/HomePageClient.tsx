@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
 import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
-import { CareerEvidenceGraph } from '@/components/matcha/CareerEvidenceGraph';
+import { MatchaConstellation } from '@/components/matcha/MatchaConstellation';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -329,17 +329,17 @@ export default function HomePageClient() {
       {/* ── Career Evidence Network (static, calm diagram) ──────────────── */}
       <section className="mz relative mx-auto w-full max-w-5xl px-6 pb-12">
         <div className="mz-card mz-dotgrid" style={{ padding: '32px 28px' }}>
-          <p className="mz-eyebrow">The career evidence network</p>
-          <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 620 }}>
-            Your evidence isn&rsquo;t a document. It&rsquo;s a <span className="mz-accent">network</span>.
+          <p className="mz-eyebrow">Your career, in motion</p>
+          <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
+            Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
           </h2>
           <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
-            Every credential traces to its source, rolls up into your readiness, and connects to the
-            opportunities it unlocks and the employers who accept it. Verify once; reuse everywhere.
-            This is one map of how it fits together.
+            Where you began, where you are, and where you&rsquo;re headed — one living sky. Drag to
+            rotate it; pull the slider to move through your career and watch the opportunities on your
+            horizon light up. Past and future are illustrative; your real evidence lives in your wallet.
           </p>
           <div style={{ marginTop: 20 }}>
-            <CareerEvidenceGraph />
+            <MatchaConstellation height={480} />
           </div>
         </div>
       </section>
