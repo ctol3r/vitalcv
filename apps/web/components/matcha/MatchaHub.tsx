@@ -1,18 +1,34 @@
 'use client';
 
 /**
- * MatchaHub — the signed-in home for the intelligence layer. Ties together Wave 2
- * ("MATCHA understands you"), Wave 10 ("MATCHA remembers"), and entry points to onboarding
- * and opportunities. Reads the clinician's NPI/name from the shared holder provider.
+ * MatchaHub — the signed-in MATCHA dashboard. Ties together the greeting, honest "what to do
+ * next", the opportunity snapshot (New/Saved/Connected/Declined + top matches), the match-question
+ * categories, "MATCHA understands you" (profile), and "MATCHA remembers" (memory). Every figure is
+ * real — completeness, category progress, action counts, and engine match scores.
  */
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useMatchaPreferences } from './useMatchaPreferences';
+import { useMatchaOpportunities } from './useMatchaOpportunities';
+import { useOpportunityActions } from './useOpportunityActions';
 import { MatchaProfile } from './MatchaProfile';
+import { OpportunityCard } from './OpportunityCard';
 import { CATEGORY_META, CATEGORY_ORDER, allCategoryProgress } from '@/lib/matcha/categories';
+import { deriveNextActions } from '@/lib/matcha/nextActions';
+import { BUCKET_LABEL, BUCKET_ORDER } from '@/lib/matcha/opportunityActions';
+import { preferenceMatchReasons } from '@/lib/matcha/opportunityFit';
 
 const ACCENT = 'var(--vt-accent, #0A7B7F)';
+
+function Panel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 16, padding: 20 }}>
+      {children}
+    </div>
+  );
+}
 
 export function MatchaHub() {
   const { data } = useClinicianMobile();
@@ -23,11 +39,73 @@ export function MatchaHub() {
   const { preferences, derived, completeness, memory, loaded } = useMatchaPreferences(npi);
   const categoryProgress = allCategoryProgress(preferences);
 
+  const { matches, state: oppState } = useMatchaOpportunities(npi ?? null);
+  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions();
+
+  const oppIds = useMemo(
+    () => matches.map((m) => m.opportunity?.id).filter((id): id is string => Boolean(id)),
+    [matches],
+  );
+  const bucketCounts = counts(oppIds);
+
+  const nextActions = deriveNextActions({
+    hasNpi: Boolean(npi),
+    completeness,
+    categories: categoryProgress,
+    newMatches: bucketCounts.new,
+    savedMatches: bucketCounts.saved,
+  });
+
+  const topMatches = useMemo(
+    () =>
+      [...matches]
+        .filter((m) => m.opportunity?.id)
+        .sort((a, b) => (b.explanation?.matchScore ?? 0) - (a.explanation?.matchScore ?? 0))
+        .slice(0, 2),
+    [matches],
+  );
+
   const started = completeness > 0;
+  const hasMatches = oppState === 'ready' && matches.length > 0;
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 24 }}>
-      {/* Recently learned — Wave 10 */}
+      {/* Greeting + what to do next */}
+      <Panel>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: 'var(--vt-text-primary)', letterSpacing: '-0.01em' }}>
+          {firstName ? `Welcome back, ${firstName}.` : 'Welcome to MATCHA.'}
+        </h1>
+        <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', lineHeight: 1.5 }}>
+          {started
+            ? `MATCHA is ${completeness}% tuned to you. Here's where to take it next.`
+            : "Let's get MATCHA working for you — a few answers is all it takes to start."}
+        </p>
+        <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {nextActions.map((a) => (
+            <Link
+              key={a.id}
+              href={a.href}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 16px',
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 600,
+                textDecoration: 'none',
+                border: `1px solid ${a.primary ? ACCENT : 'var(--vt-border, #D6DED9)'}`,
+                background: a.primary ? ACCENT : 'var(--vt-surface, #fff)',
+                color: a.primary ? '#fff' : 'var(--vt-text-primary)',
+              }}
+            >
+              {a.label} →
+            </Link>
+          ))}
+        </div>
+      </Panel>
+
+      {/* Recently learned — memory */}
       {loaded && memory.length > 0 && (
         <div
           style={{
@@ -50,49 +128,43 @@ export function MatchaHub() {
         </div>
       )}
 
-      {/* Onboarding CTA */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 16,
-          flexWrap: 'wrap',
-          background: 'var(--vt-surface, #fff)',
-          border: '1px solid var(--vt-border, #E2E8E6)',
-          borderRadius: 16,
-          padding: 20,
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
-            {started ? 'Keep teaching MATCHA' : 'Meet MATCHA'}
-          </h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--vt-text-secondary)', maxWidth: 520, lineHeight: 1.5 }}>
-            {started
-              ? `You've shared ${completeness}% of your preferences. Each answer sharpens the roles MATCHA surfaces for you.`
-              : 'A short conversation about what you want next. MATCHA uses it to work in the background on your behalf.'}
-          </p>
-        </div>
-        <Link
-          href="/holder/matcha/onboarding"
-          style={{
-            padding: '11px 22px',
-            borderRadius: 12,
-            background: ACCENT,
-            color: '#fff',
-            fontSize: 15,
-            fontWeight: 600,
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {started ? 'Continue' : 'Start'}
-        </Link>
-      </div>
+      {/* Opportunity snapshot — counters + top matches */}
+      {hasMatches && actionsLoaded && (
+        <Panel>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--vt-text-primary)' }}>Your opportunities</h2>
+            <Link href="/holder/matcha/opportunities" style={{ fontSize: 13, fontWeight: 600, color: ACCENT, textDecoration: 'none' }}>
+              View all →
+            </Link>
+          </div>
+          <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {BUCKET_ORDER.map((b) => (
+              <div key={b} style={{ border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--vt-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{bucketCounts[b]}</div>
+                <div style={{ fontSize: 11, color: 'var(--vt-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{BUCKET_LABEL[b]}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+            {topMatches.map((m, i) => {
+              const opp = m.opportunity!;
+              return (
+                <OpportunityCard
+                  key={opp.id ?? i}
+                  opportunity={opp}
+                  explanation={m.explanation}
+                  preferenceReasons={preferenceMatchReasons(preferences, opp)}
+                  bucket={bucketOf(opp.id)}
+                  onSetStatus={(status) => setStatus(opp.id, status)}
+                />
+              );
+            })}
+          </div>
+        </Panel>
+      )}
 
       {/* Match questions — Personal / Professional / Place */}
-      <div style={{ background: 'var(--vt-surface, #fff)', border: '1px solid var(--vt-border, #E2E8E6)', borderRadius: 16, padding: 20 }}>
+      <Panel>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--vt-text-primary)' }}>Match questions</h2>
           <Link href="/holder/matcha/assessment" style={{ fontSize: 13, fontWeight: 600, color: ACCENT, textDecoration: 'none' }}>
@@ -122,27 +194,17 @@ export function MatchaHub() {
             );
           })}
         </div>
-      </div>
+      </Panel>
 
-      {/* Wave 2 profile */}
+      {/* MATCHA understands you — profile */}
       <MatchaProfile derived={derived} clinicianName={firstName} />
 
-      {/* Link to intelligence opportunities */}
-      {started && (
+      {!started && (
         <Link
-          href="/holder/matcha/opportunities"
-          style={{
-            textAlign: 'center',
-            padding: '14px 18px',
-            borderRadius: 12,
-            border: `1px solid ${ACCENT}`,
-            color: ACCENT,
-            fontWeight: 600,
-            fontSize: 15,
-            textDecoration: 'none',
-          }}
+          href="/holder/matcha/onboarding"
+          style={{ textAlign: 'center', padding: '14px 18px', borderRadius: 12, background: ACCENT, color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}
         >
-          See opportunities MATCHA found for you →
+          Start with MATCHA →
         </Link>
       )}
     </div>
