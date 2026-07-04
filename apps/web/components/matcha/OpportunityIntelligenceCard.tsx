@@ -101,6 +101,7 @@ export function OpportunityIntelligenceCard({
   return (
     <Wrapper
       {...(href ? { href } : {})}
+      className="matcha-lift"
       style={{
         display: 'block',
         textDecoration: 'none',

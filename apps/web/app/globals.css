@@ -8,6 +8,7 @@
 @import '../styles/tokens.css';
 @import '../styles/vitalTokens.css';
 @import '../styles/blueprint-overrides.css';
+@import '../styles/matcha.css';
 @import '../styles/graph.css';
 @import '../styles/intelligence.css';
 @import '../styles/clinician-doc.css';

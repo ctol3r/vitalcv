@@ -36,7 +36,7 @@ export function CandidatePoolSurface() {
   }
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 20 }}>
+    <div className="matcha-enter" style={{ maxWidth: 860, margin: '0 auto', padding: '24px 20px 96px', display: 'grid', gap: 20 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: 'var(--vt-text-primary)', letterSpacing: '-0.01em' }}>
           Credential-ready clinicians
