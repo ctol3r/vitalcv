@@ -309,42 +309,37 @@ export default function HomePageClient() {
       </section>
 
       {/* ── MATCHA intelligence layer (interactive, no signup) ──────────── */}
-      <section className="relative mx-auto w-full max-w-5xl px-6 pb-12 pt-4">
-        <div className="mb-6 max-w-2xl">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
-            Meet MATCHA
-          </p>
-          <h2 className="text-[clamp(1.6rem,3.5vw,2.4rem)] font-semibold leading-tight tracking-[-0.03em] text-[var(--vt-text-primary)]">
-            Not a job board. A career operating system.
+      <section className="mz relative mx-auto w-full max-w-5xl px-6 pb-12 pt-4">
+        <div className="max-w-2xl">
+          <p className="mz-eyebrow">Meet MATCHA</p>
+          <h2 className="mz-display" style={{ marginTop: 14 }}>
+            Not a job board. <span className="mz-accent">A career operating system.</span>
           </h2>
-          <p className="mt-4 text-[15px] leading-[1.65] text-[var(--vt-text-secondary)]">
+          <p className="mz-lede" style={{ marginTop: 16, maxWidth: 620 }}>
             MATCHA is the intelligence layer that learns what you want, then works in the background
             to surface roles worth your time — and it explains every recommendation instead of hiding
             it behind a score. Try it below. No signup, and everything it says traces to what you tell it.
           </p>
         </div>
-        <PublicMatchaExperience />
+        <div style={{ marginTop: 22 }}>
+          <PublicMatchaExperience />
+        </div>
       </section>
 
-      {/* ── Career Evidence Network (interactive graph) ─────────────────── */}
-      <section className="relative mx-auto w-full max-w-5xl px-6 pb-12">
-        <div
-          className="overflow-hidden rounded-[28px] border border-white/5 px-6 py-8 sm:px-10 sm:py-10"
-          style={{ background: 'radial-gradient(circle at 30% 20%, #1b2a2b 0%, #14181d 55%, #0f1216 100%)' }}
-        >
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#4FD1C5]">
-            The career evidence network
-          </p>
-          <h2 className="max-w-2xl text-[clamp(1.6rem,3.5vw,2.4rem)] font-semibold leading-tight tracking-[-0.03em] text-white">
-            Your evidence isn&rsquo;t a document. It&rsquo;s a network.
+      {/* ── Career Evidence Network (static, calm diagram) ──────────────── */}
+      <section className="mz relative mx-auto w-full max-w-5xl px-6 pb-12">
+        <div className="mz-card mz-dotgrid" style={{ padding: '32px 28px' }}>
+          <p className="mz-eyebrow">The career evidence network</p>
+          <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 620 }}>
+            Your evidence isn&rsquo;t a document. It&rsquo;s a <span className="mz-accent">network</span>.
           </h2>
-          <p className="mt-4 max-w-2xl text-[15px] leading-[1.65] text-white/65">
+          <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
             Every credential traces to its source, rolls up into your readiness, and connects to the
             opportunities it unlocks and the employers who accept it. Verify once; reuse everywhere.
-            This is a model of how it fits together — hover to trace a thread.
+            This is one map of how it fits together.
           </p>
-          <div className="mt-6">
-            <CareerEvidenceGraph height={460} />
+          <div style={{ marginTop: 20 }}>
+            <CareerEvidenceGraph />
           </div>
         </div>
       </section>

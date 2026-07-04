@@ -9,6 +9,7 @@
 @import '../styles/vitalTokens.css';
 @import '../styles/blueprint-overrides.css';
 @import '../styles/matcha.css';
+@import '../styles/matcha-zen.css';
 @import '../styles/graph.css';
 @import '../styles/intelligence.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */

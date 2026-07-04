@@ -15,15 +15,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, RotateCcw } from 'lucide-react';
 
 import type { MatchaPreferences, PreferenceField } from '@/lib/matcha/preferences';
 import { deriveMatchaProfile } from '@/lib/matcha/profile';
 import { preferenceMatchReasons } from '@/lib/matcha/opportunityFit';
 import { MatchaExplanation } from './MatchaExplanation';
 import { useMatchaPreferences } from './useMatchaPreferences';
-
-const ACCENT = 'var(--vt-accent, #0A7B7F)';
 
 interface QuickQuestion {
   id: string;
@@ -127,32 +125,24 @@ export function PublicMatchaExperience() {
 
   return (
     <div
+      className="mz"
       style={{
         display: 'grid',
-        gap: 20,
+        gap: 16,
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
         alignItems: 'start',
       }}
     >
       {/* Left: the conversation */}
-      <div
-        style={{
-          background: 'var(--vt-surface, #fff)',
-          border: '1px solid var(--vt-border, #E2E8E6)',
-          borderRadius: 20,
-          padding: 24,
-          minHeight: 260,
-        }}
-      >
+      <div className="mz-card mz-card-pad" style={{ minHeight: 260 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT }}>
-            <Sparkles size={14} /> Try MATCHA
-          </span>
+          <span className="mz-eyebrow">Try MATCHA</span>
           {answeredCount > 0 ? (
             <button
               type="button"
               onClick={() => { reset(); setIndex(0); }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', color: 'var(--vt-text-muted)', fontSize: 12, cursor: 'pointer' }}
+              className="mz-mono"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: 0, background: 'transparent', color: 'var(--ink-500)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer' }}
             >
               <RotateCcw size={12} /> Reset
             </button>
@@ -163,16 +153,16 @@ export function PublicMatchaExperience() {
           {!done ? (
             <motion.div
               key={q.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.32, ease: [0.2, 0.7, 0.2, 1] }}
             >
-              <p style={{ margin: '18px 0 0', fontSize: 20, fontWeight: 600, color: 'var(--vt-text-primary)' }}>{q.prompt}</p>
+              <p className="mz-h1" style={{ marginTop: 16, fontSize: 22 }}>{q.prompt}</p>
               {q.multi ? (
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--vt-text-muted)' }}>Pick any that apply.</p>
+                <p className="mz-mono" style={{ margin: '6px 0 0', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-400)' }}>Pick any that apply</p>
               ) : null}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
                 {q.options.map((opt) => {
                   const v = preferences[q.field];
                   const active = Array.isArray(v) ? (v as string[]).includes(opt.value) : v === opt.value;
@@ -180,18 +170,9 @@ export function PublicMatchaExperience() {
                     <button
                       key={opt.value}
                       type="button"
+                      className="mz-opt"
+                      aria-pressed={active}
                       onClick={() => answer(q, opt.value)}
-                      style={{
-                        padding: '9px 15px',
-                        borderRadius: 11,
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        border: `1px solid ${active ? ACCENT : 'var(--vt-border, #D6DED9)'}`,
-                        background: active ? `color-mix(in srgb, ${ACCENT} 12%, transparent)` : 'var(--vt-surface, #fff)',
-                        color: active ? ACCENT : 'var(--vt-text-primary)',
-                        transition: 'all 160ms cubic-bezier(0.2,0.8,0.2,1)',
-                      }}
                     >
                       {opt.label}
                     </button>
@@ -201,26 +182,24 @@ export function PublicMatchaExperience() {
               {q.multi ? (
                 <button
                   type="button"
+                  className="mz-btn"
+                  style={{ marginTop: 18 }}
                   onClick={() => setIndex((i) => Math.min(i + 1, QUESTIONS.length))}
-                  style={{ marginTop: 18, padding: '9px 18px', borderRadius: 11, border: 0, background: ACCENT, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Continue
                 </button>
               ) : null}
             </motion.div>
           ) : (
-            <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-              <p style={{ margin: '18px 0 0', fontSize: 20, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
+            <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.32 }}>
+              <p className="mz-h1" style={{ marginTop: 16, fontSize: 22 }}>
                 That&rsquo;s the idea.
               </p>
-              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.55, color: 'var(--vt-text-secondary)' }}>
+              <p className="mz-body" style={{ marginTop: 10 }}>
                 With your wallet, MATCHA keeps learning and works in the background — scoring real
                 roles on your source-backed readiness, not just what you typed here.
               </p>
-              <Link
-                href="/holder/matcha"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 18, padding: '11px 22px', borderRadius: 12, background: ACCENT, color: '#fff', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}
-              >
+              <Link href="/holder/matcha" className="mz-btn" style={{ marginTop: 18 }}>
                 Let MATCHA work for you <ArrowRight size={16} />
               </Link>
             </motion.div>
@@ -229,37 +208,27 @@ export function PublicMatchaExperience() {
       </div>
 
       {/* Right: the live reflection */}
-      <div
-        style={{
-          background: `linear-gradient(135deg, color-mix(in srgb, ${ACCENT} 7%, var(--vt-surface, #fff)), var(--vt-surface, #fff))`,
-          border: `1px solid color-mix(in srgb, ${ACCENT} 22%, transparent)`,
-          borderRadius: 20,
-          padding: 24,
-          minHeight: 260,
-        }}
-      >
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT }}>
-          MATCHA understands you
-        </span>
+      <div className="mz-card mz-card-pad mz-inset" style={{ minHeight: 260 }}>
+        <span className="mz-eyebrow">MATCHA understands you</span>
 
         {derived.insights.length === 0 ? (
-          <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.55, color: 'var(--vt-text-secondary)' }}>
+          <p className="mz-body" style={{ marginTop: 16 }}>
             Tap an answer and watch MATCHA reflect it back — always tied to exactly what you said,
             never guessed.
           </p>
         ) : (
           <>
-            <ul style={{ listStyle: 'none', margin: '14px 0 0', padding: 0, display: 'grid', gap: 10 }}>
+            <ul style={{ listStyle: 'none', margin: '14px 0 0', padding: 0, display: 'grid', gap: 12 }}>
               {derived.insights.slice(0, 4).map((insight, i) => (
                 <motion.li
                   key={`${insight.label}-${i}`}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.25 }}
-                  style={{ display: 'grid', gap: 2 }}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}
+                  style={{ display: 'grid', gap: 3 }}
                 >
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--vt-text-primary)' }}>{insight.label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--vt-text-muted)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-900)' }}>{insight.label}</span>
+                  <span className="mz-mono" style={{ fontSize: 10, color: 'var(--ink-500)' }}>
                     because you told MATCHA: {insight.provenance.join(', ').replace(/([A-Z])/g, ' $1').toLowerCase()}
                   </span>
                 </motion.li>
@@ -267,8 +236,8 @@ export function PublicMatchaExperience() {
             </ul>
 
             {exampleReasons.length > 0 ? (
-              <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid color-mix(in srgb, ${ACCENT} 18%, transparent)` }}>
-                <p style={{ margin: '0 0 10px', fontSize: 11, color: 'var(--vt-text-muted)' }}>
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--rule)' }}>
+                <p className="mz-mono" style={{ margin: '0 0 10px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-400)' }}>
                   Example role · illustration only
                 </p>
                 <MatchaExplanation reasons={exampleReasons} title="Why MATCHA would surface this" />
