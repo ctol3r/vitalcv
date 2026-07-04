@@ -80,3 +80,18 @@ model ReceiptCandidate {
   @@index([reviewState])
   @@index([createdAt])
 }
+
+// MATCHA career preferences / Career DNA — mirror of the backend model (one
+// shared DB; migration + source of truth live in apps/api/backend/prisma).
+// The web app reads/writes this table directly via an auth-scoped route, keyed
+// by the authenticated Clerk user id. `data` is the sanitized MatchaPreferences
+// bag (self-stated, editable preferences — never credentials or evidence).
+model MatchaPreference {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clerkUserId])
+}

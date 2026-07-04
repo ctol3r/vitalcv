@@ -24,6 +24,21 @@ model User {
   @@index([status])
 }
 
+/// MATCHA career preferences / Career DNA for a clinician.
+/// Keyed by the authenticated Clerk user id so preferences follow the provider
+/// across devices, not the browser. `data` holds the full MatchaPreferences bag
+/// (self-stated, editable preferences — never credentials or evidence),
+/// sanitized to known fields before write. One row per user.
+model MatchaPreference {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clerkUserId])
+}
+
 model Recognition {
   id              String       @id @default(uuid()) @db.Uuid
   recognitionId   String       @unique
