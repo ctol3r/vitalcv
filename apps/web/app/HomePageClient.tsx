@@ -322,7 +322,7 @@ function WalletPreview() {
           </span>
         </div>
         <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[var(--vt-surface-subtle)]">
-          <div className="vt-animate-grow-x h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--vt-accent-emerald)] to-emerald-400" />
+          <div className="vt-animate-grow-x h-full w-[72%] rounded-full bg-[var(--ink-800,#1a1916)]" />
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
           Honest about what is checked, gated, or stale.
@@ -407,10 +407,10 @@ export default function HomePageClient() {
   }, [digits, isFull, router]);
 
   return (
-    <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(15,118,110,0.08),_transparent_50%),linear-gradient(180deg,var(--vt-bg)_0%,color-mix(in_oklab,var(--vt-bg)_94%,white)_100%)] text-[var(--vt-text-primary)]">
+    <div className="mz relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_62%)]"
+        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-60"
       />
 
       {CLERK_PROVIDER_ENABLED && (
@@ -617,7 +617,7 @@ export default function HomePageClient() {
 
           {/* AI layer — MATCHA as the honest intelligence layer */}
           <section aria-label="How AI helps" data-home-ai="" className="mt-16">
-            <div className="overflow-hidden rounded-[1.75rem] border border-[var(--vt-border)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--vt-accent-emerald)_9%,var(--vt-surface))_0%,var(--vt-surface)_60%)]">
+            <div className="overflow-hidden rounded-[1.75rem] border border-[var(--vt-border)] bg-[var(--vt-surface)]">
               <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-10">
                 <div className="flex flex-col justify-center gap-4">
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
