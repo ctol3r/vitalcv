@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
 import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
+import { CareerEvidenceGraph } from '@/components/matcha/CareerEvidenceGraph';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -323,6 +324,29 @@ export default function HomePageClient() {
           </p>
         </div>
         <PublicMatchaExperience />
+      </section>
+
+      {/* ── Career Evidence Network (interactive graph) ─────────────────── */}
+      <section className="relative mx-auto w-full max-w-5xl px-6 pb-12">
+        <div
+          className="overflow-hidden rounded-[28px] border border-white/5 px-6 py-8 sm:px-10 sm:py-10"
+          style={{ background: 'radial-gradient(circle at 30% 20%, #1b2a2b 0%, #14181d 55%, #0f1216 100%)' }}
+        >
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#4FD1C5]">
+            The career evidence network
+          </p>
+          <h2 className="max-w-2xl text-[clamp(1.6rem,3.5vw,2.4rem)] font-semibold leading-tight tracking-[-0.03em] text-white">
+            Your evidence isn&rsquo;t a document. It&rsquo;s a network.
+          </h2>
+          <p className="mt-4 max-w-2xl text-[15px] leading-[1.65] text-white/65">
+            Every credential traces to its source, rolls up into your readiness, and connects to the
+            opportunities it unlocks and the employers who accept it. Verify once; reuse everywhere.
+            This is a model of how it fits together — hover to trace a thread.
+          </p>
+          <div className="mt-6">
+            <CareerEvidenceGraph height={460} />
+          </div>
+        </div>
       </section>
 
       {/* ── First-revenue offer: Verified Clinician Career Packet ───────── */}
