@@ -46,6 +46,8 @@ export interface OpportunityIntelligenceCardProps {
   /** Preference-grounded reasons from opportunityFit.preferenceMatchReasons. */
   preferenceReasons?: ExplanationReason[];
   href?: string;
+  /** Interactive content injected before the honesty footer (action bar, livability). */
+  children?: React.ReactNode;
 }
 
 const TONE_COLORS: Record<string, string> = {
@@ -74,6 +76,7 @@ export function OpportunityIntelligenceCard({
   explanation,
   preferenceReasons = [],
   href,
+  children,
 }: OpportunityIntelligenceCardProps) {
   const band = explanation ? matchBandDisplay(explanation.matchBand) : null;
   const bandColor = band ? TONE_COLORS[band.tone] : 'var(--vt-text-muted)';
@@ -189,6 +192,9 @@ export function OpportunityIntelligenceCard({
           Eligible for an instant offer based on your current trust state.
         </div>
       ) : null}
+
+      {/* Interactive slot: action bar + livability */}
+      {children}
 
       {/* Honesty footer: what these scores are based on */}
       <p style={{ margin: '16px 0 0', fontSize: 11, color: 'var(--vt-text-muted)', lineHeight: 1.5 }}>
