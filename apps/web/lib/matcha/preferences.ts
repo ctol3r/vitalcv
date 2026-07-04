@@ -179,6 +179,41 @@ export function completenessPercent(prefs: MatchaPreferences): number {
   return Math.round((countAnsweredFields(prefs) / total) * 100);
 }
 
+/**
+ * Sanitize an untrusted preferences payload (e.g. a request body or a stored
+ * blob) down to the known MatchaPreferences shape: ONLY whitelisted fields,
+ * type-checked values, and bounded sizes. Unknown keys are dropped and nothing
+ * is coerced. Used before persisting server-side so the store can never hold
+ * arbitrary data — and, per the truth contract, these are self-stated
+ * preferences only, never a credential or evidence claim.
+ */
+export function sanitizeStoredPreferences(input: unknown): MatchaPreferences {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+  const src = input as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  const MAX_ARRAY_ITEMS = 60;
+  const MAX_STRING = 240;
+
+  for (const field of ALL_PREFERENCE_FIELDS) {
+    const value = src[field as string];
+    if (Array.isArray(value)) {
+      const arr = value
+        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+        .slice(0, MAX_ARRAY_ITEMS)
+        .map((x) => x.slice(0, MAX_STRING));
+      if (arr.length > 0) out[field] = arr;
+    } else if (typeof value === 'number' && Number.isFinite(value)) {
+      out[field] = value;
+    } else if (typeof value === 'boolean') {
+      out[field] = value;
+    } else if (typeof value === 'string' && value.trim().length > 0) {
+      out[field] = value.slice(0, MAX_STRING);
+    }
+  }
+
+  return out as MatchaPreferences;
+}
+
 // ── Engine mapping ──────────────────────────────────────────────────────────
 
 /**

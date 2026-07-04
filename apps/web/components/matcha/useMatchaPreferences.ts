@@ -16,6 +16,8 @@ import {
   type PreferenceField,
   ENGINE_BACKED_FIELDS,
   completenessPercent,
+  countAnsweredFields,
+  sanitizeStoredPreferences,
   toCandidateIntent,
 } from '@/lib/matcha/preferences';
 import { deriveMatchaProfile, type MatchaDerivedProfile } from '@/lib/matcha/profile';
@@ -49,12 +51,73 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
   const [loaded, setLoaded] = useState(false);
   const [memory, setMemory] = useState<MemoryNote[]>([]);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Flips true on the first local edit so an in-flight server hydration can
+  // never clobber a live edit the clinician just made.
+  const userEditedRef = useRef(false);
 
-  // Hydrate from storage on mount.
+  // Hydrate from local storage on mount (instant, offline-safe).
   useEffect(() => {
     setPreferences(loadStoredPreferences());
     setLoaded(true);
   }, []);
+
+  /**
+   * Persist the full preference bag to the durable, auth-scoped server store
+   * so it follows the provider across devices. Best-effort: a failed write
+   * never loses the answer (local storage remains the fallback). Unauthenticated
+   * callers get 401 and simply stay local-only.
+   */
+  const persistToServer = useCallback((prefs: MatchaPreferences) => {
+    void fetch('/api/matcha/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferences: prefs }),
+      keepalive: true,
+    }).catch(() => {
+      /* best-effort — local storage remains the source of truth */
+    });
+  }, []);
+
+  // Hydrate from the durable server store once on mount. When signed in and the
+  // server holds preferences, the server is the cross-device source of truth;
+  // when the server is empty, migrate any existing local preferences up once.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/matcha/preferences', { cache: 'no-store' });
+        if (cancelled || !res.ok) return; // 401 / degraded → stay local-only
+        const body = (await res.json()) as { preferences?: unknown };
+        const server = sanitizeStoredPreferences(body?.preferences ?? {});
+        if (cancelled) return;
+        // The clinician started editing while this GET was in flight — their
+        // live edit (already persisted via its own PUT) wins; never overwrite it.
+        if (userEditedRef.current) return;
+        if (countAnsweredFields(server) > 0) {
+          setPreferences(server);
+          savePreferences(server, nowIso());
+        } else {
+          const local = loadStoredPreferences();
+          if (countAnsweredFields(local) > 0) persistToServer(local);
+        }
+      } catch {
+        /* stay local-only */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [persistToServer]);
+
+  // Debounced durable persistence so rapid answers collapse into one write.
+  const pushPrefs = useCallback(
+    (next: MatchaPreferences) => {
+      if (prefsTimer.current) clearTimeout(prefsTimer.current);
+      prefsTimer.current = setTimeout(() => persistToServer(next), 800);
+    },
+    [persistToServer],
+  );
 
   const pushIntent = useCallback(
     (next: MatchaPreferences) => {
@@ -82,6 +145,7 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
 
   const setField = useCallback(
     (field: PreferenceField, value: MatchaPreferences[PreferenceField]) => {
+      userEditedRef.current = true;
       setPreferences((prev) => {
         const next: MatchaPreferences = { ...prev, [field]: value };
         const notes = diffPreferences(prev, next, [field]);
@@ -90,13 +154,15 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
         }
         savePreferences(next, nowIso());
         pushIntent(next);
+        pushPrefs(next);
         return next;
       });
     },
-    [pushIntent],
+    [pushIntent, pushPrefs],
   );
 
   const reset = useCallback(() => {
+    userEditedRef.current = true;
     clearStoredPreferences();
     setPreferences({});
     setMemory([]);
@@ -105,6 +171,7 @@ export function useMatchaPreferences(npi?: string): UseMatchaPreferences {
   useEffect(
     () => () => {
       if (pushTimer.current) clearTimeout(pushTimer.current);
+      if (prefsTimer.current) clearTimeout(prefsTimer.current);
     },
     [],
   );
