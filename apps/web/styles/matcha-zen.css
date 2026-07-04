@@ -64,6 +64,7 @@
  */
 .mz {
   --vt-accent: var(--accent);
+  --vt-accent-emerald: var(--ok);
   --vt-surface: var(--card);
   --vt-surface-subtle: var(--paper-2);
   --vt-bg: var(--paper);
