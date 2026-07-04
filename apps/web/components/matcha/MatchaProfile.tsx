@@ -114,9 +114,9 @@ export function MatchaProfile({ derived, clinicianName }: MatchaProfileProps) {
       {/* Header card */}
       <div
         style={{
-          background: 'linear-gradient(135deg, color-mix(in srgb, var(--vt-accent, #0A7B7F) 8%, var(--vt-surface, #fff)), var(--vt-surface, #fff))',
+          background: 'var(--vt-surface-subtle, #EDF2F0)',
           border: '1px solid var(--vt-border, #E2E8E6)',
-          borderRadius: 20,
+          borderRadius: 4,
           padding: 24,
           display: 'flex',
           gap: 20,
