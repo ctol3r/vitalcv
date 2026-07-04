@@ -21,6 +21,7 @@ import type { MobileQuickAction } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
@@ -237,6 +238,8 @@ export default function ClinicianHomeSurface() {
       ) : null}
 
       <SelectedOpportunityBanner />
+
+      <MatchaHomeActivity />
 
       <section className={`rounded-[28px] border p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)] ${
         primaryAction.tone === 'sky'

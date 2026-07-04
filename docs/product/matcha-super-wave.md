@@ -46,7 +46,11 @@ truth contract: **nothing is fabricated; every score and insight traces to real 
 | 2/10 | Hub (profile + memory + progress) | `components/matcha/MatchaHub.tsx` |
 | — | Routes `/holder/matcha`, `/onboarding`, `/opportunities` | `app/holder/matcha/**` |
 | — | Web intent proxy → engine | `app/api/matcha/intent/route.ts` |
-| 12 | Unit + component tests (23) | `__tests__/matcha-*.ts(x)` |
+| 12 | Unit + component tests (30) | `__tests__/matcha-*.ts(x)` |
+| 5 | Living-home MATCHA activity strip (flag-guarded, additive) | `components/matcha/MatchaHomeActivity.tsx` |
+| 6 | Recruiter buyer landing | `app/matcha/recruiters/page.tsx` |
+| 7 | Hospital buyer landing | `app/matcha/hospitals/page.tsx` |
+| 8 | Investor buyer landing + ecosystem map | `app/matcha/investors/page.tsx`, `components/matcha/buyer/*` |
 
 **Verification:** 23/23 MATCHA tests pass; full web typecheck 0 errors; `next build` green with
 all routes registered. The 21 failing suite tests are pre-existing page-copy contract failures
@@ -61,19 +65,26 @@ DM Sans / Instrument Serif) rather than a handoff artifact under `design-handoff
 visual-lineage pass against the bundle at `design-handoff/claude-design-2026-06-26/` before public
 exposure.
 
-## Remaining waves — prioritized
+## Buyer pages — status & the copy decision
 
-1. **Wave 5 — Living home integration (HIGH, low risk).** Surface a "MATCHA activity" strip on
-   `/holder/home` (recently learned, opportunity pipeline count, trust growth). The data already
-   exists (`useMatchaPreferences.memory`, `completeness`, `ClinicianMobileProvider` opportunities).
-   Deferred only to keep this PR focused and avoid editing the working `ClinicianHomeSurface`.
-2. **Wave 9 — Visual polish pass (MEDIUM).** New components follow house tokens/motion already;
-   a cross-app polish sweep is a separate initiative, not a discrete surface.
-3. **Waves 6–8 — Recruiter / Hospital / Investor landing pages (MEDIUM, copy-sensitive).**
-   Public marketing surfaces making buyer claims. Intentionally **not** auto-generated here: these
-   need product/copy judgment to stay inside doctrine (no fabricated stats, no banned strings) and
-   should cite real pilot data. Recommend building from an approved copy deck, each behind a flag,
-   with copy-guard tests — same pattern as the existing employer pages.
+Waves 6–8 are **built and flag-gated** behind `MATCHA_BUYER_PAGES` (default off), at public routes
+`/matcha/{recruiters,hospitals,investors}` (registered in `publicSurfaceRoutes.ts` so they get
+Navbar/Footer). Copy is deliberately **directional** — benefits are framed as based on the VitalCV
+model, each page carries a "not customer-reported results" disclaimer, and a copy-guard test scans
+rendered markup for banned strings. Runtime-verified: all three serve 200 with correct content and
+zero banned strings.
+
+**Decision for Chris:** the copy is honest but generic. Before flipping the flag to public, replace
+the directional benefit language with **real pilot numbers** where available (same honesty pattern as
+`/pilot`), and have product/marketing review the buyer claims. The flag keeps them dark until then.
+
+## Remaining
+
+- **Wave 9 — Visual polish pass (MEDIUM).** New components follow house tokens/motion already; a
+  cross-app polish sweep is a separate initiative, not a discrete surface.
+- **Buyer-page copy hardening (see above)** before public flip.
+- **`/holder/home` theme:** the home is still dark-themed (mid dark→light D57 migration). The MATCHA
+  activity strip matches the current dark theme; it will need a light-theme pass when the home migrates.
 
 ## How to see it
 

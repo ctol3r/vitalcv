@@ -49,6 +49,8 @@ export const OPS_SURFACE_PREFIXES = [
   '/system-health',
   '/network',
   '/mission-ops',
+  '/operations-engine',
+  '/ops/engine',
 ] as const;
 
 const PREFIX_MATCHERS = [
@@ -67,6 +69,7 @@ const PREFIX_MATCHERS = [
   '/clip',
   '/trust',
   '/legal',
+  '/matcha',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
