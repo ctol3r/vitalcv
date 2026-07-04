@@ -28,6 +28,12 @@ export function useCandidatePool(initial: PoolFilters = {}) {
           if (!cancelled) setState('unauthorized');
           return null;
         }
+        // Any other non-OK is a service failure — never let it read as an
+        // honest "no candidates" empty state (a failure masquerading as no supply).
+        if (!r.ok) {
+          if (!cancelled) setState('error');
+          return null;
+        }
         const payload = (await r.json().catch(() => ({}))) as { pool?: PoolCandidate[] };
         if (cancelled) return null;
         setCandidates(Array.isArray(payload.pool) ? payload.pool : []);

@@ -32,7 +32,12 @@ export function useMatchaOpportunities(npi: string | null | undefined) {
     let cancelled = false;
     setState('loading');
     fetch(`/api/matcha/opportunities/${encodeURIComponent(npi)}`, { signal: AbortSignal.timeout(16_000) })
-      .then((r) => r.json())
+      .then((r) => {
+        // A backend failure (e.g. 502 with { matches: [] }) must NOT read as an
+        // honest "no matches" empty state — surface it as an error instead.
+        if (!r.ok) throw new Error(`matcha opportunities ${r.status}`);
+        return r.json();
+      })
       .then((payload: { matches?: RawMatch[] }) => {
         if (cancelled) return;
         setMatches(Array.isArray(payload.matches) ? payload.matches : []);
