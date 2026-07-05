@@ -17,6 +17,7 @@
  */
 
 import type { ProfileProvenance } from '@/lib/profile/provenance';
+import { parseSelfAttested, type SelfAttestedProfile } from '@/lib/clinician-profile/selfAttested';
 
 export const WORK_AUTH_OPTIONS = [
   { value: 'authorized', label: 'Authorized to work in the U.S.' },
@@ -42,6 +43,8 @@ export interface WorkspacePersonProfile {
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   completeness: number | null;
+  /** The clinician's USER_ENTERED structured sections. Never source-verified. */
+  selfAttested: SelfAttestedProfile;
 }
 
 export function extractPersonProfile(payload: unknown): WorkspacePersonProfile | null {
@@ -64,6 +67,7 @@ export function extractPersonProfile(payload: unknown): WorkspacePersonProfile |
     linkedinUrl: str('linkedinUrl'),
     portfolioUrl: str('portfolioUrl'),
     completeness: typeof p.completeness === 'number' ? (p.completeness as number) : null,
+    selfAttested: parseSelfAttested(p.selfAttested),
   };
 }
 
@@ -127,11 +131,14 @@ export interface ProfileFormDiff {
   linksChanged: boolean;
   resumeChanged: boolean;
   workAuthChanged: boolean;
+  /** Per-field clears: a previously saved value the form now leaves empty. */
+  clearLinkedin: boolean;
+  clearPortfolio: boolean;
+  clearResume: boolean;
+  clearWorkAuth: boolean;
   /**
-   * Labels of previously saved fields the form now leaves empty. The intake
-   * API only writes non-empty values (it cannot clear a saved field), so a
-   * save with cleared fields must be blocked with an honest explanation
-   * instead of silently leaving the old value in place.
+   * Human labels of previously saved fields the form now clears. Used to
+   * confirm the removal in the UI — clearing is supported, not blocked.
    */
   clearedFields: string[];
 }
@@ -160,11 +167,16 @@ export function computeProfileFormDiff(
   const nextResume = normalizedUrlOrRaw(form.resumeUrl);
   const nextWorkAuth = form.workAuthStatus;
 
+  const clearLinkedin = Boolean(savedLinkedin) && nextLinkedin === '';
+  const clearPortfolio = Boolean(savedPortfolio) && nextPortfolio === '';
+  const clearResume = Boolean(savedResume) && nextResume === '';
+  const clearWorkAuth = Boolean(savedWorkAuth) && nextWorkAuth === '';
+
   const clearedFields: string[] = [];
-  if (savedLinkedin && nextLinkedin === '') clearedFields.push('LinkedIn');
-  if (savedPortfolio && nextPortfolio === '') clearedFields.push('Portfolio');
-  if (savedResume && nextResume === '') clearedFields.push('Resume link');
-  if (savedWorkAuth && nextWorkAuth === '') clearedFields.push('Work authorization');
+  if (clearLinkedin) clearedFields.push('LinkedIn');
+  if (clearPortfolio) clearedFields.push('Portfolio');
+  if (clearResume) clearedFields.push('Resume link');
+  if (clearWorkAuth) clearedFields.push('Work authorization');
 
   const linksChanged =
     (nextLinkedin !== savedLinkedin && nextLinkedin !== '') ||
@@ -177,15 +189,18 @@ export function computeProfileFormDiff(
     linksChanged,
     resumeChanged,
     workAuthChanged,
+    clearLinkedin,
+    clearPortfolio,
+    clearResume,
+    clearWorkAuth,
     clearedFields,
   };
 }
 
-/** Copy for a blocked save when the form clears previously saved fields. */
-export function describeClearedFieldsBlock(clearedFields: string[]): string {
-  return `Removing a saved value is not supported on this surface yet (${clearedFields.join(
-    ', ',
-  )}). Restore the previous value or enter a replacement.`;
+/** Confirm copy when a save will remove previously saved self-attested fields. */
+export function describeClearedFields(clearedFields: string[]): string {
+  const list = clearedFields.join(', ');
+  return `Saving will remove ${list} from your profile. ${clearedFields.length > 1 ? 'These are' : 'This is'} self-attested — clearing only removes what you entered.`;
 }
 
 export function describeProfileSaveError(status: number, body: unknown): string {

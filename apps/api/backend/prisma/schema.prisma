@@ -350,6 +350,12 @@ model PersonProfile {
   // binding — not a license or identity verification on its own.
   verifiedEmail       String?          @map("verified_email")
   verifiedEmailAt     DateTime?        @map("verified_email_at")
+  // Self-attested structured profile sections (contact, education, work
+  // history, affiliations, career goals, research). The clinician typed these;
+  // they are USER_ENTERED and NEVER source-verified. Stored as a single JSON
+  // document so the whole self-attested layer moves as one edit. Source-checked
+  // facts (NPPES / licensure / board) live elsewhere with their own receipts.
+  selfAttested        Json?            @map("self_attested")
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")

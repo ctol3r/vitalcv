@@ -228,25 +228,31 @@ describe('ProfileSurface (Wave 2B editing depth)', () => {
     expect((container.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('blocks a save that clears a previously saved field, with honest copy', async () => {
-    const { savePosts } = installFetchMock();
+  it('clears a previously saved field by sending an explicit clear, not a block', async () => {
+    const { savePosts, mock } = installFetchMock();
     await renderSurface();
 
     const linkedin = container.querySelector('#profile-linkedin') as HTMLInputElement;
     await act(async () => {
       setInputValue(linkedin, '');
     });
+    // Clearing is supported: honest confirm copy names the field, no block.
+    expect(container.textContent).toContain('Saving will remove LinkedIn');
     const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(button.disabled).toBe(false);
+
     await act(async () => {
       submitForm(container);
     });
+    await flushEffects();
 
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain('Removing a saved value is not supported on this surface yet');
-    expect(alert?.textContent).toContain('LinkedIn');
-    expect(savePosts).toEqual([]);
-    expect(container.querySelector('button[type="submit"]')?.textContent).toContain('Retry save');
+    // A links POST carried an explicit clear for linkedinUrl (and no set value).
+    expect(savePosts.some((url) => url.includes('/api/profile/links'))).toBe(true);
+    const linksCall = mock.mock.calls.find(([url]) => String(url).includes('/api/profile/links'));
+    const body = JSON.parse((linksCall?.[1] as RequestInit).body as string);
+    expect(body.clear).toEqual(['linkedinUrl']);
+    expect(body.linkedinUrl).toBeUndefined();
+    expect(container.textContent).toContain('Saved as self-attested.');
   });
 
   it('saves only the changed field and reports a failed save with a retry affordance', async () => {

@@ -25,14 +25,14 @@ const LEGEND_ORDER: ReadonlyArray<ProfileProvenance> = [
  */
 export default function ClinicianProfilePage() {
   return (
-    <div className="bg-zinc-950">
+    <div className="vcv-doc">
       <ProfileSurface />
       <aside
         aria-labelledby="provenance-legend-heading"
         className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6"
       >
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <h2 id="provenance-legend-heading" className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+        <div className="vcv-panel p-5">
+          <h2 id="provenance-legend-heading" className="vcv-eyebrow">
             How to read provenance badges
           </h2>
           <dl className="mt-3 space-y-2">
@@ -47,7 +47,7 @@ export default function ClinicianProfilePage() {
                       {meta.label}
                     </span>
                   </dt>
-                  <dd className="text-xs leading-relaxed text-zinc-500">{meta.description}</dd>
+                  <dd className="text-xs leading-relaxed vcv-muted">{meta.description}</dd>
                 </div>
               );
             })}
