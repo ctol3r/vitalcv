@@ -149,7 +149,7 @@ overlap. Do not fix anything; this is evidence for the next build wave.
 
 | # | Decision | Evidence in hand | The action once you say GO |
 |---|----------|------------------|---------------------------|
-| D1 | Run pending Prisma migrations on prod (`railway run … prisma migrate deploy`) | `prisma migrate status` output gathered 2026-07-05 (see terminal session) — deploys skip migrations by design (`SKIP_STARTUP_MIGRATION=1` in `railway.toml`) | Terminal Claude runs the deploy command and verifies backend health after |
+| D1 | Apply pending Prisma migrations on prod | Deploys skip migrations by design (`SKIP_STARTUP_MIGRATION=1` in `railway.toml` startCommand). Local `railway run … prisma migrate status` cannot reach the DB (P1001 — `postgres.railway.internal` is private-network-only, verified 2026-07-05) | Founder sets `SKIP_STARTUP_MIGRATION=0` on the backend service for ONE deploy — `server.ts` then runs the migration in the background (its built-in path, logs `migration_async`) — then restores the variable. Terminal Claude watches deploy + health before/after |
 | D2 | Flip `VERIFIER_RBAC_ENFORCED=true` on Railway | Wait for Prompt B report showing zero legitimate would-denies over several days of real traffic | You flip the variable in Railway (Tier 3), then terminal Claude ships the default-on + web-flip PR |
 | D3 | Start Docker Desktop when convenient | Needed once to run the DB-backed enforced-mode RBAC test locally | Terminal Claude runs the employer-actions jest suite with the flag on |
 
