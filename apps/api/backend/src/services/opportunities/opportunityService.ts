@@ -10,6 +10,7 @@
  *   clerkUserId → User → PersonProfile → WorkspaceMembership → OrganizationProfile → Organization
  */
 
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { HttpError } from '../../utils/httpError';
@@ -230,6 +231,10 @@ export async function upsertOrgProfile(
 
   await prisma.workspaceMembership.create({
     data: {
+      // workspace_memberships.id has no DB default despite the schema's
+      // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
+      // supply the id client-side or the insert throws P2011.
+      id: randomUUID(),
       personProfileId: personProfile.id,
       organizationProfileId: orgProfile.id,
       role: 'ADMIN',
