@@ -2,7 +2,8 @@
 
 /**
  * OpportunityCard — interactive wrapper around OpportunityIntelligenceCard.
- * Adds the clinician's Save / Connect / Decline actions and the honest Livability section.
+ * Adds the clinician's Save / Connect / Decline actions, the gated Apply-with-VitalCV
+ * CTA, the click-through to the full breakdown, and the honest Livability section.
  * Status is owned by the surface (one shared action map) and passed in.
  */
 
@@ -12,6 +13,7 @@ import {
   type IntelligenceExplanation,
   type IntelligenceOpportunity,
 } from './OpportunityIntelligenceCard';
+import { OpportunityApplyCta, type ApplyCtaOpportunity } from './OpportunityApplyCta';
 import { Livability } from './Livability';
 import { CoverLetterDrafter } from './CoverLetterDrafter';
 import type { ExplanationReason } from './MatchaExplanation';
@@ -36,14 +38,18 @@ const ACTIONS: ActionDef[] = [
 ];
 
 export interface OpportunityCardProps {
-  opportunity: IntelligenceOpportunity;
+  opportunity: ApplyCtaOpportunity;
   explanation?: IntelligenceExplanation;
   preferenceReasons?: ExplanationReason[];
   bucket: OpportunityBucket;
   onSetStatus: (status: OpportunityStatus) => void;
+  /** Clinician NPI — enables the Apply-with-VitalCV CTA. */
+  npi?: string | null;
+  /** The opportunity detail route (full breakdown). Links the title + footer affordance. */
+  detailHref?: string;
 }
 
-export function OpportunityCard({ opportunity, explanation, preferenceReasons, bucket, onSetStatus }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, explanation, preferenceReasons, bucket, onSetStatus, npi, detailHref }: OpportunityCardProps) {
   const declined = bucket === 'declined';
   return (
     <div style={{ opacity: declined ? 0.6 : 1, transition: 'opacity 200ms' }}>
@@ -51,6 +57,7 @@ export function OpportunityCard({ opportunity, explanation, preferenceReasons, b
         opportunity={opportunity}
         explanation={explanation}
         preferenceReasons={preferenceReasons}
+        titleHref={detailHref}
       >
         {/* Action bar */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
@@ -83,7 +90,39 @@ export function OpportunityCard({ opportunity, explanation, preferenceReasons, b
               </button>
             );
           })}
+          {detailHref ? (
+            <a
+              href={detailHref}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                border: `1px solid ${MUTED_BORDER}`,
+                background: 'var(--vt-surface, #fff)',
+                color: 'var(--vt-accent, #0A7B7F)',
+                textDecoration: 'none',
+                marginLeft: 'auto',
+              }}
+            >
+              Full breakdown →
+            </a>
+          ) : null}
         </div>
+
+        {/* Apply with VitalCV — the real share flow, gated on the engine's hard gates */}
+        <OpportunityApplyCta
+          npi={npi}
+          opportunity={opportunity}
+          explanation={explanation}
+          detailHref={detailHref}
+          onShareComplete={() => {
+            if (bucket !== 'connected') onSetStatus('connected');
+          }}
+        />
 
         {/* Livability */}
         <Livability location={opportunity.location} state={opportunity.state} remote={opportunity.remote} />

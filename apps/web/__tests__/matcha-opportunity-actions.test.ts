@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  actionValueForTap,
   bucketFor,
+  isOpportunityActionValue,
+  mergeServerActions,
   statusCounts,
   type OpportunityActionMap,
 } from '../lib/matcha/opportunityActions';
@@ -27,6 +30,44 @@ describe('opportunity actions — buckets & counts', () => {
 
   it('is all-new for an empty action map', () => {
     expect(statusCounts({}, ['a', 'b', 'c'])).toEqual({ new: 3, saved: 0, connected: 0, declined: 0 });
+  });
+});
+
+describe('opportunity actions — server persistence semantics (Wave K)', () => {
+  it('maps a tap on a new status to that status', () => {
+    expect(actionValueForTap({}, 'opp1', 'saved')).toBe('saved');
+    expect(actionValueForTap({ opp1: 'saved' }, 'opp1', 'connected')).toBe('connected');
+  });
+
+  it("maps a tap on the already-active status to 'cleared' (append-only toggle-off)", () => {
+    expect(actionValueForTap({ opp1: 'saved' }, 'opp1', 'saved')).toBe('cleared');
+    expect(actionValueForTap({ opp1: 'declined' }, 'opp1', 'declined')).toBe('cleared');
+  });
+
+  it('accepts exactly the four server action values', () => {
+    expect(isOpportunityActionValue('saved')).toBe(true);
+    expect(isOpportunityActionValue('connected')).toBe(true);
+    expect(isOpportunityActionValue('declined')).toBe(true);
+    expect(isOpportunityActionValue('cleared')).toBe(true);
+    expect(isOpportunityActionValue('applied')).toBe(false);
+    expect(isOpportunityActionValue('')).toBe(false);
+    expect(isOpportunityActionValue(42)).toBe(false);
+    expect(isOpportunityActionValue(null)).toBe(false);
+  });
+
+  it('merges server decisions over the local cache — server wins, cleared removes, local-only kept', () => {
+    const local: OpportunityActionMap = { a: 'saved', b: 'connected', c: 'declined' };
+    const merged = mergeServerActions(local, { a: 'declined', b: 'cleared', d: 'saved' });
+    expect(merged).toEqual({ a: 'declined', c: 'declined', d: 'saved' });
+  });
+
+  it('is identity for an empty server map and does not mutate the input', () => {
+    const local: OpportunityActionMap = { a: 'saved' };
+    const merged = mergeServerActions(local, {});
+    expect(merged).toEqual({ a: 'saved' });
+    expect(merged).not.toBe(local);
+    mergeServerActions(local, { a: 'cleared' });
+    expect(local).toEqual({ a: 'saved' });
   });
 });
 

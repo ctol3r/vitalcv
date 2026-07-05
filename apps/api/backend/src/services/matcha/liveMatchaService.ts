@@ -301,6 +301,10 @@ export async function getLiveMatchesForNpi(
       score: m.explanation.matchScore,
       blockers: m.explanation.blockers.map(b => ({ label: b.label, action: b.actionLabel })),
       fitReasons: m.explanation.fitReasons.map(f => f.label),
+      // Full objects for the clinician surfaces (cards + detail view). The slim
+      // fields above are kept for existing consumers — additive only.
+      opportunity: m.opportunity,
+      explanation: m.explanation,
     })),
     profileCompleteness: {
       level: profile.credentials.some(c => c.claimLevel === 'L1') ? 'partial' : 'full',

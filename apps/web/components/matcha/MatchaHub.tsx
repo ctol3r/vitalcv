@@ -42,7 +42,7 @@ export function MatchaHub() {
   const categoryProgress = allCategoryProgress(preferences);
 
   const { matches, state: oppState } = useMatchaOpportunities(npi ?? null);
-  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions();
+  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions(npi);
 
   const oppIds = useMemo(
     () => matches.map((m) => m.opportunity?.id).filter((id): id is string => Boolean(id)),
@@ -179,6 +179,8 @@ export function MatchaHub() {
                   preferenceReasons={preferenceMatchReasons(preferences, opp)}
                   bucket={bucketOf(opp.id)}
                   onSetStatus={(status) => setStatus(opp.id, status)}
+                  npi={npi}
+                  detailHref={`/holder/opportunities/${encodeURIComponent(opp.id)}`}
                 />
               );
             })}

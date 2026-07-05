@@ -101,6 +101,12 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/watch')
     || normalized.startsWith('/api/search')
     || normalized.startsWith('/api/employers')
+    // MATCHA clinician demand-side surfaces: NPI-keyed scoring reads plus
+    // Clerk-header-scoped intent/opportunity writes, called via the web
+    // proxies before any org context exists (same posture as
+    // /api/opportunities above). Marketplace routes (/api/marketplace/*)
+    // intentionally stay behind the tenant guard.
+    || normalized.startsWith('/api/matcha')
     || normalized.startsWith('/bundle')
     || normalized.startsWith('/api/issuer/')
     || normalized.startsWith('/api/poe/')

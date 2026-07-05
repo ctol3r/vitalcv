@@ -39,6 +39,26 @@ model MatchaPreference {
   @@index([clerkUserId])
 }
 
+/// Wave K — server-persisted clinician Save / Connect / Decline decisions on
+/// MATCHA opportunities. Append-only: every decision (including clearing one
+/// back to "new") is a NEW row; current state = latest row per
+/// (clerkUserId, opportunityId). Rows are never updated or deleted. Mirrored
+/// in apps/web/prisma/schema.prisma — the web app writes this table directly
+/// via an auth-scoped route (identity from Clerk auth(), never a header).
+model OpportunityAction {
+  id            String   @id @default(uuid()) @db.Uuid
+  clerkUserId   String
+  npi           String?
+  opportunityId String
+  action        String // saved | connected | declined | cleared
+  source        String   @default("web")
+  createdAt     DateTime @default(now())
+
+  @@index([clerkUserId, opportunityId, createdAt])
+  @@index([opportunityId])
+  @@index([createdAt])
+}
+
 model Recognition {
   id              String       @id @default(uuid()) @db.Uuid
   recognitionId   String       @unique
