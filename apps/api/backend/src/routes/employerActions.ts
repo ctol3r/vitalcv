@@ -26,6 +26,8 @@ import prisma from '../graphql/prisma_client';
 import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
 import { sha256ForPayload } from '../utils/deterministic';
+import { env } from '../config/env';
+import { decideEmployerActionRbac } from '../services/authz/employerActionRbac';
 import {
   captureEmployerDecision,
   captureStartOutcome,
@@ -181,6 +183,53 @@ async function writeDeniedEmployerReviewMutation(input: {
   });
 }
 
+// ── RBAC (Wave B) — server-side role gate on employer-review mutations ──────
+// Roles come from the User table (clerkUserId → role/status), never from
+// caller-supplied headers like x-verifier-team-role. VERIFIER_RBAC_ENFORCED
+// false = shadow mode: would-deny decisions are logged but never block, so
+// the golden path cannot break before production role coverage is verified.
+// Enforced mode writes the standard denied-mutation AuditEvent before 403.
+async function enforceEmployerMutationRbac(input: {
+  req: Request;
+  employerId: string;
+  entityId: string;
+  clinicianNpi: string;
+  action: 'accept' | 'request-refresh' | 'route-to-review' | 'share-packet' | 'confirm-start';
+}): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { clerkUserId: input.employerId },
+    select: { role: true, status: true },
+  });
+  const decision = decideEmployerActionRbac(user);
+  if (decision.allowed) return;
+
+  if (!env().VERIFIER_RBAC_ENFORCED) {
+    log('warn', 'employer_rbac_shadow_would_deny', {
+      action: input.action,
+      entityId: input.entityId,
+      actorId: input.employerId,
+      denialReason: decision.denialReason,
+      resolvedRole: decision.resolvedRole,
+      enforcement: 'shadow',
+    });
+    return;
+  }
+
+  await writeDeniedEmployerReviewMutation({
+    req: input.req,
+    actorId: input.employerId,
+    entityId: input.entityId,
+    clinicianNpi: input.clinicianNpi,
+    denialReason: decision.denialReason ?? 'rbac_denied',
+    payload: {
+      action: input.action,
+      resolvedRole: decision.resolvedRole,
+      enforcement: 'rbac',
+    },
+  });
+  throw new HttpError(403, 'Employer-review mutations require an active verifier-role account.');
+}
+
 const SHARE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const SHARE_TOKEN_PATTERN = /^chk_[A-Za-z0-9_-]{43}$/;
 
@@ -266,6 +315,10 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
+
+      await enforceEmployerMutationRbac({
+        req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'accept',
+      });
 
       // Guard: no duplicate open acceptances
       const existing = await prisma.employerAcceptance.findFirst({
@@ -437,6 +490,10 @@ export function registerEmployerActionRoutes(app: Express): void {
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
 
+      await enforceEmployerMutationRbac({
+        req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'request-refresh',
+      });
+
       const { staleSources, missingDomains, message } = (req.body ?? {}) as {
         staleSources?:    string[];
         missingDomains?:  string[];
@@ -540,6 +597,10 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found.`);
+
+      await enforceEmployerMutationRbac({
+        req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'route-to-review',
+      });
 
       const { reason, priority } = (req.body ?? {}) as {
         reason?: string;
@@ -826,6 +887,10 @@ export function registerEmployerActionRoutes(app: Express): void {
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
 
+      await enforceEmployerMutationRbac({
+        req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'share-packet',
+      });
+
       const { npi: bodyNpi, organizationContextId, bundleId } = (req.body ?? {}) as {
         npi?: string;
         organizationContextId?: string | null;
@@ -1005,6 +1070,10 @@ export function registerEmployerActionRoutes(app: Express): void {
 
       const subject = await resolveEmployerReviewSubject(entityId);
       if (!subject) throw new HttpError(404, `Entity ${entityId} not found or has no NPI.`);
+
+      await enforceEmployerMutationRbac({
+        req, employerId, entityId, clinicianNpi: subject.clinicianNpi, action: 'confirm-start',
+      });
 
       const { startedAt, role, facility, acceptanceId: bodyAcceptanceId } = (req.body ?? {}) as {
         startedAt?: string;

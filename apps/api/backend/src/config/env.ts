@@ -148,6 +148,11 @@ const envSchema = z.object({
   }, z.boolean()),
   SYSTEM_FROZEN: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SYSTEM_FROZEN', false), z.boolean()),
   REAL_NURSYS_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'REAL_NURSYS_ENABLED', false), z.boolean()),
+  // RBAC rollout for employer-review mutations. false = shadow mode (log
+  // would-deny, never block); true = enforce (403 + denied-mutation audit).
+  // Deliberately NOT in the SYSTEM_FROZEN blocklist: freezing features must
+  // not switch a security control off.
+  VERIFIER_RBAC_ENFORCED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'VERIFIER_RBAC_ENFORCED', false), z.boolean()),
 });
 
 export type Env = z.infer<typeof envSchema>;
