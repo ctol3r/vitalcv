@@ -9,7 +9,7 @@ import type {
 } from '../types/psv';
 import type { PsvAdapter } from './types';
 
-const NPPES_API_URL = 'https://npiregistry.cms.hhs.gov/api/?version=2.1';
+export const NPPES_API_URL = 'https://npiregistry.cms.hhs.gov/api/?version=2.1';
 const AGENT_VERSION = '1.0.0';
 
 // ── NPPES API response shapes (minimal, only what we use) ────
