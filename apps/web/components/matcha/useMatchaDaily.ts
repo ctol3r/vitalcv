@@ -29,6 +29,8 @@ interface DailyResult {
   streak: number;
   /** True until the clinician has seen today's brief. */
   isNewDay: boolean;
+  /** The visit date (YYYY-MM-DD) before this one — the "since" for source-event filtering. */
+  prevVisit: string | null;
   readinessDelta: number | null;
   memoryNotes: string[];
   markBriefSeen: () => void;
@@ -69,6 +71,7 @@ export function useMatchaDaily(input: {
     loaded: false,
     streak: 0,
     isNewDay: false,
+    prevVisit: null,
     readinessDelta: null,
     memoryNotes: [],
     markBriefSeen: () => {},
@@ -111,6 +114,7 @@ export function useMatchaDaily(input: {
       loaded: true,
       streak: nextStreak.streak,
       isNewDay,
+      prevVisit: prev.lastVisit,
       readinessDelta,
       memoryNotes,
     }));

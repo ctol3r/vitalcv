@@ -18,7 +18,7 @@ import { useMatchaPreferences } from './useMatchaPreferences';
 import { useMatchaOpportunities } from './useMatchaOpportunities';
 import { useOpportunityActions } from './useOpportunityActions';
 import { useMatchaDaily } from './useMatchaDaily';
-import { buildBriefItems, gapNudge, type BriefItem, type BriefTone } from '@/lib/matcha/daily';
+import { buildBriefItems, gapNudge, trustEventNotes, type BriefItem, type BriefTone } from '@/lib/matcha/daily';
 import { CATEGORY_META, allCategoryProgress } from '@/lib/matcha/categories';
 
 const TONE_DOT: Record<BriefTone, string> = {
@@ -118,6 +118,11 @@ export function MatchaDailyBrief() {
     return progress ? CATEGORY_META[progress.category].label : null;
   }, [preferences]);
 
+  const sourceEvents = useMemo(
+    () => trustEventNotes(data.trustHistory ?? [], daily.prevVisit),
+    [data.trustHistory, daily.prevVisit],
+  );
+
   const items = useMemo(
     () =>
       buildBriefItems({
@@ -127,9 +132,10 @@ export function MatchaDailyBrief() {
         readinessDelta: daily.readinessDelta,
         completeness,
         memoryNotes: daily.memoryNotes,
+        sourceEvents,
         gapNudge: gapNudge(completeness, thinnest),
       }),
-    [bucketCounts.new, bucketCounts.saved, readinessScore, daily.readinessDelta, completeness, daily.memoryNotes, thinnest],
+    [bucketCounts.new, bucketCounts.saved, readinessScore, daily.readinessDelta, completeness, daily.memoryNotes, sourceEvents, thinnest],
   );
 
   if (!daily.loaded) return null;
