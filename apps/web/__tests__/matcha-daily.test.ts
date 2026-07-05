@@ -6,7 +6,9 @@ import {
   daysBetween,
   gapNudge,
   toISODate,
+  trustEventNotes,
   type DailyDelta,
+  type TrustHistoryEventLike,
 } from '../lib/matcha/daily';
 
 const EMPTY: DailyDelta = {
@@ -78,6 +80,59 @@ describe('daily — brief items are grounded in real deltas', () => {
   it('marks a readiness drop as neutral, not celebratory', () => {
     const item = buildBriefItems({ ...EMPTY, readinessScore: 64, readinessDelta: -4 }).find((i) => i.id === 'readiness')!;
     expect(item.tone).toBe('neutral');
+  });
+});
+
+describe('daily — source-refresh events from trust history', () => {
+  const entry = (over: Partial<TrustHistoryEventLike>): TrustHistoryEventLike => ({
+    computedAt: '2026-07-04T09:00:00.000Z',
+    deltaScore: null,
+    newGaps: [],
+    resolvedGaps: [],
+    reason: null,
+    ...over,
+  });
+
+  it('emits nothing on a first-ever visit (no baseline) — old history is not "news"', () => {
+    expect(trustEventNotes([entry({})], null)).toHaveLength(0);
+  });
+
+  it('includes only events strictly after the previous visit day', () => {
+    const events = [
+      entry({ computedAt: '2026-07-01T10:00:00.000Z', reason: 'old check' }),
+      entry({ computedAt: '2026-07-04T10:00:00.000Z', reason: 'License re-checked with the state board' }),
+    ];
+    const notes = trustEventNotes(events, '2026-07-02');
+    expect(notes).toHaveLength(1);
+    expect(notes[0].text).toContain('state board');
+  });
+
+  it('phrases resolved gaps as wins and new gaps as nudges', () => {
+    const resolved = trustEventNotes([entry({ resolvedGaps: ['DEA registration confirmed'] })], '2026-07-02')[0];
+    expect(resolved.tone).toBe('up');
+    expect(resolved.text).toContain('DEA registration confirmed');
+    const flagged = trustEventNotes([entry({ newGaps: ['License expiring soon'] })], '2026-07-02')[0];
+    expect(flagged.tone).toBe('nudge');
+  });
+
+  it('falls back to a plain re-check line and caps at 2', () => {
+    const notes = trustEventNotes([entry({}), entry({}), entry({})], '2026-07-02');
+    expect(notes).toHaveLength(2);
+    expect(notes[0].text).toBe('Your sources were re-checked');
+  });
+
+  it('source events appear in the brief between readiness and memory notes', () => {
+    const items = buildBriefItems({
+      ...EMPTY,
+      completeness: 50,
+      readinessScore: 70,
+      readinessDelta: 3,
+      sourceEvents: [{ text: 'Resolved since your last visit: DEA registration confirmed', tone: 'up' }],
+      memoryNotes: ['You updated your target compensation.'],
+    });
+    const ids = items.map((i) => i.id);
+    expect(ids.indexOf('readiness')).toBeLessThan(ids.findIndex((id) => id.startsWith('src-')));
+    expect(ids.findIndex((id) => id.startsWith('src-'))).toBeLessThan(ids.findIndex((id) => id.startsWith('mem-')));
   });
 });
 

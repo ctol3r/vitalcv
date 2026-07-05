@@ -19,6 +19,7 @@ const SAMPLE_ITEMS = buildBriefItems({
   readinessDelta: 6,
   completeness: 62,
   memoryNotes: ['You added Washington to where you want to work.'],
+  sourceEvents: [{ text: 'Resolved since your last visit: state license re-check cleared', tone: 'up' }],
   gapNudge: gapNudge(62, 'Place'),
 });
 

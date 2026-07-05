@@ -68,8 +68,53 @@ export interface DailyDelta {
   completeness: number;
   /** Plain-language notes for preference edits since last visit (from diffPreferences). */
   memoryNotes: string[];
+  /** Real source-refresh events since last visit (from trust-state history). */
+  sourceEvents?: Array<{ text: string; tone: BriefTone }>;
   /** Optional "you're closer to X" nudge, already phrased. */
   gapNudge?: string | null;
+}
+
+// ── Source-refresh events (trust-state history → brief lines) ───────────────
+
+/** The subset of a trust-history entry the brief needs. */
+export interface TrustHistoryEventLike {
+  computedAt: string | null;
+  deltaScore: number | null;
+  newGaps: string[];
+  resolvedGaps: string[];
+  reason: string | null;
+}
+
+/**
+ * Turn trust-state history entries into honest brief lines — only events recorded strictly
+ * after the clinician's previous visit. On a first-ever visit (no baseline) nothing is
+ * emitted, so we never dump old history as "news".
+ */
+export function trustEventNotes(
+  entries: readonly TrustHistoryEventLike[],
+  sinceISODate: string | null,
+): Array<{ text: string; tone: BriefTone }> {
+  if (!sinceISODate) return [];
+  const since = Date.parse(`${sinceISODate}T23:59:59`);
+  if (!Number.isFinite(since)) return [];
+
+  const out: Array<{ text: string; tone: BriefTone }> = [];
+  for (const e of entries) {
+    if (!e.computedAt) continue;
+    const t = Date.parse(e.computedAt);
+    if (!Number.isFinite(t) || t <= since) continue;
+
+    if (e.resolvedGaps.length > 0) {
+      out.push({ text: `Resolved since your last visit: ${e.resolvedGaps[0]}`, tone: 'up' });
+    } else if (e.newGaps.length > 0) {
+      out.push({ text: `A source flagged something new: ${e.newGaps[0]}`, tone: 'nudge' });
+    } else if (e.reason) {
+      out.push({ text: e.reason, tone: 'neutral' });
+    } else {
+      out.push({ text: 'Your sources were re-checked', tone: 'neutral' });
+    }
+  }
+  return out.slice(0, 2);
 }
 
 /**
@@ -95,6 +140,10 @@ export function buildBriefItems(d: DailyDelta): BriefItem[] {
         : `Readiness changed ${d.readinessDelta} to ${d.readinessScore}/100`,
       tone: d.readinessDelta > 0 ? 'up' : 'neutral',
     });
+  }
+
+  for (const ev of (d.sourceEvents ?? []).slice(0, 2)) {
+    items.push({ id: `src-${items.length}`, text: ev.text, tone: ev.tone });
   }
 
   for (const note of d.memoryNotes.slice(0, 2)) {
