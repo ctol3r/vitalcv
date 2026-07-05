@@ -50,7 +50,7 @@ POST /api/internal/release-monitor/webhook      ← thin bridge, runs in web con
    │    7. cleanup the synthetic user + org (always)
    ▼
 GitHub commit status on the verified SHA        ← DURABLE SIGNAL
-   context "vitalcv/release-verified" · success/failure · target_url = the run
+   context "vitalcv/release-verified" · success/failure/pending · target_url = the run
 ```
 
 ### Why the harness runs on GitHub Actions, not in the container
@@ -111,7 +111,8 @@ an unrelated commit. A genuinely-missed webhook is backstopped by the schedule.
 
 The primary durable record is a **GitHub commit status** on the verified SHA:
 
-- context `vitalcv/release-verified`, state `success`/`failure`,
+- context `vitalcv/release-verified`, state `success`/`failure` (or a neutral
+  `pending` when the monitor is not wired — see the fail-closed matrix below),
   `target_url` = the workflow run, description = e.g. `pass: holder 6/6`.
 - Survives deploys, is keyed by SHA, and is queryable:
   `gh api repos/ctol3r/vitalcv/commits/<sha>/status`.
@@ -215,9 +216,11 @@ gate. The receiver route itself is harmless when unwired — it fails closed
 
 **Fail-closed matrix:** no receiver secret → 500, never dispatches · missing
 `GITHUB_DISPATCH_TOKEN` → 500 + container log · missing `CLERK_SECRET_KEY` on
-the runner → crisp `synthetic_session` failure → red status · missing
-`RAILWAY_API_TOKEN` → `deploy_integrity` failure → red status. No missing
-secret can produce a false green.
+the runner → monitor is **not wired**: a preflight skips verification and posts
+a NEUTRAL `pending` status (never a red false-negative), self-healing the moment
+the secret is set · `CLERK_SECRET_KEY` set but `RAILWAY_API_TOKEN` missing →
+`deploy_integrity` failure → red status. No missing secret can produce a false
+green.
 
 ## Failure modes
 
@@ -242,6 +245,9 @@ secret can produce a false green.
 - **A red status** → open the linked run; the job summary lists the failing
   checks. `holder:*` red = the signed-in flow is broken for real clinicians
   (treat as a P0). `web_sha` red on a webhook run = the new code is not serving.
+- **A neutral `pending` status** ("skipped — monitor not wired") → *not* a broken
+  deploy; `CLERK_SECRET_KEY` is unset so verification never ran. Set the owner
+  secrets (above) and the next run verifies for real.
 - **Re-run manually:** Actions → *Release verify* → *Run workflow* (optionally
   pass a `target_sha`).
 - **Run locally against prod:**
