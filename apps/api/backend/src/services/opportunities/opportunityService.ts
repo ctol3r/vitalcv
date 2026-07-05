@@ -123,23 +123,32 @@ export async function upsertOrgProfile(
     data: { userId: user.id, completeness: 0 },
   });
 
-  // Check for existing membership
+  // Check for existing membership. WorkspaceMembership has NO Prisma
+  // relation to OrganizationProfile (plain FK column) — an include here
+  // throws P2009 at runtime; fetch the profile by FK and stitch instead.
   const existingMembership = await prisma.workspaceMembership.findFirst({
     where: { personProfileId: personProfile.id, active: true },
-    include: { organizationProfile: { include: { organization: true } } },
   });
+  const membershipOrgProfile = existingMembership
+    ? await prisma.organizationProfile.findUnique({
+        where: { id: existingMembership.organizationProfileId },
+      })
+    : null;
 
   if (existingMembership) {
+    if (!membershipOrgProfile) {
+      throw new HttpError(500, 'Workspace membership references a missing organization profile.');
+    }
     const conflictingOrg = await prisma.organization.findUnique({
       where: { slug: canonicalIdentity.slug },
       select: { id: true },
     });
-    if (conflictingOrg && conflictingOrg.id !== existingMembership.organizationProfile.organizationId) {
+    if (conflictingOrg && conflictingOrg.id !== membershipOrgProfile.organizationId) {
       throw new HttpError(409, 'An organization with this canonical identity already exists.');
     }
 
     const existingEnvelope = parseOrganizationRequirementsEnvelope(
-      existingMembership.organizationProfile.requirements,
+      membershipOrgProfile.requirements,
       [],
     );
     const nextEnvelope = buildOrganizationRequirementsEnvelope({
@@ -155,7 +164,7 @@ export async function upsertOrgProfile(
 
     // Update existing org profile
     await prisma.organization.update({
-      where: { id: existingMembership.organizationProfile.organizationId },
+      where: { id: membershipOrgProfile.organizationId },
       data: {
         name: canonicalIdentity.displayName,
         slug: canonicalIdentity.slug,
@@ -175,7 +184,7 @@ export async function upsertOrgProfile(
         requirements: nextEnvelope as unknown as Prisma.InputJsonValue,
       },
     });
-    return { organizationId: existingMembership.organizationProfile.organizationId };
+    return { organizationId: membershipOrgProfile.organizationId };
   }
 
   // Create new org + profile + membership

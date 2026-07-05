@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { processApplicationBilling } from '../billing/billingEngine';
 /**
  * applicationService.ts — Wave 229
@@ -168,6 +167,9 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
   const applicantProfile = applicant
     ? await prisma.personProfile.findUnique({ where: { userId: applicant.id } })
     : null;
+  const applicantRecord: ApplicantUserRecord | null = applicant
+    ? { ...applicant, personProfile: applicantProfile }
+    : null;
   const resolvedNpi = normalizeProvidedNpi(npi) ?? applicantProfile?.npi ?? null;
   if (!resolvedNpi) {
     throw new HttpError(409, 'Complete clinician onboarding before applying with VitalCV.');
@@ -188,10 +190,10 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
         },
         ...applicationWithOpportunity,
       }) as ApplicationRecord;
-      return hydrateApplication(reactivated, applicant ?? null);
+      return hydrateApplication(reactivated, applicantRecord);
     }
 
-    return hydrateApplication(existing, applicant ?? null);
+    return hydrateApplication(existing, applicantRecord);
   }
 
   const created = await prisma.application.create({
@@ -205,7 +207,7 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
     ...applicationWithOpportunity,
   });
 
-  return hydrateApplication(created, applicant ?? null);
+  return hydrateApplication(created, applicantRecord);
 }
 
 // ── Clinician: list own applications ─────────────────────────────────────────
@@ -520,6 +522,8 @@ async function loadEmployerAcceptanceMap(
 
   const acceptanceMap = new Map<string, string>();
   for (const acceptance of acceptances) {
+    // The `in` filters above cannot match NULL; guards only narrow the types.
+    if (!acceptance.employerId || !acceptance.clinicianNpi) continue;
     const key = employerAcceptanceKey(acceptance.employerId, acceptance.clinicianNpi);
     if (!acceptanceMap.has(key)) {
       acceptanceMap.set(key, acceptance.acceptedAt.toISOString());

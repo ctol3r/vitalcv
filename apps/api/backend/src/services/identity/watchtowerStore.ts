@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import prisma, { Prisma } from '../../graphql/prisma_client';
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -223,6 +223,10 @@ export function buildWatchlistDedupeKey(input: Omit<CreateWatchlistInput, 'metad
 export async function createWatchlist(input: CreateWatchlistInput): Promise<WatchlistRecord> {
   return watchtowerPrisma.watchlist.create({
     data: {
+      // watchlists.id has no DB default despite the schema's
+      // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
+      // supply the id client-side or the insert throws P2011.
+      id: randomUUID(),
       dedupeKey: buildWatchlistDedupeKey(input),
       name: input.name.trim(),
       ownerOrganizationId: input.ownerOrganizationId ?? null,
@@ -362,6 +366,10 @@ export async function persistWatchlistHit(
   try {
     return await watchtowerPrisma.watchlistHit.create({
       data: {
+        // watchlist_hits.id has no DB default despite the schema's
+        // dbgenerated(gen_random_uuid()) (verified in prod 2026-07-05) —
+        // supply the id client-side or the insert throws P2011.
+        id: randomUUID(),
         watchlistId: input.watchlistId,
         trustAlertRecordId: input.trustAlertRecordId ?? null,
         entityChangeEventId: input.entityChangeEventId ?? null,

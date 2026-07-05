@@ -133,11 +133,11 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue({
       organizationProfileId: 'org-profile-1',
-      organizationProfile: {
-        organizationId: 'org-1',
-        requirements: [{ label: 'Legacy requirement', level: 'L1' }],
-        organization: { name: 'General Hospital' },
-      },
+    });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({
+      id: 'org-profile-1',
+      organizationId: 'org-1',
+      requirements: [{ label: 'Legacy requirement', level: 'L1' }],
     });
     prismaMock.organization.findUnique.mockResolvedValue(null);
     prismaMock.organization.update.mockResolvedValue({});
@@ -233,11 +233,11 @@ describe('opportunityService org profile pilot policy', () => {
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue({
       organizationProfileId: 'org-profile-1',
-      organizationProfile: {
-        organizationId: 'org-1',
-        requirements: [],
-        organization: { name: 'General Hospital' },
-      },
+    });
+    prismaMock.organizationProfile.findUnique.mockResolvedValue({
+      id: 'org-profile-1',
+      organizationId: 'org-1',
+      requirements: [],
     });
     prismaMock.organization.findUnique.mockResolvedValue(null);
     prismaMock.organization.update.mockResolvedValue({});
