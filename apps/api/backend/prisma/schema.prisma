@@ -39,6 +39,31 @@ model MatchaPreference {
   @@index([clerkUserId])
 }
 
+/// Wave Q — durable commercial lead capture. One row per submitted pilot
+/// request / pilot intake (in addition to the existing Slack + stdout
+/// delivery, which stays). Operational CRM-lite, never evidence: rows carry
+/// buyer contact context only and are paired with an AuditEvent
+/// (`pilot.lead_captured`) at insert. Mirrored in apps/web/prisma/schema.prisma
+/// — the web app writes this table directly (deploy-order safe).
+model PilotLead {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String // pilot_request | pilot_intake
+  persona        String?
+  organization   String
+  contactName    String?
+  email          String
+  message        String?
+  workflowTarget String?
+  sourceContext  String?
+  payload        Json
+  slackDelivered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@index([email])
+}
+
 /// Wave K — server-persisted clinician Save / Connect / Decline decisions on
 /// MATCHA opportunities. Append-only: every decision (including clearing one
 /// back to "new") is a NEW row; current state = latest row per

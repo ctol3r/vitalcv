@@ -96,6 +96,29 @@ model MatchaPreference {
   @@index([clerkUserId])
 }
 
+// Wave Q — durable commercial lead capture (mirror of the backend model;
+// migration lives in apps/api/backend/prisma/migrations/20260705120000_pilot_leads).
+// One row per submitted pilot request / pilot intake, paired with an
+// AuditEvent at insert. Operational CRM-lite, never evidence.
+model PilotLead {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String // pilot_request | pilot_intake
+  persona        String?
+  organization   String
+  contactName    String?
+  email          String
+  message        String?
+  workflowTarget String?
+  sourceContext  String?
+  payload        Json
+  slackDelivered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@index([email])
+}
+
 // Wave K — clinician Save / Connect / Decline decisions on MATCHA
 // opportunities (mirror of the backend model; migration lives in
 // apps/api/backend/prisma/migrations/20260705000000_opportunity_actions).
