@@ -95,3 +95,48 @@ model MatchaPreference {
 
   @@index([clerkUserId])
 }
+
+// Wave K — clinician Save / Connect / Decline decisions on MATCHA
+// opportunities (mirror of the backend model; migration lives in
+// apps/api/backend/prisma/migrations/20260705000000_opportunity_actions).
+// Append-only: every decision (including clearing one back to "new") is a
+// NEW row; current state = latest row per (clerkUserId, opportunityId).
+// These are the clinician's own workflow decisions — never credentials,
+// never verification state.
+model OpportunityAction {
+  id            String   @id @default(uuid()) @db.Uuid
+  clerkUserId   String
+  npi           String?
+  opportunityId String
+  action        String // saved | connected | declined | cleared
+  source        String   @default("web")
+  createdAt     DateTime @default(now())
+
+  @@index([clerkUserId, opportunityId, createdAt])
+  @@index([opportunityId])
+  @@index([createdAt])
+}
+
+// Mirror of the backend AuditEvent model (one shared DB; migrations owned by
+// apps/api/backend/prisma). The web app APPENDS audit rows for the mutations
+// it owns (audit-first rule) — it never updates or deletes them, and never
+// anchors (anchored/merkleRoot are written by backend anchoring jobs only).
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String
+  hash           String
+  referenceId    String?
+  clinicianId    String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  organizationId String?
+  anchored       Boolean  @default(false)
+  merkleRoot     String?
+
+  @@index([type, createdAt])
+  @@index([clinicianId])
+  @@index([referenceId])
+  @@index([organizationId])
+  @@index([anchored])
+  @@index([merkleRoot])
+}

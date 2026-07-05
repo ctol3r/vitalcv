@@ -19,7 +19,7 @@ export function MatchaOpportunitiesSurface() {
   const { data } = useClinicianMobile();
   const npi = data.workspace?.personProfile?.npi ?? null;
   const { preferences } = useMatchaPreferences(npi ?? undefined);
-  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions();
+  const { loaded: actionsLoaded, bucketOf, setStatus, counts } = useOpportunityActions(npi);
   const { matches, state } = useMatchaOpportunities(npi);
 
   const ids = useMemo(
@@ -75,6 +75,8 @@ export function MatchaOpportunitiesSurface() {
               preferenceReasons={reasons}
               bucket={bucketOf(opp.id)}
               onSetStatus={(status) => setStatus(opp.id, status)}
+              npi={npi}
+              detailHref={`/holder/opportunities/${encodeURIComponent(opp.id)}`}
             />
           );
         })}

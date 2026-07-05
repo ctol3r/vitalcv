@@ -59,6 +59,14 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/employer-review/1003000126/acceptance-history')).toBe(true);
   });
 
+  it('skips tenant context for MATCHA demand-side routes but keeps marketplace guarded (Wave K)', () => {
+    expect(shouldSkipTenantContext('/api/matcha/opportunities/1003000126')).toBe(true);
+    expect(shouldSkipTenantContext('/api/matcha/explain')).toBe(true);
+    expect(shouldSkipTenantContext('/api/matcha/simulate/1003000126')).toBe(true);
+    expect(shouldSkipTenantContext('/api/marketplace/match')).toBe(false);
+    expect(shouldSkipTenantContext('/api/marketplace/pool')).toBe(false);
+  });
+
   it('allows the trust-proof read through without organization context', () => {
     const req = createRequest('/api/trust-proof/1003000126');
     const res = createResponse();

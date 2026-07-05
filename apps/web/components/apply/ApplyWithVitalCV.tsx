@@ -68,6 +68,8 @@ type Step = 'credentials' | 'org_context' | 'confirmed';
 interface Props {
   npi: string;
   label?: string;
+  /** Prefill the share destination (e.g. from a MATCHA opportunity's employer). Always editable. */
+  initialOrgContext?: Partial<OrgContext>;
   onShareComplete?: (result: ShareResult) => void;
 }
 
@@ -128,7 +130,13 @@ function clerkId(): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareComplete }: Props) {
+export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrgContext, onShareComplete }: Props) {
+  const baseOrgCtx = useCallback((): OrgContext => ({
+    organization_id: initialOrgContext?.organization_id ?? '',
+    name: initialOrgContext?.name ?? '',
+    callback_url: initialOrgContext?.callback_url ?? '',
+    purpose_of_use: initialOrgContext?.purpose_of_use ?? PURPOSE_OPTIONS[0],
+  }), [initialOrgContext]);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<Step>('credentials');
   const [isLoading, setIsLoading] = useState(false);
@@ -138,9 +146,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
   const [trustState, setTrustState] = useState<TrustStateData | null>(null);
   const [credentials, setCredentials] = useState<BundleCredential[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
-  const [orgCtx, setOrgCtx] = useState<OrgContext>({
-    organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0],
-  });
+  const [orgCtx, setOrgCtx] = useState<OrgContext>(baseOrgCtx);
   const [orgCtxErrors, setOrgCtxErrors] = useState<Partial<Record<keyof OrgContext, string>>>({});
   const [shareResult, setShareResult] = useState<ShareResult | null>(null);
   const [countdown, setCountdown] = useState('');
@@ -153,10 +159,10 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
     setStep('credentials');
     setError(null);
     setShareResult(null);
-    setOrgCtx({ organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0] });
+    setOrgCtx(baseOrgCtx());
     setOrgCtxErrors({});
     setIsOpen(true);
-  }, []);
+  }, [baseOrgCtx]);
 
   const closeModal = useCallback(() => { setIsOpen(false); }, []);
 
@@ -637,7 +643,7 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', onShareCom
                   onClick={() => {
                     setStep('credentials');
                     setShareResult(null);
-                    setOrgCtx({ organization_id: '', name: '', callback_url: '', purpose_of_use: PURPOSE_OPTIONS[0] });
+                    setOrgCtx(baseOrgCtx());
                   }}
                   className="flex-1 py-3 rounded-xl border border-border text-xs font-medium text-zinc-400 hover:text-foreground transition-colors"
                 >

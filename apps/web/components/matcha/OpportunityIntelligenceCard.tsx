@@ -35,7 +35,7 @@ export interface IntelligenceExplanation {
   confidence: number;
   fitReasons?: Array<{ label: string; positive: boolean; dimension?: string }>;
   missingCredentials?: string[];
-  blockers?: Array<{ label: string; severity: 'hard' | 'soft' }>;
+  blockers?: Array<{ label: string; severity: 'hard' | 'soft'; actionLabel?: string }>;
   instantOfferEligible?: boolean;
 }
 
@@ -46,6 +46,12 @@ export interface OpportunityIntelligenceCardProps {
   /** Preference-grounded reasons from opportunityFit.preferenceMatchReasons. */
   preferenceReasons?: ExplanationReason[];
   href?: string;
+  /**
+   * Links the title to the opportunity detail route. Use this (not `href`)
+   * when the card body contains interactive children — a whole-card anchor
+   * would nest buttons inside an <a>.
+   */
+  titleHref?: string;
   /** Interactive content injected before the honesty footer (action bar, livability). */
   children?: React.ReactNode;
 }
@@ -76,6 +82,7 @@ export function OpportunityIntelligenceCard({
   explanation,
   preferenceReasons = [],
   href,
+  titleHref,
   children,
 }: OpportunityIntelligenceCardProps) {
   const band = explanation ? matchBandDisplay(explanation.matchBand) : null;
@@ -116,7 +123,13 @@ export function OpportunityIntelligenceCard({
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--vt-text-primary)' }}>
-            {opportunity.title}
+            {titleHref ? (
+              <a href={titleHref} style={{ color: 'inherit', textDecoration: 'none' }}>
+                {opportunity.title}
+              </a>
+            ) : (
+              opportunity.title
+            )}
           </h3>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--vt-text-secondary)' }}>
             {[opportunity.organization, opportunity.location].filter(Boolean).join(' · ')}

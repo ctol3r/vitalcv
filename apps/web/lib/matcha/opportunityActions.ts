@@ -1,13 +1,17 @@
 /**
  * Opportunity actions — the clinician's own Save / Connect / Decline decisions.
  *
- * These are real user actions, persisted locally (the clinician owns them). "New" is simply an
+ * These are real user actions, persisted server-side (append-only rows keyed by the
+ * authenticated Clerk user) with localStorage as the optimistic cache. "New" is simply an
  * opportunity that hasn't been acted on yet. Pure + SSR-safe; the React hook lives in
  * components/matcha/useOpportunityActions.ts.
  */
 
 export type OpportunityStatus = 'saved' | 'connected' | 'declined';
 export type OpportunityBucket = 'new' | OpportunityStatus;
+
+/** What gets written to the server log: a status, or 'cleared' (toggled back to "new"). */
+export type OpportunityActionValue = OpportunityStatus | 'cleared';
 
 export type OpportunityActionMap = Record<string, OpportunityStatus>;
 
@@ -57,6 +61,51 @@ export function persistOpportunityActions(map: OpportunityActionMap): void {
 /** The bucket an opportunity falls in — acted-on status, or 'new' if untouched. */
 export function bucketFor(map: OpportunityActionMap, id: string): OpportunityBucket {
   return map[id] ?? 'new';
+}
+
+export const OPPORTUNITY_ACTION_VALUES: readonly OpportunityActionValue[] = [
+  'saved',
+  'connected',
+  'declined',
+  'cleared',
+];
+
+export function isOpportunityActionValue(value: unknown): value is OpportunityActionValue {
+  return typeof value === 'string' && (OPPORTUNITY_ACTION_VALUES as readonly string[]).includes(value);
+}
+
+/**
+ * The action value the server log should record for a tap on `status`:
+ * tapping the already-active status toggles the opportunity back to "new",
+ * which the append-only log represents as 'cleared'.
+ */
+export function actionValueForTap(
+  map: OpportunityActionMap,
+  id: string,
+  status: OpportunityStatus,
+): OpportunityActionValue {
+  return map[id] === status ? 'cleared' : status;
+}
+
+/**
+ * Server actions layered over the local optimistic cache. The server is the
+ * source of truth for every opportunity it has a decision for ('cleared'
+ * removes the local entry); local-only entries are kept so a signed-out or
+ * not-yet-migrated session loses nothing.
+ */
+export function mergeServerActions(
+  local: OpportunityActionMap,
+  server: Record<string, OpportunityActionValue>,
+): OpportunityActionMap {
+  const merged: OpportunityActionMap = { ...local };
+  for (const [id, action] of Object.entries(server)) {
+    if (action === 'cleared') {
+      delete merged[id];
+    } else {
+      merged[id] = action;
+    }
+  }
+  return merged;
 }
 
 /**
