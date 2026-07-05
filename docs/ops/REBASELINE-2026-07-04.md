@@ -32,7 +32,7 @@
 - Every runtime NPPES endpoint constant targets **API v2.1**: `apps/api/backend/src/modules/identity/nppes.service.ts`, `apps/api/backend/src/engine/adapters/nppesAdapter.ts`, `apps/api/backend/adapters/NppesAdapter.ts` (legacy path, still live — imported by `psvOrchestrator`, `PsvOrchestrator`, `verifyRoute`). Web-side probes/diagnostics also pin v2.1.
 - **Zero V1 references** anywhere in `apps/`, `packages/`, `scripts/` (negative scan for `version=1` / V1 dissemination names).
 - Bulk files: `sourceCatalog.ts` `NPPES_BULK` entry already points at the V2 file surface (`download.cms.gov/nppes/NPI_Files.html`). Note: there is **no bulk-file downloader implementation** — runtime NPI enrichment is API-only today. Bulk ingestion remains a phase-1 open item, not a pilot blocker.
-- **Runtime assertion added** (this wave): `apps/api/backend/src/services/identity/nppesApiVersion.ts` imports the three real endpoint constants and refuses boot if any is not pinned to v2.1; `startServer()` logs `nppes_api_version` on success.
+- **Runtime assertion added** (this wave): `apps/api/backend/src/services/identity/nppesApiVersion.ts` imports the three real endpoint constants and refuses boot if any is not pinned to v2.1; logs `nppes_api_version` on success. Wired into **both** entrypoints: `index.ts` `startServer()` (dev/local) and `server.ts` `bootstrapApp()` — the production entry per `railway.toml` `startCommand`, added in a follow-up fix after the first deploy proved container health but not assertion execution.
 
 ## Local-only artifacts noted
 
