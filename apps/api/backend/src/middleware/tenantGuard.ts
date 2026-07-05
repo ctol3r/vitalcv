@@ -62,6 +62,9 @@ export function shouldSkipTenantContext(path: string): boolean {
     // when the middleware asks "what role is this?", so requiring tenant
     // context here 401s and dead-ends the entire signed-in experience.
     || normalized === '/api/me/role'
+    // Email-OTP identity binding: an onboarding-time possession factor scoped to
+    // the Clerk user alone (no org context yet). Same rationale as /api/me/role.
+    || normalized.startsWith('/api/profile/identity/')
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')

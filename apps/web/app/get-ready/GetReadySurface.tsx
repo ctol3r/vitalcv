@@ -27,6 +27,7 @@ import {
   validateNpi,
   type BoundIdentitySummary,
 } from '@/lib/get-ready/npi-binding';
+import EmailVerification from '@/components/get-ready/EmailVerification';
 
 type Phase =
   | 'checking'
@@ -262,6 +263,11 @@ export default function GetReadySurface() {
             <SummaryRow label="Specialty" value={summary.specialty ?? 'Not listed in NPPES'} />
             <SummaryRow label="State" value={summary.stateOfPractice ?? 'Not listed in NPPES'} />
           </dl>
+        )}
+        {!summary.isOrganizationNpi && (
+          <div className="mt-6">
+            <EmailVerification />
+          </div>
         )}
         <div className="mt-6 space-y-3">
           <Link
