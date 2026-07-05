@@ -148,6 +148,10 @@ const envSchema = z.object({
   }, z.boolean()),
   SYSTEM_FROZEN: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SYSTEM_FROZEN', false), z.boolean()),
   REAL_NURSYS_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'REAL_NURSYS_ENABLED', false), z.boolean()),
+  // Live SAM.gov exclusion checks (services/samGovAdapter.ts). Default false:
+  // the lane stays an honest gated stub until SAM_GOV_API_KEY is configured
+  // and a live fetcher is wired.
+  SAM_GOV_ENABLED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'SAM_GOV_ENABLED', false), z.boolean()),
   // RBAC rollout for employer-review mutations. false = shadow mode (log
   // would-deny, never block); true = enforce (403 + denied-mutation audit).
   // Deliberately NOT in the SYSTEM_FROZEN blocklist: freezing features must
@@ -241,6 +245,7 @@ export function loadEnv(): Env {
     const blockedFlags = {
       ENTERPRISE_MODE: result.data.ENTERPRISE_MODE,
       REAL_NURSYS_ENABLED: result.data.REAL_NURSYS_ENABLED,
+      SAM_GOV_ENABLED: result.data.SAM_GOV_ENABLED,
       LOW_FRICTION_MODE: result.data.LOW_FRICTION_MODE,
     } as const;
 
@@ -262,6 +267,7 @@ export function loadEnv(): Env {
       ...result.data,
       ENTERPRISE_MODE: false,
       REAL_NURSYS_ENABLED: false,
+      SAM_GOV_ENABLED: false,
       LOW_FRICTION_MODE: false,
     };
   }
