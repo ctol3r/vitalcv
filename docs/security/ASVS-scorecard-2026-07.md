@@ -126,9 +126,9 @@ depend on it are Partial, not Met.
 | 2.8.x | Single-factor OTP devices (TOTP) | N-A | Not implemented; passkey/AAL2 path tracked as launch blocker #12. |
 | 2.9.x | Cryptographic authenticators | N-A | Same as 2.8. |
 | 2.10.1 | Service-account authn without static default creds | Partial | `API_KEYS` env-injected and required in production (`config/env.ts:38-41,57-59`); rotation process undocumented. |
-| 2.10.2 | No default credentials | Gap | `apps/api/backend/src/auth/jwt.ts:8` falls back to the hardcoded string `'development-secret'` when `JWT_SECRET` is unset — and `organizationContext.ts:44` uses this verifier for org claims. No production guard requires `JWT_SECRET`. |
+| 2.10.2 | No default credentials | Met | Legacy HS256 verifier deleted 2026-07-05 (closes G6): `auth/jwt.ts` removed and `middleware/organizationContext.ts` no longer parses Authorization bearer tokens, so no JWT shared secret — and no default — exists in the backend (`JWT_SECRET` is no longer read anywhere). Pinned by `middleware/__tests__/organizationContext.test.ts` (forged dev-secret tokens must not inject org context). The remaining query/`x-org-id` org sources stay tracked at 4.1.2 / 14.5.4. |
 | 2.10.3 | Service secrets stored with protection | Partial | API keys fingerprinted (not logged raw) for rate-limit identity (`publicSafety.ts:41-44`); the Wave-125 `apiAuth.ts` keystore is in-memory/dev-tier (`apiAuth.ts:41-53`). |
-| 2.10.4 | Secrets via secrets manager, not source code | Partial | Railway env vars + `apps/web/.env.example` pattern; no committed live secrets found — except the 2.10.2 fallback default. |
+| 2.10.4 | Secrets via secrets manager, not source code | Partial | Railway env vars + `apps/web/.env.example` pattern; no committed live secrets found (the former 2.10.2 fallback default was deleted 2026-07-05). |
 
 ---
 
@@ -162,7 +162,7 @@ not the security boundary (`apps/web/lib/auth/roleCookie.ts:19-22`).
 | Req | Requirement (paraphrased) | Status | Evidence / gap |
 |---|---|---|---|
 | 4.1.1 | Enforced at a trusted service layer | Partial | Web role middleware (`apps/web/middleware.ts:47-108`); backend tenant guard mounted globally (`app.ts:3478`); weakened by 4.1.2. |
-| 4.1.2 | Access-control attributes tamper-protected | Gap | Org context is accepted from the `x-org-id` header or `?organizationId=` query (`middleware/organizationContext.ts:62-82`); `x-user-role: super-admin` bypasses org-match checks (`middleware/tenantGuard.ts:153-167,184-205`). Counter-example done right: RBAC roles come from the DB, "never from caller-supplied headers" (`services/authz/employerActionRbac.ts:5-8`). |
+| 4.1.2 | Access-control attributes tamper-protected | Gap | Org context is accepted from the `x-org-id` header or `?organizationId=` query (`middleware/organizationContext.ts:20-40`); `x-user-role: super-admin` bypasses org-match checks (`middleware/tenantGuard.ts:153-167,184-205`). Counter-example done right: RBAC roles come from the DB, "never from caller-supplied headers" (`services/authz/employerActionRbac.ts:5-8`). |
 | 4.1.3 | Least privilege enforced | Gap | The employer-review RBAC decision core is merged and running in **shadow mode only**: `VERIFIER_RBAC_ENFORCED` defaults false (`config/env.ts:151-155`), so denials are logged (`routes/employerActions.ts:206-211`) but not blocked. Enforcement = flag flip after shadow telemetry review (launch blocker #2). `apps/web/lib/verifier/orgRolesFoundation.ts` pins `rbacEnforced: false`. |
 | 4.1.5 | Access control fails securely | Met | Missing org context → 401 (`tenantGuard.ts:169-182`); org mismatch → 403 (`tenantGuard.ts:184-205`); BLOCKED passport fails closed (`docs/ops/REBASELINE-2026-07-04.md`, employer-accept row); empty CORS allowlist blocks all cross-origin API calls (`lib/security/corsAllowlist.ts`). |
 | 4.2.1 | IDOR protections | Partial | UUID format guards before Prisma UUID-column queries — PR #501 idiom (`routes/public.ts:176-179`, `routes/employerActions.ts:69-71`, `apps/web/app/api/internal/pilot/start-outcome/route.ts`, `apps/web/lib/apply/bundle-id.ts`); `enforceOrganizationMatch` on org-scoped reads; employer-notes leak fixed (PR #498). Residual: acceptance-history is an NPI-keyed public read **by design**; super-admin header bypass (4.1.2). |
@@ -297,7 +297,7 @@ not the security boundary (`apps/web/lib/auth/roleCookie.ts:19-22`).
 | 14.5.1 | HTTP method allowlist | Met | Per-route method registration only; nothing wildcard-mounted. |
 | 14.5.2 | Origin header not used for authn/authz | Met | Origin is only ever used to **deny** (CORS gate, `middleware.ts:115-126`); no trust decisions read it. |
 | 14.5.3 | CORS strict allowlist | Met | Web: default-deny `ALLOWED_CORS_ORIGINS` allowlist — empty means all cross-origin API calls blocked (`lib/security/corsAllowlist.ts:1-11`; `middleware.ts:110-126`). Backend: wildcard banned in production (`config/env.ts:111-118`; `app.ts:3444-3452`). Supersedes the L1 FOUNDATION row. |
-| 14.5.4 | Proxy/SSO-added HTTP headers authenticated | Gap | The backend trusts identity-bearing headers without verification: `x-clerk-user-id` grants authenticated context (`middleware/authMiddleware.ts:4-11`; `routes/employerActions.ts:63-67`), `x-user-role`/`x-verifier-role`/`x-role: super-admin` bypasses org-scope checks (`tenantGuard.ts:153-167`), and org context is accepted from `x-org-id`/query (`organizationContext.ts:62-82`). Anyone who can reach the API origin directly can present these headers. This is the highest-priority authn gap (Wave 2C follow-up). |
+| 14.5.4 | Proxy/SSO-added HTTP headers authenticated | Gap | The backend trusts identity-bearing headers without verification: `x-clerk-user-id` grants authenticated context (`middleware/authMiddleware.ts:4-11`; `routes/employerActions.ts:63-67`), `x-user-role`/`x-verifier-role`/`x-role: super-admin` bypasses org-scope checks (`tenantGuard.ts:153-167`), and org context is accepted from `x-org-id`/query (`organizationContext.ts:20-40`). Anyone who can reach the API origin directly can present these headers. This is the highest-priority authn gap (Wave 2C follow-up). |
 
 ---
 
@@ -305,13 +305,13 @@ not the security boundary (`apps/web/lib/auth/roleCookie.ts:19-22`).
 
 | Status | Count |
 |---|---:|
-| Met | 66 |
+| Met | 67 |
 | Partial | 64 |
-| Gap | 12 |
+| Gap | 11 |
 | N-A | 9 |
 | **Total rows scored** | **151** |
 
-Of the 142 applicable rows: **46% Met, 45% Partial, 8% Gap**. Read this as an
+Of the 142 applicable rows: **47% Met, 45% Partial, 8% Gap**. Read this as an
 honest midpoint: the header/config, error-handling, crypto-adjacent, and
 audit-logging chapters are strong; the systemic weaknesses are concentrated
 in **who the backend believes the caller is** (14.5.4 / 4.1.2), **enforcement
@@ -323,12 +323,12 @@ The gaps that matter, in priority order. Nothing below is hidden in a Partial ce
 
 | # | Gap | Where | Tracking |
 |---|---|---|---|
-| G1 | Header-trust authentication: backend accepts `x-clerk-user-id`, `x-user-role` (incl. `super-admin`), `x-org-id` without cryptographic verification | `authMiddleware.ts:4-11`, `tenantGuard.ts:153-167`, `organizationContext.ts:62-82` | Wave 2C follow-up; scored 14.5.4 / 4.1.2 |
+| G1 | Header-trust authentication: backend accepts `x-clerk-user-id`, `x-user-role` (incl. `super-admin`), `x-org-id` without cryptographic verification | `authMiddleware.ts:4-11`, `tenantGuard.ts:153-167`, `organizationContext.ts:20-40` | Wave 2C follow-up; scored 14.5.4 / 4.1.2 |
 | G2 | Verifier RBAC enforcement OFF (shadow mode) — mutations by non-permitted roles are logged, not blocked | `config/env.ts:151-155`, `employerActions.ts:206-211`, `apps/web/lib/verifier/orgRolesFoundation.ts` | Launch blocker #2; flag flip after shadow review |
 | G3 | Rate-limit keying: per-process in-memory counters, `req.ip` fallback with no `trust proxy` configured | `publicSafety.ts:55-68,15-16`; `app.ts` (no trust-proxy setting) | Wave 2C follow-up; scored V13 rate-limit row |
 | G4 | Unsalted claim digests exposed publicly: raw SHA-256 `claimHashes` are dictionary-testable if the underlying claim payloads are low-entropy | `routes/public.ts:162-171` (`extractPublicAuditHashes`) | Wave 2C follow-up (salt/HMAC before exposure) |
 | G5 | No e2e signup happy-path or fail-closed test (BLOCKED passport acceptance) | no playwright/cypress config anywhere in repo (verified) | Launch blocker #4 |
-| G6 | Hardcoded `'development-secret'` JWT fallback; no production guard requires `JWT_SECRET` | `auth/jwt.ts:8`, consumed by `organizationContext.ts:44` | New finding (this pass); scored 2.10.2 |
+| G6 | ~~Hardcoded `'development-secret'` JWT fallback; no production guard requires `JWT_SECRET`~~ **Closed 2026-07-05:** legacy HS256 util deleted (`auth/jwt.ts` removed; `organizationContext.ts` no longer parses bearer tokens; `JWT_SECRET` no longer read anywhere) | `middleware/__tests__/organizationContext.test.ts` pins the behavior | Closed; 2.10.2 re-scored Met |
 | G7 | Shared request-validation middleware is a no-op; schema validation sparse (0 zod in web API routes) | `middleware/validateRequest.ts:1-11` | Scored 5.1.3 / 13.2.2 |
 | G8 | No SCA/dependency audit, no SAST, no SBOM, no SRI in the pipeline | `.github/workflows/` (verified listing), `.github/` (no dependabot) | Scored 14.2.1/14.2.3/14.2.5, 1.14.3 |
 | G9 | No MFA step-up on `/admin/*`; Clerk prod factor/OAuth config unverifiable from repo | `apps/web/middleware.ts` (role gate only) | Scored 4.3.1; launch blocker #3 |

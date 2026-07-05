@@ -30,7 +30,6 @@ function requiredForMode(mode: Mode): string[] {
   }
   return [
     // Backend hardening
-    'JWT_SECRET',
     'CORS_ORIGIN',
     'DEMO_SEED_TOKEN',
     // Frontend must point at the deployed API
