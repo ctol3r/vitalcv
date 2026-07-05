@@ -37,9 +37,27 @@ type Phase =
   | 'success'
   | 'load_error';
 
+/**
+ * The clinician professions VitalCV onboards. Selecting one is a self-attested
+ * role (it guides which source lanes apply downstream) — it is NOT a
+ * license verification, and the copy says so. Students onboard via a separate
+ * no-NPI lane, added in a later step.
+ */
+const PROFESSIONS = [
+  { value: 'physician', label: 'Physician (MD/DO)' },
+  { value: 'nurse_practitioner', label: 'Nurse Practitioner' },
+  { value: 'physician_assistant', label: 'Physician Assistant' },
+  { value: 'pharmacist', label: 'Pharmacist' },
+  { value: 'registered_nurse', label: 'Registered Nurse' },
+  { value: 'dentist', label: 'Dentist' },
+] as const;
+
+type Profession = (typeof PROFESSIONS)[number]['value'];
+
 export default function GetReadySurface() {
   const [phase, setPhase] = useState<Phase>('checking');
   const [existingNpi, setExistingNpi] = useState<string | null>(null);
+  const [profession, setProfession] = useState<Profession | null>(null);
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
@@ -89,6 +107,10 @@ export default function GetReadySurface() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!profession) {
+      setFormError('Select your profession to continue.');
+      return;
+    }
     const validation = validateNpi(npiInput);
     if (!validation.ok || !validation.npi) {
       setFormError(validation.reason);
@@ -101,7 +123,9 @@ export default function GetReadySurface() {
       const res = await fetch('/api/profile/npi/bootstrap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npi: validation.npi }),
+        // profession is a self-attested role forwarded to the bootstrap; the
+        // backend records it as an attested field (never a verified claim).
+        body: JSON.stringify({ npi: validation.npi, profession }),
       });
       const body: unknown = await res.json().catch(() => null);
       if (!mountedRef.current) return;
@@ -256,6 +280,35 @@ export default function GetReadySurface() {
         lede="VitalCV reads your public NPPES registry record to start your clinician workspace. No document uploads required to get started."
       />
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
+        <fieldset disabled={submitting} className="border-0 p-0 m-0">
+          <legend className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+            Your profession
+          </legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {PROFESSIONS.map((p) => {
+              const selected = profession === p.value;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setProfession(p.value)}
+                  aria-pressed={selected}
+                  className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                    selected
+                      ? 'border-emerald-600 bg-emerald-950/40 text-emerald-200'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-zinc-600">
+            You&apos;re attesting to your role — it guides which checks apply and isn&apos;t
+            license-verified here.
+          </p>
+        </fieldset>
         <div>
           <label htmlFor="npi-input" className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
             Your 10-digit NPI
