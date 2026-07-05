@@ -6,6 +6,18 @@ jest.mock('../../../graphql/prisma_client', () => ({
     user: {
       findUnique: jest.fn(),
     },
+    personProfile: {
+      findUnique: jest.fn(),
+    },
+    workspacePreference: {
+      findUnique: jest.fn(),
+    },
+    workspaceMembership: {
+      findMany: jest.fn(),
+    },
+    organizationProfile: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -15,6 +27,18 @@ import { resolveSearchRequestContext } from '../requestContext';
 const prismaMock = prisma as unknown as {
   user: {
     findUnique: jest.Mock;
+  };
+  personProfile: {
+    findUnique: jest.Mock;
+  };
+  workspacePreference: {
+    findUnique: jest.Mock;
+  };
+  workspaceMembership: {
+    findMany: jest.Mock;
+  };
+  organizationProfile: {
+    findMany: jest.Mock;
   };
 };
 
@@ -32,6 +56,10 @@ function buildRequest(headers: Record<string, string> = {}, query: Record<string
 describe('resolveSearchRequestContext', () => {
   beforeEach(() => {
     prismaMock.user.findUnique.mockReset();
+    prismaMock.personProfile.findUnique.mockReset();
+    prismaMock.workspacePreference.findUnique.mockReset();
+    prismaMock.workspaceMembership.findMany.mockReset();
+    prismaMock.organizationProfile.findMany.mockReset();
   });
 
   it('returns a public context for anonymous requests', async () => {
@@ -46,23 +74,32 @@ describe('resolveSearchRequestContext', () => {
   });
 
   it('derives verifier workspace context from active org preference', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
-      workspacePreference: {
-        activePersona: 'VERIFIER',
-        activeOrgId: 'org-1',
-      },
-      personProfile: {
-        memberships: [
-          {
-            role: 'VERIFIER',
-            organizationProfile: {
-              organizationId: 'org-1',
-            },
-          },
-        ],
-      },
+    // No relations exist between these models — the workspace user is
+    // stitched from the four tables by hydrateWorkspaceUser().
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    prismaMock.personProfile.findUnique.mockResolvedValue({
+      id: 'person-1',
+      userId: 'user-1',
     });
+    prismaMock.workspacePreference.findUnique.mockResolvedValue({
+      activePersona: 'VERIFIER',
+      activeOrgId: 'org-1',
+    });
+    prismaMock.workspaceMembership.findMany.mockResolvedValue([
+      {
+        id: 'membership-1',
+        personProfileId: 'person-1',
+        organizationProfileId: 'org-profile-1',
+        role: 'VERIFIER',
+        active: true,
+      },
+    ]);
+    prismaMock.organizationProfile.findMany.mockResolvedValue([
+      {
+        id: 'org-profile-1',
+        organizationId: 'org-1',
+      },
+    ]);
 
     const context = await resolveSearchRequestContext(
       buildRequest({ 'x-clerk-user-id': 'clerk_123' }),
