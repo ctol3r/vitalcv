@@ -193,6 +193,20 @@ async function bootstrapApp() {
   const cronMod = await import('node-cron');
 
   const config = loadEnv();
+
+  // NPPES V1 sunset 2026-03-03 — this is the production entrypoint
+  // (railway.toml startCommand runs server.js, not index.js), so the
+  // version guard must fire here. A drifted endpoint constant throws,
+  // which surfaces through the bootstrap failure path instead of
+  // silently degrading NPI enrichment.
+  const { assertNppesApiVersion } = await import('./services/identity/nppesApiVersion');
+  const nppes = assertNppesApiVersion();
+  log('info', 'NPPES API version pinned', {
+    event: 'nppes_api_version',
+    version: nppes.version,
+    endpoints: nppes.endpoints,
+  });
+
   await ensureInvestigationSeedDataBootstrapped({ logger: log });
   if (config.NODE_ENV === 'production') {
     await ensureLaunchOpportunitiesBootstrapped({ logger: log });
