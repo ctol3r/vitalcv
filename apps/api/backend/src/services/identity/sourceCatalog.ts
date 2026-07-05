@@ -171,7 +171,7 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     claimTypes: ['FEDERAL_EXCLUSION', 'EXCLUSION_STATUS'],
     parserVersion: 'v1.0.0', envFlag: 'SAM_GOV_ENABLED', liveAvailable: false,
     decisionGrade: true,
-    notes: 'Requires SAM.gov API key. Covers debarment, suspension, proposed debarment beyond healthcare.',
+    notes: 'Honest gated adapter (services/samGovAdapter.ts): coverage stays gated until SAM_GOV_ENABLED=true, then accessRequired until SAM_GOV_API_KEY is configured; checks resolve EXCLUSION_CHECK_NOT_AVAILABLE until a live fetcher is wired. SAM.gov has no NPI field — name-based hits require identity review and must never auto-block. liveAvailable flips true only when live access is real. Covers debarment, suspension, proposed debarment beyond healthcare.',
   },
 
   STATE_BOARD: {

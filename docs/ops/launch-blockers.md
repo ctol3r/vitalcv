@@ -15,7 +15,7 @@ This file lists **only genuinely-open items**, each with its owning wave from th
 | 4 | E2E signup happy-path + fail-closed test | No e2e covering role→NPI→confirm→attest→wallet, nor a BLOCKED-passport-cannot-be-accepted case | B (gates A's acceptance) |
 | 5 | OWASP ASVS **L2** mapping | `docs/security/asvs-scorecard.md` covers L1 only | B |
 | 6 | STATE_BOARD / FSMB physician-licensure lane | Gated, no live adapter behind `STATE_BOARD_ENABLED`; license claims must stay `gated`, never `checked` | C |
-| 7 | SAM.gov exclusions adapter | Absent; OIG/LEIE is the only live exclusion source | C |
+| 7 | SAM.gov exclusions adapter | Honest gated adapter landed (`services/samGovAdapter.ts`, `SAM_GOV_ENABLED` default false); live API key + fetcher wiring outstanding — coverage stays `gated`/`accessRequired`, OIG/LEIE remains the only live exclusion source | C |
 | 8 | Nursys institutional access | Adapter is an honest gated stub (`nursysAdapter.ts`) — real E-Notify agreement + fetcher wiring outstanding; must stay `gated`/`accessRequired` | C |
 | 9 | Continuous monitoring not enabled | Wave 245 scheduler exists (`services/async/monitoringScheduler.ts`, `MONITORING_ENABLED` default false); NCQA-cadence re-checks not running | D |
 | 10 | NPPES bulk-file ingestion | Catalog declares V2 bulk surface; no downloader implementation — runtime enrichment is API-v2.1-only (asserted at boot) | C/D (phase 1, not a pilot blocker) |
