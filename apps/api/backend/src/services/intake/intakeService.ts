@@ -255,10 +255,26 @@ export async function ingestWorkAuth(
  * Bootstrap a PersonProfile from an NPI.
  * Detects Type 1 vs Type 2, infers persona, sets initial completeness.
  */
+const ATTESTABLE_PROFESSIONS = new Set([
+  'physician', 'nurse_practitioner', 'physician_assistant',
+  'pharmacist', 'registered_nurse', 'dentist',
+]);
+
 export async function bootstrapNpiIntake(
   userId: string,
   npi:    string,
+  attestation?: { profession?: string; attested?: boolean; attestationVersion?: string },
 ): Promise<NpiBootstrapIntakeResult> {
+  // Self-attested onboarding claims — clinician-stated, never source-verified.
+  // Unknown professions are dropped rather than stored.
+  const profession =
+    attestation?.profession && ATTESTABLE_PROFESSIONS.has(attestation.profession)
+      ? attestation.profession
+      : undefined;
+  const attested = attestation?.attested === true;
+  const attestedAt = attested ? new Date() : undefined;
+  const attestationVersion = attested ? (attestation?.attestationVersion ?? 'v1') : undefined;
+
   // Check for existing registration
   const existing = await prisma.personProfile.findUnique({ where: { npi } });
   if (existing && existing.userId !== userId) {
@@ -280,6 +296,9 @@ export async function bootstrapNpiIntake(
       lastName:       detected.lastName,
       specialty:      detected.specialty,
       stateOfPractice: detected.state,
+      profession,
+      attestedAt,
+      attestationVersion,
       completeness:   30,
     },
     update: {
@@ -289,6 +308,9 @@ export async function bootstrapNpiIntake(
       lastName:       detected.lastName  ?? undefined,
       specialty:      detected.specialty ?? undefined,
       stateOfPractice: detected.state   ?? undefined,
+      profession:         profession ?? undefined,
+      attestedAt:         attestedAt ?? undefined,
+      attestationVersion: attestationVersion ?? undefined,
       completeness:   30,
       updatedAt:      new Date(),
     },
@@ -299,6 +321,16 @@ export async function bootstrapNpiIntake(
     npiType: detected.npiType,
     inferredPersona,
   });
+
+  // Audit-first: the clinician's attestation is a distinct, hashed audit row —
+  // recorded before success is returned. Attested ≠ verified.
+  if (attested) {
+    await emitAudit('clinician_attestation', userId, {
+      npi,
+      profession: profession ?? null,
+      attestationVersion: attestationVersion ?? null,
+    });
+  }
 
   log('info', 'NPI bootstrapped', { userId, npi, npiType: detected.npiType });
 

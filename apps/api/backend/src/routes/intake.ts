@@ -100,13 +100,22 @@ export function registerIntakeRoutes(app: Express): void {
     '/api/profile/npi/bootstrap',
     asyncHandler(async (req, res) => {
       const userId = requireUserId(req);
-      const { npi } = req.body as { npi?: string };
+      const { npi, profession, attested, attestationVersion } = req.body as {
+        npi?: string;
+        profession?: string;
+        attested?: boolean;
+        attestationVersion?: string;
+      };
 
       if (!npi || !NPI_RE.test(npi)) {
         throw new HttpError(400, 'npi must be exactly 10 digits.');
       }
 
-      const result = await bootstrapNpiIntake(userId, npi);
+      const result = await bootstrapNpiIntake(userId, npi, {
+        profession,
+        attested,
+        attestationVersion,
+      });
       res.status(201).json(result);
     }),
   );

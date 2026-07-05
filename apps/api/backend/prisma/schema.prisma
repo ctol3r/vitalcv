@@ -320,6 +320,11 @@ model PersonProfile {
   resumeUrl         String?            @map("resume_url")
   linkedinUrl       String?            @map("linkedin_url")
   portfolioUrl      String?            @map("portfolio_url")
+  // Self-attested onboarding claims — the clinician stated these; they are NOT
+  // source-verified. Kept distinct from source-checked facts (readiness lane).
+  profession          String?          @map("profession")
+  attestedAt          DateTime?        @map("attested_at")
+  attestationVersion  String?          @map("attestation_version")
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
