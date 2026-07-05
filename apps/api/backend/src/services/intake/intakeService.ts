@@ -348,6 +348,52 @@ export async function bootstrapNpiIntake(
 }
 
 /**
+ * Student / no-NPI lane. A clinician-in-training with no NPI yet starts a
+ * PREVIEW-ONLY profile (profession='student', no NPI). It upgrades to a
+ * source-checked record automatically when they later bind an NPI via
+ * bootstrapNpiIntake (same userId upsert overwrites profession + adds the NPI).
+ * Nothing here is source-verified; the student status is self-attested.
+ */
+export async function bootstrapStudentIntake(
+  userId: string,
+  attestation?: { attested?: boolean; attestationVersion?: string },
+): Promise<{ profession: string; previewOnly: boolean }> {
+  const existing = await prisma.personProfile.findUnique({ where: { userId } });
+  // Never downgrade an already NPI-backed profile to a student preview.
+  if (existing?.npi) {
+    return { profession: existing.profession ?? 'clinician', previewOnly: false };
+  }
+
+  const attested = attestation?.attested === true;
+  const attestedAt = attested ? new Date() : undefined;
+  const attestationVersion = attested ? (attestation?.attestationVersion ?? 'v1') : undefined;
+
+  await prisma.personProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      profession: 'student',
+      attestedAt,
+      attestationVersion,
+      completeness: 10,
+    },
+    update: {
+      profession: 'student',
+      attestedAt: attestedAt ?? undefined,
+      attestationVersion: attestationVersion ?? undefined,
+      updatedAt: new Date(),
+    },
+  });
+
+  await emitAudit('student_bootstrapped', userId, {
+    previewOnly: true,
+    attestationVersion: attestationVersion ?? null,
+  });
+
+  return { profession: 'student', previewOnly: true };
+}
+
+/**
  * Get current profile completeness dimensions.
  */
 export async function getProfileCompleteness(userId: string): Promise<ProfileCompletenessResult> {

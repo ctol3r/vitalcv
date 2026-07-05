@@ -65,6 +65,8 @@ export function shouldSkipTenantContext(path: string): boolean {
     // Email-OTP identity binding: an onboarding-time possession factor scoped to
     // the Clerk user alone (no org context yet). Same rationale as /api/me/role.
     || normalized.startsWith('/api/profile/identity/')
+    // Student / no-NPI lane: first-time onboarding, resolved by Clerk user alone.
+    || normalized.startsWith('/api/profile/student/')
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')

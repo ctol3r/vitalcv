@@ -36,6 +36,7 @@ type Phase =
   | 'form'
   | 'submitting'
   | 'success'
+  | 'student_success'
   | 'load_error';
 
 /**
@@ -63,6 +64,7 @@ export default function GetReadySurface() {
   const [existingNpi, setExistingNpi] = useState<string | null>(null);
   const [profession, setProfession] = useState<Profession | null>(null);
   const [attested, setAttested] = useState(false);
+  const [mode, setMode] = useState<'npi' | 'student'>('npi');
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
@@ -158,6 +160,34 @@ export default function GetReadySurface() {
     } catch {
       if (!mountedRef.current) return;
       setFormError(describeBootstrapError(0, null));
+      setPhase('form');
+    }
+  }
+
+  async function submitStudent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!attested) {
+      setFormError('Please attest and agree to the Services Agreement to continue.');
+      return;
+    }
+    setFormError(null);
+    setPhase('submitting');
+    try {
+      const res = await fetch('/api/profile/student/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attested: true, attestationVersion: ATTESTATION_VERSION }),
+      });
+      if (!mountedRef.current) return;
+      if (!res.ok) {
+        setFormError('Could not start your student profile. Try again shortly.');
+        setPhase('form');
+        return;
+      }
+      setPhase('student_success');
+    } catch {
+      if (!mountedRef.current) return;
+      setFormError('Could not start your student profile. Try again shortly.');
       setPhase('form');
     }
   }
@@ -287,6 +317,36 @@ export default function GetReadySurface() {
     );
   }
 
+  /* ── Student success ── */
+  if (phase === 'student_success') {
+    return (
+      <Shell>
+        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-900 bg-sky-950/40">
+          <ShieldCheck className="h-7 w-7 text-sky-400" aria-hidden />
+        </div>
+        <Header
+          title="Your student profile is started"
+          lede="You're in preview. When you receive your NPI, connect it here to unlock your source-backed readiness — your profile upgrades automatically."
+        />
+        <div className="mt-6 space-y-3">
+          <Link
+            href="/holder"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
+          >
+            Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+          <button
+            type="button"
+            onClick={() => { setMode('npi'); setPhase('form'); setAttested(false); setFormError(null); }}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-7 py-3.5 text-sm font-semibold text-zinc-300 transition hover:border-emerald-800 hover:text-emerald-300"
+          >
+            I have an NPI — connect it instead
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
   /* ── Form (+ submitting) ── */
   const submitting = phase === 'submitting';
   return (
@@ -298,6 +358,7 @@ export default function GetReadySurface() {
         title="Connect your NPI"
         lede="VitalCV reads your public NPPES registry record to start your clinician workspace. No document uploads required to get started."
       />
+      {mode === 'npi' ? (
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
         <fieldset disabled={submitting} className="border-0 p-0 m-0">
           <legend className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
@@ -406,6 +467,50 @@ export default function GetReadySurface() {
           each with its own receipt.
         </p>
       </form>
+      ) : (
+        <form onSubmit={submitStudent} className="mt-6 space-y-4 text-left" noValidate>
+          <p className="text-sm leading-relaxed text-zinc-400">
+            No NPI yet? Start a preview profile as a health-professions student. When you
+            receive your NPI, connect it here and your profile upgrades to source-backed.
+          </p>
+          <label className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-400">
+            <input
+              type="checkbox"
+              checked={attested}
+              onChange={(e) => setAttested(e.target.checked)}
+              disabled={submitting}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500"
+            />
+            <span>
+              I attest that I am a health-professions student and agree to the{' '}
+              <a href="/terms" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-zinc-200">
+                VitalCV Services Agreement
+              </a>
+              . VitalCV records this attestation; it does not verify it here.
+            </span>
+          </label>
+          {formError ? <p role="alert" className="text-sm text-red-400">{formError}</p> : null}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Starting…</>
+            ) : (
+              <>Start as a student <ChevronRight className="h-4 w-4" aria-hidden /></>
+            )}
+          </button>
+        </form>
+      )}
+      <button
+        type="button"
+        onClick={() => { setMode(mode === 'npi' ? 'student' : 'npi'); setAttested(false); setFormError(null); }}
+        disabled={submitting}
+        className="mt-4 text-xs text-zinc-500 underline underline-offset-2 transition hover:text-zinc-300"
+      >
+        {mode === 'npi' ? "Still in training and don't have an NPI yet?" : '← I have an NPI — connect it instead'}
+      </button>
     </Shell>
   );
 }

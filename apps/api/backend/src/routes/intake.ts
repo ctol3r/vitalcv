@@ -11,6 +11,7 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 import {
   bootstrapNpiIntake,
+  bootstrapStudentIntake,
   getProfileCompleteness,
   ingestLinks,
   ingestResumeUpload,
@@ -116,6 +117,24 @@ export function registerIntakeRoutes(app: Express): void {
         attested,
         attestationVersion,
       });
+      res.status(201).json(result);
+    }),
+  );
+
+  /**
+   * POST /api/profile/student/bootstrap
+   * Student / no-NPI lane — starts a preview-only profile.
+   * Body: { attested?: boolean, attestationVersion?: string }
+   */
+  app.post(
+    '/api/profile/student/bootstrap',
+    asyncHandler(async (req, res) => {
+      const userId = requireUserId(req);
+      const { attested, attestationVersion } = req.body as {
+        attested?: boolean;
+        attestationVersion?: string;
+      };
+      const result = await bootstrapStudentIntake(userId, { attested, attestationVersion });
       res.status(201).json(result);
     }),
   );
