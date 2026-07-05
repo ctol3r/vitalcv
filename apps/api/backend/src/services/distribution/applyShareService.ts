@@ -20,6 +20,7 @@ import prisma from '../../graphql/prisma_client';
 import { generateApplyBundle, type ApplyBundle } from './applyBundle';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload, employerReviewPayloadToJson } from '../entity/employerReviewPayload';
+import { issueReadinessSnapshot } from './readinessSnapshotService';
 import { getNotificationProvider } from '../providers/notificationProvider';
 import { log } from '../../obs/logger';
 
@@ -51,6 +52,9 @@ export interface ShareResult {
   bundleUrl: string;
   webhookDelivered: boolean;
   emailSent: boolean;
+  /** Wave M — the persisted reusable readiness snapshot issued with this share (null until the migration deploys or when no canonical coverage exists). */
+  readinessSnapshotId: string | null;
+  readinessSnapshotPath: string | null;
 }
 
 export interface ShareListEntry {
@@ -298,6 +302,30 @@ export async function shareBundle(
     status = 'logged_only';
   }
 
+  // 4.5 Issue the persisted readiness snapshot (Wave M) — the reusable
+  // evidence artifact this share travels with. Only issued when the
+  // canonical review payload exists (no payload → no coverage to snapshot).
+  // Deploy-order safe: degrades to null and the share proceeds unchanged.
+  const issuedSnapshot = reviewPayload
+    ? await issueReadinessSnapshot({
+        npi,
+        entityId: subjectEntity?.id ?? null,
+        bundleId: bundle.bundleId,
+        scope: {
+          organizationId: orgContext.organization_id,
+          organizationName: orgContext.name,
+          purposeOfUse: orgContext.purpose_of_use,
+        },
+        readiness: {
+          level: reviewPayload.readinessSummary.level,
+          score: reviewPayload.readinessSummary.score,
+          status: reviewPayload.readinessSummary.status,
+          checkedAt: reviewPayload.checkedAt,
+        },
+        sourceCoverage: reviewPayload.sourceCoverage,
+      })
+    : null;
+
   // 5. Persist BundleShareEvent
   const credentialsSummary = bundle.credentials.map((c) => ({
     type: c.type,
@@ -330,7 +358,15 @@ export async function shareBundle(
           ? 'MANUAL_FALLBACK'
           : 'FAILED',
       checkedAt: reviewPayload ? new Date(reviewPayload.checkedAt) : new Date(),
-      bundlePayload: reviewPayload ? employerReviewPayloadToJson(reviewPayload) : undefined,
+      bundlePayload: reviewPayload
+        ? ({
+            ...(employerReviewPayloadToJson(reviewPayload) as Record<string, unknown>),
+            // Wave M: the same evidence travels — reviewers can open the
+            // persisted snapshot this share was issued with.
+            readinessSnapshotId: issuedSnapshot?.snapshotId ?? null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any)
+        : undefined,
       receiptRefs: reviewPayload?.receiptReferences ?? [],
       sourceCoverage: reviewPayload ? employerReviewPayloadToJson(reviewPayload.sourceCoverage) : undefined,
       expiresAt: new Date(bundle.expiresAt),
@@ -386,6 +422,8 @@ export async function shareBundle(
     bundleUrl,
     webhookDelivered: webhookResult.delivered,
     emailSent: emailResult.sent,
+    readinessSnapshotId: issuedSnapshot?.snapshotId ?? null,
+    readinessSnapshotPath: issuedSnapshot ? `/snapshot/${issuedSnapshot.snapshotId}` : null,
   };
 }
 

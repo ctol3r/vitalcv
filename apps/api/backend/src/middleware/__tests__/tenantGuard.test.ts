@@ -67,6 +67,10 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/marketplace/pool')).toBe(false);
   });
 
+  it('skips tenant context for public readiness-snapshot reads (Wave M)', () => {
+    expect(shouldSkipTenantContext('/api/snapshot/11111111-1111-4111-8111-111111111111')).toBe(true);
+  });
+
   it('allows the trust-proof read through without organization context', () => {
     const req = createRequest('/api/trust-proof/1003000126');
     const res = createResponse();
