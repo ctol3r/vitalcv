@@ -54,10 +54,14 @@ const PROFESSIONS = [
 
 type Profession = (typeof PROFESSIONS)[number]['value'];
 
+/** Bump when the services-agreement / attestation copy materially changes. */
+const ATTESTATION_VERSION = 'v1';
+
 export default function GetReadySurface() {
   const [phase, setPhase] = useState<Phase>('checking');
   const [existingNpi, setExistingNpi] = useState<string | null>(null);
   const [profession, setProfession] = useState<Profession | null>(null);
+  const [attested, setAttested] = useState(false);
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
@@ -116,6 +120,10 @@ export default function GetReadySurface() {
       setFormError(validation.reason);
       return;
     }
+    if (!attested) {
+      setFormError('Please attest and agree to the Services Agreement to continue.');
+      return;
+    }
 
     setFormError(null);
     setPhase('submitting');
@@ -123,9 +131,14 @@ export default function GetReadySurface() {
       const res = await fetch('/api/profile/npi/bootstrap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // profession is a self-attested role forwarded to the bootstrap; the
-        // backend records it as an attested field (never a verified claim).
-        body: JSON.stringify({ npi: validation.npi, profession }),
+        // profession + attestation are self-attested claims the backend records
+        // as attested fields (+ a hashed audit row) — never verified claims.
+        body: JSON.stringify({
+          npi: validation.npi,
+          profession,
+          attested: true,
+          attestationVersion: ATTESTATION_VERSION,
+        }),
       });
       const body: unknown = await res.json().catch(() => null);
       if (!mountedRef.current) return;
@@ -345,6 +358,27 @@ export default function GetReadySurface() {
             </p>
           )}
         </div>
+        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-400">
+          <input
+            type="checkbox"
+            checked={attested}
+            onChange={(e) => setAttested(e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500"
+          />
+          <span>
+            I attest that I am a licensed clinician and agree to the{' '}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-zinc-200"
+            >
+              VitalCV Services Agreement
+            </a>
+            . VitalCV records this attestation; it does not verify it here.
+          </span>
+        </label>
         <button
           type="submit"
           disabled={submitting}
