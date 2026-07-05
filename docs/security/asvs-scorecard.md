@@ -9,6 +9,12 @@ This document is the public-facing companion to `docs/security/red-team-report.m
 It is **not a certification**, **not a SOC2 audit attestation**, and
 **not a HIPAA compliance claim**. It is an honest gap inventory.
 
+> **2026-07 update:** the **Level 2** extension lives at
+> `docs/security/ASVS-scorecard-2026-07.md`. It re-scores chapters V1–V5, V7,
+> V9, V10, V12–V14 at L1+L2 against baseline `4cc556e77` and records five
+> corrections to rows below (V5.2.1, V8.2.2 evidence path, V13.2.1, V14.2.1,
+> V14.5.3). Chapters V6/V8/V11 remain scored here.
+
 | Status | Meaning |
 |---|---|
 | ✅ IMPLEMENTED | Control is enforced in production with merged code + tests + a citable PR. |
