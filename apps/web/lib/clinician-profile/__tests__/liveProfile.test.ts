@@ -4,7 +4,7 @@ import {
   WORK_AUTH_OPTIONS,
   completenessStatement,
   computeProfileFormDiff,
-  describeClearedFieldsBlock,
+  describeClearedFields,
   describeIdentityFields,
   describeProfileSaveError,
   displayName,
@@ -29,6 +29,7 @@ function baseProfile(overrides: Partial<WorkspacePersonProfile> = {}): Workspace
     linkedinUrl: 'https://linkedin.com/in/test',
     portfolioUrl: null,
     completeness: 55,
+    selfAttested: {},
     ...overrides,
   };
 }
@@ -156,7 +157,7 @@ describe('computeProfileFormDiff', () => {
     expect(workAuth).toMatchObject({ dirty: true, workAuthChanged: true });
   });
 
-  it('reports cleared saved fields instead of treating them as changes to send', () => {
+  it('reports cleared saved fields as per-field clears, not as set-changes to send', () => {
     const profile = baseProfile();
     const diff = computeProfileFormDiff(profile, {
       ...formFromProfile(profile),
@@ -165,21 +166,28 @@ describe('computeProfileFormDiff', () => {
     });
     expect(diff.dirty).toBe(true);
     expect(diff.clearedFields).toEqual(['LinkedIn', 'Work authorization']);
+    // Clears are distinct from set-writes: nothing is "changed", it is removed.
     expect(diff.linksChanged).toBe(false);
     expect(diff.workAuthChanged).toBe(false);
+    expect(diff.clearLinkedin).toBe(true);
+    expect(diff.clearWorkAuth).toBe(true);
+    expect(diff.clearPortfolio).toBe(false);
+    expect(diff.clearResume).toBe(false);
   });
 
   it('never reports a never-saved empty field as cleared', () => {
     const profile = baseProfile({ portfolioUrl: null });
     const diff = computeProfileFormDiff(profile, formFromProfile(profile));
     expect(diff.clearedFields).toEqual([]);
+    expect(diff.clearPortfolio).toBe(false);
   });
 
-  it('cleared-fields copy names the fields and is honest about the limitation', () => {
-    const copy = describeClearedFieldsBlock(['LinkedIn', 'Resume link']);
+  it('cleared-fields copy names the fields and frames clearing honestly', () => {
+    const copy = describeClearedFields(['LinkedIn', 'Resume link']);
     expect(copy).toContain('LinkedIn');
     expect(copy).toContain('Resume link');
-    expect(copy).toContain('not supported on this surface yet');
+    expect(copy).toContain('remove');
+    expect(copy).toContain('self-attested');
   });
 });
 
