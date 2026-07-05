@@ -78,7 +78,6 @@ export function validateEnv(): void {
   const optionalKeys: { key: string; note: string }[] = [
     { key: 'OPENAI_API_KEY',    note: 'LLM provider will use stub mode' },
     { key: 'CLERK_SECRET_KEY',  note: 'Auth will be degraded' },
-    { key: 'JWT_SECRET',        note: 'JWT signing will use fallback' },
     { key: 'ISSUER_BASE_URL',   note: 'OID4VC metadata will use default base URL' },
     { key: 'FSMB_API_URL',      note: 'FSMB PSV adapter will use stub' },
   ];

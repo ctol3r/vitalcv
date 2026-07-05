@@ -1,23 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
-import { verifyToken } from '../auth/jwt';
 
 type OrganizationRequest = Request & {
   organizationId?: string;
-};
-
-type JwtPayloadShape = {
-  organizationId?: unknown;
-  organization_id?: unknown;
-  organization?: {
-    id?: unknown;
-  };
-  orgId?: unknown;
-  org_id?: unknown;
-  tenantId?: unknown;
-  tenant_id?: unknown;
-  tenant?: {
-    id?: unknown;
-  };
 };
 
 function parseOrganizationId(value: unknown): string | undefined {
@@ -33,32 +17,6 @@ function parseOrganizationId(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function parseOrganizationFromJwtToken(token: string): string | undefined {
-  const [maybeBearer, maybeToken] = token.split(/\s+/);
-  const bearerToken = maybeBearer && maybeBearer.toLowerCase() === 'bearer' ? maybeToken : token;
-  if (!bearerToken) {
-    return undefined;
-  }
-
-  try {
-    const payload = verifyToken(bearerToken) as JwtPayloadShape;
-    return (
-      parseOrganizationId(payload.organizationId) ??
-      parseOrganizationId(payload.organization_id) ??
-      parseOrganizationId(payload.orgId) ??
-      parseOrganizationId(payload.org_id) ??
-      parseOrganizationId(payload.tenantId) ??
-      parseOrganizationId(payload.tenant_id) ??
-      parseOrganizationId((payload.organization && typeof payload.organization === 'object' && 'id' in payload.organization
-        ? payload.organization.id
-        : undefined)) ??
-      parseOrganizationId((payload.tenant && typeof payload.tenant === 'object' && 'id' in payload.tenant ? payload.tenant.id : undefined))
-    );
-  } catch {
-    return undefined;
-  }
-}
-
 function parseOrganizationFromQuery(req: Request): string | undefined {
   return parseOrganizationId(req.query.organizationId);
 }
@@ -67,15 +25,16 @@ function parseOrganizationFromHeader(req: Request): string | undefined {
   return parseOrganizationId(req.get('x-org-id'));
 }
 
+// Org context comes only from the pre-attached request, `?organizationId=`,
+// or `x-org-id`. Authorization bearer tokens are deliberately NOT parsed:
+// the legacy HS256 verifier here fell back to a hardcoded dev secret
+// (ASVS 2.10.2, gap G6) and nothing in the platform mints such tokens —
+// do not re-add a shared-secret token path. The query/header sources are
+// unauthenticated and tracked as gap G1 (14.5.4 / 4.1.2).
 export function getRequestOrganizationId(req: Request): string | undefined {
   const attached = (req as OrganizationRequest).organizationId;
   if (typeof attached === 'string' && attached.trim().length > 0) {
     return attached.trim();
-  }
-
-  const fromJwt = parseOrganizationFromJwtToken(req.get('authorization') ?? '');
-  if (fromJwt) {
-    return fromJwt;
   }
 
   return parseOrganizationFromQuery(req) ?? parseOrganizationFromHeader(req);
