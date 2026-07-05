@@ -701,6 +701,31 @@ model VerifierAccessToken {
   @@index([expiresAt])
 }
 
+/// Wave M — persisted reusable readiness snapshot: the share-once /
+/// reuse-by-many artifact. `content` is the readiness + canonical
+/// source-coverage report exactly as issued at share time and is IMMUTABLE
+/// (contentHash pins it); freshness is recomputed at read time as an overlay,
+/// never written back. Revocation: a snapshot fails closed when its own
+/// revokedAt is set OR when any BundleShareEvent for its bundleId is revoked
+/// (the clinician's existing share-revoke control). Zero PHI: readiness
+/// states, source ids, and timestamps only.
+model ReadinessSnapshot {
+  id                   String    @id @default(uuid()) @db.Uuid
+  npi                  String
+  entityId             String?   @db.Uuid
+  bundleId             String?   @db.Uuid
+  contentHash          String
+  content              Json
+  scope                Json?
+  issuedAt             DateTime  @default(now())
+  revokedAt            DateTime?
+  revokedByClerkUserId String?
+
+  @@index([npi, issuedAt])
+  @@index([bundleId])
+  @@index([contentHash])
+}
+
 model VerificationArtifact {
   id                          String                       @id @default(uuid()) @db.Uuid
   npi                         String

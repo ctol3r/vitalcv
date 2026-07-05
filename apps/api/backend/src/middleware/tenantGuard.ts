@@ -87,6 +87,9 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/passport/')
     || normalized.startsWith('/api/employer-review/')
     || normalized.startsWith('/api/apply/')
+    // Wave M: persisted readiness snapshots — public verifier reads by
+    // capability id (every access audited; revoked fails closed in-route).
+    || normalized.startsWith('/api/snapshot/')
     || normalized.startsWith('/api/trust-state/')
     || normalized.startsWith('/api/trust-decision/')
     || normalized.startsWith('/api/trust-proof/')

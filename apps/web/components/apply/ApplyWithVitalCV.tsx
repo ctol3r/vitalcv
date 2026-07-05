@@ -54,6 +54,9 @@ interface ShareResult {
   bundleUrl: string;
   webhookDelivered: boolean;
   emailSent: boolean;
+  /** Wave M — persisted reusable readiness snapshot issued with this share (null until backend migration deploys). */
+  readinessSnapshotId?: string | null;
+  readinessSnapshotPath?: string | null;
 }
 
 interface OrgContext {
@@ -562,6 +565,27 @@ export function ApplyWithVitalCV({ npi, label = 'Apply with VitalCV', initialOrg
                   </button>
                 </div>
               </div>
+
+              {/* Reusable readiness snapshot (Wave M) */}
+              {shareResult.readinessSnapshotPath ? (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
+                    Reusable readiness snapshot
+                  </p>
+                  <a
+                    href={shareResult.readinessSnapshotPath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg border border-border bg-black/30 px-3 py-2 text-xs text-emerald-300 truncate font-mono hover:border-emerald-500/40 transition-colors"
+                  >
+                    {shareResult.readinessSnapshotPath}
+                  </a>
+                  <p className="mt-1.5 text-[10px] text-zinc-600 leading-relaxed">
+                    Your evidence as issued right now — reviewers you give this to see the same
+                    snapshot, every access is audited, and revoking this share closes it.
+                  </p>
+                </div>
+              ) : null}
 
               {/* Credentials shared summary */}
               <div>
