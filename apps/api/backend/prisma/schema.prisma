@@ -325,6 +325,11 @@ model PersonProfile {
   profession          String?          @map("profession")
   attestedAt          DateTime?        @map("attested_at")
   attestationVersion  String?          @map("attestation_version")
+  // Identity-binding corroboration: a work/institutional email the clinician
+  // proved possession of via OTP. A possession SIGNAL that strengthens NPI→person
+  // binding — not a license or identity verification on its own.
+  verifiedEmail       String?          @map("verified_email")
+  verifiedEmailAt     DateTime?        @map("verified_email_at")
   completeness      Int                @default(0)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
@@ -333,6 +338,27 @@ model PersonProfile {
   @@index([npi])
   @@index([userId])
   @@map("person_profiles")
+}
+
+/// One-time email verification challenge (identity-binding possession factor).
+/// The code is never stored — only a salted hash. Short-lived, attempt-capped,
+/// single-use. A verified challenge records a possession signal on the
+/// PersonProfile (verified_email) and a hashed audit row.
+model EmailOtp {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  email      String
+  codeHash   String    @map("code_hash")
+  salt       String
+  purpose    String    @default("identity_email")
+  expiresAt  DateTime  @map("expires_at")
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([email])
+  @@map("email_otps")
 }
 
 /// Linked profile for an organization (Type 2 NPI or Org DID)
