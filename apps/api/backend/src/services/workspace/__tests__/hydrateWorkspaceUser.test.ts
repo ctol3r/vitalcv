@@ -7,7 +7,7 @@
 const prismaMock = {
   user: { findUnique: jest.fn() },
   personProfile: { findUnique: jest.fn() },
-  workspacePreference: { findUnique: jest.fn() },
+  workspacePreference: { findUnique: jest.fn(), create: jest.fn() },
   workspaceMembership: { findMany: jest.fn() },
   organizationProfile: { findMany: jest.fn() },
 };
@@ -21,7 +21,11 @@ jest.mock('../../../obs/logger', () => ({
   log: jest.fn(),
 }));
 
-import { hydrateWorkspaceUser, getHydratedWorkspaceUserByClerkUserId } from '../workspaceService';
+import {
+  ensureWorkspacePreference,
+  getHydratedWorkspaceUserByClerkUserId,
+  hydrateWorkspaceUser,
+} from '../workspaceService';
 
 const baseUser = {
   id: 'user-1',
@@ -98,6 +102,24 @@ describe('hydrateWorkspaceUser', () => {
 
     expect(result.personProfile?.memberships).toHaveLength(1);
     expect(result.personProfile?.memberships[0].id).toBe('m-1');
+  });
+});
+
+describe('ensureWorkspacePreference', () => {
+  it('supplies an explicit id on create — workspace_preferences has no DB default (P2011 guard)', async () => {
+    prismaMock.workspacePreference.findUnique.mockResolvedValue(null);
+    prismaMock.user.findUnique.mockResolvedValue(baseUser);
+    prismaMock.personProfile.findUnique.mockResolvedValue(null);
+    prismaMock.workspacePreference.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve(data),
+    );
+
+    await ensureWorkspacePreference('user-1');
+
+    expect(prismaMock.workspacePreference.create).toHaveBeenCalledTimes(1);
+    const createData = prismaMock.workspacePreference.create.mock.calls[0][0].data;
+    expect(createData.userId).toBe('user-1');
+    expect(createData.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 });
 

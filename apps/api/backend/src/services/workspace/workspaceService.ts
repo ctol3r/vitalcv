@@ -12,6 +12,7 @@ import {
   type WorkspaceMembership,
   type WorkspacePreference,
 } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
 import { fetchNpiFromCMS, normalizeProvider } from '../../modules/identity';
 import { AVAILABILITY_PLACEHOLDER_PREFIX } from '../matcha/availabilityRegistry';
@@ -480,6 +481,11 @@ export async function ensureWorkspacePreference(
 
   return prisma.workspacePreference.create({
     data: {
+      // The schema declares id as dbgenerated(gen_random_uuid()) but the
+      // actual workspace_preferences table has NO column default (verified in
+      // prod information_schema 2026-07-05) — inserting without an id throws
+      // P2011. Supply it client-side.
+      id: randomUUID(),
       userId,
       activePersona: resolveDefaultPersona(user),
       activeOrgId: activeMemberships[0]?.organizationProfile.organizationId ?? null,
