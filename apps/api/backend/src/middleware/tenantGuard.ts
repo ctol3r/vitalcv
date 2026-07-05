@@ -65,6 +65,12 @@ export function shouldSkipTenantContext(path: string): boolean {
     // Email-OTP identity binding: an onboarding-time possession factor scoped to
     // the Clerk user alone (no org context yet). Same rationale as /api/me/role.
     || normalized.startsWith('/api/profile/identity/')
+    // Workspace bootstrap: resolves by Clerk user id alone (x-clerk-user-id
+    // header) and *produces* the persona/org context the rest of the app runs
+    // on. Requiring org context before the workspace lookup is a chicken-and-
+    // egg 401 that dead-ends /holder ("Couldn't load your profile").
+    || normalized === '/api/me/workspaces'
+    || normalized === '/api/workspaces/switch'
     || normalized.startsWith('/demo')
     || normalized.startsWith('/.well-known')
     || normalized.startsWith('/api/.well-known')

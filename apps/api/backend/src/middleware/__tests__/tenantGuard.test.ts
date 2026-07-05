@@ -40,6 +40,16 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/clinician/activate')).toBe(false);
   });
 
+  it('skips tenant context for clerk-scoped workspace bootstrap routes', () => {
+    expect(shouldSkipTenantContext('/api/me/workspaces')).toBe(true);
+    expect(shouldSkipTenantContext('/api/workspaces/switch')).toBe(true);
+  });
+
+  it('keeps other workspace-prefixed routes protected', () => {
+    expect(shouldSkipTenantContext('/api/workspaces/other')).toBe(false);
+    expect(shouldSkipTenantContext('/api/me/workspaces/extra')).toBe(false);
+  });
+
   it('skips tenant context for public verifier reads (trust proof)', () => {
     expect(shouldSkipTenantContext('/api/trust-proof/1003000126')).toBe(true);
   });
