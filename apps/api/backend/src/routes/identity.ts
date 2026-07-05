@@ -35,7 +35,7 @@ const VERIFY_FAILURES: Record<string, [number, string]> = {
   code_mismatch: [400, 'That code is incorrect.'],
 };
 
-export function registerIdentityRoutes(app: Express): void {
+export function registerEmailOtpRoutes(app: Express): void {
   app.post(
     '/api/profile/identity/email-otp/issue',
     asyncHandler(async (req, res) => {
