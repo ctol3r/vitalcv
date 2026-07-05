@@ -14,9 +14,10 @@
  * Response on validation failure (400):
  *   { ok: false, errors: PilotIntakeInputError[] }
  *
- * Side effects are deliberately minimal — this wave produces the
- * structured record and returns it. Persistence + email notification
- * wiring is deferred to a separate wave ("do not build a full CRM").
+ * Side effects stay deliberately small ("do not build a full CRM"):
+ * the structured record is returned to the caller and one durable
+ * PilotLead row + AuditEvent is written (Wave Q). Email notification
+ * wiring remains deferred.
  */
 
 import { NextResponse } from 'next/server';
@@ -26,6 +27,7 @@ import {
   type PilotIntakeInput,
 } from '@/lib/pilot/pilot-intake';
 import { buildPilotConfirmationRenderModel } from '@/lib/pilot/pilot-confirmation-copy';
+import { persistPilotLead } from '@/lib/leads/pilotLeadPersistence';
 
 async function readRequestBody(request: Request): Promise<Record<string, unknown>> {
   const contentType = request.headers.get('content-type') ?? '';
@@ -89,9 +91,23 @@ export async function POST(request: Request): Promise<NextResponse> {
   const record = createPilotRequestRecord(input);
   const confirmation = buildPilotConfirmationRenderModel(record);
 
+  // Wave Q: the previously-deferred persistence. Durable PilotLead row +
+  // AuditEvent in one transaction; degrades to persisted:false until the
+  // migration deploys and never blocks the buyer's confirmation.
+  const lead = await persistPilotLead({
+    source: 'pilot_request',
+    organization: record.orgName,
+    contactName: record.contactName,
+    email: record.contactEmail,
+    workflowTarget: record.roleOrWorkflowTarget,
+    sourceContext: record.sourceContext,
+    payload: record,
+  });
+
   return NextResponse.json(
     {
       ok: true,
+      persisted: lead.persisted,
       record,
       confirmation,
       message: confirmation.acknowledgement,

@@ -12,6 +12,7 @@ const PERSONA_OPTIONS: ReadonlyArray<{ value: PilotIntakePersona; label: string 
   { value: 'staffing_exchange', label: 'Staffing Exchange / Locum Network' },
   { value: 'health_system', label: 'Hospital / Health System' },
   { value: 'individual_clinician', label: 'Individual Clinician' },
+  { value: 'concierge', label: 'Concierge — credential readiness packet' },
   { value: 'other', label: 'Other' },
 ];
 

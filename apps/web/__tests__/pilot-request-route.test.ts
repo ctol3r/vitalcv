@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The route now imports the lead-persistence lib (server-only + prisma).
+// Without a DB in the test env the write degrades to persisted:false, which
+// is exactly the deploy-order-safe contract.
+vi.mock('server-only', () => ({}));
 import { POST } from '@/app/api/pilot-request/route';
 
 function jsonRequest(body: unknown): Request {
