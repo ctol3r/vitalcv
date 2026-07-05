@@ -684,11 +684,15 @@ function uniqueById<T extends { id: string }>(items: readonly T[]): T[] {
 export async function getClinicianProofSummary(
   clerkUserId: string,
 ): Promise<ClinicianProofSummary> {
+  // No User→PersonProfile relation exists in the schema; `include` throws at
+  // runtime. Resolve the profile through its userId FK instead.
   const user = await prisma.user.findUnique({
     where: { clerkUserId },
-    include: { personProfile: true },
   });
-  const npi = user?.personProfile?.npi ?? null;
+  const profile = user
+    ? await prisma.personProfile.findUnique({ where: { userId: user.id } })
+    : null;
+  const npi = profile?.npi ?? null;
 
   const [applications, eventRows, trustHistory, findings, storylines] = await Promise.all([
     listClinicianApplications(clerkUserId),

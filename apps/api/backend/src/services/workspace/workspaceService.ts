@@ -9,6 +9,7 @@ import {
   type User,
   UserRole,
   UserStatus,
+  type WorkspaceMembership,
   type WorkspacePreference,
 } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
@@ -20,23 +21,77 @@ import { HttpError } from '../../utils/httpError';
 
 const NPI_RE = /^\d{10}$/;
 
-type WorkspaceUserRecord = Prisma.UserGetPayload<{
-  include: {
-    personProfile: {
-      include: {
-        memberships: {
-          include: {
-            organizationProfile: true;
-          };
-          orderBy: {
-            createdAt: 'asc';
-          };
-        };
-      };
-    };
-    workspacePreference: true;
+// The Prisma schema declares NO relations between User, PersonProfile,
+// WorkspaceMembership, OrganizationProfile, or WorkspacePreference — the FK
+// columns exist as plain scalars, so `include` on any of them fails at
+// runtime ("Unknown field for include statement"). The composite below is
+// stitched from the real tables by hydrateWorkspaceUser(); do not reintroduce
+// `include` chains here without first adding the relations via an approved
+// migration.
+export type HydratedWorkspaceMembership = WorkspaceMembership & {
+  organizationProfile: OrganizationProfile;
+};
+
+export type HydratedPersonProfile = PersonProfile & {
+  memberships: HydratedWorkspaceMembership[];
+};
+
+export type WorkspaceUserRecord = User & {
+  personProfile: HydratedPersonProfile | null;
+  workspacePreference: WorkspacePreference | null;
+};
+
+export async function hydrateWorkspaceUser(user: User): Promise<WorkspaceUserRecord> {
+  const [personProfile, workspacePreference] = await Promise.all([
+    prisma.personProfile.findUnique({ where: { userId: user.id } }),
+    prisma.workspacePreference.findUnique({ where: { userId: user.id } }),
+  ]);
+
+  if (!personProfile) {
+    return { ...user, personProfile: null, workspacePreference };
+  }
+
+  const memberships = await prisma.workspaceMembership.findMany({
+    where: { personProfileId: personProfile.id },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const hydratedMemberships: HydratedWorkspaceMembership[] = [];
+  if (memberships.length > 0) {
+    const orgProfileIds = [...new Set(memberships.map((m) => m.organizationProfileId))];
+    const orgProfiles = await prisma.organizationProfile.findMany({
+      where: { id: { in: orgProfileIds } },
+    });
+    const orgById = new Map(orgProfiles.map((o) => [o.id, o]));
+    for (const membership of memberships) {
+      const organizationProfile = orgById.get(membership.organizationProfileId);
+      if (!organizationProfile) {
+        // Fail closed: a membership whose organization profile row is missing
+        // cannot grant a workspace.
+        log('warn', 'Workspace membership dropped — organization profile missing', {
+          event: 'workspace_membership_org_missing',
+          membershipId: membership.id,
+          organizationProfileId: membership.organizationProfileId,
+        });
+        continue;
+      }
+      hydratedMemberships.push({ ...membership, organizationProfile });
+    }
+  }
+
+  return {
+    ...user,
+    personProfile: { ...personProfile, memberships: hydratedMemberships },
+    workspacePreference,
   };
-}>;
+}
+
+export async function getHydratedWorkspaceUserByClerkUserId(
+  clerkUserId: string,
+): Promise<WorkspaceUserRecord | null> {
+  const user = await prisma.user.findUnique({ where: { clerkUserId } });
+  return user ? hydrateWorkspaceUser(user) : null;
+}
 
 export interface WorkspaceList {
   userId: string;
@@ -435,10 +490,7 @@ export async function ensureWorkspacePreference(
 async function getWorkspaceUserByClerkUserId(
   clerkUserId: string,
 ): Promise<WorkspaceUserRecord> {
-  const user = await prisma.user.findUnique({
-    where: { clerkUserId },
-    include: workspaceUserInclude,
-  });
+  const user = await getHydratedWorkspaceUserByClerkUserId(clerkUserId);
 
   if (!user) {
     throw new HttpError(404, 'Authenticated user has no VitalCV user record.');
@@ -450,10 +502,8 @@ async function getWorkspaceUserByClerkUserId(
 async function getWorkspaceUserById(
   userId: string,
 ): Promise<WorkspaceUserRecord | null> {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: workspaceUserInclude,
-  });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  return user ? hydrateWorkspaceUser(user) : null;
 }
 
 function getAvailablePersonas(user: WorkspaceUserRecord): ActivePersona[] {
@@ -576,18 +626,3 @@ function clampCompleteness(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-const workspaceUserInclude = {
-  personProfile: {
-    include: {
-      memberships: {
-        include: {
-          organizationProfile: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      },
-    },
-  },
-  workspacePreference: true,
-} satisfies Prisma.UserInclude;

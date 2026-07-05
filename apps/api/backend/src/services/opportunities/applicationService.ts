@@ -13,8 +13,10 @@ import { processApplicationBilling } from '../billing/billingEngine';
 
 import {
   ApplicationStatus,
+  type PersonProfile,
   Prisma,
   PrismaClient,
+  type User,
 } from '@prisma/client';
 import { log } from '../../obs/logger';
 import { refreshActionRecommendations } from '../actions/actionEngineService';
@@ -68,14 +70,11 @@ const applicationWithOpportunity = Prisma.validator<Prisma.ApplicationDefaultArg
   },
 });
 
-const userWithProfile = Prisma.validator<Prisma.UserDefaultArgs>()({
-  include: {
-    personProfile: true,
-  },
-});
-
 type ApplicationRecord = Prisma.ApplicationGetPayload<typeof applicationWithOpportunity>;
-type ApplicantUserRecord = Prisma.UserGetPayload<typeof userWithProfile>;
+// No User→PersonProfile relation exists in the schema, so the applicant
+// composite is stitched from the two tables (see loadApplicantMap) instead of
+// a Prisma `include`, which throws at runtime.
+type ApplicantUserRecord = User & { personProfile: PersonProfile | null };
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,11 +160,15 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
     throw new HttpError(409, 'This opportunity is no longer accepting applications.');
   }
 
+  // No User→PersonProfile relation exists in the schema; `include` throws at
+  // runtime. Resolve the profile through its userId FK instead.
   const applicant = await prisma.user.findUnique({
     where: { clerkUserId },
-    include: { personProfile: true },
   });
-  const resolvedNpi = normalizeProvidedNpi(npi) ?? applicant?.personProfile?.npi ?? null;
+  const applicantProfile = applicant
+    ? await prisma.personProfile.findUnique({ where: { userId: applicant.id } })
+    : null;
+  const resolvedNpi = normalizeProvidedNpi(npi) ?? applicantProfile?.npi ?? null;
   if (!resolvedNpi) {
     throw new HttpError(409, 'Complete clinician onboarding before applying with VitalCV.');
   }
@@ -540,10 +543,18 @@ async function loadApplicantMap(
         in: clerkUserIds,
       },
     },
-    include: userWithProfile.include,
   });
+  const profiles = applicants.length > 0
+    ? await prisma.personProfile.findMany({
+        where: { userId: { in: applicants.map((applicant) => applicant.id) } },
+      })
+    : [];
+  const profileByUserId = new Map(profiles.map((profile) => [profile.userId, profile]));
 
-  return new Map(applicants.map((applicant) => [applicant.clerkUserId, applicant]));
+  return new Map(applicants.map((applicant) => [
+    applicant.clerkUserId,
+    { ...applicant, personProfile: profileByUserId.get(applicant.id) ?? null },
+  ]));
 }
 
 async function loadTrustStateMap(
