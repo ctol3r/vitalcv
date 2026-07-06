@@ -34,14 +34,27 @@ was never revisited (it hid passing suites); this list exists to be emptied.
 | `src/services/identity/__tests__/divergenceEngine.test.ts` | assertion (uninvestigated) | "detects all seven canonical divergence rules" — likely clock-drift or fixture. |
 | `src/services/entity/__tests__/passportService.test.ts` | assertion (uninvestigated) | Freshness-window / posture assertions — likely clock-drift (pin the clock). |
 | `src/services/velocity/__tests__/velocityEngine.test.ts` | assertion (uninvestigated) | Time-to-start metrics — likely clock-drift. |
+| `src/routes/__tests__/predictions.test.ts` | **product bug** | Compile fix landed, but under a real DB `predictionEngineService.ts:189` calls `groupBy({ by: ["hospital_affiliation"] })` — Prisma expects the field name `hospitalAffiliation`, not the `@map`'d column. Fix the service, not the test. |
 
 ## Already fixed (NOT quarantined — left to run under the gate)
 - `trustStateEngine.authority` — clock-pin fix (commit `67f47ca2`).
 - 6 `User`/`PersonProfile` seed suites — relation-removal fix (commit `4a980f81`).
-- `predictions`, and the `credentialIngestion.trustState` / `nppesApi` **compile**
-  errors — schema-drift fixes (commit `6da95add`). (`predictions` is
-  DB-integration and runs under the gate's Postgres; the latter two remain
-  quarantined for their revealed runtime failures above.)
+- The `credentialIngestion.trustState` / `nppesApi` / `predictions` **compile**
+  errors — schema-drift fixes (commit `6da95add`). All three then revealed
+  runtime failures under the real DB and are quarantined above (`predictions` on a
+  real source bug, not a test bug).
+
+## Deployment-integrity finding (separate from this gate — needs a follow-up)
+
+The gate builds the ephemeral test DB with `prisma db push` (schema → DB), not
+`prisma migrate deploy`, because **`migrate deploy` does not create all tables in
+`schema.prisma`**: the `Application` (`applications`) and `BlockerResolutionEvent`
+(`blocker_resolution_events`) models have **no migration** (verified — 0 migrations
+create them). `railway.toml`'s `preDeployCommand` runs `migrate deploy` in prod, so
+a fresh prod database built purely from migrations would be **missing these tables**;
+prod currently survives only because its DB was built up incrementally. This is a
+real migration/schema drift to reconcile (generate the missing migrations) — a
+deploy-integrity task (relates to enterprise-map C3/C5/I3), not a test-gate task.
 
 ## Definition of done for I1
 Quarantine list empty → every backend suite green under the gate → gate marked

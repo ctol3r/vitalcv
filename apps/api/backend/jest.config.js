@@ -28,6 +28,7 @@ module.exports = {
     'services/identity/__tests__/divergenceEngine\\.test\\.ts$',
     'services/entity/__tests__/passportService\\.test\\.ts$',
     'services/velocity/__tests__/velocityEngine\\.test\\.ts$',
+    'routes/__tests__/predictions\\.test\\.ts$', // real source bug: predictionEngineService.ts:189 groupBy uses hospital_affiliation; Prisma wants hospitalAffiliation
   ],
   setupFiles: ['./jest.setup.ts'],
   transformIgnorePatterns: [

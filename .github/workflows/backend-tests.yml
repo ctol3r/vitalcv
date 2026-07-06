@@ -82,8 +82,15 @@ jobs:
       - name: Prisma generate
         run: cd apps/api/backend && npx prisma generate
 
-      - name: Prisma migrate deploy
-        run: cd apps/api/backend && npx prisma migrate deploy
+      # db push (not `migrate deploy`) so the ephemeral test DB matches the
+      # CURRENT schema.prisma exactly — this gate tests code against the schema.
+      # NOTE: `prisma migrate deploy` (what railway.toml runs in prod) does NOT
+      # create all schema tables today — the Application and BlockerResolutionEvent
+      # models have no migration. That migration/schema drift is a real
+      # deploy-integrity finding tracked in docs/ops/backend-test-quarantine.md,
+      # separate from (and not masked by) this gate.
+      - name: Prisma db push (sync schema to ephemeral test DB)
+        run: cd apps/api/backend && npx prisma db push --skip-generate --accept-data-loss
 
       # Backend jest resolves @vitalcv/* to TS source via moduleNameMapper
       # (no dist build needed). Sequential (maxWorkers:1) because suites share
