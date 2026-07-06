@@ -29,6 +29,11 @@ FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api ./apps/api
+# Drop root (ASVS 1.2.1). node:alpine ships a uid-1000 `node` user; the runtime
+# only reads world-readable copied files and binds $PORT>1024, so no chown/setcap
+# is needed. (The CANONICAL Railway builder is Nixpacks — see header note; its
+# container-user hardening is tracked separately in docs/security/m3-security-status.md.)
+USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s \
   CMD wget -qO- "http://127.0.0.1:${PORT:-4000}/health" || exit 1

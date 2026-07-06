@@ -3437,6 +3437,13 @@ validateEnv();
 
 const app = express();
 
+// Trust exactly one proxy hop (Railway's edge). Without this, Express leaves
+// `req.ip` as the proxy's address, so all anonymous callers collapse into a
+// single rate-limit bucket (ASVS gap G3). Trusting `1` (not `true`) means we
+// read the client IP from the last X-Forwarded-For hop only — a spoofed XFF from
+// the real client is overwritten by Railway, so it cannot forge a distinct IP.
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
