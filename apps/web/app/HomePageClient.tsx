@@ -416,8 +416,9 @@ function WalletPreview() {
       ref={tiltRef}
       aria-hidden="true"
       data-home-wallet-preview=""
-      className="vh-wallet vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
+      className="vh-wallet vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5"
     >
+      <span aria-hidden="true" className="vh-wallet-halo" />
       {/* Wallet header */}
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--vt-text-primary)]">
@@ -437,6 +438,7 @@ function WalletPreview() {
           <path d={EKG_BEAT} />
           <path d={EKG_BEAT} transform="translate(160 0)" />
         </svg>
+        <span aria-hidden="true" className="vh-monitor-beam" />
         <span className="vh-monitor-label">EVIDENCE · LIVE READ</span>
       </div>
 
@@ -560,9 +562,10 @@ export default function HomePageClient() {
       className="mz vh-root relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]"
     >
       <div aria-hidden="true" className="vh-aurora" />
+      <div aria-hidden="true" className="vh-signalgrid" />
       <div
         aria-hidden="true"
-        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-60"
+        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-40"
       />
 
       {CLERK_PROVIDER_ENABLED && (
@@ -585,11 +588,50 @@ export default function HomePageClient() {
       <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
         <div className="w-full">
 
+          {/* Hero — presented as a clinical monitor. The device stage is a
+              dark panel; its content flips light-on-dark via .vh-dark so the
+              NPI card, pills and wallet adapt with no per-component edits. */}
+          <div className="vh-stage vh-dark">
+            <div aria-hidden="true" className="vh-stage-grid" />
+            <div aria-hidden="true" className="vh-stage-bezel">
+              <span className="vh-stage-tag">
+                <span className="vh-stage-led" />
+                VITALCV · PROVIDER EVIDENCE MONITOR
+              </span>
+              <span className="vh-stage-readout">
+                <span className="vh-stage-bars">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="vh-stage-ticker">
+                  <span className="vh-stage-ticker-track">
+                    <span>READING · NPPES</span>
+                    <span>READING · OIG LEIE</span>
+                    <span>READING · CMS PECOS</span>
+                    <span>READING · STATE BOARDS</span>
+                    <span>READING · NPPES</span>
+                  </span>
+                </span>
+                <span className="vh-stage-live">
+                  <span className="vh-stage-led" />
+                  LIVE
+                </span>
+              </span>
+            </div>
+            <div aria-hidden="true" className="vh-stage-ekg">
+              <svg viewBox="0 0 320 44" preserveAspectRatio="none">
+                <path d={EKG_BEAT} />
+                <path d={EKG_BEAT} transform="translate(160 0)" />
+              </svg>
+            </div>
+
           {/* Hero — clinician wallet product, NPI-first entry */}
           <section
             aria-label="NPI lookup"
             data-home-hero=""
-            className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+            className="vh-stage-content grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
@@ -610,7 +652,15 @@ export default function HomePageClient() {
                   viewBox="0 0 620 40"
                   preserveAspectRatio="none"
                 >
-                  <path d={EKG_HAIRLINE} />
+                  <defs>
+                    <linearGradient id="vh-ekg-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--vh-emerald)" />
+                      <stop offset="55%" stopColor="var(--vh-teal)" />
+                      <stop offset="100%" stopColor="var(--vh-cyan)" />
+                    </linearGradient>
+                  </defs>
+                  <path className="vh-ekg-draw" d={EKG_HAIRLINE} />
+                  <path className="vh-ekg-spark" d={EKG_HAIRLINE} />
                 </svg>
                 <p
                   data-home-hero-subhead=""
@@ -749,6 +799,7 @@ export default function HomePageClient() {
               <WalletPreview />
             </div>
           </section>
+          </div>
 
           {/* Primary-source registry strip — breadth, in motion. Names only;
               state vocabulary stays in the caption so nothing overclaims. */}
