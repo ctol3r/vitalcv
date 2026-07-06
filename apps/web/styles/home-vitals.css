@@ -635,6 +635,178 @@
   background: var(--vh-signal);
 }
 
+/* ============================================================
+   HERO STAGE — the hero rendered as a clinical monitor: a dark,
+   glowing device panel on the paper. Bezel, status LED, an EKG
+   across the header, a faint screen grid. Content inside flips to
+   light-on-dark via the .vh-dark token override so every child
+   component (NPI card, pills, wallet) adapts automatically.
+   ============================================================ */
+.vh-stage {
+  position: relative;
+  border-radius: 2rem;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  /* Clear the device header (bezel + EKG occupy ~2.1–4.6rem) so the screen
+     content starts below it on every width. */
+  padding-top: clamp(4.75rem, 5vw, 5.5rem);
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(130% 120% at 78% -10%, #0c3b34 0%, #082722 42%, #05140f 100%);
+  border: 1px solid color-mix(in oklab, var(--vh-teal) 34%, #0a1f1c);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 50px 120px -30px color-mix(in oklab, var(--vh-teal) 34%, rgba(3, 12, 10, 0.7)),
+    0 24px 60px -30px rgba(0, 0, 0, 0.6);
+}
+/* Soft teal aura bleeding out from the device. */
+.vh-stage::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    140deg,
+    color-mix(in oklab, var(--vh-mint) 55%, transparent),
+    transparent 34%,
+    transparent 66%,
+    color-mix(in oklab, var(--vh-cyan) 45%, transparent)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.8;
+}
+/* Screen grid + top glow inside the device. */
+.vh-stage-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--vh-mint) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--vh-mint) 8%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(120% 100% at 75% 0%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(120% 100% at 75% 0%, #000 0%, transparent 70%);
+  opacity: 0.7;
+}
+/* Bezel header: status LED + running label, top-right of the device. */
+.vh-stage-bezel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: color-mix(in oklab, var(--vh-mint) 78%, white);
+  border-bottom: 1px solid color-mix(in oklab, var(--vh-teal) 22%, transparent);
+  background: linear-gradient(color-mix(in oklab, var(--vh-teal) 10%, transparent), transparent);
+}
+.vh-stage-bezel .vh-stage-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-shadow: 0 0 8px color-mix(in oklab, var(--vh-mint) 50%, transparent);
+}
+.vh-stage-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--vh-mint);
+  box-shadow: 0 0 8px 1px var(--vh-mint);
+}
+.vh-js .vh-stage-led {
+  animation: vh-blink 1.6s ease-in-out infinite;
+}
+.vh-stage-bezel .vh-stage-dots {
+  display: inline-flex;
+  gap: 5px;
+  opacity: 0.7;
+}
+.vh-stage-bezel .vh-stage-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--vh-mint) 60%, transparent);
+}
+/* Full-width EKG across the device header. */
+.vh-stage-ekg {
+  position: absolute;
+  top: 2.1rem;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  opacity: 0.7;
+}
+.vh-stage-ekg svg {
+  position: absolute;
+  inset: 0;
+  width: 200%;
+  height: 100%;
+}
+.vh-stage-ekg path {
+  fill: none;
+  stroke: color-mix(in oklab, var(--vh-mint) 85%, transparent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px color-mix(in oklab, var(--vh-mint) 60%, transparent));
+}
+.vh-js .vh-stage-ekg svg {
+  animation: vh-trace 9s linear infinite;
+}
+.vh-stage > .vh-stage-content {
+  position: relative;
+  z-index: 3;
+}
+
+/* Token override: everything inside the device reads light-on-dark.
+   Child components (Card, Input, pills, wallet) resolve --vt-* to
+   these, so they adapt with no per-component edits. */
+.vh-dark {
+  --vt-bg: rgba(4, 20, 17, 0.55);
+  --vt-surface: rgba(216, 255, 246, 0.055);
+  --vt-surface-subtle: rgba(216, 255, 246, 0.035);
+  --vt-surface-dim: rgba(4, 20, 17, 0.5);
+  --vt-border: rgba(150, 240, 216, 0.22);
+  --vt-border-subtle: rgba(150, 240, 216, 0.12);
+  --vt-text-primary: #ecfdf7;
+  --vt-text-secondary: rgba(236, 253, 247, 0.82);
+  --vt-text-muted: rgba(236, 253, 247, 0.55);
+  --vt-focus-ring: var(--vh-mint);
+  --vt-accent-emerald: var(--vh-mint);
+  color: var(--vt-text-primary);
+}
+/* On the dark stage the hero EKG hairline is not needed (the device
+   header carries the trace) — hide it to avoid a double heartbeat. */
+.vh-dark .vh-ekg-line { display: none; }
+/* Wallet on the dark stage: a lit device, brighter edge + deeper aura. */
+.vh-dark .vh-wallet {
+  background: rgba(214, 255, 245, 0.05) !important;
+  border-color: rgba(150, 240, 216, 0.24) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 40px 90px -24px rgba(0, 0, 0, 0.6),
+    0 0 60px -12px color-mix(in oklab, var(--vh-teal) 40%, transparent);
+}
+.vh-dark .vh-wallet-halo { opacity: 0.9; }
+
 /* ------------------------------------------------------------
    Reduced motion: kill continuous + entrance animation, keep the
    finished state fully visible.
@@ -655,6 +827,8 @@
   .vh-js .vh-monitor svg,
   .vh-js .vh-monitor-beam,
   .vh-js .vh-monitor-label::before,
+  .vh-js .vh-stage-ekg svg,
+  .vh-js .vh-stage-led,
   .vh-js .vh-bar-fill,
   .vh-js .vh-bar::after,
   .vh-js .vh-scan::after,

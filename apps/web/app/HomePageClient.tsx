@@ -588,11 +588,34 @@ export default function HomePageClient() {
       <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
         <div className="w-full">
 
+          {/* Hero — presented as a clinical monitor. The device stage is a
+              dark panel; its content flips light-on-dark via .vh-dark so the
+              NPI card, pills and wallet adapt with no per-component edits. */}
+          <div className="vh-stage vh-dark">
+            <div aria-hidden="true" className="vh-stage-grid" />
+            <div aria-hidden="true" className="vh-stage-bezel">
+              <span className="vh-stage-tag">
+                <span className="vh-stage-led" />
+                VITALCV · PROVIDER EVIDENCE MONITOR
+              </span>
+              <span className="vh-stage-dots">
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+            <div aria-hidden="true" className="vh-stage-ekg">
+              <svg viewBox="0 0 320 44" preserveAspectRatio="none">
+                <path d={EKG_BEAT} />
+                <path d={EKG_BEAT} transform="translate(160 0)" />
+              </svg>
+            </div>
+
           {/* Hero — clinician wallet product, NPI-first entry */}
           <section
             aria-label="NPI lookup"
             data-home-hero=""
-            className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+            className="vh-stage-content grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
@@ -760,6 +783,7 @@ export default function HomePageClient() {
               <WalletPreview />
             </div>
           </section>
+          </div>
 
           {/* Primary-source registry strip — breadth, in motion. Names only;
               state vocabulary stays in the caption so nothing overclaims. */}
