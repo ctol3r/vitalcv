@@ -93,21 +93,22 @@ async function seedFinding(input: {
 }
 
 async function seedActionFixtures(): Promise<void> {
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       clerkUserId: 'action-user-1',
       email: 'action-test@vitalcv.local',
       role: 'CLINICIAN',
       status: 'ACTIVE',
-      personProfile: {
-        create: {
-          npi: '1234567890',
-          firstName: 'Ada',
-          lastName: 'Lovelace',
-          specialty: 'Cardiology',
-          stateOfPractice: 'CA',
-        },
-      },
+    },
+  });
+  await prisma.personProfile.create({
+    data: {
+      userId: user.id,
+      npi: '1234567890',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      specialty: 'Cardiology',
+      stateOfPractice: 'CA',
     },
   });
 
