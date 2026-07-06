@@ -240,7 +240,7 @@ export function CommandPalette() {
               exit={{ opacity: 0, scale: 0.98, y: -10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={cn(
-                "relative flex flex-col w-full max-w-2xl overflow-hidden rounded-3xl border border-white/15 bg-[linear-gradient(160deg,rgba(20,32,48,0.9),rgba(9,16,26,0.95))] backdrop-blur-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300",
+                "relative flex flex-col w-full max-w-2xl overflow-hidden rounded-3xl border border-white/15 bg-[linear-gradient(160deg,rgba(16,25,39,0.975),rgba(8,13,22,0.985))] backdrop-blur-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300",
                 isResultsMode ? "h-[80vh] max-h-[800px]" : "h-auto"
               )}
             >
@@ -307,8 +307,8 @@ export function CommandPalette() {
                             className={cn(
                               "flex flex-col items-start p-4 rounded-xl text-left transition-all border",
                               selected
-                                ? "bg-muted border-border shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                                : "bg-transparent border-transparent hover:bg-muted"
+                                ? "bg-white/[0.08] border-white/15 shadow-[0_0_22px_-6px_rgba(52,230,176,0.4)]"
+                                : "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]"
                             )}
                           >
                             <div className="flex items-center gap-3 mb-2 w-full">
