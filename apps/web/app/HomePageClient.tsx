@@ -742,6 +742,19 @@ export default function HomePageClient() {
                         aria-describedby={error ? 'home-npi-error' : undefined}
                         className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
                       />
+                      {/* Validation micro-interaction: a jade check springs in on a full NPI. */}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'flex items-center justify-center pb-4 pl-4 pr-4 sm:pb-0 sm:pl-0 sm:pr-2 transition-transform duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]',
+                          isFull ? 'scale-100' : 'scale-0',
+                        )}
+                      >
+                        <CheckCircle2
+                          size={22}
+                          className="text-[var(--vt-accent-emerald)] drop-shadow-[0_0_10px_color-mix(in_oklab,var(--vt-accent-emerald)_50%,transparent)]"
+                        />
+                      </span>
                       <button
                         type="submit"
                         data-home-primary-cta=""
