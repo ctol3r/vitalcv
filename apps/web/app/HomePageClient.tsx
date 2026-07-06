@@ -495,9 +495,9 @@ function WalletPreview() {
       </div>
 
       {/* Recognition + share footer */}
-      <div className="mt-3 flex items-center justify-between rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_8%,var(--vt-surface))] px-4 py-3">
+      <div className="mt-3 flex items-center justify-between rounded-[1.25rem] border border-[color-mix(in_oklab,var(--vh-coral,#ff9e7a)_30%,var(--vt-border-subtle))] bg-[color-mix(in_oklab,var(--vh-coral,#ff9e7a)_9%,var(--vt-surface))] px-4 py-3">
         <span className="flex items-center gap-2">
-          <span className="vh-ring flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--vt-accent-emerald)_18%,transparent)] text-[var(--vt-accent-emerald)]">
+          <span className="vh-ring flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--vh-coral,#ff9e7a)_20%,transparent)] text-[var(--vh-coral,#ff9e7a)]">
             <Award size={16} />
           </span>
           <span className="flex flex-col">
