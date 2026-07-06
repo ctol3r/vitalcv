@@ -1,0 +1,106 @@
+name: Backend Tests
+
+# Task I1 (enterprise Wave 2B): make the backend jest suite a PR gate so new
+# backend regressions are caught. Runs against an ephemeral Postgres (the
+# backend suite is DB-backed). Pre-existing failures are quarantined in
+# apps/api/backend/jest.config.js with a burn-down list at
+# docs/ops/backend-test-quarantine.md — this gate protects everything else.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/**'
+      - 'packages/**'
+      - 'core/graph/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/backend-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/**'
+      - 'packages/**'
+      - 'core/graph/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/backend-tests.yml'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.11.1'
+  PNPM_VERSION: '10.6.1'
+
+jobs:
+  backend-tests:
+    name: Backend Tests (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_backend_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_backend_test
+      NODE_ENV: test
+      # Deliberately NOT setting API_KEYS. With no keys configured and
+      # NODE_ENV=test, apiKeyAuth() bypasses (src/middleware/publicSafety.ts:137),
+      # which is how the local backend suite runs. Setting it turns enforcement on
+      # and every route test (which sends no x-api-key header) gets 401.
+      # API_KEYS is only required in production (config/env.ts:57).
+      CORS_ORIGIN: https://ci-test.example.com
+      ISSUER_KEY_ENCRYPTION_SECRET: ci-test-issuer-key-encryption-secret-000000000000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: cd apps/api/backend && npx prisma generate
+
+      # db push (not `migrate deploy`) so the ephemeral test DB matches the
+      # CURRENT schema.prisma exactly — this gate tests code against the schema.
+      # NOTE: `prisma migrate deploy` (what railway.toml runs in prod) does NOT
+      # create all schema tables today — the Application and BlockerResolutionEvent
+      # models have no migration. That migration/schema drift is a real
+      # deploy-integrity finding tracked in docs/ops/backend-test-quarantine.md,
+      # separate from (and not masked by) this gate.
+      - name: Prisma db push (sync schema to ephemeral test DB)
+        run: cd apps/api/backend && npx prisma db push --skip-generate --accept-data-loss
+
+      # Backend jest resolves @vitalcv/* to TS source via moduleNameMapper
+      # (no dist build needed). Sequential (maxWorkers:1) because suites share
+      # the Postgres DB. Quarantined suites are excluded in jest.config.js.
+      # --forceExit: the suite passes (228/228) but a lingering async handle (DB
+      # pool / "Cannot log after tests are done") kept jest from exiting 0. Force a
+      # clean exit on green rather than fail the gate on a teardown-hygiene leak.
+      - name: Backend jest (Postgres)
+        run: cd apps/api/backend && npx jest --ci --forceExit
