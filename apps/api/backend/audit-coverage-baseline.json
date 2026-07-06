@@ -93,7 +93,6 @@
     "walletExport.ts",
     "webauthn.ts",
     "widget.ts",
-    "workforceIntelligence.ts",
-    "workspace.ts"
+    "workforceIntelligence.ts"
   ]
 }
