@@ -27,6 +27,7 @@ import Link from 'next/link';
 import {
   AlertCircle,
   Check,
+  CheckCircle2,
   ChevronRight,
   FileCheck2,
   Loader2,
@@ -346,6 +347,9 @@ export default function GetReadySurface() {
 
   /* ── Form (+ submitting) ── */
   const submitting = phase === 'submitting';
+  // Live structural validity — drives the checkmark that springs in as the
+  // clinician finishes typing a well-formed NPI. Not a registry match yet.
+  const npiValid = validateNpi(npiInput).ok;
   return (
     <Shell>
       <GateIcon />
@@ -367,13 +371,19 @@ export default function GetReadySurface() {
                   type="button"
                   onClick={() => setProfession(p.value)}
                   aria-pressed={selected}
-                  className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                  className={`group inline-flex items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 text-left text-sm transition duration-200 ease-out active:scale-[0.97] motion-reduce:transform-none ${
                     selected
-                      ? 'border-[#34e6b0]/60 bg-[#34e6b0]/15 text-[#8cf7dd]'
-                      : 'border-white/12 bg-white/5 text-white/75 hover:border-white/25'
+                      ? 'border-[#34e6b0]/60 bg-[#34e6b0]/15 text-[#8cf7dd] shadow-[0_0_0_1px_rgba(52,230,176,0.25),0_8px_24px_-12px_rgba(52,230,176,0.5)]'
+                      : 'border-white/12 bg-white/5 text-white/75 hover:border-white/25 hover:bg-white/[0.07]'
                   }`}
                 >
-                  {p.label}
+                  <span>{p.label}</span>
+                  <Check
+                    className={`h-4 w-4 shrink-0 text-[#34e6b0] transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none ${
+                      selected ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+                    }`}
+                    aria-hidden
+                  />
                 </button>
               );
             })}
@@ -387,19 +397,29 @@ export default function GetReadySurface() {
           <label htmlFor="npi-input" className="text-xs font-semibold uppercase tracking-widest text-white/55">
             Your 10-digit NPI
           </label>
-          <input
-            id="npi-input"
-            name="npi"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="e.g. 1234567890"
-            value={npiInput}
-            onChange={(e) => setNpiInput(e.target.value)}
-            disabled={submitting}
-            aria-invalid={formError ? true : undefined}
-            aria-describedby={formError ? 'npi-error' : 'npi-help'}
-            className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 focus:border-[#34e6b0] focus:outline-none focus:ring-2 focus:ring-[#34e6b0]/25"
-          />
+          <div className="relative mt-2">
+            <input
+              id="npi-input"
+              name="npi"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="e.g. 1234567890"
+              value={npiInput}
+              onChange={(e) => setNpiInput(e.target.value)}
+              disabled={submitting}
+              aria-invalid={formError ? true : undefined}
+              aria-describedby={formError ? 'npi-error' : 'npi-help'}
+              className={`w-full rounded-xl border bg-white/5 px-4 py-3 pr-11 font-mono text-base text-white placeholder:text-white/30 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#34e6b0]/25 ${
+                npiValid ? 'border-[#34e6b0]/70' : 'border-white/15 focus:border-[#34e6b0]'
+              }`}
+            />
+            <CheckCircle2
+              className={`pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#34e6b0] transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none ${
+                npiValid ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+              }`}
+              aria-hidden
+            />
+          </div>
           {formError ? (
             <p id="npi-error" role="alert" className="mt-2 text-sm text-red-400">
               {formError}
@@ -465,9 +485,9 @@ export default function GetReadySurface() {
 /* ── Layout: dark-glass split-panel (action left, benefits right) ── */
 
 const primaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] px-7 py-3.5 text-sm font-semibold text-[#04140f] shadow-[0_12px_30px_-8px_rgba(52,230,176,0.55)] transition hover:from-[#6bf5cd] hover:to-[#17c39a]';
+  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] px-7 py-3.5 text-sm font-semibold text-[#04140f] shadow-[0_12px_30px_-8px_rgba(52,230,176,0.55)] transition duration-200 ease-out hover:from-[#6bf5cd] hover:to-[#17c39a] hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-10px_rgba(52,230,176,0.65)] active:translate-y-0 active:scale-[0.985] motion-reduce:transform-none';
 const secondaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white';
+  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white/80 transition duration-200 ease-out hover:border-white/30 hover:text-white hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] motion-reduce:transform-none';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
