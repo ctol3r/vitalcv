@@ -17,6 +17,9 @@
  * audit event. Copy states the registry-identity match only — an NPPES match
  * and a self-attested profession are NOT license/identity proofing, and nothing
  * here presents them as a completed license check or a bare "Verified" status.
+ *
+ * Dark-glass to match the homepage / signed-in world: deep ink ground, frosted
+ * panels, jade CTAs, a coral accent.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -211,8 +214,8 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
-          <Loader2 className="h-7 w-7 text-zinc-400 animate-spin" aria-hidden />
-          <p className="text-sm text-zinc-500">Checking your workspace…</p>
+          <Loader2 className="h-7 w-7 text-white/40 animate-spin" aria-hidden />
+          <p className="text-sm text-white/55">Checking your workspace…</p>
         </div>
       </Shell>
     );
@@ -230,9 +233,9 @@ export default function GetReadySurface() {
         <Link href="/sign-in?redirect_url=%2Fget-ready" className={primaryBtn}>
           Sign in to continue <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
-        <p className="mt-4 text-center text-xs text-zinc-500">
+        <p className="mt-4 text-center text-xs text-white/55">
           New here?{' '}
-          <Link href="/sign-up" className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-600">
+          <Link href="/sign-up" className="font-medium text-white underline underline-offset-2 hover:text-[#8cf7dd]">
             Create your free account
           </Link>
         </p>
@@ -245,9 +248,9 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="space-y-4 text-center">
-          <AlertCircle className="mx-auto h-8 w-8 text-red-500" aria-hidden />
-          <p className="font-medium text-zinc-900">Couldn&apos;t check your workspace</p>
-          <p className="text-sm text-zinc-500">
+          <AlertCircle className="mx-auto h-8 w-8 text-red-400" aria-hidden />
+          <p className="font-medium text-white">Couldn&apos;t check your workspace</p>
+          <p className="text-sm text-white/55">
             This is a system state — not a finding about your account. Try again shortly.
           </p>
           <button type="button" onClick={() => window.location.reload()} className={secondaryBtn}>
@@ -288,17 +291,17 @@ export default function GetReadySurface() {
           title="Confirm you are a clinician"
           lede="Confirm you're a practicing clinician to unlock your VitalCV workspace — your free, source-backed career wallet."
         />
-        <p className="mt-4 text-sm text-zinc-500">
+        <p className="mt-4 text-sm text-white/55">
           You&apos;re signed in as{' '}
-          <span className="font-medium text-zinc-900">{accountEmail ?? 'your account'}</span>.
+          <span className="font-medium text-white">{accountEmail ?? 'your account'}</span>.
         </p>
         <button type="button" onClick={() => setPhase('form')} className={`${primaryBtn} mt-5`}>
           Confirm you&apos;re a clinician <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
-        <p className="mt-4 text-center text-xs text-zinc-500">
+        <p className="mt-4 text-center text-xs text-white/55">
           <Link
             href="/sign-in?redirect_url=%2Fget-ready"
-            className="underline underline-offset-2 hover:text-zinc-700"
+            className="underline underline-offset-2 hover:text-white/80"
           >
             Use a different account
           </Link>
@@ -318,7 +321,7 @@ export default function GetReadySurface() {
           lede={summary.statement}
         />
         {!summary.isOrganizationNpi && (
-          <dl className="mt-6 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-left text-sm">
+          <dl className="mt-6 space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left text-sm">
             <SummaryRow label="Registry name" value={summary.displayName ?? 'Not listed in NPPES'} />
             <SummaryRow label="Specialty" value={summary.specialty ?? 'Not listed in NPPES'} />
             <SummaryRow label="State" value={summary.stateOfPractice ?? 'Not listed in NPPES'} />
@@ -352,7 +355,7 @@ export default function GetReadySurface() {
       />
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
         <fieldset disabled={submitting} className="border-0 p-0 m-0">
-          <legend className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          <legend className="text-xs font-semibold uppercase tracking-widest text-white/55">
             Your profession
           </legend>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -366,8 +369,8 @@ export default function GetReadySurface() {
                   aria-pressed={selected}
                   className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${
                     selected
-                      ? 'border-zinc-900 bg-zinc-900 text-white'
-                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400'
+                      ? 'border-[#34e6b0]/60 bg-[#34e6b0]/15 text-[#8cf7dd]'
+                      : 'border-white/12 bg-white/5 text-white/75 hover:border-white/25'
                   }`}
                 >
                   {p.label}
@@ -375,13 +378,13 @@ export default function GetReadySurface() {
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-white/50">
             You&apos;re attesting to your role — it guides which checks apply and isn&apos;t
             license-verified here.
           </p>
         </fieldset>
         <div>
-          <label htmlFor="npi-input" className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          <label htmlFor="npi-input" className="text-xs font-semibold uppercase tracking-widest text-white/55">
             Your 10-digit NPI
           </label>
           <input
@@ -395,20 +398,20 @@ export default function GetReadySurface() {
             disabled={submitting}
             aria-invalid={formError ? true : undefined}
             aria-describedby={formError ? 'npi-error' : 'npi-help'}
-            className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-mono text-base text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+            className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 font-mono text-base text-white placeholder:text-white/30 focus:border-[#34e6b0] focus:outline-none focus:ring-2 focus:ring-[#34e6b0]/25"
           />
           {formError ? (
-            <p id="npi-error" role="alert" className="mt-2 text-sm text-red-600">
+            <p id="npi-error" role="alert" className="mt-2 text-sm text-red-400">
               {formError}
             </p>
           ) : (
-            <p id="npi-help" className="mt-2 text-xs text-zinc-500">
+            <p id="npi-help" className="mt-2 text-xs text-white/50">
               Don&apos;t know it? Search the{' '}
               <a
                 href="https://npiregistry.cms.hhs.gov/"
                 target="_blank"
                 rel="noreferrer"
-                className="underline underline-offset-2 hover:text-zinc-700"
+                className="underline underline-offset-2 hover:text-white/80"
               >
                 NPPES registry
               </a>
@@ -416,13 +419,13 @@ export default function GetReadySurface() {
             </p>
           )}
         </div>
-        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-600">
+        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-white/65">
           <input
             type="checkbox"
             checked={attested}
             onChange={(e) => setAttested(e.target.checked)}
             disabled={submitting}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-zinc-900"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[#34e6b0]"
           />
           <span>
             I attest that I am a licensed clinician and agree to the{' '}
@@ -430,7 +433,7 @@ export default function GetReadySurface() {
               href="/terms"
               target="_blank"
               rel="noreferrer"
-              className="underline underline-offset-2 hover:text-zinc-900"
+              className="underline underline-offset-2 hover:text-white"
             >
               VitalCV Services Agreement
             </a>
@@ -448,7 +451,7 @@ export default function GetReadySurface() {
             </>
           )}
         </button>
-        <p className="text-xs leading-relaxed text-zinc-500">
+        <p className="text-xs leading-relaxed text-white/50">
           This matches your public registry identity record. It does not verify licenses,
           exclusions, or enrollment — those source checks run on your readiness surface,
           each with its own receipt.
@@ -459,16 +462,19 @@ export default function GetReadySurface() {
   );
 }
 
-/* ── Layout: clean light split-panel (action left, benefits right) ── */
+/* ── Layout: dark-glass split-panel (action left, benefits right) ── */
 
 const primaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-zinc-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800';
+  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] px-7 py-3.5 text-sm font-semibold text-[#04140f] shadow-[0_12px_30px_-8px_rgba(52,230,176,0.55)] transition hover:from-[#6bf5cd] hover:to-[#17c39a]';
 const secondaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-zinc-300 px-7 py-3.5 text-sm font-semibold text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900';
+  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-2">
+    <div
+      className="grid min-h-screen lg:grid-cols-2"
+      style={{ background: 'radial-gradient(130% 100% at 30% -10%, #0e1a2b 0%, #0a1220 46%, #070b14 100%)' }}
+    >
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md text-center">{children}</div>
       </div>
@@ -482,16 +488,21 @@ function BenefitsPanel() {
     <div className="relative hidden overflow-hidden lg:flex lg:items-center lg:justify-center">
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #22d3ee 45%, #5eead4 100%)' }}
+        style={{ background: 'radial-gradient(120% 120% at 70% 10%, #0f3a33 0%, #0b2530 44%, #070f18 100%)' }}
         aria-hidden
       />
-      <div className="relative z-10 mx-8 w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl">
-        <h2 className="text-xl font-bold text-zinc-900">VitalCV for Clinicians</h2>
-        <p className="mt-1 text-sm font-medium text-zinc-500">Your free, source-backed career wallet</p>
+      <div
+        className="absolute -right-24 top-10 h-72 w-72 rounded-full opacity-50 blur-3xl"
+        style={{ background: 'radial-gradient(circle, rgba(255,158,122,0.5), transparent 65%)' }}
+        aria-hidden
+      />
+      <div className="relative z-10 mx-8 w-full max-w-sm rounded-3xl border border-white/12 bg-white/[0.06] p-8 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
+        <h2 className="text-xl font-bold text-white">VitalCV for Clinicians</h2>
+        <p className="mt-1 text-sm font-medium text-white/55">Your free, source-backed career wallet</p>
         <ul className="mt-6 space-y-4">
           {BENEFITS.map((b, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-zinc-700">
-              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white">
+            <li key={i} className="flex items-start gap-3 text-sm text-white/75">
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] text-[#04140f]">
                 {b.icon}
               </span>
               <span className="leading-relaxed">{b.text}</span>
@@ -505,13 +516,13 @@ function BenefitsPanel() {
 
 function FaqSection() {
   return (
-    <section className="mt-10 border-t border-zinc-200 pt-6 text-left">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Verification FAQ</h3>
+    <section className="mt-10 border-t border-white/10 pt-6 text-left">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-white/55">Verification FAQ</h3>
       <dl className="mt-4 space-y-4">
         {FAQS.map((f) => (
           <div key={f.q}>
-            <dt className="text-sm font-semibold text-zinc-900">{f.q}</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-zinc-500">{f.a}</dd>
+            <dt className="text-sm font-semibold text-white">{f.q}</dt>
+            <dd className="mt-1 text-sm leading-relaxed text-white/55">{f.a}</dd>
           </div>
         ))}
       </dl>
@@ -521,11 +532,11 @@ function FaqSection() {
 
 function GateIcon({ done = false }: { done?: boolean }) {
   return (
-    <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50">
+    <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/12 bg-white/5">
       {done ? (
-        <Check className="h-7 w-7 text-emerald-600" aria-hidden />
+        <Check className="h-7 w-7 text-[#34e6b0]" aria-hidden />
       ) : (
-        <ShieldCheck className="h-7 w-7 text-zinc-900" aria-hidden />
+        <ShieldCheck className="h-7 w-7 text-[#34e6b0]" aria-hidden />
       )}
     </div>
   );
@@ -534,8 +545,8 @@ function GateIcon({ done = false }: { done?: boolean }) {
 function Header({ title, lede }: { title: string; lede: string }) {
   return (
     <div className="mt-5">
-      <h1 className="mb-2 text-2xl font-bold text-zinc-900">{title}</h1>
-      <p className="text-sm leading-relaxed text-zinc-500">{lede}</p>
+      <h1 className="mb-2 text-2xl font-bold text-white">{title}</h1>
+      <p className="text-sm leading-relaxed text-white/55">{lede}</p>
     </div>
   );
 }
@@ -543,8 +554,8 @@ function Header({ title, lede }: { title: string; lede: string }) {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-xs uppercase tracking-wider text-zinc-500">{label}</dt>
-      <dd className="text-right text-sm text-zinc-800">{value}</dd>
+      <dt className="text-xs uppercase tracking-wider text-white/50">{label}</dt>
+      <dd className="text-right text-sm text-white/85">{value}</dd>
     </div>
   );
 }
