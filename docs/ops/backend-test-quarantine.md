@@ -35,6 +35,11 @@ was never revisited (it hid passing suites); this list exists to be emptied.
 | `src/services/entity/__tests__/passportService.test.ts` | assertion (uninvestigated) | Freshness-window / posture assertions — likely clock-drift (pin the clock). |
 | `src/services/velocity/__tests__/velocityEngine.test.ts` | assertion (uninvestigated) | Time-to-start metrics — likely clock-drift. |
 | `src/routes/__tests__/predictions.test.ts` | **product bug** | Compile fix landed, but under a real DB `predictionEngineService.ts:189` calls `groupBy({ by: ["hospital_affiliation"] })` — Prisma expects the field name `hospitalAffiliation`, not the `@map`'d column. Fix the service, not the test. |
+| `src/services/identity/__tests__/leieCache.test.ts` | fixture isolation | Fuzzy possible-match overrides an explicit NPI because the real LEIE dataset leaks into test mode (expected `CLEAR`, got `POSSIBLE_MATCH`). Same root as `oigConnector`. |
+| `src/services/identity/__tests__/physicianLicensureLaunchLane.test.ts` | assertion (uninvestigated) | "honest manual-only claim for unsupported states" — classify clock-drift vs fixture vs logic. |
+| `src/services/passport/__tests__/npiPassportContract.test.ts` | assertion (uninvestigated) | `buildPassportDataByNpi` frontend-safe contract shape drifted from fixture. |
+| `src/services/simulation/__tests__/liveSimulationEngine.test.ts` | **possible import-time bug** | Suite fails to run at `import '../liveSimulationEngine'` — if the module throws at import, production importing it would too. Investigate before "fixing" the test. |
+| `tests/e2e/fhirExport.spec.ts` | e2e (uninvestigated) | FHIR export end-to-end; classify. |
 
 ## Already fixed (NOT quarantined — left to run under the gate)
 - `trustStateEngine.authority` — clock-pin fix (commit `67f47ca2`).

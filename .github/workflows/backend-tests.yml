@@ -58,7 +58,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_backend_test
       NODE_ENV: test
-      API_KEYS: ci-test-key
+      # Deliberately NOT setting API_KEYS. With no keys configured and
+      # NODE_ENV=test, apiKeyAuth() bypasses (src/middleware/publicSafety.ts:137),
+      # which is how the local backend suite runs. Setting it turns enforcement on
+      # and every route test (which sends no x-api-key header) gets 401.
+      # API_KEYS is only required in production (config/env.ts:57).
       CORS_ORIGIN: https://ci-test.example.com
       ISSUER_KEY_ENCRYPTION_SECRET: ci-test-issuer-key-encryption-secret-000000000000
     steps:
