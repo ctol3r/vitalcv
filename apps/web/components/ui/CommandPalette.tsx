@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Box, Building2, ChevronRight, FileText, Globe, Search, Shield, Sparkles, Terminal, User } from 'lucide-react';
+import { ArrowRight, Award, Box, Building2, ChevronRight, Compass, FileText, Fingerprint, Globe, Search, Shield, ShieldCheck, Sparkles, User, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { CommandParamsModal } from './CommandParamsModal';
@@ -20,9 +20,13 @@ const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> 
 };
 
 const QUICK_ACTIONS = [
-  { id: 'AskVitalCV', label: 'Ask VitalCV AI', desc: 'Ask complex questions about compliance', icon: Sparkles, action: 'ask' },
-  { id: 'VerifyNpiCommand', label: 'Verify a Clinician', desc: 'Lookup and verify NPI credentials', icon: Search, action: 'cmd' },
-  { id: 'MissionOps', label: 'Mission Ops', desc: 'Control plane operations', icon: Terminal, action: 'nav', href: '/mission-ops/v2' },
+  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed wallet', icon: Fingerprint, action: 'nav', href: '/get-ready' },
+  { id: 'Wallet', label: 'Open my wallet', desc: 'Your credentials, readiness, and proof', icon: Wallet, action: 'nav', href: '/holder' },
+  { id: 'Readiness', label: 'Check my readiness', desc: 'Live source coverage and blockers', icon: ShieldCheck, action: 'nav', href: '/holder/readiness' },
+  { id: 'Recognition', label: 'My Recognition', desc: 'Employer-accepted head starts', icon: Award, action: 'nav', href: '/holder/recognition' },
+  { id: 'Opportunities', label: 'Find opportunities', desc: 'Roles matched to your evidence', icon: Compass, action: 'nav', href: '/holder/opportunities' },
+  { id: 'VerifyNpiCommand', label: 'Look up a clinician', desc: 'See what is source-backed about an NPI', icon: Search, action: 'cmd' },
+  { id: 'AskVitalCV', label: 'Ask VitalCV', desc: 'Ask about your readiness or the process', icon: Sparkles, action: 'ask' },
 ];
 
 export function CommandPalette() {
@@ -236,25 +240,25 @@ export function CommandPalette() {
               exit={{ opacity: 0, scale: 0.98, y: -10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={cn(
-                "relative flex flex-col w-full max-w-3xl overflow-hidden rounded-2xl bg-[#0a0a0f] border border-border shadow-[0_0_50px_rgba(0,0,0,0.8)] transition-all duration-300",
+                "relative flex flex-col w-full max-w-2xl overflow-hidden rounded-3xl border border-white/15 bg-[linear-gradient(160deg,rgba(20,32,48,0.9),rgba(9,16,26,0.95))] backdrop-blur-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300",
                 isResultsMode ? "h-[80vh] max-h-[800px]" : "h-auto"
               )}
             >
               {/* Sticky Search Header */}
-              <div className="flex-none p-4 pb-2 border-b border-border shrink-0 bg-[#0a0a0f] z-10 sticky top-0">
-                <div className="flex items-center gap-3 bg-muted border border-border rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-vt-info/40 focus-within:border-vt-info transition-all">
+              <div className="flex-none p-4 pb-2 border-b border-white/10 shrink-0 bg-transparent z-10 sticky top-0">
+                <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-[#34e6b0]/35 focus-within:border-[#34e6b0]/60 transition-all">
                   <Search className="w-5 h-5 text-foreground/70 shrink-0" />
                   <input
                     ref={inputRef}
                     className="flex-1 bg-transparent border-none outline-none text-lg text-foreground placeholder:text-muted-foreground/60"
-                    placeholder="Search clinicians, employers, opportunities, or Ask AI..."
+                    placeholder="Jump to your wallet, readiness, or Recognition — or ask VitalCV"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                     onKeyDown={handleKeyDown}
                   />
-                  {loading && <div className="w-4 h-4 rounded-full border-2 border-vt-info border-t-transparent animate-spin shrink-0" />}
+                  {loading && <div className="w-4 h-4 rounded-full border-2 border-[#34e6b0] border-t-transparent animate-spin shrink-0" />}
                   <div className="flex gap-1 shrink-0 ml-2">
-                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">ESC</kbd>
+                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] font-mono text-muted-foreground bg-white/5 rounded border border-white/10">ESC</kbd>
                   </div>
                 </div>
 
@@ -284,9 +288,9 @@ export function CommandPalette() {
                 {!isResultsMode ? (
                   <div className="px-2 py-4">
                     <div className="flex items-center justify-between px-2 mb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Suggested Actions</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 bg-muted px-2 py-1 rounded-sm border border-white/5">
-                        <Globe className="w-3 h-3" /> ACL-Safe Search Active
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quick actions</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/60 bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+                        ↑↓ move · ↵ open · esc close
                       </div>
                     </div>
 
@@ -308,7 +312,7 @@ export function CommandPalette() {
                             )}
                           >
                             <div className="flex items-center gap-3 mb-2 w-full">
-                              <div className={cn("p-2 rounded-lg", selected ? "bg-vt-info/20 text-vt-info" : "bg-muted text-foreground")}>
+                              <div className={cn("p-2 rounded-lg", selected ? "bg-[#34e6b0]/20 text-[#34e6b0]" : "bg-white/5 text-foreground")}>
                                 <Icon className="w-5 h-5" />
                               </div>
                               <div className="font-medium text-foreground flex-1">{action.label}</div>
@@ -321,12 +325,12 @@ export function CommandPalette() {
                     </div>
 
                     <div className="mt-8 px-2">
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 flex gap-4 items-start">
-                        <Sparkles className="w-6 h-6 text-indigo-400 shrink-0 mt-1" />
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-[#34e6b0]/10 to-[#ff9e7a]/10 border border-[#34e6b0]/20 flex gap-4 items-start">
+                        <Sparkles className="w-6 h-6 text-[#34e6b0] shrink-0 mt-1" />
                         <div>
-                          <h4 className="text-sm font-medium text-indigo-300 mb-1">Try Natural Language</h4>
+                          <h4 className="text-sm font-medium text-[#8cf7dd] mb-1">Ask in plain language</h4>
                           <p className="text-xs text-foreground">
-                            "What are the onboarding requirements for Kaiser ICU?" or "Show me all telemetry events from the last 24 hours."
+                            &ldquo;What&rsquo;s blocking my readiness?&rdquo; or &ldquo;Which sources are still gated for my NPI?&rdquo;
                           </p>
                         </div>
                       </div>
@@ -401,12 +405,12 @@ export function CommandPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex-none p-2 border-t border-border bg-card text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
+              <div className="flex-none p-2 border-t border-white/10 bg-transparent text-[10px] text-muted-foreground/60 flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↑↓</kbd> to navigate</span>
-                  <span className="flex items-center gap-1"><kbd className="bg-muted px-1 rounded">↵</kbd> to select</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-white/5 border border-white/10 px-1 rounded">↑↓</kbd> to navigate</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-white/5 border border-white/10 px-1 rounded">↵</kbd> to select</span>
                 </div>
-                <div>Global Control Plane Access</div>
+                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[#34e6b0]" /> VitalCV · your career wallet</div>
               </div>
             </motion.div>
           </div>

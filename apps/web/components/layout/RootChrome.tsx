@@ -71,7 +71,9 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       ) : null}
       {clerkEnabled ? pilotReporter : null}
       {clerkEnabled ? <PilotSignInTracker /> : null}
-      <VCommandBar />
+      {/* VCommandBar is operator tooling — mounted only on operational routes
+          (above). Public / clinician surfaces use the clinician CommandPalette
+          (mounted in the root layout), which owns "/" and ⌘K here. */}
     </div>
   );
 }
