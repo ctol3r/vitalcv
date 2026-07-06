@@ -58,8 +58,18 @@ const PROHIBITED_CLAIMS: ReadonlyArray<{ phrase: string; fix: string }> = [
 const SCAN_ROOTS: string[] = [
   join('apps', 'web', 'app'),
   join('apps', 'web', 'components'),
+  join('apps', 'marketing'),
   ...process.argv.slice(2),
 ];
+
+// M1-8: allowlist for legitimate technical-doc usage. Each entry is
+// { file, phrase } — an exact repo-relative path + phrase intentionally present.
+// Keep SMALL and reviewed; it is the escape hatch, not a mute.
+interface AllowEntry { file: string; phrase: string; note?: string }
+let ALLOWLIST: AllowEntry[] = [];
+try {
+  ALLOWLIST = JSON.parse(readFileSync(join(repoRoot, 'scripts', 'copy-audit-allowlist.json'), 'utf8'));
+} catch { ALLOWLIST = []; }
 
 const SCANNABLE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.md', '.mdx', '.json']);
 const EXCLUDED_DIR_NAMES = new Set([
@@ -91,6 +101,15 @@ const NORMALIZED_CLAIMS = PROHIBITED_CLAIMS.map((claim) => ({
   ...claim,
   needle: normalize(claim.phrase),
 }));
+
+function isAllowed(file: string, phrase: string): boolean {
+  return ALLOWLIST.some((e) => e.file === file && normalize(e.phrase) === normalize(phrase));
+}
+
+// CLAUDE.md: "No status label may be the bare word `Verified`." Narrow detectors —
+// a JSX text node (>Verified<) or a standalone quoted status value ('Verified').
+const BARE_VERIFIED_JSX = />\s*Verified\s*</;
+const BARE_VERIFIED_LITERAL = /(['"`])Verified\1/;
 
 // Source-code extensions. For these we skip comment lines (a code comment is not
 // public copy — CLAUDE.md itself enumerates the banned phrases in comments). We do
@@ -157,18 +176,29 @@ function scanFile(absPath: string): void {
       }
     }
 
+    const rel = relative(repoRoot, absPath);
     const haystack = normalize(raw);
     for (const claim of NORMALIZED_CLAIMS) {
       const idx = haystack.indexOf(claim.needle);
-      if (idx >= 0 && !precededByNegation(haystack, idx)) {
+      if (idx >= 0 && !precededByNegation(haystack, idx) && !isAllowed(rel, claim.phrase)) {
         hits.push({
-          file: relative(repoRoot, absPath),
+          file: rel,
           line: i + 1,
           phrase: claim.phrase,
           fix: claim.fix,
           text: raw.trim().slice(0, 160),
         });
       }
+    }
+    // Bare-"Verified" status label (skips comment lines already `continue`d above).
+    if ((BARE_VERIFIED_JSX.test(raw) || BARE_VERIFIED_LITERAL.test(raw)) && !isAllowed(rel, 'Verified')) {
+      hits.push({
+        file: rel,
+        line: i + 1,
+        phrase: 'Verified (bare status label)',
+        fix: 'No status label may be the bare word "Verified" — use "Checked" or a coverage state.',
+        text: raw.trim().slice(0, 160),
+      });
     }
   }
 }
