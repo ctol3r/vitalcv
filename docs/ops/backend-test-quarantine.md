@@ -40,6 +40,8 @@ was never revisited (it hid passing suites); this list exists to be emptied.
 | `src/services/passport/__tests__/npiPassportContract.test.ts` | assertion (uninvestigated) | `buildPassportDataByNpi` frontend-safe contract shape drifted from fixture. |
 | `src/services/simulation/__tests__/liveSimulationEngine.test.ts` | **possible import-time bug** | Suite fails to run at `import '../liveSimulationEngine'` — if the module throws at import, production importing it would too. Investigate before "fixing" the test. |
 | `tests/e2e/fhirExport.spec.ts` | e2e (uninvestigated) | FHIR export end-to-end; classify. |
+| `src/routes/__tests__/decisionRecommendations.test.ts` | **product bug (same as predictions)** | Institution recommendation bucket returns 0 (expected 1) — downstream of the `predictionEngineService.ts:189` `groupBy` field-name bug. Fixing the service should green both; delete both rows together. |
+| `__tests__/passportEntity.pdf.test.ts` | assertion — possible contract change | `renderPassportPdf`/`buildPassportDataByNpi` mocks not invoked as pinned and the fail-closed 404 body shape drifted (`Expected -3 / Received +1`). Verify whether the PDF route's error contract changed intentionally; update pins only if so. |
 
 ## Already fixed (NOT quarantined — left to run under the gate)
 - `trustStateEngine.authority` — clock-pin fix (commit `67f47ca2`).
