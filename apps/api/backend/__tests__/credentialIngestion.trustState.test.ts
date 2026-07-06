@@ -75,6 +75,11 @@ describe('trust state engine with credential ingestion artifacts', () => {
       source: 'OIG_LEIE',
       leieVersionDate: '2026-03-10',
       dataVersion: '2026-03',
+      cacheAge: 'fresh',
+      sourceLatency: 'MONTHLY',
+      dataFreshness: 'MONTHLY',
+      lastVerifiedAt: '2026-03-13T12:00:00.000Z',
+      provenance: 'https://oig.hhs.gov/exclusions/downloadables/UPDATED.csv',
     });
     fetchSpy.mockResolvedValue({
       ok: true,
