@@ -1,25 +1,36 @@
 'use client';
 
 /**
- * GetReadySurface — first clinician NPI binding.
+ * GetReadySurface — the clinician access gate + first NPI binding.
  *
- * Every no-NPI empty state in the product (wallet, readiness, prequalify
- * ribbon) routes here. The flow:
+ * A ChatGPT-for-Clinicians-style gated flow, adapted to VitalCV's truth
+ * contract. Every no-NPI empty state in the product (wallet, readiness,
+ * prequalify ribbon) routes here. The flow:
  *
  *   checking → signed_out            (no Clerk session → sign in first)
  *            → already_bound         (workspace already has an NPI)
- *            → form → submitting → success | form+error
+ *            → intro                 (signed in → "Confirm you're a clinician")
+ *              → form → submitting → success | form+error
  *
  * Binding is POST /api/profile/npi/bootstrap: the backend resolves the live
  * NPPES registry record, upserts the workspace PersonProfile, and emits an
- * audit event. Copy states the registry-identity match only — license and
- * exclusion checks run on the readiness surface, and nothing here claims
- * them.
+ * audit event. Copy states the registry-identity match only — an NPPES match
+ * and a self-attested profession are NOT license/identity proofing, and nothing
+ * here presents them as a completed license check or a bare "Verified" status.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  ChevronRight,
+  FileCheck2,
+  Loader2,
+  ShieldCheck,
+  Stethoscope,
+  Wallet,
+} from 'lucide-react';
 import {
   describeBootstrapError,
   isNpiBootstrapResult,
@@ -33,6 +44,7 @@ type Phase =
   | 'checking'
   | 'signed_out'
   | 'already_bound'
+  | 'intro'
   | 'form'
   | 'submitting'
   | 'success'
@@ -58,6 +70,33 @@ type Profession = (typeof PROFESSIONS)[number]['value'];
 /** Bump when the services-agreement / attestation copy materially changes. */
 const ATTESTATION_VERSION = 'v1';
 
+/** Honest value props — VitalCV's real clinician offer, no over-claim. */
+const BENEFITS: ReadonlyArray<{ icon: React.ReactNode; text: string }> = [
+  { icon: <Stethoscope className="h-4 w-4" aria-hidden />, text: 'Source-backed career evidence that follows you across every role' },
+  { icon: <Wallet className="h-4 w-4" aria-hidden />, text: 'A clinician-owned career wallet — free to start, and yours to keep' },
+  { icon: <FileCheck2 className="h-4 w-4" aria-hidden />, text: 'An employer-ready readiness packet that shortens Time-to-Start' },
+  { icon: <ShieldCheck className="h-4 w-4" aria-hidden />, text: 'Your evidence, your control — no credit card, no document uploads to start' },
+];
+
+const FAQS: ReadonlyArray<{ q: string; a: string }> = [
+  {
+    q: 'Who can confirm?',
+    a: 'Practicing U.S. clinicians with an individual (Type 1) NPI — physicians (MD/DO), nurse practitioners, physician assistants, pharmacists, registered nurses, and dentists.',
+  },
+  {
+    q: 'How does it work?',
+    a: 'You enter your NPI. VitalCV matches it against the public NPPES registry to start your workspace. License, exclusion, and enrollment checks run separately on your readiness surface, each with its own source receipt.',
+  },
+  {
+    q: 'What do I need?',
+    a: 'Your 10-digit NPI. Optionally, a work email to corroborate the match with a possession signal. No documents required to get started.',
+  },
+  {
+    q: 'Is this identity or license verification?',
+    a: 'No. An NPPES match confirms your public registry identity record only. Government ID, liveness, and license verification are separate — VitalCV never presents an attestation or registry match as a completed license check.',
+  },
+];
+
 export default function GetReadySurface() {
   const [phase, setPhase] = useState<Phase>('checking');
   const [existingNpi, setExistingNpi] = useState<string | null>(null);
@@ -66,6 +105,7 @@ export default function GetReadySurface() {
   const [npiInput, setNpiInput] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BoundIdentitySummary | null>(null);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -90,14 +130,18 @@ export default function GetReadySurface() {
           setPhase('load_error');
           return;
         }
-        const data = (await res.json()) as { personProfile?: { npi?: string | null } | null };
+        const data = (await res.json()) as {
+          personProfile?: { npi?: string | null } | null;
+          accountEmail?: string | null;
+        };
         if (cancelled) return;
+        if (typeof data.accountEmail === 'string') setAccountEmail(data.accountEmail);
         const npi = data.personProfile?.npi ?? null;
         if (npi) {
           setExistingNpi(npi);
           setPhase('already_bound');
         } else {
-          setPhase('form');
+          setPhase('intro');
         }
       } catch {
         if (!cancelled) setPhase('load_error');
@@ -167,7 +211,7 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
-          <Loader2 className="h-7 w-7 text-zinc-500 animate-spin" aria-hidden />
+          <Loader2 className="h-7 w-7 text-zinc-400 animate-spin" aria-hidden />
           <p className="text-sm text-zinc-500">Checking your workspace…</p>
         </div>
       </Shell>
@@ -178,19 +222,17 @@ export default function GetReadySurface() {
   if (phase === 'signed_out') {
     return (
       <Shell>
+        <GateIcon />
         <Header
-          title="Sign in to connect your NPI"
+          title="Sign in to confirm you're a clinician"
           lede="Your NPI binds to your VitalCV account, so sign-in comes first. It takes under a minute."
         />
-        <Link
-          href="/sign-in?redirect_url=%2Fget-ready"
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
-        >
+        <Link href="/sign-in?redirect_url=%2Fget-ready" className={primaryBtn}>
           Sign in to continue <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
-        <p className="mt-4 text-center text-xs text-zinc-600">
+        <p className="mt-4 text-center text-xs text-zinc-500">
           New here?{' '}
-          <Link href="/sign-up" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+          <Link href="/sign-up" className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-600">
             Create your free account
           </Link>
         </p>
@@ -203,16 +245,12 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="space-y-4 text-center">
-          <AlertCircle className="mx-auto h-8 w-8 text-red-400" aria-hidden />
-          <p className="font-medium text-foreground">Couldn&apos;t check your workspace</p>
-          <p className="text-sm text-zinc-400">
+          <AlertCircle className="mx-auto h-8 w-8 text-red-500" aria-hidden />
+          <p className="font-medium text-zinc-900">Couldn&apos;t check your workspace</p>
+          <p className="text-sm text-zinc-500">
             This is a system state — not a finding about your account. Try again shortly.
           </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 transition hover:text-foreground"
-          >
+          <button type="button" onClick={() => window.location.reload()} className={secondaryBtn}>
             Try again
           </button>
         </div>
@@ -224,24 +262,48 @@ export default function GetReadySurface() {
   if (phase === 'already_bound' && existingNpi) {
     return (
       <Shell>
+        <GateIcon done />
         <Header
           title="Your NPI is already connected"
           lede={`This workspace is bound to NPI ${existingNpi}. Your wallet and readiness surfaces read from it.`}
         />
         <div className="mt-6 space-y-3">
-          <Link
-            href="/holder"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
-          >
+          <Link href="/holder" className={primaryBtn}>
             Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
-          <Link
-            href="/holder/readiness"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-7 py-3.5 text-sm font-semibold text-zinc-300 transition hover:border-emerald-800 hover:text-emerald-300"
-          >
+          <Link href="/holder/readiness" className={secondaryBtn}>
             Check your readiness
           </Link>
         </div>
+      </Shell>
+    );
+  }
+
+  /* ── Intro / access gate (signed in, no NPI yet) ── */
+  if (phase === 'intro') {
+    return (
+      <Shell>
+        <GateIcon />
+        <Header
+          title="Confirm you are a clinician"
+          lede="Confirm you're a practicing clinician to unlock your VitalCV workspace — your free, source-backed career wallet."
+        />
+        <p className="mt-4 text-sm text-zinc-500">
+          You&apos;re signed in as{' '}
+          <span className="font-medium text-zinc-900">{accountEmail ?? 'your account'}</span>.
+        </p>
+        <button type="button" onClick={() => setPhase('form')} className={`${primaryBtn} mt-5`}>
+          Confirm you&apos;re a clinician <ChevronRight className="h-4 w-4" aria-hidden />
+        </button>
+        <p className="mt-4 text-center text-xs text-zinc-500">
+          <Link
+            href="/sign-in?redirect_url=%2Fget-ready"
+            className="underline underline-offset-2 hover:text-zinc-700"
+          >
+            Use a different account
+          </Link>
+        </p>
+        <FaqSection />
       </Shell>
     );
   }
@@ -250,15 +312,13 @@ export default function GetReadySurface() {
   if (phase === 'success' && summary) {
     return (
       <Shell>
-        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-900 bg-emerald-950/40">
-          <ShieldCheck className="h-7 w-7 text-emerald-400" aria-hidden />
-        </div>
+        <GateIcon done />
         <Header
           title={summary.isOrganizationNpi ? 'Organization NPI detected' : 'NPPES identity record matched'}
           lede={summary.statement}
         />
         {!summary.isOrganizationNpi && (
-          <dl className="mt-6 space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-left text-sm">
+          <dl className="mt-6 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-left text-sm">
             <SummaryRow label="Registry name" value={summary.displayName ?? 'Not listed in NPPES'} />
             <SummaryRow label="Specialty" value={summary.specialty ?? 'Not listed in NPPES'} />
             <SummaryRow label="State" value={summary.stateOfPractice ?? 'Not listed in NPPES'} />
@@ -270,16 +330,10 @@ export default function GetReadySurface() {
           </div>
         )}
         <div className="mt-6 space-y-3">
-          <Link
-            href="/holder/readiness"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400"
-          >
+          <Link href="/holder/readiness" className={primaryBtn}>
             See your source-backed readiness <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
-          <Link
-            href="/holder"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-7 py-3.5 text-sm font-semibold text-zinc-300 transition hover:border-emerald-800 hover:text-emerald-300"
-          >
+          <Link href="/holder" className={secondaryBtn}>
             Open your wallet
           </Link>
         </div>
@@ -291,12 +345,10 @@ export default function GetReadySurface() {
   const submitting = phase === 'submitting';
   return (
     <Shell>
-      <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900">
-        <ShieldCheck className="h-7 w-7 text-emerald-400" aria-hidden />
-      </div>
+      <GateIcon />
       <Header
-        title="Connect your NPI"
-        lede="VitalCV reads your public NPPES registry record to start your clinician workspace. No document uploads required to get started."
+        title="Confirm you are a clinician"
+        lede="Enter your NPI to start your workspace. VitalCV reads your public NPPES registry record — no document uploads required to get started."
       />
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
         <fieldset disabled={submitting} className="border-0 p-0 m-0">
@@ -314,8 +366,8 @@ export default function GetReadySurface() {
                   aria-pressed={selected}
                   className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${
                     selected
-                      ? 'border-emerald-600 bg-emerald-950/40 text-emerald-200'
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500'
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400'
                   }`}
                 >
                   {p.label}
@@ -323,7 +375,7 @@ export default function GetReadySurface() {
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-zinc-500">
             You&apos;re attesting to your role — it guides which checks apply and isn&apos;t
             license-verified here.
           </p>
@@ -343,20 +395,20 @@ export default function GetReadySurface() {
             disabled={submitting}
             aria-invalid={formError ? true : undefined}
             aria-describedby={formError ? 'npi-error' : 'npi-help'}
-            className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 font-mono text-base text-foreground placeholder:text-zinc-600 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+            className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-mono text-base text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-200"
           />
           {formError ? (
-            <p id="npi-error" role="alert" className="mt-2 text-sm text-red-400">
+            <p id="npi-error" role="alert" className="mt-2 text-sm text-red-600">
               {formError}
             </p>
           ) : (
-            <p id="npi-help" className="mt-2 text-xs text-zinc-600">
+            <p id="npi-help" className="mt-2 text-xs text-zinc-500">
               Don&apos;t know it? Search the{' '}
               <a
                 href="https://npiregistry.cms.hhs.gov/"
                 target="_blank"
                 rel="noreferrer"
-                className="underline underline-offset-2 hover:text-zinc-400"
+                className="underline underline-offset-2 hover:text-zinc-700"
               >
                 NPPES registry
               </a>
@@ -364,13 +416,13 @@ export default function GetReadySurface() {
             </p>
           )}
         </div>
-        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-400">
+        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-600">
           <input
             type="checkbox"
             checked={attested}
             onChange={(e) => setAttested(e.target.checked)}
             disabled={submitting}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-zinc-900"
           />
           <span>
             I attest that I am a licensed clinician and agree to the{' '}
@@ -378,42 +430,103 @@ export default function GetReadySurface() {
               href="/terms"
               target="_blank"
               rel="noreferrer"
-              className="underline underline-offset-2 hover:text-zinc-200"
+              className="underline underline-offset-2 hover:text-zinc-900"
             >
               VitalCV Services Agreement
             </a>
             . VitalCV records this attestation; it does not verify it here.
           </span>
         </label>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <button type="submit" disabled={submitting} className={`${primaryBtn} disabled:cursor-not-allowed disabled:opacity-60`}>
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Checking the NPPES registry…
             </>
           ) : (
             <>
-              Connect NPI <ChevronRight className="h-4 w-4" aria-hidden />
+              Continue <ChevronRight className="h-4 w-4" aria-hidden />
             </>
           )}
         </button>
-        <p className="text-xs leading-relaxed text-zinc-600">
+        <p className="text-xs leading-relaxed text-zinc-500">
           This matches your public registry identity record. It does not verify licenses,
           exclusions, or enrollment — those source checks run on your readiness surface,
           each with its own receipt.
         </p>
       </form>
+      <FaqSection />
     </Shell>
   );
 }
 
+/* ── Layout: clean light split-panel (action left, benefits right) ── */
+
+const primaryBtn =
+  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-zinc-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800';
+const secondaryBtn =
+  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-zinc-300 px-7 py-3.5 text-sm font-semibold text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900';
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 py-12">
-      <div className="w-full max-w-md text-center">{children}</div>
+    <div className="grid min-h-screen bg-white lg:grid-cols-2">
+      <div className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md text-center">{children}</div>
+      </div>
+      <BenefitsPanel />
+    </div>
+  );
+}
+
+function BenefitsPanel() {
+  return (
+    <div className="relative hidden overflow-hidden lg:flex lg:items-center lg:justify-center">
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #22d3ee 45%, #5eead4 100%)' }}
+        aria-hidden
+      />
+      <div className="relative z-10 mx-8 w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl">
+        <h2 className="text-xl font-bold text-zinc-900">VitalCV for Clinicians</h2>
+        <p className="mt-1 text-sm font-medium text-zinc-500">Your free, source-backed career wallet</p>
+        <ul className="mt-6 space-y-4">
+          {BENEFITS.map((b, i) => (
+            <li key={i} className="flex items-start gap-3 text-sm text-zinc-700">
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white">
+                {b.icon}
+              </span>
+              <span className="leading-relaxed">{b.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function FaqSection() {
+  return (
+    <section className="mt-10 border-t border-zinc-200 pt-6 text-left">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Verification FAQ</h3>
+      <dl className="mt-4 space-y-4">
+        {FAQS.map((f) => (
+          <div key={f.q}>
+            <dt className="text-sm font-semibold text-zinc-900">{f.q}</dt>
+            <dd className="mt-1 text-sm leading-relaxed text-zinc-500">{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function GateIcon({ done = false }: { done?: boolean }) {
+  return (
+    <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50">
+      {done ? (
+        <Check className="h-7 w-7 text-emerald-600" aria-hidden />
+      ) : (
+        <ShieldCheck className="h-7 w-7 text-zinc-900" aria-hidden />
+      )}
     </div>
   );
 }
@@ -421,8 +534,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Header({ title, lede }: { title: string; lede: string }) {
   return (
     <div className="mt-5">
-      <h1 className="mb-2 text-2xl font-bold text-foreground">{title}</h1>
-      <p className="text-sm leading-relaxed text-zinc-400">{lede}</p>
+      <h1 className="mb-2 text-2xl font-bold text-zinc-900">{title}</h1>
+      <p className="text-sm leading-relaxed text-zinc-500">{lede}</p>
     </div>
   );
 }
@@ -431,7 +544,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-xs uppercase tracking-wider text-zinc-500">{label}</dt>
-      <dd className="text-right text-sm text-zinc-200">{value}</dd>
+      <dd className="text-right text-sm text-zinc-800">{value}</dd>
     </div>
   );
 }
