@@ -17,6 +17,7 @@ import { getRequestOrganizationId } from './middleware/organizationContext';
 import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middleware/publicSafety';
 import { credentialStatusRateLimit, proofRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
 import { requestObservability } from './middleware/requestObservability';
+import { verifiedIdentityMiddleware } from './middleware/verifiedIdentity';
 import {
     enforceOrganizationMatch,
     isSuperAdminRequest,
@@ -3481,6 +3482,12 @@ app.use(
 // /api/replay/runs/:runId and /api/replay/runs/by-npi/:npi are public verifier surfaces.
 registerReplayRunRoutes(app);
 registerReplayByNpiRoute(app);
+
+// G1 verified identity (CLERK_JWT_VERIFICATION: off|shadow|enforce). Mounted
+// BEFORE the tenant guard so enforce mode rewrites x-clerk-user-id to the
+// verified JWT sub (and strips role-bypass headers on unverified requests)
+// before any downstream reader — including tenantGuard — consumes them.
+app.use(verifiedIdentityMiddleware);
 
 // Intelligence/investigation read routes bypass org requirement.
 // All other routes still require org context via requireTenantContext.
