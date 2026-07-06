@@ -1,0 +1,33 @@
+name: Audit Coverage Gate
+
+# M1-2 — freezes the mutating-route audit-coverage baseline. Fails if a NEW
+# route file with mutating handlers (POST/PUT/PATCH/DELETE) lands without a
+# durable AuditEvent write and isn't reviewed into the baseline. Doctrine
+# anti-drift rule #2: every mutating action writes an AuditEvent before 2xx.
+# See docs/security/audit-coverage.md.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/backend/src/routes/**'
+      - 'apps/api/backend/audit-coverage-baseline.json'
+      - 'scripts/check-audit-coverage.ts'
+      - '.github/workflows/audit-coverage-gate.yml'
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  audit-coverage:
+    name: Mutating-route audit coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check audit coverage baseline
+        run: node --experimental-strip-types scripts/check-audit-coverage.ts
