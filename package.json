@@ -34,7 +34,9 @@
   "pnpm": {
     "overrides": {
       "@types/react": "^19",
-      "@types/react-dom": "^19"
+      "@types/react-dom": "^19",
+      "protobufjs": "^7.5.5",
+      "shell-quote": "^1.8.4"
     }
   }
 }

@@ -1,0 +1,47 @@
+# Dependabot — enterprise-map B1 / ASVS G8.
+# Keeps the dependency tree patched so the SCA gate (.github/workflows/security-audit.yml)
+# stays green on criticals and the high backlog trends down instead of up.
+#
+# NOTE: this file configures *version* updates. Dependabot *security* updates
+# (immediate PRs for GHSA alerts) also require the repo-level toggle:
+#   Settings → Code security → Dependabot security updates → Enable.
+version: 2
+updates:
+  # npm ecosystem covers the whole pnpm workspace via the single root lockfile.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # Batch routine minor/patch bumps into one PR to cut review noise.
+      # Majors and security fixes still open as focused, individual PRs.
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Keep CI action pins current — GitHub Actions are part of the supply chain.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
