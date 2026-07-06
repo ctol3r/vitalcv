@@ -97,3 +97,11 @@ dist/
 .worktrees/
 
 apps/web/lib/generated/
+
+# Env files: ignore ALL real env files; only *.example may be tracked (M0-3).
+.env
+.env.*
+!.env.example
+!.env.*.example
+# Local secret-scan raw output
+docs/security/gitleaks-report-*.json
