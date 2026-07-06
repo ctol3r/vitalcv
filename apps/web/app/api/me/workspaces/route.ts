@@ -27,6 +27,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
+  const accountEmail = typeof emailClaim === 'string' && emailClaim.length > 0 ? emailClaim : null;
+
   try {
     const upstream = await fetch(`${BACKEND}/api/me/workspaces`, {
       headers: buildForwardHeaders(session),
@@ -39,6 +42,11 @@ export async function GET() {
       return NextResponse.json(data, { status: upstream.status });
     }
 
+    // Surface the signed-in email (from the Clerk session claim) to the client
+    // gate so it can show "signed in as …". Additive; other callers ignore it.
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return NextResponse.json({ ...(data as Record<string, unknown>), accountEmail });
+    }
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
