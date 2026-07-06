@@ -56,8 +56,10 @@ function scrubValue(value: unknown, depth = 0): unknown {
   return value;
 }
 
-/** Sentry `beforeSend` / `beforeSendTransaction` hook. Returns a scrubbed event. */
-export function scrubEvent<T extends SentryEvent>(event: T): T {
+/** Sentry `beforeSend` / `beforeSendTransaction` hook. Returns a scrubbed event.
+ *  Typed loosely (Sentry's event shapes vary by SDK version); returns `any` so it
+ *  drops into `beforeSend` on server/client/edge without a version-coupled import. */
+export function scrubEvent(event: SentryEvent): any {
   // Never attach identifiable user data beyond a scrubbed id.
   if (event.user) {
     event.user = { id: event.user.id ? String(event.user.id) : undefined };
