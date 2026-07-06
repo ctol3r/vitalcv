@@ -35,6 +35,11 @@ import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
 import { trackClinicianEventOncePerSession } from '@/lib/mobile/analytics';
 import { buildClinicianProofSummary } from '@/lib/proof/proof-model';
 
+/** One heartbeat cycle for the readiness-card vitals monitor, tiled for a
+ *  seamless loop. Matches the homepage wallet's clinical-monitor language. */
+const READINESS_EKG =
+  'M0 22 H26 L34 22 L40 12 L46 30 L52 6 L58 34 L64 22 L72 22 H104 L112 22 L118 14 L124 28 L130 22 H160';
+
 function resumeLabel(path: string | null): { title: string; href: string } | null {
   if (!path || path === '/holder/home') {
     return null;
@@ -388,7 +393,7 @@ export default function ClinicianHomeSurface() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
+        <div className="vh-scope vh-js relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Readiness</p>
@@ -399,7 +404,7 @@ export default function ClinicianHomeSurface() {
                 Last synced {new Date(data.refreshedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </p>
             </div>
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-right">
+            <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-right shadow-[0_0_28px_-8px_rgba(45,212,191,0.55)]">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">Trust</p>
               <p className="mt-2 text-2xl font-semibold text-white">
                 {readiness ? `${readiness.readinessScore}/100` : 'Pending'}
@@ -408,11 +413,24 @@ export default function ClinicianHomeSurface() {
             </div>
           </div>
 
-          <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-cyan-300"
-              style={{ width: `${Math.max(8, readiness?.readinessScore ?? completeness)}%` }}
-            />
+          {/* Vitals monitor — the clinical heartbeat of the readiness card,
+              matching the public wallet's living-monitor language. */}
+          <div className="vh-monitor mt-5">
+            <svg viewBox="0 0 320 44" preserveAspectRatio="none">
+              <path d={READINESS_EKG} />
+              <path d={READINESS_EKG} transform="translate(160 0)" />
+            </svg>
+            <span aria-hidden="true" className="vh-monitor-beam" />
+            <span className="vh-monitor-label">EVIDENCE · LIVE READ</span>
+          </div>
+
+          {/* Readiness meter — segmented clinical readout with a leading pulse,
+              replacing the flat gradient bar. */}
+          <div
+            className="vh-bar mt-4"
+            style={{ '--vh-bar': `${Math.max(8, readiness?.readinessScore ?? completeness)}%` } as React.CSSProperties}
+          >
+            <div className="vh-bar-fill" />
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
