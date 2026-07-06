@@ -309,13 +309,25 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
       style={{
         position: 'relative',
         width: '100%',
-        borderRadius: 4,
         overflow: 'hidden',
-        background: 'radial-gradient(120% 90% at 50% 30%, #12121c 0%, #0a0a12 55%, #070709 100%)',
-        border: '1px solid rgba(139,140,240,0.14)',
+        // Blend into the page instead of sitting in a bordered box: no border or
+        // radius, just a faint nebula wash that fades to transparent so the
+        // starfield melts into whatever dark ground sits behind it.
+        background:
+          'radial-gradient(120% 95% at 50% 30%, rgba(139,140,240,0.07) 0%, rgba(95,212,191,0.03) 44%, transparent 72%)',
       }}
     >
-      <canvas ref={canvasRef} aria-label="Interactive constellation of a clinician career across time" style={{ display: 'block' }} />
+      <canvas
+        ref={canvasRef}
+        aria-label="Interactive constellation of a clinician career across time"
+        style={{
+          display: 'block',
+          // Soft radial edge-fade so the map has no hard rectangular border and
+          // dissolves into the surrounding section.
+          WebkitMaskImage: 'radial-gradient(130% 118% at 50% 44%, #000 64%, transparent 100%)',
+          maskImage: 'radial-gradient(130% 118% at 50% 44%, #000 64%, transparent 100%)',
+        }}
+      />
 
       {/* era readout — top left */}
       <div style={{ position: 'absolute', left: 18, top: 16, pointerEvents: 'none' }}>

@@ -1018,13 +1018,25 @@ export default function HomePageClient() {
           </section>
 
           {/* Career Evidence Network — static, calm diagram · Calm Wave D56 */}
+          {/* Career constellation — an immersive dark "sky" band the map blends into (no box). */}
           <section aria-label="Your career, in motion" data-home-network="" className="mz mt-16">
-            <div className="mz-card mz-dotgrid" style={{ padding: '32px 28px' }}>
-              <p className="mz-eyebrow">Your career, in motion</p>
-              <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
-                Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
+            <div
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 28,
+                padding: 'clamp(26px,4vw,44px)',
+                background:
+                  'radial-gradient(120% 130% at 50% -10%, #101a2b 0%, #0a1220 46%, #070b14 100%)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.06), 0 40px 120px -50px rgba(0,0,0,0.8)',
+              }}
+            >
+              <p className="mz-eyebrow" style={{ color: 'rgba(140,247,221,0.85)' }}>Your career, in motion</p>
+              <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640, color: '#EAF2EF' }}>
+                Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent" style={{ color: '#34E6B0' }}>constellation you can travel</span>.
               </h2>
-              <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
+              <p className="mz-body" style={{ marginTop: 14, maxWidth: 640, color: 'rgba(224,240,235,0.64)' }}>
                 Where you began, where you are, and where you&rsquo;re headed — one living sky. Drag to
                 rotate it; pull the slider to move through your career and watch the opportunities on your
                 horizon light up. Past and future are illustrative; your real evidence lives in your wallet.
