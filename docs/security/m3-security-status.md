@@ -24,15 +24,17 @@ rest with an honest disposition.
 
 ## Documented — NOT implemented (with reasons)
 
-- **G1 header-trust authentication (highest priority, deferred by design).** Backend
-  trusts `x-clerk-user-id` / `x-user-role:super-admin` / `x-org-id` without crypto
-  verification (`middleware/authMiddleware.ts`). The correct fix — verify a Clerk
-  **session JWT** server-side (issuer/audience/exp) and derive identity+org from
-  verified claims — is a **breaking change to the web→backend trust contract** (web
-  currently sets these headers *after* Clerk auth). It needs: a network boundary so
-  only the web tier can reach the API, or mTLS/signed service tokens between web and
-  API, plus a staged rollout. Too risky to change blind on a live auth path; **needs
-  an owner-reviewed design + staging test.** Tracked as launch-blocker / Wave 2C.
+- **G1 header-trust authentication — REMEDIATION LANDED 2026-07-06** (superseding the
+  "deferred" disposition above): `middleware/verifiedIdentity.ts` verifies the Clerk
+  session JWT the web tier already forwards (`Authorization: Bearer` on ~40/59 proxy
+  call sites) via remote JWKS, behind `CLERK_JWT_VERIFICATION=off/shadow/enforce`
+  (default off — zero traffic risk). Shadow mode measures forged headers and
+  token-forwarding coverage; enforce mode rewrites `x-clerk-user-id` from the
+  verified `sub` (all ~35 downstream header readers inherit proven identity), 401s
+  identity-without-token, and strips role-bypass headers on unverified requests.
+  18-case jest suite runs the real jose verification path. **Gap open until
+  enforce** — owner action: set `CLERK_ISSUER` + `CLERK_JWT_VERIFICATION=shadow` on
+  Railway, then follow `docs/security/verified-jwt-rollout.md`.
 - **G2 verifier RBAC enforcement (rollout-gated, not a code gap).** The RBAC decision
   core runs in **shadow mode** (`VERIFIER_RBAC_ENFORCED=false`) — denials are logged,
   not blocked, *by design* pending shadow-telemetry review (launch blocker #2). Flip

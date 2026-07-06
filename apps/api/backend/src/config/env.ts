@@ -157,6 +157,31 @@ const envSchema = z.object({
   // Deliberately NOT in the SYSTEM_FROZEN blocklist: freezing features must
   // not switch a security control off.
   VERIFIER_RBAC_ENFORCED: z.preprocess((raw) => parseBooleanEnvVar(raw, 'VERIFIER_RBAC_ENFORCED', false), z.boolean()),
+  // G1 header-trust closure — staged rollout of verified Clerk session JWTs
+  // (middleware/verifiedIdentity.ts). off = no-op; shadow = verify + log,
+  // never block; enforce = identity only from a verified token (401 on
+  // identity-header-without-token, role-bypass headers stripped when
+  // unverified). Same shadow-first pattern as VERIFIER_RBAC_ENFORCED, and
+  // likewise NOT in the SYSTEM_FROZEN blocklist.
+  CLERK_JWT_VERIFICATION: z.enum(['off', 'shadow', 'enforce']).default('off'),
+  // Clerk frontend-API origin, e.g. https://clerk.vitalcv.com — JWKS is fetched
+  // from `${CLERK_ISSUER}/.well-known/jwks.json`. Required for shadow/enforce
+  // (envValidation fails the boot on enforce-without-issuer).
+  CLERK_ISSUER: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw).trim()),
+    z.string(),
+  ),
+  // Optional comma-separated `azp` allowlist (Clerk authorizedParties), e.g.
+  // "https://vitalcv.com,https://www.vitalcv.com". Empty = azp not checked.
+  CLERK_AUTHORIZED_PARTIES: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw)),
+    z.string().transform((raw) =>
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
