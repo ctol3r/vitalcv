@@ -344,9 +344,11 @@ async function mintPsvCredential(
     issuer: issuerDid,
     issuanceDate,
     credentialSubject,
+    // Doctrine anti-drift #1: VitalCV never claims NPDB (nor DEA/ABMS/SAM.gov).
+    // The NPDB mock connector stays internal-only for future gated integration;
+    // it must NOT emit a PrimarySourceVerification claim on any credential.
     evidence: [
       { type: 'PrimarySourceVerification', verifier: 'NPPES', evidenceDocument: 'https://npiregistry.cms.hhs.gov' },
-      { type: 'PrimarySourceVerification', verifier: 'NPDB',  evidenceDocument: 'https://www.npdb.hrsa.gov' },
       { type: 'PrimarySourceVerification', verifier: 'STATE_BOARD', evidenceDocument: `https://vitalcv.ai/sources/state-board/${state.toLowerCase()}` },
     ],
     proof: {

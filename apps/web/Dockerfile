@@ -44,7 +44,9 @@ ENV NODE_ENV=production
 # Railway's runtime injection.
 ARG GIT_COMMIT_SHA=""
 ENV GIT_SHA=${GIT_COMMIT_SHA}
-COPY --from=build /app/apps/web/.next ./apps/web/.next
+# .next is chowned to node: `next start` writes ISR/image-cache under .next/cache
+# at runtime, so it must be writable by the non-root user (ASVS 1.2.1).
+COPY --from=build --chown=node:node /app/apps/web/.next ./apps/web/.next
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/apps/web/package.json ./apps/web/
 COPY --from=build /app/apps/web/prisma ./apps/web/prisma
@@ -57,6 +59,10 @@ COPY --from=build /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=build /app/package.json ./package.json
 WORKDIR /app/apps/web
+# Drop root (ASVS 1.2.1). pnpm is installed globally in `base`, so the node user
+# resolves it on PATH; only .next (chowned above) is written at runtime.
+# (Canonical Railway builder is Nixpacks — see docs/security/m3-security-status.md.)
+USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s \
   CMD wget -qO- "http://127.0.0.1:${PORT:-3000}/api/health" || exit 1

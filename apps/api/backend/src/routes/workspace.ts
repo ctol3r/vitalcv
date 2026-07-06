@@ -6,6 +6,9 @@ import {
   getWorkspacesForUser,
   switchWorkspace,
 } from '../services/workspace/workspaceService';
+import { randomUUID } from 'node:crypto';
+import prisma from '../graphql/prisma_client';
+import { sha256ForPayload } from '../utils/deterministic';
 import { log } from '../obs/logger';
 import { HttpError } from '../utils/httpError';
 
@@ -70,6 +73,26 @@ export function registerWorkspaceRoutes(app: Express): void {
 
       await ensureWorkspaceUser(clerkUserId, clerkEmail);
       const preference = await switchWorkspace(clerkUserId, body.persona, body.orgId);
+
+      // M6-1 / M1-2: workspace/persona context switch is a state mutation — write
+      // a durable AuditEvent BEFORE returning 2xx (doctrine anti-drift rule #2).
+      await prisma.auditEvent.create({
+        data: {
+          id: randomUUID(),
+          type: 'WORKSPACE_SWITCH',
+          hash: sha256ForPayload({
+            type: 'WORKSPACE_SWITCH',
+            clerkUserId,
+            persona: body.persona,
+            orgId: body.orgId ?? null,
+          }),
+          referenceId: clerkUserId,
+          organizationId: body.orgId ?? null,
+          anchored: false,
+          metadata: { persona: body.persona, orgId: body.orgId ?? null },
+        },
+      });
+
       res.json(preference);
     }),
   );

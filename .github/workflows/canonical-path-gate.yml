@@ -1,0 +1,39 @@
+name: Canonical Path Gate
+
+# M1-1 — proves the frozen doctrine (Recognition → Acceptance → Start,
+# fail-closed, revocation/expiry-aware) is ENFORCED, not just intended.
+# Runs the domain-common employment-guard suite (67 cases): rejects
+# self-reported recognition, missing PSV/countersignature, DID/scope mismatch,
+# out-of-order or expired timestamps, and unsupported proof types — every guard
+# fails closed. This is the trust product's load-bearing wall.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/domain-common/employmentGuards.ts'
+      - 'packages/domain-common/__tests__/employmentGuards.test.ts'
+      - 'packages/psv/**'
+      - 'packages/trust-state/**'
+      - '.github/workflows/canonical-path-gate.yml'
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  canonical-path:
+    name: Canonical-path guard proof
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run canonical-path guard suite (fail-closed proof)
+        run: pnpm --filter @vitalcv/domain-common exec vitest run __tests__/employmentGuards.test.ts
