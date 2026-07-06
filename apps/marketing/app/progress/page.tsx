@@ -23,7 +23,7 @@ const building: Milestone[] = [
 ];
 
 const next: Milestone[] = [
-  { date: '2026 Q1', title: 'Primary source verification', detail: 'Automated board license and DEA verification with evidence capture.' },
+  { date: '2026 Q1', title: 'Primary source checks', detail: 'State medical board license checks with evidence capture and honest coverage states.' },
   { date: '2026 Q1', title: 'Error tracking + observability', detail: 'Sentry integration, structured logging, and performance monitoring.' },
   { date: '2026 Q2', title: 'Credentialing workflow', detail: 'Multi-step credentialing with approval chains and audit trail.' },
 ];
