@@ -18,12 +18,14 @@
    ============================================================ */
 
 .vh-root {
-  /* Clinical signal palette — saturated, healthcare-native. */
-  --vh-emerald: #059669;
-  --vh-teal: #0d9aa2;
-  --vh-cyan: #22aecb;
-  --vh-mint: #34d399;
+  /* Jade + coral signal palette — warm, premium, career-native. */
+  --vh-emerald: #0fb894;
+  --vh-teal: #12bd9a;
+  --vh-cyan: #3ad3ad;
+  --vh-mint: #17c39a;
   --vh-amber: #d97706;
+  --vh-coral: #f2895f;
+  --vt-accent-emerald: var(--vh-emerald);
 
   --vh-pulse: var(--vh-emerald);
   --vh-pulse-soft: color-mix(in oklab, var(--vh-mint) 42%, transparent);
@@ -40,11 +42,13 @@
   --vh-glow: 0 0 22px color-mix(in oklab, var(--vh-teal) 40%, transparent);
 }
 .dark .vh-root {
-  --vh-emerald: #34d399;
-  --vh-teal: #2dd4bf;
-  --vh-cyan: #38bdf8;
-  --vh-mint: #6ee7b7;
+  --vh-emerald: #34e6b0;
+  --vh-teal: #23d6b0;
+  --vh-cyan: #5fe6cf;
+  --vh-mint: #7af0cf;
   --vh-amber: #fbbf24;
+  --vh-coral: #ff9e7a;
+  --vt-accent-emerald: var(--vh-emerald);
 }
 
 /* Reusable scope for the clinical-monitor components (meter, EKG,
@@ -111,11 +115,11 @@
   height: 46rem;
   background: radial-gradient(
     circle at center,
-    color-mix(in oklab, var(--vh-cyan) 26%, transparent) 0%,
-    color-mix(in oklab, var(--vh-mint) 14%, transparent) 45%,
+    color-mix(in oklab, var(--vh-coral, #ff9e7a) 24%, transparent) 0%,
+    color-mix(in oklab, var(--vh-mint) 14%, transparent) 46%,
     transparent 66%
   );
-  opacity: 0.7;
+  opacity: 0.6;
 }
 .vh-js .vh-aurora::before {
   animation: vh-drift-a 26s ease-in-out infinite alternate;
