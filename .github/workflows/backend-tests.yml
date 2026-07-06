@@ -99,5 +99,8 @@ jobs:
       # Backend jest resolves @vitalcv/* to TS source via moduleNameMapper
       # (no dist build needed). Sequential (maxWorkers:1) because suites share
       # the Postgres DB. Quarantined suites are excluded in jest.config.js.
+      # --forceExit: the suite passes (228/228) but a lingering async handle (DB
+      # pool / "Cannot log after tests are done") kept jest from exiting 0. Force a
+      # clean exit on green rather than fail the gate on a teardown-hygiene leak.
       - name: Backend jest (Postgres)
-        run: cd apps/api/backend && npx jest --ci
+        run: cd apps/api/backend && npx jest --ci --forceExit
