@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Award, Building2, Share2, TrendingUp } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
@@ -183,10 +184,28 @@ export default function ReadinessSurface() {
         {/* Live state log */}
         {loadState !== 'no-npi' && <LiveStateLog entries={logEntries} maxHeight={160} />}
 
-        {/* Loading */}
+        {/* Loading — a readiness-shaped skeleton, not a spinner */}
         {loadState === 'loading' && (
-          <div className="vcv-panel p-8 text-center">
-            <p className="vcv-mono text-sm vcv-muted animate-pulse">Checking sources…</p>
+          <div className="space-y-4" aria-busy="true" aria-live="polite">
+            <span className="sr-only">Checking sources…</span>
+            <div className="vcv-panel px-5 py-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="mt-3 h-4 w-3/4" />
+            </div>
+            <div className="vcv-panel overflow-hidden">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-4 border-t border-black/5 px-5 py-4 first:border-t-0"
+                >
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-2.5 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
