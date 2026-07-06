@@ -16,9 +16,11 @@ out/
 # Misc
 .DS_Store
 *.pem
+# Env files: ignore ALL real env files; only *.example may be tracked.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Debug
 npm-debug.log*
@@ -91,3 +93,6 @@ dist/
 .playbook-lineage/
 
 apps/web/lib/generated/
+
+# Local secret-scan raw output (see docs/security/*.md for triage)
+docs/security/gitleaks-report-*.json
