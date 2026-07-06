@@ -416,8 +416,9 @@ function WalletPreview() {
       ref={tiltRef}
       aria-hidden="true"
       data-home-wallet-preview=""
-      className="vh-wallet vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
+      className="vh-wallet vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5"
     >
+      <span aria-hidden="true" className="vh-wallet-halo" />
       {/* Wallet header */}
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--vt-text-primary)]">
@@ -437,6 +438,7 @@ function WalletPreview() {
           <path d={EKG_BEAT} />
           <path d={EKG_BEAT} transform="translate(160 0)" />
         </svg>
+        <span aria-hidden="true" className="vh-monitor-beam" />
         <span className="vh-monitor-label">EVIDENCE · LIVE READ</span>
       </div>
 
@@ -560,9 +562,10 @@ export default function HomePageClient() {
       className="mz vh-root relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]"
     >
       <div aria-hidden="true" className="vh-aurora" />
+      <div aria-hidden="true" className="vh-signalgrid" />
       <div
         aria-hidden="true"
-        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-60"
+        className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-40"
       />
 
       {CLERK_PROVIDER_ENABLED && (
@@ -610,7 +613,15 @@ export default function HomePageClient() {
                   viewBox="0 0 620 40"
                   preserveAspectRatio="none"
                 >
-                  <path d={EKG_HAIRLINE} />
+                  <defs>
+                    <linearGradient id="vh-ekg-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--vh-emerald)" />
+                      <stop offset="55%" stopColor="var(--vh-teal)" />
+                      <stop offset="100%" stopColor="var(--vh-cyan)" />
+                    </linearGradient>
+                  </defs>
+                  <path className="vh-ekg-draw" d={EKG_HAIRLINE} />
+                  <path className="vh-ekg-spark" d={EKG_HAIRLINE} />
                 </svg>
                 <p
                   data-home-hero-subhead=""

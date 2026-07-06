@@ -1,62 +1,96 @@
 /* ============================================================
-   home-vitals.css — motion + clinical visual layer for the
-   public homepage (HomePageClient). Scoped: every class is
-   prefixed .vh- and most effects require .vh-js on the page
-   root (set client-side), so SSR / no-JS / test renders are
-   fully visible and unchanged.
+   home-vitals.css — clinical-luminous motion + visual layer for
+   the public homepage (HomePageClient). Scoped: every class is
+   prefixed .vh- and continuous / entrance effects require .vh-js
+   on the page root (set client-side), so SSR / no-JS / test
+   renders stay fully visible and unchanged.
 
-   Truth notes: this layer is purely visual. It introduces no
-   product claims. The wallet visual remains a schematic
-   (aria-hidden) and its states come from the TSX data.
+   Design intent (Wave: Immaculate): this is medicine. A living
+   vitals monitor, a heartbeat that draws itself, a readiness
+   meter that reads like a clinical device — a luminous emerald /
+   teal / monitor-cyan signal on calm paper. Premium depth and
+   motion, never noise.
+
+   Truth notes: purely visual. Introduces no product claims. The
+   wallet visual stays a schematic (aria-hidden); its states come
+   from the TSX data. No banned copy, no status label reads as a
+   bare "verified".
    ============================================================ */
 
 .vh-root {
-  --vh-pulse: var(--vt-accent-emerald, #047857);
-  --vh-pulse-soft: color-mix(in oklab, var(--vh-pulse) 22%, transparent);
-  --vh-teal: color-mix(in oklab, var(--vh-pulse) 62%, #0ea5a3);
-  --vh-amber: color-mix(in oklab, #b45309 70%, var(--paper, #f4f1ea));
-  --vh-ink: var(--vt-text-primary, #1a1916);
+  /* Clinical signal palette — saturated, healthcare-native. */
+  --vh-emerald: #059669;
+  --vh-teal: #0d9aa2;
+  --vh-cyan: #22aecb;
+  --vh-mint: #34d399;
+  --vh-amber: #d97706;
+
+  --vh-pulse: var(--vh-emerald);
+  --vh-pulse-soft: color-mix(in oklab, var(--vh-mint) 42%, transparent);
+  --vh-ink: var(--vt-text-primary, #141414);
+
+  /* The signature gradient — one identity across meter, chips,
+     EKG, CTA and section accents so the page reads as one system. */
+  --vh-signal: linear-gradient(100deg, var(--vh-emerald), var(--vh-teal) 52%, var(--vh-cyan));
+  --vh-signal-soft: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--vh-emerald) 22%, transparent),
+    color-mix(in oklab, var(--vh-cyan) 20%, transparent)
+  );
+  --vh-glow: 0 0 22px color-mix(in oklab, var(--vh-teal) 40%, transparent);
+}
+.dark .vh-root {
+  --vh-emerald: #34d399;
+  --vh-teal: #2dd4bf;
+  --vh-cyan: #38bdf8;
+  --vh-mint: #6ee7b7;
+  --vh-amber: #fbbf24;
 }
 
 /* ------------------------------------------------------------
-   Aurora backdrop — two slow clinical-green drifts behind hero.
+   Luminous clinical atmosphere — three slow drifts + a soft
+   signal wash behind the hero. Present, not a whisper.
    ------------------------------------------------------------ */
 .vh-aurora {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  z-index: 0;
 }
 .vh-aurora::before,
 .vh-aurora::after {
   content: '';
   position: absolute;
-  width: 52rem;
-  height: 52rem;
+  width: 54rem;
+  height: 54rem;
   border-radius: 9999px;
-  filter: blur(70px);
-  opacity: 0.5;
+  filter: blur(64px);
+  opacity: 0.85;
   will-change: transform;
 }
 .vh-aurora::before {
-  top: -30rem;
-  right: -14rem;
+  top: -28rem;
+  right: -12rem;
   background: radial-gradient(
     circle at center,
-    color-mix(in oklab, var(--vh-pulse) 16%, transparent) 0%,
-    color-mix(in oklab, var(--vh-teal) 10%, transparent) 42%,
+    color-mix(in oklab, var(--vh-teal) 32%, transparent) 0%,
+    color-mix(in oklab, var(--vh-emerald) 20%, transparent) 40%,
     transparent 70%
   );
 }
 .vh-aurora::after {
-  top: 6rem;
-  left: -22rem;
+  top: 2rem;
+  left: -24rem;
+  width: 46rem;
+  height: 46rem;
   background: radial-gradient(
     circle at center,
-    color-mix(in oklab, var(--vh-amber) 14%, transparent) 0%,
-    transparent 62%
+    color-mix(in oklab, var(--vh-cyan) 26%, transparent) 0%,
+    color-mix(in oklab, var(--vh-mint) 14%, transparent) 45%,
+    transparent 66%
   );
-  opacity: 0.38;
+  opacity: 0.7;
 }
 .vh-js .vh-aurora::before {
   animation: vh-drift-a 26s ease-in-out infinite alternate;
@@ -66,11 +100,29 @@
 }
 @keyframes vh-drift-a {
   from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(-6rem, 4rem, 0) scale(1.12); }
+  to   { transform: translate3d(-6rem, 4rem, 0) scale(1.14); }
 }
 @keyframes vh-drift-b {
   from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(5rem, -2.5rem, 0) scale(1.08); }
+  to   { transform: translate3d(5rem, -3rem, 0) scale(1.1); }
+}
+
+/* Clinical signal grid — a faint monitor lattice over the hero,
+   fading out downward. Reads "device", not "spreadsheet". */
+.vh-signalgrid {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 40rem;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--vh-teal) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--vh-teal) 8%, transparent) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(120% 90% at 70% 0%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(120% 90% at 70% 0%, #000 0%, transparent 72%);
+  opacity: 0.6;
 }
 
 /* ------------------------------------------------------------
@@ -79,10 +131,10 @@
    ------------------------------------------------------------ */
 .vh-js .vh-reveal {
   opacity: 0;
-  transform: translateY(22px);
+  transform: translateY(24px);
   transition:
-    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
   transition-delay: var(--vh-delay, 0ms);
   will-change: opacity, transform;
 }
@@ -90,14 +142,12 @@
   opacity: 1;
   transform: translateY(0);
 }
-/* Stagger helper: children of a revealed group cascade. The group is marked
-   vh-in directly, or sits inside a revealed wrapper (descendant form). */
 .vh-js .vh-stagger > * {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(18px);
   transition:
-    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vh-js .vh-stagger.vh-in > *,
 .vh-js .vh-in .vh-stagger > * {
@@ -105,16 +155,16 @@
   transform: translateY(0);
 }
 .vh-js .vh-stagger.vh-in > *:nth-child(1), .vh-js .vh-in .vh-stagger > *:nth-child(1) { transition-delay: 0ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(2), .vh-js .vh-in .vh-stagger > *:nth-child(2) { transition-delay: 70ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(3), .vh-js .vh-in .vh-stagger > *:nth-child(3) { transition-delay: 140ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(4), .vh-js .vh-in .vh-stagger > *:nth-child(4) { transition-delay: 210ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(5), .vh-js .vh-in .vh-stagger > *:nth-child(5) { transition-delay: 280ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(6), .vh-js .vh-in .vh-stagger > *:nth-child(6) { transition-delay: 350ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(7), .vh-js .vh-in .vh-stagger > *:nth-child(7) { transition-delay: 420ms; }
-.vh-js .vh-stagger.vh-in > *:nth-child(8), .vh-js .vh-in .vh-stagger > *:nth-child(8) { transition-delay: 490ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(2), .vh-js .vh-in .vh-stagger > *:nth-child(2) { transition-delay: 75ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(3), .vh-js .vh-in .vh-stagger > *:nth-child(3) { transition-delay: 150ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(4), .vh-js .vh-in .vh-stagger > *:nth-child(4) { transition-delay: 225ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(5), .vh-js .vh-in .vh-stagger > *:nth-child(5) { transition-delay: 300ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(6), .vh-js .vh-in .vh-stagger > *:nth-child(6) { transition-delay: 375ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(7), .vh-js .vh-in .vh-stagger > *:nth-child(7) { transition-delay: 450ms; }
+.vh-js .vh-stagger.vh-in > *:nth-child(8), .vh-js .vh-in .vh-stagger > *:nth-child(8) { transition-delay: 525ms; }
 
 /* ------------------------------------------------------------
-   Eyebrow: pulsing status dot + growing hairline.
+   Eyebrow: pulsing signal dot with a luminous halo.
    ------------------------------------------------------------ */
 .vh-eyebrow {
   display: inline-flex;
@@ -122,40 +172,42 @@
   gap: 0.6rem;
 }
 .vh-eyebrow-dot {
-  width: 7px;
-  height: 7px;
+  position: relative;
+  width: 8px;
+  height: 8px;
   border-radius: 9999px;
-  background: var(--vh-pulse);
-  box-shadow: 0 0 0 0 var(--vh-pulse-soft);
+  background: var(--vh-mint);
+  box-shadow: 0 0 8px 1px color-mix(in oklab, var(--vh-mint) 70%, transparent);
   flex: none;
 }
 .vh-js .vh-eyebrow-dot {
   animation: vh-ping 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @keyframes vh-ping {
-  0%   { box-shadow: 0 0 0 0 var(--vh-pulse-soft); }
-  55%  { box-shadow: 0 0 0 9px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0%   { box-shadow: 0 0 8px 1px color-mix(in oklab, var(--vh-mint) 70%, transparent), 0 0 0 0 var(--vh-pulse-soft); }
+  55%  { box-shadow: 0 0 8px 1px color-mix(in oklab, var(--vh-mint) 70%, transparent), 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 8px 1px color-mix(in oklab, var(--vh-mint) 70%, transparent), 0 0 0 0 transparent; }
 }
 
 /* ------------------------------------------------------------
-   Hero EKG hairline — a heartbeat trace that draws itself once
-   under the H1, then idles with a soft glow sweep.
+   Hero EKG hairline — a bright heartbeat that draws itself once
+   under the H1, then a light pulse travels the trace.
    ------------------------------------------------------------ */
 .vh-ekg-line {
   display: block;
   width: min(34rem, 100%);
-  height: 28px;
+  height: 30px;
   overflow: visible;
 }
 .vh-ekg-line path {
   fill: none;
-  stroke: color-mix(in oklab, var(--vh-pulse) 55%, var(--vt-border, #d8d3c8));
-  stroke-width: 1.6;
+  stroke: url(#vh-ekg-grad);
+  stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--vh-teal) 45%, transparent));
 }
-.vh-js .vh-ekg-line path {
+.vh-js .vh-ekg-line path.vh-ekg-draw {
   stroke-dasharray: 640;
   stroke-dashoffset: 640;
   animation: vh-ekg-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.35s forwards;
@@ -163,13 +215,36 @@
 @keyframes vh-ekg-draw {
   to { stroke-dashoffset: 0; }
 }
+/* A short bright pulse that rides the line after it draws. */
+.vh-ekg-line path.vh-ekg-spark {
+  stroke: var(--vh-mint);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px var(--vh-mint));
+  stroke-dasharray: 26 614;
+  stroke-dashoffset: 640;
+  opacity: 0;
+}
+.vh-js .vh-ekg-line path.vh-ekg-spark {
+  animation: vh-ekg-spark 3.4s linear 2.6s infinite;
+}
+@keyframes vh-ekg-spark {
+  0%   { stroke-dashoffset: 640; opacity: 0; }
+  6%   { opacity: 1; }
+  60%  { opacity: 1; }
+  70%  { stroke-dashoffset: -40; opacity: 0; }
+  100% { stroke-dashoffset: -40; opacity: 0; }
+}
 
 /* ------------------------------------------------------------
-   Wallet card — living vitals monitor.
+   Wallet card — living clinical monitor with real depth.
    ------------------------------------------------------------ */
 .vh-wallet {
+  position: relative;
   transform-style: preserve-3d;
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 34px 80px -18px color-mix(in oklab, var(--vh-teal) 30%, rgba(15, 23, 42, 0.28));
 }
 .vh-js .vh-wallet {
   transform:
@@ -179,10 +254,22 @@
 }
 .vh-wallet:hover {
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.75),
-    0 42px 90px rgba(15, 23, 42, 0.16);
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 46px 100px -20px color-mix(in oklab, var(--vh-teal) 40%, rgba(15, 23, 42, 0.32));
 }
-/* Sheen sweep across the card on reveal + on hover. */
+/* Luminous signal edge along the top of the card. */
+.vh-wallet::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 999px;
+  margin: 0 1.5rem;
+  background: var(--vh-signal);
+  opacity: 0.9;
+  box-shadow: 0 0 16px color-mix(in oklab, var(--vh-teal) 55%, transparent);
+}
+/* Sheen sweep across the card on hover. */
 .vh-wallet::after {
   content: '';
   position: absolute;
@@ -192,7 +279,7 @@
   background: linear-gradient(
     105deg,
     transparent 38%,
-    rgba(255, 255, 255, 0.5) 48%,
+    rgba(255, 255, 255, 0.55) 48%,
     transparent 58%
   );
   background-size: 260% 100%;
@@ -206,30 +293,49 @@
   from { background-position: 130% 0; }
   to   { background-position: -60% 0; }
 }
+/* Soft aura floating behind the wallet — the device glows. */
+.vh-wallet-halo {
+  position: absolute;
+  inset: -14% -10% -18% -10%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    60% 55% at 60% 40%,
+    color-mix(in oklab, var(--vh-teal) 30%, transparent),
+    transparent 70%
+  );
+  filter: blur(30px);
+  pointer-events: none;
+}
+.vh-js .vh-wallet-halo {
+  animation: vh-halo 6s ease-in-out infinite;
+}
+@keyframes vh-halo {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.06); }
+}
 
-/* Monitor strip: continuously running EKG trace. */
+/* Monitor strip: continuously running EKG trace + scan beam. */
 .vh-monitor {
   position: relative;
-  height: 44px;
+  height: 48px;
   border-radius: 0.9rem;
   overflow: hidden;
   background:
-    linear-gradient(
-      color-mix(in oklab, var(--vh-pulse) 5%, var(--vt-bg, #faf8f3)),
-      color-mix(in oklab, var(--vh-pulse) 5%, var(--vt-bg, #faf8f3))
-    );
-  border: 1px solid color-mix(in oklab, var(--vh-pulse) 18%, var(--vt-border-subtle, #e4dfd4));
+    radial-gradient(120% 180% at 0% 0%, color-mix(in oklab, var(--vh-teal) 14%, #06231f) 0%, #071c1a 60%);
+  border: 1px solid color-mix(in oklab, var(--vh-teal) 40%, transparent);
+  box-shadow: inset 0 0 24px color-mix(in oklab, var(--vh-teal) 22%, transparent);
 }
-/* faint clinical grid */
+/* clinical grid inside the monitor */
 .vh-monitor::before {
   content: '';
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--vh-pulse) 9%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--vh-pulse) 9%, transparent) 1px, transparent 1px);
-  background-size: 11px 11px;
-  opacity: 0.5;
+    linear-gradient(to right, color-mix(in oklab, var(--vh-mint) 16%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--vh-mint) 16%, transparent) 1px, transparent 1px);
+  background-size: 12px 12px;
+  opacity: 0.4;
 }
 .vh-monitor svg {
   position: absolute;
@@ -239,68 +345,94 @@
 }
 .vh-monitor path {
   fill: none;
-  stroke: var(--vh-pulse);
-  stroke-width: 1.8;
+  stroke: var(--vh-mint);
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--vh-pulse) 60%, transparent));
+  filter: drop-shadow(0 0 4px var(--vh-mint));
 }
 .vh-js .vh-monitor svg {
-  animation: vh-trace 7s linear infinite;
+  animation: vh-trace 6s linear infinite;
 }
 @keyframes vh-trace {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
-/* Static fallback (no JS / reduced motion): show one heartbeat, no loop. */
-
+/* Bright scan beam sweeping left→right like a cardiac monitor cursor. */
+.vh-monitor-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--vh-mint) 45%, transparent) 70%,
+    color-mix(in oklab, var(--vh-mint) 85%, white) 100%
+  );
+  mix-blend-mode: screen;
+  transform: translateX(-70px);
+}
+.vh-js .vh-monitor-beam {
+  animation: vh-beam 6s linear infinite;
+}
+@keyframes vh-beam {
+  from { transform: translateX(-70px); }
+  to   { transform: translateX(360px); }
+}
 .vh-monitor-label {
   position: absolute;
   top: 6px;
-  right: 8px;
+  right: 9px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: color-mix(in oklab, var(--vh-pulse) 80%, var(--vh-ink));
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: color-mix(in oklab, var(--vh-mint) 75%, white);
+  text-shadow: 0 0 8px color-mix(in oklab, var(--vh-mint) 60%, transparent);
 }
 .vh-monitor-label::before {
   content: '';
   width: 5px;
   height: 5px;
   border-radius: 9999px;
-  background: var(--vh-pulse);
+  background: var(--vh-mint);
+  box-shadow: 0 0 6px var(--vh-mint);
 }
 .vh-js .vh-monitor-label::before {
   animation: vh-blink 1.6s ease-in-out infinite;
 }
 @keyframes vh-blink {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.25; }
+  50%      { opacity: 0.2; }
 }
 
-/* Readiness bar — clinical gradient + shimmer, replaces the ink-black bar. */
+/* Readiness meter — segmented clinical readout with a leading
+   pulse. This is the deliberate replacement for the old ink bar:
+   a luminous signal, never a heavy block. */
 .vh-bar {
   position: relative;
-  height: 10px;
+  height: 12px;
   border-radius: 9999px;
   overflow: hidden;
-  background: var(--vt-surface-subtle, #eee9de);
+  background: color-mix(in oklab, var(--vh-teal) 10%, var(--vt-surface-subtle, #eee9de));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--vh-teal) 16%, transparent);
 }
 .vh-bar-fill {
   position: relative;
   height: 100%;
   width: var(--vh-bar, 72%);
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--vh-pulse) 88%, #064e3b),
-    var(--vh-pulse) 55%,
-    var(--vh-teal)
-  );
-  box-shadow: 0 0 10px color-mix(in oklab, var(--vh-pulse) 35%, transparent);
+  background: var(--vh-signal);
+  box-shadow:
+    0 0 12px color-mix(in oklab, var(--vh-teal) 55%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  /* segment ticks via mask — reads like a clinical device meter */
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 12px, transparent 12px 15px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 12px, transparent 12px 15px);
 }
 .vh-js .vh-bar-fill {
   width: 0;
@@ -309,28 +441,36 @@
 @keyframes vh-bar-fill {
   to { width: var(--vh-bar, 72%); }
 }
-.vh-bar-fill::after {
+/* Leading pulse dot at the meter head. */
+.vh-bar::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 70%
-  );
-  background-size: 220% 100%;
-  background-position: 130% 0;
+  top: 50%;
+  left: var(--vh-bar, 72%);
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 10px 2px var(--vh-mint);
+  transform: translateY(-50%) scale(0);
 }
-.vh-js .vh-bar-fill::after {
-  animation: vh-shimmer 2.6s ease-in-out 2.1s infinite;
+.vh-js .vh-bar::after {
+  animation:
+    vh-bar-head 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards,
+    vh-head-pulse 2s ease-in-out 2.1s infinite;
 }
-@keyframes vh-shimmer {
-  0%   { background-position: 130% 0; }
-  60%, 100% { background-position: -90% 0; }
+@keyframes vh-bar-head {
+  from { left: 0; transform: translateY(-50%) scale(0); }
+  to   { left: var(--vh-bar, 72%); transform: translateY(-50%) scale(1); }
+}
+@keyframes vh-head-pulse {
+  0%, 100% { box-shadow: 0 0 10px 2px var(--vh-mint); }
+  50%      { box-shadow: 0 0 16px 4px var(--vh-mint); }
 }
 
-/* Wallet source rows: scan highlight sweeps the stack. */
+/* Wallet source rows: scan highlight sweeps the stack + each row
+   glows as it "checks in" on reveal. */
 .vh-scan {
   position: relative;
   overflow: hidden;
@@ -344,11 +484,11 @@
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in oklab, var(--vh-pulse) 7%, transparent) 50%,
+    color-mix(in oklab, var(--vh-mint) 16%, transparent) 50%,
     transparent 100%
   );
   transform: translateY(-110%);
-  animation: vh-scan 6.5s ease-in-out 3s infinite;
+  animation: vh-scan 5.5s ease-in-out 2.5s infinite;
 }
 @keyframes vh-scan {
   0%, 55%  { transform: translateY(-110%); }
@@ -358,25 +498,27 @@
 /* Recognition pulse ring. */
 .vh-ring {
   position: relative;
+  background: var(--vh-signal) !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px color-mix(in oklab, var(--vh-teal) 45%, transparent);
 }
 .vh-js .vh-ring::after {
   content: '';
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  border: 1.5px solid color-mix(in oklab, var(--vh-pulse) 55%, transparent);
+  border: 1.5px solid color-mix(in oklab, var(--vh-mint) 70%, transparent);
   opacity: 0;
   animation: vh-ring 3.4s cubic-bezier(0.4, 0, 0.6, 1) 1.4s infinite;
 }
 @keyframes vh-ring {
   0%   { opacity: 0.9; transform: scale(0.86); }
-  45%  { opacity: 0; transform: scale(1.45); }
-  100% { opacity: 0; transform: scale(1.45); }
+  45%  { opacity: 0; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
 
 /* ------------------------------------------------------------
    Source registry marquee — institutional breadth, in motion.
-   Pure names; state vocabulary stays in the caption.
    ------------------------------------------------------------ */
 .vh-marquee {
   position: relative;
@@ -404,33 +546,36 @@
    Card micro-interactions (loop steps, value, ai, doors).
    ------------------------------------------------------------ */
 .vh-lift {
+  position: relative;
   transition:
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.3s ease,
     border-color 0.3s ease;
 }
 .vh-lift:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(in oklab, var(--vh-pulse) 38%, var(--vt-border, #d8d3c8)) !important;
+  transform: translateY(-5px);
+  border-color: color-mix(in oklab, var(--vh-teal) 48%, var(--vt-border, #d8d3c8)) !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6),
-    0 18px 40px rgba(15, 23, 42, 0.09);
+    0 22px 46px -12px color-mix(in oklab, var(--vh-teal) 30%, rgba(15, 23, 42, 0.14));
 }
 .vh-lift:hover .vh-icon-chip {
-  background: color-mix(in oklab, var(--vh-pulse) 15%, transparent);
-  color: var(--vh-pulse);
-  border-color: color-mix(in oklab, var(--vh-pulse) 35%, transparent);
+  background: var(--vh-signal);
+  color: #fff;
+  border-color: transparent;
   transform: scale(1.06);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--vh-teal) 45%, transparent);
 }
 .vh-icon-chip {
   transition:
     background 0.3s ease,
     color 0.3s ease,
     border-color 0.3s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
 }
 
-/* Loop connector — hairline that draws across the steps row. */
+/* Loop connector — signal line that draws across the steps row. */
 .vh-loop-wrap {
   position: relative;
 }
@@ -441,11 +586,8 @@
   right: 1rem;
   height: 2px;
   transform-origin: left center;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--vh-pulse) 45%, transparent),
-    color-mix(in oklab, var(--vh-teal) 40%, transparent)
-  );
+  background: var(--vh-signal);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--vh-teal) 45%, transparent);
   opacity: 0;
 }
 .vh-js .vh-in .vh-loop-connector {
@@ -455,29 +597,47 @@
   from { opacity: 1; transform: scaleX(0); }
   to   { opacity: 1; transform: scaleX(1); }
 }
-
-/* Step number badge fills in as its card reveals. */
 .vh-step-n {
   transition: background 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
 }
 .vh-lift:hover .vh-step-n {
   box-shadow: 0 0 0 5px var(--vh-pulse-soft);
-  background: var(--vh-pulse);
+  background: var(--vh-signal);
 }
 
 /* ------------------------------------------------------------
-   Primary CTA — ready-state glow when the NPI is complete.
+   Primary CTA — luminous signal fill + ready-state glow when the
+   NPI is complete.
    ------------------------------------------------------------ */
+.vh-cta-ready {
+  background: var(--vh-signal) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
 .vh-js .vh-cta-ready {
-  animation: vh-cta 2.2s ease-in-out infinite;
+  animation: vh-cta 2s ease-in-out infinite;
 }
 @keyframes vh-cta {
   0%, 100% { box-shadow: 0 0 0 0 var(--vh-pulse-soft); }
-  50%      { box-shadow: 0 0 0 7px transparent; }
+  50%      { box-shadow: 0 0 0 8px transparent; }
+}
+
+/* Section accent — a small gradient tick before eyebrow labels
+   deeper on the page (added via .vh-accent-line where wanted). */
+.vh-accent-line::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 2px;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: var(--vh-signal);
 }
 
 /* ------------------------------------------------------------
-   Reduced motion: kill continuous + entrance animation.
+   Reduced motion: kill continuous + entrance animation, keep the
+   finished state fully visible.
    ------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .vh-js .vh-reveal,
@@ -488,12 +648,15 @@
   }
   .vh-js .vh-aurora::before,
   .vh-js .vh-aurora::after,
+  .vh-js .vh-wallet-halo,
   .vh-js .vh-eyebrow-dot,
-  .vh-js .vh-ekg-line path,
+  .vh-js .vh-ekg-line path.vh-ekg-draw,
+  .vh-js .vh-ekg-line path.vh-ekg-spark,
   .vh-js .vh-monitor svg,
+  .vh-js .vh-monitor-beam,
   .vh-js .vh-monitor-label::before,
   .vh-js .vh-bar-fill,
-  .vh-js .vh-bar-fill::after,
+  .vh-js .vh-bar::after,
   .vh-js .vh-scan::after,
   .vh-js .vh-ring::after,
   .vh-js .vh-marquee-track,
@@ -502,7 +665,9 @@
     animation: none !important;
   }
   .vh-js .vh-bar-fill { width: var(--vh-bar, 72%); }
-  .vh-js .vh-ekg-line path { stroke-dasharray: none; stroke-dashoffset: 0; }
+  .vh-js .vh-bar::after { left: var(--vh-bar, 72%); transform: translateY(-50%) scale(1); }
+  .vh-js .vh-ekg-line path.vh-ekg-draw { stroke-dasharray: none; stroke-dashoffset: 0; }
+  .vh-js .vh-ekg-line path.vh-ekg-spark { display: none; }
   .vh-js .vh-in .vh-loop-connector { opacity: 1; transform: scaleX(1); }
   .vh-js .vh-wallet { transform: none; }
   .vh-lift:hover { transform: none; }
