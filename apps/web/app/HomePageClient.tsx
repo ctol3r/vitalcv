@@ -37,6 +37,122 @@ function formatNpi(value: string): string {
 }
 
 /**
+ * Scroll-choreography: adds `vh-in` when the element enters the viewport.
+ * SSR/no-JS renders are unaffected — the hidden initial state only applies
+ * under the `.vh-js` root class, which is set client-side.
+ */
+function useReveal<T extends HTMLElement>(): React.RefObject<T | null> {
+  const ref = React.useRef<T>(null);
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('vh-in');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
+/**
+ * Pointer tilt for the wallet card — a few degrees of parallax that make the
+ * hero visual feel physical. Skipped entirely under prefers-reduced-motion.
+ */
+function useWalletTilt<T extends HTMLElement>(): React.RefObject<T | null> {
+  const ref = React.useRef<T>(null);
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let frame = 0;
+    const onMove = (event: PointerEvent) => {
+      const rect = node.getBoundingClientRect();
+      const px = (event.clientX - rect.left) / rect.width - 0.5;
+      const py = (event.clientY - rect.top) / rect.height - 0.5;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        node.style.setProperty('--vh-ry', `${(px * 7).toFixed(2)}deg`);
+        node.style.setProperty('--vh-rx', `${(-py * 7).toFixed(2)}deg`);
+      });
+    };
+    const onLeave = () => {
+      cancelAnimationFrame(frame);
+      node.style.setProperty('--vh-rx', '0deg');
+      node.style.setProperty('--vh-ry', '0deg');
+    };
+    node.addEventListener('pointermove', onMove);
+    node.addEventListener('pointerleave', onLeave);
+    return () => {
+      cancelAnimationFrame(frame);
+      node.removeEventListener('pointermove', onMove);
+      node.removeEventListener('pointerleave', onLeave);
+    };
+  }, []);
+  return ref;
+}
+
+/**
+ * Count-up for the wallet readiness figure. Runs once when the wallet card
+ * mounts client-side; SSR shows the final value so nothing flashes wrong.
+ */
+function useCountUp(target: number, durationMs = 1400, startDelayMs = 500): number {
+  const [value, setValue] = React.useState(target);
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let frame = 0;
+    let start: number | null = null;
+    setValue(0);
+    const timer = window.setTimeout(() => {
+      const tick = (ts: number) => {
+        if (start === null) start = ts;
+        const t = Math.min(1, (ts - start) / durationMs);
+        const eased = 1 - Math.pow(1 - t, 3);
+        setValue(Math.round(target * eased));
+        if (t < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }, startDelayMs);
+    return () => {
+      window.clearTimeout(timer);
+      cancelAnimationFrame(frame);
+    };
+  }, [target, durationMs, startDelayMs]);
+  return value;
+}
+
+/**
+ * The primary-source registries VitalCV reads today. Names only — the state
+ * vocabulary (checked / gated / stale) stays in the caption and product
+ * surfaces, so the marquee cannot overclaim an unintegrated source.
+ */
+const SOURCE_REGISTRY_STRIP = [
+  'NPPES NPI Registry',
+  'OIG LEIE Exclusions',
+  'CMS PECOS Enrollment',
+  'CMS Open Payments',
+  'State license boards',
+  'Academic & training records',
+] as const;
+
+/** One heartbeat cycle of the monitor trace, repeated twice for a seamless loop. */
+const EKG_BEAT =
+  'M0 22 H26 L34 22 L40 12 L46 30 L52 6 L58 34 L64 22 L72 22 H104 L112 22 L118 14 L124 28 L130 22 H160';
+
+/** Hero hairline heartbeat — one wide pass under the H1. */
+const EKG_HAIRLINE =
+  'M0 20 H150 L166 20 L176 8 L186 30 L194 2 L202 34 L210 20 L224 20 H400 L416 20 L426 12 L436 26 L444 20 H620';
+
+/**
  * Capability rail — the breadth of the product, stated once, above the fold.
  * A first-time visitor should see VitalCV is a wallet + readiness + recognition
  * + opportunity platform before scrolling, not just an NPI form. Each pill maps
@@ -292,11 +408,15 @@ const BUYER_AUDIENCES = [
  * Recognition badge, and a share affordance so the page reads as a product.
  */
 function WalletPreview() {
+  const tiltRef = useWalletTilt<HTMLDivElement>();
+  const readiness = useCountUp(72);
+
   return (
     <div
+      ref={tiltRef}
       aria-hidden="true"
       data-home-wallet-preview=""
-      className="vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
+      className="vh-wallet vt-animate-rise relative w-full max-w-sm rounded-[1.75rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_97%,white)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.75),0_30px_70px_rgba(15,23,42,0.10)]"
     >
       {/* Wallet header */}
       <div className="flex items-center justify-between">
@@ -311,8 +431,17 @@ function WalletPreview() {
         </span>
       </div>
 
+      {/* Vitals monitor — the clinical heartbeat of the card */}
+      <div className="vh-monitor mt-4">
+        <svg viewBox="0 0 320 44" preserveAspectRatio="none">
+          <path d={EKG_BEAT} />
+          <path d={EKG_BEAT} transform="translate(160 0)" />
+        </svg>
+        <span className="vh-monitor-label">EVIDENCE · LIVE READ</span>
+      </div>
+
       {/* Readiness meter */}
-      <div className="mt-5 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
+      <div className="mt-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
             Readiness snapshot
@@ -321,8 +450,13 @@ function WalletPreview() {
             <CheckCircle2 size={12} /> Source-backed
           </span>
         </div>
-        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[var(--vt-surface-subtle)]">
-          <div className="vt-animate-grow-x h-full w-[72%] rounded-full bg-[var(--ink-800,#1a1916)]" />
+        <div className="mt-3 flex items-center gap-3">
+          <div className="vh-bar flex-1">
+            <div className="vh-bar-fill" />
+          </div>
+          <span className="w-9 text-right font-mono text-[13px] font-semibold tabular-nums text-[var(--vt-text-primary)]">
+            {readiness}%
+          </span>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">
           Honest about what is checked, gated, or stale.
@@ -330,7 +464,7 @@ function WalletPreview() {
       </div>
 
       {/* Source rows */}
-      <div className="mt-3 space-y-1.5">
+      <div className="vh-scan mt-3 space-y-1.5">
         {WALLET_PREVIEW_ROWS.map((row) => (
           <div
             key={row.source}
@@ -361,7 +495,7 @@ function WalletPreview() {
       {/* Recognition + share footer */}
       <div className="mt-3 flex items-center justify-between rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_8%,var(--vt-surface))] px-4 py-3">
         <span className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--vt-accent-emerald)_18%,transparent)] text-[var(--vt-accent-emerald)]">
+          <span className="vh-ring flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--vt-accent-emerald)_18%,transparent)] text-[var(--vt-accent-emerald)]">
             <Award size={16} />
           </span>
           <span className="flex flex-col">
@@ -387,6 +521,20 @@ export default function HomePageClient() {
   const [error, setError] = React.useState<string | null>(null);
   const [focused, setFocused] = React.useState(false);
 
+  // Flag JS availability on the root so entrance choreography only ever
+  // hides content when the runtime is actually there to reveal it again.
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    rootRef.current?.classList.add('vh-js');
+  }, []);
+
+  const loopRef = useReveal<HTMLDivElement>();
+  const aiRef = useReveal<HTMLUListElement>();
+  const valueRef = useReveal<HTMLDivElement>();
+  const audienceRef = useReveal<HTMLDivElement>();
+  const doorsRef = useReveal<HTMLDivElement>();
+  const proofRef = useReveal<HTMLDivElement>();
+
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const isFull = digits.length === 10;
 
@@ -407,7 +555,11 @@ export default function HomePageClient() {
   }, [digits, isFull, router]);
 
   return (
-    <div className="mz relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]">
+    <div
+      ref={rootRef}
+      className="mz vh-root relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]"
+    >
+      <div aria-hidden="true" className="vh-aurora" />
       <div
         aria-hidden="true"
         className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-60"
@@ -444,13 +596,22 @@ export default function HomePageClient() {
               <div className="space-y-5">
                 <p
                   data-home-eyebrow=""
-                  className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--vt-text-muted)]"
+                  className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--vt-text-muted)]"
                 >
+                  <span aria-hidden="true" className="vh-eyebrow-dot" />
                   The Provider Career Evidence Network
                 </p>
                 <h1 className="text-[clamp(2.4rem,5.6vw,3.75rem)] leading-[0.98] font-semibold tracking-[-0.04em] text-[var(--vt-text-primary)]">
                   Your clinical career evidence, in one wallet you own.
                 </h1>
+                <svg
+                  aria-hidden="true"
+                  className="vh-ekg-line"
+                  viewBox="0 0 620 40"
+                  preserveAspectRatio="none"
+                >
+                  <path d={EKG_HAIRLINE} />
+                </svg>
                 <p
                   data-home-hero-subhead=""
                   className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
@@ -470,7 +631,7 @@ export default function HomePageClient() {
                     return (
                       <li
                         key={pill.label}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]"
+                        className="vh-lift inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]"
                       >
                         <Icon size={13} className="text-[var(--vt-accent-emerald)]" aria-hidden="true" />
                         {pill.label}
@@ -534,7 +695,7 @@ export default function HomePageClient() {
                         className={cn(
                           'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold transition-colors sm:border-l sm:border-t-0 sm:px-6',
                           isFull
-                            ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
+                            ? 'vh-cta-ready bg-[var(--vt-text-primary)] text-[var(--vt-bg)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_90%,black)]'
                             : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
                         )}
                       >
@@ -589,19 +750,63 @@ export default function HomePageClient() {
             </div>
           </section>
 
+          {/* Primary-source registry strip — breadth, in motion. Names only;
+              state vocabulary stays in the caption so nothing overclaims. */}
+          <section
+            aria-label="Primary sources VitalCV reads"
+            data-home-source-strip=""
+            className="mt-14 border-y border-[var(--vt-border-subtle)] py-5"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+              <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+                Reads primary sources
+              </p>
+              <div className="vh-marquee min-w-0 flex-1">
+                <div className="vh-marquee-track">
+                  {[false, true].map((clone) => (
+                    <ul
+                      key={clone ? 'clone' : 'main'}
+                      aria-hidden={clone || undefined}
+                      className="flex shrink-0 items-center gap-3 pr-3"
+                    >
+                      {SOURCE_REGISTRY_STRIP.map((name) => (
+                        <li
+                          key={name}
+                          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-1.5 w-1.5 rounded-full bg-[var(--vt-accent-emerald)]"
+                          />
+                          {name}
+                        </li>
+                      ))}
+                    </ul>
+                  ))}
+                </div>
+              </div>
+              <p className="shrink-0 text-[11px] text-[var(--vt-text-muted)]">
+                Every field shows its state — checked, gated, or stale.
+              </p>
+            </div>
+          </section>
+
           {/* The loop — what VitalCV does, end to end */}
           <section aria-label="How VitalCV works" data-home-loop="" className="mt-16">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            <p className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              <span aria-hidden="true" className="vh-eyebrow-dot" />
               How it works
             </p>
-            <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div ref={loopRef} className="vh-loop-wrap relative">
+              <span aria-hidden="true" className="vh-loop-connector hidden lg:block" />
+              <ol className="vh-stagger mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               {LOOP_STEPS.map((step) => (
                 <li
                   key={step.n}
                   data-home-loop-step={step.n}
-                  className="flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
+                  className="vh-lift relative flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--vt-text-primary)] text-[12px] font-semibold text-[var(--vt-bg)]">
+                  <span className="vh-step-n flex h-7 w-7 items-center justify-center rounded-full bg-[var(--vt-text-primary)] text-[12px] font-semibold text-[var(--vt-bg)]">
                     {step.n}
                   </span>
                   <p className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
@@ -612,7 +817,8 @@ export default function HomePageClient() {
                   </p>
                 </li>
               ))}
-            </ol>
+              </ol>
+            </div>
           </section>
 
           {/* AI layer — MATCHA as the honest intelligence layer */}
@@ -634,18 +840,18 @@ export default function HomePageClient() {
                   </p>
                 </div>
 
-                <ul className="grid gap-3 sm:grid-cols-2">
+                <ul ref={aiRef} className="vh-stagger grid gap-3 sm:grid-cols-2">
                   {AI_CAPABILITIES.map((cap) => {
                     const Icon = cap.icon;
                     return (
                       <li
                         key={cap.key}
                         data-home-ai-card={cap.key}
-                        className="flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5"
+                        className="vh-lift flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-4 py-4"
                       >
                         <span
                           aria-hidden="true"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]"
+                          className="vh-icon-chip flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]"
                         >
                           <Icon size={16} />
                         </span>
@@ -669,21 +875,22 @@ export default function HomePageClient() {
             data-home-value=""
             className="mt-16"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            <p className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              <span aria-hidden="true" className="vh-eyebrow-dot" />
               What you get
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div ref={valueRef} className="vh-stagger mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {VALUE_CARDS.map((card) => {
                 const Icon = card.icon;
                 return (
                   <div
                     key={card.key}
                     data-home-value-card={card.key}
-                    className="flex flex-col gap-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-5 py-5"
+                    className="vh-lift flex flex-col gap-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-5 py-5"
                   >
                     <span
                       aria-hidden="true"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
+                      className="vh-icon-chip flex h-9 w-9 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
                     >
                       <Icon size={17} />
                     </span>
@@ -710,21 +917,22 @@ export default function HomePageClient() {
 
           {/* Buyer audiences — the whole hire buys into one network */}
           <section aria-label="Who VitalCV is for" data-home-audiences="" className="mt-16">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            <p className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              <span aria-hidden="true" className="vh-eyebrow-dot" />
               Who buys in
             </p>
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div ref={audienceRef} className="vh-stagger mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {BUYER_AUDIENCES.map((row) => {
                 const Icon = row.icon;
                 return (
                   <div
                     key={row.key}
                     data-home-audience={row.key}
-                    className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
+                    className="vh-lift flex items-start gap-3 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
                   >
                     <span
                       aria-hidden="true"
-                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
+                      className="vh-icon-chip mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
                     >
                       <Icon size={16} />
                     </span>
@@ -782,16 +990,17 @@ export default function HomePageClient() {
             data-home-role-doors=""
             className="mt-16"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            <p className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              <span aria-hidden="true" className="vh-eyebrow-dot" />
               By role
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div ref={doorsRef} className="vh-stagger mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {ROLE_DOORS.map((door) => (
                 <Link
                   key={door.role}
                   href={door.href}
                   data-home-role-door={door.role.toLowerCase()}
-                  className="group flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)] transition-colors hover:border-[var(--vt-text-primary)]"
+                  className="vh-lift group flex flex-col gap-2 rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.6)] transition-colors hover:border-[var(--vt-text-primary)]"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
                     {door.role}
@@ -813,15 +1022,16 @@ export default function HomePageClient() {
             data-home-proof-strip=""
             className="mt-16"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+            <p className="vh-eyebrow text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
+              <span aria-hidden="true" className="vh-eyebrow-dot" />
               Every row carries
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div ref={proofRef} className="vh-stagger mt-4 grid gap-3 sm:grid-cols-3">
               {PROOF_STRIP.map((col) => (
                 <div
                   key={col.label}
                   data-home-proof-col={col.label.toLowerCase().replace(/\s+/g, '-')}
-                  className="rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
+                  className="vh-lift rounded-[1.25rem] border border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)] px-4 py-4"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
                     {col.label}
