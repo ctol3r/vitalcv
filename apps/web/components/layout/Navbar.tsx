@@ -14,7 +14,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
 const NAV_ITEMS = [
@@ -24,7 +24,25 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { track } = useUxTelemetry();
+
+  // Homepage renders a dark clinical-monitor hero at the top. While the nav is
+  // over that hero it goes transparent-dark (light text) so it reads as one
+  // continuous device surface; once scrolled into the light body it returns to
+  // the normal solid bar. Only the homepage has the dark hero.
+  const isHome = pathname === '/';
+  useEffect(() => {
+    if (!isHome) {
+      setScrolled(false);
+      return;
+    }
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isHome]);
+  const overHero = isHome && !scrolled && !menuOpen;
 
   if (!isPublicSurfacePath(pathname)) {
     return null;
@@ -41,7 +59,14 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl">
+    <header
+      data-nav-over={overHero ? '' : undefined}
+      className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${
+        overHero
+          ? 'vh-nav-over border-transparent bg-transparent'
+          : 'border-border bg-background/90'
+      }`}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
         {/* Logo */}

@@ -598,10 +598,26 @@ export default function HomePageClient() {
                 <span className="vh-stage-led" />
                 VITALCV · PROVIDER EVIDENCE MONITOR
               </span>
-              <span className="vh-stage-dots">
-                <i />
-                <i />
-                <i />
+              <span className="vh-stage-readout">
+                <span className="vh-stage-bars">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="vh-stage-ticker">
+                  <span className="vh-stage-ticker-track">
+                    <span>READING · NPPES</span>
+                    <span>READING · OIG LEIE</span>
+                    <span>READING · CMS PECOS</span>
+                    <span>READING · STATE BOARDS</span>
+                    <span>READING · NPPES</span>
+                  </span>
+                </span>
+                <span className="vh-stage-live">
+                  <span className="vh-stage-led" />
+                  LIVE
+                </span>
               </span>
             </div>
             <div aria-hidden="true" className="vh-stage-ekg">
