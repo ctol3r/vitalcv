@@ -7,8 +7,8 @@
  */
 
 const credentials = [
-  { field: 'License', value: 'MD-123456', source: 'CA Medical Board', status: 'Verified' },
-  { field: 'Board Cert', value: 'Internal Medicine', source: 'ABIM', status: 'Verified' },
+  { field: 'License', value: 'MD-123456', source: 'CA Medical Board', status: 'Checked' },
+  { field: 'Board Cert', value: 'Internal Medicine', source: 'ABIM', status: 'Checked' },
   { field: 'NPI', value: '1234567890', source: 'NPPES', status: 'Active' },
   { field: 'OIG', value: 'No exclusions', source: 'OIG LEIE', status: 'Clear' },
   { field: 'SAM', value: 'No exclusions', source: 'SAM.gov', status: 'Clear' },
