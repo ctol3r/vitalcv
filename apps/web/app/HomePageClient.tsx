@@ -559,7 +559,11 @@ export default function HomePageClient() {
   return (
     <div
       ref={rootRef}
-      className="mz vh-root relative overflow-hidden bg-[var(--paper)] text-[var(--vt-text-primary)]"
+      className="dark mz vh-root relative overflow-hidden text-[var(--vt-text-primary)]"
+      style={{
+        background:
+          'radial-gradient(140% 100% at 50% -8%, #0e1a2b 0%, #0a1220 44%, #070b14 100%)',
+      }}
     >
       <div aria-hidden="true" className="vh-aurora" />
       <div aria-hidden="true" className="vh-signalgrid" />
