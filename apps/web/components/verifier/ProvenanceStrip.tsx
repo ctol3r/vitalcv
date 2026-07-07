@@ -10,7 +10,7 @@
  */
 
 import type { LaneSnapshot } from '@/components/proof/trust-types';
-import { STATUS_COLORS, KNOWN_LANES } from '@/components/proof/trust-types';
+import { KNOWN_LANES } from '@/components/proof/trust-types';
 import { cn } from '@/lib/utils';
 
 interface ProvenanceStripProps {
@@ -29,34 +29,34 @@ function shortId(id: string | null | undefined): string {
   return id.slice(0, 12) + '…';
 }
 
-const TIER_BADGE: Record<string, { label: string; cls: string }> = {
-  verified:        { label: 'Source-backed', cls: 'bg-green-100 text-green-800 border border-green-300' },
-  in_progress:     { label: 'In Progress', cls: 'bg-blue-100 text-blue-800 border border-blue-300' },
-  not_checked:     { label: 'Not Checked', cls: 'bg-gray-100 text-gray-600 border border-gray-300' },
-  stale:           { label: 'Stale',       cls: 'bg-amber-100 text-amber-800 border border-amber-300' },
-  unavailable:     { label: 'Unavailable', cls: 'bg-gray-100 text-gray-600 border border-gray-300' },
-  access_required: { label: 'Access Req.', cls: 'bg-amber-100 text-amber-800 border border-amber-300' },
-  review_required: { label: 'Review Req.', cls: 'bg-amber-100 text-amber-800 border border-amber-300' },
-  adverse:         { label: 'Adverse',     cls: 'bg-red-100 text-red-800 border border-red-300' },
+const TIER_BADGE: Record<string, { label: string; chip: string; dot: string }> = {
+  verified:        { label: 'Source-backed', chip: 'mz-chip-ok',      dot: 'bg-[var(--ok)]' },
+  in_progress:     { label: 'In Progress',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
+  not_checked:     { label: 'Not Checked',   chip: 'mz-chip-unknown', dot: 'bg-[var(--unknown)]' },
+  stale:           { label: 'Stale',         chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
+  unavailable:     { label: 'Unavailable',   chip: 'mz-chip-unknown', dot: 'bg-[var(--unknown)]' },
+  access_required: { label: 'Access Req.',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
+  review_required: { label: 'Review Req.',   chip: 'mz-chip-watch',   dot: 'bg-[var(--watch)]' },
+  adverse:         { label: 'Adverse',       chip: 'mz-chip-p0',      dot: 'bg-[var(--p0)]' },
 };
 
 export function ProvenanceStrip({ lanes }: ProvenanceStripProps) {
   if (!lanes || lanes.length === 0) {
     return (
-      <div className="text-xs text-gray-500 py-2 px-3 border border-dashed border-gray-300">
+      <div className="mz bg-[var(--paper-2)] border border-dashed border-[var(--rule)] rounded-[3px] py-2 px-3 text-xs text-[var(--ink-500)]">
         No lane data available.
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-gray-100 border border-gray-200 overflow-hidden">
+    <div className="mz mz-card divide-y divide-[var(--rule-soft)] overflow-hidden">
       {/* Column headers — Bloomberg style */}
-      <div className="grid grid-cols-4 gap-2 px-3 py-1.5 bg-gray-50">
+      <div className="grid grid-cols-4 gap-2 px-3 py-1.5 bg-[var(--paper-2)]">
         {['Source', 'Checked At', 'Receipt ID', 'Tier'].map((col) => (
           <span
             key={col}
-            className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400"
+            className="mz-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-400)]"
           >
             {col}
           </span>
@@ -67,49 +67,45 @@ export function ProvenanceStrip({ lanes }: ProvenanceStripProps) {
         const def = KNOWN_LANES.find((l) => l.laneId === lane.laneId);
         const sourceName = lane.source ?? def?.source ?? lane.laneId;
         const displayName = def?.displayName ?? lane.laneId;
-        const colors = STATUS_COLORS[lane.status] ?? STATUS_COLORS.not_checked;
         const tier =
           TIER_BADGE[lane.status] ?? {
             label: lane.status,
-            cls: 'bg-gray-100 text-gray-600 border border-gray-200',
+            chip: 'mz-chip-unknown',
+            dot: 'bg-[var(--unknown)]',
           };
 
         return (
           <div
             key={lane.laneId}
-            className="grid grid-cols-4 gap-2 items-center px-3 min-h-[36px] hover:bg-gray-50 transition-colors"
+            className="grid grid-cols-4 gap-2 items-center px-3 min-h-[36px] hover:bg-[var(--paper-2)] transition-colors"
           >
             {/* Source — left-align, max-w constrained */}
             <div className="flex flex-col min-w-0 max-w-[160px]">
-              <span className="text-xs font-medium text-gray-900 truncate">
+              <span className="text-xs font-medium text-[var(--ink-900)] truncate">
                 {displayName}
               </span>
-              <span className="text-[10px] text-gray-500 truncate">{sourceName}</span>
+              <span className="mz-mono text-[10px] text-[var(--ink-500)] truncate">{sourceName}</span>
             </div>
 
             {/* Checked At */}
-            <div className="font-mono text-xs text-gray-500 tabular-nums">
+            <div className="mz-mono text-xs text-[var(--ink-500)]">
               {formatCheckedAt(lane.checkedAt)}
             </div>
 
             {/* Receipt ID — 12 chars + status dot */}
             <div className="flex items-center gap-1.5">
               <span
-                className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', colors.dot)}
+                className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', tier.dot)}
               />
-              <span className="font-mono text-xs text-gray-900 truncate">
+              <span className="mz-mono text-xs text-[var(--ink-900)] truncate">
                 {shortId(lane.receiptId)}
               </span>
             </div>
 
             {/* Tier Badge — right-align */}
             <div className="flex justify-end">
-              <span
-                className={cn(
-                  'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold',
-                  tier.cls,
-                )}
-              >
+              <span className={cn('mz-chip', tier.chip)}>
+                <span className="mz-gl" aria-hidden="true" />
                 {tier.label}
               </span>
             </div>

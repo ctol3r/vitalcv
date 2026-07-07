@@ -3,6 +3,7 @@ import { getWorklist } from '@/lib/verifier/worklistRepo';
 import type { WorklistDbRow } from '@/lib/verifier/worklistRepo';
 import { WorklistPanel } from '@/components/verifier/WorklistPanel';
 import type { WorklistItem } from '@/lib/verifier/worklist';
+import { Reveal } from '@/components/motion/Reveal';
 
 // NPI is not stored on ReceiptCandidate (a future wave adds that lookup).
 // candidateId is used as the identifier in the panel until then.
@@ -31,32 +32,36 @@ export default async function EmployerWorklistPage(): Promise<ReactElement> {
   return (
     <main
       aria-label="Employer worklist"
-      className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8"
+      className="mz mz-paper mz-persona-employer min-h-screen px-4 py-8 sm:px-6 lg:px-8"
     >
-      <div className="mx-auto grid max-w-6xl gap-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Employer workflow
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Verifier worklist
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm text-slate-600">
-            Showing receipt candidates from the database. Org-scoping and role
-            gating are in progress.
-          </p>
-        </div>
+      <div className="mz-ambient mx-auto grid max-w-6xl gap-6">
+        <Reveal variant="fade">
+          <div className="flex flex-col gap-3">
+            <p className="mz-eyebrow">
+              Employer workflow
+            </p>
+            <h1 className="mz-h1">
+              Verifier worklist
+            </h1>
+            <p className="max-w-2xl mz-lede">
+              Showing receipt candidates from the database. Org-scoping and role
+              gating are in progress.
+            </p>
+          </div>
+        </Reveal>
 
         {dbError && (
           <p
             role="alert"
-            className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            className="rounded-[3px] border border-[var(--watch-rule)] bg-[var(--watch-bg)] px-4 py-3 text-sm text-[var(--watch)]"
           >
             Database unavailable. The worklist cannot be displayed at this time.
           </p>
         )}
 
-        <WorklistPanel items={items} />
+        <Reveal delay={80}>
+          <WorklistPanel items={items} />
+        </Reveal>
       </div>
     </main>
   );
