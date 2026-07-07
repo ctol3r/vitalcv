@@ -329,18 +329,19 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
         }}
       />
 
-      {/* era readout — top left */}
+      {/* era readout — top left. Ink tokens so the labels read on the calm paper
+          page (they adapt automatically under .dark .mz if ever shown on dark). */}
       <div style={{ position: 'absolute', left: 18, top: 16, pointerEvents: 'none' }}>
-        <div style={{ fontFamily: 'ui-monospace, "Geist Mono", monospace', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(139,140,240,0.85)' }}>
+        <div style={{ fontFamily: 'var(--font-geist-mono, ui-monospace, monospace)', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--accent, #4f46e5)' }}>
           {String(currentEra === 'origin' ? '← past' : currentEra === 'future' ? 'future →' : 'present')}
         </div>
-        <div style={{ marginTop: 4, fontFamily: 'var(--vt-font-display, Georgia, serif)', fontSize: 22, color: 'rgba(240,238,248,0.96)', letterSpacing: '-0.01em' }}>
+        <div style={{ marginTop: 4, fontFamily: 'var(--font-fraunces, var(--vt-font-display, Georgia, serif))', fontSize: 22, color: 'var(--ink-900, #14141a)', letterSpacing: '-0.01em' }}>
           {ERA_LABEL[currentEra]}
         </div>
       </div>
 
       {/* hover readout — top right */}
-      <div style={{ position: 'absolute', right: 18, top: 16, fontFamily: 'ui-monospace, "Geist Mono", monospace', fontSize: 11, color: 'rgba(233,232,240,0.65)', pointerEvents: 'none', minHeight: 14 }}>
+      <div style={{ position: 'absolute', right: 18, top: 16, fontFamily: 'var(--font-geist-mono, ui-monospace, monospace)', fontSize: 11, color: 'var(--ink-500, #6b6860)', pointerEvents: 'none', minHeight: 14 }}>
         {hoverLabel ? `→ ${hoverLabel}` : 'drag to rotate'}
       </div>
 

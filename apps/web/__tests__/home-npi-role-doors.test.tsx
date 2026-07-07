@@ -63,19 +63,24 @@ function assertNoBannedPhrases(html: string): void {
 }
 
 describe('HomePageClient — clinician-value hero', () => {
-  it('renders the network eyebrow and clinician-value headline', () => {
+  it('renders the network eyebrow and the career-velocity headline', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-eyebrow');
     expect(html).toContain('The Provider Career Evidence Network');
-    expect(html).toContain('Your clinical career evidence, in one wallet you own.');
+    // Career core, 2026-07-07 (Chris): find the opportunity → prove once
+    // (the moat) → start faster. The final beat is the italic accent.
+    expect(html).toContain('Find the opportunity. Prove your career once.');
+    expect(html).toContain('Start faster.');
   });
 
-  it('renders the NPI-first subhead', () => {
+  it('renders the NPI-first subhead with the career-network framing', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-hero-subhead');
+    expect(html).toContain('career evidence network for clinician careers');
     expect(html).toContain('Start with your NPI.');
     expect(html).toContain('employer-ready proof packet');
-    expect(html).toContain('reusable for every move');
+    expect(html).toContain('accept as a head start');
+    expect(html).toContain('for every move of your career');
   });
 
   it('renders "Check readiness" as the primary CTA label', () => {
@@ -140,6 +145,38 @@ describe('HomePageClient — value cards', () => {
   });
 });
 
+describe('HomePageClient — compounding-network (moat) section', () => {
+  it('renders the moat section with its three compounding cards', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-moat');
+    expect(html).toContain('data-home-moat-card="own"');
+    expect(html).toContain('data-home-moat-card="compound"');
+    expect(html).toContain('data-home-moat-card="network"');
+  });
+
+  it('makes the moat legible: owned evidence, compounding acceptance, network velocity', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('Career evidence that');
+    expect(html).toContain('makes every move faster than the last');
+    expect(html).toContain('Nothing resets when you move');
+    expect(html).toContain('Every yes makes the next yes easier');
+    expect(html).toContain('Time-to-Start');
+    expect(html).toContain('re-answering what a primary source already answered');
+  });
+
+  it('states the shared loop and frames 10× strictly as the goal, not a claim', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('RECOGNITION → ACCEPTANCE → START');
+    expect(html).toContain('the loop every VitalCV user shares');
+    // Honesty guard: the 10× line must stay framed as the goal we build
+    // against — never an achieved/promised outcome.
+    expect(html).toContain(
+      'The goal we build against: starting your next role 10× faster than the credentialing status quo.',
+    );
+    expect(/10×\s+faster\s+guaranteed/i.test(html)).toBe(false);
+  });
+});
+
 describe('HomePageClient — role doors', () => {
   it('renders four role doors', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
@@ -148,6 +185,13 @@ describe('HomePageClient — role doors', () => {
     expect(html).toContain('data-home-role-door="clinician"');
     expect(html).toContain('data-home-role-door="employer"');
     expect(html).toContain('data-home-role-door="issuer"');
+  });
+
+  it('states the shared outcome all four roles converge on', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain(
+      'Four doors, one shared outcome — a clinician hired and started, faster.',
+    );
   });
 
   it('each role door advertises its canonical action label', () => {

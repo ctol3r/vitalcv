@@ -28,6 +28,7 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
 import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
 import { MatchaConstellation } from '@/components/matcha/MatchaConstellation';
+import { Reveal } from '@/components/motion/Reveal';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -523,29 +524,15 @@ export default function HomePageClient() {
       <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
         <div className="w-full">
 
-          {/* Hero — dark "instrument" panel: the Calm Wave system in its own
-              dark variant (warm charcoal + indigo), the one place the page keeps
-              the dark-glass drama. Everything inside flips via `.dark .mz`, so it
-              stays the same family as the calm body — no jade, no EKG. */}
-          <div className="dark">
+          {/* Hero — full Calm Wave D56: the Fraunces headline sits open on paper,
+              the NPI + wallet visual framed to the right. No dark panel, no glow,
+              no heavy shadow — the calm institutional substrate the design is
+              drawn in. */}
           <section
             aria-label="NPI lookup"
             data-home-hero=""
-            className="mz mz-paper relative isolate overflow-hidden rounded-[12px] border border-[var(--vt-border)] px-6 py-10 shadow-[0_50px_120px_-70px_rgba(0,0,0,0.85)] sm:px-10 sm:py-12 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+            className="mz mz-paper mz-persona-holder mz-ambient relative isolate py-10 sm:py-14 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
-            {/* one dark-glass whisper — a soft indigo instrument glow + faint static grid */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-10"
-              style={{
-                background:
-                  'radial-gradient(80% 120% at 12% -15%, color-mix(in oklab, var(--vt-accent) 22%, transparent), transparent 58%)',
-              }}
-            />
-            <div
-              aria-hidden="true"
-              className="mz-dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.12]"
-            />
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
               <div className="space-y-5">
@@ -553,15 +540,18 @@ export default function HomePageClient() {
                   The Provider Career Evidence Network
                 </p>
                 <h1 className="mz-display">
-                  Your clinical career evidence, in one wallet you own.
+                  Find the opportunity. Prove your career once.{' '}
+                  <em className="mz-accent">Start faster.</em>
                 </h1>
                 <p
                   data-home-hero-subhead=""
                   className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
                 >
-                  Start with your NPI. VitalCV reads primary sources, builds your
-                  readiness snapshot, and gives you an employer-ready proof packet —
-                  free for clinicians, and reusable for every move.
+                  VitalCV is the career evidence network for clinician careers.
+                  Start with your NPI. Primary sources become your readiness
+                  snapshot and an employer-ready proof packet — evidence employers
+                  can accept as a head start, free for clinicians, and reusable
+                  for every move of your career.
                 </p>
 
                 {/* Capability rail — the product's breadth, above the fold */}
@@ -584,9 +574,10 @@ export default function HomePageClient() {
                 </ul>
               </div>
 
+              <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">
               <Card
                 id="npi"
-                className="mt-8 max-w-xl scroll-mt-24 rounded-[3px] border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-none"
+                className="scroll-mt-24 rounded-[12px] border-0 bg-transparent shadow-none"
               >
                 <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                   <form
@@ -683,6 +674,7 @@ export default function HomePageClient() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Secondary path — the wallet is free; the lookup is just the door */}
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
@@ -702,7 +694,6 @@ export default function HomePageClient() {
               <WalletPreview />
             </div>
           </section>
-          </div>
 
           {/* Primary-source registry strip — breadth, stated calm. Names only;
               state vocabulary stays in the caption so nothing overclaims. */}
@@ -757,6 +748,79 @@ export default function HomePageClient() {
               ))}
               </ol>
             </div>
+          </section>
+
+          {/* The compounding network — the platform's moat, made legible.
+              Today every job change re-proves the same career from zero; VitalCV
+              replaces the restart with portable, owned evidence whose acceptance
+              compounds. This is the shared core all personas buy into. */}
+          <section
+            aria-label="Why the career evidence network compounds"
+            data-home-moat=""
+            className="mz mz-ambient mt-16"
+          >
+            <p className="mz-eyebrow">Why this compounds</p>
+            <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 700 }}>
+              Career evidence that <em className="mz-accent">follows you</em> makes
+              every move faster than the last.
+            </h2>
+            <p className="mz-body" style={{ marginTop: 14, maxWidth: 660 }}>
+              Today, every job change re-proves the same career from zero — and the
+              start date waits on it. VitalCV replaces that restart with a network
+              where your proof is portable, and each acceptance makes the next one
+              easier.
+            </p>
+            <div className="mt-6 grid gap-3 lg:grid-cols-3">
+              <Reveal delay={0}>
+                <div
+                  data-home-moat-card="own"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">Yours to keep</p>
+                  <h3 className="mz-h2">Nothing resets when you move</h3>
+                  <p className="mz-small">
+                    Every source check, receipt, and Recognition lands in a wallet
+                    you own — not in an employer&apos;s filing cabinet. Your career
+                    record leaves with you, intact.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delay={80}>
+                <div
+                  data-home-moat-card="compound"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">Acceptance compounds</p>
+                  <h3 className="mz-h2">Every yes makes the next yes easier</h3>
+                  <p className="mz-small">
+                    Each employer that accepts your packet as a head start becomes
+                    part of your record. Recognition turns past acceptance into
+                    momentum for the next opportunity.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delay={160}>
+                <div
+                  data-home-moat-card="network"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">The network speeds up</p>
+                  <h3 className="mz-h2">Everyone shares the same win</h3>
+                  <p className="mz-small">
+                    Clinicians find and start roles sooner. Employers cut
+                    Time-to-Start. Credentialing teams stop re-answering what a
+                    primary source already answered.
+                  </p>
+                </div>
+              </Reveal>
+            </div>
+            <p className="mz-small" style={{ marginTop: 18 }}>
+              <span className="mz-mono" style={{ letterSpacing: '0.08em' }}>
+                RECOGNITION → ACCEPTANCE → START
+              </span>{' '}
+              — the loop every VitalCV user shares. The goal we build against:
+              starting your next role 10× faster than the credentialing status quo.
+            </p>
           </section>
 
           {/* AI layer — MATCHA as the honest intelligence layer */}
@@ -899,23 +963,12 @@ export default function HomePageClient() {
             </div>
           </section>
 
-          {/* Career constellation — the second dark "instrument" panel (blend):
-              the star map reads best on the calm system's dark charcoal, with an
-              indigo glow. Same `.dark .mz` family as the hero. */}
-          <section aria-label="Your career, in motion" data-home-network="" className="mz mt-16">
-            <div className="dark">
-              <div
-                className="mz mz-card mz-card-pad relative isolate overflow-hidden"
-                style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}
-              >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 -z-10"
-                  style={{
-                    background:
-                      'radial-gradient(90% 120% at 50% -12%, color-mix(in oklab, var(--vt-accent) 20%, transparent), transparent 60%)',
-                  }}
-                />
+          {/* Career constellation — bleeds into the page (no box): the eyebrow +
+              heading sit on paper, the star map opens below and edge-fades into
+              the surrounding paper via its own radial mask. Part of the page,
+              not a framed panel. */}
+          <section aria-label="Your career, in motion" data-home-network="" className="mz mz-persona-holder relative isolate mt-20">
+              <div className="relative isolate">
                 <p className="mz-eyebrow">Your career, in motion</p>
                 <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
                   Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
@@ -929,7 +982,6 @@ export default function HomePageClient() {
                   <MatchaConstellation height={480} />
                 </div>
               </div>
-            </div>
           </section>
 
           {/* Role doors — four calm entry points, clinician first */}
@@ -939,6 +991,10 @@ export default function HomePageClient() {
             className="mt-16"
           >
             <p className="mz-eyebrow">By role</p>
+            <p className="mz-body" style={{ marginTop: 12, maxWidth: 620 }}>
+              Four doors, one shared outcome — a clinician hired and started,
+              faster.
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {ROLE_DOORS.map((door) => (
                 <Link

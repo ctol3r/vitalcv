@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { MARKETPLACE_BACKEND, buildMarketplaceHeaders } from '@/lib/server/marketplace-proxy';
+import { Reveal } from '@/components/motion/Reveal';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,20 +59,17 @@ export default async function HolderTimelinePage() {
 
   // kind === 'error' — honest system-state page (redirect targets unknown).
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6">
-      <div className="max-w-sm space-y-4 text-center">
-        <p className="font-medium text-foreground">Couldn&apos;t open your timeline</p>
-        <p className="text-sm text-zinc-400">
+    <main className="mz mz-paper flex min-h-screen items-center justify-center px-6">
+      <Reveal className="mz-glass max-w-sm space-y-4 p-8 text-center">
+        <p className="mz-h2">Couldn&apos;t open your timeline</p>
+        <p className="mz-body">
           Your workspace lookup is temporarily unavailable. This is a system state — not a finding
           about your record. Try again shortly.
         </p>
-        <Link
-          href="/holder/home"
-          className="inline-flex items-center justify-center rounded-lg border border-zinc-700 px-5 py-2 text-sm text-zinc-300 transition hover:text-white"
-        >
+        <Link href="/holder/home" className="mz-btn mz-btn-ghost mz-btn-sm">
           Back to your dashboard
         </Link>
-      </div>
+      </Reveal>
     </main>
   );
 }

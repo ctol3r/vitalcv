@@ -37,15 +37,15 @@ export function RecognitionCard({ npi }: { npi: string }) {
   return (
     <section
       aria-label="Recognition"
-      className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
+      className="mz mz-card mz-card-pad"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Recognition</p>
-        <Award className="h-4 w-4 text-emerald-400" aria-hidden />
+        <p className="mz-eyebrow">Recognition</p>
+        <Award className="h-4 w-4" style={{ color: 'var(--accent)' }} aria-hidden />
       </div>
 
       {phase.state === 'loading' && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-zinc-500">
+        <div className="mt-3 flex items-center gap-2 mz-small">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           Checking your acceptance record…
         </div>
@@ -53,15 +53,15 @@ export function RecognitionCard({ npi }: { npi: string }) {
 
       {phase.state === 'unavailable' && (
         <div className="mt-3 space-y-2">
-          <p className="text-sm font-medium text-zinc-200">
+          <p className="mz-h2">
             Recognition status is temporarily unavailable
           </p>
-          <p className="text-sm leading-6 text-zinc-400">
+          <p className="mz-body">
             This is a system state — not a finding about your record. Try again shortly.
           </p>
           <button
             onClick={() => { void load(); }}
-            className="rounded-lg border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 transition hover:text-white"
+            className="mz-btn mz-btn-ghost mz-btn-sm"
           >
             Try again
           </button>
@@ -70,16 +70,17 @@ export function RecognitionCard({ npi }: { npi: string }) {
 
       {phase.state === 'none_recorded' && (
         <div className="mt-3 space-y-2">
-          <p className="text-base font-semibold text-zinc-100">
+          <p className="mz-h2">
             No employer acceptances recorded yet
           </p>
-          <p className="text-sm leading-6 text-zinc-400">
+          <p className="mz-body">
             When an employer accepts your evidence as a head start, the acceptance is
             recorded here and stays part of your career record.
           </p>
           <Link
             href="/holder/readiness"
-            className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+            className="inline-flex items-center gap-1 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ color: 'var(--accent)' }}
           >
             Keep your readiness current <ChevronRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
@@ -103,11 +104,14 @@ function RecognizedBody({
 
   return (
     <div className="mt-3 space-y-3">
-      <p className="text-lg font-semibold text-zinc-100">{recognition.summary.headline}</p>
+      <div className="flex items-center gap-2">
+        <span className="mz-chip mz-chip-ok" aria-hidden="true"><span className="mz-gl" /></span>
+        <p className="mz-h2">{recognition.summary.headline}</p>
+      </div>
 
       {latest && (
-        <p className="text-sm leading-6 text-zinc-400">
-          Most recent: <span className="text-zinc-200">{latest.orgLabel}</span>
+        <p className="mz-body">
+          Most recent: <span style={{ color: 'var(--ink-900)' }}>{latest.orgLabel}</span>
           {' · '}
           {acceptanceScopeLabel(latest.acceptanceScope)}
           {latestDate ? ` · ${latestDate}` : ''}
@@ -115,12 +119,13 @@ function RecognizedBody({
       )}
 
       {recognition.summary.trustCopy && (
-        <p className="text-sm leading-6 text-zinc-500">{recognition.summary.trustCopy}</p>
+        <p className="mz-small">{recognition.summary.trustCopy}</p>
       )}
 
       <Link
         href="/holder/recognition"
-        className="inline-flex items-center gap-1 text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+        className="inline-flex items-center gap-1 text-sm font-medium transition-opacity hover:opacity-80"
+        style={{ color: 'var(--accent)' }}
       >
         View your recognition record <ChevronRight className="h-3.5 w-3.5" aria-hidden />
       </Link>
