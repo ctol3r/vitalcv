@@ -2,7 +2,7 @@
 
 **Closes:** launch blocker #2 (`docs/ops/launch-blockers.md`) — *"Verifier org-role RBAC enforcement — no role checks on mutating verifier routes."*
 
-**Status:** mechanism landed, gated **off** by default (zero runtime change). Reaching `enforce` in production is the ops sequence below.
+**Status:** guard + web plumbing landed on `main` (guard **#591**, `x-org-role` forwarding **#593**), gated **off** by default — zero runtime change. **All code is in place; the remaining steps are Railway ops flips** (shadow → enforce), starting at step 3 below.
 
 ---
 
@@ -48,9 +48,9 @@ The guard reads the caller's org-role from the **`x-org-role`** request header. 
 
 ## Rollout sequence
 
-1. **[this PR]** Land the guard, gated `off`. Backend unit tests green (`orgRoleGuard.test.ts`, 11 cases). No runtime change.
-2. **Plumb `x-org-role`** from the verified Clerk session (`org_role` claim) in the web proxies that reach the guarded routes. There is no central header-builder — each proxy sets its own forward headers — so this is a per-route addition. Source it server-side from the verified session; never from a client-supplied value.
-3. **`VERIFIER_RBAC_MODE=shadow`** on Railway (web + backend). Watch `verifier_rbac_shadow_would_block` logs: confirm legitimate `admin`/`reviewer` traffic is **not** appearing (i.e., the header is arriving and correct), and that only genuine read-only/anonymous attempts show up.
+1. **✅ Done — PR #591 (merged).** Guard landed, gated `off`. Backend unit tests green (`orgRoleGuard.test.ts`, 11 cases). No runtime change.
+2. **✅ Done — PR #593 (merged).** Plumb `x-org-role` from the verified Clerk session (`org_role` claim), server-side, never a client-supplied value. Correction to the original plan: the two `applications` proxies **do** share a header-builder — `review` and `workflow-action` both use `buildMarketplaceHeaders` (`apps/web/lib/server/marketplace-proxy.ts`), so `x-org-role` was added there once (it also forwards `x-user-role`, so the super-admin bypass keeps working through these proxies). `POST /api/verifier/accept` had **no** server proxy — its only caller, the archived `components/verifier/AcceptancePanel.tsx`, hit the backend directly — so `apps/web/app/api/verifier/accept/route.ts` was added and the panel repointed to it. `x-org-role` is strictly the `org_role` claim (the org-membership role), not the app role, which the guard would reject.
+3. **← NEXT ACTION. `VERIFIER_RBAC_MODE=shadow`** on Railway (web + backend). Watch `verifier_rbac_shadow_would_block` logs: confirm legitimate `admin`/`reviewer` traffic is **not** appearing (i.e., the header is arriving and correct), and that only genuine read-only/anonymous attempts show up.
 4. **`VERIFIER_RBAC_MODE=enforce`** once shadow is quiet for legitimate traffic. Flip `orgRolesFoundation.rbacEnforced` → `true` in the same change (and update its foundation test).
 5. **Tighten with G1**: once `CLERK_JWT_VERIFICATION=enforce`, confirm G1 sets `x-org-role` from the verified claim and strips client-supplied identity headers — that closes the trust-boundary caveat above.
 
