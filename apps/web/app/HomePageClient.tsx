@@ -951,7 +951,7 @@ export default function HomePageClient() {
           <section aria-label="Meet MATCHA" data-home-matcha="" className="mz mt-16">
             <p className="mz-eyebrow">Meet MATCHA</p>
             <h2 className="mz-display" style={{ marginTop: 14, maxWidth: 640 }}>
-              Not a job board. <span className="mz-accent">A career operating system.</span>
+              The operating system for <span className="mz-accent">your clinical career</span>.
             </h2>
             <p className="mz-lede" style={{ marginTop: 16, maxWidth: 620 }}>
               MATCHA is the intelligence layer that learns what you want, then works in the background

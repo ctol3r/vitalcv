@@ -32,7 +32,13 @@ interface Star {
   twinkle: number; // phase
 }
 
-const PALETTE: Record<Kind, string> = {
+/**
+ * Theme palettes. The sky was originally drawn for a dark ground; on the calm
+ * paper page those light star/label colors vanish. Canvas can't read CSS vars
+ * per-fill cheaply, so each theme gets an explicit palette and the draw loop
+ * picks per frame (darkRef) — flipping the app theme retints the sky live.
+ */
+const PALETTE_DARK: Record<Kind, string> = {
   you: '#f4c76b',
   origin: '#9aa0b5',
   credential: '#5fd4bf',
@@ -40,6 +46,28 @@ const PALETTE: Record<Kind, string> = {
   recognition: '#f4a15f',
   opportunity: '#7fe0a3',
   future: '#8b8cf0',
+};
+/** Same hues, deepened to read on paper. */
+const PALETTE_LIGHT: Record<Kind, string> = {
+  you: '#a8720f',
+  origin: '#6b7086',
+  credential: '#1e7f6e',
+  readiness: '#4a44c4',
+  recognition: '#c46a1c',
+  opportunity: '#2e7d4f',
+  future: '#4a44c4',
+};
+const SKY_DARK = {
+  ring: 'rgba(139,140,240,0.10)',
+  linkRgb: '139,140,240',
+  label: 'rgba(233,232,240,0.92)',
+  glowScale: 1,
+};
+const SKY_LIGHT = {
+  ring: 'rgba(74,68,196,0.16)',
+  linkRgb: '74,68,196',
+  label: 'rgba(30,29,38,0.9)',
+  glowScale: 0.6, // halos wash out on paper — keep them whisper-quiet
 };
 
 /** Optional real signed-in data — relabels the "now" stars so the sky is the clinician's own. */
@@ -118,6 +146,17 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
   const timeRef = useRef(0.5);
   timeRef.current = time;
 
+  // Live theme signal for the canvas (next-themes toggles `dark` on <html>).
+  const darkRef = useRef(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => { darkRef.current = root.classList.contains('dark'); };
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => mo.disconnect();
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
@@ -163,9 +202,11 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
       const cy = height / 2;
       const rings = ringR();
       const t = timeRef.current;
+      const pal = darkRef.current ? PALETTE_DARK : PALETTE_LIGHT;
+      const sky = darkRef.current ? SKY_DARK : SKY_LIGHT;
 
       // faint orbit rings (elliptical)
-      ctx.strokeStyle = 'rgba(139,140,240,0.10)';
+      ctx.strokeStyle = sky.ring;
       ctx.lineWidth = 1;
       for (let r = 1; r <= 3; r++) {
         ctx.beginPath();
@@ -200,7 +241,7 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
         if (s.id === 'you') continue;
         const p = positions.get(s.id)!;
         if (p.alpha < 0.12) continue;
-        ctx.strokeStyle = `rgba(139,140,240,${0.05 + p.alpha * 0.12})`;
+        ctx.strokeStyle = `rgba(${sky.linkRgb},${0.05 + p.alpha * 0.12})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(you.x, you.y);
@@ -214,13 +255,13 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
         const p = positions.get(s.id)!;
         const isHover = hovered === s.id;
         const baseR = (s.id === 'you' ? 9 : s.kind === 'future' ? 4.5 : 5.5) * p.scale;
-        const col = PALETTE[s.kind];
+        const col = pal[s.kind];
         ctx.globalAlpha = Math.min(1, p.alpha + (isHover ? 0.4 : 0));
         // glow
         const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, baseR * (isHover ? 5 : 3.4));
         glow.addColorStop(0, col);
         glow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.globalAlpha = Math.min(0.5, p.alpha * (isHover ? 0.85 : 0.42));
+        ctx.globalAlpha = Math.min(0.5, p.alpha * (isHover ? 0.85 : 0.42) * sky.glowScale);
         ctx.fillStyle = glow;
         ctx.beginPath();
         ctx.arc(p.x, p.y, baseR * (isHover ? 5 : 3.4), 0, Math.PI * 2);
@@ -244,7 +285,7 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
         // labels: You always, hovered, and the brightest of the current era
         if ((s.id === 'you' || isHover || p.alpha > 0.72) && p.alpha > 0.2) {
           ctx.globalAlpha = Math.min(1, p.alpha + 0.15);
-          ctx.fillStyle = 'rgba(233,232,240,0.92)';
+          ctx.fillStyle = sky.label;
           ctx.font = `${s.id === 'you' ? 12 : 10.5}px ui-monospace, "Geist Mono", monospace`;
           ctx.textAlign = 'center';
           ctx.fillText(s.label, p.x, p.y - baseR - 7);
@@ -358,7 +399,7 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
           className="mzc-scrub"
           style={{ width: '100%' }}
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontFamily: 'ui-monospace, "Geist Mono", monospace', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(233,232,240,0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontFamily: 'ui-monospace, "Geist Mono", monospace', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-400, #96938a)' }}>
           <span>Began</span>
           <span>Now</span>
           <span>Headed</span>
@@ -368,9 +409,9 @@ export function MatchaConstellation({ height = 460, profile }: { height?: number
       <style
         dangerouslySetInnerHTML={{
           __html:
-            '.mzc-scrub{-webkit-appearance:none;appearance:none;height:3px;border-radius:999px;background:linear-gradient(90deg,rgba(154,160,181,0.5),rgba(139,140,240,0.6),rgba(127,224,163,0.6));outline:none;cursor:pointer;}' +
-            '.mzc-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#f4c76b;border:2px solid #0a0a12;box-shadow:0 0 12px rgba(244,199,107,0.6);cursor:grab;}' +
-            '.mzc-scrub::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#f4c76b;border:2px solid #0a0a12;cursor:grab;}',
+            '.mzc-scrub{-webkit-appearance:none;appearance:none;height:3px;border-radius:999px;background:linear-gradient(90deg,color-mix(in oklch, var(--ink-500, #6b7086) 55%, transparent),color-mix(in oklch, var(--accent, #4a44c4) 65%, transparent),color-mix(in oklch, var(--ok, #2e7d4f) 60%, transparent));outline:none;cursor:pointer;}' +
+            '.mzc-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#f4c76b;border:2px solid var(--card, #0a0a12);box-shadow:0 0 12px rgba(244,199,107,0.6);cursor:grab;}' +
+            '.mzc-scrub::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#f4c76b;border:2px solid var(--card, #0a0a12);cursor:grab;}',
         }}
       />
     </div>
