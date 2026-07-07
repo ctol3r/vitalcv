@@ -389,6 +389,7 @@
 .mz-persona-verifier { --accent: oklch(44% 0.11 235); } /* trust-blue — the reader */
 .mz-persona-issuer   { --accent: oklch(46% 0.13 300); } /* violet — the attester */
 .mz-persona-employer { --accent: oklch(46% 0.10 152); } /* source-green — the hirer / start */
+.mz-persona-admin    { --accent: oklch(46% 0.03 250); } /* steel-graphite — internal control room, not a customer surface */
 
 /* ── Motion respect ───────────────────────────────────────────────────────── */
 

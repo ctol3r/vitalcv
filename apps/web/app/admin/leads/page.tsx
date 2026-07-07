@@ -64,60 +64,73 @@ export default async function AdminLeadsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <header className="mb-6">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">Internal</p>
-        <h1 className="mt-1 text-2xl font-semibold text-foreground">Captured leads</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Durable pilot-request and pilot-intake submissions, newest first. Each row has a paired
-          audit event; Slack delivery status is operational only.
-        </p>
-      </header>
+    <main className="mz mz-paper mz-persona-admin min-h-screen px-4 py-10">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-6">
+          <p className="mz-eyebrow">Internal</p>
+          <h1 className="mz-h1 mt-3">
+            Captured <span className="mz-accent">leads</span>
+          </h1>
+          <p className="mz-body mt-2 max-w-3xl">
+            Durable pilot-request and pilot-intake submissions, newest first. Each row has a paired
+            audit event; Slack delivery status is operational only.
+          </p>
+        </header>
 
-      {tablePending ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          The PilotLead table is not deployed yet (migration pending). Leads keep flowing to Slack
-          and the server log in the meantime.
-        </p>
-      ) : leads.length === 0 ? (
-        <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-          No captured leads yet.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2">When</th>
-                <th className="px-3 py-2">Source</th>
-                <th className="px-3 py-2">Persona</th>
-                <th className="px-3 py-2">Organization</th>
-                <th className="px-3 py-2">Contact</th>
-                <th className="px-3 py-2">Target</th>
-                <th className="px-3 py-2">Slack</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => (
-                <tr key={lead.id} className="border-b border-border/60 align-top">
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                    {lead.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
-                  </td>
-                  <td className="px-3 py-2">{lead.source}</td>
-                  <td className="px-3 py-2">{lead.persona ?? '—'}</td>
-                  <td className="px-3 py-2 font-medium text-foreground">{lead.organization}</td>
-                  <td className="px-3 py-2">
-                    {lead.contactName ? `${lead.contactName} · ` : ''}
-                    {lead.email}
-                  </td>
-                  <td className="px-3 py-2">{lead.workflowTarget ?? lead.sourceContext ?? '—'}</td>
-                  <td className="px-3 py-2">{lead.slackDelivered ? 'delivered' : '—'}</td>
+        {tablePending ? (
+          <p className="mz-inset mz-body p-4">
+            The PilotLead table is not deployed yet (migration pending). Leads keep flowing to Slack
+            and the server log in the meantime.
+          </p>
+        ) : leads.length === 0 ? (
+          <p className="mz-inset mz-body p-4">
+            No captured leads yet.
+          </p>
+        ) : (
+          <div className="mz-card overflow-x-auto">
+            <table className="w-full text-left text-[14px]">
+              <thead>
+                <tr className="border-b border-[var(--rule)]">
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">When</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Source</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Persona</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Organization</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Contact</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Target</th>
+                  <th className="mz-mono px-3 py-2.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Slack</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {leads.map((lead) => (
+                  <tr key={lead.id} className="border-b border-[var(--rule-soft)] align-top">
+                    <td className="mz-mono whitespace-nowrap px-3 py-2.5 text-[13px] text-[var(--vt-text-secondary)]">
+                      {lead.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
+                    </td>
+                    <td className="px-3 py-2.5">{lead.source}</td>
+                    <td className="px-3 py-2.5">{lead.persona ?? '—'}</td>
+                    <td className="px-3 py-2.5 font-medium">{lead.organization}</td>
+                    <td className="px-3 py-2.5">
+                      {lead.contactName ? `${lead.contactName} · ` : ''}
+                      {lead.email}
+                    </td>
+                    <td className="px-3 py-2.5">{lead.workflowTarget ?? lead.sourceContext ?? '—'}</td>
+                    <td className="px-3 py-2.5">
+                      {lead.slackDelivered ? (
+                        <span className="mz-chip mz-chip-ok">
+                          <span className="mz-gl" aria-hidden="true" />
+                          delivered
+                        </span>
+                      ) : (
+                        <span className="text-[var(--vt-text-muted)]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

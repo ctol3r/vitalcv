@@ -32,7 +32,7 @@ export default async function PlatformDashboardPage() {
   const report = await buildIntegrityReport({ railwayToken: process.env.RAILWAY_API_TOKEN });
 
   return (
-    <div className="min-h-screen" style={{ background: '#0b0e13' }}>
+    <div className="mz mz-paper mz-persona-admin min-h-screen">
       <PlatformDashboardClient initialReport={report} />
     </div>
   );

@@ -7,7 +7,6 @@ import {
   filterWorklist,
   type WorklistItem,
   type WorklistItemStatus,
-  type WorklistProofTier,
 } from '@/lib/verifier/worklist';
 
 interface WorklistPanelProps {
@@ -32,18 +31,16 @@ const STATUS_LABELS: Record<WorklistItemStatus, string> = {
   unable_to_verify: 'Unable to assess',
 };
 
+// Map lifecycle status → calm truth-chip variant. In-flight states (pending /
+// in review / info requested) read as "watch"; a positive terminal state reads
+// "ok"; an indeterminate terminal state reads "unknown" — never a red finding,
+// because "unable to assess" is not a finding about the clinician.
 const STATUS_CLASSES: Record<WorklistItemStatus, string> = {
-  pending: 'border-amber-300 bg-amber-50 text-amber-900',
-  in_review: 'border-sky-300 bg-sky-50 text-sky-900',
-  info_requested: 'border-violet-300 bg-violet-50 text-violet-900',
-  acceptable_for_start: 'border-emerald-300 bg-emerald-50 text-emerald-900',
-  unable_to_verify: 'border-slate-300 bg-slate-100 text-slate-800',
-};
-
-const PROOF_TIER_CLASSES: Record<WorklistProofTier, string> = {
-  receipt_candidate: 'border-blue-200 bg-blue-50 text-blue-800',
-  psv_sourced: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  self_attested: 'border-orange-200 bg-orange-50 text-orange-800',
+  pending: 'mz-chip-watch',
+  in_review: 'mz-chip-watch',
+  info_requested: 'mz-chip-watch',
+  acceptable_for_start: 'mz-chip-ok',
+  unable_to_verify: 'mz-chip-unknown',
 };
 
 export function WorklistPanel({
@@ -61,36 +58,36 @@ export function WorklistPanel({
   return (
     <section
       aria-label="Verifier worklist foundation"
-      className="rounded-lg border border-slate-200 bg-white shadow-sm"
+      className="mz mz-card overflow-hidden"
     >
-      <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex flex-col gap-4 border-b border-[var(--rule)] p-5 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <p className="mz-eyebrow">
             Verifier worklist
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-950">
+          <h2 className="mz-h2">
             Submitted applications
           </h2>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_12rem]">
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
+          <label className="grid gap-1 text-sm font-medium text-[var(--ink-700)]">
             NPI
             <input
               value={npiQuery}
               onChange={(event) => setNpiQuery(event.target.value)}
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-slate-700"
+              className="mz-input"
               placeholder="Filter by NPI"
               type="search"
             />
           </label>
 
-          <label className="grid gap-1 text-sm font-medium text-slate-700">
+          <label className="grid gap-1 text-sm font-medium text-[var(--ink-700)]">
             Status
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value as WorklistItemStatus | 'all')}
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-slate-700"
+              className="mz-input"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -102,9 +99,9 @@ export function WorklistPanel({
         </div>
       </div>
 
-      <div className="divide-y divide-slate-200">
+      <div className="divide-y divide-[var(--rule-soft)]">
         {filteredItems.length === 0 ? (
-          <div className="p-5 text-sm text-slate-600">
+          <div className="p-5 text-sm text-[var(--ink-600)]">
             No submitted applications match the current filters.
           </div>
         ) : (
@@ -118,7 +115,7 @@ export function WorklistPanel({
         )}
       </div>
 
-      <p className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-600">
+      <p className="border-t border-[var(--rule)] bg-[var(--paper-2)] px-5 py-3 text-xs text-[var(--ink-600)]">
         This worklist reflects submitted applications. Review outcomes do not
         constitute legal verification.
       </p>
@@ -137,21 +134,19 @@ function WorklistRow({
     <div className="grid gap-3 text-left sm:grid-cols-[1fr_auto] sm:items-center">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-mono text-sm font-semibold text-slate-950">
+          <p className="mz-mono text-sm font-semibold text-[var(--ink-900)]">
             NPI {item.clinicianNpi}
           </p>
           <StatusPill status={item.status} />
-          <span
-            className={`rounded-full border px-2 py-0.5 font-mono text-[11px] ${PROOF_TIER_CLASSES[item.proofTier]}`}
-          >
+          <span className="rounded-[2px] border border-[var(--rule)] bg-[var(--ink-50)] px-2 py-0.5 mz-mono text-[10px] uppercase tracking-[0.04em] text-[var(--ink-500)]">
             {item.proofTier}
           </span>
         </div>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-[var(--ink-600)]">
           {explainWorklistStatus(item.status)}
         </p>
       </div>
-      <time className="font-mono text-xs text-slate-500" dateTime={item.submittedAt}>
+      <time className="mz-mono text-xs text-[var(--ink-500)]" dateTime={item.submittedAt}>
         {formatSubmittedAt(item.submittedAt)}
       </time>
     </div>
@@ -165,7 +160,7 @@ function WorklistRow({
     <button
       type="button"
       onClick={() => onSelect(item)}
-      className="block w-full p-5 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-slate-700"
+      className="block w-full p-5 text-left transition hover:bg-[var(--paper-2)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--ink-900)]"
     >
       {row}
     </button>
@@ -182,8 +177,9 @@ function StatusPill({
   return (
     <span
       aria-label={`Status: ${label}`}
-      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[status]}`}
+      className={`mz-chip ${STATUS_CLASSES[status]}`}
     >
+      <span className="mz-gl" aria-hidden="true" />
       {label}
     </span>
   );
