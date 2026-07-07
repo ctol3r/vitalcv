@@ -271,10 +271,14 @@
 .mz-opt:hover { border-color: var(--ink-400); }
 .mz-opt[aria-pressed='true'] { border-color: var(--ink-900); background: var(--ink-900); color: #fff; }
 
-/* ── Progress meter (ink, no gradient) ────────────────────────────────────── */
+/* ── Progress meter (accent fill, no gradient) ────────────────────────────── */
 
 .mz-meter { height: 5px; border-radius: 999px; background: var(--ink-100); overflow: hidden; }
-.mz-meter > span { display: block; height: 100%; background: var(--ink-800); border-radius: 999px; transition: width var(--mz-dur) var(--mz-ease); }
+/* Accent, not ink: a near-black bar reads as an error/void. The fill follows
+   the surface persona (holder indigo, employer green, …). */
+.mz-meter > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width var(--mz-dur) var(--mz-ease); }
+/* Source-backed contexts can opt into the ok-green fill. */
+.mz-meter-ok > span { background: var(--ok); }
 
 /* ── Dotted grid backdrop (static, calm) ──────────────────────────────────── */
 
@@ -391,6 +395,36 @@
 .mz-persona-employer { --accent: oklch(46% 0.10 152); } /* source-green — the hirer / start */
 .mz-persona-admin    { --accent: oklch(46% 0.03 250); } /* steel-graphite — internal control room, not a customer surface */
 
+/* ── Micro-interactions — icons + small elements answer the hand ──────────── */
+
+/* .mz-pop on an icon (or icon chip) makes it respond when its interactive
+   parent is hovered: a small lift + tilt toward the accent. Natural, one-shot,
+   never looping — the "pleasant surprise" register. */
+.mz-pop {
+  transition:
+    transform var(--mz-dur) var(--mz-ease),
+    color var(--mz-dur) var(--mz-ease),
+    border-color var(--mz-dur) var(--mz-ease),
+    background var(--mz-dur) var(--mz-ease);
+  will-change: transform;
+}
+.mz-glass-interactive:hover .mz-pop,
+.mz-interactive:hover .mz-pop,
+a:hover .mz-pop,
+button:hover .mz-pop {
+  transform: translateY(-2px) scale(1.07) rotate(-3deg);
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--rule));
+}
+
+/* CTA arrows nudge forward on hover. */
+.mz-btn svg, .mz-btn-ghost svg { transition: transform var(--mz-dur) var(--mz-ease); }
+.mz-btn:hover svg, .mz-btn-ghost:hover svg { transform: translateX(3px); }
+
+/* Selectable chips answer with a tiny lift. */
+.mz-opt { will-change: transform; transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease), transform var(--mz-dur) var(--mz-ease); }
+.mz-opt:hover { transform: translateY(-1px); }
+
 /* ── Motion respect ───────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -398,4 +432,10 @@
   .mz-reveal, .mz-reveal.is-in { opacity: 1 !important; animation: none !important; }
   .mz-glass-interactive:hover { transform: none; }
   .mz-settle { animation: none !important; }
+  .mz-glass-interactive:hover .mz-pop,
+  .mz-interactive:hover .mz-pop,
+  a:hover .mz-pop,
+  button:hover .mz-pop { transform: none; }
+  .mz-opt:hover { transform: none; }
+  .mz-btn:hover svg, .mz-btn-ghost:hover svg { transform: none; }
 }

@@ -854,7 +854,7 @@ export default function HomePageClient() {
                       >
                         <span
                           aria-hidden="true"
-                          className="flex h-8 w-8 items-center justify-center rounded-[3px] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]"
+                          className="mz-pop flex h-8 w-8 items-center justify-center rounded-[3px] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]"
                         >
                           <Icon size={16} />
                         </span>
@@ -890,7 +890,7 @@ export default function HomePageClient() {
                   >
                     <span
                       aria-hidden="true"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
+                      className="mz-pop flex h-9 w-9 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
                     >
                       <Icon size={17} />
                     </span>
@@ -929,7 +929,7 @@ export default function HomePageClient() {
                   >
                     <span
                       aria-hidden="true"
-                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
+                      className="mz-pop mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--vt-border)] text-[var(--vt-text-primary)]"
                     >
                       <Icon size={16} />
                     </span>

@@ -69,11 +69,13 @@ const PILOT_KPI_SAMPLES = [
     label: 'Proof-pack export formats',
     value: 'JSON · ZIP · PDF',
     note: 'Manifest references in every export',
+    token: true,
   },
   {
     label: 'Audit record per export',
     value: 'ARTIFACT_EXPORTED',
     note: 'Records an audit event before the bundle returns',
+    token: true,
   },
 ] as const;
 
@@ -141,7 +143,15 @@ export default function PilotPage() {
               <div className="mz-mono mb-2 text-[11px] uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
                 {kpi.label}
               </div>
-              <div className="text-[1.7rem] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)] [font-variant-numeric:tabular-nums]">
+              {/* System tokens (event names, format lists) render as mono at a
+                  size that stays inside the tile; numbers keep the big stat cut. */}
+              <div
+                className={
+                  'token' in kpi && kpi.token
+                    ? 'mz-mono text-[1.05rem] font-semibold leading-snug tracking-[0.01em] text-[var(--vt-text-primary)] [overflow-wrap:anywhere]'
+                    : 'text-[1.7rem] font-semibold leading-none tracking-tight text-[var(--vt-text-primary)] [font-variant-numeric:tabular-nums]'
+                }
+              >
                 {kpi.value}
               </div>
               <div className="mz-mono mt-2 text-[10.5px] uppercase tracking-[0.1em] text-[var(--vt-text-muted)]">
@@ -160,7 +170,7 @@ export default function PilotPage() {
               delay={i * 80}
               className="mz-glass mz-glass-interactive rounded-[12px] p-5"
             >
-              <div className="mb-4 inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper-2)] p-2.5 text-[var(--accent)]">
+              <div className="mz-pop mb-4 inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper-2)] p-2.5 text-[var(--accent)]">
                 {step.icon}
               </div>
               <h3 className="mz-h2">{step.title}</h3>
