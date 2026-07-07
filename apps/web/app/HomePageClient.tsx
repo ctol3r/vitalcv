@@ -28,6 +28,7 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
 import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
 import { MatchaConstellation } from '@/components/matcha/MatchaConstellation';
+import { Reveal } from '@/components/motion/Reveal';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -539,15 +540,18 @@ export default function HomePageClient() {
                   The Provider Career Evidence Network
                 </p>
                 <h1 className="mz-display">
-                  Your clinical career evidence, in one wallet you own.
+                  Find the opportunity. Prove your career once.{' '}
+                  <em className="mz-accent">Start faster.</em>
                 </h1>
                 <p
                   data-home-hero-subhead=""
                   className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
                 >
-                  Start with your NPI. VitalCV reads primary sources, builds your
-                  readiness snapshot, and gives you an employer-ready proof packet —
-                  free for clinicians, and reusable for every move.
+                  VitalCV is the career evidence network for clinician careers.
+                  Start with your NPI. Primary sources become your readiness
+                  snapshot and an employer-ready proof packet — evidence employers
+                  can accept as a head start, free for clinicians, and reusable
+                  for every move of your career.
                 </p>
 
                 {/* Capability rail — the product's breadth, above the fold */}
@@ -746,6 +750,79 @@ export default function HomePageClient() {
             </div>
           </section>
 
+          {/* The compounding network — the platform's moat, made legible.
+              Today every job change re-proves the same career from zero; VitalCV
+              replaces the restart with portable, owned evidence whose acceptance
+              compounds. This is the shared core all personas buy into. */}
+          <section
+            aria-label="Why the career evidence network compounds"
+            data-home-moat=""
+            className="mz mz-ambient mt-16"
+          >
+            <p className="mz-eyebrow">Why this compounds</p>
+            <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 700 }}>
+              Career evidence that <em className="mz-accent">follows you</em> makes
+              every move faster than the last.
+            </h2>
+            <p className="mz-body" style={{ marginTop: 14, maxWidth: 660 }}>
+              Today, every job change re-proves the same career from zero — and the
+              start date waits on it. VitalCV replaces that restart with a network
+              where your proof is portable, and each acceptance makes the next one
+              easier.
+            </p>
+            <div className="mt-6 grid gap-3 lg:grid-cols-3">
+              <Reveal delay={0}>
+                <div
+                  data-home-moat-card="own"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">Yours to keep</p>
+                  <h3 className="mz-h2">Nothing resets when you move</h3>
+                  <p className="mz-small">
+                    Every source check, receipt, and Recognition lands in a wallet
+                    you own — not in an employer&apos;s filing cabinet. Your career
+                    record leaves with you, intact.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delay={80}>
+                <div
+                  data-home-moat-card="compound"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">Acceptance compounds</p>
+                  <h3 className="mz-h2">Every yes makes the next yes easier</h3>
+                  <p className="mz-small">
+                    Each employer that accepts your packet as a head start becomes
+                    part of your record. Recognition turns past acceptance into
+                    momentum for the next opportunity.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delay={160}>
+                <div
+                  data-home-moat-card="network"
+                  className="mz-glass mz-glass-interactive flex h-full flex-col gap-2 rounded-[12px] px-5 py-5"
+                >
+                  <p className="mz-eyebrow">The network speeds up</p>
+                  <h3 className="mz-h2">Everyone shares the same win</h3>
+                  <p className="mz-small">
+                    Clinicians find and start roles sooner. Employers cut
+                    Time-to-Start. Credentialing teams stop re-answering what a
+                    primary source already answered.
+                  </p>
+                </div>
+              </Reveal>
+            </div>
+            <p className="mz-small" style={{ marginTop: 18 }}>
+              <span className="mz-mono" style={{ letterSpacing: '0.08em' }}>
+                RECOGNITION → ACCEPTANCE → START
+              </span>{' '}
+              — the loop every VitalCV user shares. The goal we build against:
+              starting your next role 10× faster than the credentialing status quo.
+            </p>
+          </section>
+
           {/* AI layer — MATCHA as the honest intelligence layer */}
           <section aria-label="How AI helps" data-home-ai="" className="mt-16">
             <div className="mz-card overflow-hidden">
@@ -914,6 +991,10 @@ export default function HomePageClient() {
             className="mt-16"
           >
             <p className="mz-eyebrow">By role</p>
+            <p className="mz-body" style={{ marginTop: 12, maxWidth: 620 }}>
+              Four doors, one shared outcome — a clinician hired and started,
+              faster.
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {ROLE_DOORS.map((door) => (
                 <Link
