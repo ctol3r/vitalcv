@@ -38,9 +38,26 @@ Watch `jwt_auth_verification` events by `outcome`:
 - `verified_match` — healthy; the token path works end-to-end.
 - `verified_mismatch` / `invalid_token` — **forgery or bug signals; investigate every one.**
 - `header_without_token` — a web call site not forwarding the bearer. The `path`
-  field identifies which of the ~19 ad-hoc proxy sites (employer-review, ingest,
-  psv/oig, employers, pilot-ops, snapshot…) still needs `Authorization`
-  forwarding added. Fix by routing them through the shared helper.
+  field identifies which proxy site still needs `Authorization` forwarding added.
+  **Fix helper: `apps/web/lib/auth/forwardIdentity.ts`** — replace an ad-hoc
+  `{ 'x-clerk-user-id': userId }` with `await buildIdentityHeaders({ userId })`
+  (object spread) or `await applyIdentityHeaders(headers, { userId })` (Headers
+  object). It forwards the bearer via `auth().getToken()` and degrades to
+  id-only if minting is unavailable (behavior-preserving).
+
+### Call-site conversion status (as of 2026-07-06)
+
+- **Converted:** the 12-file `headers.set(...)` cohort (credentials ingest/mine/
+  confirm, documents parse/verify/[id], profile email-OTP issue/verify + npi
+  bootstrap, watch, watch/[id]) + the already-token-forwarding intelligence/
+  workspace/search proxies (~40 sites via `_shared.ts`).
+- **Remaining (~21, telemetry-driven):** object-property and conditional-spread
+  shapes — employer-review queue/batch/[action], employer opportunities/profile/
+  setup, psv/oig check+batch, ownership claim/me, profile links/self-attested/
+  work-auth/completeness/resume, capacity, velocity, marketplace pool, request-
+  review, share, export/packet, trust/events, organization-context,
+  auth/resolve-role, candidates. Shadow's `header_without_token` events will
+  prioritize these by real traffic; convert with the same helper before enforce.
 
 ## Step 3 — Flip criteria for `enforce`
 
