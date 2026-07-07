@@ -16,6 +16,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Eye, ShieldAlert } from 'lucide-react';
+import { Reveal } from '@/components/motion/Reveal';
 import { ProvenanceStrip } from '@/components/verifier/ProvenanceStrip';
 import { ReceiptVerificationPane } from '@/components/verifier/ReceiptVerificationPane';
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
@@ -214,78 +215,97 @@ export default async function VerifierPage({
   const displayName = passport.identity?.displayName ?? `NPI ${npi}`;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="mz mz-paper mz-persona-verifier min-h-screen overflow-hidden">
       {/* ── Read-Only Header ───────────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 bg-gray-50">
+      <div className="border-b border-[var(--rule)] bg-[var(--paper-2)]">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-semibold text-gray-700">
+            <Eye className="w-4 h-4 text-[var(--accent)]" />
+            <span className="text-sm font-semibold text-[var(--ink-800)]">
               Credential Verification
             </span>
           </div>
-          <span className="text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded">
+          <span className="mz-mono text-[10px] text-[var(--ink-500)] bg-[var(--ink-50)] border border-[var(--rule)] px-2 py-0.5 rounded-[3px]">
             NPI {npi}
           </span>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="mz-ambient max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Verdict bar — per design R-01: verdict before content */}
-        <div className="border border-gray-900 bg-gray-900 rounded-lg">
-          <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <Reveal variant="fade">
+        <div className="mz-glass-strong rounded-[14px]">
+          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-mono font-medium text-white/60 uppercase tracking-widest">
+              <span className="mz-mono text-[10px] font-medium text-[var(--ink-400)] uppercase tracking-[0.22em]">
                 Verdict
               </span>
-              <span className="text-sm font-mono font-semibold text-white">
+              <span
+                className={`mz-chip ${
+                  String(proofTier).toLowerCase().includes('decision')
+                    ? 'mz-chip-ok'
+                    : String(proofTier).toLowerCase().includes('partial')
+                    ? 'mz-chip-watch'
+                    : 'mz-chip-unknown'
+                }`}
+              >
+                <span className="mz-gl" aria-hidden="true" />
                 {String(proofTier).toLowerCase().includes('decision') ? 'Verifiable'
                   : String(proofTier).toLowerCase().includes('partial') ? 'Partial coverage'
                   : 'Pending'}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60 font-mono">
+            <div className="flex flex-wrap items-center gap-2 mz-mono text-[11px] text-[var(--ink-500)]">
               {lanes.filter(l => l.status === 'verified').length > 0 && (
                 <span>{lanes.filter(l => l.status === 'verified').length} of {lanes.length} sources confirmed</span>
               )}
               {passport.lastCheckedAt && (
-                <><span className="text-white/30">|</span><span>checked {formatUtc(passport.lastCheckedAt)}</span></>
+                <><span className="text-[var(--ink-300)]">|</span><span>checked {formatUtc(passport.lastCheckedAt)}</span></>
               )}
             </div>
           </div>
         </div>
+        </Reveal>
 
         {/* ── Identity + Proof Tier Hero ─────────────────────────────────── */}
-        <div className="border border-gray-200 rounded-lg p-4">
+        <Reveal delay={80}>
+        <div className="mz-glass rounded-[12px] p-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <div className="flex items-baseline gap-3">
-                <h1 className="text-lg font-semibold text-gray-900">{displayName}</h1>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <h1 className="mz-h1">{displayName}</h1>
                 {passport.lastCheckedAt && (
-                  <span className="text-[11px] font-mono text-gray-400">{formatUtc(passport.lastCheckedAt)}</span>
+                  <span className="mz-mono text-[11px] text-[var(--ink-400)]">{formatUtc(passport.lastCheckedAt)}</span>
                 )}
               </div>
-              <div className="mt-1 flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-gray-500">NPI: <span className="font-mono text-gray-700">{npi}</span></span>
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-[var(--ink-500)]">NPI: <span className="mz-mono text-[var(--ink-700)]">{npi}</span></span>
                 {passport.identity?.specialty && (
-                  <span className="text-sm text-gray-400">·</span>
+                  <span className="text-sm text-[var(--ink-300)]">·</span>
                 )}
                 {passport.identity?.specialty && (
-                  <span className="text-sm text-gray-500">{passport.identity.specialty}</span>
+                  <span className="text-sm text-[var(--ink-500)]">{passport.identity.specialty}</span>
                 )}
               </div>
             </div>
 
             <div className="flex flex-col items-end gap-2">
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-mono font-semibold bg-gray-900 text-white"
+                className={`mz-chip ${
+                  String(proofTier).toLowerCase().includes('decision')
+                    ? 'mz-chip-ok'
+                    : String(proofTier).toLowerCase().includes('partial')
+                    ? 'mz-chip-watch'
+                    : 'mz-chip-unknown'
+                }`}
               >
+                <span className="mz-gl" aria-hidden="true" />
                 {tierConfig.label}
               </span>
               {passport.readiness?.score != null && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-[var(--ink-500)]">
                   Readiness score:{' '}
-                  <span className="font-semibold text-gray-800">{passport.readiness.score}</span>
+                  <span className="font-semibold text-[var(--ink-800)]">{passport.readiness.score}</span>
                 </span>
               )}
             </div>
@@ -293,18 +313,24 @@ export default async function VerifierPage({
 
 
         </div>
+        </Reveal>
 
         {/* ── Section: Provenance Strip ──────────────────────────────────── */}
+        <Reveal delay={40}>
         <Section title="Source coverage">
           <ProvenanceStrip lanes={lanes} />
         </Section>
+        </Reveal>
 
         {/* ── Section: Employer acceptances (Recognition) ────────────────── */}
+        <Reveal delay={80}>
         <Section title="Employer acceptances">
           <AcceptancePanel history={acceptanceHistory} />
         </Section>
+        </Reveal>
 
         {/* ── Section: Receipt Verification ─────────────────────────────── */}
+        <Reveal delay={120}>
         <Section title="Verification receipt">
           {firstReceiptLane ? (
             <ReceiptVerificationPane
@@ -326,19 +352,24 @@ export default async function VerifierPage({
             <EmptyState message="No verified receipts found for this NPI." />
           )}
         </Section>
+        </Reveal>
 
         {/* ── Section: Issuer Continuity ─────────────────────────────────── */}
+        <Reveal delay={160}>
         <Section title="Issuer">
           <IssuerContinuityPanel
             did="did:web:vitalcv.com"
             signingKeyId="vcv-es256-1"
           />
         </Section>
+        </Reveal>
 
         {/* ── Section: Replay Chronology ─────────────────────────────────── */}
+        <Reveal delay={200}>
         <Section title="Verification history">
           <ReplayChronologyPanel lanes={lanes} />
         </Section>
+        </Reveal>
       </div>
     </div>
   );
@@ -354,8 +385,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+    <div className="space-y-2.5">
+      <h2 className="mz-eyebrow">
         {title}
       </h2>
       {children}
@@ -366,15 +397,15 @@ function Section({
 function TimestampField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[9px] uppercase tracking-wide text-gray-400">{label}</span>
-      <span className="font-mono text-gray-700">{value}</span>
+      <span className="text-[9px] uppercase tracking-wide text-[var(--ink-400)]">{label}</span>
+      <span className="mz-mono text-[var(--ink-700)]">{value}</span>
     </div>
   );
 }
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="border border-dashed border-gray-200 rounded px-3 py-4 text-sm text-gray-400 text-center">
+    <div className="mz-glass-inset border-dashed px-3 py-4 text-sm text-[var(--ink-400)] text-center">
       {message}
     </div>
   );
@@ -401,29 +432,29 @@ function AcceptancePanel({
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-      <div className="px-4 py-3">
-        <p className="text-sm font-semibold text-gray-900">{history.summary.headline}</p>
+    <div className="mz-card divide-y divide-[var(--rule-soft)]">
+      <div className="px-4 py-3.5">
+        <p className="text-sm font-semibold text-[var(--ink-900)]">{history.summary.headline}</p>
         {history.summary.trustCopy && (
-          <p className="mt-1 text-xs leading-5 text-gray-500">{history.summary.trustCopy}</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--ink-500)]">{history.summary.trustCopy}</p>
         )}
       </div>
       {history.history.map((entry, index) => (
         <div
           key={entry.acceptanceId ?? `${entry.acceptedAt}-${index}`}
-          className="px-4 py-3 flex flex-wrap items-center justify-between gap-2"
+          className="px-4 py-3.5 flex flex-wrap items-center justify-between gap-2"
         >
           <div>
-            <p className="text-sm text-gray-800">{entry.orgLabel}</p>
+            <p className="text-sm text-[var(--ink-800)]">{entry.orgLabel}</p>
             {entry.acceptanceReason && (
-              <p className="mt-0.5 text-xs text-gray-500">{entry.acceptanceReason}</p>
+              <p className="mt-0.5 text-xs text-[var(--ink-500)]">{entry.acceptanceReason}</p>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="border border-gray-200 rounded-full px-2 py-0.5">
+          <div className="flex items-center gap-2 text-xs text-[var(--ink-500)]">
+            <span className="mz-mono text-[10px] uppercase tracking-[0.06em] border border-[var(--rule)] rounded-full px-2.5 py-0.5 text-[var(--ink-600)]">
               {acceptanceScopeLabel(entry.acceptanceScope)}
             </span>
-            {formatAcceptedAt(entry.acceptedAt) && <span>{formatAcceptedAt(entry.acceptedAt)}</span>}
+            {formatAcceptedAt(entry.acceptedAt) && <span className="mz-mono">{formatAcceptedAt(entry.acceptedAt)}</span>}
           </div>
         </div>
       ))}
@@ -433,14 +464,14 @@ function AcceptancePanel({
 
 function NotFound({ npi }: { npi: string }) {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-      <ShieldAlert className="w-10 h-10 text-gray-300" />
+    <div className="mz mz-paper mz-persona-verifier min-h-screen flex flex-col items-center justify-center gap-4">
+      <ShieldAlert className="w-10 h-10 text-[var(--ink-300)]" />
       <div className="text-center">
-        <h1 className="text-lg font-semibold text-gray-700">NPI not found</h1>
-        <p className="text-sm text-gray-400 mt-1">
-          No verification data available for NPI <span className="font-mono">{npi}</span>.
+        <h1 className="mz-h1">NPI not found</h1>
+        <p className="text-sm text-[var(--ink-500)] mt-2">
+          No verification data available for NPI <span className="mz-mono text-[var(--ink-700)]">{npi}</span>.
         </p>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-[var(--ink-400)] mt-2">
           The clinician may not have initiated a VitalCV profile yet.
         </p>
       </div>

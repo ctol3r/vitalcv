@@ -15,6 +15,7 @@ import type {
   IssuerVerificationRequest,
   VerificationClaimType,
 } from '@/lib/issuer-verification/types';
+import { Reveal } from '@/components/motion/Reveal';
 
 /**
  * ISSUER-2 — Receipt-candidate review surface.
@@ -145,7 +146,7 @@ export default async function IssuerReviewPage({ params }: PageProps) {
 
   return (
     <main
-      className="min-h-screen bg-background"
+      className="mz mz-paper mz-persona-issuer relative min-h-screen overflow-x-hidden"
       data-testid="issuer-review-page"
       data-receipt-candidate-id={candidate.receiptCandidateId}
       data-review-state={candidate.reviewState}
@@ -154,188 +155,215 @@ export default async function IssuerReviewPage({ params }: PageProps) {
       data-persistence-status={writeOutcome.status}
       data-recorded-by={persistedRecordedBy}
     >
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
-        <header className="space-y-1">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-            Issuer review
-          </p>
-          <h1 className="text-xl font-semibold text-foreground">
-            Receipt candidate {candidate.receiptCandidateId}
-          </h1>
-          <p
-            className="text-sm text-muted-foreground"
-            data-testid="receipt-candidate-warning"
+      {/* Hero — ambient wash + weighted glass panel (the attester's desk). */}
+      <section className="mz-ambient relative isolate">
+        <div className="mx-auto max-w-2xl px-4 pt-14 pb-2">
+          <Reveal
+            as="header"
+            variant="fade"
+            className="mz-glass-strong space-y-3 rounded-[14px] p-6 sm:p-8"
           >
-            This is a receipt candidate, not final verification.
-          </p>
-          {writeOutcome.status === 'persisted' && (
+            <p className="mz-eyebrow">Issuer review</p>
+            <h1 className="mz-h1">
+              Receipt <span className="mz-accent">candidate</span>{' '}
+              <span className="mz-mono align-middle text-[0.5em] font-normal tracking-[0.06em] text-[var(--vt-text-secondary)]">
+                {candidate.receiptCandidateId}
+              </span>
+            </h1>
             <p
-              className="mt-2 inline-block rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700"
-              data-testid="persistence-banner"
-              data-banner-state="persisted"
+              className="mz-body text-[var(--vt-text-secondary)]"
+              data-testid="receipt-candidate-warning"
             >
-              Candidate row recorded (recordedBy: system)
+              This is a receipt candidate, not final verification.
             </p>
-          )}
-          {writeOutcome.status === 'tamper_detected' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700"
-              data-testid="persistence-banner"
-              data-banner-state="tamper_detected"
-            >
-              Candidate row CHECK violation — render only (recordedBy: demo)
-            </p>
-          )}
-          {writeOutcome.status === 'transient_error' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-700"
-              data-testid="persistence-banner"
-              data-banner-state="transient_error"
-            >
-              Persistence unavailable — render only (recordedBy: demo)
-            </p>
-          )}
-          {writeOutcome.status === 'disabled' && (
-            <p
-              className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600"
-              data-testid="persistence-banner"
-              data-banner-state="disabled"
-            >
-              Persistence disabled — render only (recordedBy: demo)
-            </p>
-          )}
-        </header>
+            {writeOutcome.status === 'persisted' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--ok-bg)', color: 'var(--ok)', borderColor: 'var(--ok-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="persisted"
+              >
+                Candidate row recorded (recordedBy: system)
+              </p>
+            )}
+            {writeOutcome.status === 'tamper_detected' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--watch-bg)', color: 'var(--watch)', borderColor: 'var(--watch-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="tamper_detected"
+              >
+                Candidate row CHECK violation — render only (recordedBy: demo)
+              </p>
+            )}
+            {writeOutcome.status === 'transient_error' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--unknown-bg)', color: 'var(--unknown)', borderColor: 'var(--unknown-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="transient_error"
+              >
+                Persistence unavailable — render only (recordedBy: demo)
+              </p>
+            )}
+            {writeOutcome.status === 'disabled' && (
+              <p
+                className="mt-2 inline-block rounded-[4px] border px-2.5 py-1 mz-mono text-[10px] font-medium uppercase tracking-[0.08em]"
+                style={{ background: 'var(--unknown-bg)', color: 'var(--unknown)', borderColor: 'var(--unknown-rule)' }}
+                data-testid="persistence-banner"
+                data-banner-state="disabled"
+              >
+                Persistence disabled — render only (recordedBy: demo)
+              </p>
+            )}
+          </Reveal>
+        </div>
+      </section>
 
-        <section
-          className="rounded-2xl border border-border bg-card p-5 space-y-4"
+      <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 space-y-5">
+        <Reveal
+          as="section"
+          className="mz-glass space-y-5 rounded-[12px] p-6"
           aria-label="Request and claim summary"
         >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Request
             </p>
-            <p className="text-sm text-foreground">{request.requestId}</p>
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">{request.requestId}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Claim
             </p>
-            <p className="text-sm text-foreground">{request.claimSummary}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">{request.claimSummary}</p>
+            <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
               Recommended route: {PARTNER_CATEGORY_LABEL[request.route.partnerCategory]}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Issuer
             </p>
-            <p className="text-sm text-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">
               {request.issuerCandidate.organizationName}
             </p>
             {request.issuerCandidate.contactRole && (
-              <p className="text-xs text-muted-foreground">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 {request.issuerCandidate.contactRole}
               </p>
             )}
           </div>
-        </section>
+        </Reveal>
 
-        <section
-          className="rounded-2xl border border-border bg-card p-5 space-y-4"
+        <Reveal
+          as="section"
+          delay={80}
+          className="mz-glass space-y-5 rounded-[12px] p-6"
           aria-label="Issuer response"
         >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Response status
             </p>
-            <p className="text-sm text-foreground capitalize">
+            <p className="mz-body mt-1 capitalize text-[var(--vt-text-primary)]">
               {candidate.responseStatus?.replace(/_/g, ' ')}
             </p>
             {candidate.responseSummary && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 {candidate.responseSummary}
               </p>
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Responder attribution
             </p>
-            <p className="text-sm text-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">
               {candidate.attributedResponder?.name ?? '(unattributed)'}
             </p>
             {candidate.attributedResponder?.role && (
-              <p className="text-xs text-muted-foreground">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 {candidate.attributedResponder.role}
               </p>
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Source basis
             </p>
-            <p className="text-sm text-foreground">
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">
               {candidate.sourceBasis?.sourceOrganizationName}
             </p>
             {candidate.sourceBasis?.isContractedAgent && (
-              <p className="text-xs text-muted-foreground">
+              <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">
                 Responding agent: {candidate.sourceBasis.agentName}
               </p>
             )}
             {candidate.sourceBasis?.basisNote && (
-              <p className="text-xs text-muted-foreground italic mt-1">
+              <p className="mz-small mt-1 italic text-[var(--vt-text-secondary)]">
                 {candidate.sourceBasis.basisNote}
               </p>
             )}
           </div>
           {candidate.limitationNote && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80">
+            <div className="space-y-2">
+              <span className="mz-chip mz-chip-watch">
+                <span className="mz-gl" aria-hidden="true" />
                 Limitation
-              </p>
-              <p className="text-xs text-muted-foreground italic">
+              </span>
+              <p className="mz-small italic text-[var(--vt-text-secondary)]">
                 {candidate.limitationNote}
               </p>
             </div>
           )}
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="mz-mono text-[10px] uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
               Review state
             </p>
-            <p className="text-sm text-foreground">{reviewCopy.label}</p>
-            <p className="text-xs text-muted-foreground">{reviewCopy.description}</p>
+            <p className="mz-body mt-1 text-[var(--vt-text-primary)]">{reviewCopy.label}</p>
+            <p className="mz-small mt-1 text-[var(--vt-text-secondary)]">{reviewCopy.description}</p>
           </div>
-        </section>
+        </Reveal>
 
-        <section
-          className="rounded-2xl border border-border bg-card p-5"
+        <Reveal
+          as="section"
+          delay={120}
+          className="mz-glass rounded-[12px] p-6"
           aria-label="Next actions"
         >
-          <h2 className="text-sm font-semibold mb-3 text-foreground">Next actions</h2>
-          <ul className="space-y-2" data-testid="receipt-candidate-actions">
+          <h2 className="mz-h2">Next actions</h2>
+          <ul className="mt-4 space-y-2.5" data-testid="receipt-candidate-actions">
             {NEXT_ACTIONS.map((action) => (
               <li
                 key={action.key}
-                className="rounded-xl border border-border/60 bg-background/40 p-3"
+                className="mz-glass-inset rounded-[10px] p-4"
                 data-action-key={action.key}
               >
-                <p className="text-sm font-medium text-foreground">{action.label}</p>
-                <p className="text-xs text-muted-foreground">{action.description}</p>
+                <p className="mz-body font-medium text-[var(--vt-text-primary)]">{action.label}</p>
+                <p className="mz-small mt-0.5 text-[var(--vt-text-secondary)]">{action.description}</p>
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-[11px] italic text-muted-foreground/80">
+          <p className="mt-5 mz-small italic text-[var(--vt-text-muted)]">
             Submitting on this page does not finalize verification. Only a
             policy-review decision can convert a candidate into a PSV receipt.
           </p>
-        </section>
+        </Reveal>
 
-        <section className="text-[11px] text-muted-foreground/70">
-          <p data-testid="review-state-copy">
+        <Reveal
+          as="section"
+          delay={160}
+          className="border-t border-[var(--vt-border-subtle)] pt-6"
+        >
+          <p
+            data-testid="review-state-copy"
+            className="mz-small text-[var(--vt-text-muted)]"
+          >
             All review states keep the candidate distinct from finalized
             verification: {Object.values(REVIEW_STATE_COPY).map((s) => s.label).join(' · ')}
           </p>
-        </section>
+        </Reveal>
       </div>
     </main>
   );

@@ -27,7 +27,7 @@ export default async function HolderLayout({
 
   return (
     <ClinicianMobileProvider initialData={initialData}>
-      <div className="flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
+      <div className="mz mz-persona-holder flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
         <div className="flex-1 pb-20 md:pb-0">{children}</div>
