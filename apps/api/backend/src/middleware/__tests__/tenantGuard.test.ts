@@ -50,6 +50,17 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/me/workspaces/extra')).toBe(false);
   });
 
+  it('skips tenant context for the clinician personal-profile intake family', () => {
+    // Onboarding-time, Clerk-user-scoped routes: a brand-new clinician has no
+    // org, so org context here dead-ends the signup golden path (blocker #4).
+    expect(shouldSkipTenantContext('/api/profile/npi/bootstrap')).toBe(true);
+    expect(shouldSkipTenantContext('/api/profile/links')).toBe(true);
+    expect(shouldSkipTenantContext('/api/profile/work-auth')).toBe(true);
+    expect(shouldSkipTenantContext('/api/profile/self-attested')).toBe(true);
+    expect(shouldSkipTenantContext('/api/profile/completeness')).toBe(true);
+    expect(shouldSkipTenantContext('/api/profile/identity/email-otp/issue')).toBe(true);
+  });
+
   it('skips tenant context for public verifier reads (trust proof)', () => {
     expect(shouldSkipTenantContext('/api/trust-proof/1003000126')).toBe(true);
   });
