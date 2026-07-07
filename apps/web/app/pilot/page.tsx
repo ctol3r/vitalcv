@@ -158,7 +158,7 @@ export default function PilotPage() {
               as="article"
               key={step.title}
               delay={i * 80}
-              className="mz-card mz-card-pad mz-interactive"
+              className="mz-glass mz-glass-interactive rounded-[12px] p-5"
             >
               <div className="mb-4 inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper-2)] p-2.5 text-[var(--accent)]">
                 {step.icon}
