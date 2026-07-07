@@ -295,15 +295,19 @@
 /* Frosted paper glass. Reads best over ambient washes / imagery / the
    constellation; over flat paper it's a soft raised card with a light top edge. */
 .mz-glass {
-  background: color-mix(in oklch, var(--card) 74%, transparent);
+  /* Legible on flat paper (whiter fill, defined hairline, a close grounding
+     shadow) while staying frosted — the blur still refracts over ambient
+     washes / imagery / the constellation. */
+  background: color-mix(in oklch, var(--card) 88%, transparent);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid color-mix(in oklch, var(--ink-900) 9%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ink-900) 13%, transparent);
   border-radius: 10px;
   box-shadow:
-    inset 0 1px 0 0 color-mix(in oklch, white 55%, transparent),      /* top inner light — neuromorphic lift */
+    inset 0 1px 0 0 color-mix(in oklch, white 62%, transparent),      /* top inner light — neuromorphic lift */
     inset 0 -1px 0 0 color-mix(in oklch, var(--ink-900) 4%, transparent),
-    0 22px 55px -30px color-mix(in oklch, var(--ink-900) 42%, transparent); /* soft float */
+    0 2px 6px -3px color-mix(in oklch, var(--ink-900) 10%, transparent),   /* close grounding */
+    0 24px 55px -32px color-mix(in oklch, var(--ink-900) 40%, transparent); /* soft float */
 }
 /* A deeper elevation for modals / hero moments. */
 .mz-glass-strong {
