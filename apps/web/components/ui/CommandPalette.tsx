@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react';
 import { CommandParamsModal } from './CommandParamsModal';
 
 // Maps backend entity types to UI groups.
-// Calm Wave dark instrument: one indigo accent, no jade/teal/coral. Icon chips are a
-// faint charcoal fill (var(--vt-surface-subtle)) with muted ink; the selected row's
-// icon is recolored to indigo in the row itself.
-const ICON_CHIP = 'text-[var(--vt-text-secondary)] bg-[var(--vt-surface-subtle)]';
+// Calm Wave D56 light: paper + ink + one ink-indigo accent, no jade/teal/coral. Icon chips
+// are a light paper fill (var(--paper-2)) with muted ink; the selected row's icon is
+// recolored to ink-indigo (var(--accent)) in the row itself.
+const ICON_CHIP = 'text-[var(--ink-600)] bg-[var(--paper-2)]';
 const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> = {
   PUBLIC_PAGE: { group: 'Policy & Docs', icon: Globe, color: ICON_CHIP },
   FAQ_DOC: { group: 'Policy & Docs', icon: FileText, color: ICON_CHIP },
@@ -228,13 +228,13 @@ export function CommandPalette() {
     <>
       <AnimatePresence>
         {open && !activeCommand && (
-          <div className="dark fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
+          <div className="mz fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] sm:pt-[15vh]">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 bg-[color-mix(in_oklch,var(--ink-900)_28%,transparent)] backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
 
@@ -243,26 +243,31 @@ export function CommandPalette() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
+              style={{
+                background: 'var(--card)',
+                border: '1px solid var(--rule)',
+                boxShadow: '0 24px 60px -30px oklch(20% 0.02 265 / 0.28)',
+              }}
               className={cn(
-                "mz relative flex flex-col w-full max-w-2xl overflow-hidden rounded-[8px] border border-[var(--vt-border)] bg-[var(--card)] shadow-[0_32px_90px_-28px_rgba(0,0,0,0.85)]",
+                "mz relative flex flex-col w-full max-w-2xl overflow-hidden rounded-[8px]",
                 isResultsMode ? "h-[80vh] max-h-[800px]" : "h-auto"
               )}
             >
               {/* Sticky Search Header */}
-              <div className="flex-none p-4 pb-2 border-b border-[var(--vt-border)] shrink-0 bg-transparent z-10 sticky top-0">
-                <div className="flex items-center gap-3 bg-[var(--vt-surface-subtle)] border border-[var(--vt-border)] rounded-[6px] px-4 py-3 focus-within:border-[var(--vt-accent)] transition-colors">
-                  <Search className="w-5 h-5 text-[var(--vt-text-secondary)] shrink-0" />
+              <div className="flex-none p-4 pb-2 border-b border-[var(--rule)] shrink-0 bg-transparent z-10 sticky top-0">
+                <div className="flex items-center gap-3 bg-[var(--ink-50)] border border-[var(--rule)] rounded-[6px] px-4 py-3 focus-within:border-[var(--accent)] transition-colors">
+                  <Search className="w-5 h-5 text-[var(--ink-500)] shrink-0" />
                   <input
                     ref={inputRef}
-                    className="flex-1 bg-transparent border-none outline-none text-lg text-[var(--vt-text-primary)] placeholder:text-[var(--vt-text-muted)]"
+                    className="flex-1 bg-transparent border-none outline-none text-lg text-[var(--ink-900)] placeholder:text-[var(--ink-400)] placeholder:font-[family-name:var(--font-geist-mono)]"
                     placeholder="Jump to your wallet, readiness, or Recognition — or ask VitalCV"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                     onKeyDown={handleKeyDown}
                   />
-                  {loading && <div className="w-4 h-4 rounded-full border-2 border-[var(--vt-accent)] border-t-transparent animate-spin shrink-0" />}
+                  {loading && <div className="w-4 h-4 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin shrink-0" />}
                   <div className="flex gap-1 shrink-0 ml-2">
-                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] uppercase font-[family-name:var(--font-geist-mono)] text-[var(--vt-text-muted)] bg-[var(--vt-surface-subtle)] rounded-[4px] border border-[var(--vt-border)]">ESC</kbd>
+                    <kbd className="hidden sm:inline-flex items-center justify-center h-6 px-2 text-[10px] uppercase font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] bg-[var(--card)] rounded-[4px] border border-[var(--rule)]">ESC</kbd>
                   </div>
                 </div>
 
@@ -273,8 +278,8 @@ export function CommandPalette() {
                       className={cn(
                         "px-3 py-1 text-[11px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] rounded-[4px] whitespace-nowrap border transition-colors",
                         activeFilter === null
-                          ? "bg-[color-mix(in_oklab,var(--vt-accent)_16%,transparent)] border-[var(--vt-accent)] text-[var(--vt-text-primary)]"
-                          : "bg-transparent border-[var(--vt-border)] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-[var(--vt-text-muted)]"
+                          ? "bg-[color-mix(in_oklch,var(--accent)_12%,transparent)] border-[var(--accent)] text-[var(--accent)]"
+                          : "bg-transparent border-[var(--rule)] text-[var(--ink-500)] hover:text-[var(--ink-900)] hover:border-[var(--ink-400)]"
                       )}
                     >
                       All Results
@@ -286,8 +291,8 @@ export function CommandPalette() {
                         className={cn(
                           "px-3 py-1 text-[11px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] rounded-[4px] whitespace-nowrap flex items-center gap-1.5 border transition-colors",
                           activeFilter === g
-                            ? "bg-[color-mix(in_oklab,var(--vt-accent)_16%,transparent)] border-[var(--vt-accent)] text-[var(--vt-text-primary)]"
-                            : "bg-transparent border-[var(--vt-border)] text-[var(--vt-text-muted)] hover:text-[var(--vt-text-primary)] hover:border-[var(--vt-text-muted)]"
+                            ? "bg-[color-mix(in_oklch,var(--accent)_12%,transparent)] border-[var(--accent)] text-[var(--accent)]"
+                            : "bg-transparent border-[var(--rule)] text-[var(--ink-500)] hover:text-[var(--ink-900)] hover:border-[var(--ink-400)]"
                         )}
                       >
                         {g} <span className="text-[10px] opacity-60">({groupedResults[g].length})</span>
@@ -302,8 +307,8 @@ export function CommandPalette() {
                 {!isResultsMode ? (
                   <div className="px-2 py-4">
                     <div className="flex items-center justify-between px-2 mb-3">
-                      <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Quick actions</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--vt-text-muted)] bg-[var(--vt-surface-subtle)] px-2.5 py-1 rounded-[4px] border border-[var(--vt-border)]">
+                      <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--ink-500)]">Quick actions</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] bg-[var(--paper-2)] px-2.5 py-1 rounded-[4px] border border-[var(--rule)]">
                         ↑↓ move · ↵ open · esc close
                       </div>
                     </div>
@@ -323,29 +328,29 @@ export function CommandPalette() {
                               // left indigo accent bar on the selected row
                               "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:transition-colors",
                               selected
-                                ? "bg-[color-mix(in_oklab,var(--vt-accent)_14%,transparent)] border-[var(--vt-accent)] before:bg-[var(--vt-accent)]"
-                                : "bg-transparent border-[var(--vt-border)] hover:bg-[var(--vt-surface-subtle)] before:bg-transparent"
+                                ? "bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] border-[var(--accent)] before:bg-[var(--accent)]"
+                                : "bg-transparent border-[var(--rule)] hover:bg-[var(--ink-50)] before:bg-transparent"
                             )}
                           >
                             <div className="flex items-center gap-3 mb-2 w-full">
-                              <div className={cn("p-2 rounded-[4px] transition-colors", selected ? "bg-[color-mix(in_oklab,var(--vt-accent)_18%,transparent)] text-[var(--vt-accent)]" : "bg-[var(--vt-surface-subtle)] text-[var(--vt-text-secondary)]")}>
+                              <div className={cn("p-2 rounded-[4px] transition-colors", selected ? "bg-[color-mix(in_oklch,var(--accent)_15%,transparent)] text-[var(--accent)]" : "bg-[var(--paper-2)] text-[var(--ink-600)]")}>
                                 <Icon className="w-5 h-5" />
                               </div>
-                              <div className="font-medium text-[var(--vt-text-primary)] flex-1">{action.label}</div>
-                              {selected && <ArrowRight className="w-4 h-4 text-[var(--vt-accent)]" />}
+                              <div className="font-medium text-[var(--ink-900)] flex-1">{action.label}</div>
+                              {selected && <ArrowRight className="w-4 h-4 text-[var(--accent)]" />}
                             </div>
-                            <div className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--vt-text-muted)] line-clamp-2">{action.desc}</div>
+                            <div className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] line-clamp-2">{action.desc}</div>
                           </button>
                         );
                       })}
                     </div>
 
                     <div className="mt-8 px-2">
-                      <div className="p-4 rounded-[6px] bg-[var(--vt-surface-subtle)] border border-[var(--vt-border)] flex gap-4 items-start">
-                        <Sparkles className="w-6 h-6 text-[var(--vt-accent)] shrink-0 mt-1" />
+                      <div className="p-4 rounded-[6px] bg-[var(--paper-2)] border border-[var(--rule)] flex gap-4 items-start">
+                        <Sparkles className="w-6 h-6 text-[var(--accent)] shrink-0 mt-1" />
                         <div>
-                          <h4 className="text-sm font-medium text-[var(--vt-text-primary)] mb-1">Ask in plain language</h4>
-                          <p className="text-xs text-[var(--vt-text-secondary)]">
+                          <h4 className="text-sm font-medium text-[var(--ink-900)] mb-1">Ask in plain language</h4>
+                          <p className="text-xs text-[var(--ink-600)]">
                             &ldquo;What&rsquo;s blocking my readiness?&rdquo; or &ldquo;Which sources are still gated for my NPI?&rdquo;
                           </p>
                         </div>
@@ -356,13 +361,13 @@ export function CommandPalette() {
                   <div className="space-y-6 pt-2">
                     {groups.length === 0 && !loading && (
                       <div className="py-12 text-center flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-full bg-[var(--vt-surface-subtle)] border border-[var(--vt-border)] flex items-center justify-center mb-4">
-                          <Search className="w-5 h-5 text-[var(--vt-text-muted)]" />
+                        <div className="w-12 h-12 rounded-full bg-[var(--paper-2)] border border-[var(--rule)] flex items-center justify-center mb-4">
+                          <Search className="w-5 h-5 text-[var(--ink-400)]" />
                         </div>
-                        <p className="text-sm text-[var(--vt-text-primary)] mb-4">No specific entities found.</p>
+                        <p className="text-sm text-[var(--ink-900)] mb-4">No specific entities found.</p>
                         <button
                           onClick={() => { setOpen(false); router.push(`/ask?q=${encodeURIComponent(search)}`); }}
-                          className="flex items-center gap-2 px-4 py-2 rounded-[6px] bg-[var(--vt-accent)] text-[var(--card)] text-sm font-medium hover:bg-[color-mix(in_oklab,var(--vt-accent)_85%,#000)] transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 rounded-[6px] bg-[var(--accent)] text-[var(--card)] text-sm font-medium hover:bg-[color-mix(in_oklch,var(--accent)_85%,var(--ink-900))] transition-colors"
                         >
                           <Sparkles className="w-4 h-4" />
                           Ask VitalCV instead
@@ -372,9 +377,9 @@ export function CommandPalette() {
 
                     {groups.map(group => (
                       <div key={group} className="px-2">
-                        <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--vt-text-muted)] mb-2 px-2 flex justify-between items-center">
+                        <h3 className="text-[11px] font-[family-name:var(--font-geist-mono)] font-medium uppercase tracking-[0.14em] text-[var(--ink-500)] mb-2 px-2 flex justify-between items-center">
                           {group}
-                          <span className="text-[var(--vt-text-muted)] opacity-70 text-[10px]">Source earmark active</span>
+                          <span className="text-[var(--ink-400)] opacity-70 text-[10px]">Source earmark active</span>
                         </h3>
                         <div className="space-y-1">
                           {groupedResults[group].map((item: any) => {
@@ -391,25 +396,25 @@ export function CommandPalette() {
                                   "relative w-full flex items-start gap-3 p-3 pl-4 rounded-[6px] text-left border transition-colors group",
                                   "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:transition-colors",
                                   selected
-                                    ? "bg-[color-mix(in_oklab,var(--vt-accent)_14%,transparent)] border-[var(--vt-accent)] before:bg-[var(--vt-accent)]"
-                                    : "bg-transparent border-transparent hover:bg-[var(--vt-surface-subtle)] before:bg-transparent"
+                                    ? "bg-[color-mix(in_oklch,var(--accent)_10%,transparent)] border-[var(--accent)] before:bg-[var(--accent)]"
+                                    : "bg-transparent border-transparent hover:bg-[var(--ink-50)] before:bg-transparent"
                                 )}
                               >
-                                <div className={cn("p-1.5 rounded-[4px] shrink-0 mt-0.5 transition-colors", selected ? "bg-[color-mix(in_oklab,var(--vt-accent)_18%,transparent)] text-[var(--vt-accent)]" : item._meta.color)}>
+                                <div className={cn("p-1.5 rounded-[4px] shrink-0 mt-0.5 transition-colors", selected ? "bg-[color-mix(in_oklch,var(--accent)_15%,transparent)] text-[var(--accent)]" : item._meta.color)}>
                                   <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-[var(--vt-text-primary)]" : "text-[var(--vt-text-secondary)]")}>
+                                    <span className={cn("font-medium truncate transition-colors", selected ? "text-[var(--ink-900)]" : "text-[var(--ink-700)]")}>
                                       {item.title}
                                     </span>
                                   </div>
-                                  <p className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--vt-text-muted)] line-clamp-1 transition-colors">
+                                  <p className="text-xs font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] line-clamp-1 transition-colors">
                                     {item.snippet}
                                   </p>
                                 </div>
                                 {selected && (
-                                  <div className="shrink-0 flex items-center justify-center h-full text-[var(--vt-accent)] mt-1">
+                                  <div className="shrink-0 flex items-center justify-center h-full text-[var(--accent)] mt-1">
                                     <ChevronRight className="w-4 h-4" />
                                   </div>
                                 )}
@@ -424,12 +429,12 @@ export function CommandPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex-none p-2 border-t border-[var(--vt-border)] bg-transparent text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--vt-text-muted)] flex items-center justify-between px-4">
+              <div className="flex-none p-2 border-t border-[var(--rule)] bg-transparent text-[10px] uppercase tracking-wide font-[family-name:var(--font-geist-mono)] text-[var(--ink-500)] flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><kbd className="bg-[var(--vt-surface-subtle)] border border-[var(--vt-border)] px-1 rounded-[3px]">↑↓</kbd> to navigate</span>
-                  <span className="flex items-center gap-1"><kbd className="bg-[var(--vt-surface-subtle)] border border-[var(--vt-border)] px-1 rounded-[3px]">↵</kbd> to select</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↑↓</kbd> to navigate</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-[var(--paper-2)] border border-[var(--rule)] px-1 rounded-[3px]">↵</kbd> to select</span>
                 </div>
-                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--vt-accent)]" /> VitalCV · your career wallet</div>
+                <div className="flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" /> VitalCV · your career wallet</div>
               </div>
             </motion.div>
           </div>

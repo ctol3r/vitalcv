@@ -18,10 +18,10 @@
  * and a self-attested profession are NOT license/identity proofing, and nothing
  * here presents them as a completed license check or a bare "Verified" status.
  *
- * Calm Wave blend to match the homepage: a calm light "action" side (paper + ink,
- * Fraunces serif, mono labels, ink primary buttons — where the clinician acts) beside
- * a dark "instrument" panel (the same design system's dark variant — warm charcoal +
- * indigo, NOT jade) carrying the benefits rail.
+ * Full Calm Wave D56 — one calm paper-and-ink system, no dark surfaces: a calm light
+ * "action" side (paper + ink, Fraunces serif, mono labels, ink primary buttons — where
+ * the clinician acts) beside an equally calm-light benefits rail. The two columns are
+ * set apart only by a single hairline and a subtle paper-2 inset — no glow, no charcoal.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -485,7 +485,7 @@ export default function GetReadySurface() {
   );
 }
 
-/* ── Layout: Calm Wave split-panel (calm-light action left, dark instrument right) ── */
+/* ── Layout: Calm Wave split-panel (calm-light action left, calm-light benefits right) ── */
 
 // Ink primary — the Calm Wave `.mz-btn` look, stretched full-width for the gate.
 const primaryBtn =
@@ -506,41 +506,25 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function BenefitsPanel() {
-  // Dark "instrument" panel — the Calm Wave system in its own dark variant
-  // (warm charcoal + indigo). Everything inside flips via `.dark .mz`, so it
-  // stays the same family as the light action side: no jade, no coral glass.
+  // Calm-light benefits rail — full Calm Wave D56, no dark surfaces. Sits as the
+  // second column on the shared paper canvas, set off from the action side by a
+  // single left hairline and a subtle paper-2 inset. No gradient, no glow, no
+  // drop-shadow — ink on paper, the same family as the action column.
   return (
-    <div className="dark hidden lg:block">
-      <div className="mz mz-paper relative flex h-full items-center justify-center overflow-hidden">
-        {/* one dark-glass whisper — a soft indigo instrument glow + faint static grid */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              'radial-gradient(80% 120% at 20% -10%, color-mix(in oklab, var(--vt-accent) 20%, transparent), transparent 58%)',
-          }}
-        />
-        <div
-          aria-hidden
-          className="mz-dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.12]"
-        />
-        <div className="relative z-10 mx-8 w-full max-w-sm rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-8 shadow-[0_50px_120px_-70px_rgba(0,0,0,0.85)]">
-          <p className="mz-eyebrow">VitalCV for Clinicians</p>
-          <p className="mz-body mt-2 text-[var(--vt-text-secondary)]">
-            Your free, source-backed career wallet
-          </p>
-          <ul className="mt-6 space-y-4">
-            {BENEFITS.map((b, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-[var(--vt-text-secondary)]">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-[color-mix(in_oklab,var(--vt-accent)_45%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent)_16%,transparent)] text-[var(--vt-accent)]">
-                  {b.icon}
-                </span>
-                <span className="leading-relaxed">{b.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className="hidden border-l border-[var(--rule)] px-8 py-12 lg:flex lg:items-center lg:justify-center">
+      <div className="mz-inset w-full max-w-sm p-8">
+        <p className="mz-eyebrow">VitalCV for Clinicians</p>
+        <p className="mz-body mt-3">Your free, source-backed career wallet</p>
+        <ul className="mt-6 space-y-4">
+          {BENEFITS.map((b, i) => (
+            <li key={i} className="flex items-start gap-3 text-sm text-[var(--ink-600)]">
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-[color-mix(in_oklab,var(--accent)_30%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                {b.icon}
+              </span>
+              <span className="leading-relaxed">{b.text}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
