@@ -2677,7 +2677,13 @@ function registerPilotRoutes(app: Express): void {
     }
   });
 
-  app.post('/api/verifier/accept', walletRateLimit, async (req: Request, res: Response) => {
+  // Pilot KPI acceptance marker. This lived at /api/verifier/accept, where —
+  // by registering first — it silently shadowed the credential-presentation
+  // acceptance route (routes/verifier.ts), leaving that route's revocation
+  // fail-closed logic and org-role guard unreachable. The verifier namespace
+  // keeps verification semantics (didRegistry advertises it as
+  // PresentationVerification); the KPI marker lives with its pilot siblings.
+  app.post('/api/pilot/acceptance', walletRateLimit, async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     let acceptedAt = new Date();
 

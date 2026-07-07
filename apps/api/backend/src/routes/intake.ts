@@ -19,6 +19,7 @@ import {
   updateSelfAttested,
   type ClearableLinkField,
 } from '../services/intake/intakeService';
+import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
 import { HttpError } from '../utils/httpError';
 
 const NPI_RE = /^\d{10}$/;
@@ -38,6 +39,24 @@ function requireUserId(req: Request): string {
   return id;
 }
 
+/**
+ * Resolve the signed-in Clerk identity to the internal `User.id` UUID.
+ *
+ * `PersonProfile.userId` is a UUID column keyed to `User.id` (that is how the
+ * workspace read side hydrates the wallet). Passing the raw Clerk id
+ * (`user_…`) into these queries can never succeed — the query engine rejects
+ * it before the row is touched. `ensureWorkspaceUser` creates the User row on
+ * first touch when the proxy forwards `x-clerk-user-email` (the /get-ready
+ * flow loads /api/me/workspaces first, which does the same), and fails with a
+ * clean 404 when it cannot resolve one.
+ */
+async function requireInternalUserId(req: Request): Promise<string> {
+  const clerkUserId = requireUserId(req);
+  const email = getHeader(req, 'x-clerk-user-email') || undefined;
+  const user = await ensureWorkspaceUser(clerkUserId, email);
+  return user.id;
+}
+
 export function registerIntakeRoutes(app: Express): void {
 
   /**
@@ -48,7 +67,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.post(
     '/api/profile/resume/upload',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      const userId = await requireInternalUserId(req);
       const { fileName, fileUrl, clear } = req.body as {
         fileName?: string;
         fileUrl?: string;
@@ -80,7 +99,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.post(
     '/api/profile/links',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      const userId = await requireInternalUserId(req);
       const { linkedinUrl, portfolioUrl, otherUrls, clear } =
         req.body as {
           linkedinUrl?: string;
@@ -107,7 +126,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.post(
     '/api/profile/work-auth',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      const userId = await requireInternalUserId(req);
       const { workAuthStatus, clear } = req.body as { workAuthStatus?: string; clear?: boolean };
 
       if (clear === true) {
@@ -136,7 +155,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.post(
     '/api/profile/self-attested',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      const userId = await requireInternalUserId(req);
       const body = req.body as { selfAttested?: unknown } | undefined;
       const input = body && typeof body === 'object' && 'selfAttested' in body
         ? body.selfAttested
@@ -153,7 +172,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.post(
     '/api/profile/npi/bootstrap',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      requireUserId(req); // 401 before any validation or row creation
       const { npi, profession, attested, attestationVersion } = req.body as {
         npi?: string;
         profession?: string;
@@ -165,6 +184,7 @@ export function registerIntakeRoutes(app: Express): void {
         throw new HttpError(400, 'npi must be exactly 10 digits.');
       }
 
+      const userId = await requireInternalUserId(req);
       const result = await bootstrapNpiIntake(userId, npi, {
         profession,
         attested,
@@ -181,7 +201,7 @@ export function registerIntakeRoutes(app: Express): void {
   app.get(
     '/api/profile/completeness',
     asyncHandler(async (req, res) => {
-      const userId = requireUserId(req);
+      const userId = await requireInternalUserId(req);
       const result = await getProfileCompleteness(userId);
       res.json(result);
     }),

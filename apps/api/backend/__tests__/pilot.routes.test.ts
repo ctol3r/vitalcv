@@ -47,7 +47,7 @@ runPilotRouteSuite('pilot routes', () => {
   });
 
   it('records verifier acceptance payloads', async () => {
-    const res = await request(app).post('/api/verifier/accept').send({
+    const res = await request(app).post('/api/pilot/acceptance').send({
       organization: 'Regional Health Center',
     });
 
@@ -60,7 +60,7 @@ runPilotRouteSuite('pilot routes', () => {
   });
 
   it('rejects invalid verifier acceptance requests without crashing the process', async () => {
-    const res = await request(app).post('/api/verifier/accept').send({});
+    const res = await request(app).post('/api/pilot/acceptance').send({});
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({

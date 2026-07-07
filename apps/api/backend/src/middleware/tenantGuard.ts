@@ -62,9 +62,14 @@ export function shouldSkipTenantContext(path: string): boolean {
     // when the middleware asks "what role is this?", so requiring tenant
     // context here 401s and dead-ends the entire signed-in experience.
     || normalized === '/api/me/role'
-    // Email-OTP identity binding: an onboarding-time possession factor scoped to
-    // the Clerk user alone (no org context yet). Same rationale as /api/me/role.
-    || normalized.startsWith('/api/profile/identity/')
+    // Clinician personal-profile intake family (npi/bootstrap, links,
+    // work-auth, resume, self-attested, completeness, identity/email-otp):
+    // every route here is scoped to the Clerk user alone and authenticates
+    // itself via x-clerk-user-id → internal User.id resolution. These are
+    // onboarding-time surfaces — a brand-new clinician has no org yet, so
+    // requiring org context 401s the signup golden path at its first write
+    // (launch blocker #4 e2e pins this). Same rationale as /api/me/role.
+    || normalized.startsWith('/api/profile/')
     // Workspace bootstrap: resolves by Clerk user id alone (x-clerk-user-id
     // header) and *produces* the persona/org context the rest of the app runs
     // on. Requiring org context before the workspace lookup is a chicken-and-
