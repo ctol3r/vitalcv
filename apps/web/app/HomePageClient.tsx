@@ -886,13 +886,12 @@ export default function HomePageClient() {
             </div>
           </section>
 
-          {/* Career constellation — calm card on paper. The star map keeps its
-              own inner canvas; the frame is the same hairline card as the rest. */}
-          <section aria-label="Your career, in motion" data-home-network="" className="mz mt-16">
-              <div
-                className="mz mz-card mz-card-pad relative isolate overflow-hidden"
-                style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}
-              >
+          {/* Career constellation — bleeds into the page (no box): the eyebrow +
+              heading sit on paper, the star map opens below and edge-fades into
+              the surrounding paper via its own radial mask. Part of the page,
+              not a framed panel. */}
+          <section aria-label="Your career, in motion" data-home-network="" className="mz mz-persona-holder relative isolate mt-20">
+              <div className="relative isolate">
                 <p className="mz-eyebrow">Your career, in motion</p>
                 <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
                   Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
