@@ -523,29 +523,15 @@ export default function HomePageClient() {
       <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
         <div className="w-full">
 
-          {/* Hero — dark "instrument" panel: the Calm Wave system in its own
-              dark variant (warm charcoal + indigo), the one place the page keeps
-              the dark-glass drama. Everything inside flips via `.dark .mz`, so it
-              stays the same family as the calm body — no jade, no EKG. */}
-          <div className="dark">
+          {/* Hero — full Calm Wave D56: the Fraunces headline sits open on paper,
+              the NPI + wallet visual framed to the right. No dark panel, no glow,
+              no heavy shadow — the calm institutional substrate the design is
+              drawn in. */}
           <section
             aria-label="NPI lookup"
             data-home-hero=""
-            className="mz mz-paper relative isolate overflow-hidden rounded-[12px] border border-[var(--vt-border)] px-6 py-10 shadow-[0_50px_120px_-70px_rgba(0,0,0,0.85)] sm:px-10 sm:py-12 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+            className="mz mz-paper relative isolate py-10 sm:py-14 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
-            {/* one dark-glass whisper — a soft indigo instrument glow + faint static grid */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-10"
-              style={{
-                background:
-                  'radial-gradient(80% 120% at 12% -15%, color-mix(in oklab, var(--vt-accent) 22%, transparent), transparent 58%)',
-              }}
-            />
-            <div
-              aria-hidden="true"
-              className="mz-dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.12]"
-            />
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
               <div className="space-y-5">
@@ -702,7 +688,6 @@ export default function HomePageClient() {
               <WalletPreview />
             </div>
           </section>
-          </div>
 
           {/* Primary-source registry strip — breadth, stated calm. Names only;
               state vocabulary stays in the caption so nothing overclaims. */}
@@ -899,23 +884,13 @@ export default function HomePageClient() {
             </div>
           </section>
 
-          {/* Career constellation — the second dark "instrument" panel (blend):
-              the star map reads best on the calm system's dark charcoal, with an
-              indigo glow. Same `.dark .mz` family as the hero. */}
+          {/* Career constellation — calm card on paper. The star map keeps its
+              own inner canvas; the frame is the same hairline card as the rest. */}
           <section aria-label="Your career, in motion" data-home-network="" className="mz mt-16">
-            <div className="dark">
               <div
                 className="mz mz-card mz-card-pad relative isolate overflow-hidden"
                 style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}
               >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 -z-10"
-                  style={{
-                    background:
-                      'radial-gradient(90% 120% at 50% -12%, color-mix(in oklab, var(--vt-accent) 20%, transparent), transparent 60%)',
-                  }}
-                />
                 <p className="mz-eyebrow">Your career, in motion</p>
                 <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
                   Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
@@ -929,7 +904,6 @@ export default function HomePageClient() {
                   <MatchaConstellation height={480} />
                 </div>
               </div>
-            </div>
           </section>
 
           {/* Role doors — four calm entry points, clinician first */}

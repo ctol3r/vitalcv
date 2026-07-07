@@ -7,34 +7,49 @@ import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
+import { Fraunces, Geist, Geist_Mono } from 'next/font/google';
 import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
 
-const systemSansStack =
-  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const systemDisplayStack = "Georgia, 'Times New Roman', serif";
-const systemMonoStack =
-  "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+/**
+ * Calm Wave D56 typography — the real webfonts the design system is drawn in.
+ * next/font self-hosts them (downloaded at build, served same-origin), so
+ * there is no runtime Google-Fonts CDN dependency and nothing to add to the
+ * CSP. Previously these variables resolved to system fallbacks (Georgia /
+ * system-ui), which is why the live app never matched the Fraunces + Geist
+ * design. Each carries its own size-adjusted fallback for zero-CLS swap.
+ */
+const geistSans = Geist({ subsets: ['latin'], display: 'swap' });
+const geistMono = Geist_Mono({ subsets: ['latin'], display: 'swap' });
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
+
+const sansStack = `${geistSans.style.fontFamily}, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`;
+const displayStack = `${fraunces.style.fontFamily}, 'Iowan Old Style', Georgia, serif`;
+const monoStack = `${geistMono.style.fontFamily}, ui-monospace, 'SFMono-Regular', Menlo, monospace`;
 
 const fontVariables = {
   ...vdsCssVariables,
-  '--font-fraunces': systemDisplayStack,
-  '--font-plus-jakarta': systemSansStack,
-  '--font-inter': systemSansStack,
-  '--font-jetbrains': systemMonoStack,
-  '--font-geist': systemSansStack,
-  '--font-geist-mono': systemMonoStack,
-  '--vt-font-body': systemSansStack,
-  '--vt-font-display': systemDisplayStack,
-  '--font-body': systemSansStack,
-  '--font-display': systemDisplayStack,
-  '--font-sans': systemSansStack,
-  '--font-heading': systemSansStack,
-  '--font-serif': systemDisplayStack,
-  '--font-mono': systemMonoStack,
+  '--font-fraunces': displayStack,
+  '--font-plus-jakarta': sansStack,
+  '--font-inter': sansStack,
+  '--font-jetbrains': monoStack,
+  '--font-geist': sansStack,
+  '--font-geist-mono': monoStack,
+  '--vt-font-body': sansStack,
+  '--vt-font-display': displayStack,
+  '--font-body': sansStack,
+  '--font-display': displayStack,
+  '--font-sans': sansStack,
+  '--font-heading': sansStack,
+  '--font-serif': displayStack,
+  '--font-mono': monoStack,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
