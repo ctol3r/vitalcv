@@ -79,13 +79,14 @@ function matchBandLabel(band: string): string {
 function matchBandTone(band: string): string {
   switch (band) {
     case 'CLEAR':
-      return 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100';
+      return 'mz-chip mz-chip-ok';
+    // "Almost ready" is not fully clear — amber, matching the opportunity feed
+    // (ClinicianPanels.matchTone) so one band never shows two colors.
     case 'NEAR_CLEAR':
-      return 'border-sky-400/30 bg-sky-400/10 text-sky-100';
     case 'PARTIAL':
-      return 'border-amber-400/30 bg-amber-400/10 text-amber-100';
+      return 'mz-chip mz-chip-watch';
     default:
-      return 'border-white/15 bg-white/[0.05] text-white/70';
+      return 'mz-chip mz-chip-unknown';
   }
 }
 
@@ -144,8 +145,8 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
-          <Loader2 className="h-7 w-7 animate-spin text-white/40" aria-hidden />
-          <p className="text-sm text-white/50">Loading role…</p>
+          <Loader2 className="h-7 w-7 animate-spin text-[var(--ink-400)]" aria-hidden />
+          <p className="mz-small">Loading role…</p>
         </div>
       </Shell>
     );
@@ -157,14 +158,14 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
       <Shell>
         <BackLink />
         <div className="space-y-4 py-12 text-center">
-          <h1 className="text-2xl font-semibold text-white">This role is no longer available</h1>
-          <p className="text-sm leading-6 text-white/60">
+          <h1 className="mz-h1">This role is no longer available</h1>
+          <p className="mz-body">
             It may have been filled or withdrawn by the employer. Your matched feed always shows
             what is live right now.
           </p>
           <Link
             href="/holder/opportunities"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            className="mz-btn min-h-12"
           >
             See live roles <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
@@ -179,8 +180,8 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
       <Shell>
         <BackLink />
         <div className="space-y-4 py-12 text-center">
-          <h1 className="text-xl font-semibold text-white">Couldn&apos;t load this role</h1>
-          <p className="text-sm leading-6 text-white/60">
+          <h1 className="mz-h1">Couldn&apos;t load this role</h1>
+          <p className="mz-body">
             This is a system state — not a change to the role or your match. Try again shortly.
           </p>
         </div>
@@ -194,8 +195,8 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
-          <Loader2 className="h-7 w-7 animate-spin text-white/40" aria-hidden />
-          <p className="text-sm text-white/50">Loading role…</p>
+          <Loader2 className="h-7 w-7 animate-spin text-[var(--ink-400)]" aria-hidden />
+          <p className="mz-small">Loading role…</p>
         </div>
       </Shell>
     );
@@ -208,13 +209,13 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
     <Shell>
       <BackLink />
 
-      <header className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-        <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+      <header className="mz-glass p-5 sm:p-6">
+        <p className="mz-eyebrow">
           <Building2 className="h-3.5 w-3.5 opacity-60" aria-hidden />
           {opportunity.organizationName}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{opportunity.title}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/65">
+        <h1 className="mz-h1 mt-2">{opportunity.title}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-2 mz-small">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" aria-hidden />
             {opportunity.state}
@@ -228,7 +229,7 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
           {opportunity.payRange ? (
             <>
               <span className="opacity-40">·</span>
-              <span className="inline-flex items-center gap-1 font-medium text-emerald-100/90">
+              <span className="inline-flex items-center gap-1 font-medium text-[var(--ink-800)]">
                 <Banknote className="h-3.5 w-3.5 opacity-70" aria-hidden />
                 {opportunity.payRange}
               </span>
@@ -247,14 +248,14 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
           {application ? (
             <Link
               href={`/holder/applications/${encodeURIComponent(application.id)}`}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300/50"
+              className="mz-btn mz-btn-ghost min-h-12"
             >
               You applied — view your application <ChevronRight className="h-4 w-4" aria-hidden />
             </Link>
           ) : (
             <Link
               href={`/holder/opportunities?apply=${encodeURIComponent(opportunity.id)}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+              className="mz-btn min-h-12"
             >
               Apply with your VitalCV <ChevronRight className="h-4 w-4" aria-hidden />
             </Link>
@@ -266,24 +267,25 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
       {match ? (
         <section
           aria-labelledby="match-heading"
-          className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5"
+          className="mz-glass p-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="match-heading" className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+            <h2 id="match-heading" className="mz-eyebrow">
               Your match
             </h2>
-            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${matchBandTone(match.band)}`}>
+            <span className={matchBandTone(match.band)}>
+              <span className="mz-gl" />
               {matchBandLabel(match.band)} · {match.score}/100
             </span>
           </div>
           {match.fitReasons.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Why you fit</p>
+              <p className="mz-mono text-[11px] uppercase tracking-[0.18em] opacity-60">Why you fit</p>
               <ul className="mt-2 flex flex-wrap gap-2">
                 {match.fitReasons.map((reason) => (
                   <li
                     key={reason}
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-white/80"
+                    className="mz-inset px-2.5 py-1 text-xs text-[var(--ink-700)]"
                   >
                     {reason}
                   </li>
@@ -293,30 +295,30 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
           )}
           {match.blockers.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-amber-200/70">
+              <p className="mz-mono text-[11px] uppercase tracking-[0.18em] text-[var(--watch)]">
                 What would strengthen this match
               </p>
               <ul className="mt-2 space-y-2">
                 {match.blockers.map((blocker) => (
                   <li
                     key={blocker.label}
-                    className="rounded-2xl border border-amber-400/15 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-50"
+                    className="mz-inset px-4 py-2.5 mz-body"
                   >
                     {blocker.label}
-                    {blocker.action ? <span className="text-amber-100/70"> — {blocker.action}</span> : null}
+                    {blocker.action ? <span className="text-[var(--ink-500)]"> — {blocker.action}</span> : null}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          <p className="mt-4 text-xs leading-relaxed text-white/40">
+          <p className="mt-4 mz-small leading-relaxed">
             Match scoring is deterministic and based on your recorded credentials and stated
             preferences. It is guidance, not a verification result and not an employer decision.
           </p>
         </section>
       ) : (
-        <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-sm leading-6 text-white/60">
+        <section className="mz-card mz-card-pad">
+          <p className="mz-body">
             This role is not in your matched feed right now, so no match explanation is available.
             Your feed reflects your recorded credentials and preferences.
           </p>
@@ -324,14 +326,14 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
       )}
 
       {/* Role description */}
-      <section aria-labelledby="role-heading" className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
-        <h2 id="role-heading" className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+      <section aria-labelledby="role-heading" className="mz-card mz-card-pad">
+        <h2 id="role-heading" className="mz-eyebrow">
           About this role
         </h2>
         {opportunity.description ? (
-          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-white/70">{opportunity.description}</p>
+          <p className="mt-3 whitespace-pre-line mz-body">{opportunity.description}</p>
         ) : (
-          <p className="mt-3 text-sm leading-6 text-white/50">
+          <p className="mt-3 mz-small">
             The employer has not published a description for this role yet.
           </p>
         )}
@@ -342,8 +344,10 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
-      {children}
+    <main className="mz mz-paper mz-ambient min-h-screen w-full">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
+        {children}
+      </div>
     </main>
   );
 }
@@ -352,7 +356,7 @@ function BackLink() {
   return (
     <Link
       href="/holder/opportunities"
-      className="inline-flex w-fit items-center gap-1.5 text-sm text-white/55 transition hover:text-white"
+      className="inline-flex w-fit items-center gap-1.5 mz-small transition hover:text-[var(--ink-900)]"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden /> All roles
     </Link>

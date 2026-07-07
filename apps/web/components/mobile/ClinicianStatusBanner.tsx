@@ -5,22 +5,20 @@ import { AlertTriangle, ArrowRight, Info, TriangleAlert } from 'lucide-react';
 
 type ClinicianStatusTone = 'error' | 'warning' | 'info';
 
-const TONE_STYLES: Record<ClinicianStatusTone, string> = {
-  error: 'border-rose-400/20 bg-rose-400/10 text-rose-100',
-  warning: 'border-amber-400/20 bg-amber-400/10 text-amber-50',
-  info: 'border-sky-400/20 bg-sky-400/10 text-sky-100',
+const TONE_CHIP: Record<ClinicianStatusTone, string> = {
+  error: 'mz-chip-p0',
+  warning: 'mz-chip-watch',
+  info: 'mz-chip-unknown',
 };
 
 function StatusIcon({ tone }: { tone: ClinicianStatusTone }) {
-  if (tone === 'error') {
-    return <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />;
-  }
+  const Icon = tone === 'error' ? AlertTriangle : tone === 'warning' ? TriangleAlert : Info;
 
-  if (tone === 'warning') {
-    return <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />;
-  }
-
-  return <Info className="mt-0.5 h-5 w-5 shrink-0" />;
+  return (
+    <span className={`mz-chip ${TONE_CHIP[tone]} mt-0.5 shrink-0`}>
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  );
 }
 
 export function ClinicianStatusBanner({
@@ -42,18 +40,18 @@ export function ClinicianStatusBanner({
   onActionLabel?: string;
 }) {
   return (
-    <div className={`rounded-3xl border px-4 py-4 ${TONE_STYLES[tone]}`} role="status" aria-live="polite">
+    <div className="mz mz-inset px-4 py-4" role="status" aria-live="polite">
       <div className="flex items-start gap-3">
         <StatusIcon tone={tone} />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="mt-1 text-sm leading-6">{detail}</p>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="mt-1 mz-body">{detail}</p>
           <div className="flex flex-wrap items-center gap-4">
             {onAction && onActionLabel ? (
               <button
                 type="button"
                 onClick={onAction}
-                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white underline underline-offset-4 transition hover:text-white/80"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
               >
                 {onActionLabel}
               </button>
@@ -61,7 +59,8 @@ export function ClinicianStatusBanner({
             {actionHref && actionLabel ? (
               <Link
                 href={actionHref}
-                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white transition hover:text-white/80"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ color: 'var(--accent)' }}
               >
                 {actionLabel}
                 <ArrowRight className="h-4 w-4" />

@@ -92,24 +92,13 @@ export function ProductLoopRail({
   className,
 }: ProductLoopRailProps) {
   const stages = buildStages({ npi, profileComplete, hasReadiness, activeStage });
-  const dark = variant === 'dark';
   const doc = variant === 'doc';
 
-  const containerClass = doc
-    ? 'vcv-panel p-4 sm:p-5'
-    : [
-        'rounded-[28px] border p-4 sm:p-5',
-        dark
-          ? 'border-white/10 bg-white/[0.04] shadow-[0_20px_60px_rgba(0,0,0,0.28)]'
-          : 'border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-surface)_94%,white)]',
-      ].join(' ');
-
-  const headingClass = doc
-    ? 'vcv-eyebrow'
-    : [
-        'text-[11px] font-semibold uppercase tracking-[0.18em]',
-        dark ? 'text-white/45' : 'text-[var(--vt-text-muted)]',
-      ].join(' ');
+  // `doc` stays native to the `.vcv-doc` paper register (readiness / recognition).
+  // Every other mount is calm glass: `mz` on the root makes the Calm Wave tokens
+  // resolve wherever the rail lands, so it is self-contained.
+  const containerClass = doc ? 'vcv-panel p-4 sm:p-5' : 'mz mz-glass p-4 sm:p-5';
+  const headingClass = doc ? 'vcv-eyebrow' : 'mz-eyebrow';
 
   return (
     <nav aria-label="Your VitalCV loop" data-product-loop-rail="" className={[containerClass, className ?? ''].join(' ')}>
@@ -127,23 +116,33 @@ export function ProductLoopRail({
                 data-loop-stage={stage.key}
                 data-loop-status={stage.status}
                 aria-current={isCurrent ? 'step' : undefined}
-                className={stageLinkClass({ variant, isCurrent })}
-                style={doc ? stageDocStyle(isCurrent) : undefined}
+                className={stageLinkClass(doc)}
+                style={doc ? stageDocStyle(isCurrent) : stageCalmStyle(isCurrent)}
               >
-                <span className={badgeClass({ variant, isDone, isCurrent })} style={doc ? badgeDocStyle({ isDone, isCurrent }) : undefined}>
+                <span
+                  className={badgeClass(doc)}
+                  style={doc ? badgeDocStyle({ isDone, isCurrent }) : badgeCalmStyle({ isDone, isCurrent })}
+                >
                   <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <span
-                    className={['truncate text-[13px] font-semibold', dark ? 'text-white' : doc ? '' : 'text-[var(--vt-text-primary)]'].join(' ')}
+                    className="truncate text-[13px] font-semibold"
                     style={doc ? { color: 'var(--ink-strong)' } : undefined}
                   >
-                    <span aria-hidden="true" className={dark ? 'text-white/40' : doc ? 'vcv-subtle' : 'text-[var(--vt-text-muted)]'}>
+                    <span
+                      aria-hidden="true"
+                      className={doc ? 'vcv-subtle' : 'mz-mono'}
+                      style={doc ? undefined : { color: 'var(--ink-400)' }}
+                    >
                       {idx + 1}.
                     </span>{' '}
                     {stage.label}
                   </span>
-                  <span className={statusClass({ variant, isDone, isCurrent })} style={doc ? statusDocStyle({ isDone, isCurrent }) : undefined}>
+                  <span
+                    className={statusClass(doc)}
+                    style={doc ? statusDocStyle({ isDone, isCurrent }) : statusCalmStyle({ isDone, isCurrent })}
+                  >
                     {isDone ? 'Done' : isCurrent ? 'You are here' : 'Open'}
                   </span>
                 </span>
@@ -156,13 +155,11 @@ export function ProductLoopRail({
   );
 }
 
-function stageLinkClass({ variant, isCurrent }: { variant: LoopVariant; isCurrent: boolean }): string {
-  const base = 'group flex h-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 transition-colors';
-  if (variant === 'doc') return base;
-  if (variant === 'dark') {
-    return [base, isCurrent ? 'border-emerald-400/40 bg-emerald-400/10 hover:border-emerald-300/60' : 'border-white/10 bg-black/20 hover:border-white/25'].join(' ');
-  }
-  return [base, isCurrent ? 'border-emerald-600/50 bg-emerald-500/10' : 'border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] hover:border-[var(--vt-text-primary)]'].join(' ');
+function stageLinkClass(doc: boolean): string {
+  if (doc) return 'group flex h-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 transition-colors';
+  // Calm inset step — recessed well, hairline that darkens on hover; the current
+  // step's accent border/wash is layered on top via stageCalmStyle.
+  return 'group flex h-full items-center gap-2.5 rounded-[3px] px-3 py-2.5 mz-inset mz-interactive';
 }
 
 function stageDocStyle(isCurrent: boolean): React.CSSProperties {
@@ -171,12 +168,17 @@ function stageDocStyle(isCurrent: boolean): React.CSSProperties {
     : { borderColor: 'var(--hairline-color, color-mix(in oklch, var(--ink) 14%, transparent))', background: 'transparent' };
 }
 
-function badgeClass({ variant, isDone, isCurrent }: { variant: LoopVariant; isDone: boolean; isCurrent: boolean }): string {
-  const base = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[13px] font-semibold';
-  if (variant === 'doc') return base;
-  if (isDone) return [base, 'bg-emerald-400/20 text-emerald-200'].join(' ');
-  if (isCurrent) return [base, 'bg-emerald-400 text-zinc-950'].join(' ');
-  return [base, variant === 'dark' ? 'bg-white/10 text-white/70' : 'bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]'].join(' ');
+function stageCalmStyle(isCurrent: boolean): React.CSSProperties | undefined {
+  if (!isCurrent) return undefined;
+  return {
+    borderColor: 'color-mix(in oklch, var(--accent) 45%, transparent)',
+    background: 'color-mix(in oklch, var(--accent) 8%, transparent)',
+  };
+}
+
+function badgeClass(doc: boolean): string {
+  const base = 'flex h-8 w-8 shrink-0 items-center justify-center text-[13px] font-semibold';
+  return doc ? `${base} rounded-xl` : `${base} rounded-[3px]`;
 }
 
 function badgeDocStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boolean }): React.CSSProperties {
@@ -185,18 +187,28 @@ function badgeDocStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: bool
   return { background: 'color-mix(in oklch, var(--ink) 8%, transparent)', color: 'var(--ink-mute)' };
 }
 
-function statusClass({ variant, isDone, isCurrent }: { variant: LoopVariant; isDone: boolean; isCurrent: boolean }): string {
-  const base = 'truncate text-[11px]';
-  if (variant === 'doc') return base;
-  if (isDone) return [base, 'text-emerald-300'].join(' ');
-  if (isCurrent) return [base, variant === 'dark' ? 'text-emerald-200' : 'text-emerald-700'].join(' ');
-  return [base, variant === 'dark' ? 'text-white/45' : 'text-[var(--vt-text-muted)]'].join(' ');
+function badgeCalmStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boolean }): React.CSSProperties {
+  if (isDone) return { background: 'color-mix(in oklch, var(--ok) 18%, transparent)', color: 'var(--ok)' };
+  if (isCurrent) return { background: 'var(--accent)', color: 'var(--paper)' };
+  return { background: 'color-mix(in oklch, var(--ink-900) 8%, transparent)', color: 'var(--ink-400)' };
+}
+
+function statusClass(doc: boolean): string {
+  if (doc) return 'truncate text-[11px]';
+  // Mono, uppercase micro-label — the eyebrow idiom for the step's state.
+  return 'mz-mono truncate text-[10px] uppercase tracking-[0.14em]';
 }
 
 function statusDocStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boolean }): React.CSSProperties {
   if (isDone) return { color: 'var(--state-verified)' };
   if (isCurrent) return { color: 'var(--accent)' };
   return { color: 'var(--ink-mute)' };
+}
+
+function statusCalmStyle({ isDone, isCurrent }: { isDone: boolean; isCurrent: boolean }): React.CSSProperties {
+  if (isDone) return { color: 'var(--ok)' };
+  if (isCurrent) return { color: 'var(--accent)' };
+  return { color: 'var(--ink-400)' };
 }
 
 export default ProductLoopRail;
