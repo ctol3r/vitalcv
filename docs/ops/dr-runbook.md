@@ -1,7 +1,25 @@
 # Disaster Recovery Runbook — Postgres backups & restore (M5-6)
 
-**Date:** 2026-07-06 · **Owner:** founder (team of one) · **Status:** procedures
-written; **first restore drill NOT yet executed** — this doc is honest about that.
+**Date:** 2026-07-06 (updated 2026-07-07) · **Owner:** founder (team of one)
+· **Status:** procedures written; **first restore drill NOT yet executed.**
+
+> ## ⚠️ 2026-07-07 backup audit — CRITICAL, PARTIALLY REMEDIATED
+> A live check of the Railway Postgres **Backups** tab found the production
+> database had **NO backup coverage at all**: Point-in-time recovery **OFF**,
+> **no** volume-backup schedule, **zero** existing backups. Every clinician,
+> credential, and audit-event row was unprotected (RPO = total loss on volume
+> failure). The prior assumption below ("Railway provides daily automated
+> backups") was **false for this project** — nothing is on by default.
+>
+> **Taken (non-disruptive):** one on-demand volume backup —
+> `2026-07-07 13:28 UTC · 1.25 GB · manual`. Prod now has ONE recovery point.
+>
+> **Still required by the owner (both redeploy the DB / need dashboard access):**
+> 1. **Enable PITR** (Backups → *Enable PITR* — redeploys once) for continuous
+>    WAL archiving → RPO drops to minutes.
+> 2. **Set a volume-backup schedule** (Backups → *Edit schedule*) — daily, with
+>    a retention window; record it in the table below.
+> Until both are on, coverage is a single manual snapshot that will go stale.
 
 ## What we run on
 
@@ -10,13 +28,21 @@ written; **first restore drill NOT yet executed** — this doc is honest about t
 - Migrations auto-apply on deploy via `railway.toml` `preDeployCommand`
   (`prisma migrate deploy`).
 
-## Backup posture (verify, don't assume)
+## Backup posture (VERIFIED 2026-07-07 — do not assume)
 
-Railway-managed Postgres provides **daily automated backups with PITR on paid
-plans**, but plan-dependent. Owner checklist (one-time, ~10 min):
+Railway does **NOT** enable backups by default for this project (verified in the
+dashboard, not assumed). Current state after the 2026-07-07 audit:
 
-1. Railway dashboard → Postgres service → **Backups** tab: confirm schedule is
-   ON and note retention window here: `retention = ____ days` (fill in).
+| Control | State | Action |
+|---|---|---|
+| Point-in-time recovery | **OFF** | owner: Enable PITR (redeploys once) |
+| Volume-backup schedule | **none** | owner: set daily schedule + retention |
+| Existing backups | **1 manual** (2026-07-07 13:28 UTC, 1.25 GB) | will go stale without a schedule |
+
+Owner checklist (one-time, ~10 min):
+
+1. Railway → Postgres → **Backups**: click **Enable PITR**, then **Edit schedule**
+   for daily volume backups; note retention window here: `retention = ____ days`.
 2. Confirm the plan supports restore-to-new-service (that is the restore path).
 3. **Belt-and-suspenders logical dump** (recommended until drilled): weekly
    `pg_dump` to object storage:
