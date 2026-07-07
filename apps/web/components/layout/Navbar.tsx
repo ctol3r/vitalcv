@@ -14,7 +14,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 // Public-only nav items. Never add ops/internal routes here.
 const NAV_ITEMS = [
@@ -24,26 +24,11 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const { track } = useUxTelemetry();
 
-  // Homepage renders a dark clinical-monitor hero at the top. While the nav is
-  // over that hero it goes transparent-dark (light text) so it reads as one
-  // continuous device surface; once scrolled into the light body it returns to
-  // the normal solid bar. Only the homepage has the dark hero.
-  const isHome = pathname === '/';
-  useEffect(() => {
-    if (!isHome) {
-      setScrolled(false);
-      return;
-    }
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [isHome]);
-  const overHero = isHome && !scrolled && !menuOpen;
-
+  // Calm Wave: a single, consistent paper bar on every public surface. The
+  // homepage's dark drama now lives in inset "instrument" panels below the
+  // nav, so the bar no longer flips dark over a full-bleed hero.
   if (!isPublicSurfacePath(pathname)) {
     return null;
   }
@@ -60,12 +45,7 @@ export default function Navbar() {
 
   return (
     <header
-      data-nav-over={overHero ? '' : undefined}
-      className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${
-        overHero
-          ? 'vh-nav-over border-transparent bg-transparent'
-          : 'border-border bg-background/90'
-      }`}
+      className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-xl"
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
 
@@ -110,7 +90,8 @@ export default function Navbar() {
           </Link>
           <Link
             href="/passport"
-            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-semibold text-background hover:bg-foreground/90 transition"
+            style={{ backgroundColor: '#4f46e5' }}
+            className="rounded-full px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 transition"
           >
             Check Readiness
           </Link>
@@ -160,7 +141,8 @@ export default function Navbar() {
             <Link
               href="/passport"
               onClick={closeMenu}
-              className="flex-1 rounded-xl bg-foreground py-2.5 text-center text-sm font-semibold text-background"
+              style={{ backgroundColor: '#4f46e5' }}
+              className="flex-1 rounded-xl py-2.5 text-center text-sm font-semibold text-white"
             >
               Check Readiness
             </Link>
