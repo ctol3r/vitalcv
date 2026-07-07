@@ -67,9 +67,10 @@ const QUESTIONS: QuickQuestion[] = [
     multi: true,
     options: [
       { value: 'full_time', label: 'Full time' },
+      { value: 'part_time', label: 'Part time' },
+      { value: 'per_diem', label: 'Per diem' },
       { value: 'locums', label: 'Locums' },
       { value: 'telehealth', label: 'Telehealth' },
-      { value: 'part_time', label: 'Part time' },
     ],
   },
   {
