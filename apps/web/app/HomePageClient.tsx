@@ -530,7 +530,7 @@ export default function HomePageClient() {
           <section
             aria-label="NPI lookup"
             data-home-hero=""
-            className="mz mz-paper relative isolate py-10 sm:py-14 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
+            className="mz mz-paper mz-persona-holder mz-ambient relative isolate py-10 sm:py-14 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]"
           >
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
@@ -570,9 +570,10 @@ export default function HomePageClient() {
                 </ul>
               </div>
 
+              <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">
               <Card
                 id="npi"
-                className="mt-8 max-w-xl scroll-mt-24 rounded-[3px] border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-none"
+                className="scroll-mt-24 rounded-[12px] border-0 bg-transparent shadow-none"
               >
                 <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                   <form
@@ -669,6 +670,7 @@ export default function HomePageClient() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Secondary path — the wallet is free; the lookup is just the door */}
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">

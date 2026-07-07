@@ -283,8 +283,114 @@
   background-size: 22px 22px;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CALM GLASS — the "calm glass" synthesis layer (2026-07-07).
+   Calm Wave stays the substrate (paper, ink, Fraunces/Geist, hairlines); this
+   adds a restrained frosted-translucent + soft-neuromorphic treatment for the
+   FLOATING surfaces only (nav, cards, modals, hero card, constellation frame).
+   Light-palette glass — paper-tinted translucency, never dark, never glossy-
+   plasticky. Reusable across every persona so the platform reads as one system.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Frosted paper glass. Reads best over ambient washes / imagery / the
+   constellation; over flat paper it's a soft raised card with a light top edge. */
+.mz-glass {
+  background: color-mix(in oklch, var(--card) 74%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid color-mix(in oklch, var(--ink-900) 9%, transparent);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 55%, transparent),      /* top inner light — neuromorphic lift */
+    inset 0 -1px 0 0 color-mix(in oklch, var(--ink-900) 4%, transparent),
+    0 22px 55px -30px color-mix(in oklch, var(--ink-900) 42%, transparent); /* soft float */
+}
+/* A deeper elevation for modals / hero moments. */
+.mz-glass-strong {
+  background: color-mix(in oklch, var(--card) 82%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid color-mix(in oklch, var(--ink-900) 10%, transparent);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 62%, transparent),
+    0 40px 90px -44px color-mix(in oklch, var(--ink-900) 50%, transparent);
+}
+/* A faint recessed glass — inputs, insets (soft neuromorphic press). */
+.mz-glass-inset {
+  background: color-mix(in oklch, var(--paper-2) 70%, transparent);
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px color-mix(in oklch, var(--ink-900) 6%, transparent);
+}
+/* Interactive glass: a natural spring lift on hover, accent-tinted rim. */
+.mz-glass-interactive {
+  transition: transform var(--mz-dur) var(--mz-ease),
+    box-shadow var(--mz-dur) var(--mz-ease),
+    border-color var(--mz-dur) var(--mz-ease);
+  will-change: transform;
+}
+.mz-glass-interactive:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 60%, transparent),
+    0 30px 70px -34px color-mix(in oklch, var(--ink-900) 48%, transparent),
+    0 0 0 4px color-mix(in oklch, var(--accent) 8%, transparent);
+}
+
+/* Ambient wash — a calm, static color field that gives glass something to
+   refract. Never a hard gradient band; fades to nothing. Persona-accent tinted. */
+.mz-ambient { position: relative; isolation: isolate; }
+.mz-ambient::before {
+  content: '';
+  position: absolute; inset: -10% -5% auto -5%; height: 60%;
+  z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 80% at 18% 0%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(50% 70% at 88% 8%, color-mix(in oklch, var(--ok) 7%, transparent), transparent 62%);
+}
+
+/* ── Natural motion — entrance reveals + calm springs ─────────────────────── */
+
+@keyframes mz-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mz-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Reveal-on-view: paired with the <Reveal> component, which adds `.is-in` when
+   the element scrolls into view. Staggerable via --mz-delay. The default state
+   is hidden so nothing flashes before the observer fires. */
+.mz-reveal { opacity: 0; }
+.mz-reveal.is-in {
+  animation: mz-rise var(--mz-rise-dur, 720ms) var(--mz-ease) var(--mz-delay, 0ms) both;
+}
+.mz-reveal-fade.is-in { animation-name: mz-fade; }
+
+/* A calm attention pulse for "a pleasant surprise" moments (new evidence, a
+   state settling). One shot, never looping. */
+@keyframes mz-settle {
+  0% { transform: scale(0.96); opacity: 0.4; }
+  60% { transform: scale(1.015); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.mz-settle { animation: mz-settle 560ms var(--mz-ease) both; }
+
+/* ── Per-persona accent identity — one system, four voices ─────────────────
+   Each persona surface sets --accent (the single accent the whole .mz layer
+   already threads through chips, links, glass rims, selected states). Distinct
+   hue per audience, all at the same calm depth/chroma so they read as siblings. */
+.mz-persona-holder   { --accent: oklch(38% 0.14 274); } /* indigo — the clinician's home */
+.mz-persona-verifier { --accent: oklch(44% 0.11 235); } /* trust-blue — the reader */
+.mz-persona-issuer   { --accent: oklch(46% 0.13 300); } /* violet — the attester */
+.mz-persona-employer { --accent: oklch(46% 0.10 152); } /* source-green — the hirer / start */
+
 /* ── Motion respect ───────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   .mz *, .mz *::before, .mz *::after { transition: none !important; animation: none !important; }
+  .mz-reveal, .mz-reveal.is-in { opacity: 1 !important; animation: none !important; }
+  .mz-glass-interactive:hover { transform: none; }
+  .mz-settle { animation: none !important; }
 }
