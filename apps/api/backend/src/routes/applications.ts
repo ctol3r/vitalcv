@@ -31,6 +31,7 @@ import {
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
+import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -123,6 +124,7 @@ export function registerApplicationRoutes(app: Express): void {
   /* ── Verifier: review application ── */
   app.patch(
     '/api/applications/:appId/review',
+    requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
       const applicationId = requireUuidParam(req.params.appId, 'Application');
@@ -179,6 +181,7 @@ export function registerApplicationRoutes(app: Express): void {
   /* ── Verifier: workflow action ── */
   app.post(
     '/api/applications/:appId/workflow-action',
+    requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
       const clerkUserId = requireClerkUserId(req);
       const appId = requireUuidParam(req.params.appId, 'Application');
