@@ -18,8 +18,10 @@
  * and a self-attested profession are NOT license/identity proofing, and nothing
  * here presents them as a completed license check or a bare "Verified" status.
  *
- * Dark-glass to match the homepage / signed-in world: deep ink ground, frosted
- * panels, jade CTAs, a coral accent.
+ * Calm Wave blend to match the homepage: a calm light "action" side (paper + ink,
+ * Fraunces serif, mono labels, ink primary buttons — where the clinician acts) beside
+ * a dark "instrument" panel (the same design system's dark variant — warm charcoal +
+ * indigo, NOT jade) carrying the benefits rail.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -215,8 +217,8 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
-          <Loader2 className="h-7 w-7 text-white/40 animate-spin" aria-hidden />
-          <p className="text-sm text-white/55">Checking your workspace…</p>
+          <Loader2 className="h-7 w-7 animate-spin text-[var(--vt-text-muted)]" aria-hidden />
+          <p className="mz-small">Checking your workspace…</p>
         </div>
       </Shell>
     );
@@ -234,9 +236,12 @@ export default function GetReadySurface() {
         <Link href="/sign-in?redirect_url=%2Fget-ready" className={primaryBtn}>
           Sign in to continue <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
-        <p className="mt-4 text-center text-xs text-white/55">
+        <p className="mz-small mt-4 text-center">
           New here?{' '}
-          <Link href="/sign-up" className="font-medium text-white underline underline-offset-2 hover:text-[#8cf7dd]">
+          <Link
+            href="/sign-up"
+            className="font-medium text-[var(--vt-text-primary)] underline underline-offset-2 transition-opacity hover:opacity-70"
+          >
             Create your free account
           </Link>
         </p>
@@ -249,9 +254,9 @@ export default function GetReadySurface() {
     return (
       <Shell>
         <div className="space-y-4 text-center">
-          <AlertCircle className="mx-auto h-8 w-8 text-red-400" aria-hidden />
-          <p className="font-medium text-white">Couldn&apos;t check your workspace</p>
-          <p className="text-sm text-white/55">
+          <AlertCircle className="mx-auto h-8 w-8 text-[var(--vt-risk-high)]" aria-hidden />
+          <p className="font-medium text-[var(--vt-text-primary)]">Couldn&apos;t check your workspace</p>
+          <p className="mz-small">
             This is a system state — not a finding about your account. Try again shortly.
           </p>
           <button type="button" onClick={() => window.location.reload()} className={secondaryBtn}>
@@ -292,17 +297,17 @@ export default function GetReadySurface() {
           title="Confirm you are a clinician"
           lede="Confirm you're a practicing clinician to unlock your VitalCV workspace — your free, source-backed career wallet."
         />
-        <p className="mt-4 text-sm text-white/55">
+        <p className="mz-small mt-4">
           You&apos;re signed in as{' '}
-          <span className="font-medium text-white">{accountEmail ?? 'your account'}</span>.
+          <span className="font-medium text-[var(--vt-text-primary)]">{accountEmail ?? 'your account'}</span>.
         </p>
         <button type="button" onClick={() => setPhase('form')} className={`${primaryBtn} mt-5`}>
           Confirm you&apos;re a clinician <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
-        <p className="mt-4 text-center text-xs text-white/55">
+        <p className="mz-small mt-4 text-center">
           <Link
             href="/sign-in?redirect_url=%2Fget-ready"
-            className="underline underline-offset-2 hover:text-white/80"
+            className="underline underline-offset-2 transition-opacity hover:opacity-70"
           >
             Use a different account
           </Link>
@@ -322,7 +327,7 @@ export default function GetReadySurface() {
           lede={summary.statement}
         />
         {!summary.isOrganizationNpi && (
-          <dl className="mt-6 space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left text-sm">
+          <dl className="mz-inset mt-6 space-y-2 p-4 text-left text-sm">
             <SummaryRow label="Registry name" value={summary.displayName ?? 'Not listed in NPPES'} />
             <SummaryRow label="Specialty" value={summary.specialty ?? 'Not listed in NPPES'} />
             <SummaryRow label="State" value={summary.stateOfPractice ?? 'Not listed in NPPES'} />
@@ -358,10 +363,8 @@ export default function GetReadySurface() {
         lede="Enter your NPI to start your workspace. VitalCV reads your public NPPES registry record — no document uploads required to get started."
       />
       <form onSubmit={submit} className="mt-6 space-y-4 text-left" noValidate>
-        <fieldset disabled={submitting} className="border-0 p-0 m-0">
-          <legend className="text-xs font-semibold uppercase tracking-widest text-white/55">
-            Your profession
-          </legend>
+        <fieldset disabled={submitting} className="m-0 border-0 p-0">
+          <legend className="mz-eyebrow">Your profession</legend>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {PROFESSIONS.map((p) => {
               const selected = profession === p.value;
@@ -371,16 +374,12 @@ export default function GetReadySurface() {
                   type="button"
                   onClick={() => setProfession(p.value)}
                   aria-pressed={selected}
-                  className={`group inline-flex items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 text-left text-sm transition duration-200 ease-out active:scale-[0.97] motion-reduce:transform-none ${
-                    selected
-                      ? 'border-[#34e6b0]/60 bg-[#34e6b0]/15 text-[#8cf7dd] shadow-[0_0_0_1px_rgba(52,230,176,0.25),0_8px_24px_-12px_rgba(52,230,176,0.5)]'
-                      : 'border-white/12 bg-white/5 text-white/75 hover:border-white/25 hover:bg-white/[0.07]'
-                  }`}
+                  className="mz-opt inline-flex items-center justify-between gap-1.5 text-left"
                 >
                   <span>{p.label}</span>
                   <Check
-                    className={`h-4 w-4 shrink-0 text-[#34e6b0] transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none ${
-                      selected ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+                    className={`h-4 w-4 shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
+                      selected ? 'opacity-100' : 'opacity-0'
                     }`}
                     aria-hidden
                   />
@@ -388,16 +387,23 @@ export default function GetReadySurface() {
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-white/50">
+          <p className="mz-small mt-2">
             You&apos;re attesting to your role — it guides which checks apply and isn&apos;t
             license-verified here.
           </p>
         </fieldset>
         <div>
-          <label htmlFor="npi-input" className="text-xs font-semibold uppercase tracking-widest text-white/55">
+          <label htmlFor="npi-input" className="mz-eyebrow">
             Your 10-digit NPI
           </label>
-          <div className="relative mt-2">
+          <div
+            className={`mz-field mt-2 items-center transition-colors duration-300 ${
+              npiValid ? 'border-[var(--vt-accent)]' : ''
+            }`}
+          >
+            <span className="mz-prefix" aria-hidden>
+              NPI
+            </span>
             <input
               id="npi-input"
               name="npi"
@@ -409,29 +415,26 @@ export default function GetReadySurface() {
               disabled={submitting}
               aria-invalid={formError ? true : undefined}
               aria-describedby={formError ? 'npi-error' : 'npi-help'}
-              className={`w-full rounded-xl border bg-white/5 px-4 py-3 pr-11 font-mono text-base text-white placeholder:text-white/30 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#34e6b0]/25 ${
-                npiValid ? 'border-[#34e6b0]/70' : 'border-white/15 focus:border-[#34e6b0]'
-              }`}
             />
             <CheckCircle2
-              className={`pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#34e6b0] transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none ${
-                npiValid ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+              className={`pointer-events-none mr-3.5 h-5 w-5 shrink-0 text-[var(--vt-accent)] transition-opacity duration-300 motion-reduce:transition-none ${
+                npiValid ? 'opacity-100' : 'opacity-0'
               }`}
               aria-hidden
             />
           </div>
           {formError ? (
-            <p id="npi-error" role="alert" className="mt-2 text-sm text-red-400">
+            <p id="npi-error" role="alert" className="mt-2 text-sm text-[var(--vt-risk-high)]">
               {formError}
             </p>
           ) : (
-            <p id="npi-help" className="mt-2 text-xs text-white/50">
+            <p id="npi-help" className="mz-small mt-2">
               Don&apos;t know it? Search the{' '}
               <a
                 href="https://npiregistry.cms.hhs.gov/"
                 target="_blank"
                 rel="noreferrer"
-                className="underline underline-offset-2 hover:text-white/80"
+                className="underline underline-offset-2 transition-opacity hover:opacity-70"
               >
                 NPPES registry
               </a>
@@ -439,13 +442,13 @@ export default function GetReadySurface() {
             </p>
           )}
         </div>
-        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-white/65">
+        <label className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--vt-text-secondary)]">
           <input
             type="checkbox"
             checked={attested}
             onChange={(e) => setAttested(e.target.checked)}
             disabled={submitting}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[#34e6b0]"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--vt-text-primary)]"
           />
           <span>
             I attest that I am a licensed clinician and agree to the{' '}
@@ -453,7 +456,7 @@ export default function GetReadySurface() {
               href="/terms"
               target="_blank"
               rel="noreferrer"
-              className="underline underline-offset-2 hover:text-white"
+              className="underline underline-offset-2 transition-opacity hover:opacity-70"
             >
               VitalCV Services Agreement
             </a>
@@ -471,7 +474,7 @@ export default function GetReadySurface() {
             </>
           )}
         </button>
-        <p className="text-xs leading-relaxed text-white/50">
+        <p className="mz-small leading-relaxed">
           This matches your public registry identity record. It does not verify licenses,
           exclusions, or enrollment — those source checks run on your readiness surface,
           each with its own receipt.
@@ -482,19 +485,18 @@ export default function GetReadySurface() {
   );
 }
 
-/* ── Layout: dark-glass split-panel (action left, benefits right) ── */
+/* ── Layout: Calm Wave split-panel (calm-light action left, dark instrument right) ── */
 
+// Ink primary — the Calm Wave `.mz-btn` look, stretched full-width for the gate.
 const primaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] px-7 py-3.5 text-sm font-semibold text-[#04140f] shadow-[0_12px_30px_-8px_rgba(52,230,176,0.55)] transition duration-200 ease-out hover:from-[#6bf5cd] hover:to-[#17c39a] hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-10px_rgba(52,230,176,0.65)] active:translate-y-0 active:scale-[0.985] motion-reduce:transform-none';
+  'inline-flex w-full items-center justify-center gap-2 rounded-[3px] border border-[var(--vt-text-primary)] bg-[var(--vt-text-primary)] px-7 py-3.5 text-sm font-semibold text-[var(--vt-bg)] transition-colors duration-300 ease-out hover:bg-[var(--vt-text-secondary)] hover:border-[var(--vt-text-secondary)] active:translate-y-px motion-reduce:transform-none';
+// Ghost — hairline ink outline that fills faintly on hover.
 const secondaryBtn =
-  'inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white/80 transition duration-200 ease-out hover:border-white/30 hover:text-white hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] motion-reduce:transform-none';
+  'inline-flex w-full items-center justify-center gap-2 rounded-[3px] border border-[var(--vt-border)] bg-transparent px-7 py-3.5 text-sm font-semibold text-[var(--vt-text-primary)] transition-colors duration-300 ease-out hover:border-[var(--vt-text-muted)] hover:bg-[color-mix(in_oklab,var(--vt-text-primary)_5%,transparent)] active:translate-y-px motion-reduce:transform-none';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="grid min-h-screen lg:grid-cols-2"
-      style={{ background: 'radial-gradient(130% 100% at 30% -10%, #0e1a2b 0%, #0a1220 46%, #070b14 100%)' }}
-    >
+    <div className="mz mz-paper grid min-h-screen text-[var(--vt-text-primary)] lg:grid-cols-2">
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md text-center">{children}</div>
       </div>
@@ -504,31 +506,41 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function BenefitsPanel() {
+  // Dark "instrument" panel — the Calm Wave system in its own dark variant
+  // (warm charcoal + indigo). Everything inside flips via `.dark .mz`, so it
+  // stays the same family as the light action side: no jade, no coral glass.
   return (
-    <div className="relative hidden overflow-hidden lg:flex lg:items-center lg:justify-center">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(120% 120% at 70% 10%, #0f3a33 0%, #0b2530 44%, #070f18 100%)' }}
-        aria-hidden
-      />
-      <div
-        className="absolute -right-24 top-10 h-72 w-72 rounded-full opacity-50 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(255,158,122,0.5), transparent 65%)' }}
-        aria-hidden
-      />
-      <div className="relative z-10 mx-8 w-full max-w-sm rounded-3xl border border-white/12 bg-white/[0.06] p-8 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
-        <h2 className="text-xl font-bold text-white">VitalCV for Clinicians</h2>
-        <p className="mt-1 text-sm font-medium text-white/55">Your free, source-backed career wallet</p>
-        <ul className="mt-6 space-y-4">
-          {BENEFITS.map((b, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-white/75">
-              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#5cf0c2] to-[#12b48a] text-[#04140f]">
-                {b.icon}
-              </span>
-              <span className="leading-relaxed">{b.text}</span>
-            </li>
-          ))}
-        </ul>
+    <div className="dark hidden lg:block">
+      <div className="mz mz-paper relative flex h-full items-center justify-center overflow-hidden">
+        {/* one dark-glass whisper — a soft indigo instrument glow + faint static grid */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(80% 120% at 20% -10%, color-mix(in oklab, var(--vt-accent) 20%, transparent), transparent 58%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="mz-dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.12]"
+        />
+        <div className="relative z-10 mx-8 w-full max-w-sm rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-8 shadow-[0_50px_120px_-70px_rgba(0,0,0,0.85)]">
+          <p className="mz-eyebrow">VitalCV for Clinicians</p>
+          <p className="mz-body mt-2 text-[var(--vt-text-secondary)]">
+            Your free, source-backed career wallet
+          </p>
+          <ul className="mt-6 space-y-4">
+            {BENEFITS.map((b, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-[var(--vt-text-secondary)]">
+                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-[color-mix(in_oklab,var(--vt-accent)_45%,transparent)] bg-[color-mix(in_oklab,var(--vt-accent)_16%,transparent)] text-[var(--vt-accent)]">
+                  {b.icon}
+                </span>
+                <span className="leading-relaxed">{b.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -536,13 +548,13 @@ function BenefitsPanel() {
 
 function FaqSection() {
   return (
-    <section className="mt-10 border-t border-white/10 pt-6 text-left">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-white/55">Verification FAQ</h3>
+    <section className="mt-10 border-t border-[var(--vt-border)] pt-6 text-left">
+      <h3 className="mz-eyebrow">Verification FAQ</h3>
       <dl className="mt-4 space-y-4">
         {FAQS.map((f) => (
           <div key={f.q}>
-            <dt className="text-sm font-semibold text-white">{f.q}</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-white/55">{f.a}</dd>
+            <dt className="text-sm font-semibold text-[var(--vt-text-primary)]">{f.q}</dt>
+            <dd className="mz-small mt-1 leading-relaxed">{f.a}</dd>
           </div>
         ))}
       </dl>
@@ -552,11 +564,11 @@ function FaqSection() {
 
 function GateIcon({ done = false }: { done?: boolean }) {
   return (
-    <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/12 bg-white/5">
+    <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)]">
       {done ? (
-        <Check className="h-7 w-7 text-[#34e6b0]" aria-hidden />
+        <Check className="h-7 w-7 text-[var(--vt-accent)]" aria-hidden />
       ) : (
-        <ShieldCheck className="h-7 w-7 text-[#34e6b0]" aria-hidden />
+        <ShieldCheck className="h-7 w-7 text-[var(--vt-accent)]" aria-hidden />
       )}
     </div>
   );
@@ -565,8 +577,8 @@ function GateIcon({ done = false }: { done?: boolean }) {
 function Header({ title, lede }: { title: string; lede: string }) {
   return (
     <div className="mt-5">
-      <h1 className="mb-2 text-2xl font-bold text-white">{title}</h1>
-      <p className="text-sm leading-relaxed text-white/55">{lede}</p>
+      <h1 className="mz-h1 mb-2">{title}</h1>
+      <p className="mz-lede text-[0.9375rem]">{lede}</p>
     </div>
   );
 }
@@ -574,8 +586,8 @@ function Header({ title, lede }: { title: string; lede: string }) {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-xs uppercase tracking-wider text-white/50">{label}</dt>
-      <dd className="text-right text-sm text-white/85">{value}</dd>
+      <dt className="mz-mono text-xs uppercase tracking-wider text-[var(--vt-text-muted)]">{label}</dt>
+      <dd className="text-right text-sm text-[var(--vt-text-primary)]">{value}</dd>
     </div>
   );
 }
