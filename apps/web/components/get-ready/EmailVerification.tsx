@@ -80,11 +80,11 @@ export default function EmailVerification() {
 
   if (step === 'verified') {
     return (
-      <div className="rounded-xl border border-emerald-900 bg-emerald-950/30 p-4 text-left">
-        <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+      <div className="rounded-[8px] border border-[var(--ok-rule)] bg-[var(--ok-bg)] p-4 text-left">
+        <p className="flex items-center gap-2 text-sm font-semibold text-[var(--ok)]">
           <CheckCircle2 className="h-4 w-4" aria-hidden /> Work email verified
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+        <p className="mt-1 text-xs leading-relaxed text-[var(--ink-600)]">
           Recorded as a possession signal that strengthens your identity binding. It
           corroborates your NPI match — it is not a license check.
         </p>
@@ -95,22 +95,22 @@ export default function EmailVerification() {
   const busy = step === 'sending' || step === 'verifying';
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-left">
-      <p className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
-        <ShieldPlus className="h-4 w-4 text-emerald-400" aria-hidden /> Strengthen your identity
-        <span className="ml-auto rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+    <div className="mz-inset p-4 text-left">
+      <p className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-900)]">
+        <ShieldPlus className="h-4 w-4 text-[var(--ok)]" aria-hidden /> Strengthen your identity
+        <span className="ml-auto rounded-full border border-[var(--rule)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--ink-400)]">
           Optional
         </span>
       </p>
-      <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+      <p className="mt-1 text-xs leading-relaxed text-[var(--ink-500)]">
         Verify a work email to corroborate your NPI match. A possession signal — not a
         license or identity check.
       </p>
 
       {step === 'code' || step === 'verifying' ? (
         <form onSubmit={verify} className="mt-3 space-y-2" noValidate>
-          <p className="text-xs text-zinc-500">
-            We sent a 6-digit code to <span className="text-zinc-300">{email.trim()}</span>.
+          <p className="text-xs text-[var(--ink-500)]">
+            We sent a 6-digit code to <span className="text-[var(--ink-800)]">{email.trim()}</span>.
           </p>
           <input
             inputMode="numeric"
@@ -120,14 +120,14 @@ export default function EmailVerification() {
             onChange={(e) => setCode(e.target.value)}
             disabled={busy}
             aria-label="6-digit verification code"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-sm text-foreground placeholder:text-zinc-600 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-900"
+            className="mz-input font-mono"
           />
-          {error ? <p role="alert" className="text-xs text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-xs text-[var(--p0)]">{error}</p> : null}
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-black transition hover:bg-emerald-400 disabled:opacity-60"
+              className="mz-btn mz-btn-sm disabled:opacity-60"
             >
               {step === 'verifying' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
               Verify
@@ -136,7 +136,7 @@ export default function EmailVerification() {
               type="button"
               onClick={() => { setStep('email'); setCode(''); setError(null); }}
               disabled={busy}
-              className="text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+              className="text-xs text-[var(--ink-500)] underline underline-offset-2 hover:text-[var(--ink-800)]"
             >
               Use a different email
             </button>
@@ -144,8 +144,8 @@ export default function EmailVerification() {
         </form>
       ) : (
         <form onSubmit={issue} className="mt-3 space-y-2" noValidate>
-          <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 focus-within:border-emerald-600">
-            <Mail className="h-4 w-4 text-zinc-600" aria-hidden />
+          <div className="flex items-center gap-2 rounded-[6px] border border-[var(--ink-300)] bg-[var(--card)] px-3 focus-within:border-[var(--accent)]">
+            <Mail className="h-4 w-4 text-[var(--ink-400)]" aria-hidden />
             <input
               type="email"
               autoComplete="email"
@@ -154,14 +154,14 @@ export default function EmailVerification() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={busy}
               aria-label="Work email"
-              className="w-full bg-transparent py-2 text-sm text-foreground placeholder:text-zinc-600 focus:outline-none"
+              className="w-full bg-transparent py-2 text-sm text-[var(--ink-900)] placeholder:text-[var(--ink-400)] focus:outline-none"
             />
           </div>
-          {error ? <p role="alert" className="text-xs text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-xs text-[var(--p0)]">{error}</p> : null}
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:border-emerald-800 hover:text-emerald-300 disabled:opacity-60"
+            className="mz-btn mz-btn-ghost mz-btn-sm disabled:opacity-60"
           >
             {step === 'sending' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
             Send me a code
