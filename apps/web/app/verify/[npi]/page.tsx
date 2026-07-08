@@ -46,6 +46,44 @@ function formatUtc(ts: string | number | null | undefined): string {
   return d.toISOString().slice(0, 19) + 'Z';
 }
 
+/** True only when a string has visible content — keeps empty fields honest. */
+function nonBlank(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+/**
+ * Compose one display line from an NPPES practice-location record. Returns ''
+ * when no usable address text is present, so the caller omits the block rather
+ * than render an empty source-backed field.
+ */
+function formatPracticeLocation(
+  location: NonNullable<PassportData['practiceLocation']>,
+): string {
+  const cityState = [location.city, location.state].filter(nonBlank).join(', ');
+  const cityStateZip = [cityState, location.postalCode].filter(nonBlank).join(' ');
+  return [location.addressLine, cityStateZip].filter(nonBlank).join(' · ');
+}
+
+/** Self-reported education entry → single display line (institution + detail). */
+function formatEducationEntry(entry: {
+  institution: string;
+  degree?: string;
+  graduationYear?: number;
+}): string {
+  const detail = [
+    entry.degree,
+    entry.graduationYear != null ? String(entry.graduationYear) : undefined,
+  ]
+    .filter(nonBlank)
+    .join(', ');
+  return detail ? `${entry.institution} — ${detail}` : entry.institution;
+}
+
+/** Self-reported affiliation entry → single display line (organization + role). */
+function formatAffiliationEntry(entry: { organization: string; role?: string }): string {
+  return nonBlank(entry.role) ? `${entry.organization} — ${entry.role}` : entry.organization;
+}
+
 const TIER_CONFIG: Record<string, { label: string; cls: string }> = {
   DECISION_GRADE: {
     label: 'Decision Grade',
@@ -214,6 +252,23 @@ export default async function VerifierPage({
 
   const displayName = passport.identity?.displayName ?? `NPI ${npi}`;
 
+  // New profile fields — both optional/nullable on PassportData. Render only
+  // what is actually present: practiceLocation is source-backed (NPPES);
+  // selfReported education/affiliations are user-entered. Never fabricate.
+  const practiceLocationText = passport.practiceLocation
+    ? formatPracticeLocation(passport.practiceLocation)
+    : '';
+  const selfReportedEducation = (passport.selfReported?.education ?? []).filter((e) =>
+    nonBlank(e.institution),
+  );
+  const selfReportedAffiliations = (passport.selfReported?.affiliations ?? []).filter((a) =>
+    nonBlank(a.organization),
+  );
+  const hasProfileDetail =
+    practiceLocationText.length > 0 ||
+    selfReportedEducation.length > 0 ||
+    selfReportedAffiliations.length > 0;
+
   return (
     <div className="mz mz-paper mz-persona-verifier min-h-screen overflow-hidden">
       {/* ── Read-Only Header ───────────────────────────────────────────────── */}
@@ -311,7 +366,35 @@ export default async function VerifierPage({
             </div>
           </div>
 
-
+          {/* ── Practice location (source-backed) + self-reported detail ──── */}
+          {hasProfileDetail && (
+            <div className="mt-4 pt-4 border-t border-[var(--rule-soft)] space-y-3.5">
+              {practiceLocationText && (
+                <ProfileDetailGroup
+                  title="Practice location"
+                  chipLabel="Source-backed"
+                  chipClass="mz-chip-ok"
+                  rows={[practiceLocationText]}
+                />
+              )}
+              {selfReportedEducation.length > 0 && (
+                <ProfileDetailGroup
+                  title="Education"
+                  chipLabel="Self-reported"
+                  chipClass="mz-chip-unknown"
+                  rows={selfReportedEducation.map(formatEducationEntry)}
+                />
+              )}
+              {selfReportedAffiliations.length > 0 && (
+                <ProfileDetailGroup
+                  title="Affiliations"
+                  chipLabel="Self-reported"
+                  chipClass="mz-chip-unknown"
+                  rows={selfReportedAffiliations.map(formatAffiliationEntry)}
+                />
+              )}
+            </div>
+          )}
         </div>
         </Reveal>
 
@@ -399,6 +482,46 @@ function TimestampField({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col gap-0.5">
       <span className="text-[9px] uppercase tracking-wide text-[var(--ink-400)]">{label}</span>
       <span className="mz-mono text-[var(--ink-700)]">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * Compact identity-detail group: a labelled provenance chip over one or more
+ * plain display rows. Provenance is carried entirely by the chip — mz-chip-ok
+ * for the source-backed practice location, mz-chip-unknown for the
+ * self-reported education / affiliations — so a self-reported value is never
+ * shown with a verified label.
+ */
+function ProfileDetailGroup({
+  title,
+  chipLabel,
+  chipClass,
+  rows,
+}: {
+  title: string;
+  chipLabel: string;
+  chipClass: string;
+  rows: string[];
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="mz-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-400)]">
+          {title}
+        </span>
+        <span className={`mz-chip ${chipClass}`}>
+          <span className="mz-gl" aria-hidden="true" />
+          {chipLabel}
+        </span>
+      </div>
+      <ul className="space-y-0.5">
+        {rows.map((row, index) => (
+          <li key={`${index}-${row}`} className="text-sm text-[var(--ink-700)] break-words">
+            {row}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -66,6 +66,12 @@ import {
   PECOS_SOURCE_LABEL,
   type PecosEnrollmentStatus,
 } from '../identity/pecosContract';
+import {
+  loadPracticeLocationByNpi,
+  loadSelfReportedByNpi,
+  type PassportPracticeLocation,
+  type PassportSelfReported,
+} from '../passport/profileEnrichment';
 
 export type { ReadinessNextAction };
 
@@ -304,6 +310,10 @@ export interface TrustPassport {
   entityId:       string;
   npi?:           string;
   identity:       PassportIdentity;
+  /** Practice location — source-backed from NPPES (never null-fabricated). */
+  practiceLocation?: PassportPracticeLocation | null;
+  /** Self-reported profile — USER_ENTERED only; present only when the clinician provided it. */
+  selfReported?:  PassportSelfReported | null;
   authority:      PassportAuthority;
   training:       PassportTraining;
   standing:       PassportStanding;
@@ -2305,6 +2315,14 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     trustPosture,
   });
 
+  // Profile enrichment — provenance-honest, both fail closed to null:
+  //   practiceLocation = source-backed NPPES claim (VERIFIED)
+  //   selfReported     = clinician-typed education/affiliations (USER_ENTERED)
+  const [practiceLocation, selfReported] = await Promise.all([
+    loadPracticeLocationByNpi(npi),
+    loadSelfReportedByNpi(npi),
+  ]);
+
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
     decisionPosture: decisionPosture.status,
@@ -2315,6 +2333,8 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     entityId,
     npi,
     identity,
+    practiceLocation,
+    selfReported,
     authority,
     training,
     standing,

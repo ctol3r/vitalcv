@@ -474,6 +474,19 @@ function PassportPageContent({
           ? 'Unavailable'
           : undefined;
 
+  // Practice location — VERIFIED / source-backed from NPPES. Present only when the
+  // NPPES record carried a usable address; never fabricated. Empty string omits
+  // the render entirely (no source-backed chip over absent data). Prefer city/state;
+  // fall back to ZIP or street so a street/ZIP-only record still shows (matches /verify).
+  const practiceLocationLabel = identity.practiceLocation
+    ? ([identity.practiceLocation.city, identity.practiceLocation.state]
+        .filter(Boolean)
+        .join(', ')
+        || identity.practiceLocation.postalCode
+        || identity.practiceLocation.addressLine
+        || '')
+    : '';
+
   const npiValid = npi.length === 10 && !/\D/.test(npi);
   const npiChecksumOk = npiValid && isValidNpiChecksum(npi);
 
@@ -604,6 +617,15 @@ function PassportPageContent({
                 </h2>
                 {identity.specialty && (
                   <p className="text-muted-foreground text-sm mt-0.5">{identity.specialty}</p>
+                )}
+                {practiceLocationLabel && (
+                  <p className="text-muted-foreground text-sm mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="text-foreground/90">{practiceLocationLabel}</span>
+                    <span className="mz-chip mz-chip-ok">
+                      <span className="mz-gl" aria-hidden />
+                      Source-backed
+                    </span>
+                  </p>
                 )}
                 <p className="text-muted-foreground/50 text-xs mt-1">NPI {state.npi}</p>
                 {/* Value translation — makes identity confirmation feel meaningful */}
