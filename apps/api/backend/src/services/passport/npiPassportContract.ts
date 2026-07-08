@@ -34,6 +34,7 @@ import {
 } from '../../routes/passport';
 import prisma from '../../graphql/prisma_client';
 import { unacknowledgedCount } from '../alerts/trustAlerts';
+import { loadPracticeLocationByNpi, loadSelfReportedByNpi } from './profileEnrichment';
 
 type PassportCredentialSummary = {
   id: string;
@@ -647,11 +648,21 @@ export async function buildPassportDataByNpi(
   // Wave 245: Build monitoring status
   const monitoring = await buildMonitoringStatus(npi);
 
+  // Profile enrichment — provenance-honest, both fail closed to null:
+  //   practiceLocation = source-backed NPPES claim (VERIFIED)
+  //   selfReported     = clinician-typed education/affiliations (USER_ENTERED)
+  const [practiceLocation, selfReported] = await Promise.all([
+    loadPracticeLocationByNpi(npi),
+    loadSelfReportedByNpi(npi),
+  ]);
+
   return {
     entityId,
     npi,
     credentials,
     identity,
+    practiceLocation,
+    selfReported,
     authority,
     training,
     standing,

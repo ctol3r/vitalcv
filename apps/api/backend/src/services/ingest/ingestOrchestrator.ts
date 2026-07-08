@@ -451,6 +451,9 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
           specialty: passport.identity.specialty,
           entityType: passport.identity.entityType,
           identityStatus: passport.identity.status,
+          // Source-backed NPPES practice location (VERIFIED) for the live /passport
+          // identity card. null when NPPES carried no usable address — never fabricated.
+          practiceLocation: passport.practiceLocation ?? null,
           exclusionChecked: passport.standing.exclusionStatus !== 'UNCHECKED',
           exclusionClear: passport.standing.exclusionClear,
           exclusionStatus: passport.standing.exclusionStatus,

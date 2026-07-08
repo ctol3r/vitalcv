@@ -157,6 +157,14 @@ export function ClinicianProfileSections({
     ? `mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${className}`
     : 'mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3';
 
+  const practiceLocation = passport.practiceLocation;
+  const hasPracticeLocation = Boolean(
+    practiceLocation
+      && (practiceLocation.addressLine
+        || practiceLocation.city
+        || practiceLocation.state
+        || practiceLocation.postalCode),
+  );
   const licences = passport.authority?.credentials.filter((c) => c.domain === 'LICENSURE') ?? [];
   const boards = passport.authority?.credentials.filter((c) => c.domain === 'BOARD_CERTIFICATION') ?? [];
   const trainingRecords = passport.training?.records ?? [];
@@ -191,7 +199,24 @@ export function ClinicianProfileSections({
         title="Practice locations"
         description="Addresses listed on NPPES for the NPI. Address accuracy is NPPES-dependent."
       >
-        <EmptyList label="No NPPES practice addresses hydrated on this passport yet." />
+        {hasPracticeLocation && practiceLocation ? (
+          <div className="space-y-1">
+            {practiceLocation.addressLine ? (
+              <Field label="Street address" value={practiceLocation.addressLine} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.city ? (
+              <Field label="City" value={practiceLocation.city} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.state ? (
+              <Field label="State" value={practiceLocation.state} provenance="VERIFIED" />
+            ) : null}
+            {practiceLocation.postalCode ? (
+              <Field label="Postal code" value={practiceLocation.postalCode} provenance="VERIFIED" />
+            ) : null}
+          </div>
+        ) : (
+          <EmptyList label="No NPPES practice addresses hydrated on this passport yet." />
+        )}
       </Section>
 
       <Section

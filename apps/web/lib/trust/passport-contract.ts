@@ -104,6 +104,21 @@ export interface PassportData {
     status:      string;
     npi?:        string | null;
   };
+  /** Practice location — source-backed from NPPES (never null-fabricated). */
+  practiceLocation?: {
+    city?: string;
+    state?: string;          // 2-letter
+    postalCode?: string;
+    addressLine?: string;    // street line, optional
+    provenance: 'VERIFIED';  // NPPES primary source
+    sourceId: 'NPPES';
+    lastCheckedAt?: string;
+  } | null;
+  /** Self-reported profile — USER_ENTERED only; present only when the clinician provided it. */
+  selfReported?: {
+    education?: Array<{ institution: string; degree?: string; graduationYear?: number }>;
+    affiliations?: Array<{ organization: string; role?: string }>;
+  } | null;
   authority: {
     credentials: Array<{
       id:                string;
