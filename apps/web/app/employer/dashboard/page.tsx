@@ -1,11 +1,20 @@
 import React from 'react';
+import Link from 'next/link';
 
 import { LaneHealthMount } from '@/components/source-health/LaneHealthMount';
 
 export default function EmployerDashboardPage() {
   return (
     <div className="p-8 text-foreground bg-background">
-      <h1 className="text-3xl font-bold mb-8">Employer Dashboard</h1>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Employer Dashboard</h1>
+        <Link
+          href="/employer/post"
+          className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90"
+        >
+          Post a job
+        </Link>
+      </div>
 
       <div className="mb-8">
         <LaneHealthMount heading="Source operational state (employer view)" />
