@@ -40,7 +40,7 @@ async function persistRunIdOnSourceRun(
   startedAt: Date,
 ): Promise<void> {
   if (!sourceRunId || !UUID_RE.test(sourceRunId)) return;
-  const runId = deriveRunId(`${npi}:${startedAt.toISOString()}`);
+  const runId = deriveRunId(`${npi}:${sourceRunId}:${startedAt.toISOString()}`);
 
   // Chain linker: find the most recent prior run for the same NPI + source
   // to establish replay continuity: new_run.priorRunId = latest_prior.runId
@@ -225,10 +225,18 @@ async function finalizeSourceResult(
       ? effectiveStatus
       : (result?.status ?? effectiveStatus);
 
+  // The source_run FK column is @db.Uuid: a non-UUID synthetic id (e.g. a
+  // launch-lane placeholder) would throw and fail the ENTIRE lane. Only
+  // persist a real UUID; otherwise null (the lane has no identity SourceRun).
+  const persistSourceRunId =
+    result?.sourceRunId && UUID_RE.test(result.sourceRunId) ? result.sourceRunId : null;
+  const persistArtifactId =
+    result?.artifactId && UUID_RE.test(result.artifactId) ? result.artifactId : null;
+
   await updateIngestSourceRun(runId, sourceId, {
     status: persistStatus,
-    sourceRunId: result?.sourceRunId ?? null,
-    artifactId: result?.artifactId ?? null,
+    sourceRunId: persistSourceRunId,
+    artifactId: persistArtifactId,
     claimCount: result?.claimsEmitted ?? 0,
     credentialCount: credentialIds.length,
     errorCode: effectiveStatus === 'FAILED' ? 'SOURCE_FAILED' : null,
@@ -342,7 +350,7 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
           credentialIds: nursysCredIds,
           claimIds:      nursysClaim ? [nursysClaim.claimId] : [],
           artifactId:    nursysClaim?.artifactId ?? null,
-          sourceRunId:   `nursys-${npi}`,
+          sourceRunId:   undefined, // launch lane — no identity SourceRun row
           deltaEvents:   [],
           latencyMs:     0,
         });
@@ -394,7 +402,7 @@ async function runPipeline(runId: string, npi: string): Promise<void> {
           credentialIds,
           claimIds: licensureResult.claims.map((claim) => claim.claimId),
           artifactId: licensureResult.claims[0]?.artifactId ?? null,
-          sourceRunId: `physician-licensure-${npi}`,
+          sourceRunId: undefined, // launch lane — no identity SourceRun row
           deltaEvents: [],
           latencyMs: 0,
           error:
