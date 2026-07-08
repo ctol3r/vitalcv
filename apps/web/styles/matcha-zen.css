@@ -163,7 +163,7 @@
   padding: 10px 18px;
   border: 1px solid var(--ink-900);
   background: var(--ink-900);
-  color: #fff;
+  color: var(--paper); /* contrast vs ink-900; flips correctly in dark (paper=charcoal, ink=light) */
   border-radius: 3px;
   font-family: var(--mz-sans);
   font-size: 13.5px;
@@ -269,7 +269,7 @@
   transition: border-color var(--mz-dur) var(--mz-ease), background var(--mz-dur) var(--mz-ease);
 }
 .mz-opt:hover { border-color: var(--ink-400); }
-.mz-opt[aria-pressed='true'] { border-color: var(--ink-900); background: var(--ink-900); color: #fff; }
+.mz-opt[aria-pressed='true'] { border-color: var(--ink-900); background: var(--ink-900); color: var(--paper); }
 
 /* ── Progress meter (accent fill, no gradient) ────────────────────────────── */
 
