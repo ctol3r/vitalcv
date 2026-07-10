@@ -30,6 +30,7 @@ import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider'
 import { RecognitionCard } from '@/components/recognition/RecognitionCard';
 import CareerCompass from '@/components/matcha/CareerCompass';
 import ProductLoopRail from '@/components/holder/ProductLoopRail';
+import { CareerEvidenceGraph } from '@/components/holder/CareerEvidenceGraph';
 import { Reveal } from '@/components/motion/Reveal';
 import { FEATURES } from '@/lib/features';
 import { MatchaHomeActivity } from '@/components/matcha/MatchaHomeActivity';
@@ -340,6 +341,8 @@ export default function ClinicianHomeSurface() {
         <SelectedOpportunityBanner />
 
         <MatchaHomeActivity />
+
+        <CareerEvidenceGraph />
 
         <ProductLoopRail
           npi={hasValidNpi ? npi : null}

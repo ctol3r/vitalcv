@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { ShieldCheck, ChevronRight, Loader2, AlertCircle, Upload, UserRound } from 'lucide-react';
 import { WalletPassport } from '@/components/wallet/WalletPassport';
 import { CredentialWallet } from '@/components/wallet/CredentialWallet';
-import { CredentialPresentationActions } from '@/components/clinician/CredentialPresentationActions';
+import { ShareRecognitionPanel } from '@/components/recognition/ShareRecognitionPanel';
 import EvidenceUploadPanel from '@/components/mobile/EvidenceUploadPanel';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { TrustStatePanel } from '@/components/trust-state/TrustStatePanel';
@@ -182,9 +182,12 @@ export default function HolderPage() {
         </details>
       </div>
 
-      {/* Presentation actions */}
-      <div className="mx-auto hidden max-w-5xl justify-end px-4 pb-4 sm:flex sm:px-6">
-        <CredentialPresentationActions holderNpi={npi!} />
+      {/* Share — the real public verifier link, not a demo presentation. The
+          previous CredentialPresentationActions minted hardcoded demo
+          credentials and copied a /verify/presentation/... link that 404s in
+          production; this panel hands out the working /verify/[npi] link. */}
+      <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
+        <ShareRecognitionPanel npi={npi!} />
       </div>
       <div id="evidence-upload" className="mx-auto max-w-5xl scroll-mt-6 px-4 py-2 sm:px-6">
         <EvidenceUploadPanel

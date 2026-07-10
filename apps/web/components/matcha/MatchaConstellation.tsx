@@ -17,8 +17,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-type Era = 'origin' | 'now' | 'future';
-type Kind = 'you' | 'origin' | 'credential' | 'readiness' | 'recognition' | 'opportunity' | 'future';
+export type Era = 'origin' | 'now' | 'future';
+export type Kind = 'you' | 'origin' | 'credential' | 'readiness' | 'recognition' | 'opportunity' | 'future';
 
 interface Star {
   id: string;
@@ -77,9 +77,30 @@ export interface ConstellationProfile {
   matchCount?: number;
 }
 
+/**
+ * A caller-supplied star: real career-evidence events projected into the sky.
+ * When a `stars` list is passed, it fully replaces the illustrative defaults
+ * (the "You" center star is always added). Callers own the honesty of their
+ * labels — evidence-backed events as facts, future entries clearly projected.
+ */
+export interface ConstellationStarDef {
+  id: string;
+  label: string;
+  kind: Kind;
+  era: Era;
+  /** temporal position 0 (earliest) … 1 (furthest future) */
+  t: number;
+  ring: 1 | 2 | 3;
+}
+
 // Deterministic layout (no Math.random at module scope; twinkle phase derived from index).
-function buildStars(profile?: ConstellationProfile): Star[] {
-  const defs: Array<Omit<Star, 'angle' | 'twinkle'>> = [
+function buildStars(profile?: ConstellationProfile, starDefs?: ConstellationStarDef[]): Star[] {
+  const defs: Array<Omit<Star, 'angle' | 'twinkle'>> = starDefs
+    ? [
+        { id: 'you', label: 'You', kind: 'you', era: 'now', t: 0.5, ring: 1 },
+        ...starDefs.filter((s) => s.id !== 'you'),
+      ]
+    : [
     { id: 'you', label: 'You', kind: 'you', era: 'now', t: 0.5, ring: 1 },
     // origin era
     { id: 'residency', label: 'Residency', kind: 'origin', era: 'origin', t: 0.08, ring: 3 },
@@ -137,10 +158,19 @@ function eraForTime(t: number): Era {
   return 'now';
 }
 
-export function MatchaConstellation({ height = 460, profile }: { height?: number; profile?: ConstellationProfile }) {
+export function MatchaConstellation({
+  height = 460,
+  profile,
+  starDefs,
+}: {
+  height?: number;
+  profile?: ConstellationProfile;
+  /** Real career-evidence stars; replaces the illustrative sky when provided. */
+  starDefs?: ConstellationStarDef[];
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const stars = useMemo(() => buildStars(profile), [profile]);
+  const stars = useMemo(() => buildStars(profile, starDefs), [profile, starDefs]);
   const [time, setTime] = useState(0.5);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const timeRef = useRef(0.5);
