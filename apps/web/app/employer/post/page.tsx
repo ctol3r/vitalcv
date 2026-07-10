@@ -87,7 +87,15 @@ export default function EmployerPostPage() {
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-  const [posted, setPosted] = useState(false);
+  const [notice, setNotice] = useState('');
+
+  // Edit / close management for existing openings. `editingId` set = the form is
+  // in update mode for that opening (POST → PATCH). Close is a two-step confirm.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmCloseId, setConfirmCloseId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [closeError, setCloseError] = useState<{ id: string; msg: string } | null>(null);
+  const isEditing = editingId !== null;
 
   // org-setup fallback (shown only when a post fails for lack of an org)
   const [needsOrg, setNeedsOrg] = useState(false);
@@ -127,6 +135,43 @@ export default function EmployerPostPage() {
     setRemote(false);
   }
 
+  function flash(msg: string) {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(''), 4000);
+  }
+
+  function enterEdit(o: Opportunity) {
+    setEditingId(o.id);
+    setTitle(o.title);
+    setSpecialty(o.specialty);
+    setHiringType(o.hiringType);
+    setState(o.state);
+    setPayRange(o.payRange ?? '');
+    setRequirementLevel(o.requirementLevel);
+    setDescription(o.description ?? '');
+    setRemote(o.remote);
+    // The openings list doesn't carry the stored matching inputs (pay min/max,
+    // employer type, start urgency), so those aren't edited here — reset them to
+    // inert defaults; the edit PATCH omits them and the stored values are kept.
+    setPayMin('');
+    setPayMax('');
+    setEmployerType('hospital');
+    setStartUrgency('flexible');
+    setFormError('');
+    setNotice('');
+    setNeedsOrg(false);
+    setConfirmCloseId(null);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setFormError('');
+    resetForm();
+  }
+
   function validate(): string | null {
     if (!title.trim()) return 'Add a job title.';
     if (!specialty.trim()) return 'Add a specialty.';
@@ -161,6 +206,40 @@ export default function EmployerPostPage() {
     return { ok: false, noOrg, error: msg };
   }
 
+  // Edit / close one of the employer's own openings via the session-authed proxy
+  // (PATCH /api/employer/opportunities/:id). Partial patch — omitted keys are
+  // left untouched server-side.
+  async function patchOpp(
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const res = await fetch(`/api/employer/opportunities/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (res.ok) return { ok: true };
+    const d = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: d.error ?? `Couldn't save (${res.status}).` };
+  }
+
+  async function closeOpp(id: string) {
+    setClosingId(id);
+    setCloseError(null);
+    const r = await patchOpp(id, { status: 'CLOSED' });
+    setClosingId(null);
+    if (r.ok) {
+      setConfirmCloseId(null);
+      if (editingId === id) {
+        setEditingId(null);
+        resetForm();
+      }
+      void loadOpps();
+      return;
+    }
+    setCloseError({ id, msg: r.error ?? 'Close failed.' });
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const v = validate();
@@ -170,13 +249,38 @@ export default function EmployerPostPage() {
     }
     setFormError('');
     setSaving(true);
+
+    if (editingId) {
+      // Update mode — PATCH only the listing fields the openings list round-trips
+      // (matching inputs aren't returned, so they're left untouched server-side).
+      const r = await patchOpp(editingId, {
+        title: title.trim(),
+        specialty: specialty.trim(),
+        hiringType,
+        state: state.trim().toUpperCase(),
+        payRange: payRange.trim() || undefined,
+        requirementLevel,
+        description: description.trim() || undefined,
+        remote,
+      });
+      setSaving(false);
+      if (r.ok) {
+        setEditingId(null);
+        resetForm();
+        flash('Saved — your listing is updated.');
+        void loadOpps();
+      } else {
+        setFormError(r.error ?? 'Save failed.');
+      }
+      return;
+    }
+
     const r = await postJob();
     setSaving(false);
     if (r.ok) {
-      setPosted(true);
       resetForm();
+      flash("Posted — it's live and matchable now.");
       void loadOpps();
-      window.setTimeout(() => setPosted(false), 4000);
       return;
     }
     if (r.noOrg) {
@@ -208,10 +312,9 @@ export default function EmployerPostPage() {
       const r = await postJob();
       if (r.ok) {
         setNeedsOrg(false);
-        setPosted(true);
         resetForm();
+        flash("Posted — it's live and matchable now.");
         void loadOpps();
-        window.setTimeout(() => setPosted(false), 4000);
       } else {
         setFormError(r.error ?? 'Post failed after setup.');
       }
@@ -240,7 +343,10 @@ export default function EmployerPostPage() {
           {/* ── Post form ─────────────────────────────────────────── */}
           <Reveal delay={60}>
             <form onSubmit={submit} className="mz-card mz-card-pad" noValidate>
-              <h2 className="mz-h2">New opening</h2>
+              <h2 className="mz-h2">{isEditing ? 'Edit opening' : 'New opening'}</h2>
+              {isEditing ? (
+                <p className="mz-small mt-1">Update this opening and save — it stays matchable.</p>
+              ) : null}
 
               <div className="mt-4 space-y-4">
                 <label className="block">
@@ -303,67 +409,77 @@ export default function EmployerPostPage() {
                   </label>
                 </div>
 
-                <div className="flex flex-wrap gap-4">
-                  <label className="block flex-1 min-w-[8rem]">
-                    <span className="mz-eyebrow">Pay min · matching</span>
-                    <input
-                      className="mz-input mt-1.5"
-                      inputMode="numeric"
-                      value={payMin}
-                      onChange={(e) => setPayMin(e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="220000"
-                      aria-label="Pay minimum for matching"
-                    />
-                  </label>
-                  <label className="block flex-1 min-w-[8rem]">
-                    <span className="mz-eyebrow">Pay max · matching</span>
-                    <input
-                      className="mz-input mt-1.5"
-                      inputMode="numeric"
-                      value={payMax}
-                      onChange={(e) => setPayMax(e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="260000"
-                      aria-label="Pay maximum for matching"
-                    />
-                  </label>
-                </div>
-                <p className="mz-small" style={{ marginTop: -6 }}>
-                  Numbers let VitalCV match on comp against what clinicians ask for.
-                </p>
+                {!isEditing ? (
+                  <>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="block flex-1 min-w-[8rem]">
+                        <span className="mz-eyebrow">Pay min · matching</span>
+                        <input
+                          className="mz-input mt-1.5"
+                          inputMode="numeric"
+                          value={payMin}
+                          onChange={(e) => setPayMin(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="220000"
+                          aria-label="Pay minimum for matching"
+                        />
+                      </label>
+                      <label className="block flex-1 min-w-[8rem]">
+                        <span className="mz-eyebrow">Pay max · matching</span>
+                        <input
+                          className="mz-input mt-1.5"
+                          inputMode="numeric"
+                          value={payMax}
+                          onChange={(e) => setPayMax(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="260000"
+                          aria-label="Pay maximum for matching"
+                        />
+                      </label>
+                    </div>
+                    <p className="mz-small" style={{ marginTop: -6 }}>
+                      Numbers let VitalCV match on comp against what clinicians ask for.
+                    </p>
 
-                <div>
-                  <span className="mz-eyebrow">Employer type</span>
-                  <div className="mt-1.5 flex flex-wrap gap-2">
-                    {EMPLOYER_TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        type="button"
-                        className="mz-opt"
-                        aria-pressed={employerType === t.value}
-                        onClick={() => setEmployerType(t.value)}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    <div>
+                      <span className="mz-eyebrow">Employer type</span>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {EMPLOYER_TYPES.map((t) => (
+                          <button
+                            key={t.value}
+                            type="button"
+                            className="mz-opt"
+                            aria-pressed={employerType === t.value}
+                            onClick={() => setEmployerType(t.value)}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                <div>
-                  <span className="mz-eyebrow">Start urgency</span>
-                  <div className="mt-1.5 flex flex-wrap gap-2">
-                    {START_URGENCIES.map((u) => (
-                      <button
-                        key={u.value}
-                        type="button"
-                        className="mz-opt"
-                        aria-pressed={startUrgency === u.value}
-                        onClick={() => setStartUrgency(u.value)}
-                      >
-                        {u.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    <div>
+                      <span className="mz-eyebrow">Start urgency</span>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {START_URGENCIES.map((u) => (
+                          <button
+                            key={u.value}
+                            type="button"
+                            className="mz-opt"
+                            aria-pressed={startUrgency === u.value}
+                            onClick={() => setStartUrgency(u.value)}
+                          >
+                            {u.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="mz-small mz-inset" style={{ padding: '10px 12px' }}>
+                    Comp min/max, employer type, and start urgency stay as first
+                    posted — those matching inputs are not editable here yet. Update
+                    the listing details and save.
+                  </p>
+                )}
 
                 <div>
                   <span className="mz-eyebrow">Readiness required to apply</span>
@@ -410,9 +526,9 @@ export default function EmployerPostPage() {
                   {formError}
                 </p>
               ) : null}
-              {posted ? (
+              {notice ? (
                 <p className="mz-small mt-4" style={{ color: 'var(--ok)' }}>
-                  Posted — it's live and matchable now.
+                  {notice}
                 </p>
               ) : null}
 
@@ -443,9 +559,27 @@ export default function EmployerPostPage() {
                   </div>
                 </div>
               ) : (
-                <button type="submit" className="mz-btn mt-5" disabled={saving}>
-                  {saving ? 'Posting…' : 'Post opening'}
-                </button>
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <button type="submit" className="mz-btn" disabled={saving}>
+                    {saving
+                      ? isEditing
+                        ? 'Saving…'
+                        : 'Posting…'
+                      : isEditing
+                        ? 'Save changes'
+                        : 'Post opening'}
+                  </button>
+                  {isEditing ? (
+                    <button
+                      type="button"
+                      className="mz-btn-ghost"
+                      disabled={saving}
+                      onClick={cancelEdit}
+                    >
+                      Cancel edit
+                    </button>
+                  ) : null}
+                </div>
               )}
             </form>
           </Reveal>
@@ -482,6 +616,54 @@ export default function EmployerPostPage() {
                       </p>
                       {o.description ? (
                         <p className="mz-body mt-2">{o.description}</p>
+                      ) : null}
+                      {o.status === 'ACTIVE' ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="mz-btn-ghost mz-btn-sm"
+                            disabled={editingId === o.id}
+                            onClick={() => enterEdit(o)}
+                          >
+                            {editingId === o.id ? 'Editing' : 'Edit'}
+                          </button>
+                          {confirmCloseId === o.id ? (
+                            <>
+                              <button
+                                type="button"
+                                className="mz-btn mz-btn-sm"
+                                disabled={closingId === o.id}
+                                onClick={() => void closeOpp(o.id)}
+                              >
+                                {closingId === o.id ? 'Closing…' : 'Confirm close'}
+                              </button>
+                              <button
+                                type="button"
+                                className="mz-btn-ghost mz-btn-sm"
+                                disabled={closingId === o.id}
+                                onClick={() => setConfirmCloseId(null)}
+                              >
+                                Keep open
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="mz-btn-ghost mz-btn-sm"
+                              onClick={() => {
+                                setConfirmCloseId(o.id);
+                                setCloseError(null);
+                              }}
+                            >
+                              Close
+                            </button>
+                          )}
+                        </div>
+                      ) : null}
+                      {closeError && closeError.id === o.id ? (
+                        <p role="alert" className="mz-small mt-2" style={{ color: 'var(--p0)' }}>
+                          {closeError.msg}
+                        </p>
                       ) : null}
                     </li>
                   ))}

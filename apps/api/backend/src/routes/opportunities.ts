@@ -19,8 +19,10 @@ import {
   listCandidates,
   listOpportunitiesForOrg,
   listPublicOpportunities,
+  updateOpportunity,
   upsertOrgProfile,
 } from '../services/opportunities/opportunityService';
+import type { UpdateOpportunityInput } from '../services/opportunities/opportunityService';
 import { HttpError } from '../utils/httpError';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import prisma from '../graphql/prisma_client';
@@ -258,6 +260,79 @@ export function registerOpportunityRoutes(app: Express): void {
       }
 
       res.json({ opportunity });
+    }),
+  );
+
+  app.patch(
+    '/api/opportunities/:id',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireClerkUserId(req);
+
+      const opportunityId = req.params.id?.trim();
+      if (!opportunityId) {
+        throw new HttpError(400, 'Opportunity id is required.');
+      }
+      if (!UUID_RE.test(opportunityId)) {
+        throw new HttpError(404, 'Opportunity not found.');
+      }
+
+      const body = req.body as {
+        title?: string;
+        specialty?: string;
+        hiringType?: string;
+        state?: string;
+        payRange?: string | null;
+        payMin?: number | string | null;
+        payMax?: number | string | null;
+        employerType?: string | null;
+        startUrgency?: string | null;
+        requirementLevel?: string;
+        description?: string | null;
+        remote?: boolean;
+        status?: string;
+      };
+
+      const toPosInt = (v: unknown): number | undefined => {
+        const n = typeof v === 'number' ? v : Number(v);
+        return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+      };
+      const requireTrimmed = (value: unknown, label: string): string => {
+        const s = typeof value === 'string' ? value.trim() : '';
+        if (!s) throw new HttpError(400, `${label} cannot be empty.`);
+        return s;
+      };
+      const trimmedOrNull = (value: unknown): string | null => {
+        const s = typeof value === 'string' ? value.trim() : '';
+        return s || null;
+      };
+
+      if (
+        body.status !== undefined
+        && body.status !== 'ACTIVE'
+        && body.status !== 'CLOSED'
+      ) {
+        throw new HttpError(400, "status must be 'ACTIVE' or 'CLOSED'.");
+      }
+
+      // Build a partial patch: only keys present on the body are forwarded.
+      const fields: UpdateOpportunityInput = {};
+      if (body.title !== undefined) fields.title = requireTrimmed(body.title, 'title');
+      if (body.specialty !== undefined) fields.specialty = requireTrimmed(body.specialty, 'specialty');
+      if (body.hiringType !== undefined) fields.hiringType = requireTrimmed(body.hiringType, 'hiringType');
+      if (body.state !== undefined) fields.state = requireTrimmed(body.state, 'state');
+      if (body.payRange !== undefined) fields.payRange = trimmedOrNull(body.payRange);
+      if (body.payMin !== undefined) fields.payMin = toPosInt(body.payMin) ?? null;
+      if (body.payMax !== undefined) fields.payMax = toPosInt(body.payMax) ?? null;
+      if (body.employerType !== undefined) fields.employerType = trimmedOrNull(body.employerType);
+      if (body.startUrgency !== undefined) fields.startUrgency = trimmedOrNull(body.startUrgency);
+      if (body.requirementLevel !== undefined) fields.requirementLevel = trimmedOrNull(body.requirementLevel) ?? 'L1';
+      if (body.description !== undefined) fields.description = trimmedOrNull(body.description);
+      if (body.remote !== undefined) fields.remote = Boolean(body.remote);
+      // Validated to be one of the two literals by the guard above.
+      if (body.status !== undefined) fields.status = body.status as 'ACTIVE' | 'CLOSED';
+
+      const opp = await updateOpportunity(clerkUserId, opportunityId, fields);
+      res.json(opp);
     }),
   );
 

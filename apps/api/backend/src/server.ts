@@ -183,7 +183,7 @@ async function bootstrapApp() {
   const { log } = await import('./obs/logger');
   const { loadEnv } = await import('./config/env');
   const { ensureInvestigationSeedDataBootstrapped } = await import('./services/investigators/seedInvestigationData');
-  const { ensureLaunchOpportunitiesBootstrapped } = await import('./services/opportunities/launchOpportunitySeed');
+  const { ensureLaunchOpportunitiesBootstrapped, isDemoOpportunitySeedEnabled } = await import('./services/opportunities/launchOpportunitySeed');
   const { requestIntelligenceAutoWarm } = await import('./services/intelligence/intelligenceAutoWarmService');
   const { initializeTelemetry, shutdownTelemetry } = await import('./telemetry');
   const { runMonitoringCycle } = await import('../jobs/monitoringJob');
@@ -208,7 +208,12 @@ async function bootstrapApp() {
   });
 
   await ensureInvestigationSeedDataBootstrapped({ logger: log });
-  if (config.NODE_ENV === 'production') {
+  // Auto-seed of demo/launch opportunities is flag-gated (SEED_DEMO_OPPORTUNITIES,
+  // default OFF). Production leaves it unset so it never seeds demo data — the
+  // bootstrap still runs to log the honest skip line; dev/demo sets the flag to
+  // seed on startup. ensureLaunchOpportunitiesBootstrapped enforces the gate again
+  // internally, so this is belt-and-suspenders.
+  if (config.NODE_ENV === 'production' || isDemoOpportunitySeedEnabled()) {
     await ensureLaunchOpportunitiesBootstrapped({ logger: log });
   }
 
