@@ -133,6 +133,12 @@ const envSchema = z.object({
     (raw) => (raw === undefined ? '' : String(raw)),
     z.string(),
   ),
+  // G4: server-held key for salting publicly-exposed claim-leaf digests
+  // (routes/public.ts). Empty (default) = fail-closed, expose no digests.
+  CLAIM_DIGEST_HMAC_SECRET: z.preprocess(
+    (raw) => (raw === undefined ? '' : String(raw).trim()),
+    z.string(),
+  ),
   INTERNAL_DASH_PASSWORD: z.preprocess(
     (raw) => (raw === undefined ? '' : String(raw)),
     z.string(),
