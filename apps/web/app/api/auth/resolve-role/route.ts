@@ -22,6 +22,7 @@ import {
   ROLE_COOKIE_TTL_SECONDS,
   signRoleCookie,
 } from '@/lib/auth/roleCookie';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -55,7 +56,7 @@ export async function GET() {
   // 3. Resolve the role from the backend.
   let role: string;
   try {
-    const headers: Record<string, string> = { 'x-clerk-user-id': userId };
+    const headers: Record<string, string> = { ...(await buildIdentityHeaders({ userId })) };
     if (email) headers['x-clerk-user-email'] = email;
 
     const res = await fetch(`${BACKEND}/api/me/role`, { headers });

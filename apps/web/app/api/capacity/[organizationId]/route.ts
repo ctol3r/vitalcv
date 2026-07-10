@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 export const runtime = 'nodejs';
 
 const B =
@@ -20,7 +21,7 @@ export async function GET(
   const { organizationId } = await context.params;
   try {
     const res = await fetch(`${B}/api/capacity/${organizationId}`, {
-      headers: { 'x-clerk-user-id': session.userId },
+      headers: { ...(await buildIdentityHeaders({ userId: session.userId })) },
     });
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });

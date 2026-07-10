@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { getApiBase } from '@/lib/api';
 import { type NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 const BACKEND = getApiBase();
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   const url = `${BACKEND}/api/profile/self-attested`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'x-clerk-user-id': session.userId,
+    ...(await buildIdentityHeaders({ userId: session.userId })),
   };
   const body = await req.text();
   const res = await fetch(url, { method: 'POST', headers, body });

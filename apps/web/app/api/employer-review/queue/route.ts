@@ -9,6 +9,7 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
     const response = await fetch(`${BACKEND}/api/employer-review/queue${limit}`, {
       headers: {
         Accept: 'application/json',
-        'x-clerk-user-id': userId,
+        ...(await buildIdentityHeaders({ userId })),
       },
       cache: 'no-store',
       signal: AbortSignal.timeout(15_000),
