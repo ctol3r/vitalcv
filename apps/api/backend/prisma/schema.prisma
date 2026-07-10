@@ -337,6 +337,14 @@ model Opportunity {
   hiringType       String   @map("hiring_type")
   state            String
   payRange         String?  @map("pay_range")
+  // Structured matching inputs — the MATCHA engine scores comp (payMax vs the
+  // clinician's desired minimum), urgency (startUrgency), and employer-fit
+  // (employerType). Nullable so the mapper falls back to defaults for older
+  // postings that predate these columns.
+  payMin           Int?     @map("pay_min")
+  payMax           Int?     @map("pay_max")
+  employerType     String?  @map("employer_type")
+  startUrgency     String?  @map("start_urgency")
   requirementLevel String   @default("L1") @map("requirement_level")
   description      String?
   remote           Boolean  @default(false)
