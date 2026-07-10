@@ -80,15 +80,24 @@ date + timing below** → delete scratch service.
 | Drill date | Backup restored | Time-to-restore | Verified by |
 |---|---|---|---|
 | 2026-07-10 | Live `pg_dump` of prod (19 MB custom-format, via public TCP proxy) → local PG 17.7 scratch | **90 s end-to-end** (dump 9 s · restore 2 s · verify 17 s; rest = scratch-instance setup) | Claude (owner-authorized): row counts identical prod↔restore — 393 AuditEvent · 11,585 VerificationArtifact · 152 tables; `pg_restore` exit 0, zero stderr; scratch + dump destroyed after |
+| 2026-07-10 | **PITR** *Restore to this moment* (Jul 10 15:22 PT) → new Railway service `Postgres-restored-20260710-2222` | **3 m 41 s** click-to-verified (provisioning included) | Claude (owner-authorized): row counts identical restored↔prod — 393 · 11,585 · 152; prod untouched, api/web 200 throughout; scratch service + its volume deleted after (deletion is a two-step staged apply: typed confirm → Deploy → typed "Destructive Changes" confirm) |
 
-**Drill #1 notes (2026-07-10):** this exercised the *logical* (pg_dump/pg_restore)
-path — provider-independent, proves the schema+data restore end-to-end. It did
-NOT exercise Railway's dashboard **PITR restore** button (dashboard session was
-unavailable); drill #2 should use *Restore to this moment* → new service to
-validate the PITR path specifically. macOS scratch-restore gotchas: use the
-Homebrew `postgresql@17` binaries (Postgres.app 16 refuses a v17 server), set
-`LC_ALL=C` (else `postmaster became multithreaded` on start), and pass
-`-k /tmp` (deep socket paths exceed the 103-byte limit).
+**Drill #1 notes (2026-07-10):** exercised the *logical* (pg_dump/pg_restore)
+path — provider-independent, proves the schema+data restore end-to-end.
+macOS scratch-restore gotchas: use the Homebrew `postgresql@17` binaries
+(Postgres.app 16 refuses a v17 server), set `LC_ALL=C` (else `postmaster
+became multithreaded` on start), and pass `-k /tmp` (deep socket paths exceed
+the 103-byte limit).
+
+**Drill #2 notes (2026-07-10, same day):** exercised the **PITR dashboard
+path** — *Restore to this moment* creates a standalone copy (dialog confirms
+"current service is left untouched"). 3 m 41 s from click to verified data.
+**BOTH recovery paths are now proven.** Teardown gotchas: service deletion is
+staged (typed name confirm → "Apply/Deploy" bar → second typed "Destructive
+Changes" confirm), and the restored service's **volume survives service
+deletion** — delete it separately (`railway volume delete`). Pre-existing
+orphan volume `postgres-volume` (1.1 GB, unattached, predates the drills) was
+left alone — owner should decide whether it's dead weight to remove.
 
 ## Explicit gaps
 
