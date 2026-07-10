@@ -158,6 +158,10 @@ export function registerOpportunityRoutes(app: Express): void {
         hiringType?: string;
         state?: string;
         payRange?: string;
+        payMin?: number;
+        payMax?: number;
+        employerType?: string;
+        startUrgency?: string;
         requirementLevel?: string;
         description?: string;
         remote?: boolean;
@@ -168,12 +172,21 @@ export function registerOpportunityRoutes(app: Express): void {
       if (!body.hiringType?.trim()) throw new HttpError(400, 'hiringType is required.');
       if (!body.state?.trim()) throw new HttpError(400, 'state is required.');
 
+      const toPosInt = (v: unknown): number | undefined => {
+        const n = typeof v === 'number' ? v : Number(v);
+        return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+      };
+
       const opp = await createOpportunity(clerkUserId, {
         title: body.title.trim(),
         specialty: body.specialty.trim(),
         hiringType: body.hiringType.trim(),
         state: body.state.trim(),
         payRange: body.payRange?.trim(),
+        payMin: toPosInt(body.payMin),
+        payMax: toPosInt(body.payMax),
+        employerType: body.employerType?.trim() || undefined,
+        startUrgency: body.startUrgency?.trim() || undefined,
         requirementLevel: body.requirementLevel ?? 'L1',
         description: body.description?.trim(),
         remote: Boolean(body.remote),

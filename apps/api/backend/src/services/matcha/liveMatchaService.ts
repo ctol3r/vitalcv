@@ -224,6 +224,17 @@ function requirementsFromLevel(
   return base;
 }
 
+// Employer-posted enums → engine enums, with a safe fallback for older postings
+// (or free-text) that predate the structured columns.
+const EMPLOYER_TYPES = new Set(['hospital', 'practice', 'telehealth', 'agency', 'health_system']);
+function normalizeEmployerType(v: string | null | undefined): MatchaOpportunity['employerType'] {
+  return v && EMPLOYER_TYPES.has(v) ? (v as MatchaOpportunity['employerType']) : 'hospital';
+}
+const START_URGENCIES = new Set(['immediate', 'within_2_weeks', 'within_month', 'flexible']);
+function normalizeStartUrgency(v: string | null | undefined): MatchaOpportunity['startUrgency'] {
+  return v && START_URGENCIES.has(v) ? (v as MatchaOpportunity['startUrgency']) : 'flexible';
+}
+
 function dbOppToMatcha(opp: {
   id: string;
   title: string;
@@ -231,6 +242,10 @@ function dbOppToMatcha(opp: {
   hiringType: string;
   state: string;
   payRange: string | null;
+  payMin?: number | null;
+  payMax?: number | null;
+  employerType?: string | null;
+  startUrgency?: string | null;
   requirementLevel: string;
   remote: boolean;
   status: string;
@@ -248,10 +263,14 @@ function dbOppToMatcha(opp: {
     state: opp.state,
     specialty: opp.specialty,
     hiringType: (opp.hiringType as HiringType) || 'perm',
-    employerType: 'hospital',
-    startUrgency: 'flexible',
+    // Employer-posted structured fields drive real scoring (comp/urgency/
+    // employer-fit); fall back to the old defaults when a posting omits them.
+    employerType: normalizeEmployerType(opp.employerType),
+    startUrgency: normalizeStartUrgency(opp.startUrgency),
     urgency: 'within_90_days',
     payRange: opp.payRange ?? undefined,
+    payMin: opp.payMin ?? undefined,
+    payMax: opp.payMax ?? undefined,
     remote: opp.remote ?? false,
     requirements: requirementsFromLevel(opp.requirementLevel, opp.specialty, opp.state),
     minimumTrustBand: opp.requirementLevel === 'L3'

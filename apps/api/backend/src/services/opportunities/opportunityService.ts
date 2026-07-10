@@ -43,6 +43,10 @@ export interface CreateOpportunityInput {
   hiringType: string;
   state: string;
   payRange?: string;
+  payMin?: number;
+  payMax?: number;
+  employerType?: string;
+  startUrgency?: string;
   requirementLevel?: string;
   description?: string;
   remote?: boolean;
@@ -344,6 +348,10 @@ export async function createOpportunity(
       hiringType: input.hiringType,
       state: input.state,
       payRange: input.payRange ?? null,
+      payMin: input.payMin ?? null,
+      payMax: input.payMax ?? null,
+      employerType: input.employerType ?? null,
+      startUrgency: input.startUrgency ?? null,
       requirementLevel: input.requirementLevel ?? 'L1',
       description: input.description ?? null,
       remote: input.remote ?? false,

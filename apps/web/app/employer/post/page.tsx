@@ -46,6 +46,23 @@ const REQUIREMENT_LEVELS = [
   { value: 'L3', label: 'Full source-verified', hint: 'All primary sources' },
 ] as const;
 
+// These drive real MATCHA scoring (employer-fit + urgency). Values match the
+// engine's enums exactly.
+const EMPLOYER_TYPES = [
+  { value: 'hospital', label: 'Hospital' },
+  { value: 'practice', label: 'Practice / group' },
+  { value: 'health_system', label: 'Health system' },
+  { value: 'telehealth', label: 'Telehealth' },
+  { value: 'agency', label: 'Staffing agency' },
+] as const;
+
+const START_URGENCIES = [
+  { value: 'immediate', label: 'Immediate' },
+  { value: 'within_2_weeks', label: 'Within 2 weeks' },
+  { value: 'within_month', label: 'Within a month' },
+  { value: 'flexible', label: 'Flexible' },
+] as const;
+
 const HIRING_LABEL: Record<string, string> = Object.fromEntries(
   HIRING_TYPES.map((h) => [h.value, h.label]),
 );
@@ -60,6 +77,10 @@ export default function EmployerPostPage() {
   const [hiringType, setHiringType] = useState<string>('perm');
   const [state, setState] = useState('');
   const [payRange, setPayRange] = useState('');
+  const [payMin, setPayMin] = useState('');
+  const [payMax, setPayMax] = useState('');
+  const [employerType, setEmployerType] = useState<string>('hospital');
+  const [startUrgency, setStartUrgency] = useState<string>('flexible');
   const [requirementLevel, setRequirementLevel] = useState('L1');
   const [description, setDescription] = useState('');
   const [remote, setRemote] = useState(false);
@@ -97,6 +118,10 @@ export default function EmployerPostPage() {
     setHiringType('perm');
     setState('');
     setPayRange('');
+    setPayMin('');
+    setPayMax('');
+    setEmployerType('hospital');
+    setStartUrgency('flexible');
     setRequirementLevel('L1');
     setDescription('');
     setRemote(false);
@@ -120,6 +145,10 @@ export default function EmployerPostPage() {
         hiringType,
         state: state.trim().toUpperCase(),
         payRange: payRange.trim() || undefined,
+        payMin: payMin.trim() ? Number(payMin.trim()) : undefined,
+        payMax: payMax.trim() ? Number(payMax.trim()) : undefined,
+        employerType,
+        startUrgency,
         requirementLevel,
         description: description.trim() || undefined,
         remote,
@@ -272,6 +301,68 @@ export default function EmployerPostPage() {
                       placeholder="$220k–$260k"
                     />
                   </label>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <label className="block flex-1 min-w-[8rem]">
+                    <span className="mz-eyebrow">Pay min · matching</span>
+                    <input
+                      className="mz-input mt-1.5"
+                      inputMode="numeric"
+                      value={payMin}
+                      onChange={(e) => setPayMin(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="220000"
+                      aria-label="Pay minimum for matching"
+                    />
+                  </label>
+                  <label className="block flex-1 min-w-[8rem]">
+                    <span className="mz-eyebrow">Pay max · matching</span>
+                    <input
+                      className="mz-input mt-1.5"
+                      inputMode="numeric"
+                      value={payMax}
+                      onChange={(e) => setPayMax(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="260000"
+                      aria-label="Pay maximum for matching"
+                    />
+                  </label>
+                </div>
+                <p className="mz-small" style={{ marginTop: -6 }}>
+                  Numbers let VitalCV match on comp against what clinicians ask for.
+                </p>
+
+                <div>
+                  <span className="mz-eyebrow">Employer type</span>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {EMPLOYER_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        className="mz-opt"
+                        aria-pressed={employerType === t.value}
+                        onClick={() => setEmployerType(t.value)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="mz-eyebrow">Start urgency</span>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {START_URGENCIES.map((u) => (
+                      <button
+                        key={u.value}
+                        type="button"
+                        className="mz-opt"
+                        aria-pressed={startUrgency === u.value}
+                        onClick={() => setStartUrgency(u.value)}
+                      >
+                        {u.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
