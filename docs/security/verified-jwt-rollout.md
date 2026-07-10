@@ -45,19 +45,24 @@ Watch `jwt_auth_verification` events by `outcome`:
   object). It forwards the bearer via `auth().getToken()` and degrades to
   id-only if minting is unavailable (behavior-preserving).
 
-### Call-site conversion status (as of 2026-07-06)
+### Call-site conversion status — COMPLETE (2026-07-10)
 
-- **Converted:** the 12-file `headers.set(...)` cohort (credentials ingest/mine/
-  confirm, documents parse/verify/[id], profile email-OTP issue/verify + npi
-  bootstrap, watch, watch/[id]) + the already-token-forwarding intelligence/
-  workspace/search proxies (~40 sites via `_shared.ts`).
-- **Remaining (~21, telemetry-driven):** object-property and conditional-spread
-  shapes — employer-review queue/batch/[action], employer opportunities/profile/
-  setup, psv/oig check+batch, ownership claim/me, profile links/self-attested/
-  work-auth/completeness/resume, capacity, velocity, marketplace pool, request-
-  review, share, export/packet, trust/events, organization-context,
-  auth/resolve-role, candidates. Shadow's `header_without_token` events will
-  prioritize these by real traffic; convert with the same helper before enforce.
+- **2026-07-06:** the 12-file `headers.set(...)` cohort + the ~40 sites already
+  forwarding via `_shared.ts`.
+- **2026-07-10:** the remaining 26 ad-hoc sites converted (object-property,
+  inline, conditional-spread, and bracket-assign shapes) — employer-review
+  queue/batch/[action], employer opportunities/profile/setup, psv/oig
+  check+batch, ownership claim/me, profile links/self-attested/work-auth/
+  completeness/resume, capacity, velocity, marketplace pool, request-review,
+  share, export/packet, organization-context, auth/resolve-role, candidates,
+  trust-state refresh, trust/events. `trust/events` additionally stopped
+  forwarding the CLIENT-supplied `x-clerk-user-id` verbatim (spoofable) —
+  identity is now server-derived.
+- **Every web→backend proxy now forwards the bearer** (flip criterion #3 met
+  code-side). Remaining flip criteria are telemetry-only: watch
+  `header_without_token` → ≈0 confirms it empirically, plus zero unexplained
+  `verified_mismatch`, and confirm no server-to-server caller sends
+  `x-clerk-user-id` without a token.
 
 ## Step 3 — Flip criteria for `enforce`
 

@@ -10,6 +10,7 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'x-clerk-user-id': userId,
+        ...(await buildIdentityHeaders({ userId })),
       },
       body: JSON.stringify(sanitized),
       cache: 'no-store',

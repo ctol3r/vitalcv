@@ -2,16 +2,17 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { BACKEND_URL as B } from '@/lib/backend-url';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 export async function GET() {
   const session = await auth();
   if (!session.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const res = await fetch(`${B}/api/employer/opportunities`, { headers: { 'x-clerk-user-id': session.userId } });
+  const res = await fetch(`${B}/api/employer/opportunities`, { headers: { ...(await buildIdentityHeaders({ userId: session.userId })) } });
   return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
 }
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await req.text();
-  const res = await fetch(`${B}/api/opportunities`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-clerk-user-id': session.userId }, body });
+  const res = await fetch(`${B}/api/opportunities`, { method: 'POST', headers: { 'content-type': 'application/json', ...(await buildIdentityHeaders({ userId: session.userId })) }, body });
   return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
 }

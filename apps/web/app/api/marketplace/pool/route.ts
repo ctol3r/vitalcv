@@ -8,6 +8,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL } from '@/lib/backend-url';
+import { buildIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const runtime = 'nodejs';
 
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
   const qs = req.nextUrl.searchParams.toString();
   try {
     const res = await fetch(`${BACKEND_URL}/api/marketplace/pool${qs ? `?${qs}` : ''}`, {
-      headers: { 'x-clerk-user-id': session.userId },
+      headers: { ...(await buildIdentityHeaders({ userId: session.userId })) },
       signal: AbortSignal.timeout(16_000),
     });
     const data = await res.json().catch(() => ({ error: 'Invalid response from backend', pool: [] }));
