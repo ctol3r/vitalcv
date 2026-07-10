@@ -258,9 +258,12 @@ export default function EmployerPostPage() {
         specialty: specialty.trim(),
         hiringType,
         state: state.trim().toUpperCase(),
-        payRange: payRange.trim() || undefined,
+        // In edit mode, an emptied optional field sends `null` (not undefined) so
+        // the backend actually clears it — undefined would be omitted from the
+        // partial patch and leave the old value in place.
+        payRange: payRange.trim() || null,
         requirementLevel,
-        description: description.trim() || undefined,
+        description: description.trim() || null,
         remote,
       });
       setSaving(false);
