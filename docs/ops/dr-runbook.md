@@ -79,11 +79,22 @@ date + timing below** → delete scratch service.
 
 | Drill date | Backup restored | Time-to-restore | Verified by |
 |---|---|---|---|
-| _none yet — first drill pending_ | | | |
+| 2026-07-10 | Live `pg_dump` of prod (19 MB custom-format, via public TCP proxy) → local PG 17.7 scratch | **90 s end-to-end** (dump 9 s · restore 2 s · verify 17 s; rest = scratch-instance setup) | Claude (owner-authorized): row counts identical prod↔restore — 393 AuditEvent · 11,585 VerificationArtifact · 152 tables; `pg_restore` exit 0, zero stderr; scratch + dump destroyed after |
+
+**Drill #1 notes (2026-07-10):** this exercised the *logical* (pg_dump/pg_restore)
+path — provider-independent, proves the schema+data restore end-to-end. It did
+NOT exercise Railway's dashboard **PITR restore** button (dashboard session was
+unavailable); drill #2 should use *Restore to this moment* → new service to
+validate the PITR path specifically. macOS scratch-restore gotchas: use the
+Homebrew `postgresql@17` binaries (Postgres.app 16 refuses a v17 server), set
+`LC_ALL=C` (else `postmaster became multithreaded` on start), and pass
+`-k /tmp` (deep socket paths exceed the 103-byte limit).
 
 ## Explicit gaps
 
-- First restore drill not executed (targets above are estimates until timed).
-- Weekly logical-dump job not automated (manual command above).
+- ~~First restore drill not executed~~ **Done 2026-07-10** (logical path, 90 s;
+  PITR-button path still to be exercised in drill #2).
+- Weekly logical-dump job not automated (manual command above) — though drill #1
+  proves the manual path takes <10 s against today's data volume.
 - In-memory state (rate-limit counters, health snapshots) is lost on redeploy
   by design — no recovery needed (documented in deploy-health-probe memory).
