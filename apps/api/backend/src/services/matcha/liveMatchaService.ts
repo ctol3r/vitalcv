@@ -22,8 +22,16 @@ import type {
   Opportunity as MatchaOpportunity,
   RequirementSpec,
 } from './matchaModels';
+import {
+  seededOrgExclusionFilter,
+} from '../opportunities/launchOpportunitySeed';
 
 const prisma = new PrismaClient();
+
+// seededOrgExclusionFilter (shared): when SEED_DEMO_OPPORTUNITIES is off (the
+// prod default) it excludes opportunities belonging to the demo/launch seed
+// organizations so live matching sees only real postings; on (dev/demo) it's a
+// no-op. The same helper gates the public opportunity list/detail.
 
 // ── NPPES taxonomy → specialty string ─────────────────────────────────────────
 
@@ -297,6 +305,7 @@ export async function getLiveMatchesForNpi(
     prisma.opportunity.findMany({
       where: {
         status: 'ACTIVE',
+        ...seededOrgExclusionFilter(),
         ...(filters?.specialty ? { specialty: { contains: filters.specialty, mode: 'insensitive' } } : {}),
         ...(filters?.state ? { state: filters.state } : {}),
         ...(filters?.hiringType ? { hiringType: filters.hiringType } : {}),
@@ -344,7 +353,7 @@ export async function simulateForNpi(npi: string) {
   const [profile, dbOpportunities] = await Promise.all([
     buildClinicianProfile(npi),
     prisma.opportunity.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', ...seededOrgExclusionFilter() },
       include: { organization: { select: { id: true, name: true } } },
       take: 50,
     }),

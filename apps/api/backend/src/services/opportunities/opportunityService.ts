@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../../graphql/prisma_client';
 import { HttpError } from '../../utils/httpError';
+import { seededOrgExclusionFilter } from './launchOpportunitySeed';
 import type { EmployerRequirementSpec } from '../employers/employerCatalog';
 import {
   DEFAULT_AUTOMATION_RULES,
@@ -51,6 +52,32 @@ export interface CreateOpportunityInput {
   description?: string;
   remote?: boolean;
 }
+
+export type OpportunityStatus = 'ACTIVE' | 'CLOSED';
+
+/**
+ * Partial patch for an existing opportunity. Every field is optional — only
+ * the keys that are present are written (an omitted key leaves the column
+ * untouched). Nullable fields may be cleared by passing `null`. `status` lets
+ * an employer close (or reopen) a posting.
+ */
+export interface UpdateOpportunityInput {
+  title?: string;
+  specialty?: string;
+  hiringType?: string;
+  state?: string;
+  payRange?: string | null;
+  payMin?: number | null;
+  payMax?: number | null;
+  employerType?: string | null;
+  startUrgency?: string | null;
+  requirementLevel?: string;
+  description?: string | null;
+  remote?: boolean;
+  status?: OpportunityStatus;
+}
+
+const OPPORTUNITY_STATUSES: readonly OpportunityStatus[] = ['ACTIVE', 'CLOSED'];
 
 export type OpportunityResult = OpportunityTruth;
 
@@ -369,6 +396,64 @@ export async function createOpportunity(
   return buildOpportunityTruth({ opportunity: opp });
 }
 
+export async function updateOpportunity(
+  clerkUserId: string,
+  id: string,
+  fields: UpdateOpportunityInput,
+): Promise<OpportunityResult> {
+  const orgProfileId = await getOrgProfileIdForUser(clerkUserId);
+  if (!orgProfileId) throw new HttpError(404, 'No organization found. Complete your organization setup first.');
+
+  const orgProfile = await prisma.organizationProfile.findUnique({ where: { id: orgProfileId } });
+  if (!orgProfile) throw new HttpError(404, 'Organization profile not found.');
+
+  // Ownership gate: an employer may only edit opportunities posted under their
+  // own organization. Fetch the row's owner first, then 404 (missing) / 403
+  // (someone else's posting) before any write.
+  const existing = await prisma.opportunity.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!existing) throw new HttpError(404, 'Opportunity not found.');
+  if (existing.organizationId !== orgProfile.organizationId) {
+    throw new HttpError(403, 'You can only edit opportunities posted by your organization.');
+  }
+
+  if (fields.status !== undefined && !OPPORTUNITY_STATUSES.includes(fields.status)) {
+    throw new HttpError(400, "status must be 'ACTIVE' or 'CLOSED'.");
+  }
+
+  // Only write the fields that were actually provided (partial patch).
+  const data: Prisma.OpportunityUpdateInput = {};
+  if (fields.title !== undefined) data.title = fields.title;
+  if (fields.specialty !== undefined) data.specialty = fields.specialty;
+  if (fields.hiringType !== undefined) data.hiringType = fields.hiringType;
+  if (fields.state !== undefined) data.state = fields.state;
+  if (fields.payRange !== undefined) data.payRange = fields.payRange;
+  if (fields.payMin !== undefined) data.payMin = fields.payMin;
+  if (fields.payMax !== undefined) data.payMax = fields.payMax;
+  if (fields.employerType !== undefined) data.employerType = fields.employerType;
+  if (fields.startUrgency !== undefined) data.startUrgency = fields.startUrgency;
+  if (fields.requirementLevel !== undefined) data.requirementLevel = fields.requirementLevel;
+  if (fields.description !== undefined) data.description = fields.description;
+  if (fields.remote !== undefined) data.remote = fields.remote;
+  if (fields.status !== undefined) data.status = fields.status;
+
+  const opp = await prisma.opportunity.update({
+    where: { id },
+    data,
+    include: {
+      organization: {
+        include: {
+          organizationProfile: true,
+        },
+      },
+    },
+  });
+
+  return buildOpportunityTruth({ opportunity: opp });
+}
+
 export async function listOpportunitiesForOrg(clerkUserId: string): Promise<OpportunityResult[]> {
   const orgProfileId = await getOrgProfileIdForUser(clerkUserId);
   if (!orgProfileId) return [];
@@ -408,6 +493,13 @@ export async function listPublicOpportunities(filters: OpportunityTruthFilters &
     ...(filters.organizationSlug ? { organization: { slug: filters.organizationSlug } } : {}),
     ...(filters.remote ? { remote: true } : {}),
   };
+
+  // Keep seeded demo employers off the live public list in prod (flag off).
+  // Combine via AND so it doesn't clobber an organizationSlug filter above.
+  const listSeedExclusion = seededOrgExclusionFilter();
+  if (listSeedExclusion.organization) {
+    where.AND = [listSeedExclusion];
+  }
 
   const [clinicianProfile, opportunities] = await Promise.all([
     resolveClinicianProfile({
@@ -457,6 +549,8 @@ export async function getPublicOpportunityById(
     where: {
       id,
       status: 'ACTIVE',
+      // A seeded demo posting is not a real opening — hide it in prod (flag off).
+      ...seededOrgExclusionFilter(),
     },
     include: {
       organization: {

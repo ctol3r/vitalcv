@@ -114,7 +114,7 @@ const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
     hiringTypes: ['locums', 'perm', 'prn'],
     timeToStart: 'Immediate',
     timeToOnboard: '5-10 business days',
-    clearToStartThreshold: 'Active CA license, board certification, BLS/ACLS, and a complete credentialing file.',
+    clearToStartThreshold: 'Active CA license, board certification, BLS/ACLS, and a full credentialing packet.',
     payTransparency: false,
     payRange: null,
     requirements: [
@@ -175,6 +175,50 @@ const SEEDED_ORGANIZATIONS: readonly SeedOrganization[] = [
     verifiedSince: '2023-01-09T00:00:00.000Z',
   },
 ] as const;
+
+/**
+ * Slugs of the demo/launch seed organizations. Exposed so live matching can
+ * EXCLUDE already-seeded demo rows (which may still exist in production from
+ * earlier seeding) without deleting any data. Derived from SEEDED_ORGANIZATIONS
+ * so the two never drift.
+ */
+export const SEEDED_ORG_SLUGS: readonly string[] = SEEDED_ORGANIZATIONS.map(
+  (organization) => organization.slug,
+);
+
+/**
+ * Demo/launch opportunity seeding is OFF by default. Production leaves
+ * SEED_DEMO_OPPORTUNITIES unset so it never auto-seeds demo data; dev/demo sets
+ * SEED_DEMO_OPPORTUNITIES=1 (also accepts true/yes/on) to auto-seed on startup
+ * and to include seeded rows in live matching. Explicit seed scripts
+ * (`pnpm seed:opportunities`) call seedLaunchOpportunities directly and are
+ * intentionally NOT gated by this flag.
+ */
+export function isDemoOpportunitySeedEnabled(): boolean {
+  const raw = process.env.SEED_DEMO_OPPORTUNITIES;
+  if (!raw) return false;
+  const normalized = raw.trim().toLowerCase();
+  return (
+    normalized === '1' ||
+    normalized === 'true' ||
+    normalized === 'yes' ||
+    normalized === 'on'
+  );
+}
+
+/**
+ * Shared Prisma `where` fragment that keeps seeded demo employers out of live
+ * surfaces in production (flag off) while including them in dev (flag on). Used
+ * by the MATCHA match feed AND the public opportunity list/detail so nothing
+ * demo-branded (e.g. the seeded "Kaiser Permanente" org) reaches real clinicians.
+ * Empty object when the demo flag is on. Combine via `AND` when the caller also
+ * filters by organization slug, so the two organization clauses don't clobber.
+ */
+export function seededOrgExclusionFilter(): { organization?: { slug: { notIn: string[] } } } {
+  return isDemoOpportunitySeedEnabled()
+    ? {}
+    : { organization: { slug: { notIn: [...SEEDED_ORG_SLUGS] } } };
+}
 
 export const SEEDED_LAUNCH_OPPORTUNITIES: readonly SeedOpportunity[] = [
   {
@@ -464,6 +508,16 @@ export async function ensureLaunchOpportunitiesBootstrapped(options: {
 } = {}): Promise<LaunchOpportunitySeedSummary | null> {
   const prismaClient = options.prismaClient ?? prisma;
   const logger = options.logger;
+
+  if (!isDemoOpportunitySeedEnabled()) {
+    logger?.('info', 'demo opportunity seed skipped — SEED_DEMO_OPPORTUNITIES not enabled');
+    return {
+      activeOpportunityCount: 0,
+      seededOpportunityCount: 0,
+      createdOrganizationCount: 0,
+      skipped: true,
+    };
+  }
 
   const activeOpportunityCount = await prismaClient.opportunity.count({
     where: { status: 'ACTIVE' },
