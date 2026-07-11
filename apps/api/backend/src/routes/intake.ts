@@ -13,13 +13,17 @@ import {
   bootstrapNpiIntake,
   clearResume,
   getProfileCompleteness,
+  getProfileSharing,
+  getPublicCareerProfile,
   ingestLinks,
   ingestResumeUpload,
   ingestWorkAuth,
+  updateProfileSharing,
   updateSelfAttested,
   type ClearableLinkField,
 } from '../services/intake/intakeService';
 import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
+import { publicApiRateLimit } from '../middleware/publicSafety';
 import { HttpError } from '../utils/httpError';
 
 const NPI_RE = /^\d{10}$/;
@@ -191,6 +195,51 @@ export function registerIntakeRoutes(app: Express): void {
         attestationVersion,
       });
       res.status(201).json(result);
+    }),
+  );
+
+  /**
+   * GET /api/profile/sharing — current career-profile visibility (default
+   * private). Auth-scoped to the signed-in clinician.
+   */
+  app.get(
+    '/api/profile/sharing',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json(await getProfileSharing(userId));
+    }),
+  );
+
+  /**
+   * POST /api/profile/sharing  { careerProfile: 'public' | 'private' }
+   * Publishes or unpublishes the clinician's public career-profile page.
+   */
+  app.post(
+    '/api/profile/sharing',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      const body = req.body as { careerProfile?: unknown } | undefined;
+      res.json(await updateProfileSharing(userId, body?.careerProfile));
+    }),
+  );
+
+  /**
+   * GET /api/profile/public/:npi — the clinician-published career profile.
+   * Public read; 404 unless the holder has explicitly set sharing to public.
+   */
+  app.get(
+    '/api/profile/public/:npi',
+    publicApiRateLimit,
+    asyncHandler(async (req, res) => {
+      const npi = req.params.npi?.trim() ?? '';
+      if (!NPI_RE.test(npi)) {
+        throw new HttpError(404, 'Career profile not found.');
+      }
+      const profile = await getPublicCareerProfile(npi);
+      if (!profile) {
+        throw new HttpError(404, 'This career profile is not shared.');
+      }
+      res.json({ shared: true, profile });
     }),
   );
 

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SignIn } from '@clerk/nextjs';
 import { AuthDisclosureCard } from '@/components/auth/AuthDisclosureCard';
+import DevKeysNotice from '@/components/auth/DevKeysNotice';
 
 export const metadata: Metadata = {
   title: 'Sign In',
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function SignInPage() {
   return (
-    <AuthDisclosureCard mode="sign-in">
-      <SignIn />
-    </AuthDisclosureCard>
+    <>
+      <DevKeysNotice />
+      <AuthDisclosureCard mode="sign-in">
+        <SignIn />
+      </AuthDisclosureCard>
+    </>
   );
 }
