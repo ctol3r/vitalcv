@@ -182,10 +182,7 @@ export default function HolderPage() {
         </details>
       </div>
 
-      {/* Share — the real public verifier link, not a demo presentation. The
-          previous CredentialPresentationActions minted hardcoded demo
-          credentials and copied a /verify/presentation/... link that 404s in
-          production; this panel hands out the working /verify/[npi] link. */}
+      {/* Share — hands out the public read-only /verify/[npi] link. */}
       <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6">
         <ShareRecognitionPanel npi={npi!} />
       </div>

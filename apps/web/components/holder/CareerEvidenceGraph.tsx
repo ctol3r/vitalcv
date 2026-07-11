@@ -66,7 +66,9 @@ function projectStars(
   timeline: TimelineSlice,
   opts: { readinessScore: number | null; specialty?: string; openRoles: number },
 ): ConstellationStarDef[] | null {
-  const dated = timeline.events.filter((e) => e.occurredAt);
+  const dated = timeline.events.filter(
+    (e) => e.occurredAt && Number.isFinite(Date.parse(e.occurredAt)),
+  );
   if (dated.length === 0) return null;
 
   // Latest event per label wins — repeated checks of the same source stay one star.
@@ -85,7 +87,7 @@ function projectStars(
     .sort((a, b) => significance(b) - significance(a) || (b.occurredAt ?? '').localeCompare(a.occurredAt ?? ''))
     .slice(0, 12);
 
-  const times = picked.map((e) => Date.parse(e.occurredAt!)).filter(Number.isFinite);
+  const times = picked.map((e) => Date.parse(e.occurredAt!));
   const minT = Math.min(...times);
   const maxT = Math.max(Date.now(), ...times);
   const span = Math.max(1, maxT - minT);
@@ -93,7 +95,7 @@ function projectStars(
   const rings: Array<2 | 3> = [2, 3, 3, 2];
   const stars: ConstellationStarDef[] = picked.map((event, i) => {
     const at = Date.parse(event.occurredAt!);
-    const t = 0.08 + ((Number.isFinite(at) ? at : maxT) - minT) / span * 0.5;
+    const t = 0.08 + ((at - minT) / span) * 0.5;
     return {
       id: event.eventId,
       label: event.label,
@@ -168,6 +170,14 @@ export function CareerEvidenceGraph() {
     return projectStars(timeline, { readinessScore, specialty, openRoles }) ?? undefined;
   }, [timeline, readinessScore, specialty, openRoles]);
 
+  // Stable identity: an inline object would invalidate the constellation's
+  // useMemo/useEffect chain on every provider re-render and visibly restart
+  // the canvas animation.
+  const profile = useMemo(
+    () => ({ specialty, readinessScore, matchCount: openRoles }),
+    [specialty, readinessScore, openRoles],
+  );
+
   const live = state === 'live' && starDefs && starDefs.length > 0;
   const evidenceCount = live
     ? starDefs.filter((s) => s.era !== 'future' && s.id !== 'readiness' && s.id !== 'specialty').length
@@ -194,7 +204,7 @@ export function CareerEvidenceGraph() {
           <MatchaConstellation
             height={400}
             starDefs={live ? starDefs : undefined}
-            profile={{ specialty, readinessScore, matchCount: openRoles }}
+            profile={profile}
           />
         </div>
 
