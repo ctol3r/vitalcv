@@ -11,6 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { checkAiLimit } from '@/lib/ai/rateLimit';
 import { buildCoverLetterMessages, type CoverLetterOpportunity } from '@/lib/matcha/coverLetter';
 import {
   ANTHROPIC_MESSAGES_URL,
@@ -26,6 +28,18 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     // Honest: AI isn't wired up in this environment (no ANTHROPIC_API_KEY).
     return NextResponse.json({ configured: false }, { status: 200 });
+  }
+
+  // Guardrails: AI costs real money per call — require a signed-in user and
+  // enforce per-user + global caps BEFORE any model call. The UI only shows AI
+  // affordances to signed-in users; this closes the direct-POST path.
+  const session = await auth();
+  if (!session.userId) {
+    return NextResponse.json({ error: 'Sign in to use AI features.' }, { status: 401 });
+  }
+  const limit = checkAiLimit(session.userId);
+  if (!limit.ok) {
+    return NextResponse.json({ error: limit.reason }, { status: 429 });
   }
 
   const body = (await req.json().catch(() => ({}))) as {
