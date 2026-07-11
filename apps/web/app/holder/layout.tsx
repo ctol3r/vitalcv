@@ -5,6 +5,7 @@ import { ClinicianMobileProvider } from '@/components/mobile/ClinicianMobileProv
 import ClinicianLaunchTracker from '@/components/mobile/ClinicianLaunchTracker';
 import NetworkStatusBanner from '@/components/mobile/NetworkStatusBanner';
 import { MobileBottomNav } from '@/components/clinician/MobileBottomNav';
+import { HolderDesktopNav } from '@/components/holder/HolderDesktopNav';
 import { loadClinicianMobileData } from '@/lib/mobile/server';
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default async function HolderLayout({
       <div className="mz mz-persona-holder flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
+        <HolderDesktopNav />
         <div className="flex-1 pb-20 md:pb-0">{children}</div>
         <MobileBottomNav />
       </div>
