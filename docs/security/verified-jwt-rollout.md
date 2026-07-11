@@ -76,6 +76,47 @@ All of:
 Then set `CLERK_JWT_VERIFICATION=enforce`. Rollback = set back to `shadow`
 (instant, config-only).
 
+## Generating the happy-path signal automatically (the real unblock)
+
+The 2026-07-11 telemetry readout (`shadow-telemetry-2026-07-11.md`) found the
+forgery classes clean but **zero `verified_match`** — no signed-in traffic had
+reached the backend at all. The project already has an automated generator for
+exactly this: the **`release-verify` workflow** mints a synthetic clinician and
+walks the six signed-in `/holder` surfaces from an external runner every 30 min,
+which drives the converted web→backend proxies with a real bearer → produces
+`verified_match` events (and a durable green `vitalcv/release-verified` commit
+status).
+
+**It is currently skipping** — commit status reads `pending — skipped: monitor
+not wired (set CLERK_SECRET_KEY)`. Two GitHub **repo** secrets are missing
+(the live values already exist on the Railway `delightful-essence` service):
+
+- `CLERK_SECRET_KEY` — **gates the whole signed-in verification** (blocks first).
+- `RAILWAY_API_TOKEN` — secondary (deploy-SHA GraphQL fallback in `check:deploy`).
+
+**Owner action** (one line each; the Clerk value is piped straight from Railway
+so it is never pasted — an operator with both CLIs authenticated runs it, since
+copying a live `sk_live_` key is a credential action an agent must not perform):
+
+```bash
+railway variables --kv --service delightful-essence \
+  | sed -n 's/^CLERK_SECRET_KEY=//p' \
+  | gh secret set CLERK_SECRET_KEY --repo ctol3r/vitalcv
+# RAILWAY_API_TOKEN: create a project token in Railway → set the same way.
+```
+
+Once set, the next `release-verify` run (≤30 min, or `gh workflow run
+release-verify.yml`) verifies for real, flips the commit status green, and
+starts emitting `verified_match` continuously — satisfying the happy-path
+prerequisite without any manual browsing. Re-run the telemetry readout after a
+clean week (earliest **2026-07-17**) to confirm, then flip.
+
+For **G2**: one employer-review mutation by an `admin`/`reviewer` org member
+under `VERIFIER_RBAC_MODE=shadow` (should log **no** would-block); a `read_only`
+member attempting it should log one. The synthetic clinician is a holder, not a
+verifier org member, so G2 still needs a real verifier action or a synthetic
+verifier fixture.
+
 ## Phase 2 (tracked, not shipped)
 
 - Bind `x-org-id` to a verified org claim (needs the org claim added to the
