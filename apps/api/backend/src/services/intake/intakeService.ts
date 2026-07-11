@@ -304,6 +304,21 @@ export async function bootstrapNpiIntake(
   const inferredPersona = detected.npiType === 'TYPE_2' ? 'VERIFIER' : 'CLINICIAN';
 
   // Upsert PersonProfile
+  // PersonProfile.npi is unique: a second account claiming the same NPI
+  // must get an honest conflict, not a raw constraint error. Conflicting
+  // claims are an impersonation signal and are audited.
+  const existingHolder = await prisma.personProfile.findUnique({
+    where: { npi },
+    select: { userId: true },
+  });
+  if (existingHolder && existingHolder.userId !== userId) {
+    await emitAudit('npi_claim_conflict', userId, { npi });
+    throw new HttpError(
+      409,
+      'This NPI is already connected to another VitalCV account. If this is your NPI, contact support — conflicting claims are routed to review.',
+    );
+  }
+
   await prisma.personProfile.upsert({
     where:  { userId },
     create: {

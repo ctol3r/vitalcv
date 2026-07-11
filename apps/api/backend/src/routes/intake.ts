@@ -23,6 +23,7 @@ import {
   type ClearableLinkField,
 } from '../services/intake/intakeService';
 import { ensureWorkspaceUser } from '../services/workspace/workspaceService';
+import { identityStateForUser, requireIdentityTier } from '../services/identity/identityGate';
 import { publicApiRateLimit } from '../middleware/publicSafety';
 import { HttpError } from '../utils/httpError';
 
@@ -219,7 +220,25 @@ export function registerIntakeRoutes(app: Express): void {
     asyncHandler(async (req, res) => {
       const userId = await requireInternalUserId(req);
       const body = req.body as { careerProfile?: unknown } | undefined;
+      // Publishing a page under a clinician's registry name is an
+      // impersonation vector — it unlocks at work_email_confirmed. Going
+      // private is always allowed.
+      if (body?.careerProfile === 'public') {
+        await requireIdentityTier(userId, 'work_email_confirmed');
+      }
       res.json(await updateProfileSharing(userId, body?.careerProfile));
+    }),
+  );
+
+  /**
+   * GET /api/profile/identity — the derived clinician-identity tier and the
+   * exact signals behind it (nothing here is a license verification).
+   */
+  app.get(
+    '/api/profile/identity',
+    asyncHandler(async (req, res) => {
+      const userId = await requireInternalUserId(req);
+      res.json(await identityStateForUser(userId));
     }),
   );
 

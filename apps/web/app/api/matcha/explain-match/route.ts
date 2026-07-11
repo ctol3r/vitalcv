@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { checkAiLimit } from '@/lib/ai/rateLimit';
+import { CLINICIAN_TIER_MESSAGE, userMeetsTier } from '@/lib/auth/clinicianTier';
 import {
   buildMatchExplanationMessages,
   type MatchExplanationInput,
@@ -44,6 +45,11 @@ export async function POST(req: NextRequest) {
   const limit = checkAiLimit(session.userId);
   if (!limit.ok) {
     return NextResponse.json({ error: limit.reason }, { status: 429 });
+  }
+  // Clinician-only power: requires the work_email_confirmed identity tier
+  // (fail-closed if the identity state can't be read).
+  if (!(await userMeetsTier(session.userId, 'work_email_confirmed'))) {
+    return NextResponse.json({ error: CLINICIAN_TIER_MESSAGE }, { status: 403 });
   }
 
   const body = (await req.json().catch(() => ({}))) as Partial<MatchExplanationInput>;

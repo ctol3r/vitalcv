@@ -286,9 +286,17 @@ export default function ApplyModal({
       }
 
       const errorPayload = payload && typeof payload === 'object'
-        ? payload as { error?: string }
+        ? payload as { error?: unknown }
         : null;
-      const nextError = errorPayload?.error ?? 'Something went wrong. Please try again.';
+      // Backend errors arrive as { error: { code, message } } or { error: string }
+      // — coerce so an object never reaches JSX or string interpolation.
+      const rawError = errorPayload?.error;
+      const nextError = typeof rawError === 'string'
+        ? rawError
+        : rawError && typeof rawError === 'object'
+            && typeof (rawError as { message?: unknown }).message === 'string'
+          ? (rawError as { message: string }).message
+          : 'Something went wrong. Please try again.';
       void trackPilotEvent({
         eventType: 'route_failure',
         severity: 'high',
