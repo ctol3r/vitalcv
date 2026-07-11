@@ -12,16 +12,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCoverLetterMessages, type CoverLetterOpportunity } from '@/lib/matcha/coverLetter';
+import {
+  ANTHROPIC_MESSAGES_URL,
+  ANTHROPIC_VERSION,
+  anthropicModel,
+  getAnthropicKey,
+} from '@/lib/ai/anthropic';
 
 export const runtime = 'nodejs';
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
-const DEFAULT_MODEL = 'claude-opus-4-8';
-
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = getAnthropicKey();
   if (!apiKey) {
-    // Honest: the feature isn't wired up in this environment.
+    // Honest: AI isn't wired up in this environment (no ANTHROPIC_API_KEY).
     return NextResponse.json({ configured: false }, { status: 200 });
   }
 
@@ -35,15 +38,15 @@ export async function POST(req: NextRequest) {
   const { system, user } = buildCoverLetterMessages({ profileSummary, opportunity });
 
   try {
-    const res = await fetch(ANTHROPIC_URL, {
+    const res = await fetch(ANTHROPIC_MESSAGES_URL, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': ANTHROPIC_VERSION,
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.COVER_LETTER_MODEL || DEFAULT_MODEL,
+        model: anthropicModel(),
         max_tokens: 1024,
         system,
         messages: [{ role: 'user', content: user }],
