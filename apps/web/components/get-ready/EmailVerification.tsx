@@ -16,6 +16,25 @@ type Step = 'email' | 'sending' | 'code' | 'verifying' | 'verified';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Backend errors arrive as `{ error: { code, message } }` (HttpError shape),
+ * `{ error: string }`, or `{ reason: string }` — coerce to a renderable string
+ * so an object never reaches JSX.
+ */
+function errorMessage(body: unknown, fallback: string): string {
+  if (body && typeof body === 'object') {
+    const err = (body as { error?: unknown }).error;
+    if (typeof err === 'string') return err;
+    if (err && typeof err === 'object') {
+      const msg = (err as { message?: unknown }).message;
+      if (typeof msg === 'string') return msg;
+    }
+    const reason = (body as { reason?: unknown }).reason;
+    if (typeof reason === 'string') return reason;
+  }
+  return fallback;
+}
+
 export default function EmailVerification() {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -39,7 +58,7 @@ export default function EmailVerification() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body.error ?? 'Could not send a code. Try again shortly.');
+        setError(errorMessage(body, 'Could not send a code. Try again shortly.'));
         setStep('email');
         return;
       }
@@ -67,7 +86,7 @@ export default function EmailVerification() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.verified) {
-        setError(body.reason ?? 'Verification failed. Try again.');
+        setError(errorMessage(body, 'Verification failed. Try again.'));
         setStep('code');
         return;
       }
