@@ -14,6 +14,8 @@
  *   POST   /api/applications/:appId/workflow-action — verifier runs accept/request_info/reject
  */
 
+import prisma from '../graphql/prisma_client';
+import { requireIdentityTier } from '../services/identity/identityGate';
 import type { Express, NextFunction, Request, Response } from 'express';
 import {
   applyToOpportunity,
@@ -63,6 +65,12 @@ export function registerApplicationRoutes(app: Express): void {
       const clerkUserId = requireClerkUserId(req);
       const opportunityId = requireUuidParam(req.params.id, 'Opportunity');
       const { npi, coverNote } = req.body as { npi?: string; coverNote?: string };
+
+      // Applications carry the clinician's readiness snapshot to an employer —
+      // they unlock at the work_email_confirmed identity tier.
+      const applicant = await prisma.user.findUnique({ where: { clerkUserId } });
+      if (!applicant) throw new HttpError(404, 'User not found. Complete onboarding first.');
+      await requireIdentityTier(applicant.id, 'work_email_confirmed');
 
       const application = await applyToOpportunity({ opportunityId, clerkUserId, npi, coverNote });
       res.status(201).json(application);

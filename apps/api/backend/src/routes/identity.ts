@@ -73,8 +73,9 @@ export function registerEmailOtpRoutes(app: Express): void {
           'Email delivery is not configured on this environment yet, so a code cannot be sent. This optional step can be skipped for now.',
         );
       }
-      // Never echo the code; delivery is out of band.
-      res.status(200).json({ sent: true });
+      // Never echo the code; delivery is out of band. The domain class lets
+      // the UI steer toward a work email (free/personal confirms contact only).
+      res.status(200).json({ sent: true, domainClass: result.domainClass ?? 'unknown' });
     }),
   );
 

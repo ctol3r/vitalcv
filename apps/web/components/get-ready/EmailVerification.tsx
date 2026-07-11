@@ -40,6 +40,7 @@ export default function EmailVerification() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [domainClass, setDomainClass] = useState<string | null>(null);
 
   async function issue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,6 +63,8 @@ export default function EmailVerification() {
         setStep('email');
         return;
       }
+      const okBody = (await res.json().catch(() => ({}))) as { domainClass?: string };
+      setDomainClass(typeof okBody.domainClass === 'string' ? okBody.domainClass : null);
       setStep('code');
     } catch {
       setError('Could not send a code. Try again shortly.');
@@ -131,6 +134,14 @@ export default function EmailVerification() {
           <p className="text-xs text-[var(--ink-500)]">
             We sent a 6-digit code to <span className="text-[var(--ink-800)]">{email.trim()}</span>.
           </p>
+          {domainClass === 'free' || domainClass === 'disposable' ? (
+            <p className="mt-2 text-xs" style={{ color: 'var(--warn, #b45309)' }}>
+              Heads up: this looks like a personal email. It confirms contact,
+              but clinician features (publishing your career profile, applying,
+              AI matching) unlock with a work email at your organization. You
+              can add one here anytime.
+            </p>
+          ) : null}
           <input
             inputMode="numeric"
             autoComplete="one-time-code"

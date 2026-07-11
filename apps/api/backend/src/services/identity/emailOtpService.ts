@@ -14,6 +14,7 @@ import {
   getNotificationProvider,
   isEmailDeliveryConfigured,
 } from '../providers/notificationProvider';
+import { classifyEmailDomain, type EmailDomainClass } from './identityTier';
 import {
   emailDomain,
   evaluateOtpAttempt,
@@ -44,7 +45,7 @@ export type IssueOutcome = 'sent' | 'invalid_email' | 'rate_limited' | 'delivery
 export async function issueEmailOtp(
   userId: string,
   rawEmail: string,
-): Promise<{ outcome: IssueOutcome; email: string }> {
+): Promise<{ outcome: IssueOutcome; email: string; domainClass?: EmailDomainClass }> {
   const email = normalizeEmail(rawEmail);
   if (!isPlausibleEmail(email)) {
     return { outcome: 'invalid_email', email };
@@ -104,7 +105,7 @@ export async function issueEmailOtp(
   // Audit records only the domain — never the code or full address.
   await emitAudit('identity_email_otp_issued', userId, { emailDomain: emailDomain(email) });
 
-  return { outcome: 'sent', email };
+  return { outcome: 'sent', email, domainClass: classifyEmailDomain(email) };
 }
 
 export async function verifyEmailOtp(

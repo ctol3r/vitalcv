@@ -23,16 +23,27 @@ export function CareerProfileSharingCard({ npi }: { npi: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [meetsTier, setMeetsTier] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/profile/sharing', { cache: 'no-store' });
-        if (!res.ok) throw new Error(String(res.status));
-        const body = (await res.json()) as { careerProfile?: string };
+        const [sharingRes, identityRes] = await Promise.all([
+          fetch('/api/profile/sharing', { cache: 'no-store' }),
+          fetch('/api/profile/identity', { cache: 'no-store' }),
+        ]);
+        if (!sharingRes.ok) throw new Error(String(sharingRes.status));
+        const body = (await sharingRes.json()) as { careerProfile?: string };
+        // Fail-closed: unreadable identity state counts as below-tier.
+        let meets = false;
+        if (identityRes.ok) {
+          const identity = (await identityRes.json()) as { tier?: string };
+          meets = identity.tier === 'work_email_confirmed';
+        }
         if (!cancelled) {
           setVisibility(body.careerProfile === 'public' ? 'public' : 'private');
+          setMeetsTier(meets);
           setPhase('ready');
         }
       } catch {
@@ -122,7 +133,7 @@ export function CareerProfileSharingCard({ npi }: { npi: string }) {
         </div>
         <button
           type="button"
-          disabled={saving}
+          disabled={saving || (!isPublic && !meetsTier)}
           onClick={() => void setSharing(isPublic ? 'private' : 'public')}
           className="vcv-mono shrink-0 rounded-[6px] border px-3 py-2 text-[11px] uppercase tracking-[0.14em] transition disabled:opacity-50"
           style={{ borderColor: 'var(--ink)', color: isPublic ? 'var(--paper, #fff)' : 'var(--ink)', background: isPublic ? 'var(--ink)' : 'transparent' }}
@@ -157,6 +168,14 @@ export function CareerProfileSharingCard({ npi }: { npi: string }) {
         </div>
       ) : null}
 
+      {!isPublic && !meetsTier ? (
+        <p className="mt-3 text-xs" style={{ color: 'var(--warn, #b45309)' }}>
+          Publishing unlocks after you confirm a work email at your organization
+          in <a href="/get-ready" className="underline underline-offset-2">Get Ready</a>.
+          A personal or free email confirms contact only — this keeps career
+          profile pages from being published under someone else&apos;s NPI.
+        </p>
+      ) : null}
       <p className="mt-3 text-xs vcv-muted">
         The page shows your self-attested career story, labeled as self-attested.
         Your source-backed verification record at /verify is a separate surface.
