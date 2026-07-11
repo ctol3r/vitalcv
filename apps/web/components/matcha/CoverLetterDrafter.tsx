@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { Sparkles, Copy, Check } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { useAiEnabled } from '@/lib/ai/useAiEnabled';
 import { useMatchaPreferences } from './useMatchaPreferences';
 import { summarizeProfileForLetter, type CoverLetterOpportunity } from '@/lib/matcha/coverLetter';
 
@@ -22,6 +23,7 @@ export function CoverLetterDrafter({ opportunity }: { opportunity: CoverLetterOp
   const npi = person?.npi ?? undefined;
   const name = person?.firstName ?? undefined;
   const { preferences } = useMatchaPreferences(npi);
+  const aiEnabled = useAiEnabled();
 
   const [state, setState] = useState<State>('idle');
   const [draft, setDraft] = useState('');
@@ -76,6 +78,9 @@ export function CoverLetterDrafter({ opportunity }: { opportunity: CoverLetterOp
       /* clipboard unavailable */
     }
   }
+
+  // Inert unless AI is configured — no dead affordance in prod when AI is off.
+  if (!aiEnabled) return null;
 
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--vt-border, #EEF2F0)', paddingTop: 14 }}>

@@ -16,6 +16,7 @@ import {
 import { OpportunityApplyCta, type ApplyCtaOpportunity } from './OpportunityApplyCta';
 import { Livability } from './Livability';
 import { CoverLetterDrafter } from './CoverLetterDrafter';
+import { MatchAiSummary } from './MatchAiSummary';
 import type { ExplanationReason } from './MatchaExplanation';
 import type { OpportunityBucket, OpportunityStatus } from '@/lib/matcha/opportunityActions';
 
@@ -126,6 +127,22 @@ export function OpportunityCard({ opportunity, explanation, preferenceReasons, b
 
         {/* Livability */}
         <Livability location={opportunity.location} state={opportunity.state} remote={opportunity.remote} />
+
+        {/* AI "why this fits you" — grounded in the deterministic match signals;
+            renders only when AI is enabled (else the reasons above stand alone). */}
+        {explanation ? (
+          <MatchAiSummary
+            opportunity={{
+              title: opportunity.title,
+              organization: opportunity.organization,
+              specialty: opportunity.specialty,
+              location: opportunity.location,
+            }}
+            matchBand={explanation.matchBand}
+            fitReasons={explanation.fitReasons}
+            blockers={explanation.blockers}
+          />
+        ) : null}
 
         {/* AI cover-letter draft */}
         <CoverLetterDrafter
