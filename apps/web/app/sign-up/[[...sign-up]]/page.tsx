@@ -9,6 +9,7 @@
 import type { Metadata } from 'next';
 import { SignUp } from '@clerk/nextjs';
 import { AuthDisclosureCard } from '@/components/auth/AuthDisclosureCard';
+import DevKeysNotice from '@/components/auth/DevKeysNotice';
 
 export const metadata: Metadata = {
   title: 'Sign Up',
@@ -18,8 +19,11 @@ export const metadata: Metadata = {
 
 export default function SignUpPage() {
   return (
-    <AuthDisclosureCard mode="sign-up">
-      <SignUp />
-    </AuthDisclosureCard>
+    <>
+      <DevKeysNotice />
+      <AuthDisclosureCard mode="sign-up">
+        <SignUp />
+      </AuthDisclosureCard>
+    </>
   );
 }

@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Reveal } from '@/components/motion/Reveal';
+import OpportunityEmbedPanel from '@/components/employer/OpportunityEmbedPanel';
 
 interface Opportunity {
   id: string;
@@ -661,6 +662,7 @@ export default function EmployerPostPage() {
                               Close
                             </button>
                           )}
+                          <OpportunityEmbedPanel opportunityId={o.id} title={o.title} />
                         </div>
                       ) : null}
                       {closeError && closeError.id === o.id ? (

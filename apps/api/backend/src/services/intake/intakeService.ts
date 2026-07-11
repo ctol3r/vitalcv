@@ -422,6 +422,13 @@ export interface SelfAttestedAffiliation {
  * USER_ENTERED — typed by the clinician and never source-verified. Source-
  * checked facts (identity, licensure, board) are held separately.
  */
+export type CareerProfileVisibility = 'public' | 'private';
+
+export interface SelfAttestedSharing {
+  /** Public career-profile page (/profile/[npi]). Default private. */
+  careerProfile?: CareerProfileVisibility;
+}
+
 export interface SelfAttestedProfile {
   contact?:        SelfAttestedContact;
   medicalSchool?:  SelfAttestedEducation;
@@ -430,6 +437,7 @@ export interface SelfAttestedProfile {
   affiliations?:   SelfAttestedAffiliation[];
   careerGoals?:    string;
   researchSummary?: string;
+  sharing?:        SelfAttestedSharing;
 }
 
 const MAX_ROWS = 40;
@@ -526,6 +534,11 @@ export function sanitizeSelfAttested(input: unknown): SelfAttestedProfile {
   const researchSummary = cleanStr(src.researchSummary);
   if (researchSummary) out.researchSummary = researchSummary;
 
+  const sharingSrc = (src.sharing && typeof src.sharing === 'object' ? src.sharing : {}) as Record<string, unknown>;
+  if (sharingSrc.careerProfile === 'public' || sharingSrc.careerProfile === 'private') {
+    out.sharing = { careerProfile: sharingSrc.careerProfile };
+  }
+
   return out;
 }
 
@@ -540,6 +553,21 @@ export async function updateSelfAttested(
   input:  unknown,
 ): Promise<SelfAttestedProfile> {
   const clean = sanitizeSelfAttested(input);
+
+  // Sharing is a setting, not a content section: the editor's full-document
+  // replace must not silently flip a published profile back to private (or
+  // vice versa) just because the payload omitted the key.
+  if (!clean.sharing) {
+    const existing = await prisma.personProfile.findFirst({
+      where: { userId },
+      select: { selfAttested: true },
+    });
+    const prior = (existing?.selfAttested ?? null) as SelfAttestedProfile | null;
+    if (prior?.sharing?.careerProfile) {
+      clean.sharing = { careerProfile: prior.sharing.careerProfile };
+    }
+  }
+
   const result = await prisma.personProfile.updateMany({
     where: { userId },
     data:  { selfAttested: clean as object, updatedAt: new Date() },
@@ -549,6 +577,87 @@ export async function updateSelfAttested(
   }
   await emitAudit('self_attested_updated', userId, { sections: Object.keys(clean) });
   return clean;
+}
+
+/** Current career-profile sharing state (default private). */
+export async function getProfileSharing(
+  userId: string,
+): Promise<{ careerProfile: CareerProfileVisibility }> {
+  const profile = await prisma.personProfile.findFirst({
+    where: { userId },
+    select: { selfAttested: true },
+  });
+  if (!profile) {
+    throw new HttpError(404, 'No profile yet. Connect your NPI first.');
+  }
+  const doc = (profile.selfAttested ?? null) as SelfAttestedProfile | null;
+  return { careerProfile: doc?.sharing?.careerProfile === 'public' ? 'public' : 'private' };
+}
+
+/**
+ * Flip the public career-profile page on or off. Audit-first mutation: the
+ * visibility change is recorded before the caller sees a 2xx.
+ */
+export async function updateProfileSharing(
+  userId: string,
+  visibility: unknown,
+): Promise<{ careerProfile: CareerProfileVisibility }> {
+  if (visibility !== 'public' && visibility !== 'private') {
+    throw new HttpError(400, "careerProfile must be 'public' or 'private'.");
+  }
+  const profile = await prisma.personProfile.findFirst({
+    where: { userId },
+    select: { id: true, selfAttested: true },
+  });
+  if (!profile) {
+    throw new HttpError(404, 'No profile yet. Connect your NPI first.');
+  }
+  const doc = sanitizeSelfAttested(profile.selfAttested ?? {});
+  doc.sharing = { careerProfile: visibility };
+  await prisma.personProfile.update({
+    where: { id: profile.id },
+    data:  { selfAttested: doc as object, updatedAt: new Date() },
+  });
+  await emitAudit('career_profile_sharing_updated', userId, { visibility });
+  return { careerProfile: visibility };
+}
+
+/**
+ * Public career-profile read: the clinician-published subset only, and only
+ * when the holder has explicitly set sharing to public. Excludes resume
+ * document refs and work-authorization status — those stay in-app.
+ */
+export interface PublicCareerProfile {
+  npi: string;
+  firstName: string | null;
+  lastName: string | null;
+  specialty: string | null;
+  stateOfPractice: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  selfAttested: Omit<SelfAttestedProfile, 'sharing'>;
+  updatedAt: string | null;
+}
+
+export async function getPublicCareerProfile(
+  npi: string,
+): Promise<PublicCareerProfile | null> {
+  const profile = await prisma.personProfile.findFirst({ where: { npi } });
+  if (!profile) return null;
+  const doc = (profile.selfAttested ?? null) as SelfAttestedProfile | null;
+  if (doc?.sharing?.careerProfile !== 'public') return null;
+  const { sharing: _sharing, ...publishable } = doc;
+  return {
+    npi,
+    firstName: profile.firstName ?? null,
+    lastName: profile.lastName ?? null,
+    specialty: profile.specialty ?? null,
+    stateOfPractice: profile.stateOfPractice ?? null,
+    linkedinUrl: profile.linkedinUrl ?? null,
+    portfolioUrl: profile.portfolioUrl ?? null,
+    selfAttested: publishable,
+    updatedAt: profile.updatedAt ? profile.updatedAt.toISOString() : null,
+  };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

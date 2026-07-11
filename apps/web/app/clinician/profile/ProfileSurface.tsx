@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { ClinicianProfileSections } from '@/components/profile/ClinicianProfileSections';
 import SelfAttestedEditor from '@/components/profile/SelfAttestedEditor';
+import CareerProfileSharingCard from '@/components/profile/CareerProfileSharingCard';
 import { isPassportData, type PassportData } from '@/lib/trust/passport-contract';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
 import {
@@ -705,6 +706,9 @@ export default function ProfileSurface() {
 
       {/* Self-attested structured sections — editable */}
       <SelfAttestedEditor initial={profile.selfAttested} onSaved={handleSelfAttestedSaved} />
+
+      {/* Share or don't share — the public career profile page */}
+      {profile.npi ? <CareerProfileSharingCard npi={profile.npi} /> : null}
 
       {/* Passport-backed + self-attested profile sections (read projection) */}
       {passport ? (
