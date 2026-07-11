@@ -67,6 +67,12 @@ export function registerEmailOtpRoutes(app: Express): void {
       if (result.outcome === 'rate_limited') {
         throw new HttpError(429, 'Too many codes requested. Try again later.');
       }
+      if (result.outcome === 'delivery_unavailable') {
+        throw new HttpError(
+          503,
+          'Email delivery is not configured on this environment yet, so a code cannot be sent. This optional step can be skipped for now.',
+        );
+      }
       // Never echo the code; delivery is out of band.
       res.status(200).json({ sent: true });
     }),

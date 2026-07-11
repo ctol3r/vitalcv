@@ -10,7 +10,10 @@
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
 import { sha256ForPayload } from '../../utils/deterministic';
-import { getNotificationProvider } from '../providers/notificationProvider';
+import {
+  getNotificationProvider,
+  isEmailDeliveryConfigured,
+} from '../providers/notificationProvider';
 import {
   emailDomain,
   evaluateOtpAttempt,
@@ -36,7 +39,7 @@ async function emitAudit(
   });
 }
 
-export type IssueOutcome = 'sent' | 'invalid_email' | 'rate_limited';
+export type IssueOutcome = 'sent' | 'invalid_email' | 'rate_limited' | 'delivery_unavailable';
 
 export async function issueEmailOtp(
   userId: string,
@@ -45,6 +48,16 @@ export async function issueEmailOtp(
   const email = normalizeEmail(rawEmail);
   if (!isPlausibleEmail(email)) {
     return { outcome: 'invalid_email', email };
+  }
+
+  // Honesty gate: never mint a challenge (or tell the user a code was sent)
+  // in an environment that cannot deliver email at all.
+  if (!isEmailDeliveryConfigured()) {
+    log('warn', 'email_otp_delivery_unconfigured', {
+      userId,
+      emailDomain: emailDomain(email),
+    });
+    return { outcome: 'delivery_unavailable', email };
   }
 
   // Rate limit: cap challenges per (user, email) within the window.
@@ -70,8 +83,8 @@ export async function issueEmailOtp(
     },
   });
 
-  // Delivery is best-effort via the notification provider. A send failure does
-  // not roll back the challenge (dev stub logs; prod uses the wired provider).
+  // The challenge row is only useful if the code reaches an inbox: a failed
+  // send reports delivery_unavailable instead of pretending the code is out.
   try {
     await getNotificationProvider().send(
       email,
@@ -85,6 +98,7 @@ export async function issueEmailOtp(
       emailDomain: emailDomain(email),
       error: err instanceof Error ? err.message : String(err),
     });
+    return { outcome: 'delivery_unavailable', email };
   }
 
   // Audit records only the domain — never the code or full address.
