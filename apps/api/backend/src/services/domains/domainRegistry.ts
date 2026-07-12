@@ -94,7 +94,7 @@ const HEALTHCARE: DomainDefinition = {
     { id: 'NPPES',     label: 'CMS NPI Registry',        url: 'https://npiregistry.cms.hhs.gov/api/',   credentialTypes: ['NPI_IDENTITY'],        envFlag: 'NPPES_ENABLED',   liveCallAvailable: true,  stubBehavior: 'PASS'    },
     { id: 'OIG_LEIE',  label: 'OIG Exclusion Registry',  url: 'https://oig.hhs.gov/exclusions/api',    credentialTypes: ['SANCTION_CLEAR'],      envFlag: 'OIG_LEIE_ENABLED', liveCallAvailable: true, stubBehavior: 'UNKNOWN' },
     { id: 'STATE_BOARD',label: 'State Medical Boards',   url: 'https://www.fsmb.org/licensure/',       credentialTypes: ['STATE_LICENSE'],       envFlag: 'STATE_BOARD_ENABLED', liveCallAvailable: false, stubBehavior: 'UNKNOWN' },
-    { id: 'NURSYS',    label: 'Nursys Nursing Compact',  url: 'https://www.nursys.com/',               credentialTypes: ['STATE_LICENSE'],       envFlag: 'NURSYS_ENABLED',  liveCallAvailable: false, stubBehavior: 'UNKNOWN' },
+    { id: 'NURSYS',    label: 'Nursys Nursing Compact',  url: 'https://www.nursys.com/',               credentialTypes: ['STATE_LICENSE'],       envFlag: 'REAL_NURSYS_ENABLED',  liveCallAvailable: false, stubBehavior: 'UNKNOWN' },
     { id: 'ABIM',      label: 'ABIM Certification',      url: 'https://www.abim.org/',                 credentialTypes: ['BOARD_CERTIFICATION'], envFlag: 'ABIM_ENABLED',    liveCallAvailable: false, stubBehavior: 'UNKNOWN' },
   ],
   scoringWeights:         { identity: 20, primaryLicense: 30, sanctions: 25, certifications: 15, continuingEd: 10 },
