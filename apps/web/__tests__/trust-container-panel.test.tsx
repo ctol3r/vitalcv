@@ -189,6 +189,23 @@ describe('TrustContainerPanel', () => {
     assertNoBannedStrings(liveHtml);
   });
 
+  it('renders a vitalcv-signed container without the mock label and without banned strings', () => {
+    const signedEntry = buildIssuedEntry({
+      trustContainerId: 'vcv_vc_1234567890abcdef',
+      provider: 'vitalcv',
+      environment: 'vitalcv-signed',
+      label: 'Signed credential container (VitalCV issuer)',
+      mock: false,
+    });
+    const html = renderToStaticMarkup(<TrustContainerPanel entry={signedEntry} />);
+    expect(html).toContain('Credential container: issued');
+    expect(html).toContain('Signed credential container (VitalCV issuer)');
+    expect(html).toContain('data-mock="false"');
+    expect(html).not.toContain('Mock/dev credential container');
+    expect(html).not.toContain('Mock/dev containers are not production credentials.');
+    assertNoBannedStrings(html);
+  });
+
   it('never renders any banned overclaim string across any state permutation', () => {
     const permutations: Array<TrustContainerManifestView | null> = [
       null,
