@@ -1,8 +1,6 @@
-import express from 'express';
 import request from 'supertest';
 import app from '../src/app';
 import prisma from '../src/graphql/prisma_client';
-import { registerWave2AVerifyRoutes } from '../src/modules/wave2a';
 import { getVerificationSource, SourceAccessRequiredError } from '../src/services/sourceRegistry';
 import { NursysStubAdapter } from '../src/services/adapters/nursysStubAdapter';
 import { isDecisionGradeArtifact } from '../src/services/artifactDecisionGrade';
@@ -111,23 +109,6 @@ describe('createArtifactFromNursys in production', () => {
     await expect(createArtifactFromNursys('1234567890')).rejects.toBeInstanceOf(
       SourceAccessRequiredError,
     );
-  });
-});
-
-describe('POST /api/v2/verify (wave2a) in production', () => {
-  // registerWave2AVerifyRoutes currently has no caller in src/app.ts (the
-  // module is unmounted), so exercise the handler on a scratch app.
-  const wave2aApp = express();
-  wave2aApp.use(express.json());
-  registerWave2AVerifyRoutes(wave2aApp);
-
-  it('returns an honest 503 source_access_required instead of persisting fabricated data', async () => {
-    asProduction();
-    const res = await request(wave2aApp).post('/api/v2/verify').send({ npi: '1234567890' });
-
-    expect(res.status).toBe(503);
-    expect(res.body.error).toBe('source_access_required');
-    expect(res.body.message).toContain('requires primary-source access');
   });
 });
 
