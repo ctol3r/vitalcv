@@ -28,6 +28,7 @@ export type MonitoringCycleResult = {
   totalChecked: number;
   statusChanges: number;
   deltasDetected: number;
+  skippedSourceUnavailable: number;
   errors: number;
   durationMs: number;
 };
@@ -68,6 +69,7 @@ export async function runMonitoringCycle(): Promise<MonitoringCycleResult> {
     totalChecked: 0,
     statusChanges: 0,
     deltasDetected: 0,
+    skippedSourceUnavailable: 0,
     errors: 0,
     durationMs: 0,
   };
@@ -97,6 +99,12 @@ export async function runMonitoringCycle(): Promise<MonitoringCycleResult> {
         artifact.organizationId ?? undefined,
       );
       result.totalChecked += 1;
+
+      if (checkResult.skippedReason) {
+        // Source not decision-grade (fail-closed) — artifact left untouched.
+        result.skippedSourceUnavailable += 1;
+        continue;
+      }
 
       if (checkResult.changed) {
         result.statusChanges += 1;

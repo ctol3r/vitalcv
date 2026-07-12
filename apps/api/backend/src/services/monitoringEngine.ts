@@ -1,6 +1,7 @@
 import prisma from '../graphql/prisma_client';
 import { buildVerificationMerklePayload } from './artifactService';
-import { getVerificationSource } from './sourceRegistry';
+import { isDecisionGradeArtifact } from './artifactDecisionGrade';
+import { getVerificationSource, SourceAccessRequiredError } from './sourceRegistry';
 import { computeTrustState } from './trustState';
 import { computeCredentialState } from './credentialStatusEngine';
 import type { Prisma } from '@prisma/client';
@@ -17,6 +18,7 @@ type MonitoringCheckResult = {
   newStatus: string;
   trustState: string;
   monitoringEventId?: string;
+  skippedReason?: 'SOURCE_ACCESS_REQUIRED' | 'NON_DECISION_GRADE_SOURCE';
 };
 
 /**
@@ -51,7 +53,37 @@ export async function runMonitoringCheck(
   }
 
   // Re-query source via adapter registry
-  const source = getVerificationSource(artifact.source === 'NURSYS' ? 'NURSYS' : artifact.source);
+  let source;
+  try {
+    source = getVerificationSource(artifact.source === 'NURSYS' ? 'NURSYS' : artifact.source);
+  } catch (error) {
+    if (error instanceof SourceAccessRequiredError) {
+      // Fail closed: production must not refresh artifacts from a
+      // fabricating adapter. Leave the row untouched.
+      return {
+        npi,
+        changed: false,
+        previousStatus: artifact.status,
+        newStatus: artifact.status,
+        trustState: artifact.trustState,
+        skippedReason: 'SOURCE_ACCESS_REQUIRED',
+      };
+    }
+    throw error;
+  }
+
+  if (!source.decisionGrade && isDecisionGradeArtifact(artifact)) {
+    // Never overwrite a decision-grade artifact with stand-in data (any env).
+    return {
+      npi,
+      changed: false,
+      previousStatus: artifact.status,
+      newStatus: artifact.status,
+      trustState: artifact.trustState,
+      skippedReason: 'NON_DECISION_GRADE_SOURCE',
+    };
+  }
+
   const freshResult = await source.verify(npi);
   const { fingerprint, merkleRoot, claimHashes } = buildVerificationMerklePayload(npi, freshResult);
   const statusChanged = artifact.status !== freshResult.licenseStatus;

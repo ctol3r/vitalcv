@@ -17,5 +17,12 @@ export interface VerificationResult {
 
 export interface VerificationSource {
   readonly name: string;
+  /**
+   * Decision-grade adapters return real primary-source outcomes and may be
+   * persisted and presented as verification results. Fabricating or stand-in
+   * adapters (deterministic stubs, fixtures) MUST declare false — production
+   * refuses to serve them (sourceRegistry throws SourceAccessRequiredError).
+   */
+  readonly decisionGrade: boolean;
   verify(npi: string): Promise<VerificationResult>;
 }

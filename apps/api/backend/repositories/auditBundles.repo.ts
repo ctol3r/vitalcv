@@ -1,6 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '../src/graphql/prisma_client';
 import { computeArtifactChecksum } from '../src/services/nursysAdapter';
+import { isDecisionGradeArtifact } from '../src/services/artifactDecisionGrade';
+import { SourceAccessRequiredError } from '../src/services/sourceRegistry';
+import { isProductionRuntime } from '../src/utils/environment';
 import {
   AUDITSCRAPBOOK_COMPLIANCE_PROFILE,
   AUDITSCRAPBOOK_METHOD,
@@ -413,8 +416,16 @@ export async function generateAuditBundle(
   options: GetAuditBundleOptions = {},
 ): Promise<AuditBundleResult> {
   const artifacts = await getVerificationArtifacts(npi, options);
-  const latestArtifact = artifacts[0];
+  // Production never bundles fabricated (stub-origin) artifacts — an audit
+  // bundle built on fabricated data would be materially misleading.
+  const usableArtifacts = isProductionRuntime()
+    ? artifacts.filter((artifact) => isDecisionGradeArtifact(artifact))
+    : artifacts;
+  const latestArtifact = usableArtifacts[0];
   if (!latestArtifact) {
+    if (artifacts.length > 0) {
+      throw new SourceAccessRequiredError(artifacts[0].source);
+    }
     throw new Error(`No verification artifacts found for ${npi}`);
   }
 

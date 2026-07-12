@@ -12,14 +12,14 @@ This file lists **only genuinely-open items**, each with its owning wave from th
 | 2 | Verifier org-role RBAC enforcement | `apps/web/lib/verifier/orgRolesFoundation.ts` pins `rbacEnforced: false` (literal); no role checks on mutating verifier routes | B |
 | 6 | STATE_BOARD / FSMB physician-licensure lane | Gated, no live adapter behind `STATE_BOARD_ENABLED`; license claims must stay `gated`, never `checked` | C |
 | 7 | SAM.gov exclusions adapter | Honest gated adapter landed (`services/samGovAdapter.ts`, `SAM_GOV_ENABLED` default false); live API key + fetcher wiring outstanding — coverage stays `gated`/`accessRequired`, OIG/LEIE remains the only live exclusion source | C |
-| 8 | Nursys institutional access | Adapter is an honest gated stub (`nursysAdapter.ts`) — real E-Notify agreement + fetcher wiring outstanding; must stay `gated`/`accessRequired` | C |
+| 8 | Nursys institutional access | Adapter is an honest gated stub (`nursysAdapter.ts`) — real E-Notify agreement + fetcher wiring outstanding; must stay `gated`/`accessRequired`. The separate fabricating registry stub (`adapters/nursysStubAdapter.ts`) now **fails closed in production** (gap G13, closed): share verify, audit bundles, wave2a, and monitoring refuse to persist or present stub results and return `SOURCE_ACCESS_REQUIRED` | C |
 | 9 | Continuous monitoring not enabled | Wave 245 scheduler exists (`services/async/monitoringScheduler.ts`, `MONITORING_ENABLED` default false); NCQA-cadence re-checks not running | D |
 | 10 | NPPES bulk-file ingestion | Catalog declares V2 bulk surface; no downloader implementation — runtime enrichment is API-v2.1-only (asserted at boot) | C/D (phase 1, not a pilot blocker) |
 | 11 | Revocation registry on Bitstring Status List + VC 2.0 pinning | `apps/status-api` implements StatusList2021 (predecessor); VC 2.0 Bitstring alignment + verifier fail-closed tests outstanding | E |
 | 12 | Compliance proof-pack surfaces | JC survey-ready export, NIST 800-63-4 IAL mapping doc, passkey/DPoP AAL2 path — none present | F |
 | 13 | Certifications (SOC 2 Type II / HITRUST / NCQA accreditation) | Business-level procurement blocker; copy stays "aligned", never "certified" | GTM (not a code wave) |
 
-**Closed since baseline:** items #1 (self-serve signup gate — OTP delivery live via Resend, tiers enforced by PR #622), #3 (prod auth/Google OAuth — verified live 2026-07-11), #4 (signup e2e — PR #595), and #5 (OWASP ASVS **L2** mapping) — closed 2026-07-05 by `docs/security/ASVS-scorecard-2026-07.md` (Wave B task 6; 151 rows, evidence-cited, gap register G1–G12). The security gaps it surfaces stay tracked as items #2/#4 above and in the scorecard's gap register. Item numbers are stable; closed numbers are not reused.
+**Closed since baseline:** items #1 (self-serve signup gate — OTP delivery live via Resend, tiers enforced by PR #622), #3 (prod auth/Google OAuth — verified live 2026-07-11), #4 (signup e2e — PR #595), and #5 (OWASP ASVS **L2** mapping) — closed 2026-07-05 by `docs/security/ASVS-scorecard-2026-07.md` (Wave B task 6; 151 rows, evidence-cited, gap register G1–G13). The security gaps it surfaces stay tracked as items #2/#4 above and in the scorecard's gap register. Item numbers are stable; closed numbers are not reused.
 
 ## Standing guardrails (apply to every closing PR)
 

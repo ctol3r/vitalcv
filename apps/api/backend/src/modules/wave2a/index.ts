@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import prisma from '../../graphql/prisma_client';
 import { log } from '../../obs/logger';
-import { getVerificationSource } from '../../services/sourceRegistry';
+import { getVerificationSource, SourceAccessRequiredError } from '../../services/sourceRegistry';
 import { sha256Hex } from '../../utils/deterministic';
 import { buildVerificationMerklePayload } from '../../services/artifactService';
 
@@ -109,6 +109,14 @@ export function registerWave2AVerifyRoutes(app: Express): void {
         verifiedAt: now.toISOString(),
       });
     } catch (error) {
+      if (error instanceof SourceAccessRequiredError) {
+        // Fail closed: production must not persist fabricated verifications.
+        log('warn', 'wave2a_verify_source_access_required', {
+          event: 'wave2a_verify_source_access_required',
+          error: error.message,
+        });
+        return res.status(503).json({ error: 'source_access_required', message: error.message });
+      }
       const message = error instanceof Error ? error.message : 'Verification failed';
       log('error', 'wave2a_verify_error', {
         event: 'wave2a_verify_error',
