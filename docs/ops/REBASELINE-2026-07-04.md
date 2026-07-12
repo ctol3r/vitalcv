@@ -17,6 +17,9 @@
 | No env validation | Web: `apps/web/lib/env.ts` (SEC-ENV-1 typed contract). Backend: `apps/api/backend/src/config/env.ts` + `envValidation.ts` (Zod) |
 | Nursys throws when flagged on | `apps/api/backend/src/services/nursysAdapter.ts` is an honest gated stub: returns NOT_AVAILABLE, never fabricates, no throw path in the default flow |
 | No ASVS scorecard | `docs/security/asvs-scorecard.md` exists (L1, evidence-cited). L2 mapping remains open |
+| Self-serve clinician signup gate (blocker #1) | Closed 2026-07-11: gate PRs #538/#539/#542 + e2e #595 (clerk-id/uuid + tenant-guard fixes, 1361 backend tests green); email-OTP anchor DELIVERS in prod (Resend key + vitalcv.com domain verified, PR #615 honest delivery states); identity tiers enforce it (PR #622: publish/apply/AI gated on work_email_confirmed; NPI double-claim → 409 + audit). Identity PROOFING (license lane / IDV) intentionally stays open under blocker #6 — the gate never claimed it. |
+| Prod auth / Google OAuth verification (blocker #3) | Closed 2026-07-11: live walkthrough — Clerk FAPI 200, all 5 DNS CNAMEs (incl. clkmail/DKIM), Google OAuth redirects into consent for vitalcv.com, resolve-role round-trip healthy; founder account signs in. Local-dev failure mode (pk_live keys off-domain) fixed by DevKeysNotice (PR #618) + dev-instance keys in .env.local. |
+| E2E signup happy-path + fail-closed (blocker #4) | Closed by PR #595 (signup golden path + BLOCKED-passport-cannot-be-accepted e2e); runs in the required Backend Tests (Postgres) CI job. |
 
 ## Corrected premises (the plan docs were stale here)
 

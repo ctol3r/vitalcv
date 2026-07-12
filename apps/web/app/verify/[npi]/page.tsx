@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Eye, ShieldAlert } from 'lucide-react';
 import { Reveal } from '@/components/motion/Reveal';
@@ -409,6 +410,32 @@ export default async function VerifierPage({
         <Reveal delay={80}>
         <Section title="Employer acceptances">
           <AcceptancePanel history={acceptanceHistory} />
+        </Section>
+        </Reveal>
+
+        {/* ── Section: Act on this record (employer CTA) ──────────────────
+            Closes the share→accept seam: the link a clinician shares is this
+            read-only page, and the decision surface is /review/[npi]. Actions
+            there are Clerk-authenticated, attributable, and audited — this is
+            a doorway, not a bypass. */}
+        <Reveal delay={100}>
+        <Section title="Reviewing this clinician for a role?">
+          <div className="mz-card px-5 py-4 flex flex-wrap items-center justify-between gap-3" data-testid="employer-review-cta">
+            <p className="text-sm text-[var(--ink-600)] max-w-xl">
+              Employers can act on this record — accept it as a head start,
+              request a source refresh, or route it to review. Decisions are
+              recorded, attributable, and visible to the clinician.
+            </p>
+            <Link
+              href={`/review/${npi}`}
+              className="mz-btn shrink-0"
+            >
+              Open the review surface →
+            </Link>
+          </div>
+          <p className="mz-mono mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-400)]">
+            Requires a signed-in employer account · viewing never requires one
+          </p>
         </Section>
         </Reveal>
 

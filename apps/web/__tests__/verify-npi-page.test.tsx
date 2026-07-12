@@ -45,6 +45,29 @@ describe('/verify/[npi] — invalid-id path', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('renders the employer review doorway on a resolvable NPI (share→accept seam)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/passport/npi/')) {
+          return new Response(JSON.stringify({ identity: { displayName: 'Test Clinician' } }), { status: 200 });
+        }
+        return new Response('{}', { status: 404 });
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      (await renderPage('1234567890')) as React.ReactElement,
+    );
+    expect(html).toContain('data-testid="employer-review-cta"');
+    expect(html).toContain('/review/1234567890');
+    expect(html).toContain('Reviewing this clinician for a role?');
+    expect(html).toContain('Requires a signed-in employer account');
+    // the doorway never overclaims: decisions are recorded, not auto-approved
+    expect(html).not.toMatch(/>\s*Verified\s*</);
+  });
+
   it('keeps the in-page not-found state for a well-formed NPI the backend does not know', async () => {
     vi.stubGlobal(
       'fetch',
