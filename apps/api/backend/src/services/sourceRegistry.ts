@@ -1,35 +1,52 @@
 import type { VerificationSource } from '../interfaces/verificationSource';
+import { log } from '../obs/logger';
+import { NursysAccessPendingAdapter } from './adapters/nursysAccessPendingAdapter';
 import { NursysStubAdapter } from './adapters/nursysStubAdapter';
 
 /**
  * Verification source registry.
  *
  * Maps source names to adapter instances. The stub adapter is always
- * available. When REAL_NURSYS_ENABLED=true, the registry throws an
- * explicit error — real adapters must be implemented before enabling.
+ * available. Flag semantics for 'NURSYS' (REAL_NURSYS_ENABLED, the same
+ * flag the pilot runbook and ingest orchestrator use):
+ *
+ *   - flag on + a live 'NURSYS' adapter registered  → the live adapter
+ *   - flag on + no live adapter                     → NursysAccessPendingAdapter
+ *     (honest UNKNOWN placeholder; previously this THREW, crashing
+ *     monitoring sweeps and artifact issuance the moment the flag flipped)
+ *   - flag off                                      → deterministic stub
  */
 
 const adapters = new Map<string, VerificationSource>();
 
-// Register built-in stub
+// Register built-in adapters
 adapters.set('NURSYS_STUB', new NursysStubAdapter());
+adapters.set('NURSYS_ACCESS_PENDING', new NursysAccessPendingAdapter());
+
+function isRealNursysEnabled(): boolean {
+  const enabled = process.env.REAL_NURSYS_ENABLED?.trim().toLowerCase();
+  return enabled === 'true' || enabled === '1';
+}
 
 /**
  * Retrieve a verification source adapter by name.
- *
- * Checks REAL_NURSYS_ENABLED when requesting the live adapter.
- * Throws if the adapter is not registered.
+ * Throws only for names that were never registered.
  */
 export function getVerificationSource(sourceName: string): VerificationSource {
-  // Guard: if requesting live Nursys, check env flag
   if (sourceName === 'NURSYS') {
-    const enabled = process.env.REAL_NURSYS_ENABLED?.trim().toLowerCase();
-    if (enabled === 'true' || enabled === '1') {
-      throw new Error(
-        'Real Nursys adapter not implemented. Set REAL_NURSYS_ENABLED=false or implement the live adapter.',
-      );
+    const liveAdapter = adapters.get('NURSYS');
+    if (isRealNursysEnabled()) {
+      if (liveAdapter) {
+        return liveAdapter;
+      }
+      log('error', 'source_registry: REAL_NURSYS_ENABLED set but no live Nursys adapter registered', {
+        served: 'NURSYS_ACCESS_PENDING',
+      });
+      return getVerificationSource('NURSYS_ACCESS_PENDING');
     }
-    // Fall through to NURSYS_STUB when live adapter is not enabled
+    // Flag off: legacy deterministic stub (fabricated statuses — see
+    // NursysStubAdapter header; live callers of this path are tracked
+    // as a separate honesty follow-up).
     return getVerificationSource('NURSYS_STUB');
   }
 

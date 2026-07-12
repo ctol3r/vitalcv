@@ -195,7 +195,10 @@ export const SOURCE_CATALOG: Record<string, SourceDefinition> = {
     baseUrl: 'https://www.nursys.com/',
     bulkFileUrl: null,
     claimTypes: ['NURSING_LICENSE', 'NURSING_DISCIPLINE'],
-    parserVersion: 'v1.0.0', envFlag: 'NURSYS_ENABLED', liveAvailable: false,
+    // REAL_NURSYS_ENABLED is the flag the pilot runbook and ingest
+    // orchestrator actually use; the catalog previously read NURSYS_ENABLED,
+    // which nothing else set, so ops reporting could never match runtime.
+    parserVersion: 'v1.0.0', envFlag: 'REAL_NURSYS_ENABLED', liveAvailable: false,
     decisionGrade: true,
     notes: 'e-Notify for real-time alerts. Participating jurisdictions only. UNI/NCSBN ID is the canonical nurse identifier.',
   },
