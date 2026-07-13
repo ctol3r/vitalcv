@@ -69,7 +69,10 @@ function seededXY(i: number, n: number): [number, number] {
   return [Math.cos(a) * r, Math.sin(a) * r + (i % 2 ? 4 : -4) * (n > 40 ? 1 : 0)];
 }
 
-export default function CareerGraph({ initialTheme = 'dark' }: { initialTheme?: ThemeName }) {
+export default function CareerGraph({
+  initialTheme = 'dark',
+  initialPanelOpen = true,
+}: { initialTheme?: ThemeName; initialPanelOpen?: boolean }) {
   const [themeName, setThemeName] = React.useState<ThemeName>(initialTheme);
   const theme = THEMES[themeName];
   const [physics, setPhysics] = React.useState<Physics>(DEFAULT_PHYSICS);
@@ -78,7 +81,7 @@ export default function CareerGraph({ initialTheme = 'dark' }: { initialTheme?: 
   const [showBacklinks, setShowBacklinks] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = React.useState(true);
+  const [panelOpen, setPanelOpen] = React.useState(initialPanelOpen);
   const [hovered, setHovered] = React.useState<string | null>(null);
 
   const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -140,12 +143,17 @@ export default function CareerGraph({ initialTheme = 'dark' }: { initialTheme?: 
 
     const resize = () => {
       const r = wrap.getBoundingClientRect();
+      // Guard against a 0-dimension measurement (pre-layout, or a shrink-wrapped
+      // parent): setting the canvas to 0px would stick even once width arrives,
+      // since an absolutely-positioned canvas lets an explicit width override
+      // inset:0. Skip until we have real dimensions; the ResizeObserver re-fires.
+      if (r.width < 1 || r.height < 1) return;
       w = r.width; h = r.height; dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
     };
     resize();
-    const ro = new ResizeObserver(() => { resize(); alpha = Math.max(alpha, 0.3); });
+    const ro = new ResizeObserver(() => { resize(); kickRef.current(0.3); });
     ro.observe(wrap);
 
     const radius = (n: SimNode) => (3.2 + Math.sqrt(n.deg) * 2.1) * displayRef.current.nodeSize;

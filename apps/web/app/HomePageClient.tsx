@@ -27,7 +27,11 @@ import { Input } from '@/components/ui/input';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { cn } from '@/lib/utils';
 import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperience';
-import { MatchaConstellation } from '@/components/matcha/MatchaConstellation';
+// Interactive Provider Career Evidence Network graph (Obsidian-style force graph).
+// Direct import (not next/dynamic ssr:false): window/canvas access is confined to
+// effects so it server-renders cleanly, and dynamic() would use React.lazy/Suspense
+// which the renderToStaticMarkup homepage guard tests do not support.
+import CareerGraph from '@/components/career-graph/CareerGraph';
 import { Reveal } from '@/components/motion/Reveal';
 
 function formatNpi(value: string): string {
@@ -971,16 +975,21 @@ export default function HomePageClient() {
               <div className="relative isolate">
                 <p className="mz-eyebrow">Your career, in motion</p>
                 <h2 className="mz-h1" style={{ marginTop: 14, maxWidth: 640 }}>
-                  Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">constellation you can travel</span>.
+                  Your career isn&rsquo;t a timeline. It&rsquo;s a <span className="mz-accent">network you can explore</span>.
                 </h2>
                 <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
-                  Where you began, where you are, and where you&rsquo;re headed — one living sky. Drag to
-                  rotate it; pull the slider to move through your career and watch the opportunities on your
-                  horizon light up. Past and future are illustrative; your real evidence lives in your wallet.
+                  Every source-backed credential links your record to the issuers that signed it and the
+                  employers who accept it — bidirectionally. Drag any node, filter by role, and follow the
+                  backlinks. Structure here is illustrative; your real evidence lives in your wallet.
                 </p>
-                <div style={{ marginTop: 20 }}>
-                  <MatchaConstellation height={480} />
+                <div style={{ marginTop: 20, width: '100%', height: 520 }}>
+                  <CareerGraph initialTheme="light" initialPanelOpen={false} />
                 </div>
+                <p style={{ marginTop: 14 }}>
+                  <Link href="/evidence-network" className="mz-accent" style={{ fontSize: 13, fontWeight: 600 }}>
+                    Open the full network explorer &rarr;
+                  </Link>
+                </p>
               </div>
           </section>
 
