@@ -28,7 +28,13 @@ export default async function HolderLayout({
 
   return (
     <ClinicianMobileProvider initialData={initialData}>
-      <div className="mz mz-persona-holder flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
+      {/* The clinician workspace is a fixed-dark "instrument" surface
+          (bg-ops-gradient). Pin the subtree to `dark` so every themed token
+          (text-foreground, .mz, .vcv-doc, Calm Wave --ink/--card) resolves to
+          its dark-mode value — otherwise the light-default global theme leaves
+          theme-aware text dark-on-dark (invisible). text-white content is
+          unaffected. Full in-workspace light mode is a follow-up migration. */}
+      <div className="dark mz mz-persona-holder flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
         <HolderDesktopNav />
