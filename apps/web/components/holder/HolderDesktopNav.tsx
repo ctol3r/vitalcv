@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface NavItem {
   name: string;
@@ -90,6 +91,8 @@ export function HolderDesktopNav() {
             );
           })}
         </div>
+
+        <ThemeToggle className="shrink-0 text-[var(--ink-500)] hover:text-[var(--ink-900)]" />
 
         <Link href="/holder/recognition" className="mz-btn mz-btn-sm shrink-0">
           Share / prove
