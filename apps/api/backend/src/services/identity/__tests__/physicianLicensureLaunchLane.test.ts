@@ -139,7 +139,9 @@ describe('resolvePhysicianLicensureLaunchLane', () => {
         value: expect.objectContaining({
           jurisdiction: 'TX',
           sourceScope: 'STATE_BOARD_MANUAL',
-          participationStatus: 'manual_verification_required',
+          // Unsupported states are an institutional-access gap, not a
+          // manual-review queue item — the lane reports that precisely.
+          participationStatus: 'institution_access_unavailable',
         }),
       }),
     ]);

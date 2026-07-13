@@ -9,13 +9,13 @@
 
 export const CREDENTIAL_ENVELOPE_SCHEMA_VERSION = '1.0.0' as const;
 
-export type TrustContainerProviderKind = 'dock' | 'mock';
+export type TrustContainerProviderKind = 'dock' | 'mock' | 'vitalcv';
 
 export type ProofTier = 'DECISION_GRADE' | 'PARTIAL' | 'SNAPSHOT' | 'NONE';
 
 export type ProofStatus = 'DECISION_GRADE' | 'PARTIAL' | 'BLOCKED';
 
-export type TrustContainerExportEnvironment = 'mock-dev' | 'dock-scaffold';
+export type TrustContainerExportEnvironment = 'mock-dev' | 'dock-scaffold' | 'vitalcv-signed';
 
 export interface TrustContainerConfig {
   provider: TrustContainerProviderKind;

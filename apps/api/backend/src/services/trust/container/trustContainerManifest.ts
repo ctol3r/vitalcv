@@ -64,7 +64,11 @@ export function buildTrustContainerManifestEntry(params: {
 }): TrustContainerManifestEntry {
   const { issuance, envelope, provider } = params;
   const environment: TrustContainerExportEnvironment =
-    issuance.mock === true || provider === 'mock' ? 'mock-dev' : 'dock-scaffold';
+    issuance.mock === true || provider === 'mock'
+      ? 'mock-dev'
+      : provider === 'vitalcv'
+        ? 'vitalcv-signed'
+        : 'dock-scaffold';
   const hasLimitations = envelope.limitationNotes.length > 0;
   const proofStatus: CredentialEnvelopePayload['status'] =
     hasLimitations && envelope.status === 'DECISION_GRADE' ? 'PARTIAL' : envelope.status;
@@ -81,7 +85,9 @@ export function buildTrustContainerManifestEntry(params: {
     label:
       environment === 'mock-dev'
         ? 'Mock/dev credential container'
-        : 'Dock scaffold credential container',
+        : environment === 'vitalcv-signed'
+          ? 'Signed credential container (VitalCV issuer)'
+          : 'Dock scaffold credential container',
     environment,
     issuedAt: issuance.issuedAt,
     schemaVersion: CREDENTIAL_ENVELOPE_SCHEMA_VERSION,
@@ -134,7 +140,9 @@ export function trustContainerFailedEntry(params: {
   const environment: TrustContainerExportEnvironment | null = provider
     ? provider === 'mock'
       ? 'mock-dev'
-      : 'dock-scaffold'
+      : provider === 'vitalcv'
+        ? 'vitalcv-signed'
+        : 'dock-scaffold'
     : null;
   return {
     status: 'failed',
