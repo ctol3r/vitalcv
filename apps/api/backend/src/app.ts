@@ -218,6 +218,9 @@ import {
     getBundleExportBySnapshotId,
     getLatestArtifact,
 } from './services/artifactService';
+import { isDecisionGradeArtifact } from './services/artifactDecisionGrade';
+import { SourceAccessRequiredError } from './services/sourceRegistry';
+import { isProductionRuntime } from './utils/environment';
 import { generateAuditPacket } from './services/auditPacketGenerator';
 import {
     getMonitoringStatus,
@@ -2632,6 +2635,10 @@ function registerPilotRoutes(app: Express): void {
       }
 
       let artifact = await getLatestArtifact(updated.npi, shareLinkOrgId);
+      if (artifact && isProductionRuntime() && !isDecisionGradeArtifact(artifact)) {
+        // Fabricated (stub-origin) rows confer nothing in production.
+        artifact = null;
+      }
       if (!artifact) {
         const issuanceStartMs = Date.now();
         try {
@@ -2641,6 +2648,27 @@ function registerPilotRoutes(app: Express): void {
           // Wave R: Record onboarding analytics (fire-and-forget)
           recordVerificationEvent(artifact.id, shareLinkOrgId ?? '').catch(() => {});
         } catch (issuanceError) {
+          if (issuanceError instanceof SourceAccessRequiredError) {
+            // Honest fail-closed state: the share link resolved, but no
+            // decision-grade verification exists and production must not
+            // fabricate one. Expected state, not a system failure.
+            return res.status(200).json({
+              trustState: 'needs_review',
+              source: `NPI:${updated.npi}`,
+              status: 'SOURCE_ACCESS_REQUIRED',
+              decisionGrade: false,
+              reason:
+                'License verification requires primary-source access that is not yet connected. No license status is available for this credential.',
+              verifiedAt: null,
+              expiresAt: null,
+              monitoring: 'STANDARD',
+              checksum: null,
+              crossCheckEligible: false,
+              signature: null,
+              hash: null,
+              timestamp: new Date().toISOString(),
+            });
+          }
           await logSystemFailure('vc_issuance', 'critical', issuanceError instanceof Error ? issuanceError.message : 'VC issuance failed', { organizationId: shareLinkOrgId });
           throw issuanceError;
         }
@@ -2658,6 +2686,7 @@ function registerPilotRoutes(app: Express): void {
         trustState,
         source: `NPI:${updated.npi}`,
         status,
+        decisionGrade: isDecisionGradeArtifact(artifact),
         verifiedAt: artifact.verifiedAt.toISOString(),
         expiresAt: artifact.expiresAt?.toISOString() ?? null,
         monitoring: isFirstView ? 'pending verifier confirmation' : monitoringStatus,
@@ -2900,7 +2929,13 @@ function registerPilotRoutes(app: Express): void {
         npi: req.params.npi,
         error: error instanceof Error ? error.message : 'unknown',
       });
+      if (error instanceof SourceAccessRequiredError) {
+        return res.status(404).json({ error: error.message, code: error.code });
+      }
       const message = error instanceof Error ? error.message : 'Unable to generate audit bundle';
+      if (message.includes('No verification artifacts found')) {
+        return res.status(404).json({ error: message });
+      }
       return res.status(500).json({ error: message });
     }
   });
@@ -2930,7 +2965,13 @@ function registerPilotRoutes(app: Express): void {
         npi: req.params.npi,
         error: error instanceof Error ? error.message : 'unknown',
       });
+      if (error instanceof SourceAccessRequiredError) {
+        return res.status(404).json({ error: error.message, code: error.code });
+      }
       const message = error instanceof Error ? error.message : 'Unable to generate bundle download';
+      if (message.includes('No verification artifacts found')) {
+        return res.status(404).json({ error: message });
+      }
       return res.status(500).json({ error: message });
     }
   });

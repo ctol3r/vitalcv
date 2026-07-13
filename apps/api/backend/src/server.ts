@@ -301,6 +301,7 @@ async function bootstrapApp() {
             totalChecked: result.totalChecked,
             statusChanges: result.statusChanges,
             deltasDetected: result.deltasDetected,
+            skippedSourceUnavailable: result.skippedSourceUnavailable,
             errors: result.errors,
             durationMs: result.durationMs,
           });

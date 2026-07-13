@@ -13,6 +13,9 @@ import type { VerificationSource, VerificationResult } from '../../interfaces/ve
  */
 export class NursysAccessPendingAdapter implements VerificationSource {
   readonly name = 'NURSYS_ACCESS_PENDING';
+  // Honest placeholder, not a verification — production refuses it via the
+  // registry's decision-grade gate (SourceAccessRequiredError).
+  readonly decisionGrade = false;
 
   async verify(npi: string): Promise<VerificationResult> {
     const now = new Date();

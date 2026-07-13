@@ -52,6 +52,7 @@ describe('sourceRegistry NURSYS flag semantics', () => {
 
     const liveAdapter: VerificationSource = {
       name: 'NURSYS',
+      decisionGrade: true,
       async verify(): Promise<VerificationResult> {
         return {
           licenseStatus: 'ACTIVE',
