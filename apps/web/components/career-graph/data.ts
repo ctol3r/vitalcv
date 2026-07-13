@@ -1,21 +1,23 @@
 /**
  * Career-evidence network — curated, illustrative dataset for the public graph
- * explorer. Three actor GROUPS per the doctrine: holder (clinician), verifier
- * (= employer), issuer. Shared evidence artifacts (credentials, sources,
- * opportunities, recognitions) are neutral nodes that connect the actors.
+ * explorer, modeled the Roam/Obsidian way: EVERY NODE IS A UNIQUE ENTITY.
  *
- * Edges are BIDIRECTIONAL: every explicit link carries an implied backlink, so
- * a selected node can show both what it points to and what points back at it
- * (Obsidian/Roam-style). `kind: 'backlink'` edges are the recognition/acceptance
- * return paths that make the network compound.
+ * There is no repeated "NPI" or "Board Cert" node. Instead the shared concepts —
+ * the primary sources (NPPES, OIG LEIE, state boards…), the issuers, and the
+ * specialties — are single nodes that many clinicians link to, so they become
+ * the high-degree hubs (exactly the shape of a knowledge graph). A clinician's
+ * individual credentials are the EDGES to those hubs, not duplicate nodes.
  *
- * This is illustrative structure, not live data — the surface labels it so.
+ * Edges are BIDIRECTIONAL: every link carries an implied backlink, so selecting
+ * any node shows both what it points to (Links →) and what points back at it
+ * (Backlinks ←). The three actor groups per doctrine: holder (clinician),
+ * verifier (= employer), issuer. Sources + specialties are neutral evidence hubs.
+ *
+ * Illustrative structure, not live data — the surface labels it so.
  */
 
 export type GraphGroup = 'holder' | 'verifier' | 'issuer' | 'evidence';
-export type NodeKind =
-  | 'holder' | 'verifier' | 'issuer'
-  | 'credential' | 'source' | 'opportunity' | 'recognition' | 'specialty';
+export type NodeKind = 'holder' | 'verifier' | 'issuer' | 'source' | 'specialty';
 export type EdgeKind = 'explicit' | 'backlink' | 'source' | 'recognition';
 
 export interface CareerNode {
@@ -34,163 +36,125 @@ export interface CareerEdge {
 
 const nodes: CareerNode[] = [];
 const edges: CareerEdge[] = [];
-const seen = new Set<string>();
+const nodeIds = new Set<string>();
+const edgeIds = new Set<string>();
 
-function node(n: CareerNode) {
-  if (!seen.has(n.id)) { seen.add(n.id); nodes.push(n); }
-  return n.id;
+function addNode(id: string, label: string, group: GraphGroup, kind: NodeKind) {
+  if (!nodeIds.has(id)) { nodeIds.add(id); nodes.push({ id, label, group, kind }); }
+  return id;
 }
+/** Add a directed link plus its implied backlink (the reverse is ALWAYS a
+ * plain `backlink`, so degree/physics count each relationship once and the
+ * reverse renders dashed; the selection panel derives Links→/Backlinks← from
+ * the forward edge's direction). */
 function link(source: string, target: string, kind: EdgeKind) {
-  edges.push({ id: `${source}~${target}~${kind}`, source, target, kind });
+  const fwd = `${source}~${target}~${kind}`;
+  if (!edgeIds.has(fwd)) { edgeIds.add(fwd); edges.push({ id: fwd, source, target, kind }); }
+  const back = `${target}~${source}~backlink`;
+  if (!edgeIds.has(back)) { edgeIds.add(back); edges.push({ id: back, source: target, target: source, kind: 'backlink' }); }
 }
 
-// ---- shared sources (the primary sources every credential reads from) ----
-const SOURCES: Array<[string, string]> = [
-  ['src-nppes', 'NPPES'],
-  ['src-oig', 'OIG LEIE'],
-  ['src-pecos', 'CMS PECOS'],
-  ['src-abms', 'ABMS'],
-  ['src-cmb', 'CA Medical Board'],
-  ['src-tmb', 'TX Medical Board'],
-  ['src-nysdoh', 'NY State Board'],
-  ['src-dea', 'DEA registry'],
-];
-SOURCES.forEach(([id, label]) => node({ id, label, group: 'evidence', kind: 'source' }));
+/* ---------- shared HUB nodes (each unique; many clinicians link in) ---------- */
+// Primary sources
+const SRC = {
+  nppes: addNode('src-nppes', 'NPPES', 'evidence', 'source'),
+  oig: addNode('src-oig', 'OIG LEIE', 'evidence', 'source'),
+  pecos: addNode('src-pecos', 'CMS PECOS', 'evidence', 'source'),
+  dea: addNode('src-dea', 'DEA Registry', 'evidence', 'source'),
+  ca: addNode('src-ca', 'CA Medical Board', 'evidence', 'source'),
+  tx: addNode('src-tx', 'TX Medical Board', 'evidence', 'source'),
+  ny: addNode('src-ny', 'NY State Board', 'evidence', 'source'),
+  fl: addNode('src-fl', 'FL Board of Medicine', 'evidence', 'source'),
+} as const;
+const STATE_SRC: Record<string, string> = { CA: SRC.ca, TX: SRC.tx, NY: SRC.ny, FL: SRC.fl };
 
-// ---- issuers (sign artifacts once; travel with the clinician) ----
-const ISSUERS: Array<[string, string]> = [
-  ['iss-abms', 'ABMS'],
-  ['iss-stanford', 'Stanford GME'],
-  ['iss-aoa', 'AOA'],
-  ['iss-ucsf', 'UCSF Fellowship'],
-];
-ISSUERS.forEach(([id, label]) => node({ id, label, group: 'issuer', kind: 'issuer' }));
+// Specialties
+const SP = {
+  fm: addNode('sp-fm', 'Family Medicine', 'evidence', 'specialty'),
+  em: addNode('sp-em', 'Emergency Medicine', 'evidence', 'specialty'),
+  im: addNode('sp-im', 'Internal Medicine', 'evidence', 'specialty'),
+  card: addNode('sp-card', 'Cardiology', 'evidence', 'specialty'),
+  psy: addNode('sp-psy', 'Psychiatry', 'evidence', 'specialty'),
+} as const;
 
-// ---- verifiers / employers (one group: they read AND accept) ----
-const VERIFIERS: Array<[string, string]> = [
-  ['ver-mercy', 'Mercy General Health'],
-  ['ver-bay', 'Bay Area Health'],
-  ['ver-sutter', 'Sutter Network'],
-  ['ver-locum', 'Locum Partners'],
-  ['ver-valley', 'Valley Physicians Grp'],
-];
-VERIFIERS.forEach(([id, label]) => node({ id, label, group: 'verifier', kind: 'verifier' }));
+// Issuers (sign artifacts once; they travel with the clinician)
+const ISS = {
+  abms: addNode('iss-abms', 'ABMS', 'issuer', 'issuer'),
+  stanford: addNode('iss-stanford', 'Stanford GME', 'issuer', 'issuer'),
+  ucsf: addNode('iss-ucsf', 'UCSF Fellowship', 'issuer', 'issuer'),
+  aoa: addNode('iss-aoa', 'AOA', 'issuer', 'issuer'),
+  mayo: addNode('iss-mayo', 'Mayo Clinic GME', 'issuer', 'issuer'),
+} as const;
 
-// specialties (shared connective tissue between holders and opportunities)
-const SPECIALTIES: Array<[string, string]> = [
-  ['sp-fm', 'Family Medicine'],
-  ['sp-em', 'Emergency Medicine'],
-  ['sp-im', 'Internal Medicine'],
-  ['sp-cards', 'Cardiology'],
-];
-SPECIALTIES.forEach(([id, label]) => node({ id, label, group: 'evidence', kind: 'specialty' }));
+// Verifiers / employers (one group: they read AND accept)
+const VER = {
+  mercy: addNode('ver-mercy', 'Mercy General Health', 'verifier', 'verifier'),
+  bay: addNode('ver-bay', 'Bay Area Health', 'verifier', 'verifier'),
+  sutter: addNode('ver-sutter', 'Sutter Network', 'verifier', 'verifier'),
+  locum: addNode('ver-locum', 'Locum Partners', 'verifier', 'verifier'),
+  valley: addNode('ver-valley', 'Valley Physicians Grp', 'verifier', 'verifier'),
+  cedar: addNode('ver-cedar', 'Cedars Network', 'verifier', 'verifier'),
+  kaiser: addNode('ver-kaiser', 'Kaiser Regional', 'verifier', 'verifier'),
+  hca: addNode('ver-hca', 'HCA Staffing', 'verifier', 'verifier'),
+} as const;
 
-// ---- holders (clinicians) and their credential fans ----
-interface HolderSpec {
-  id: string; name: string; specialty: string;
-  creds: Array<{ id: string; label: string; source: string; issuer?: string }>;
-  verifiers: string[];      // who accepted / is reviewing
-  recognitions: string[];   // verifiers who recorded a recognition (backlink path)
+// Employers hire into specialties (connects the verifier group to the evidence hubs)
+const EMPLOYER_FOCUS: Array<[string, string]> = [
+  [VER.mercy, SP.fm], [VER.mercy, SP.im], [VER.bay, SP.card], [VER.bay, SP.im],
+  [VER.sutter, SP.card], [VER.locum, SP.em], [VER.valley, SP.em], [VER.valley, SP.im],
+  [VER.cedar, SP.psy], [VER.kaiser, SP.fm], [VER.hca, SP.im], [VER.hca, SP.psy],
+];
+for (const [v, sp] of EMPLOYER_FOCUS) link(v, sp, 'explicit');
+
+/* ---------- holders (each unique) — credentials are EDGES to the hubs ---------- */
+interface Holder {
+  id: string; name: string; state: keyof typeof STATE_SRC; specialty: string; issuer: string;
+  pecos?: boolean; dea?: boolean; employers: string[]; recognitions?: string[];
 }
-
-const HOLDERS: HolderSpec[] = [
-  {
-    id: 'h-okafor', name: 'Dr. A. Okafor', specialty: 'sp-fm',
-    creds: [
-      { id: 'c-ok-npi', label: 'NPI', source: 'src-nppes' },
-      { id: 'c-ok-ca', label: 'CA License', source: 'src-cmb', issuer: 'iss-stanford' },
-      { id: 'c-ok-board', label: 'Board Cert', source: 'src-abms', issuer: 'iss-abms' },
-      { id: 'c-ok-excl', label: 'Exclusion check', source: 'src-oig' },
-      { id: 'c-ok-dea', label: 'DEA', source: 'src-dea' },
-    ],
-    verifiers: ['ver-mercy', 'ver-bay'],
-    recognitions: ['ver-mercy'],
-  },
-  {
-    id: 'h-chen', name: 'Dr. L. Chen', specialty: 'sp-cards',
-    creds: [
-      { id: 'c-ch-npi', label: 'NPI', source: 'src-nppes' },
-      { id: 'c-ch-ca', label: 'CA License', source: 'src-cmb' },
-      { id: 'c-ch-ny', label: 'NY License', source: 'src-nysdoh' },
-      { id: 'c-ch-board', label: 'Board Cert', source: 'src-abms', issuer: 'iss-abms' },
-      { id: 'c-ch-fellow', label: 'Cards Fellowship', source: 'src-abms', issuer: 'iss-ucsf' },
-      { id: 'c-ch-pecos', label: 'Medicare enrollment', source: 'src-pecos' },
-    ],
-    verifiers: ['ver-sutter', 'ver-bay', 'ver-valley'],
-    recognitions: ['ver-sutter', 'ver-bay'],
-  },
-  {
-    id: 'h-ruiz', name: 'Dr. M. Ruiz', specialty: 'sp-em',
-    creds: [
-      { id: 'c-rz-npi', label: 'NPI', source: 'src-nppes' },
-      { id: 'c-rz-tx', label: 'TX License', source: 'src-tmb' },
-      { id: 'c-rz-board', label: 'Board Cert', source: 'src-abms', issuer: 'iss-aoa' },
-      { id: 'c-rz-excl', label: 'Exclusion check', source: 'src-oig' },
-    ],
-    verifiers: ['ver-locum', 'ver-valley'],
-    recognitions: ['ver-locum'],
-  },
-  {
-    id: 'h-idris', name: 'Dr. S. Idris', specialty: 'sp-im',
-    creds: [
-      { id: 'c-id-npi', label: 'NPI', source: 'src-nppes' },
-      { id: 'c-id-ca', label: 'CA License', source: 'src-cmb' },
-      { id: 'c-id-board', label: 'Board Cert', source: 'src-abms', issuer: 'iss-abms' },
-      { id: 'c-id-pecos', label: 'Medicare enrollment', source: 'src-pecos' },
-    ],
-    verifiers: ['ver-mercy', 'ver-valley'],
-    recognitions: ['ver-mercy'],
-  },
+const HOLDERS: Holder[] = [
+  { id: 'h-okafor', name: 'Dr. A. Okafor', state: 'CA', specialty: SP.fm, issuer: ISS.stanford, dea: true, employers: [VER.mercy, VER.bay], recognitions: [VER.mercy] },
+  { id: 'h-chen', name: 'Dr. L. Chen', state: 'CA', specialty: SP.card, issuer: ISS.ucsf, pecos: true, employers: [VER.sutter, VER.bay], recognitions: [VER.sutter, VER.bay] },
+  { id: 'h-ruiz', name: 'Dr. M. Ruiz', state: 'TX', specialty: SP.em, issuer: ISS.aoa, dea: true, employers: [VER.locum, VER.valley], recognitions: [VER.locum] },
+  { id: 'h-idris', name: 'Dr. S. Idris', state: 'CA', specialty: SP.im, issuer: ISS.abms, pecos: true, employers: [VER.mercy, VER.valley], recognitions: [VER.mercy] },
+  { id: 'h-nguyen', name: 'Dr. T. Nguyen', state: 'NY', specialty: SP.psy, issuer: ISS.mayo, employers: [VER.cedar], recognitions: [VER.cedar] },
+  { id: 'h-patel', name: 'Dr. R. Patel', state: 'TX', specialty: SP.im, issuer: ISS.abms, dea: true, employers: [VER.hca, VER.locum] },
+  { id: 'h-santos', name: 'Dr. J. Santos', state: 'FL', specialty: SP.fm, issuer: ISS.stanford, employers: [VER.kaiser] },
+  { id: 'h-kim', name: 'Dr. H. Kim', state: 'CA', specialty: SP.card, issuer: ISS.ucsf, pecos: true, employers: [VER.sutter, VER.kaiser], recognitions: [VER.sutter] },
+  { id: 'h-alvarez', name: 'Dr. C. Alvarez', state: 'CA', specialty: SP.em, issuer: ISS.aoa, dea: true, employers: [VER.valley, VER.hca] },
+  { id: 'h-obrien', name: "Dr. K. O'Brien", state: 'NY', specialty: SP.im, issuer: ISS.mayo, employers: [VER.cedar, VER.bay] },
+  { id: 'h-wright', name: 'Dr. D. Wright', state: 'TX', specialty: SP.psy, issuer: ISS.abms, employers: [VER.hca], recognitions: [VER.hca] },
+  { id: 'h-flores', name: 'Dr. P. Flores', state: 'FL', specialty: SP.fm, issuer: ISS.stanford, employers: [VER.kaiser, VER.valley] },
+  { id: 'h-hassan', name: 'Dr. N. Hassan', state: 'CA', specialty: SP.im, issuer: ISS.abms, pecos: true, employers: [VER.mercy], recognitions: [VER.mercy] },
+  { id: 'h-lee', name: 'Dr. E. Lee', state: 'CA', specialty: SP.card, issuer: ISS.stanford, employers: [VER.sutter, VER.bay] },
 ];
 
-let oppCount = 0;
 for (const h of HOLDERS) {
-  node({ id: h.id, label: h.name, group: 'holder', kind: 'holder' });
+  addNode(h.id, h.name, 'holder', 'holder');
+  // credentials as edges to shared source hubs (every clinician: NPI + exclusion + state license)
+  link(h.id, SRC.nppes, 'source');
+  link(h.id, SRC.oig, 'source');
+  link(h.id, STATE_SRC[h.state], 'source');
+  if (h.pecos) link(h.id, SRC.pecos, 'source');
+  if (h.dea) link(h.id, SRC.dea, 'source');
+  // issuer-signed artifact (board cert / fellowship) + specialty
+  link(h.id, h.issuer, 'explicit');
   link(h.id, h.specialty, 'explicit');
-  link(h.specialty, h.id, 'backlink');
-
-  for (const c of h.creds) {
-    node({ id: c.id, label: c.label, group: 'evidence', kind: 'credential' });
-    // holder <-> credential (bidirectional)
-    link(h.id, c.id, 'explicit');
-    link(c.id, h.id, 'backlink');
-    // credential -> source (what it reads from)
-    link(c.id, c.source, 'source');
-    // credential -> issuer (signed artifact), if any
-    if (c.issuer) {
-      link(c.id, c.issuer, 'explicit');
-      link(c.issuer, c.id, 'backlink');
-    }
-  }
-
-  // holder <-> verifier (a verifier is reviewing / accepted a shared snapshot)
-  for (const v of h.verifiers) {
-    const oppId = `opp-${++oppCount}`;
-    node({ id: oppId, label: 'Opportunity', group: 'evidence', kind: 'opportunity' });
-    link(h.id, oppId, 'explicit');
-    link(oppId, v, 'explicit');
-    link(v, oppId, 'backlink');
-    link(v, h.specialty, 'explicit'); // verifiers hire into specialties
-  }
-
-  // recognitions — the return path that makes acceptance compound (backlink kind)
-  for (const v of h.recognitions) {
-    const recId = `rec-${h.id}-${v}`;
-    node({ id: recId, label: 'Recognition', group: 'evidence', kind: 'recognition' });
-    link(v, recId, 'recognition');
-    link(recId, h.id, 'recognition');  // recognition attaches to the holder's record
-    link(h.id, recId, 'backlink');
-  }
+  // opportunities: clinician ↔ employer
+  for (const v of h.employers) link(h.id, v, 'explicit');
+  // recognitions: employer records acceptance back onto the clinician's record
+  for (const v of (h.recognitions ?? [])) link(v, h.id, 'recognition');
 }
 
 export const CAREER_NODES: CareerNode[] = nodes;
+// Only forward edges are the "real" links; backlinks are derived. Both are in
+// the array (the renderer draws backlinks dashed and lists them in the panel).
 export const CAREER_EDGES: CareerEdge[] = edges;
 
 export const GROUP_META: Record<GraphGroup, { label: string; hint: string }> = {
   holder: { label: 'Holder · clinician', hint: 'Owns the record; claims and shares snapshots' },
   verifier: { label: 'Verifier · employer', hint: 'Reads shared snapshots and accepts them as a head start' },
   issuer: { label: 'Issuer', hint: 'Signs artifacts once; they travel with the clinician' },
-  evidence: { label: 'Evidence & sources', hint: 'Credentials, primary sources, opportunities, recognitions' },
+  evidence: { label: 'Sources & specialties', hint: 'Primary sources and specialties every clinician links to' },
 };
 
 export const EDGE_META: Record<EdgeKind, { label: string }> = {
