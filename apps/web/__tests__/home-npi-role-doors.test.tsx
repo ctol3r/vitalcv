@@ -8,7 +8,7 @@
  *   - the five-step "how it works" loop,
  *   - the "what you get" value cards (wallet / readiness / recognition /
  *     proof / opportunities / time-to-start),
- *   - four role doors (Clinician / Verifier / Employer / Issuer)
+ *   - three role doors (Clinician / Verifier≡Employer / Issuer)
  *     each with the documented action label,
  *   - a three-column proof strip (Source / State / Review boundary),
  *   - a trust footer row (Status / Source attribution / Trust),
@@ -178,27 +178,28 @@ describe('HomePageClient — compounding-network (moat) section', () => {
 });
 
 describe('HomePageClient — role doors', () => {
-  it('renders four role doors', () => {
+  it('renders three role doors (verifier ≡ employer are one group)', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-role-doors');
-    expect(html).toContain('data-home-role-door="verifier"');
     expect(html).toContain('data-home-role-door="clinician"');
-    expect(html).toContain('data-home-role-door="employer"');
+    expect(html).toContain('data-home-role-door="verifier"');
     expect(html).toContain('data-home-role-door="issuer"');
+    // Employer is folded into the verifier door — not a separate door.
+    expect(html).not.toContain('data-home-role-door="employer"');
   });
 
-  it('states the shared outcome all four roles converge on', () => {
+  it('states the shared outcome all three roles converge on', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain(
-      'Four doors, one shared outcome — a clinician hired and started, faster.',
+      'Three doors, one shared outcome — a clinician hired and started, faster.',
     );
   });
 
   it('each role door advertises its canonical action label', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('Claim my NPI record'); // clinician
-    expect(html).toContain('Look up an NPI'); // verifier
-    expect(html).toContain('Review a passport'); // employer
+    expect(html).toContain('Look up an NPI'); // verifier / employer (merged blurb)
+    expect(html).toContain('Review a passport'); // verifier / employer (action)
     expect(html).toContain('Connect a source'); // issuer
   });
 });
