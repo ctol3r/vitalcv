@@ -91,8 +91,11 @@ export function AuthDisclosureCard({
 
         <div
           data-auth-clerk-mount=""
-          className="rounded-[1.25rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] p-2 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
+          className="flex justify-center rounded-[1.25rem] border border-[var(--vt-border)] bg-[color-mix(in_oklab,var(--vt-surface)_96%,white)] p-2 shadow-[0_1px_0_rgba(255,255,255,0.6)]"
         >
+          {/* Clerk's card is a fixed ~400px; the shell is max-w-md (448px).
+              Center the card so it isn't flush-left with a gap on the right
+              (the wave1505 cardBox border made that mismatch visible). */}
           {children}
         </div>
 
