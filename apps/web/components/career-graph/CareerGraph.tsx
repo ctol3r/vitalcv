@@ -55,7 +55,7 @@ const EDGE_COLOR = (t: Theme, k: EdgeKind) =>
 interface SimNode extends CareerNode { x: number; y: number; vx: number; vy: number; deg: number; pinned: boolean; }
 
 interface Physics { center: number; repel: number; link: number; distance: number; frozen: boolean; }
-const DEFAULT_PHYSICS: Physics = { center: 0.005, repel: 2200, link: 0.05, distance: 110, frozen: false };
+const DEFAULT_PHYSICS: Physics = { center: 0.012, repel: 1900, link: 0.05, distance: 96, frozen: false };
 interface Display { arrows: boolean; textFade: number; nodeSize: number; linkThickness: number; }
 const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 1.15, nodeSize: 1, linkThickness: 1 };
 
@@ -169,9 +169,10 @@ export default function CareerGraph({
             const b = sim[j];
             let dx = a.x - b.x, dy = a.y - b.y;
             let d2 = dx * dx + dy * dy; if (d2 < 0.01) { d2 = 0.01; dx = 0.1; }
-            // degree-weighted: hubs push each other apart harder, so the dense
-            // centre spreads instead of piling up (keeps labels legible).
-            const f = (P.repel * alpha * (1 + (a.deg + b.deg) * 0.09)) / d2;
+            // degree-weighted: hubs push each other apart a little harder so the
+            // dense centre spreads instead of piling up — but CAPPED, or the
+            // high-degree source hubs (NPPES/OIG, deg ~14) fling to the corners.
+            const f = (P.repel * alpha * (1 + Math.min(a.deg + b.deg, 10) * 0.05)) / d2;
             const d = Math.sqrt(d2), fx = (dx / d) * f, fy = (dy / d) * f;
             a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
           }
