@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import { LegalShell } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
   title: 'Data Processing Agreement Template · VitalCV',
@@ -11,30 +12,18 @@ const EFFECTIVE_DATE = '2026-05-01';
 
 export default function DpaPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      <header className="mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Legal
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-          Data Processing Agreement
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Template effective {EFFECTIVE_DATE}.
-        </p>
-
-        {/* Truth-contract banner: not a binding agreement */}
-        <div
-          role="note"
-          aria-label="Template disclaimer"
-          className="mt-6 rounded-lg border border-amber-400/40 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/20 dark:text-amber-300"
-        >
-          <strong>This document is a template for review by your legal team.</strong>{' '}
-          It is not a binding agreement. It has not been reviewed by legal counsel and
-          does not constitute legal advice. Do not rely on this template without
-          independent legal review specific to your jurisdiction and use case.
-        </div>
-      </header>
+    <LegalShell activeDoc="dpa" eyebrow="Legal" title="Data Processing Agreement" updated={EFFECTIVE_DATE}>
+      {/* Truth-contract banner: not a binding agreement */}
+      <div
+        role="note"
+        aria-label="Template disclaimer"
+        className="mt-2 mb-2 rounded-lg border border-amber-400/40 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/20 dark:text-amber-300"
+      >
+        <strong>This document is a template for review by your legal team.</strong>{' '}
+        It is not a binding agreement. It has not been reviewed by legal counsel and
+        does not constitute legal advice. Do not rely on this template without
+        independent legal review specific to your jurisdiction and use case.
+      </div>
 
       <div className="prose prose-sm max-w-none text-foreground">
         <section className="mb-8">
@@ -147,6 +136,6 @@ export default function DpaPage() {
         does not constitute a binding Data Processing Agreement without separate execution
         by authorized representatives of both parties.
       </footer>
-    </main>
+    </LegalShell>
   );
 }
