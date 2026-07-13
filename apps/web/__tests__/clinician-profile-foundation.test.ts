@@ -259,9 +259,12 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src).toContain('The graph explains provenance and gaps. It does not verify a claim by itself.');
   });
 
-  it('graph preview includes the required node taxonomy labels', () => {
+  it('graph page lists the node groups + provenance taxonomy', () => {
+    // The page is now the interactive career-evidence graph (unified with the
+    // home page). It lists the three node groups it colors by, plus the
+    // provenance states every claim carries.
     const src = readRoute('graph/page.tsx');
-    for (const label of ['Clinician', 'NPI', 'Claim', 'Source', 'Receipt', 'Unknown', 'User-entered']) {
+    for (const label of ['Holder', 'Verifier', 'Issuer', 'Source', 'User-entered', 'Unknown']) {
       expect(src).toContain(label);
     }
   });

@@ -24,10 +24,18 @@ export default function ClinicianGraphPage() {
           How claims, sources, issuers, and employers connect
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          <strong>The graph explains provenance and gaps. It does not verify a
-          claim by itself.</strong> The same interactive network you see on the
-          home page — drag any node, filter by group, and follow the backlinks.
-          Structure here is illustrative; your real evidence lives in your wallet.
+          {/* truth-contract sentence kept on one line (a foundation test pins it verbatim) */}
+          <strong>The graph explains provenance and gaps. It does not verify a claim by itself.</strong>{' '}
+          The same interactive network you see on the home page — drag any node,
+          filter by group, and follow the backlinks. Structure here is
+          illustrative; your real evidence lives in your wallet.
+        </p>
+        {/* Node taxonomy (the three groups the graph colors by) + the provenance
+            terms the record uses. Listed in source so the model is auditable. */}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Node groups: <strong>Holder</strong> (clinician) · <strong>Verifier</strong> (employer) ·{' '}
+          <strong>Issuer</strong> · Sources &amp; specialties. Every claim carries a provenance state —
+          Source-confirmed, User-entered, Inferred, or Unknown.
         </p>
       </header>
 
