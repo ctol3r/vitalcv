@@ -150,6 +150,22 @@ export default async function RootLayout({
   }
 
   // wave1505 DG-12.1: theme Clerk to the house paper/ink system (no default purple).
-  return <ClerkProvider appearance={clerkAppearance}>{hydratedContent}</ClerkProvider>;
+  //
+  // The fallback redirect URLs are load-bearing, NOT optional: when a user hits
+  // /sign-in or /sign-up directly (e.g. the navbar "Sign In", which carries no
+  // ?redirect_url), Clerk uses these to land them in the workspace. Without
+  // them Clerk falls back to homeUrl ("/"), so a successful sign-in dumps the
+  // user back on the marketing homepage and never routes through /auth/resolving
+  // to mint their role — which reads as "sign-in doesn't work." (Regressed once
+  // when the appearance prop was added; guarded by clerk-provider-redirect.test.)
+  return (
+    <ClerkProvider
+      appearance={clerkAppearance}
+      signInFallbackRedirectUrl="/holder"
+      signUpFallbackRedirectUrl="/holder"
+    >
+      {hydratedContent}
+    </ClerkProvider>
+  );
 }
 // polish wave
