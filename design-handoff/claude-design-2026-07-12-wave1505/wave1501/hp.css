@@ -1,0 +1,201 @@
+/* ============================================================
+   VitalCV · Wave 1501 · hp.css — homepage layout ONLY.
+   Colors: --vt-* semantic tokens exclusively. No new hues.
+   Motion: single-shot, var(--ease-house), 240–420ms, reduced-
+   motion static fallbacks throughout.
+   ============================================================ */
+
+/* ---- section rhythm (DG-7.12) ---- */
+.hp-container { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--space-6); }
+.hp-section { padding: var(--space-24) 0; border-top: 1px solid var(--vt-rule); scroll-margin-top: 72px; }
+.hp-sechead { display: flex; flex-direction: column; gap: var(--space-4); max-width: 60ch; margin-bottom: var(--space-12); }
+.hp-sechead h2 { font-size: var(--text-3xl); line-height: 1.08; }
+.hp-sechead p.lede { margin: 0; font-size: var(--text-md); line-height: 1.65; color: var(--vt-text-secondary); max-width: 52ch; }
+@media (max-width: 720px) {
+  .hp-section { padding: var(--space-16) 0; }
+  .hp-sechead { margin-bottom: var(--space-8); }
+  .hp-sechead h2 { font-size: var(--text-2xl); }
+}
+
+/* ---- single-shot entrance (gated on .js so no-JS never hides content) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html.js.motion-live .hp-reveal { opacity: 0; transform: translateY(12px);
+    transition: opacity var(--dur-base) var(--ease-house), transform var(--dur-base) var(--ease-house); }
+  html.js.motion-live .hp-reveal.is-in { opacity: 1; transform: none; }
+  @keyframes hp-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  html { scroll-behavior: smooth; }
+}
+@media print { .hp-reveal { opacity: 1 !important; transform: none !important; } }
+
+/* ---- nav ---- */
+.hp-nav { position: sticky; top: 0; z-index: 40; background: var(--vt-surface-page); border-bottom: 1px solid var(--vt-rule); }
+.hp-nav-inner { display: flex; align-items: center; gap: var(--space-8); padding: 14px 0; }
+.hp-brand { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.01em; text-decoration: none; color: var(--vt-text); }
+.hp-brand:hover { color: var(--vt-text); text-decoration: none; }
+.hp-nav-links { margin-left: auto; display: flex; align-items: center; gap: var(--space-6); }
+.hp-nav-links a { font-size: 13px; text-decoration: none; color: var(--vt-text-secondary); }
+.hp-nav-links a:hover { color: var(--vt-text); text-decoration: none; }
+@media (max-width: 680px) { .hp-nav-links a.hp-nav-hide { display: none; } }
+
+/* ---- hero (DG-7.1) ---- */
+.hp-hero { padding: var(--space-16) 0 var(--space-24); }
+.hp-hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: var(--space-16); align-items: center; }
+.hp-hero h1 { font-size: var(--text-display); line-height: 1.04; }
+.hp-hero p.lede { margin: 0; font-size: var(--text-md); line-height: 1.65; color: var(--vt-text-secondary); max-width: 46ch; }
+@media (max-width: 980px) {
+  .hp-hero { padding: var(--space-10) 0 var(--space-16); }
+  .hp-hero-grid { grid-template-columns: 1fr; gap: var(--space-12); }
+}
+
+/* ---- NPI segmented input (DG-7.2) ---- */
+.npi-cells { position: relative; display: flex; gap: 6px; cursor: text; }
+.npi-cell { flex: 1 1 0; min-width: 0; height: 56px; display: grid; place-items: center;
+  background: var(--vt-surface-card); border: 1px solid var(--vt-rule); border-radius: var(--radius-1);
+  font-family: var(--font-mono); font-size: 20px; color: var(--vt-text); font-variant-numeric: tabular-nums; }
+.npi-cell.filled { border-color: var(--vt-rule-strong); }
+.npi-cell.active { border-color: var(--vt-rule-strong); box-shadow: inset 0 -2px 0 var(--vt-rule-strong); }
+.npi-cells.error .npi-cell { border-color: var(--vt-state-p0-rule); }
+.npi-cells.error .npi-cell.filled { border-color: var(--vt-state-p0); }
+.npi-real { position: absolute; inset: 0; width: 100%; opacity: 0; border: none; outline: none;
+  background: transparent; color: transparent; caret-color: transparent; font-size: 16px; }
+.npi-cells:focus-within { box-shadow: var(--vt-focus-ring); border-radius: var(--radius-1); }
+/* calm single-pulse on focus — one shot, never loops */
+.npi-cells::after { content: ''; position: absolute; inset: -5px; border: 1px solid var(--vt-brand);
+  border-radius: var(--radius-2); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .npi-cells:focus-within::after { animation: npi-pulse var(--dur-slow) var(--ease-house) 1 both; }
+  @keyframes npi-pulse { 0% { opacity: 0.9; transform: scale(0.99); } 100% { opacity: 0; transform: none; } }
+}
+.npi-meta { display: flex; align-items: baseline; gap: var(--space-4); margin-top: 10px; flex-wrap: wrap; }
+.npi-count { font-family: var(--font-mono); font-size: 11px; color: var(--vt-text-muted); font-variant-numeric: tabular-nums; }
+.npi-count.done { color: var(--vt-state-checked); }
+.npi-micro { font-size: 11.5px; color: var(--vt-text-muted); }
+.npi-err { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; line-height: 1.5; color: var(--vt-state-p0); }
+@media (max-width: 420px) { .npi-cell { height: 46px; font-size: 16px; } .npi-cells { gap: 4px; } }
+
+/* ---- source chips row (DG-7.4) ---- */
+.src-reads { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-top: var(--space-5); }
+
+/* ---- how it works (DG-7.5) ---- */
+.how-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0 var(--space-6); margin-top: var(--space-16); }
+.how-step { border-top: 1px solid var(--vt-rule); position: relative; padding-right: var(--space-2); }
+.how-num { font-family: var(--font-display); font-size: 44px; font-weight: 560; line-height: 1;
+  display: inline-block; background: var(--vt-surface-page); padding-right: 14px; transform: translateY(-54%); }
+.how-step h3 { font-family: var(--font-body); font-size: 14.5px; font-weight: 600; letter-spacing: 0; margin: 2px 0 6px; }
+.how-step p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--vt-text-secondary); }
+@media (max-width: 900px) {
+  .how-grid { grid-template-columns: 1fr; gap: var(--space-8) 0; margin-top: var(--space-10); }
+  .how-step { padding-bottom: 0; }
+  .how-num { font-size: 36px; }
+}
+
+/* ---- why this compounds (DG-7.6) ---- */
+.why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+.why-card h3 { font-size: var(--text-lg); margin: 10px 0 8px; }
+.why-card p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--vt-text-secondary); }
+@media (max-width: 900px) { .why-grid { grid-template-columns: 1fr; } }
+
+/* ---- CanonicalPath strip ---- */
+.cpath { display: flex; align-items: stretch; border: 1px solid var(--vt-rule-strong);
+  border-radius: var(--radius-2); background: var(--vt-surface-card); margin-top: var(--space-10); overflow: hidden; }
+.cpath-cell { flex: 1 1 0; min-width: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: 7px; }
+.cpath-label { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: var(--vt-text); }
+.cpath-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cpath-dot.recognition { background: var(--vt-brand); }
+.cpath-dot.acceptance { background: transparent; border: 1.5px solid var(--vt-text); }
+.cpath-dot.start { background: var(--vt-text); }
+.cpath-def { font-size: 12.5px; line-height: 1.5; color: var(--vt-text-secondary); }
+.cpath-arrow { display: grid; place-items: center; padding: 0 var(--space-3);
+  color: var(--vt-text-muted); border-left: 1px solid var(--vt-rule-soft); border-right: 1px solid var(--vt-rule-soft);
+  font-family: var(--font-mono); font-size: 14px; flex-shrink: 0; }
+@media (max-width: 760px) {
+  .cpath { flex-direction: column; }
+  .cpath-arrow { border: none; border-top: 1px solid var(--vt-rule-soft); border-bottom: 1px solid var(--vt-rule-soft); padding: var(--space-1) 0; }
+}
+
+/* ---- MATCHA demo (DG-7.7) — quieter than hero; matcha family allowed here ---- */
+.mt-panel { background: var(--vt-brand-soft); border: 1px solid var(--vt-brand-rule); border-radius: var(--radius-3); padding: var(--space-8); }
+.mt-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.mt-chip { min-height: 44px; padding: 10px 18px; background: var(--vt-surface-card); color: var(--vt-text);
+  border: 1px solid var(--vt-brand-rule); border-radius: var(--radius-2); font-family: var(--font-body);
+  font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
+  transition: border-color var(--dur-fast) var(--ease-house), box-shadow var(--dur-fast) var(--ease-house); }
+.mt-chip:hover { border-color: var(--vt-brand); }
+.mt-chip[aria-pressed="true"] { border-color: var(--vt-brand); box-shadow: inset 0 0 0 1px var(--vt-brand); }
+.mt-answer { margin-top: var(--space-6); background: var(--vt-surface-card); border: 1px solid var(--vt-brand-rule);
+  border-radius: var(--radius-2); padding: var(--space-6); }
+@media (prefers-reduced-motion: no-preference) {
+  html.motion-live .mt-answer { animation: hp-enter 240ms var(--ease-house) both; }
+}
+.mt-answer p { margin: 0 0 14px; font-size: 14px; line-height: 1.65; color: var(--vt-text); max-width: 62ch; }
+.mt-answer .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+@media (max-width: 720px) { .mt-panel { padding: var(--space-5); } }
+
+/* ---- constellation (DG-7.8) ---- */
+.sky-wrap { border: 1px solid var(--vt-rule); background: var(--vt-surface-card); border-radius: var(--radius-2); overflow: hidden; }
+.sky-stage { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sky-stage.draggable { cursor: grab; }
+.sky-stage.dragging { cursor: grabbing; }
+.sky-foot { display: flex; align-items: center; gap: var(--space-6); padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--vt-rule-soft); flex-wrap: wrap; }
+.sky-slider { flex: 1 1 260px; min-width: 220px; }
+.sky-ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 9.5px;
+  font-weight: 500; letter-spacing: 0.16em; color: var(--vt-text-muted); margin-top: 2px; }
+.sky-ticks .on { color: var(--vt-text); }
+.sky-hint { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--vt-text-faint); }
+
+/* form-kit range (consumes tokens only) */
+.vt-range { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; margin: 0; cursor: pointer; }
+.vt-range::-webkit-slider-runnable-track { height: 2px; background: var(--vt-rule); }
+.vt-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -7px;
+  background: var(--vt-surface-card); border: 2px solid var(--vt-rule-strong); border-radius: var(--radius-1); }
+.vt-range::-moz-range-track { height: 2px; background: var(--vt-rule); }
+.vt-range::-moz-range-thumb { width: 12px; height: 12px; background: var(--vt-surface-card);
+  border: 2px solid var(--vt-rule-strong); border-radius: var(--radius-1); }
+.vt-range:focus-visible { outline: none; box-shadow: none; }
+.vt-range:focus-visible::-webkit-slider-thumb { box-shadow: var(--vt-focus-ring); }
+.vt-range:focus-visible::-moz-range-thumb { box-shadow: var(--vt-focus-ring); }
+
+/* ---- role doors (DG-7.9) ---- */
+.door-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); align-items: stretch; }
+.door { display: flex; flex-direction: column; gap: 12px; padding: var(--space-6); min-height: 220px;
+  background: var(--vt-surface-card); border: 1px solid var(--vt-rule); border-radius: var(--radius-2);
+  text-decoration: none; color: var(--vt-text);
+  transition: transform var(--dur-fast) var(--ease-house), box-shadow var(--dur-fast) var(--ease-house), border-color var(--dur-fast) var(--ease-house); }
+.door:hover { transform: translateY(-2px); box-shadow: var(--vt-lift); border-color: var(--vt-rule-strong); text-decoration: none; color: var(--vt-text); }
+.door h3 { font-size: var(--text-lg); margin-top: 2px; }
+.door p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--vt-text-secondary); flex-grow: 1; }
+.door-cta { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--vt-text); display: inline-flex; gap: 8px; align-items: center; }
+@media (max-width: 1000px) { .door-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .door-grid { grid-template-columns: 1fr; } .door { min-height: 0; } }
+
+/* ---- who buys in (DG-7.10) ---- */
+.who-dl { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8) var(--space-16); margin: 0; }
+.who-item { border-top: 1px solid var(--vt-rule); padding-top: var(--space-4); }
+.who-item dt { font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.2em; color: var(--vt-text-faint); }
+.who-item dd { margin: 8px 0 0; font-size: 14px; line-height: 1.65; color: var(--vt-text-secondary); }
+@media (max-width: 760px) { .who-dl { grid-template-columns: 1fr; gap: var(--space-6); } }
+
+/* ---- footer (DG-7.11) ---- */
+.hp-foot { border-top: 1px solid var(--vt-rule); padding: var(--space-16) 0 var(--space-10); }
+.foot-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: var(--space-8); }
+.foot-col h4 { font-family: var(--font-mono); font-size: var(--text-2xs); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.2em; color: var(--vt-text-faint); margin: 0 0 12px; }
+.foot-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.foot-col a { font-size: 13px; color: var(--vt-text-secondary); text-decoration: none; }
+.foot-col a:hover { color: var(--vt-text); text-decoration: underline; text-decoration-color: var(--vt-brand); }
+.foot-base { margin-top: var(--space-12); padding-top: var(--space-5); border-top: 1px solid var(--vt-rule-soft);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.foot-copy { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--vt-text-muted); }
+@media (max-width: 860px) { .foot-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .foot-grid { grid-template-columns: 1fr; } }
+
+/* ---- reduced-motion static fallbacks ---- */
+@media (prefers-reduced-motion: reduce) {
+  .door, .mt-chip, .npi-cells::after { transition: none; animation: none; }
+  .door:hover { transform: none; box-shadow: none; }
+}

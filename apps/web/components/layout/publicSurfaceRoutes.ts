@@ -47,6 +47,8 @@ export const OPS_SURFACE_PREFIXES = [
   '/system-health',
   '/network',
   '/mission-ops',
+  // Design-reference surfaces carry their own chrome (wave1505 port et al.)
+  '/design',
 ] as const;
 
 const PREFIX_MATCHERS = [
