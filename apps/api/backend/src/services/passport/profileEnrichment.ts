@@ -43,6 +43,28 @@ export interface PassportPracticeLocation {
 export interface PassportSelfReported {
   education?: Array<{ institution: string; degree?: string; graduationYear?: number }>;
   affiliations?: Array<{ organization: string; role?: string }>;
+  /** Clinician-provided Doximity profile URL (USER_ENTERED, host-validated). */
+  doximityUrl?: string;
+}
+
+/**
+ * Accept only a well-formed https Doximity profile URL. Anything else
+ * (other host, non-https, garbage) is dropped rather than shown — a
+ * self-attested external link must at least point at Doximity.
+ */
+export function cleanDoximityUrl(value: unknown): string | undefined {
+  const raw = cleanString(value);
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  const host = url.hostname.toLowerCase();
+  if (host !== 'doximity.com' && host !== 'www.doximity.com') return undefined;
+  return url.toString();
 }
 
 /** Claim statuses that must never surface a value (revoked fails closed). */
@@ -170,13 +192,16 @@ export async function loadSelfReportedByNpi(
     }
   }
 
-  // The clinician provided nothing in either section → omit selfReported entirely.
-  if (education.length === 0 && affiliations.length === 0) {
+  const doximityUrl = cleanDoximityUrl(sa.doximityUrl);
+
+  // The clinician provided nothing in any section → omit selfReported entirely.
+  if (education.length === 0 && affiliations.length === 0 && !doximityUrl) {
     return null;
   }
 
   const selfReported: PassportSelfReported = {};
   if (education.length > 0) selfReported.education = education;
   if (affiliations.length > 0) selfReported.affiliations = affiliations;
+  if (doximityUrl) selfReported.doximityUrl = doximityUrl;
   return selfReported;
 }

@@ -115,9 +115,16 @@ export interface PassportData {
     lastCheckedAt?: string;
   } | null;
   /** Self-reported profile — USER_ENTERED only; present only when the clinician provided it. */
+  /**
+   * License numbers on file with NPPES (self-reported at enumeration).
+   * Identity-grade only — never carries a status. Present only when NPPES has one.
+   */
+  nppesLicensure?: Array<{ state: string | null; licenseNumber: string }>;
   selfReported?: {
     education?: Array<{ institution: string; degree?: string; graduationYear?: number }>;
     affiliations?: Array<{ organization: string; role?: string }>;
+    /** Clinician-provided Doximity profile URL (USER_ENTERED, host-validated upstream). */
+    doximityUrl?: string;
   } | null;
   authority: {
     credentials: Array<{

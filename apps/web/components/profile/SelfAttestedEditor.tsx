@@ -18,7 +18,7 @@ import type {
   SelfAttestedProfile,
   SelfAttestedWorkEntry,
 } from '@/lib/clinician-profile/selfAttested';
-import { parseSelfAttested } from '@/lib/clinician-profile/selfAttested';
+import { cleanDoximityUrl, parseSelfAttested } from '@/lib/clinician-profile/selfAttested';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -35,6 +35,7 @@ interface EditorState {
   affiliations: Array<{ organization: string; role: string }>;
   careerGoals: string;
   researchSummary: string;
+  doximityUrl: string;
 }
 
 function toEditorState(sa: SelfAttestedProfile): EditorState {
@@ -55,6 +56,7 @@ function toEditorState(sa: SelfAttestedProfile): EditorState {
     affiliations: (sa.affiliations ?? []).map((a) => ({ organization: a.organization, role: a.role ?? '' })),
     careerGoals: sa.careerGoals ?? '',
     researchSummary: sa.researchSummary ?? '',
+    doximityUrl: sa.doximityUrl ?? '',
   };
 }
 
@@ -113,6 +115,11 @@ function toPayload(s: EditorState): SelfAttestedProfile {
 
   if (s.careerGoals.trim()) out.careerGoals = s.careerGoals.trim();
   if (s.researchSummary.trim()) out.researchSummary = s.researchSummary.trim();
+
+  // Host-validate the Doximity link; an off-Doximity or malformed value is
+  // dropped rather than stored (mirrors the backend sanitizer).
+  const doximityUrl = cleanDoximityUrl(s.doximityUrl);
+  if (doximityUrl) out.doximityUrl = doximityUrl;
 
   return out;
 }
@@ -329,6 +336,28 @@ export default function SelfAttestedEditor({
             <textarea className={INPUT_CLASS} style={INPUT_STYLE} rows={2} value={state.researchSummary}
               disabled={saving} onChange={(e) => patch({ researchSummary: e.target.value })}
               placeholder="A short summary of your research interests or output." />
+          </Labeled>
+        </FieldGroup>
+
+        {/* External profiles */}
+        <FieldGroup label="External profiles">
+          <Labeled label="Doximity profile">
+            <input
+              className={INPUT_CLASS}
+              style={INPUT_STYLE}
+              type="url"
+              inputMode="url"
+              value={state.doximityUrl}
+              disabled={saving}
+              onChange={(e) => patch({ doximityUrl: e.target.value })}
+              placeholder="https://www.doximity.com/profiles/your-profile"
+              aria-describedby="doximity-help"
+            />
+            <p id="doximity-help" className="mt-1 text-[11px]" style={{ color: 'var(--ink-soft)' }}>
+              {state.doximityUrl.trim() && !cleanDoximityUrl(state.doximityUrl)
+                ? 'Enter a full https://doximity.com profile link — other links are not saved.'
+                : 'Optional. A self-reported link to your Doximity profile. Not a verification.'}
+            </p>
           </Labeled>
         </FieldGroup>
 

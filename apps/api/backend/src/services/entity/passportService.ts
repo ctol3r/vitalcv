@@ -312,6 +312,12 @@ export interface TrustPassport {
   identity:       PassportIdentity;
   /** Practice location — source-backed from NPPES (never null-fabricated). */
   practiceLocation?: PassportPracticeLocation | null;
+  /**
+   * License numbers on file with NPPES (self-reported at enumeration).
+   * Identity-grade only — NPPES does not verify these against the board, so
+   * they never carry a status here. Present only when NPPES has one.
+   */
+  nppesLicensure?: NppesSelfReportedLicense[];
   /** Self-reported profile — USER_ENTERED only; present only when the clinician provided it. */
   selfReported?:  PassportSelfReported | null;
   authority:      PassportAuthority;
@@ -488,6 +494,49 @@ function resolveSpecialtyFromNppesArtifact(rawPayload: unknown): string | undefi
   )) ?? taxonomies.find((entry: unknown) => stringValue(asRecord(entry).desc));
 
   return stringValue(asRecord(preferredTaxonomy).desc);
+}
+
+/**
+ * NPPES self-reported licensure numbers.
+ *
+ * Providers record a state license number + state alongside each taxonomy
+ * when they enumerate their NPI. NPPES stores that string verbatim and does
+ * NOT verify it against the state board — it carries no license *status* and
+ * can be years stale. So this is identity-grade only: we surface the number
+ * (like public NPI directories do) but never render a status here. A live,
+ * fresh board result is the only thing that may attach a status, and that
+ * lives on the authority-verification path, not this list.
+ */
+export interface NppesSelfReportedLicense {
+  state: string | null;
+  licenseNumber: string;
+}
+
+export function resolveNppesLicensuresFromArtifact(rawPayload: unknown): NppesSelfReportedLicense[] {
+  const payload = pickArtifactPayload(rawPayload);
+  const nestedResults = Array.isArray(payload.results) ? payload.results : [];
+  const nestedResult = asRecord(nestedResults[0]);
+  const taxonomies: unknown[] = Array.isArray(payload.taxonomies)
+    ? payload.taxonomies
+    : Array.isArray(nestedResult.taxonomies)
+      ? nestedResult.taxonomies
+      : Array.isArray(asRecord(payload.basic).taxonomies)
+        ? (asRecord(payload.basic).taxonomies as unknown[])
+        : [];
+
+  const seen = new Set<string>();
+  const licenses: NppesSelfReportedLicense[] = [];
+  for (const entry of taxonomies) {
+    const record = asRecord(entry);
+    const licenseNumber = stringValue(record.license);
+    if (!licenseNumber) continue;
+    const state = stringValue(record.state) ?? null;
+    const key = `${state ?? ''}:${licenseNumber}`.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    licenses.push({ state, licenseNumber });
+  }
+  return licenses;
 }
 
 function isReadinessBlockingFinding(finding: string): boolean {
@@ -2323,6 +2372,9 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     loadSelfReportedByNpi(npi),
   ]);
 
+  // NPPES self-reported license numbers — identity-grade, no status.
+  const nppesLicensure = resolveNppesLicensuresFromArtifact(nppesIdentityArtifact?.rawPayload);
+
   log('info', 'passport_built', {
     entityId, npi, readinessStatus, score: readiness.score,
     decisionPosture: decisionPosture.status,
@@ -2334,6 +2386,7 @@ export async function buildPassport(entityId: string): Promise<TrustPassport | n
     npi,
     identity,
     practiceLocation,
+    ...(nppesLicensure.length > 0 ? { nppesLicensure } : {}),
     selfReported,
     authority,
     training,
