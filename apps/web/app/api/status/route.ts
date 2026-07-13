@@ -111,14 +111,17 @@ export async function GET() {
       nppes_identity: {
         lifecycle: 'active',
         status: 'operational',
+        detail: 'Live NPPES registry lookups.',
       },
       oig_exclusions: {
-        lifecycle: 'planned',
-        status: 'pending_integration',
+        lifecycle: 'active',
+        status: 'operational',
+        detail: 'Monthly LEIE snapshot cache with nightly exclusion sweep; fails closed when the cache is stale.',
       },
       state_license: {
         lifecycle: 'planned',
         status: 'pending_integration',
+        detail: 'Launch-state board lane requires live board or FSMB institutional access.',
       },
       employment_history: {
         lifecycle: 'demo_only',
@@ -129,8 +132,9 @@ export async function GET() {
         status: 'not_implemented',
       },
       pecos_enrollment: {
-        lifecycle: 'planned',
-        status: 'pending_integration',
+        lifecycle: 'active',
+        status: 'operational',
+        detail: 'Quarterly PECOS snapshot; snapshot age is surfaced as staleness on trust surfaces.',
       },
     },
 

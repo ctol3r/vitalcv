@@ -24,7 +24,7 @@ describe('sourceOpsService', () => {
     process.env.OIG_LEIE_ENABLED = 'true';
     process.env.PECOS_ENABLED = 'true';
     process.env.STATE_BOARD_ENABLED = 'true';
-    process.env.NURSYS_ENABLED = 'true';
+    process.env.REAL_NURSYS_ENABLED = 'true';
     delete process.env.OFAC_SDN_ENABLED;
     mockIntegrationHealth();
   });
@@ -35,7 +35,7 @@ describe('sourceOpsService', () => {
     delete process.env.OIG_LEIE_ENABLED;
     delete process.env.PECOS_ENABLED;
     delete process.env.STATE_BOARD_ENABLED;
-    delete process.env.NURSYS_ENABLED;
+    delete process.env.REAL_NURSYS_ENABLED;
     delete process.env.OFAC_SDN_ENABLED;
   });
 

@@ -53,13 +53,20 @@ describe('verification source registry fail-closed policy', () => {
     expect(() => getVerificationSource('NURSYS_STUB')).toThrow(SourceAccessRequiredError);
   });
 
-  it('still refuses REAL_NURSYS_ENABLED=true until a live adapter exists', () => {
+  it('still refuses REAL_NURSYS_ENABLED=true in production until a live adapter exists', () => {
+    // Post-#624 the flag-on/no-adapter path resolves an honest
+    // access-pending placeholder (UNKNOWN → needs_review) instead of
+    // crashing callers; the production decision-grade gate refuses it
+    // with the same SourceAccessRequiredError taxonomy callers handle.
     const original = process.env.REAL_NURSYS_ENABLED;
     process.env.REAL_NURSYS_ENABLED = 'true';
     try {
-      expect(() => getVerificationSource('NURSYS')).toThrow(
-        /Real Nursys adapter not implemented/,
-      );
+      const devServed = getVerificationSource('NURSYS');
+      expect(devServed.name).toBe('NURSYS_ACCESS_PENDING');
+      expect(devServed.decisionGrade).toBe(false);
+
+      asProduction();
+      expect(() => getVerificationSource('NURSYS')).toThrow(SourceAccessRequiredError);
     } finally {
       if (original === undefined) {
         delete process.env.REAL_NURSYS_ENABLED;

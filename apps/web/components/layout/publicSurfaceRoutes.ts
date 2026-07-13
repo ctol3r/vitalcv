@@ -21,6 +21,8 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/compliance',
   '/privacy',
   '/terms',
+  '/contact',
+  '/trust',
 ]);
 
 export function isPublicSafe(route: string): boolean {
@@ -47,6 +49,12 @@ export const OPS_SURFACE_PREFIXES = [
   '/system-health',
   '/network',
   '/mission-ops',
+  '/operations-engine',
+  '/ops/engine',
+  // Design-reference surfaces carry their own chrome (wave1505 port et al.)
+  '/design',
+  // Immersive career-evidence graph explorer (own chrome + dark/light toggle)
+  '/evidence-network',
 ] as const;
 
 const PREFIX_MATCHERS = [
@@ -63,6 +71,8 @@ const PREFIX_MATCHERS = [
   '/review',
   '/verify',
   '/clip',
+  '/trust',
+  '/legal',
   '/matcha',
 ] as const;
 
