@@ -1,6 +1,12 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
+import { ProfileHeader } from '@/components/clinician/ProfileHeader';
+
+// The header renders a Clerk-backed avatar/name (useUser), so this page can't
+// be statically prerendered (no ClerkProvider runtime at build time). Render at
+// request time, inside the root ClerkProvider.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Clinician Profile · VitalCV',
@@ -152,23 +158,19 @@ export default function ClinicianProfilePage() {
   const completionPercent = totalFields === 0 ? 0 : Math.round((filledFields / totalFields) * 100);
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-      <header className="mb-8 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Clinician profile
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-          Your credential record
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <strong>User-entered information is not verified until source-backed
-          evidence is attached.</strong> Provenance badges show where each field
-          stands today.
-        </p>
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:py-10">
+      <ProfileHeader />
 
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        <strong>User-entered information is not verified until source-backed
+        evidence is attached.</strong> Provenance badges show where each field
+        stands today.
+      </p>
+
+      <div className="space-y-5">
         <section
           aria-labelledby="completion-summary-heading"
-          className="mt-5 rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+          className="rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
         >
           <h2 id="completion-summary-heading" className="text-sm font-semibold">
             Profile completion summary
@@ -190,9 +192,7 @@ export default function ClinicianProfilePage() {
             </div>
           </dl>
         </section>
-      </header>
 
-      <div className="space-y-5">
         {SECTIONS.map((section) => (
           <section
             key={section.key}

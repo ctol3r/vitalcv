@@ -1,5 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+
+// The profile now renders a Clerk-backed <ProfileHeader/> (avatar + name). Mock
+// Clerk so the page renders signed-out in this bare render test; the header
+// degrades to a placeholder and the truth-contract SECTIONS below still render.
+vi.mock('@clerk/nextjs', () => ({
+  useUser: () => ({ isLoaded: true, isSignedIn: false, user: null }),
+  useClerk: () => ({ openUserProfile: () => {} }),
+}));
+
 import ClinicianProfilePage from '@/app/clinician/profile/page';
 
 /**
