@@ -244,26 +244,26 @@ const VALUE_CARDS = [
  * Role doors — four entry points keyed off operator role. Clinician leads.
  * Each door is a calm card with a single action.
  */
+// Three user groups per doctrine: holder (clinician), verifier (= employer),
+// and issuer. Verifier and employer are ONE group — the party that looks up
+// NPIs and accepts a shared passport as a head start — so they share one door.
 const ROLE_DOORS = [
   {
+    slug: 'clinician',
     role: 'Clinician',
     action: 'Claim my NPI record',
     href: '/onboarding',
     blurb: 'Open the wallet tied to your NPI and see your readiness.',
   },
   {
-    role: 'Verifier',
-    action: 'Look up an NPI',
-    href: '/',
-    blurb: 'See what is source-backed about a clinician.',
-  },
-  {
-    role: 'Employer',
+    slug: 'verifier',
+    role: 'Employer / Verifier',
     action: 'Review a passport',
     href: '/pilot',
-    blurb: 'Reviewer-ready head start, not a final credentialing decision.',
+    blurb: 'Look up an NPI, or review a shared passport — a reviewer-ready head start, not a final credentialing decision.',
   },
   {
+    slug: 'issuer',
     role: 'Issuer',
     action: 'Connect a source',
     // /issuer has no landing page (only per-request demo renders under
@@ -993,7 +993,7 @@ export default function HomePageClient() {
               </div>
           </section>
 
-          {/* Role doors — four calm entry points, clinician first */}
+          {/* Role doors — three calm entry points, clinician first */}
           <section
             aria-label="Role-specific entry points"
             data-home-role-doors=""
@@ -1001,15 +1001,15 @@ export default function HomePageClient() {
           >
             <p className="mz-eyebrow">By role</p>
             <p className="mz-body" style={{ marginTop: 12, maxWidth: 620 }}>
-              Four doors, one shared outcome — a clinician hired and started,
+              Three doors, one shared outcome — a clinician hired and started,
               faster.
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {ROLE_DOORS.map((door) => (
                 <Link
-                  key={door.role}
+                  key={door.slug}
                   href={door.href}
-                  data-home-role-door={door.role.toLowerCase()}
+                  data-home-role-door={door.slug}
                   className="mz-interactive group flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4 hover:border-[var(--vt-text-primary)]"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
