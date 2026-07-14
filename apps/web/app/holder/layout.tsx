@@ -6,6 +6,7 @@ import ClinicianLaunchTracker from '@/components/mobile/ClinicianLaunchTracker';
 import NetworkStatusBanner from '@/components/mobile/NetworkStatusBanner';
 import { MobileBottomNav } from '@/components/clinician/MobileBottomNav';
 import { HolderDesktopNav } from '@/components/holder/HolderDesktopNav';
+import { HolderWorkspaceShell } from '@/components/holder/HolderWorkspaceShell';
 import { loadClinicianMobileData } from '@/lib/mobile/server';
 
 export const metadata: Metadata = {
@@ -28,19 +29,18 @@ export default async function HolderLayout({
 
   return (
     <ClinicianMobileProvider initialData={initialData}>
-      {/* The clinician workspace is a fixed-dark "instrument" surface
-          (bg-ops-gradient). Pin the subtree to `dark` so every themed token
-          (text-foreground, .mz, .vcv-doc, Calm Wave --ink/--card) resolves to
-          its dark-mode value — otherwise the light-default global theme leaves
-          theme-aware text dark-on-dark (invisible). text-white content is
-          unaffected. Full in-workspace light mode is a follow-up migration. */}
-      <div className="dark mz mz-persona-holder flex min-h-screen flex-col bg-ops-gradient selection:bg-vt-info/30 text-foreground">
+      {/* Workspace gets its own light/dark theme (default dark — the verified
+          instrument look), toggled from the nav. HolderWorkspaceShell owns the
+          `dark`/`mz-paper` class + the theme context. Home surface is fully
+          `.mz` and renders in both; other full-page surfaces are being migrated
+          to `.mz` and look best in dark until then (hence dark stays default). */}
+      <HolderWorkspaceShell>
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />
         <HolderDesktopNav />
         <div className="flex-1 pb-20 md:pb-0">{children}</div>
         <MobileBottomNav />
-      </div>
+      </HolderWorkspaceShell>
     </ClinicianMobileProvider>
   );
 }
