@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { Moon, Sun } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 import { useHolderTheme } from '@/components/holder/HolderWorkspaceShell';
 
@@ -107,6 +108,9 @@ export function HolderDesktopNav() {
         <Link href="/holder/recognition" className="mz-btn mz-btn-sm shrink-0">
           Share / prove
         </Link>
+
+        {/* Account menu — Manage account + Sign out (Clerk). */}
+        <UserButton afterSignOutUrl="/" />
       </div>
     </nav>
   );
