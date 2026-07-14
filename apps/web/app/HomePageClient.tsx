@@ -525,7 +525,7 @@ export default function HomePageClient() {
         </SignedIn>
       )}
 
-      <main className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
+      <main className="relative mx-auto w-full max-w-[1200px] px-6 py-16 sm:py-20">
         <div className="w-full">
 
           {/* Hero — full Calm Wave D56: the Fraunces headline sits open on paper,

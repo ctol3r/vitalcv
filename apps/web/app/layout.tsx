@@ -13,28 +13,47 @@ import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
 import Providers from './providers';
+import localFont from 'next/font/local';
+
+// Real Fraunces — the Calm Wave display face — self-hosted as a variable woff2
+// in app/fonts. Self-hosted (not next/font/google) on purpose: the build must
+// never reach out to Google Fonts, which is why an earlier setup fell back to a
+// system serif and left the whole site rendering Georgia instead of the design's
+// Fraunces. The weight axis spans the 500/560 the display uses; Georgia stays as
+// the graceful fallback if the face ever fails to load.
+const fraunces = localFont({
+  src: './fonts/Fraunces-Variable.woff2',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-fraunces-loaded',
+  fallback: ['Georgia', 'Times New Roman', 'serif'],
+});
 
 const systemSansStack =
   "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const systemDisplayStack = "Georgia, 'Times New Roman', serif";
 const systemMonoStack =
   "ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+// Display/serif tokens now resolve to the loaded Fraunces face, with the system
+// serif kept inline as a var() fallback so a font miss still degrades cleanly.
+const displayStack = "var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif)";
 
 const fontVariables = {
   ...vdsCssVariables,
-  '--font-fraunces': systemDisplayStack,
+  '--font-fraunces': displayStack,
   '--font-plus-jakarta': systemSansStack,
   '--font-inter': systemSansStack,
   '--font-jetbrains': systemMonoStack,
   '--font-geist': systemSansStack,
   '--font-geist-mono': systemMonoStack,
   '--vt-font-body': systemSansStack,
-  '--vt-font-display': systemDisplayStack,
+  '--vt-font-display': displayStack,
   '--font-body': systemSansStack,
-  '--font-display': systemDisplayStack,
+  '--font-display': displayStack,
   '--font-sans': systemSansStack,
   '--font-heading': systemSansStack,
-  '--font-serif': systemDisplayStack,
+  '--font-serif': displayStack,
   '--font-mono': systemMonoStack,
 } as React.CSSProperties;
 
@@ -132,6 +151,7 @@ export default async function RootLayout({
   const hydratedContent = (
     <html
       lang="en"
+      className={fraunces.variable}
       style={fontVariables}
       suppressHydrationWarning
     >
