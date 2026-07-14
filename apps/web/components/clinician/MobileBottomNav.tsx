@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, Briefcase, CreditCard, Home, ShieldCheck } from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 
 export function MobileBottomNav() {
@@ -19,7 +20,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-vt-neutral-800 bg-vt-surface-ops-base/90 backdrop-blur-lg pb-safe md:hidden">
-      <div className="grid h-16 grid-cols-5 px-2">
+      <div className="grid h-16 grid-cols-6 px-2">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === '/holder/readiness'
             ? pathname.startsWith('/holder/readiness') || pathname.startsWith('/holder/blockers/')
@@ -60,6 +61,14 @@ export function MobileBottomNav() {
             </Link>
           );
         })}
+
+        {/* Account — Manage account + Sign out (Clerk). */}
+        <div className="flex flex-col items-center justify-center gap-1 px-1 text-vt-neutral-400">
+          <div className="flex h-8 w-8 items-center justify-center">
+            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'h-7 w-7' } }} />
+          </div>
+          <span className="text-[10px] sm:text-xs font-medium tracking-wide">Account</span>
+        </div>
       </div>
     </nav>
   );
