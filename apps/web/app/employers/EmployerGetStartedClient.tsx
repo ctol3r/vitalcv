@@ -129,7 +129,7 @@ export function EmployerGetStartedClient() {
           clinician passports.
         </p>
         <a
-          href="/verifier"
+          href="/employer/dashboard"
           className="inline-flex h-10 items-center justify-center rounded-lg bg-foreground px-6 text-sm font-medium text-background hover:opacity-90"
         >
           Open your employer workspace

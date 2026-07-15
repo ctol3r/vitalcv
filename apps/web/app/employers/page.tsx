@@ -89,7 +89,7 @@ export default function EmployersPage() {
             Request a pilot
           </Link>{' '}
           · Already set up?{' '}
-          <Link href="/verifier" className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
+          <Link href="/employer/dashboard" className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
             Open your workspace
           </Link>
         </p>
