@@ -18,19 +18,19 @@ export function SolutionCard({ role, title, headline, valueProps, reuses, href }
     <Link
       href={href}
       onClick={() => trackSolutionEvent('role_selected', role)}
-      className="group flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-colors hover:border-foreground"
+      className="mz-interactive group flex h-full flex-col rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 hover:border-[var(--vt-text-primary)]"
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <span aria-hidden className="text-muted-foreground transition-transform group-hover:translate-x-0.5">→</span>
+        <h2 className="text-[15px] font-semibold text-[var(--vt-text-primary)]">{title}</h2>
+        <span aria-hidden className="text-[var(--vt-text-muted)] transition-transform group-hover:translate-x-0.5">→</span>
       </div>
-      <p className="mt-1 text-sm text-foreground">{headline}</p>
-      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-[13px] text-[var(--vt-text-secondary)]">{headline}</p>
+      <ul className="mt-3 space-y-1 text-[12px] text-[var(--vt-text-secondary)]">
         {valueProps.map((p) => (
-          <li key={p} className="flex gap-2"><span aria-hidden>·</span><span>{p}</span></li>
+          <li key={p} className="flex gap-2"><span aria-hidden className="text-[var(--vt-text-muted)]">·</span><span>{p}</span></li>
         ))}
       </ul>
-      <p className="mt-4 text-[11px] uppercase tracking-wide text-muted-foreground">Reuses: {reuses.join(' · ')}</p>
+      <p className="mz-mono mt-4 text-[10px] uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">Reuses: {reuses.join(' · ')}</p>
     </Link>
   );
 }
