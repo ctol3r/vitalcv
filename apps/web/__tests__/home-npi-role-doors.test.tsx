@@ -75,12 +75,14 @@ describe('HomePageClient — clinician-value hero', () => {
 
   it('renders the NPI-first subhead with the career-network framing', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
+    // Living Trust v1 (2026-07-15, Chris): the subhead was trimmed from 5 lines
+    // to one confident sentence ("less wordy"). Still NPI-first + career-evidence
+    // + head-start + reusable framing, just tighter.
     expect(html).toContain('data-home-hero-subhead');
-    expect(html).toContain('career evidence network for clinician careers');
     expect(html).toContain('Start with your NPI.');
-    expect(html).toContain('employer-ready proof packet');
+    expect(html).toContain('primary-source career evidence');
     expect(html).toContain('accept as a head start');
-    expect(html).toContain('for every move of your career');
+    expect(html).toContain('reuse for every move');
   });
 
   it('renders "Check readiness" as the primary CTA label', () => {

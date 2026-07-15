@@ -44,13 +44,14 @@ export default function Navbar() {
   };
 
   return (
-    <header
-      /* Calm-glass header: frosted paper translucency + a neumorphic inset
-         top-light and a soft grounding shadow so the bar reads as lifted glass,
-         not a flat strip. Theme-safe (rgba shadows work on paper + dark). */
-      className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.38),0_10px_30px_-20px_rgba(2,6,23,0.35)]"
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-6">
+    <header className="sticky top-0 z-50 px-3 pt-3">
+      {/* Vital Glass — a floating frosted rail. Detached from the top edge and
+         translucent enough (60%) that page content frosts through it under a
+         high blur + saturate, with a bright inset top-sheen and a soft float
+         shadow. A flush frosted bar over flat paper read as nothing; a floating
+         translucent rail reads unmistakably as glass. Theme-safe. */}
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[color-mix(in_oklab,var(--foreground)_10%,transparent)] bg-[color-mix(in_oklab,var(--background)_60%,transparent)] backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_14px_40px_-18px_rgba(2,6,23,0.42)]">
+      <div className="flex h-16 items-center justify-between gap-6 px-5 sm:px-6">
 
         {/* Logo */}
         <Link
@@ -113,9 +114,9 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — inside the glass rail, on a near-opaque panel for legibility */}
       {menuOpen && (
-        <nav id="mobile-nav-menu" className="border-t border-border bg-background px-6 py-4 md:hidden">
+        <nav id="mobile-nav-menu" className="border-t border-border/60 bg-[color-mix(in_oklab,var(--background)_88%,transparent)] px-5 py-4 md:hidden">
           <ul className="space-y-1">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
@@ -152,6 +153,7 @@ export default function Navbar() {
           </div>
         </nav>
       )}
+      </div>
     </header>
   );
 }

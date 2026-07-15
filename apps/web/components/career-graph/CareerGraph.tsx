@@ -65,13 +65,18 @@ const easeOut = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
 interface SimNode extends CareerNode { x: number; y: number; vx: number; vy: number; deg: number; pinned: boolean; }
 
 interface Physics { center: number; repel: number; link: number; distance: number; frozen: boolean; }
-const DEFAULT_PHYSICS: Physics = { center: 0.012, repel: 1900, link: 0.05, distance: 96, frozen: false };
+// More spread (higher repel + link distance) so the network breathes instead of
+// piling into a dense knot — the recurring "too cluttered" note.
+const DEFAULT_PHYSICS: Physics = { center: 0.011, repel: 2300, link: 0.05, distance: 118, frozen: false };
 interface Display { arrows: boolean; textFade: number; nodeSize: number; linkThickness: number; }
 // textFade sets the label zoom gate: labels show when zoom >= 2.2 - textFade.
 // 1.6 => gate 0.6, so labels are legible at rest (default zoom 1.0) and stay on
 // until the graph is zoomed well out — a lower text threshold than the prior
 // 1.15 (gate 1.05, labels hidden at rest except hubs).
-const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 1.6, nodeSize: 1, linkThickness: 1 };
+// textFade 0.8 → label gate 1.4: at the resting zoom (1.0) labels are HIDDEN
+// except the major hubs (below), so the graph reads calm at rest and reveals the
+// rest as you zoom/hover — reversing the over-labelled, cluttered default.
+const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 0.8, nodeSize: 1, linkThickness: 1 };
 
 const ALL_GROUPS: GraphGroup[] = ['holder', 'verifier', 'issuer', 'evidence'];
 
@@ -370,7 +375,7 @@ export default function CareerGraph({
         // Below the zoom gate, still label the well-connected nodes (deg >= 3,
         // lowered from 6) so zoomed-out views keep more context, not just the
         // top hubs.
-        const big = n.deg >= 3;
+        const big = n.deg >= 5;
         if (!showLabels && !(hov && focus(n.id)) && !big) continue;
         if (hov && !focus(n.id)) continue;
         const r = radius(n) * (0.12 + 0.88 * eIntro), fs = Math.max(9, 11 / cam.zoom);
