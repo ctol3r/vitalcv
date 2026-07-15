@@ -549,13 +549,11 @@ export default function HomePageClient() {
                 </h1>
                 <p
                   data-home-hero-subhead=""
-                  className="max-w-2xl text-[18px] leading-[1.6] text-[var(--vt-text-secondary)]"
+                  className="max-w-xl text-[19px] leading-[1.55] text-[var(--vt-text-secondary)]"
                 >
-                  VitalCV is the career evidence network for clinician careers.
-                  Start with your NPI. Primary sources become your readiness
-                  snapshot and an employer-ready proof packet — evidence employers
-                  can accept as a head start, free for clinicians, and reusable
-                  for every move of your career.
+                  Start with your NPI. Your primary-source career evidence becomes a
+                  readiness packet employers accept as a head start — free, and yours
+                  to reuse for every move.
                 </p>
 
                 {/* Capability rail — the product's breadth, above the fold */}
