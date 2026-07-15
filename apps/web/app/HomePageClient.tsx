@@ -733,9 +733,11 @@ export default function HomePageClient() {
             <p className="mz-eyebrow">How it works</p>
             <div className="relative">
               <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {LOOP_STEPS.map((step) => (
-                <li
+              {LOOP_STEPS.map((step, i) => (
+                <Reveal
+                  as="li"
                   key={step.n}
+                  delay={i * 90}
                   data-home-loop-step={step.n}
                   className="mz-interactive relative flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
                 >
@@ -748,7 +750,7 @@ export default function HomePageClient() {
                   <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
                     {step.text}
                   </p>
-                </li>
+                </Reveal>
               ))}
               </ol>
             </div>
@@ -848,11 +850,13 @@ export default function HomePageClient() {
                 </div>
 
                 <ul className="grid gap-3 sm:grid-cols-2">
-                  {AI_CAPABILITIES.map((cap) => {
+                  {AI_CAPABILITIES.map((cap, i) => {
                     const Icon = cap.icon;
                     return (
-                      <li
+                      <Reveal
+                        as="li"
                         key={cap.key}
+                        delay={i * 80}
                         data-home-ai-card={cap.key}
                         className="mz-interactive flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
                       >
@@ -868,7 +872,7 @@ export default function HomePageClient() {
                         <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
                           {cap.text}
                         </p>
-                      </li>
+                      </Reveal>
                     );
                   })}
                 </ul>
@@ -884,11 +888,12 @@ export default function HomePageClient() {
           >
             <p className="mz-eyebrow">What you get</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {VALUE_CARDS.map((card) => {
+              {VALUE_CARDS.map((card, i) => {
                 const Icon = card.icon;
                 return (
-                  <div
+                  <Reveal
                     key={card.key}
+                    delay={i * 70}
                     data-home-value-card={card.key}
                     className="mz-interactive flex flex-col gap-3 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-5 py-5"
                   >
@@ -913,7 +918,7 @@ export default function HomePageClient() {
                         <ArrowRight size={14} aria-hidden="true" />
                       </Link>
                     ) : null}
-                  </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -923,11 +928,12 @@ export default function HomePageClient() {
           <section aria-label="Who VitalCV is for" data-home-audiences="" className="mt-16">
             <p className="mz-eyebrow">Who buys in</p>
             <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {BUYER_AUDIENCES.map((row) => {
+              {BUYER_AUDIENCES.map((row, i) => {
                 const Icon = row.icon;
                 return (
-                  <div
+                  <Reveal
                     key={row.key}
+                    delay={i * 60}
                     data-home-audience={row.key}
                     className="mz-interactive flex items-start gap-3 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
                   >
@@ -945,7 +951,7 @@ export default function HomePageClient() {
                         {row.value}
                       </span>
                     </span>
-                  </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -1005,23 +1011,24 @@ export default function HomePageClient() {
               faster.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {ROLE_DOORS.map((door) => (
-                <Link
-                  key={door.slug}
-                  href={door.href}
-                  data-home-role-door={door.slug}
-                  className="mz-interactive group flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4 hover:border-[var(--vt-text-primary)]"
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
-                    {door.role}
-                  </p>
-                  <p className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
-                    {door.action}
-                  </p>
-                  <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
-                    {door.blurb}
-                  </p>
-                </Link>
+              {ROLE_DOORS.map((door, i) => (
+                <Reveal key={door.slug} delay={i * 80}>
+                  <Link
+                    href={door.href}
+                    data-home-role-door={door.slug}
+                    className="mz-interactive group flex h-full flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4 hover:border-[var(--vt-text-primary)]"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--vt-text-muted)]">
+                      {door.role}
+                    </p>
+                    <p className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
+                      {door.action}
+                    </p>
+                    <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
+                      {door.blurb}
+                    </p>
+                  </Link>
+                </Reveal>
               ))}
             </div>
           </section>
