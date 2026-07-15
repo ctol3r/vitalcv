@@ -9,28 +9,31 @@ export const metadata = {
 
 export default function SolutionsPage() {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-5xl px-4 py-14">
+    // Calm Wave paper — the same house system as the homepage/employers/personas.
+    <div className="mz mz-paper mz-persona-verifier min-h-screen">
+      <main className="mx-auto w-full max-w-[1120px] px-5 py-16 sm:py-20">
         <header className="max-w-2xl">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Solutions</p>
-          <h1 className="mt-2 text-3xl font-semibold text-foreground">One platform, every healthcare-career role</h1>
-          <p className="mt-3 text-base text-muted-foreground">
+          <p className="mz-eyebrow">Solutions</p>
+          <h1 className="mz-h1" style={{ marginTop: 14, maxWidth: 720 }}>
+            One platform, every healthcare-career role
+          </h1>
+          <p className="mz-lede" style={{ marginTop: 14, maxWidth: 620 }}>
             Clinicians, recruiters, organizations, and enterprise teams all work from the same source-backed evidence,
             trust, timeline, mobility, and organization layers. Pick your path — each runs the real product on a sample clinician.
           </p>
         </header>
 
-        <section aria-label="Solutions by role" className="mt-10 grid gap-4 sm:grid-cols-2">
+        <section aria-label="Solutions by role" className="mt-10 grid gap-3 sm:grid-cols-2">
           {SOLUTIONS.map((s) => (
             <SolutionCard key={s.role} role={s.role} title={s.title} headline={s.headline} valueProps={s.valueProps} reuses={s.reuses} href={s.primaryPath(DEMO_ENTITY_ID)} />
           ))}
         </section>
 
-        <p className="mt-10 text-xs text-muted-foreground">
+        <p className="mz-small" style={{ marginTop: 40, maxWidth: 640 }}>
           Every path reuses the same shared infrastructure — no segment runs a different engine. Source coverage is reported
           honestly (checked / gated / stale / unknown); acceptance is verifier-policy dependent.
         </p>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
