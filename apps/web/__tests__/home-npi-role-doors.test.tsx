@@ -103,22 +103,32 @@ describe('HomePageClient — clinician-value hero', () => {
   });
 });
 
-describe('HomePageClient — how-it-works loop', () => {
-  it('renders the five loop steps', () => {
+describe('HomePageClient — how-it-works workflow tabs', () => {
+  it('renders the five interactive workflow steps as a tablist', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-loop');
+    expect(html).toContain('data-home-workflow-tabs');
+    expect(html).toContain('role="tablist"');
     for (const n of ['1', '2', '3', '4', '5']) {
       expect(html).toContain(`data-home-loop-step="${n}"`);
     }
   });
 
-  it('names the canonical clinician path in the loop copy', () => {
+  it('names the canonical clinician path across the five tab labels', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Start with your NPI');
-    expect(html).toContain('We check primary sources');
-    expect(html).toContain('Get your readiness snapshot');
-    expect(html).toContain('Share an employer-ready packet');
-    expect(html).toContain('Get accepted as a head start');
+    // Recognize → Prepare → Match → Apply → Accept (the Anyscale workload-tabs
+    // translation of NPI → sources → readiness → packet → acceptance).
+    expect(html).toContain('Recognize');
+    expect(html).toContain('Prepare');
+    expect(html).toContain('Match');
+    expect(html).toContain('Apply');
+    expect(html).toContain('Accept');
+    // Doctrine anchors still present in the tab copy.
+    expect(html).toContain('Start with one NPI');
+    expect(html).toContain('readiness snapshot');
+    expect(html).toContain('head start');
+    expect(html).toContain('VitalCV Recognition');
+    expect(html).toContain('Institution review remains the final step.');
   });
 });
 
