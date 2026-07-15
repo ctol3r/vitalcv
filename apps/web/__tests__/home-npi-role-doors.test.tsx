@@ -63,26 +63,24 @@ function assertNoBannedPhrases(html: string): void {
 }
 
 describe('HomePageClient — clinician-value hero', () => {
-  it('renders the network eyebrow and the career-velocity headline', () => {
+  it('renders the clinician-value eyebrow and the career-velocity headline', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
+    // Sprint 1 (2026-07-15, Chris): clinician-led hero. The strategic category
+    // ("Provider Career Evidence Network") moved lower on the page — it still
+    // renders as "career evidence network" in the compounding-moat section.
     expect(html).toContain('data-home-eyebrow');
-    expect(html).toContain('The Provider Career Evidence Network');
-    // Career core, 2026-07-07 (Chris): find the opportunity → prove once
-    // (the moat) → start faster. The final beat is the italic accent.
-    expect(html).toContain('Find the opportunity. Prove your career once.');
-    expect(html).toContain('Start faster.');
+    expect(html).toContain('Your career evidence, ready before your next job.');
+    expect(html).toContain('Your credentials should move as fast as');
+    expect(html).toContain('your career.');
+    expect(html).toContain('career evidence network');
   });
 
-  it('renders the NPI-first subhead with the career-network framing', () => {
+  it('renders the NPI-first subhead (clarity pass — one confident sentence)', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    // Living Trust v1 (2026-07-15, Chris): the subhead was trimmed from 5 lines
-    // to one confident sentence ("less wordy"). Still NPI-first + career-evidence
-    // + head-start + reusable framing, just tighter.
     expect(html).toContain('data-home-hero-subhead');
-    expect(html).toContain('Start with your NPI.');
-    expect(html).toContain('primary-source career evidence');
-    expect(html).toContain('accept as a head start');
-    expect(html).toContain('reuse for every move');
+    expect(html).toContain('Enter your NPI to see what employers can confirm today');
+    expect(html).toContain('still needs review');
+    expect(html).toContain('the next step toward being ready to start');
   });
 
   it('renders "Check readiness" as the primary CTA label', () => {
