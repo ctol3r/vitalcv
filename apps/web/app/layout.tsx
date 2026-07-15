@@ -59,7 +59,7 @@ const fontVariables = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'VitalCV — Know your credential readiness. Right now.',
+    default: 'VitalCV — Your career evidence, ready before your next job.',
     template: '%s — VitalCV',
   },
   description:
@@ -80,9 +80,9 @@ export const metadata: Metadata = {
     'theme-color': '#2C3E2D',
   },
   openGraph: {
-    title: 'VitalCV — Professional identity that moves clinicians forward.',
+    title: 'VitalCV — Your career evidence, ready before your next job.',
     description:
-      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+      'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.',
     url: 'https://vitalcv.com',
     siteName: 'VitalCV',
     type: 'website',
@@ -92,15 +92,15 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'VitalCV — Professional identity that moves clinicians forward.',
+        alt: 'VitalCV — Your career evidence, ready before your next job.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VitalCV — Professional identity that moves clinicians forward.',
+    title: 'VitalCV — Your career evidence, ready before your next job.',
     description:
-      'Enter your NPI to see a calm, source-backed snapshot and the next step forward.',
+      'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.',
     images: ['/twitter-image'],
   },
 };
