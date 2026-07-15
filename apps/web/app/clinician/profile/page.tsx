@@ -167,7 +167,8 @@ export default function ClinicianProfilePage() {
   const completionPercent = totalFields === 0 ? 0 : Math.round((filledFields / totalFields) * 100);
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:py-10">
+    <div className="mz mz-paper mz-persona-holder min-h-screen">
+      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-12">
       <ProfileHeader />
 
       <p className="text-sm leading-relaxed text-muted-foreground">
@@ -179,7 +180,7 @@ export default function ClinicianProfilePage() {
       <div className="space-y-5">
         <section
           aria-labelledby="completion-summary-heading"
-          className="rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+          className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
         >
           <h2 id="completion-summary-heading" className="text-sm font-semibold">
             Profile completion summary
@@ -206,9 +207,9 @@ export default function ClinicianProfilePage() {
           <section
             key={section.key}
             aria-labelledby={`section-${section.key}-heading`}
-            className="rounded-xl border border-[var(--vt-border,_rgba(0,0,0,0.08))] bg-[var(--vt-surface,_white)] p-4 sm:p-5"
+            className="rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-4 sm:p-5"
           >
-            <h2 id={`section-${section.key}-heading`} className="text-base font-semibold sm:text-lg">
+            <h2 id={`section-${section.key}-heading`} className="mz-h2">
               {section.title}
             </h2>
             <dl className="mt-3 space-y-3">
@@ -239,7 +240,7 @@ export default function ClinicianProfilePage() {
                           readOnly
                           placeholder={field.placeholder}
                           aria-describedby={`${fieldId}-help`}
-                          className="w-full rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.12))] bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2"
+                          className="w-full rounded-[3px] border border-[var(--vt-border)] bg-transparent px-3 py-2 text-sm placeholder:text-[var(--vt-text-muted)] focus:outline-none focus:ring-2 focus:ring-offset-2"
                         />
                       )}
                       <p id={`${fieldId}-help`} className="mt-1 text-[11px] text-muted-foreground">
@@ -259,6 +260,7 @@ export default function ClinicianProfilePage() {
         and verification gating ship in subsequent waves. <strong>User-entered
         information is not verified until source-backed evidence is attached.</strong>
       </p>
-    </main>
+      </main>
+    </div>
   );
 }
