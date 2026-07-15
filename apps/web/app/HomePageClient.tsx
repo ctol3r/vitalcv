@@ -34,6 +34,7 @@ import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperien
 import CareerGraph from '@/components/career-graph/CareerGraph';
 import { Reveal } from '@/components/motion/Reveal';
 import { KineticPhrase } from '@/components/home/KineticPhrase';
+import { WorkflowStoryTabs } from '@/components/home/WorkflowStoryTabs';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -143,34 +144,6 @@ const WALLET_PREVIEW_ROWS = [
  * Accepted as a head start → Start → Reuse. Kept honest: employer review is
  * a head start, never a final credentialing decision.
  */
-const LOOP_STEPS = [
-  {
-    n: '1',
-    title: 'Start with your NPI',
-    text: 'No account required to look. Your NPI is the key to everything below.',
-  },
-  {
-    n: '2',
-    title: 'We check primary sources',
-    text: 'Each field names its source and shows state — source-backed, gated, or stale.',
-  },
-  {
-    n: '3',
-    title: 'Get your readiness snapshot',
-    text: 'A source-backed picture of where you stand, in your own wallet.',
-  },
-  {
-    n: '4',
-    title: 'Share an employer-ready packet',
-    text: 'Send proof that shows what is source-backed and what still needs review.',
-  },
-  {
-    n: '5',
-    title: 'Get accepted as a head start',
-    text: 'When an employer accepts it, that becomes your VitalCV Recognition — then reuse the same wallet for your next move.',
-  },
-] as const;
-
 /**
  * Value cards — the eight things VitalCV gives a clinician, grouped so each
  * card carries a single clear idea and (where a real public route exists) a
@@ -716,33 +689,11 @@ export default function HomePageClient() {
             </div>
           </section>
 
-          {/* The loop — what VitalCV does, end to end */}
-          <section aria-label="How VitalCV works" data-home-loop="" className="mt-16">
-            <p className="mz-eyebrow">How it works</p>
-            <div className="relative">
-              <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {LOOP_STEPS.map((step, i) => (
-                <Reveal
-                  as="li"
-                  key={step.n}
-                  delay={i * 90}
-                  data-home-loop-step={step.n}
-                  className="mz-interactive relative flex flex-col gap-2 rounded-[3px] border border-[var(--vt-border)] bg-[var(--vt-surface)] px-4 py-4"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--vt-text-primary)] text-[12px] font-semibold text-[var(--vt-bg)]">
-                    {step.n}
-                  </span>
-                  <p className="text-sm font-semibold leading-snug text-[var(--vt-text-primary)]">
-                    {step.title}
-                  </p>
-                  <p className="text-[12px] leading-relaxed text-[var(--vt-text-secondary)]">
-                    {step.text}
-                  </p>
-                </Reveal>
-              ))}
-              </ol>
-            </div>
-          </section>
+          {/* The loop — what VitalCV does, end to end. The static five-card list
+              was replaced by the interactive Recognize→Prepare→Match→Apply→Accept
+              tabs (Anyscale "workload tabs" pattern): one step at a time, each
+              with an illustrative honest product panel. Less to read, more proof. */}
+          <WorkflowStoryTabs />
 
           {/* The compounding network — the platform's moat, made legible.
               Today every job change re-proves the same career from zero; VitalCV
