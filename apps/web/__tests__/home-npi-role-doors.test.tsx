@@ -76,17 +76,17 @@ describe('HomePageClient — clinician-value hero', () => {
     expect(html).toContain('career evidence network');
   });
 
-  it('renders the kinetic NPI-first subhead with an always-present static sentence', () => {
+  it('renders the scroll-typed narrative with an always-present static sentence', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-hero-subhead');
-    // The rotating prefix + first phrase render server-side…
-    expect(html).toContain('Enter your NPI and VitalCV');
+    // The prefix + first phrase render server-side (resting state)…
     expect(html).toContain('recognizes your identity');
     // …and the complete honest sentence is always in the DOM (sr-only) so the
-    // meaning never depends on the animation / JS.
-    expect(html).toContain('checks your primary sources');
+    // meaning never depends on scroll / JS.
+    expect(html).toContain('checks the primary sources');
     expect(html).toContain('still needs review');
-    expect(html).toContain('what employers can confirm today');
+    expect(html).toContain('matches the right opportunity');
+    expect(html).toContain('carries your evidence forward');
   });
 
   it('renders "Check readiness" as the primary CTA label', () => {
