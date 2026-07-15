@@ -7,6 +7,11 @@ import type { TrustRegisterRowProps } from './TrustRegisterRow';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Fixed instant for the ILLUSTRATIVE register rows. Never the live snapshot time
+// (which is Date.now()) — nothing is verified on page render, so the example
+// checkedAt + runId must be stable, not freshly generated on every load.
+const EXAMPLE_CHECKED_AT = Date.parse('2026-01-01T00:00:00Z');
+
 function formatDate(ts: number): string {
   return new Date(ts).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
 }
@@ -21,7 +26,9 @@ function djb2Hash(str: string): number {
 }
 
 function derive8chars(snapshot: TrustRegisterSnapshot): string {
-  const input = `${snapshot.issuerDid}:${snapshot.lastVerifiedAt}`;
+  // Derived from the FIXED example instant, so the illustrative run id is stable
+  // across renders (never a fresh-looking id per load).
+  const input = `${snapshot.issuerDid}:${EXAMPLE_CHECKED_AT}`;
   const hash = djb2Hash(input);
   return hash.toString(16).padStart(8, '0').slice(0, 8);
 }
@@ -34,7 +41,7 @@ export interface TrustStateRegisterProps {
 
 export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
   const runId = derive8chars(snapshot);
-  const checkedAt = formatDate(snapshot.lastVerifiedAt);
+  const checkedAt = formatDate(EXAMPLE_CHECKED_AT);
 
   // ── State A: Anonymous Preview ───────────────────────────────────────────
   const stateARows: TrustRegisterRowProps[] = [

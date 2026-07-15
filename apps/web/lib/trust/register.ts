@@ -24,6 +24,12 @@ export interface TrustRegisterSnapshot {
 
   // Replay survivability
   replaySurvivable: true;
+  /**
+   * When this snapshot JSON was assembled (the machine-readable
+   * /.well-known/trust-register uses it as `generated_at`). It is a generation
+   * time, NOT a per-clinician verification event — the register page must not
+   * render it as a live "checked" moment (see TrustStateRegister).
+   */
   lastVerifiedAt: number;
 
   // Source operational state
