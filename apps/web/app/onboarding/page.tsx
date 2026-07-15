@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { sanitizeInternalPath } from '@/lib/auth/redirect';
 
 export const metadata: Metadata = {
   title: 'Continue Activation | VitalCV',
@@ -39,11 +40,15 @@ export default async function OnboardingPage({
   searchParams: Promise<{ returnTo?: string }>;
 }) {
   const { returnTo } = await searchParams;
-  const returnHref = typeof returnTo === 'string' && returnTo.startsWith('/') ? returnTo : '/passport';
-  const continueHref =
-    typeof returnTo === 'string' && returnTo.startsWith('/')
-      ? `/clinician/onboarding?returnTo=${encodeURIComponent(returnTo)}`
-      : '/clinician/onboarding';
+  // Reflected open-redirect guard: `.startsWith('/')` alone accepts
+  // protocol-relative `//evil.example` and `/\evil` (browsers normalize `\`),
+  // which would turn "Open passport" into an off-site navigation. Reuse the
+  // shared sanitizer, which rejects `//`, `/\`, and control chars.
+  const returnHref = sanitizeInternalPath(returnTo, '/passport');
+  const safeReturn = sanitizeInternalPath(returnTo, '');
+  const continueHref = safeReturn
+    ? `/clinician/onboarding?returnTo=${encodeURIComponent(safeReturn)}`
+    : '/clinician/onboarding';
 
   return (
     <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-16 sm:py-20">
