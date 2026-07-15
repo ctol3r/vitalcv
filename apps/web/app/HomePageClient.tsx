@@ -35,6 +35,7 @@ import CareerGraph from '@/components/career-graph/CareerGraph';
 import { Reveal } from '@/components/motion/Reveal';
 import { KineticPhrase } from '@/components/home/KineticPhrase';
 import { WorkflowStoryTabs } from '@/components/home/WorkflowStoryTabs';
+import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -694,6 +695,12 @@ export default function HomePageClient() {
               tabs (Anyscale "workload tabs" pattern): one step at a time, each
               with an illustrative honest product panel. Less to read, more proof. */}
           <WorkflowStoryTabs />
+
+          {/* Truth before beauty — the evidence trace + the truth boundary
+              (Anyscale "code→evidence proof" fused with Palantir "what this does
+              NOT mean"). Source-honesty as a product feature, in the dark→paper
+              rhythm right after the tabs. */}
+          <EvidenceTruthPanel />
 
           {/* The compounding network — the platform's moat, made legible.
               Today every job change re-proves the same career from zero; VitalCV

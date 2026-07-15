@@ -250,6 +250,31 @@ describe('HomePageClient — trust footer row', () => {
   });
 });
 
+describe('HomePageClient — evidence-trace + truth-boundary panel', () => {
+  it('renders both the evidence trace and the truth boundary', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-evidence-truth');
+    expect(html).toContain('data-home-evidence-trace');
+    expect(html).toContain('data-home-truth-boundary');
+    expect(html).toContain('Truth before beauty');
+  });
+
+  it('states the source-honest vocabulary and the explicit boundary', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    // The honest state vocabulary — must survive future copy polish.
+    expect(html).toContain('Source-backed');
+    expect(html).toContain('Access required');
+    expect(html).toContain('Not yet known');
+    // The trace is labelled an example, never a live/real receipt.
+    expect(html).toContain('Evidence trace');
+    // Palantir "truth before beauty": what the result does NOT mean.
+    expect(html).toContain('What this does not mean');
+    expect(html).toContain(
+      'This is not a completed credentialing, privileging, or employer clearance decision.',
+    );
+  });
+});
+
 describe('HomePageClient — banned-phrase scan', () => {
   it('contains no banned phrases anywhere in the rendered HTML', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
