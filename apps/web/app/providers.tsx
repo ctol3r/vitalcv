@@ -30,11 +30,15 @@ export default function Providers({
   return (
     <PostHogProvider client={posthog}>
       <RoleProvider initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
+        {/* VitalCV is light-only (Chris, 2026-07-15). forcedTheme pins every
+            surface to light and makes the toggle a no-op, so no `.dark` variant
+            ever applies. Dark CSS is now dead and can be pruned in a follow-up. */}
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
+          forcedTheme="light"
           enableSystem={false}
-          themes={['light', 'dark']}
+          themes={['light']}
         >
           {children}
         </ThemeProvider>

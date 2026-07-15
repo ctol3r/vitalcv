@@ -29,11 +29,9 @@ export default async function HolderLayout({
 
   return (
     <ClinicianMobileProvider initialData={initialData}>
-      {/* Workspace gets its own light/dark theme (default dark — the verified
-          instrument look), toggled from the nav. HolderWorkspaceShell owns the
-          `dark`/`mz-paper` class + the theme context. Home surface is fully
-          `.mz` and renders in both; other full-page surfaces are being migrated
-          to `.mz` and look best in dark until then (hence dark stays default). */}
+      {/* VitalCV is light-only. HolderWorkspaceShell renders the workspace on
+          light `.mz` paper; dark-authored surfaces stay readable via
+          styles/holder-light-compat.css. */}
       <HolderWorkspaceShell>
         <ClinicianLaunchTracker />
         <NetworkStatusBanner />

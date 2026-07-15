@@ -10,7 +10,6 @@
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
 import { useUxTelemetry } from '@/hooks/useUxTelemetry';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -89,7 +88,6 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          <ThemeToggle />
           <Link
             href="/sign-in"
             className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground transition"
