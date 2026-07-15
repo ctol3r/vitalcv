@@ -36,6 +36,9 @@ import { Reveal } from '@/components/motion/Reveal';
 import { KineticPhrase } from '@/components/home/KineticPhrase';
 import { WorkflowStoryTabs } from '@/components/home/WorkflowStoryTabs';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
+import { OutcomeTriad } from '@/components/home/OutcomeTriad';
+import { MetricStrip } from '@/components/home/MetricStrip';
+import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -702,6 +705,10 @@ export default function HomePageClient() {
               rhythm right after the tabs. */}
           <EvidenceTruthPanel />
 
+          {/* Outcome-led triad (Anyscale §11) — capability + consequence, three
+              statements, in the alternating rhythm after the dark evidence panel. */}
+          <OutcomeTriad />
+
           {/* The compounding network — the platform's moat, made legible.
               Today every job change re-proves the same career from zero; VitalCV
               replaces the restart with portable, owned evidence whose acceptance
@@ -1003,6 +1010,12 @@ export default function HomePageClient() {
               ))}
             </div>
           </section>
+
+          {/* Quantitative proof — real, defensible numbers only (Anyscale §12). */}
+          <MetricStrip />
+
+          {/* Dual pre-footer entrances — clinician + employer (Anyscale §15). */}
+          <DualAudienceCta />
 
           {/* Trust footer row — calm pointer links, no marketing chrome */}
           <nav

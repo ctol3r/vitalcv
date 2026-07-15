@@ -275,6 +275,33 @@ describe('HomePageClient — evidence-trace + truth-boundary panel', () => {
   });
 });
 
+describe('HomePageClient — outcome triad + metric strip + dual CTA', () => {
+  it('renders the three finisher sections', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('data-home-outcome-triad');
+    expect(html).toContain('data-home-metric-strip');
+    expect(html).toContain('data-home-dual-cta');
+  });
+
+  it('the metric strip shows only real, defensible numbers with the honest caption', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    // Grounded figures — 3 live lanes, 4 weighted readiness dimensions.
+    expect(html).toContain('>03<');
+    expect(html).toContain('>04<');
+    expect(html).toContain('NPPES · OIG/LEIE · PECOS');
+    // The honesty anchor — live vs gated, and no pilot outcomes claimed.
+    expect(html).toContain('licensure is source-access-gated');
+    expect(html).toContain('No pilot outcomes are claimed until a');
+  });
+
+  it('the dual CTA preserves employer final authority and needs no account', () => {
+    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('free, no account required');
+    expect(html).toContain('you keep');
+    expect(html).toContain('final credentialing authority');
+  });
+});
+
 describe('HomePageClient — banned-phrase scan', () => {
   it('contains no banned phrases anywhere in the rendered HTML', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
