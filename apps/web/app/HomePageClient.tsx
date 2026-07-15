@@ -33,6 +33,7 @@ import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperien
 // which the renderToStaticMarkup homepage guard tests do not support.
 import CareerGraph from '@/components/career-graph/CareerGraph';
 import { Reveal } from '@/components/motion/Reveal';
+import { KineticPhrase } from '@/components/home/KineticPhrase';
 
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
@@ -531,19 +532,26 @@ export default function HomePageClient() {
                     to enter an NPI and understand the result. Strategic category
                     ("Provider Career Evidence Network") moves lower on the page. */}
                 <p data-home-eyebrow="" className="mz-eyebrow">
-                  Your career evidence, ready before your next job.
+                  The clinician career evidence network
                 </p>
                 <h1 className="mz-display">
-                  Your credentials should move as fast as{' '}
-                  <em className="mz-accent">your career.</em>
+                  Find the opportunity. Prove your career{' '}
+                  <em className="mz-accent">once.</em> Start faster.
                 </h1>
-                <p
+                <KineticPhrase
                   data-home-hero-subhead=""
                   className="max-w-xl text-[19px] leading-[1.55] text-[var(--vt-text-secondary)]"
-                >
-                  Enter your NPI to see what employers can confirm today, what still
-                  needs review, and the next step toward being ready to start.
-                </p>
+                  prefix="Enter your NPI and VitalCV "
+                  phrases={[
+                    'recognizes your identity',
+                    'checks your primary sources',
+                    'flags what still needs review',
+                    'shows what employers can confirm today',
+                  ]}
+                  staticSentence="Enter your NPI and VitalCV recognizes your identity, checks your primary sources, flags what still needs review, and shows what employers can confirm today."
+                />
+                {/* Static, no-JS/SR copy is carried inside KineticPhrase (sr-only);
+                    the rotating phrases above are all real steps the lookup runs. */}
               </div>
 
               <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">

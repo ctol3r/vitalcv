@@ -63,24 +63,30 @@ function assertNoBannedPhrases(html: string): void {
 }
 
 describe('HomePageClient — clinician-value hero', () => {
-  it('renders the clinician-value eyebrow and the career-velocity headline', () => {
+  it('renders the career-evidence-network eyebrow and the Anyscale-pattern headline', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    // Sprint 1 (2026-07-15, Chris): clinician-led hero. The strategic category
-    // ("Provider Career Evidence Network") moved lower on the page — it still
-    // renders as "career evidence network" in the compounding-moat section.
+    // Anyscale-translation hero (2026-07-15, Chris): "structure only, keep Calm
+    // Wave" + the new kinetic headline copy. The eyebrow now leads with the
+    // category itself, which also satisfies the "career evidence network" check.
     expect(html).toContain('data-home-eyebrow');
-    expect(html).toContain('Your career evidence, ready before your next job.');
-    expect(html).toContain('Your credentials should move as fast as');
-    expect(html).toContain('your career.');
+    expect(html).toContain('The clinician career evidence network');
+    expect(html).toContain('Find the opportunity. Prove your career');
+    expect(html).toContain('once.');
+    expect(html).toContain('Start faster.');
     expect(html).toContain('career evidence network');
   });
 
-  it('renders the NPI-first subhead (clarity pass — one confident sentence)', () => {
+  it('renders the kinetic NPI-first subhead with an always-present static sentence', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
     expect(html).toContain('data-home-hero-subhead');
-    expect(html).toContain('Enter your NPI to see what employers can confirm today');
+    // The rotating prefix + first phrase render server-side…
+    expect(html).toContain('Enter your NPI and VitalCV');
+    expect(html).toContain('recognizes your identity');
+    // …and the complete honest sentence is always in the DOM (sr-only) so the
+    // meaning never depends on the animation / JS.
+    expect(html).toContain('checks your primary sources');
     expect(html).toContain('still needs review');
-    expect(html).toContain('the next step toward being ready to start');
+    expect(html).toContain('what employers can confirm today');
   });
 
   it('renders "Check readiness" as the primary CTA label', () => {
