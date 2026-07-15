@@ -2,6 +2,8 @@ import * as React from 'react';
 import type { Metadata } from 'next';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
 import { ProfileHeader } from '@/components/clinician/ProfileHeader';
+import { InstitutionAutocomplete } from '@/components/clinician/InstitutionAutocomplete';
+import type { InstitutionKind } from '@/lib/institutions/curated';
 
 // The header renders a Clerk-backed avatar/name (useUser), so this page can't
 // be statically prerendered (no ClerkProvider runtime at build time). Render at
@@ -17,7 +19,14 @@ export const metadata: Metadata = {
 interface SectionDef {
   key: string;
   title: string;
-  fields: ReadonlyArray<{ label: string; provenance: ProfileProvenance; placeholder: string }>;
+  fields: ReadonlyArray<{
+    label: string;
+    provenance: ProfileProvenance;
+    placeholder: string;
+    // When set, the field is a typeahead over the curated institution directory
+    // (lib/institutions/curated.ts), scoped to these kinds.
+    kinds?: InstitutionKind[];
+  }>;
 }
 
 const SECTIONS: ReadonlyArray<SectionDef> = [
@@ -35,7 +44,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'medical_school',
     title: 'Medical school',
     fields: [
-      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'School name' },
+      { label: 'Institution', provenance: 'USER_ENTERED', placeholder: 'Search medical schools…', kinds: ['med_school_md', 'med_school_do'] },
       { label: 'Degree', provenance: 'USER_ENTERED', placeholder: 'MD, DO, MBBS, …' },
       { label: 'Graduation year', provenance: 'USER_ENTERED', placeholder: 'YYYY' },
     ],
@@ -111,7 +120,7 @@ const SECTIONS: ReadonlyArray<SectionDef> = [
     key: 'affiliations',
     title: 'Affiliations',
     fields: [
-      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Hospital, society, etc.' },
+      { label: 'Organization', provenance: 'USER_ENTERED', placeholder: 'Search societies, boards, associations…', kinds: ['society', 'association', 'board', 'honor_society'] },
       { label: 'Type', provenance: 'USER_ENTERED', placeholder: 'Privileges, member, …' },
       { label: 'Years', provenance: 'USER_ENTERED', placeholder: 'YYYY–YYYY' },
     ],
@@ -216,14 +225,23 @@ export default function ClinicianProfilePage() {
                       <ProvenanceBadge provenance={field.provenance} />
                     </div>
                     <dd className="flex-1">
-                      <input
-                        id={fieldId}
-                        type="text"
-                        readOnly
-                        placeholder={field.placeholder}
-                        aria-describedby={`${fieldId}-help`}
-                        className="w-full rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.12))] bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      />
+                      {field.kinds ? (
+                        <InstitutionAutocomplete
+                          id={fieldId}
+                          kinds={field.kinds}
+                          placeholder={field.placeholder}
+                          ariaDescribedBy={`${fieldId}-help`}
+                        />
+                      ) : (
+                        <input
+                          id={fieldId}
+                          type="text"
+                          readOnly
+                          placeholder={field.placeholder}
+                          aria-describedby={`${fieldId}-help`}
+                          className="w-full rounded-lg border border-[var(--vt-border,_rgba(0,0,0,0.12))] bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        />
+                      )}
                       <p id={`${fieldId}-help`} className="mt-1 text-[11px] text-muted-foreground">
                         {PROVENANCE_META[field.provenance].description}
                       </p>
