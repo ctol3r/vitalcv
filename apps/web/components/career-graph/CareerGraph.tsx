@@ -367,21 +367,42 @@ export default function CareerGraph({
         ctx.fillStyle = hexA('#ffffff', isLight ? 0.45 : 0.24); ctx.fill();
       }
 
-      // labels (fade with zoom + degree)
+      // labels — collision-avoided so text never piles up (the "cluttered" look).
+      // With ~40 nodes at avg degree ~6, most clear the zoom gate at once and
+      // their labels overlap into an unreadable pile. So instead of drawing every
+      // eligible label, we gather candidates, rank them (hovered/selected first,
+      // then by degree so hubs win the space), and draw each only if its box
+      // clears every label already placed this frame. Labels stay legible at the
+      // low zoom gate (Chris's "lower text threshold") while overlap is impossible.
       ctx.globalAlpha = eIntro;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       const showLabels = cam.zoom >= (2.2 - D.textFade);
-      for (const n of sim) {
-        if (!visible(n)) continue;
-        // Below the zoom gate, still label the well-connected nodes (deg >= 3,
-        // lowered from 6) so zoomed-out views keep more context, not just the
-        // top hubs.
-        const big = n.deg >= 5;
-        if (!showLabels && !(hov && focus(n.id)) && !big) continue;
-        if (hov && !focus(n.id)) continue;
-        const r = radius(n) * (0.12 + 0.88 * eIntro), fs = Math.max(9, 11 / cam.zoom);
-        ctx.font = `${fs}px ui-monospace, 'Geist Mono', monospace`;
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const fs = Math.max(9, 11 / cam.zoom);
+      ctx.font = `${fs}px ui-monospace, 'Geist Mono', monospace`;
+      const padX = 4 / cam.zoom, padY = 3 / cam.zoom;
+      const placed: Array<{ x0: number; y0: number; x1: number; y1: number }> = [];
+      const candidates = sim.filter((n) => {
+        if (!visible(n)) return false;
+        if (hov && !focus(n.id)) return false;   // on hover, dim non-neighbors out
+        return showLabels || n.deg >= 5 || (hov && focus(n.id));
+      });
+      // Rank so the important labels claim their space first: the selected/hovered
+      // node, then its neighbors, then hubs by degree. Stable ordering (degree, not
+      // live overlap) keeps the visible set steady once the sim settles.
+      const labelRank = (n: SimNode) =>
+        (selectedRef.current === n.id || hoverRef.current === n.id ? 1e6 : 0) +
+        (hov && focus(n.id) ? 1e4 : 0) + n.deg;
+      candidates.sort((a, b) => labelRank(b) - labelRank(a));
+      for (const n of candidates) {
+        const r = radius(n) * (0.12 + 0.88 * eIntro);
         const tx = n.x + r + 5 / cam.zoom, ty = n.y;
+        const tw = ctx.measureText(n.label).width;
+        const box = { x0: tx - padX, y0: ty - fs / 2 - padY, x1: tx + tw + padX, y1: ty + fs / 2 + padY };
+        // The focused/selected label always draws; everything else yields if it
+        // would collide with a higher-ranked label already on screen.
+        const forced = selectedRef.current === n.id || hoverRef.current === n.id;
+        if (!forced && placed.some((p) => box.x0 < p.x1 && box.x1 > p.x0 && box.y0 < p.y1 && box.y1 > p.y0)) continue;
+        placed.push(box);
         ctx.lineWidth = 3 / cam.zoom; ctx.strokeStyle = T.labelHalo;
         ctx.strokeText(n.label, tx, ty);
         ctx.fillStyle = T.label; ctx.fillText(n.label, tx, ty);
