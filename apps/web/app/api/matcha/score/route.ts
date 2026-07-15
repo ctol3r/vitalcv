@@ -6,6 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
+import { sanitizeStoredPreferences, toCandidateIntent } from '@/lib/matcha/preferences';
 
 export const runtime = 'nodejs';
 
@@ -17,11 +20,27 @@ const BACKEND =
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as { npi?: string; opportunityId?: string };
+
+    // Enrich with the signed-in clinician's CandidateIntent so the per-role
+    // score reflects preference + credentials, consistent with the ranked list.
+    // Preference lookup is best-effort — never blocks scoring.
+    const npi = typeof body.npi === 'string' ? body.npi : '';
+    let intent: unknown;
+    try {
+      const { userId } = await auth();
+      if (userId && /^\d{10}$/.test(npi)) {
+        const row = await prisma.matchaPreference.findUnique({ where: { clerkUserId: userId } });
+        if (row?.data) intent = toCandidateIntent(npi, sanitizeStoredPreferences(row.data));
+      }
+    } catch (prefErr) {
+      console.error('[matcha/score proxy] preference load failed:', prefErr);
+    }
+
     const res = await fetch(`${BACKEND}/api/matcha/explain`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(intent ? { ...body, intent } : body),
       signal: AbortSignal.timeout(15_000),
     });
 

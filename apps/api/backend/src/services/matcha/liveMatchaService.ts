@@ -16,6 +16,7 @@ import { PrismaClient } from '@prisma/client';
 import { matchOpportunities, scoreOpportunity } from './matchaEngine';
 import { simulateCredentialImpact } from './matchaSimulator';
 import type {
+  CandidateIntent,
   ClinicianProfile,
   HeldCredential,
   HiringType,
@@ -299,6 +300,12 @@ function dbOppToMatcha(opp: {
 export async function getLiveMatchesForNpi(
   npi: string,
   filters?: { specialty?: string; state?: string; hiringType?: string },
+  // The clinician's stated preferences, mapped to the engine's CandidateIntent
+  // by the web proxy (which holds the durable, Clerk-scoped preference store).
+  // When present, ~50 of the 100 scoring points respond to what the clinician
+  // WANTS (location, hiring type, pay, remote, timing) on top of what they're
+  // credentialed FOR. When absent, ranking falls back to credentials only.
+  intent?: CandidateIntent | null,
 ) {
   const [profile, dbOpportunities] = await Promise.all([
     buildClinicianProfile(npi),
@@ -316,7 +323,7 @@ export async function getLiveMatchesForNpi(
   ]);
 
   const matchaOpps = dbOpportunities.map(dbOppToMatcha);
-  const matches = matchOpportunities(profile, null, matchaOpps);
+  const matches = matchOpportunities(profile, intent ?? null, matchaOpps);
 
   return {
     npi,
@@ -370,7 +377,11 @@ export async function simulateForNpi(npi: string) {
   };
 }
 
-export async function scoreOpportunityForNpi(npi: string, opportunityId: string) {
+export async function scoreOpportunityForNpi(
+  npi: string,
+  opportunityId: string,
+  intent?: CandidateIntent | null,
+) {
   const [profile, dbOpp] = await Promise.all([
     buildClinicianProfile(npi),
     prisma.opportunity.findUnique({
@@ -381,7 +392,7 @@ export async function scoreOpportunityForNpi(npi: string, opportunityId: string)
 
   if (!dbOpp) return null;
   const matchaOpp = dbOppToMatcha(dbOpp);
-  const explanation = scoreOpportunity(profile, null, matchaOpp);
+  const explanation = scoreOpportunity(profile, intent ?? null, matchaOpp);
 
   return {
     npi,
