@@ -1,0 +1,31 @@
+/*
+ * Kinetic phrase — the Anyscale "kinetic headline" motion in the Calm Wave
+ * system. A trailing action phrase rises + fades in as it changes; the fixed
+ * prefix stays put. The full sentence lives in an sr-only span (see
+ * KineticPhrase.tsx), so meaning never depends on this animation, and
+ * reduced-motion users get the static sentence (JS never adds the class for
+ * them, and the guard below neutralizes it regardless).
+ */
+.kinetic-phrase-slot {
+  display: inline-flex;
+  align-items: baseline;
+}
+.kinetic-phrase-in {
+  display: inline-block;
+  animation: kinetic-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes kinetic-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.42em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-phrase-in {
+    animation: none;
+  }
+}
