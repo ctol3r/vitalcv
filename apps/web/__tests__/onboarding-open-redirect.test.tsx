@@ -1,42 +1,36 @@
 /**
- * onboarding-open-redirect.test.tsx
+ * open-redirect guard for internal redirect sanitization.
  *
- * Regression guard for the reflected open-redirect on /onboarding. The page
- * reads `?returnTo=` and renders it as an <a href>. It must reject
- * protocol-relative (`//host`) and backslash (`/\host`) values — which
- * `.startsWith('/')` alone would let through — and fall back to /passport.
+ * The /onboarding transition page that reflected `?returnTo` into an <a href>
+ * was replaced by the canonical activation flow (Wave 0B), so that specific
+ * sink no longer exists. This keeps the security coverage on the shared
+ * `sanitizeInternalPath` helper, which still guards the redirect_url the
+ * role-resolution interstitial (/auth/resolving) navigates to.
  */
-import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { renderToStaticMarkup } from 'react-dom/server';
 
-import OnboardingPage from '@/app/onboarding/page';
+import { sanitizeInternalPath, DEFAULT_POST_RESOLVE_PATH } from '@/lib/auth/redirect';
 
-async function render(returnTo?: string): Promise<string> {
-  const element = await OnboardingPage({ searchParams: Promise.resolve({ returnTo }) });
-  return renderToStaticMarkup(element);
-}
-
-describe('/onboarding — open-redirect hardening', () => {
-  it('rejects protocol-relative //host and falls back to /passport', async () => {
-    const html = await render('//evil.example');
-    expect(html).not.toContain('//evil.example');
-    expect(html).toContain('href="/passport"');
+describe('sanitizeInternalPath — open-redirect hardening', () => {
+  it('rejects protocol-relative //host', () => {
+    expect(sanitizeInternalPath('//evil.example', '/passport')).toBe('/passport');
   });
 
-  it('rejects backslash /\\host tricks', async () => {
-    const html = await render('/\\evil.example');
-    expect(html).not.toContain('evil.example');
-    expect(html).toContain('href="/passport"');
+  it('rejects backslash /\\host tricks', () => {
+    expect(sanitizeInternalPath('/\\evil.example', '/passport')).toBe('/passport');
   });
 
-  it('allows a genuine internal path', async () => {
-    const html = await render('/holder/readiness');
-    expect(html).toContain('href="/holder/readiness"');
+  it('rejects absolute URLs and control chars', () => {
+    expect(sanitizeInternalPath('https://evil.example')).toBe(DEFAULT_POST_RESOLVE_PATH);
+    expect(sanitizeInternalPath('/ok\nx')).toBe(DEFAULT_POST_RESOLVE_PATH);
   });
 
-  it('defaults to /passport when returnTo is absent', async () => {
-    const html = await render(undefined);
-    expect(html).toContain('href="/passport"');
+  it('allows a genuine internal path', () => {
+    expect(sanitizeInternalPath('/holder/readiness')).toBe('/holder/readiness');
+  });
+
+  it('falls back when empty/nullish', () => {
+    expect(sanitizeInternalPath('', '/passport')).toBe('/passport');
+    expect(sanitizeInternalPath(undefined, '/passport')).toBe('/passport');
   });
 });

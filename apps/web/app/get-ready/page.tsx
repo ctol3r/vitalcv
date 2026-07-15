@@ -1,12 +1,8 @@
-import type { Metadata } from 'next';
-import GetReadySurface from './GetReadySurface';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Connect your NPI · VitalCV',
-  description:
-    'Bind your NPI to your VitalCV workspace. VitalCV reads your public NPPES registry record to start your clinician career wallet — license and exclusion checks run separately with their own receipts.',
-};
-
+// /get-ready consolidated into the canonical /onboarding (Wave 0B). The flow
+// component (GetReadySurface.tsx) stays in this folder and is rendered by
+// /onboarding; this route now just forwards, so existing links keep working.
 export default function GetReadyPage() {
-  return <GetReadySurface />;
+  redirect('/onboarding');
 }
