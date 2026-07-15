@@ -15,6 +15,7 @@
  * employer. Calm-glass, employer (source-green) persona.
  */
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Reveal } from '@/components/motion/Reveal';
 import OpportunityEmbedPanel from '@/components/employer/OpportunityEmbedPanel';
@@ -340,6 +341,11 @@ export default function EmployerPostPage() {
             Your opening becomes a live listing that VitalCV matches source-backed
             clinicians against by specialty, state, and readiness. A posting is your
             own listing — VitalCV does not verify or endorse the employer.
+          </p>
+          <p className="mz-small" style={{ marginTop: 12 }}>
+            <Link href="/employer/profile" className="mz-accent" style={{ fontWeight: 600 }}>
+              View your company profile &rarr;
+            </Link>
           </p>
         </Reveal>
 
