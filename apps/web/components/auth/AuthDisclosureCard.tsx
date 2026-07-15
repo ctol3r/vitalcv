@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
  */
 
 export const SIGN_IN_DISCLOSURE =
-  'Sign in unlocks live event streams and operator tools. Public passport pages remain readable without an account.';
+  'Access your Wallet, readiness progress, opportunities, applications, and shared evidence. Public passport pages remain readable without an account.';
 
 export const SIGN_UP_DISCLOSURE =
   'Create an operator account. Sign-up does not credential a clinician and does not contact employers.';
@@ -61,7 +61,7 @@ export function AuthDisclosureCard({
   disclosure,
   className,
 }: AuthDisclosureCardProps) {
-  const defaultHeadline = mode === 'sign-in' ? 'Sign in' : 'Create account';
+  const defaultHeadline = mode === 'sign-in' ? 'Welcome back to VitalCV' : 'Create account';
   const defaultDisclosure = mode === 'sign-in' ? SIGN_IN_DISCLOSURE : SIGN_UP_DISCLOSURE;
   const resolvedHeadline = headline ?? defaultHeadline;
   const resolvedDisclosure = disclosure ?? defaultDisclosure;

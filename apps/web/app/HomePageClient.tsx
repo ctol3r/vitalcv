@@ -123,20 +123,6 @@ const SOURCE_REGISTRY_STRIP = [
 ] as const;
 
 /**
- * Capability rail — the breadth of the product, stated once, above the fold.
- * A first-time visitor should see VitalCV is a wallet + readiness + recognition
- * + opportunity platform before scrolling, not just an NPI form. Each pill maps
- * to a real value card lower on the page.
- */
-const CAPABILITY_PILLS = [
-  { label: 'Career wallet', icon: Wallet },
-  { label: 'Readiness', icon: ShieldCheck },
-  { label: 'Recognition', icon: Award },
-  { label: 'Shareable proof', icon: Share2 },
-  { label: 'Opportunities', icon: Compass },
-] as const;
-
-/**
  * Wallet preview — the schematic of a clinician's VitalCV wallet, rendered as
  * the hero's product visual. It teaches the source-state model (source-backed /
  * checked / gated) honestly and shows Recognition + share, without fabricating
@@ -540,40 +526,23 @@ export default function HomePageClient() {
             {/* Left: messaging + NPI entry */}
             <div className="max-w-2xl">
               <div className="space-y-5">
+                {/* Clinician-led hero (Sprint 1, Chris): one job — get a clinician
+                    to enter an NPI and understand the result. Strategic category
+                    ("Provider Career Evidence Network") moves lower on the page. */}
                 <p data-home-eyebrow="" className="mz-eyebrow">
-                  The Provider Career Evidence Network
+                  Your career evidence, ready before your next job.
                 </p>
                 <h1 className="mz-display">
-                  Find the opportunity. Prove your career once.{' '}
-                  <em className="mz-accent">Start faster.</em>
+                  Your credentials should move as fast as{' '}
+                  <em className="mz-accent">your career.</em>
                 </h1>
                 <p
                   data-home-hero-subhead=""
                   className="max-w-xl text-[19px] leading-[1.55] text-[var(--vt-text-secondary)]"
                 >
-                  Start with your NPI. Your primary-source career evidence becomes a
-                  readiness packet employers accept as a head start — free, and yours
-                  to reuse for every move.
+                  Enter your NPI to see what employers can confirm today, what still
+                  needs review, and the next step toward being ready to start.
                 </p>
-
-                {/* Capability rail — the product's breadth, above the fold */}
-                <ul
-                  data-home-capabilities=""
-                  className="flex flex-wrap gap-2"
-                >
-                  {CAPABILITY_PILLS.map((pill) => {
-                    const Icon = pill.icon;
-                    return (
-                      <li
-                        key={pill.label}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]"
-                      >
-                        <Icon size={13} className="text-[var(--vt-accent-emerald)]" aria-hidden="true" />
-                        {pill.label}
-                      </li>
-                    );
-                  })}
-                </ul>
               </div>
 
               <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">

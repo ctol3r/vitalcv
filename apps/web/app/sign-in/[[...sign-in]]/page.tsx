@@ -6,7 +6,7 @@ import DevKeysNotice from '@/components/auth/DevKeysNotice';
 export const metadata: Metadata = {
   title: 'Sign In',
   description:
-    'Sign in to unlock live event streams and operator tools. Public passport pages remain readable without an account.',
+    'Welcome back to VitalCV. Access your Wallet, readiness progress, opportunities, applications, and shared evidence.',
 };
 
 export default function SignInPage() {

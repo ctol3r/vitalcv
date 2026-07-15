@@ -16,9 +16,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-// Public-only nav items. Never add ops/internal routes here.
+// Public-only nav items, clinician-led (Sprint 1). Never add ops/internal routes
+// here, and never a dead link — /explore + /developers are intentionally omitted
+// until those pages exist (a later sprint).
 const NAV_ITEMS = [
-  { href: '/pilot',   label: 'For Employers' },
+  { href: '/get-ready', label: 'For Clinicians' },
+  { href: '/employers', label: 'For Employers' },
+  { href: '/trust',     label: 'Trust' },
 ] as const;
 
 export default function Navbar() {

@@ -54,9 +54,10 @@ describe('AuthDisclosureCard — sign-in mode', () => {
     expect(html).toContain(SIGN_IN_DISCLOSURE);
   });
 
-  it("sign-in disclosure mentions 'live event streams' and 'operator tools'", () => {
-    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('live event streams');
-    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('operator tools');
+  it('sign-in disclosure names what signing in accesses (clinician-facing, Sprint 1)', () => {
+    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('wallet');
+    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('readiness');
+    expect(SIGN_IN_DISCLOSURE.toLowerCase()).toContain('shared evidence');
   });
 
   it('sign-in disclosure confirms public passport pages remain readable without an account', () => {
