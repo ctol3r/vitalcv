@@ -69,7 +69,7 @@ function deriveRoleModel(
     landingRoute: !isSignedIn
       ? '/sign-in'
       : role === 'employer'
-        ? '/verifier/home'
+        ? '/employer/dashboard'
         : '/holder/home',
   };
 }

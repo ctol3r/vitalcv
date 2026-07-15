@@ -19,7 +19,7 @@ const PORTALS = [
   {
     key: 'employer',
     label: 'Employer',
-    href: '/verifier',
+    href: '/employer/dashboard',
     icon: Shield,
     description: 'Verify & match',
   },

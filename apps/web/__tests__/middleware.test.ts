@@ -46,7 +46,7 @@ describe('Route role mapping', () => {
     // /holder - CLINICIAN only
     { path: '/holder', role: 'CLINICIAN', expected: 'allow' },
     { path: '/holder/checklist', role: 'CLINICIAN', expected: 'allow' },
-    { path: '/holder', role: 'VERIFIER', expected: '/verifier' },
+    { path: '/holder', role: 'VERIFIER', expected: '/employer/dashboard' },
     { path: '/holder', role: 'ISSUER', expected: '/issuer' },
     { path: '/holder', role: 'ADMIN', expected: '/internal/metrics' },
 
@@ -59,7 +59,7 @@ describe('Route role mapping', () => {
     // /issuer - ISSUER only
     { path: '/issuer', role: 'ISSUER', expected: 'allow' },
     { path: '/issuer', role: 'CLINICIAN', expected: '/holder' },
-    { path: '/issuer', role: 'VERIFIER', expected: '/verifier' },
+    { path: '/issuer', role: 'VERIFIER', expected: '/employer/dashboard' },
 
     // /internal - ADMIN only, mismatch -> / (not role landing)
     { path: '/internal/metrics', role: 'ADMIN', expected: 'allow' },

@@ -132,7 +132,7 @@ export default function AcceptanceNetwork() {
                 Request Pilot
               </a>
               <Link
-                href="/verifier"
+                href="/employer/dashboard"
                 className="px-6 py-3 rounded-2xl border text-lg font-medium hover:bg-muted transition text-center"
               >
                 Open Verifier Portal

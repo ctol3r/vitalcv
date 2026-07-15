@@ -19,7 +19,9 @@ export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
  */
 export const ROLE_LANDING: Record<UserRoleType, string> = {
   CLINICIAN: '/holder',
-  VERIFIER: '/verifier',
+  // Live employer workspace hub. The old `/verifier` tree is archived
+  // (app/_archive/verifier) — landing there 404s. See app/employer/*.
+  VERIFIER: '/employer/dashboard',
   ISSUER: '/issuer',
   ADMIN: '/internal/metrics',
   AUTHENTICATED: '/intelligence',
