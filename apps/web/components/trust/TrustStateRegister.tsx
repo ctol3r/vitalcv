@@ -100,7 +100,7 @@ export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
       tier: 'T1',
     },
     {
-      object: 'No Adverse Findings',
+      object: 'No adverse result returned',
       ownership: 'vcv-system',
       checkedAt,
       channel: 'OIG LEIE',
@@ -112,14 +112,14 @@ export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
     },
   ];
 
-  // ── State C: Signed Institutional Artifact ───────────────────────────────
+  // ── State C: Signed artifact (example) ───────────────────────────────────
   const stateCRows: TrustRegisterRowProps[] = [
     {
       object: 'NPPES Identity',
       ownership: snapshot.signingKeyId ?? 'vcv-es256-1',
       checkedAt,
       channel: 'CMS NPPES Registry',
-      replay: 'Continuity confirmed',
+      replay: 'Issuer continuity (example)',
       runId,
       state: 'signed',
       tier: 'T4',
@@ -129,13 +129,13 @@ export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
       ownership: snapshot.issuerDid,
       checkedAt,
       channel: 'VitalCV Issuer',
-      replay: 'Replay survivable',
+      replay: 'Replay-verifiable by design',
       runId,
       state: 'signed',
       tier: 'T4',
     },
     {
-      object: 'No Adverse Findings',
+      object: 'No adverse result returned',
       ownership: snapshot.signingKeyId ?? 'vcv-es256-1',
       checkedAt,
       channel: 'OIG LEIE',
@@ -194,8 +194,8 @@ export function TrustStateRegister({ snapshot }: TrustStateRegisterProps) {
         {/* State C */}
         <TrustRegisterCard
           state="signed"
-          title="Signed Institutional Artifact"
-          description="Cryptographic plane. Issuer-signed, T4 capable, replay survivable. Full lineage chain."
+          title="Signed artifact (example)"
+          description="Cryptographic plane. Issuer-signed (ES256), T4-capable — the signed-receipt grammar shown as an example, not a live artifact."
           runId={runId}
           checkedAt={checkedAt}
           issuerDid={snapshot.issuerDid}

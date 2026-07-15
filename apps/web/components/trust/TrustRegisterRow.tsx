@@ -91,7 +91,7 @@ export function TrustRegisterRow({
         <div className="min-w-0">
           <div className={labelClass}>OBJECT</div>
           <div className="text-xs text-gray-900 break-all">
-            {noAdverseFindings ? '✓ No Adverse Findings' : object}
+            {noAdverseFindings ? 'No adverse result returned' : object}
           </div>
           {lineageKey && (
             <details className="inline mt-0.5">
