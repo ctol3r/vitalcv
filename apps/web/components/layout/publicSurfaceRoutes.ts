@@ -74,6 +74,8 @@ const PREFIX_MATCHERS = [
   '/trust',
   '/legal',
   '/matcha',
+  '/for',
+  '/solutions',
 ] as const;
 
 export function isPublicSurfacePath(pathname: string | null): boolean {
