@@ -982,8 +982,8 @@ export default function HomePageClient() {
                   employers who accept it — bidirectionally. Drag any node, filter by role, and follow the
                   backlinks. Structure here is illustrative; your real evidence lives in your wallet.
                 </p>
-                <div style={{ marginTop: 20, width: '100%', height: 520 }}>
-                  <CareerGraph initialTheme="light" initialPanelOpen={false} />
+                <div style={{ marginTop: 20, width: '100%', height: 680 }}>
+                  <CareerGraph initialTheme="light" initialPanelOpen={false} transparentBg />
                 </div>
                 <p style={{ marginTop: 14 }}>
                   <Link href="/evidence-network" className="mz-accent" style={{ fontSize: 13, fontWeight: 600 }}>
