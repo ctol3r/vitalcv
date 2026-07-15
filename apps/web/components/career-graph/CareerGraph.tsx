@@ -67,7 +67,11 @@ interface SimNode extends CareerNode { x: number; y: number; vx: number; vy: num
 interface Physics { center: number; repel: number; link: number; distance: number; frozen: boolean; }
 const DEFAULT_PHYSICS: Physics = { center: 0.012, repel: 1900, link: 0.05, distance: 96, frozen: false };
 interface Display { arrows: boolean; textFade: number; nodeSize: number; linkThickness: number; }
-const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 1.15, nodeSize: 1, linkThickness: 1 };
+// textFade sets the label zoom gate: labels show when zoom >= 2.2 - textFade.
+// 1.6 => gate 0.6, so labels are legible at rest (default zoom 1.0) and stay on
+// until the graph is zoomed well out — a lower text threshold than the prior
+// 1.15 (gate 1.05, labels hidden at rest except hubs).
+const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 1.6, nodeSize: 1, linkThickness: 1 };
 
 const ALL_GROUPS: GraphGroup[] = ['holder', 'verifier', 'issuer', 'evidence'];
 
@@ -363,9 +367,10 @@ export default function CareerGraph({
       const showLabels = cam.zoom >= (2.2 - D.textFade);
       for (const n of sim) {
         if (!visible(n)) continue;
-        // At rest, label only true hubs (keeps the canvas airy like Obsidian);
-        // zooming in or hovering reveals the rest.
-        const big = n.deg >= 6;
+        // Below the zoom gate, still label the well-connected nodes (deg >= 3,
+        // lowered from 6) so zoomed-out views keep more context, not just the
+        // top hubs.
+        const big = n.deg >= 3;
         if (!showLabels && !(hov && focus(n.id)) && !big) continue;
         if (hov && !focus(n.id)) continue;
         const r = radius(n) * (0.12 + 0.88 * eIntro), fs = Math.max(9, 11 / cam.zoom);
