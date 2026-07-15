@@ -51,6 +51,16 @@ const EDGE_COLOR = (t: Theme, k: EdgeKind) =>
   k === 'backlink' ? t.edgeBacklink : k === 'source' ? t.edgeSource
     : k === 'recognition' ? t.edgeRecognition : t.edge;
 
+/* hex (#rrggbb) → rgba(...) with alpha, for canvas glows/particles where the
+   group palette is stored as hex and we need per-draw opacity. */
+function hexA(hex: string, a: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const easeOut = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
+
 /* ---------------------------- sim data types --------------------------- */
 interface SimNode extends CareerNode { x: number; y: number; vx: number; vy: number; deg: number; pinned: boolean; }
 
@@ -72,7 +82,8 @@ function seededXY(i: number, n: number): [number, number] {
 export default function CareerGraph({
   initialTheme = 'dark',
   initialPanelOpen = true,
-}: { initialTheme?: ThemeName; initialPanelOpen?: boolean }) {
+  transparentBg = false,
+}: { initialTheme?: ThemeName; initialPanelOpen?: boolean; transparentBg?: boolean }) {
   const [themeName, setThemeName] = React.useState<ThemeName>(initialTheme);
   const theme = THEMES[themeName];
   const [physics, setPhysics] = React.useState<Physics>(DEFAULT_PHYSICS);
@@ -96,6 +107,14 @@ export default function CareerGraph({
   // interacting, then stops (no perpetual rAF pegging a CPU core).
   const kickRef = React.useRef<(reheat?: number) => void>(() => {});
   const dirtyRef = React.useRef(true);
+  // Advanced-animation state: a staggered entrance (intro 0→1), a monotonic
+  // clock for flowing link particles + source pulses, and an onscreen gate so
+  // the continuous effects pause when the graph scrolls out of view (no idle
+  // CPU burn on the homepage). All of it collapses to a static frame under
+  // prefers-reduced-motion.
+  const introRef = React.useRef(0);
+  const clockRef = React.useRef(0);
+  const onscreenRef = React.useRef(true);
 
   // live refs so the rAF loop reads latest UI state without re-subscribing
   const physicsRef = React.useRef(physics); physicsRef.current = physics;
@@ -156,11 +175,30 @@ export default function CareerGraph({
     const ro = new ResizeObserver(() => { resize(); kickRef.current(0.3); });
     ro.observe(wrap);
 
+    // Pause continuous effects when the graph is scrolled out of view.
+    const io = new IntersectionObserver(
+      (entries) => {
+        const on = entries[0]?.isIntersecting ?? true;
+        onscreenRef.current = on;
+        if (on) kickRef.current(0);
+      },
+      { threshold: 0.02 },
+    );
+    io.observe(wrap);
+
     const radius = (n: SimNode) => (3.2 + Math.sqrt(n.deg) * 2.1) * displayRef.current.nodeSize;
 
+    let last = performance.now();
     const step = () => {
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
       const P = physicsRef.current, sim = nodesRef.current;
       const dragging = dragRef.current != null;
+      // Continuous flourishes (particles, pulses, entrance) run only while the
+      // graph is on screen and motion is allowed.
+      const fx = !reduced.current && onscreenRef.current;
+      if (fx) clockRef.current += dt;
+      if (introRef.current < 1) introRef.current = reduced.current ? 1 : Math.min(1, introRef.current + dt / 1.1);
       if (!P.frozen && (alpha > 0.02 || dragging)) {
         // repel (approx O(n²); fine for this curated set)
         for (let i = 0; i < sim.length; i++) {
@@ -197,7 +235,7 @@ export default function CareerGraph({
         alpha *= 0.984; // ~4s of settling energy, enough to fully expand, then stop
       }
       draw();
-      const animating = (!P.frozen && alpha > 0.02) || dragging;
+      const animating = (!P.frozen && alpha > 0.02) || dragging || fx || introRef.current < 1;
       if (animating || dirtyRef.current) { dirtyRef.current = false; raf = requestAnimationFrame(step); }
       else { raf = 0; } // settled — stop until woken
     };
@@ -212,10 +250,18 @@ export default function CareerGraph({
       const groups = groupsRef.current, showBL = backlinksRef.current;
       const q = searchRef.current.trim().toLowerCase();
       const cam = camera.current;
+      const isLight = T === THEMES.light;
+      const intro = introRef.current, eIntro = easeOut(intro);
+      const eEdge = easeOut(clamp01((intro - 0.12) / 0.88));   // edges arrive just after nodes
+      const fxOn = !reduced.current && onscreenRef.current;
+      const clock = clockRef.current;
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = T.bg; ctx.fillRect(0, 0, w, h);
+      // transparentBg lets the paper/section show through so the graph dissolves
+      // into the page (edge-fade mask lives on the wrapper); otherwise paint the
+      // theme canvas for the standalone explorer surfaces.
+      if (!transparentBg) { ctx.fillStyle = T.bg; ctx.fillRect(0, 0, w, h); }
       ctx.translate(w / 2 + cam.x, h / 2 + cam.y);
       ctx.scale(cam.zoom, cam.zoom);
 
@@ -226,12 +272,13 @@ export default function CareerGraph({
       const focus = (id: string) => !hov || id === hov || (hovNeighbors?.has(id) ?? false);
 
       // edges
+      ctx.lineCap = 'round';
       for (const e of CAREER_EDGES) {
         if (e.kind === 'backlink' && !showBL) continue;
         const s = pos.get(e.source), t = pos.get(e.target);
         if (!s || !t || !visible(s) || !visible(t)) continue;
         const dim = hov && !(focus(e.source) && focus(e.target));
-        ctx.globalAlpha = dim ? 0.06 : 1;
+        ctx.globalAlpha = (dim ? 0.05 : 1) * eEdge;
         ctx.strokeStyle = EDGE_COLOR(T, e.kind);
         ctx.lineWidth = (e.kind === 'backlink' ? 1.1 : 1) * D.linkThickness / cam.zoom;
         if (e.kind === 'backlink') ctx.setLineDash([3 / cam.zoom, 3 / cam.zoom]); else ctx.setLineDash([]);
@@ -248,24 +295,71 @@ export default function CareerGraph({
       }
       ctx.setLineDash([]);
 
+      // flowing particles — evidence travelling the network; emerge + vanish
+      // smoothly at the endpoints so they read as motion, not dotted lines.
+      if (fxOn) {
+        for (let i = 0; i < CAREER_EDGES.length; i++) {
+          const e = CAREER_EDGES[i];
+          // Particles only on the meaningful links (credentials + recognition),
+          // never on the numerous source-backbone or backlink edges — keeps the
+          // motion legible and calm instead of a busy swarm.
+          if (e.kind === 'backlink' || e.kind === 'source') continue;
+          const s = pos.get(e.source), t = pos.get(e.target);
+          if (!s || !t || !visible(s) || !visible(t)) continue;
+          if (hov && !(focus(e.source) && focus(e.target))) continue;
+          const phase = (i * 0.1371) % 1;
+          const speed = e.kind === 'recognition' ? 0.17 : 0.1;
+          const frac = (clock * speed + phase) % 1;
+          const px = s.x + (t.x - s.x) * frac, py = s.y + (t.y - s.y) * frac;
+          const pr = (e.kind === 'recognition' ? 2.1 : 1.5) / cam.zoom;
+          ctx.globalAlpha = eEdge * (0.3 + 0.55 * Math.sin(frac * Math.PI));
+          ctx.fillStyle = EDGE_COLOR(T, e.kind);
+          ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
       // nodes
       for (const n of sim) {
         if (!visible(n)) continue;
-        const r = radius(n);
+        const r = radius(n) * (0.12 + 0.88 * eIntro);   // scale-in entrance
         const dim = hov && !focus(n.id);
-        ctx.globalAlpha = dim ? 0.18 : 1;
-        if ((selectedRef.current === n.id || hoverRef.current === n.id)) {
+        const a = dim ? 0.16 : 1;
+
+        // soft glow halo — depth + colour bleed into the paper
+        if (!dim) {
+          const gr = r * 2.7;
+          const glow = ctx.createRadialGradient(n.x, n.y, r * 0.35, n.x, n.y, gr);
+          glow.addColorStop(0, hexA(T.group[n.group], 0.16 * eIntro));
+          glow.addColorStop(1, hexA(T.group[n.group], 0));
+          ctx.globalAlpha = 1; ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(n.x, n.y, gr, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // source-hub pulse ring — the primary sources quietly breathe
+        if (fxOn && !dim && n.deg >= 6) {
+          const pulse = 0.5 + 0.5 * Math.sin(clock * 1.4 + n.x * 0.04 + n.y * 0.04);
+          ctx.globalAlpha = (0.1 + 0.14 * pulse) * eIntro;
+          ctx.strokeStyle = hexA(T.group[n.group], 1); ctx.lineWidth = 1 / cam.zoom;
+          ctx.beginPath(); ctx.arc(n.x, n.y, r + (3 + pulse * 5) / cam.zoom, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        ctx.globalAlpha = a;
+        if (selectedRef.current === n.id || hoverRef.current === n.id) {
           ctx.beginPath(); ctx.arc(n.x, n.y, r + 3 / cam.zoom, 0, Math.PI * 2);
           ctx.strokeStyle = T.ring; ctx.lineWidth = 1.5 / cam.zoom; ctx.stroke();
         }
         ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = T.group[n.group];
-        ctx.fill();
+        ctx.fillStyle = T.group[n.group]; ctx.fill();
         ctx.lineWidth = 1 / cam.zoom; ctx.strokeStyle = T.nodeStroke; ctx.stroke();
+        // refined bead highlight — a small offset gloss for a dimensional feel
+        ctx.globalAlpha = a * eIntro;
+        ctx.beginPath(); ctx.arc(n.x - r * 0.28, n.y - r * 0.32, r * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = hexA('#ffffff', isLight ? 0.45 : 0.24); ctx.fill();
       }
 
       // labels (fade with zoom + degree)
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = eIntro;
       const showLabels = cam.zoom >= (2.2 - D.textFade);
       for (const n of sim) {
         if (!visible(n)) continue;
@@ -274,19 +368,20 @@ export default function CareerGraph({
         const big = n.deg >= 6;
         if (!showLabels && !(hov && focus(n.id)) && !big) continue;
         if (hov && !focus(n.id)) continue;
-        const r = radius(n), fs = Math.max(9, 11 / cam.zoom);
+        const r = radius(n) * (0.12 + 0.88 * eIntro), fs = Math.max(9, 11 / cam.zoom);
         ctx.font = `${fs}px ui-monospace, 'Geist Mono', monospace`;
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        const tx = n.x + r + 4 / cam.zoom, ty = n.y;
+        const tx = n.x + r + 5 / cam.zoom, ty = n.y;
         ctx.lineWidth = 3 / cam.zoom; ctx.strokeStyle = T.labelHalo;
         ctx.strokeText(n.label, tx, ty);
         ctx.fillStyle = T.label; ctx.fillText(n.label, tx, ty);
       }
+      ctx.globalAlpha = 1;
       ctx.restore();
     };
 
     raf = requestAnimationFrame(step);
-    return () => { cancelAnimationFrame(raf); raf = 0; kickRef.current = () => {}; ro.disconnect(); };
+    return () => { cancelAnimationFrame(raf); raf = 0; kickRef.current = () => {}; ro.disconnect(); io.disconnect(); };
   }, [neighbors]);
 
   // Redraw on visual-state changes; give physics changes a small reheat so the
@@ -381,7 +476,14 @@ export default function CareerGraph({
   const groupHead: React.CSSProperties = { fontFamily: "ui-monospace, 'Geist Mono', monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.textMuted, margin: '2px 0 12px' };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', background: theme.bg, overflow: 'hidden', touchAction: 'none', cursor: 'grab' }}
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%',
+      background: transparentBg ? 'transparent' : theme.bg, overflow: 'hidden', touchAction: 'none', cursor: 'grab',
+      // Dissolve the canvas edges into the surrounding paper when embedded, so
+      // the network reads as part of the page rather than a boxed widget.
+      ...(transparentBg ? {
+        WebkitMaskImage: 'radial-gradient(120% 92% at 50% 46%, #000 58%, transparent 100%)',
+        maskImage: 'radial-gradient(120% 92% at 50% 46%, #000 58%, transparent 100%)',
+      } : null) }}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
       <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', inset: 0 }} />
 
