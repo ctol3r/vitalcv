@@ -15,11 +15,9 @@
  */
 
 import Link from 'next/link';
-import { Moon, Sun } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
-import { useHolderTheme } from '@/components/holder/HolderWorkspaceShell';
 
 interface NavItem {
   name: string;
@@ -47,7 +45,6 @@ function isItemActive(item: NavItem, pathname: string): boolean {
 export function HolderDesktopNav() {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
-  const { theme, toggle } = useHolderTheme();
 
   return (
     <nav
@@ -94,16 +91,6 @@ export function HolderDesktopNav() {
             );
           })}
         </div>
-
-        <button
-          type="button"
-          onClick={toggle}
-          title={`Switch workspace to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          aria-label={`Switch workspace to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          className="shrink-0 rounded-lg p-2 text-[var(--ink-500)] transition hover:text-[var(--ink-900)]"
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
 
         <Link href="/holder/recognition" className="mz-btn mz-btn-sm shrink-0">
           Share / prove
