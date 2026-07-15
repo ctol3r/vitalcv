@@ -3,6 +3,7 @@
 import { SignedIn } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
+import AnnouncementRail from '@/components/layout/AnnouncementRail';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
@@ -55,6 +56,7 @@ export default function RootChrome({ children, clerkEnabled }: RootChromeProps) 
       >
         Skip to content
       </a>
+      <AnnouncementRail />
       <Navbar />
       {clerkEnabled ? (
         <SignedIn>
