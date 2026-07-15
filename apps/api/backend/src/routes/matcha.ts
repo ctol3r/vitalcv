@@ -99,6 +99,29 @@ type CreateOpportunityBody = Partial<Opportunity> & {
 // In-memory intent store — TODO: Wave 190+ migrate to DB
 const intentStore = new Map<string, CandidateIntent>();
 
+/**
+ * Parse the `x-matcha-intent` request header — a JSON CandidateIntent the web
+ * proxy derives from the signed-in clinician's durable, Clerk-scoped
+ * preferences. Returns null on any problem (missing, malformed JSON, wrong
+ * shape, or an NPI that doesn't match this route), so a bad header degrades the
+ * feed to credential-only ranking and can never surface another clinician's
+ * preferences against this NPI.
+ */
+function parseIntentHeader(
+  raw: string | string[] | undefined,
+  npi: string,
+): CandidateIntent | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<CandidateIntent>;
+    if (!parsed || typeof parsed !== 'object' || parsed.npi !== npi) return null;
+    return parsed as CandidateIntent;
+  } catch {
+    return null;
+  }
+}
+
 // In-memory decision audit log
 const decisionLog: ReturnType<typeof buildDecisionAudit>[] = [];
 
@@ -620,7 +643,14 @@ export function registerMatchaRoutes(app: Express): void {
         hiringType: hiringType as string | undefined,
       };
 
-      const result = await getLiveMatchesForNpi(npi, filters);
+      // The web proxy forwards the signed-in clinician's stated preferences
+      // (from the durable, Clerk-scoped preference store) as a CandidateIntent
+      // JSON header, so ranking reflects preference + credentials rather than
+      // credentials alone. Malformed or NPI-mismatched headers are ignored —
+      // the feed degrades to credential-only, never errors.
+      const intent = parseIntentHeader(req.headers['x-matcha-intent'], npi);
+
+      const result = await getLiveMatchesForNpi(npi, filters, intent);
 
       res.json({
         ...result,
@@ -670,14 +700,15 @@ export function registerMatchaRoutes(app: Express): void {
    * Returns MatchExplanation for a specific opportunity using live scoring.
    */
   app.post('/api/matcha/explain', async (req: Request, res: Response) => {
-    const { npi, opportunityId } = req.body ?? {};
+    const { npi, opportunityId, intent } = req.body ?? {};
     if (!npi || !opportunityId) {
       res.status(400).json({ error: 'npi and opportunityId required' });
       return;
     }
 
     try {
-      const result = await scoreOpportunityForNpi(npi, opportunityId);
+      const scoringIntent = intent && intent.npi === npi ? (intent as CandidateIntent) : null;
+      const result = await scoreOpportunityForNpi(npi, opportunityId, scoringIntent);
       if (!result) {
         res.status(404).json({ error: 'Opportunity not found' });
         return;
