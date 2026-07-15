@@ -5,12 +5,14 @@
 :root,
 html.light,
 html[data-theme='light'] {
-  --vt-bg: #E4E3E0;
-  --vt-surface: #DDDCD8;
-  --vt-surface-subtle: #D5D4D0;
-  --vt-surface-dim: #C8C7C3;
-  --vt-border: #141414;
-  --vt-border-subtle: #14141433;
+  /* Lighter off-white palette (Chris, Homepage Motion Convergence Wave). Soft
+     borders replace the brutalist black rule; ink stays #141414. */
+  --vt-bg: #FAFAF8;
+  --vt-surface: #FFFFFF;
+  --vt-surface-subtle: #F5F5F2;
+  --vt-surface-dim: #EBEAE5;
+  --vt-border: #E2E1DC;
+  --vt-border-subtle: #EBEAE5;
   --vt-text-primary: #141414;
   --vt-text-secondary: #141414CC;
   --vt-text-muted: #14141466;

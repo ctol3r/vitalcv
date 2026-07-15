@@ -13,9 +13,10 @@
 .mz {
   /* Paper & ink — Calm Wave D56 exact tokens. Warm near-white paper (hue 85),
      cool blue-black ink (hue 265). oklch, as the source design authored them. */
-  --paper:   oklch(98.5% 0.004 85);
-  --paper-2: oklch(97% 0.008 85);
-  --card:    oklch(99.4% 0.002 85);
+  /* Lighter off-white palette (Homepage Motion Convergence Wave) — exact hexes. */
+  --paper:   #FAFAF8;
+  --paper-2: #F5F5F2;
+  --card:    #FFFFFF;
   --ink-950: oklch(12% 0.012 265);
   --ink-900: oklch(18% 0.012 265);
   --ink-800: oklch(26% 0.012 265);
@@ -27,8 +28,8 @@
   --ink-200: oklch(88% 0.007 265);
   --ink-100: oklch(93% 0.006 265);
   --ink-50:  oklch(96.5% 0.005 85);
-  --rule:      oklch(86% 0.008 265 / 0.9);
-  --rule-soft: oklch(90% 0.007 265 / 0.7);
+  --rule:      #E2E1DC;
+  --rule-soft: #EBEAE5;
 
   /* Truth states — paired ink + wash + rule (design values, never neon) */
   --ok: oklch(46% 0.10 152);        --ok-bg: oklch(94% 0.03 152);       --ok-rule: oklch(80% 0.06 152);
