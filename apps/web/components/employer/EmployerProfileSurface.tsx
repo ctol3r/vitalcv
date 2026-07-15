@@ -155,7 +155,12 @@ export function EmployerProfileSurface() {
         </p>
         <Link
           href="/employers"
-          className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--vt-text-primary)] px-5 py-2.5 text-[13px] font-semibold text-[var(--vt-bg)] transition-opacity hover:opacity-90"
+          // Inline background (unlayered → always wins) + text-white: the
+          // `bg-[var(--vt-text-primary)]` utility is beaten by an <a> reset
+          // outside the .mz context, which left the CTA transparent with light
+          // text (invisible). This mirrors the navbar's proven inline pattern.
+          style={{ backgroundColor: 'var(--vt-text-primary)' }}
+          className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
         >
           Claim your organization <ArrowRight size={14} aria-hidden="true" />
         </Link>
