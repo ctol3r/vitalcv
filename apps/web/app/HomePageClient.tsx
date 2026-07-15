@@ -33,7 +33,7 @@ import { PublicMatchaExperience } from '@/components/matcha/PublicMatchaExperien
 // which the renderToStaticMarkup homepage guard tests do not support.
 import CareerGraph from '@/components/career-graph/CareerGraph';
 import { Reveal } from '@/components/motion/Reveal';
-import { KineticPhrase } from '@/components/home/KineticPhrase';
+import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { WorkflowStoryTabs } from '@/components/home/WorkflowStoryTabs';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { OutcomeTriad } from '@/components/home/OutcomeTriad';
@@ -515,20 +515,22 @@ export default function HomePageClient() {
                   Find the opportunity. Prove your career{' '}
                   <em className="mz-accent">once.</em> Start faster.
                 </h1>
-                <KineticPhrase
+                <ScrollTypeNarrative
                   data-home-hero-subhead=""
-                  className="max-w-xl text-[19px] leading-[1.55] text-[var(--vt-text-secondary)]"
-                  prefix="Enter your NPI and VitalCV "
+                  className="max-w-xl text-[19px] leading-[1.5] text-[var(--vt-text-secondary)]"
+                  prefix="VitalCV "
                   phrases={[
                     'recognizes your identity',
-                    'checks your primary sources',
-                    'flags what still needs review',
-                    'shows what employers can confirm today',
+                    'checks the primary sources',
+                    'shows what still needs review',
+                    'matches the right opportunity',
+                    'carries your evidence forward',
                   ]}
-                  staticSentence="Enter your NPI and VitalCV recognizes your identity, checks your primary sources, flags what still needs review, and shows what employers can confirm today."
+                  staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
                 />
-                {/* Static, no-JS/SR copy is carried inside KineticPhrase (sr-only);
-                    the rotating phrases above are all real steps the lookup runs. */}
+                {/* Scroll-linked typing (not a timer): the sequence types as the
+                    visitor scrolls the first screen; the full sentence is always
+                    in the DOM (sr-only). Every step is real. */}
               </div>
 
               <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">
