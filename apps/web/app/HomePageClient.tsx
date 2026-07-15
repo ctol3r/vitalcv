@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { SignedIn } from '@clerk/nextjs';
+import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import {
   ArrowRight,
   Award,
@@ -463,10 +463,12 @@ function WalletPreview() {
 }
 
 export default function HomePageClient() {
-  const router = useRouter();
   const [raw, setRaw] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [focused, setFocused] = React.useState(false);
+  // Sprint 2 — the hero resolves the NPI IN PLACE (the "I watched it work"
+  // moment) instead of routing to /passport. This holds the submitted NPI.
+  const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
 
   const digits = raw.replace(/\D/g, '').slice(0, 10);
   const isFull = digits.length === 10;
@@ -476,7 +478,6 @@ export default function HomePageClient() {
       setError('Enter a full 10-digit NPI.');
       return;
     }
-
     setError(null);
     try {
       window.sessionStorage.setItem('onboarding_npi', digits);
@@ -484,8 +485,8 @@ export default function HomePageClient() {
     } catch {
       // Keep the handoff continuous when storage is available.
     }
-    router.push(`/passport?npi=${digits}`);
-  }, [digits, isFull, router]);
+    setSubmittedNpi(digits);
+  }, [digits, isFull]);
 
   return (
     <div className="mz mz-paper relative overflow-hidden text-[var(--vt-text-primary)]">
@@ -660,9 +661,21 @@ export default function HomePageClient() {
               </div>
             </div>
 
-            {/* Right: wallet product visual */}
-            <div className="hidden justify-center lg:flex">
-              <WalletPreview />
+            {/* Right: wallet visual (idle) → the live NPI result in place (Sprint 2).
+                On submit it becomes visible on every width (the "watched it work"
+                moment appears next to / below the form, no navigation). */}
+            <div className={submittedNpi ? 'flex justify-center' : 'hidden justify-center lg:flex'}>
+              {submittedNpi ? (
+                <LiveNpiResult
+                  npi={submittedNpi}
+                  onReset={() => {
+                    setSubmittedNpi(null);
+                    setRaw('');
+                  }}
+                />
+              ) : (
+                <WalletPreview />
+              )}
             </div>
           </section>
 
