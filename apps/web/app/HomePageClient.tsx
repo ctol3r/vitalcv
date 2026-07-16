@@ -102,7 +102,7 @@ function WalletPreview() {
       ref={tiltRef}
       aria-hidden="true"
       data-home-wallet-preview=""
-      className="relative w-full max-w-sm rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5"
+      className="relative w-full max-w-md rounded-[14px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
     >
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--vt-text-primary)]">
@@ -125,7 +125,7 @@ function WalletPreview() {
 
       <div className="mt-3 rounded-[9px] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">Readiness preview</p>
-        <p className="mt-2 text-[13px] font-medium text-[var(--vt-text-primary)]">
+        <p className="mt-2 text-[15px] font-medium text-[var(--vt-text-primary)]">
           {WALLET_PREVIEW_ROWS.length} source lanes shown ·{' '}
           {WALLET_PREVIEW_ROWS.filter((r) => r.tone === 'pending').length} requires access
         </p>
@@ -136,7 +136,7 @@ function WalletPreview() {
         {WALLET_PREVIEW_ROWS.map((row) => (
           <div key={row.source} className="flex items-center justify-between rounded-[7px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-3 py-2">
             <span className="flex min-w-0 flex-col">
-              <span className="truncate text-[12px] font-semibold text-[var(--vt-text-primary)]">{row.field}</span>
+              <span className="truncate text-[13.5px] font-semibold text-[var(--vt-text-primary)]">{row.field}</span>
               <span className="truncate text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">{row.source}</span>
             </span>
             <span className={cn(
@@ -215,7 +215,7 @@ export default function HomePageClient() {
 
       <HomepageSectionRail />
 
-      <main className="relative mx-auto w-full max-w-[1200px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
+      <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* Outer pin gives the scroll-typed narrative room to finish on screen
             (desktop only); the inner stage stays sticky for that distance. */}
         <section
@@ -226,9 +226,9 @@ export default function HomePageClient() {
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[calc(100svh-16rem)] items-center gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-5"
+            className="hero-stage relative isolate grid min-h-[calc(100svh-16rem)] items-center gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-5"
           >
-          <div className="max-w-2xl">
+          <div className="max-w-3xl">
             <div className="space-y-4">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
               <h1 className="mz-display">
@@ -236,7 +236,7 @@ export default function HomePageClient() {
               </h1>
               <ScrollTypeNarrative
                 data-home-hero-subhead=""
-                className="max-w-xl text-[19px] leading-[1.5] text-[var(--vt-text-secondary)]"
+                className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
                 prefix="VitalCV "
                 phrases={HERO_PHRASES}
                 staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
@@ -244,7 +244,7 @@ export default function HomePageClient() {
               />
             </div>
 
-            <div className="mz-glass mz-glass-interactive mt-5 max-w-xl rounded-[12px]">
+            <div className="mz-glass mz-glass-interactive mt-5 max-w-2xl rounded-[12px]">
               <Card id="npi" className="scroll-mt-36 rounded-[12px] border-0 bg-transparent shadow-none">
                 <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                   <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>

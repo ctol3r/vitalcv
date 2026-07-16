@@ -13,7 +13,7 @@
 
 .homepage-section-rail > div {
   display: flex;
-  width: min(100%, 1200px);
+  width: min(100%, 1320px);
   margin-inline: auto;
   gap: 0.65rem;
   overflow-x: auto;
@@ -273,11 +273,11 @@
   display: flex;
   gap: 1rem;
   margin-top: 2.1rem;
-  margin-inline: calc((100vw - min(100vw, 1200px)) / -2);
+  margin-inline: calc((100vw - min(100vw, 1320px)) / -2);
   overflow-x: auto;
-  padding-inline: max(1.5rem, calc((100vw - 1200px) / 2));
+  padding-inline: max(1.5rem, calc((100vw - 1320px) / 2));
   padding-bottom: 1rem;
-  scroll-padding-inline: max(1.5rem, calc((100vw - 1200px) / 2));
+  scroll-padding-inline: max(1.5rem, calc((100vw - 1320px) / 2));
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   touch-action: pan-x pan-y;
@@ -416,4 +416,73 @@
   /* No runway exists solely for animation when motion is unwanted. */
   .scrub-heading-pin { min-height: 0; }
   .scrub-heading-pin .scrub-heading-stage { position: static; }
+}
+
+/* ── Marketing scale (Chris, 2026-07-16: "enlarge elements and fonts") ──────
+   THE ACTUAL PROBLEM behind "too much empty space": the content was sized for
+   a smaller canvas, so trimming padding never fixed it. Measured at 1440×1000
+   BEFORE this block: hero H1 68px but section H2 only 34px (half the hero),
+   body 15px, container 1200px leaving 120px of dead paper each side. Small
+   things with tight gaps still read as empty paper.
+
+   Scoped, NOT global: .mz-h1/.mz-body/.mz-lede are shared with product
+   surfaces (employer worklist, admin, opportunities) which must stay calmer
+   than the marketing narrative. Any marketing page can opt in by adding
+   .mz-scale-lg; product surfaces simply never do. */
+.mz-scale-lg {
+  --mz-marketing-measure: 1320px;
+}
+
+/* Section display: 34px → ~54px at 1440. A section headline should read as a
+   sibling of the hero, not a caption under it. */
+.mz-scale-lg .mz-h1 {
+  font-size: clamp(2.05rem, 4.2vw, 3.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+/* Body/lede: 15px/17px → 17px/19.5px. Long-form reading size, not UI size. */
+.mz-scale-lg .mz-body { font-size: 1.0625rem; line-height: 1.62; }
+.mz-scale-lg .mz-lede { font-size: 1.2rem; line-height: 1.55; }
+.mz-scale-lg .mz-eyebrow { font-size: 0.75rem; letter-spacing: 0.16em; }
+
+/* Story + carousel cards carry real product UI — scale the whole card, not
+   just its title, or the mockups look like postage stamps in a large frame. */
+.mz-scale-lg .story-card-copy h3,
+.mz-scale-lg .product-carousel-card-copy h3 {
+  font-size: clamp(1.9rem, 3.4vw, 2.75rem);
+  line-height: 1.06;
+}
+.mz-scale-lg .story-card-copy > p:last-child,
+.mz-scale-lg .product-carousel-card-copy > p:last-child {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.mz-scale-lg .story-intro-body { font-size: 1.0625rem; line-height: 1.65; }
+
+/* The product mockups themselves: rows were 0.78rem/12.5px — unreadable as
+   "real product UI" at this canvas size. */
+.mz-scale-lg .story-product-ui li { font-size: 0.9rem; min-height: 3.6rem; }
+.mz-scale-lg .story-state { font-size: 0.75rem; }
+.mz-scale-lg .story-product-topline,
+.mz-scale-lg .product-carousel-ui > div { font-size: 0.7rem; }
+.mz-scale-lg .story-product-action { font-size: 0.8rem; padding: 0.65rem 0.9rem; }
+.mz-scale-lg .product-carousel-ui li { font-size: 0.82rem; min-height: 3rem; }
+.mz-scale-lg .story-card-eyebrow,
+.mz-scale-lg .product-carousel-card-copy > p:first-of-type { font-size: 0.72rem; }
+.mz-scale-lg .story-progress-step { font-size: 0.92rem; min-height: 2.9rem; }
+.mz-scale-lg .story-footnote { font-size: 0.8rem; }
+
+/* Cards grow with their contents so the extra type doesn't force a scrollbar. */
+.mz-scale-lg .story-card-shell { min-height: 30rem; }
+.mz-scale-lg .product-carousel-card { flex-basis: min(82vw, 37rem); }
+
+@media (max-width: 767px) {
+  /* Mobile already fills its canvas — only a modest lift, and the card
+     min-heights stay content-driven so nothing overflows. */
+  .mz-scale-lg .mz-h1 { font-size: clamp(1.85rem, 7.4vw, 2.3rem); }
+  .mz-scale-lg .story-card-copy h3,
+  .mz-scale-lg .product-carousel-card-copy h3 { font-size: clamp(1.6rem, 6.6vw, 2rem); }
+  .mz-scale-lg .story-card-shell,
+  .mz-scale-lg .product-carousel-card-shell { min-height: auto; }
 }
