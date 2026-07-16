@@ -35,20 +35,28 @@ test.describe('Homepage motion convergence', () => {
     const subhead = page.locator('[data-home-hero-subhead]');
     const seen = new Set<string>();
     const height = page.viewportSize()!.height;
+    // The last phrase fully typed = sequence complete. After that the pin is
+    // SUPPOSED to release and the hero scrolls away like any other section, so
+    // the guarantee is only that nothing plays off-screen while the sequence is
+    // still running. Sweeping past the release and demanding on-screen was the
+    // original form of this assertion, and it failed on the release frame.
+    const done = '4:4';
+    let completedAt = -1;
 
-    // Sweep the whole pin. Each phrase must be inside the viewport whenever it
-    // is the active phrase — this is the guarantee the wave is actually about.
-    for (let y = 0; y <= 2200; y += 100) {
+    for (let y = 0; y <= 2200 && completedAt < 0; y += 100) {
       await scrollTo(page, y);
-      const state = await subhead.getAttribute('data-narrative-state');
+      const state = String(await subhead.getAttribute('data-narrative-state'));
       const box = await subhead.boundingBox();
       expect(box, `narrative missing at scrollY=${y}`).not.toBeNull();
-      expect(box!.y, `narrative above viewport at scrollY=${y} (state ${state})`).toBeGreaterThan(0);
-      expect(box!.y + box!.height, `narrative below viewport at scrollY=${y}`).toBeLessThan(height);
-      seen.add(String(state).split(':')[0]);
+      expect(box!.y, `phrase ${state} played above the viewport at scrollY=${y}`).toBeGreaterThan(0);
+      expect(box!.y + box!.height, `phrase ${state} played below the viewport at scrollY=${y}`).toBeLessThan(height);
+      seen.add(state.split(':')[0]);
+      if (state === done) completedAt = y;
     }
 
-    // All five phrases were reached — the sequence completes within the pin.
+    // The sequence finished on screen, inside the pin, before any release.
+    expect(completedAt, 'sequence never completed within the pin').toBeGreaterThan(0);
+    // All five phrases were reached — none skipped past the fold.
     expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
   });
 

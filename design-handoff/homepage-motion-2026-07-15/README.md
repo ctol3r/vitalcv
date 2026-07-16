@@ -1,17 +1,28 @@
 # Homepage Motion Convergence — verification frames (2026-07-15)
 
 Production-build screenshots captured by `apps/web/tests/e2e/capture-handoff.spec.ts`
-(Playwright, chromium, 1440×1000 desktop / 360×780 mobile) for the Homepage Motion
-Convergence Wave follow-up pass.
+(Playwright, chromium, 1440×1000 desktop / 360×780 mobile).
 
-- `01–03` hero pin: the scroll-typed narrative at rest, mid-type, and complete —
-  the whole five-step sequence now types while the line is on screen.
+These frames record the hero pin that makes the scroll-typed narrative actually
+watchable. Measured on the pre-pin build — and again on `main` after #683 — the
+narrative line exits the viewport at scrollY ≈ 584 while the reveal ran on to
+≈ 927, so phrases 3, 4 and 5 all played below the fold. The pin holds the line
+at a fixed viewport position for the whole reveal instead.
+
+- `01–03` hero pin: the narrative at rest, mid-sequence, and at the final
+  phrase — note the last phrase is on screen in `03`, where it previously
+  played ~316px above the fold.
 - `04–06` pinned five-step product story at start (Recognize), middle (Match),
   and end (Accept) of the sticky sequence.
 - `07` the single dark technical panel (evidence trace + truth boundary).
 - `08` product carousel with partial next-card preview and progress.
 - `09` real-number metric strip + dual-audience close.
 - `10–12` mobile (360px): unpinned hero, story scroll-snap card, carousel.
+
+The reveal math itself is #683's pure `narrativeStateAt(progress, phrases)`
+(phrase-replace with a guaranteed dwell, 9 unit tests in
+`apps/web/__tests__/scroll-type-narrative.test.ts`). The pin only supplies the
+runway that math needs; unpinned viewports keep #683's 0.72vh distance.
 
 Regenerate: build web, start it on 127.0.0.1:3000, then
 `CAPTURE_OUT=<dir> pnpm exec playwright test tests/e2e/capture-handoff.spec.ts`.
