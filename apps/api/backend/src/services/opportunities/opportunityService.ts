@@ -33,7 +33,9 @@ import {
 } from './opportunityTruth';
 import {
   buildCanonicalOrganizationIdentity,
+  describeOrganizationAuthorityRefusal,
   isPlaceholderOrganizationDomain,
+  resolveOrganizationAuthority,
 } from '../employers/employerIntegrity';
 
 /* ── Types ─────────────────────────────────────────────────── */
@@ -216,6 +218,36 @@ export async function upsertOrgProfile(
       },
     });
     return { organizationId: membershipOrgProfile.organizationId };
+  }
+
+  // ── Authority gate ───────────────────────────────────────────────────────
+  // Creating an organization GRANTS the caller administrative membership over
+  // it, so it needs an authority signal. Previously this path required only a
+  // signed-in account plus a self-typed name: an NPPES lookup proves the
+  // organization EXISTS, never that this person may act for it, so anyone could
+  // take over any employer name. Self-serve now requires a work email at the
+  // organization's own domain; everything else routes to manual review.
+  const authority = resolveOrganizationAuthority({
+    accountEmail: user.email,
+    organizationDomain: canonicalIdentity.domain,
+  });
+  if (!authority.authorized) {
+    throw new HttpError(403, describeOrganizationAuthorityRefusal(authority.reason));
+  }
+
+  // An organization NPI identifies exactly one organization. Without this, the
+  // NPI was a decorative attribute and the same NPI could back several orgs.
+  if (normalizedNpi) {
+    const npiOwner = await prisma.organizationProfile.findFirst({
+      where: { npi: normalizedNpi },
+      select: { organizationId: true },
+    });
+    if (npiOwner) {
+      throw new HttpError(
+        409,
+        'That organization NPI is already registered to a VitalCV organization. Request access instead of registering it again.',
+      );
+    }
   }
 
   // Create new org + profile + membership
