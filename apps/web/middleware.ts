@@ -107,7 +107,32 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
   return NextResponse.next();
 });
 
-export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+/**
+ * Session-sensitive path prefixes (Wave 0.2). Every response under these —
+ * pages, redirects, interstitials — is stamped `private, no-store` so no
+ * shared cache (CDN, proxy, browser shared cache) can ever serve one user's
+ * session-dependent output to another. The route trees also export
+ * `dynamic = 'force-dynamic'`; this belt catches anything that slips the
+ * segment config (new pages, redirects minted here in the middleware).
+ */
+const SESSION_PATH_PREFIXES = [
+  '/onboarding',
+  '/sign-in',
+  '/sign-up',
+  '/auth',
+  '/holder',
+  '/employer',
+  '/review',
+  '/apply',
+] as const;
+
+function isSessionPath(pathname: string): boolean {
+  return SESSION_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+async function routeMiddleware(req: NextRequest, event: NextFetchEvent) {
   // CORS gate: /api/* routes require the Origin to be in the allowlist.
   // An absent ALLOWED_CORS_ORIGINS env var means the allowlist is empty and
   // all cross-origin API requests are blocked. Same-origin requests (no Origin
@@ -150,6 +175,14 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
     }
   }
   return clerkHandler(req, event);
+}
+
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+  const response = await routeMiddleware(req, event);
+  if (response && isSessionPath(req.nextUrl.pathname)) {
+    response.headers.set('Cache-Control', 'private, no-store');
+  }
+  return response;
 }
 
 export const config = {
