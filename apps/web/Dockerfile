@@ -27,12 +27,25 @@ RUN pnpm install --frozen-lockfile --filter @vitalcv/web... --ignore-scripts
 
 FROM deps AS build
 ENV NEXT_TELEMETRY_DISABLED=1
-# NEXT_PUBLIC_* vars are baked into the client bundle at build time.
-# Default to the production API host so a build without an explicit
-# --build-arg does NOT bake a localhost URL into the prod bundle.
+# NEXT_PUBLIC_* vars are baked into the client bundle at build time, and
+# Railway passes a service variable into a Docker build ONLY when a matching
+# ARG is declared here. The 18c9311 incident: only API_BASE was declared, so
+# the whole client bundle + every prerender compiled with Clerk DISABLED while
+# runtime SSR had the key. Every client-baked variable must be listed.
 ARG NEXT_PUBLIC_API_BASE=https://api.vitalcv.com
 ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
-RUN pnpm turbo run build --filter @vitalcv/web
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""
+ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL=""
+ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=""
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=""
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=""
+ARG NEXT_PUBLIC_BACKEND_URL=""
+# Fail-closed switch: set VITALCV_REQUIRE_AUTH_ENV=1 on the Railway service so
+# a build missing the Clerk key ABORTS instead of shipping auth-dead output.
+ARG VITALCV_REQUIRE_AUTH_ENV=""
+# docker-build.sh unsets empty ARGs (so '' never shadows code fallbacks),
+# enforces the fail-closed guard, then runs the turbo build.
+RUN sh apps/web/scripts/docker-build.sh
 
 FROM base AS runtime
 ENV NODE_ENV=production
