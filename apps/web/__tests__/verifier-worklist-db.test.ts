@@ -9,7 +9,9 @@
  *   - decisionGrade: false preserved through query → result round-trip
  *   - Only ReceiptCandidate rows returned; no PSVReceipt path exists here
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
 
 const DB_URL = process.env.DATABASE_URL;
 const SKIP = !DB_URL;
@@ -58,9 +60,7 @@ afterAll(async () => {
   await prismaTest.$disconnect();
 });
 
-// Dynamically import the repo inside tests to avoid 'server-only'
-// guard failing in the test runner (vitest runs in node environment
-// where server-only is a no-op).
+// Dynamically import the repo after the hoisted server-only mock.
 async function getWorklist(filter = {}) {
   const mod = await import('../lib/verifier/worklistRepo');
   return mod.getWorklist(filter);
@@ -93,7 +93,7 @@ describe('getWorklist — seeded row round-trip', () => {
       const id = `wl-test-${Date.now()}-1`;
       await seedCandidate({
         candidateId: id,
-        reviewState: 'pending_policy_review',
+        reviewState: 'review_required',
         proofTier: 'receipt_candidate',
       });
 
@@ -117,8 +117,8 @@ describe('getWorklist — reviewState filter', () => {
       const noMatchId = `wl-test-${Date.now()}-nomatch`;
 
       await Promise.all([
-        seedCandidate({ candidateId: matchId, reviewState: 'in_review' }),
-        seedCandidate({ candidateId: noMatchId, reviewState: 'pending_policy_review' }),
+        seedCandidate({ candidateId: matchId, reviewState: 'ready_for_policy_review' }),
+        seedCandidate({ candidateId: noMatchId, reviewState: 'review_required' }),
       ]);
 
       const result = await getWorklist({ reviewState: 'in_review' });

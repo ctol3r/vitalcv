@@ -19,13 +19,11 @@ import * as React from 'react';
  *  - It is decoration beside the NPI form — it never gates or delays the input.
  */
 
-// Fraction of a viewport of scrolling over which the whole sequence types out.
-const REVEAL_FRACTION = 0.85;
-
 export function ScrollTypeNarrative({
   prefix,
   phrases,
   staticSentence,
+  scrollContainerId,
   className,
   ...rest
 }: {
@@ -33,6 +31,8 @@ export function ScrollTypeNarrative({
   phrases: readonly string[];
   /** The full, honest sentence — accessible + no-JS source of truth. */
   staticSentence: string;
+  /** Section whose scroll progress drives the reveal. */
+  scrollContainerId: string;
   className?: string;
 } & Omit<React.HTMLAttributes<HTMLParagraphElement>, 'children'>) {
   const [idx, setIdx] = React.useState(0);
@@ -41,17 +41,24 @@ export function ScrollTypeNarrative({
   const [words, setWords] = React.useState(-1);
   const [reduce, setReduce] = React.useState(false);
 
+  const phraseKey = phrases.join('|');
+
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setReduce(true);
-      return;
-    }
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMotion = () => setReduce(media.matches);
+    syncMotion();
+    media.addEventListener('change', syncMotion);
     let raf = 0;
     const update = () => {
       raf = 0;
+      if (media.matches) return;
+      const container = document.getElementById(scrollContainerId);
+      if (!container) return;
       const vh = window.innerHeight || 1;
-      const p = Math.min(1, Math.max(0, window.scrollY / (vh * REVEAL_FRACTION)));
+      const containerTop = container.getBoundingClientRect().top + window.scrollY;
+      const revealDistance = Math.max(vh * 0.82, container.offsetHeight - vh * 0.3);
+      const p = Math.min(1, Math.max(0, (window.scrollY - containerTop) / revealDistance));
       const seg = p * phrases.length;
       const i = Math.min(phrases.length - 1, Math.floor(seg));
       const intra = seg - i;
@@ -59,7 +66,7 @@ export function ScrollTypeNarrative({
       // At the very top, rest on the first phrase fully typed (never blank);
       // otherwise type the active phrase over the first ~60% of its segment.
       const shown =
-        window.scrollY < 2 ? phrases[0].split(' ').length : Math.round(Math.min(1, intra / 0.6) * wordCount);
+        p < 0.005 ? phrases[0].split(' ').length : Math.round(Math.min(1, intra / 0.66) * wordCount);
       setIdx(i);
       setWords(shown);
     };
@@ -72,21 +79,32 @@ export function ScrollTypeNarrative({
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      media.removeEventListener('change', syncMotion);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [phrases]);
+  // phraseKey deliberately keeps inline array literals from re-binding the
+  // scroll listener on every parent render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phraseKey, scrollContainerId]);
 
   const current = phrases[idx] ?? phrases[0];
   const wordArr = current.split(' ');
 
   return (
     <p className={className} {...rest}>
-      {/* Reserved-height line: words fade in place, so the phrase never reflows. */}
-      <span aria-hidden="true" className="block min-h-[3.4rem] sm:min-h-[2.6rem]">
-        {prefix}
-        {reduce
-          ? current
-          : wordArr.map((w, i) => (
+      {/* Reserved grid cell: the longest phrase holds width/height while the
+          active phrase is painted in the same cell, so typing cannot reflow. */}
+      <span aria-hidden="true" className="grid min-h-[3.4rem] sm:min-h-[2.6rem]">
+        {reduce ? (
+          <span className="col-start-1 row-start-1">{staticSentence}</span>
+        ) : (
+          <>
+            <span className="invisible col-start-1 row-start-1">
+              {prefix}{phrases.reduce((longest, phrase) => phrase.length > longest.length ? phrase : longest, '')}
+            </span>
+            <span className="col-start-1 row-start-1">
+              {prefix}
+              {wordArr.map((w, i) => (
               <span
                 key={`${idx}-${i}`}
                 style={{
@@ -97,10 +115,13 @@ export function ScrollTypeNarrative({
                 {w}
                 {i < wordArr.length - 1 ? ' ' : ''}
               </span>
-            ))}
+              ))}
+            </span>
+          </>
+        )}
       </span>
       {/* Sequence progress — which of the five steps is active. */}
-      <span aria-hidden="true" className="mt-2 flex items-center gap-1.5">
+      <span aria-hidden="true" className={reduce ? 'hidden' : 'mt-2 flex items-center gap-1.5'}>
         {phrases.map((_, i) => (
           <span
             key={i}

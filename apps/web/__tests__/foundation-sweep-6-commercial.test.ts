@@ -165,9 +165,14 @@ describe('commercial route copy invariants', () => {
     expect(src).not.toContain('buildSignupFoundationPlan');
   });
 
-  it('onboarding route includes the required credentialing safety copy', () => {
-    const src = readRoute('onboarding/page.tsx');
-    expect(src).toContain('Onboarding summarizes the continuation path. It does not complete credentialing.');
+  it('canonical onboarding surface includes the required credentialing safety copy', () => {
+    const route = readRoute('onboarding/page.tsx');
+    const surface = readRoute('get-ready/GetReadySurface.tsx');
+    expect(route).toContain("import GetReadySurface from '@/app/get-ready/GetReadySurface'");
+    expect(surface).toMatch(
+      /This matches your public registry identity record\. It does not verify licenses,\s+exclusions, or enrollment/,
+    );
+    expect(surface).toContain('VitalCV records this attestation; it does not verify it here.');
   });
 
   it('commercial routes avoid positive live payment, proofing, and acceptance claims', () => {

@@ -1,36 +1,9 @@
-/**
- * home-npi-role-doors.test.tsx — Visible Product Wave coverage.
- *
- * Asserts the homepage renders:
- *   - the Career Evidence Network eyebrow + clinician-value headline + subhead,
- *   - "Check readiness" as the primary NPI CTA label,
- *   - a "Sign in" secondary link,
- *   - the five-step "how it works" loop,
- *   - the "what you get" value cards (wallet / readiness / recognition /
- *     proof / opportunities / time-to-start),
- *   - three role doors (Clinician / Verifier≡Employer / Issuer)
- *     each with the documented action label,
- *   - a three-column proof strip (Source / State / Review boundary),
- *   - a trust footer row (Status / Source attribution / Trust),
- *   - zero banned phrases anywhere on the rendered surface.
- *
- * The component is a client component that depends on `next/navigation`
- * and `@clerk/nextjs`. We render the inner content by reaching into the
- * exported component via a server-side static render — Clerk providers
- * are not exercised in vitest, so SignedIn returns null, which matches
- * the unauthenticated public surface.
- */
+/** Homepage Motion Convergence Wave structural and truth-contract guards. */
 
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-// Stub next/navigation — server-side render does not need real router.
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: () => undefined, replace: () => undefined }),
-}));
-
-// Stub @clerk/nextjs — SignedIn returns null when no provider in scope.
 vi.mock('@clerk/nextjs', () => ({
   SignedIn: ({ children }: { children: React.ReactNode }) => null,
 }));
@@ -53,268 +26,125 @@ const BANNED_PATTERNS: ReadonlyArray<RegExp> = [
   /\baccepted\s+everywhere\b/i,
 ];
 
-function assertNoBannedPhrases(html: string): void {
-  for (const pattern of BANNED_PATTERNS) {
-    expect(
-      pattern.test(html),
-      `Banned phrase /${pattern.source}/${pattern.flags} matched`,
-    ).toBe(false);
-  }
+function renderHomepage(): string {
+  return renderToStaticMarkup(<HomePageClient />);
 }
 
-describe('HomePageClient — clinician-value hero', () => {
-  it('renders the career-evidence-network eyebrow and the Anyscale-pattern headline', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    // Anyscale-translation hero (2026-07-15, Chris): "structure only, keep Calm
-    // Wave" + the new kinetic headline copy. The eyebrow now leads with the
-    // category itself, which also satisfies the "career evidence network" check.
-    expect(html).toContain('data-home-eyebrow');
-    expect(html).toContain('The clinician career evidence network');
+describe('HomePageClient — hero and live NPI moment', () => {
+  it('keeps the clinician-led headline, live NPI control, and immediate lookup action', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-hero');
     expect(html).toContain('Find the opportunity. Prove your career');
-    expect(html).toContain('once.');
-    expect(html).toContain('Start faster.');
-    expect(html).toContain('career evidence network');
-  });
-
-  it('renders the scroll-typed narrative with an always-present static sentence', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-hero-subhead');
-    // The prefix + first phrase render server-side (resting state)…
-    expect(html).toContain('recognizes your identity');
-    // …and the complete honest sentence is always in the DOM (sr-only) so the
-    // meaning never depends on scroll / JS.
-    expect(html).toContain('checks the primary sources');
-    expect(html).toContain('still needs review');
-    expect(html).toContain('matches the right opportunity');
-    expect(html).toContain('carries your evidence forward');
-  });
-
-  it('renders "Check readiness" as the primary CTA label', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+    expect(html).toContain('aria-label="NPI number"');
     expect(html).toContain('data-home-primary-cta');
-    expect(html).toMatch(/Check readiness[^<]*<svg/);
+    expect(html).toContain('Check readiness');
+    expect(html).toContain('No account required');
   });
 
-  it('renders a "Sign in" secondary link', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-secondary-cta');
-    expect(html).toContain('href="/sign-in"');
-    expect(html).toContain('>Sign in<');
-  });
-});
-
-describe('HomePageClient — how-it-works workflow tabs', () => {
-  it('renders the five interactive workflow steps as a tablist', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-loop');
-    expect(html).toContain('data-home-workflow-tabs');
-    expect(html).toContain('role="tablist"');
-    for (const n of ['1', '2', '3', '4', '5']) {
-      expect(html).toContain(`data-home-loop-step="${n}"`);
-    }
-  });
-
-  it('names the canonical clinician path across the five tab labels', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    // Recognize → Prepare → Match → Apply → Accept (the Anyscale workload-tabs
-    // translation of NPI → sources → readiness → packet → acceptance).
-    expect(html).toContain('Recognize');
-    expect(html).toContain('Prepare');
-    expect(html).toContain('Match');
-    expect(html).toContain('Apply');
-    expect(html).toContain('Accept');
-    // Doctrine anchors still present in the tab copy.
-    expect(html).toContain('Start with one NPI');
-    expect(html).toContain('readiness snapshot');
-    expect(html).toContain('head start');
-    expect(html).toContain('VitalCV Recognition');
-    expect(html).toContain('Institution review remains the final step.');
-  });
-});
-
-describe('HomePageClient — value cards', () => {
-  it('renders the six value cards', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-value');
-    for (const key of [
-      'wallet',
-      'readiness',
-      'recognition',
-      'proof',
-      'opportunities',
-      'time-to-start',
+  it('keeps the complete five-part scroll narrative in the DOM', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-hero-subhead');
+    for (const phrase of [
+      'recognizes your identity',
+      'checks the primary sources',
+      'shows what still needs review',
+      'matches the right opportunity',
+      'carries your evidence forward',
     ]) {
-      expect(html).toContain(`data-home-value-card="${key}"`);
+      expect(html).toContain(phrase);
+    }
+  });
+});
+
+describe('HomePageClient — pinned product story', () => {
+  it('renders one scroll-linked five-step story with every product card in the DOM', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-sticky-product-story');
+    expect(html).toContain('data-home-loop');
+    for (const step of ['recognize', 'prepare', 'match', 'apply', 'accept']) {
+      expect(html).toContain(`data-story-card="${step}"`);
     }
   });
 
-  it('communicates the clinician product in the value copy', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('A free career wallet you own');
-    expect(html).toContain('NPI-first readiness');
+  it('preserves the canonical labels and the employer review boundary', () => {
+    const html = renderHomepage();
+    for (const label of ['Recognize', 'Prepare', 'Match', 'Apply', 'Accept']) {
+      expect(html).toContain(label);
+    }
     expect(html).toContain('VitalCV Recognition');
-    expect(html).toContain('Shareable proof');
-    expect(html).toContain('Opportunity matching');
-    expect(html).toContain('Start working faster');
-    // MATCHA named as the matching engine (a substrate, not the headline).
-    expect(html).toContain('MATCHA');
+    expect(html).toContain('institution review remains the final step');
   });
 });
 
-describe('HomePageClient — compounding-network (moat) section', () => {
-  it('renders the moat section with its three compounding cards', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-moat');
-    expect(html).toContain('data-home-moat-card="own"');
-    expect(html).toContain('data-home-moat-card="compound"');
-    expect(html).toContain('data-home-moat-card="network"');
+describe('HomePageClient — product carousel and rail', () => {
+  it('renders the six requested carousel cards without autoplay', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-product-carousel');
+    for (const product of ['wallet', 'readiness', 'matcha', 'apply', 'recognition', 'reuse']) {
+      expect(html).toContain(`data-carousel-card="${product}"`);
+    }
+    expect(html).not.toMatch(/autoplay/i);
+    expect(html).toContain('aria-label="Previous product"');
+    expect(html).toContain('aria-label="Next product"');
   });
 
-  it('makes the moat legible: owned evidence, compounding acceptance, network velocity', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Career evidence that');
-    expect(html).toContain('makes every move faster than the last');
-    expect(html).toContain('Nothing resets when you move');
-    expect(html).toContain('Every yes makes the next yes easier');
-    expect(html).toContain('Time-to-Start');
-    expect(html).toContain('re-answering what a primary source already answered');
-  });
-
-  it('states the shared loop and frames 10× strictly as the goal, not a claim', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('RECOGNITION → ACCEPTANCE → START');
-    expect(html).toContain('the loop every VitalCV user shares');
-    // Honesty guard: the 10× line must stay framed as the goal we build
-    // against — never an achieved/promised outcome.
-    expect(html).toContain(
-      'The goal we build against: starting your next role 10× faster than the credentialing status quo.',
-    );
-    expect(/10×\s+faster\s+guaranteed/i.test(html)).toBe(false);
+  it('renders direct section links in the required order', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-section-rail');
+    const links = ['#wallet', '#readiness', '#matcha', '#apply', '#employers'];
+    let previous = -1;
+    for (const href of links) {
+      const index = html.indexOf(`href="${href}"`);
+      expect(index).toBeGreaterThan(previous);
+      previous = index;
+    }
   });
 });
 
-describe('HomePageClient — role doors', () => {
-  it('renders three role doors (verifier ≡ employer are one group)', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-role-doors');
-    expect(html).toContain('data-home-role-door="clinician"');
-    expect(html).toContain('data-home-role-door="verifier"');
-    expect(html).toContain('data-home-role-door="issuer"');
-    // Employer is folded into the verifier door — not a separate door.
-    expect(html).not.toContain('data-home-role-door="employer"');
-  });
-
-  it('states the shared outcome all three roles converge on', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain(
-      'Three doors, one shared outcome — a clinician hired and started, faster.',
-    );
-  });
-
-  it('each role door advertises its canonical action label', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Claim my NPI record'); // clinician
-    expect(html).toContain('Look up an NPI'); // verifier / employer (merged blurb)
-    expect(html).toContain('Review a passport'); // verifier / employer (action)
-    expect(html).toContain('Connect a source'); // issuer
-  });
-});
-
-describe('HomePageClient — proof strip', () => {
-  it('renders the three proof-strip columns', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-proof-strip');
-    expect(html).toContain('data-home-proof-col="source"');
-    expect(html).toContain('data-home-proof-col="state"');
-    expect(html).toContain('data-home-proof-col="review-boundary"');
-  });
-
-  it('proof-strip copy names source / state / review boundary in operator-honest language', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Every field names the primary source');
-    // "Source-backed" appears in the state column as part of operator-honest copy.
-    expect(html).toMatch(/Source-backed,\s+gated,\s+or\s+temporarily\s+unavailable/);
-    expect(html).toContain(
-      'Institution review remains the final step.',
-    );
-  });
-});
-
-describe('HomePageClient — trust footer row', () => {
-  it('renders the footer trust row with three links', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-trust-footer');
-    expect(html).toContain('href="/status"');
-    expect(html).toContain('href="/trust/attribution"');
-    expect(html).toContain('href="/trust"');
-  });
-});
-
-describe('HomePageClient — evidence-trace + truth-boundary panel', () => {
-  it('renders both the evidence trace and the truth boundary', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
+describe('HomePageClient — consolidated story and truth boundary', () => {
+  it('keeps exactly the requested core experiences and removes duplicate legacy grids', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-home-hero');
+    expect(html).toContain('data-home-sticky-product-story');
     expect(html).toContain('data-home-evidence-truth');
+    expect(html).toContain('data-home-product-carousel');
+    expect(html).toContain('data-home-experience="metrics-and-cta"');
+
+    for (const removed of [
+      'data-home-workflow-tabs',
+      'data-home-outcome-triad',
+      'data-home-moat',
+      'data-home-value',
+      'data-home-audiences',
+      'data-home-role-doors',
+      'data-home-proof-strip',
+    ]) {
+      expect(html).not.toContain(removed);
+    }
+  });
+
+  it('retains the single technical evidence panel and explicit limits', () => {
+    const html = renderHomepage();
     expect(html).toContain('data-home-evidence-trace');
     expect(html).toContain('data-home-truth-boundary');
-    expect(html).toContain('Truth before beauty');
-  });
-
-  it('states the source-honest vocabulary and the explicit boundary', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    // The honest state vocabulary — must survive future copy polish.
-    expect(html).toContain('Source-backed');
-    expect(html).toContain('Access required');
-    expect(html).toContain('Not yet known');
-    // The trace is labelled an example, never a live/real receipt.
     expect(html).toContain('Evidence trace');
-    // Palantir "truth before beauty": what the result does NOT mean.
     expect(html).toContain('What this does not mean');
-    expect(html).toContain(
-      'This is not a completed credentialing, privileging, or employer clearance decision.',
-    );
+    expect(html).toContain('This is not a completed credentialing, privileging, or employer clearance decision.');
   });
-});
 
-describe('HomePageClient — outcome triad + metric strip + dual CTA', () => {
-  it('renders the three finisher sections', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('data-home-outcome-triad');
+  it('keeps only real metrics and the dual-audience close', () => {
+    const html = renderHomepage();
     expect(html).toContain('data-home-metric-strip');
-    expect(html).toContain('data-home-dual-cta');
-  });
-
-  it('the metric strip shows only real, defensible numbers with the honest caption', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    // Grounded figures — 3 live lanes, 4 weighted readiness dimensions.
-    expect(html).toContain('>03<');
-    expect(html).toContain('>04<');
     expect(html).toContain('NPPES · OIG/LEIE · PECOS');
-    // The honesty anchor — live vs gated, and no pilot outcomes claimed.
-    expect(html).toContain('licensure is source-access-gated');
-    expect(html).toContain('No pilot outcomes are claimed until a');
-  });
-
-  it('the dual CTA preserves employer final authority and needs no account', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('free, no account required');
-    expect(html).toContain('you keep');
+    expect(html).toContain('No pilot outcomes are claimed');
+    expect(html).toContain('data-home-dual-cta');
     expect(html).toContain('final credentialing authority');
   });
-});
 
-describe('HomePageClient — banned-phrase scan', () => {
-  it('contains no banned phrases anywhere in the rendered HTML', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    assertNoBannedPhrases(html);
-  });
-
-  it('does NOT contain "Get verified" (per Wave I hard constraint)', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(/\bGet\s+verified\b/i.test(html)).toBe(false);
-  });
-
-  it('does NOT contain "accepted everywhere" (per Wave I hard constraint)', () => {
-    const html = renderToStaticMarkup(<HomePageClient />);
-    expect(/\baccepted\s+everywhere\b/i.test(html)).toBe(false);
+  it('contains no banned public claims', () => {
+    const html = renderHomepage();
+    for (const pattern of BANNED_PATTERNS) {
+      expect(pattern.test(html), `Banned phrase /${pattern.source}/${pattern.flags} matched`).toBe(false);
+    }
   });
 });

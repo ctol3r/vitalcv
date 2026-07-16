@@ -29,6 +29,20 @@ jobs:
   web-quality:
     name: Web Quality
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vitalcv_web_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vitalcv_web_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       # pnpm version resolved from packageManager field in package.json (pnpm@10.6.1)
@@ -39,6 +53,10 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Prepare web integration-test database
+        run: pnpm --filter @vitalcv/web exec prisma db push --schema prisma/schema.prisma --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       # Vitest resolves workspace deps (e.g. @vitalcv/trust-state,
       # @vitalcv/shared/pricing) via their package.json "main"/"exports"
       # which point at dist/*. Build the upstream workspace packages
@@ -50,7 +68,11 @@ jobs:
       - name: Lint web app
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
-        run: pnpm --filter @vitalcv/web test
+        run: pnpm --filter @vitalcv/web exec vitest run --exclude __tests__/verifier-worklist-db.test.ts
+      - name: Run web database integration tests
+        run: pnpm --filter @vitalcv/web exec vitest run __tests__/verifier-worklist-db.test.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       - name: Build web app
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
