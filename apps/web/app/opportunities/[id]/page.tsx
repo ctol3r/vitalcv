@@ -5,7 +5,7 @@
  * OpportunityEmbedPanel): a no-login view of the role plus the apply path.
  * "Apply with VitalCV" deep-links into the signed-in role page —
  * /holder/opportunities/[id] — and the middleware walks a signed-out
- * clinician through sign-in and back. New clinicians get the /get-ready lane.
+ * clinician through sign-in and back. New clinicians get the /onboarding lane.
  * Honest copy: a posting is a plain listing; nothing here implies VitalCV
  * verified the employer.
  */
@@ -116,7 +116,7 @@ export default async function PublicOpportunityPage(
             >
               Apply with VitalCV →
             </Link>
-            <Link href="/get-ready" className="mz-btn-ghost">
+            <Link href="/onboarding" className="mz-btn-ghost">
               New here? Set up your wallet first
             </Link>
           </div>

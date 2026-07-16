@@ -13,6 +13,7 @@ export const PUBLIC_SURFACE_PATHS = new Set([
   '/search',
   '/ask',
   '/get-ready',
+  '/onboarding',
   '/investors',
   '/partners',
   '/updates',

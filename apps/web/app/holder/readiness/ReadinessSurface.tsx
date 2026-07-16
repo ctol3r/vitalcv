@@ -175,7 +175,7 @@ export default function ReadinessSurface() {
         {loadState === 'no-npi' && (
           <div className="vcv-panel p-8 text-center space-y-3">
             <p className="text-sm" style={{ color: 'var(--ink)' }}>Add your NPI to see your source-backed readiness.</p>
-            <Link href="/get-ready" className="vcv-cta inline-flex items-center px-4 py-2 text-sm">
+            <Link href="/onboarding" className="vcv-cta inline-flex items-center px-4 py-2 text-sm">
               Connect your NPI →
             </Link>
           </div>

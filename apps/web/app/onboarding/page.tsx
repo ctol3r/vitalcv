@@ -8,7 +8,7 @@ import GetReadySurface from '@/app/get-ready/GetReadySurface';
 // for now to keep the route-contract required-file set intact; it is
 // route-agnostic. Richer result steps land in later 0B increments.)
 export const metadata: Metadata = {
-  title: 'Get ready · VitalCV',
+  title: 'Get started · VitalCV',
   description:
     'Enter your NPI and VitalCV starts your clinician career wallet from your public NPPES record. License and exclusion checks run separately, with their own receipts.',
 };

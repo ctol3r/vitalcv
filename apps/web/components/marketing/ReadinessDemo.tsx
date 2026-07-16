@@ -229,7 +229,7 @@ export function ReadinessDemo() {
                 {/* CTA */}
                 <div className="mt-auto pt-2">
                   <Link
-                    href="/get-ready"
+                    href="/onboarding"
                     className="flex items-center justify-center gap-1.5 w-full min-h-[44px] rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
                   >
                     Build my profile

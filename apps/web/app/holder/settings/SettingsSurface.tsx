@@ -75,7 +75,7 @@ export default function SettingsSurface() {
           ) : (
             <div className="space-y-3">
               <p className="mz-body">No NPI is connected to this workspace yet.</p>
-              <Link href="/get-ready" className="mz-btn mz-btn-sm">
+              <Link href="/onboarding" className="mz-btn mz-btn-sm">
                 Connect your NPI <ChevronRight className="h-4 w-4" aria-hidden />
               </Link>
             </div>

@@ -137,7 +137,7 @@ export function RecognitionSurface() {
               clinician profile, and acceptances will be recorded here.
             </p>
             <Link
-              href="/get-ready"
+              href="/onboarding"
               className="vcv-link inline-flex items-center gap-1 text-sm font-medium"
             >
               Verify my NPI <ChevronRight className="h-3.5 w-3.5" aria-hidden />

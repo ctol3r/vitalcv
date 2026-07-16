@@ -200,7 +200,7 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
             : 'Claim your free CV Wallet to preserve this snapshot and complete the missing evidence.'}
         </p>
         <Link
-          href="/get-ready"
+          href="/onboarding"
           className="mt-3 inline-flex items-center gap-1.5 rounded-[4px] px-3.5 py-2 text-[13px] font-semibold text-white"
           style={{ backgroundColor: 'var(--vt-text-primary)' }}
         >
