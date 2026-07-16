@@ -196,22 +196,33 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
 
 export function StickyProductStory() {
   const rootRef = React.useRef<HTMLElement>(null);
-  const cardRefs = React.useRef<Array<HTMLLIElement | null>>([]);
   const [progress, setProgress] = React.useState(0);
   const [active, setActive] = React.useState(0);
   const [reducedMotion, setReducedMotion] = React.useState(false);
+  // SSR defaults desktop; the media effect re-syncs before any interaction.
+  const [isDesktop, setIsDesktop] = React.useState(true);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sync = () => setReducedMotion(media.matches);
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const width = window.matchMedia('(min-width: 1024px)');
+    const sync = () => {
+      setReducedMotion(motion.matches);
+      setIsDesktop(width.matches);
+    };
     sync();
-    media.addEventListener('change', sync);
-    return () => media.removeEventListener('change', sync);
+    motion.addEventListener('change', sync);
+    width.addEventListener('change', sync);
+    return () => {
+      motion.removeEventListener('change', sync);
+      width.removeEventListener('change', sync);
+    };
   }, []);
 
+  // Desktop driver: page scroll through the pinned stage. Gated to desktop so
+  // it never fights the mobile swipe observer below (one driver per mode).
   React.useEffect(() => {
-    if (reducedMotion || typeof window === 'undefined') return;
+    if (reducedMotion || !isDesktop || typeof window === 'undefined') return;
     let frame = 0;
 
     const update = () => {
@@ -237,7 +248,36 @@ export function StickyProductStory() {
       window.removeEventListener('resize', onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, isDesktop]);
+
+  // Mobile driver: the cards scroll HORIZONTALLY (scroll-snap), so page scroll
+  // says nothing about which card the user swiped to. Observe the cards inside
+  // the track (the carousel's pattern) and mirror the most-visible one into the
+  // active step, so manual swipes update the progress rail too.
+  React.useEffect(() => {
+    if (reducedMotion || isDesktop || typeof window === 'undefined') return;
+    const root = rootRef.current;
+    const track = root?.querySelector('.story-cards');
+    if (!root || !track || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const mostVisible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!mostVisible) return;
+        const index = Number((mostVisible.target as HTMLElement).dataset.storyCardIndex);
+        if (!Number.isFinite(index)) return;
+        // Active ONLY — writing progress here would move the cards' transforms,
+        // shift the geometry the observer is watching, and feed back (observed:
+        // a swipe to card 2 settled on card 1). Off-desktop transforms are
+        // neutralized in the render instead.
+        setActive(index);
+      },
+      { root: track, threshold: [0.45, 0.65, 0.85] },
+    );
+    track.querySelectorAll('[data-story-card-index]').forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [reducedMotion, isDesktop]);
 
   const selectStep = React.useCallback((index: number) => {
     const root = rootRef.current;
@@ -252,7 +292,10 @@ export function StickyProductStory() {
         behavior: 'smooth',
       });
     } else {
-      cardRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      // Query the DOM directly — the old cardRefs array was never populated
+      // (StoryCard takes no ref), so tap-to-jump silently did nothing.
+      const cards = root.querySelectorAll<HTMLElement>('[data-story-card-index]');
+      cards[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       setActive(index);
     }
   }, [reducedMotion]);
@@ -327,7 +370,14 @@ export function StickyProductStory() {
         <ol className="story-cards" aria-live="polite">
           {STEPS.map((step, index) => (
             <React.Fragment key={step.id}>
-              <StoryCard step={step} index={index} progress={reducedMotion ? index : progress} />
+              {/* Off desktop, each card gets its OWN index as progress → offset
+                  0 → neutral transforms. The snap track owns mobile layout, and
+                  card geometry can never react to the swipe observer (no loop). */}
+              <StoryCard
+                step={step}
+                index={index}
+                progress={reducedMotion || !isDesktop ? index : progress}
+              />
             </React.Fragment>
           ))}
         </ol>

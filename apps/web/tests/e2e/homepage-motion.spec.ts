@@ -47,6 +47,24 @@ test.describe('Homepage motion convergence', () => {
     });
   }
 
+  test('mobile swipe updates the active story step (card observer)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const story = page.locator('[data-home-sticky-product-story]');
+    await story.scrollIntoViewIfNeeded();
+    await expect(story).toHaveAttribute('data-active-step', 'recognize');
+    // Swipe (programmatic horizontal scroll of the snap track) to the 3rd card.
+    await page.evaluate(() => {
+      const track = document.querySelector('.story-cards')!;
+      const card = track.querySelectorAll<HTMLElement>('[data-story-card-index]')[2]!;
+      track.scrollTo({ left: card.offsetLeft - (track as HTMLElement).offsetLeft, behavior: 'auto' });
+    });
+    await expect(story).toHaveAttribute('data-active-step', 'match');
+    // Tap-to-jump also works (the dead cardRefs no-op is fixed).
+    await page.getByRole('button', { name: /05.*Accept/i }).click();
+    await expect(story).toHaveAttribute('data-active-step', 'accept');
+  });
+
   test('uses a readable scroll-snap story and carousel on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
