@@ -35,12 +35,11 @@ test.describe('Homepage motion convergence', () => {
     const subhead = page.locator('[data-home-hero-subhead]');
     const seen = new Set<string>();
     const height = page.viewportSize()!.height;
-    // The last phrase fully typed = sequence complete. After that the pin is
+    // Fill complete = data-narrative-complete set. After that the pin is
     // SUPPOSED to release and the hero scrolls away like any other section, so
-    // the guarantee is only that nothing plays off-screen while the sequence is
+    // the guarantee is only that nothing fills off-screen while the sequence is
     // still running. Sweeping past the release and demanding on-screen was the
     // original form of this assertion, and it failed on the release frame.
-    const done = '4:4';
     let completedAt = -1;
 
     for (let y = 0; y <= 2600 && completedAt < 0; y += 100) {
@@ -48,13 +47,25 @@ test.describe('Homepage motion convergence', () => {
       const state = String(await subhead.getAttribute('data-narrative-state'));
       const box = await subhead.boundingBox();
       expect(box, `narrative missing at scrollY=${y}`).not.toBeNull();
-      expect(box!.y, `phrase ${state} played above the viewport at scrollY=${y}`).toBeGreaterThan(0);
-      expect(box!.y + box!.height, `phrase ${state} played below the viewport at scrollY=${y}`).toBeLessThan(height);
+      expect(box!.y, `phrase ${state} filled above the viewport at scrollY=${y}`).toBeGreaterThan(0);
+      expect(box!.y + box!.height, `phrase ${state} filled below the viewport at scrollY=${y}`).toBeLessThan(height);
       seen.add(state.split(':')[0]);
-      if (state === done) completedAt = y;
+
+      // Palantir/Anyscale register: the fill ACCUMULATES. Once the scrub has
+      // moved past the first clause, the sentence's first word must still be
+      // fully inked — phrase-replace (words vanishing) is a regression.
+      if (Number(state.split(':')[0]) >= 1) {
+        const firstWordOpacity = await subhead
+          .locator('[data-narrative-words] > span')
+          .first()
+          .evaluate((node) => Number(getComputedStyle(node).opacity));
+        expect(firstWordOpacity, `first word un-inked at scrollY=${y} (state ${state})`).toBeGreaterThan(0.9);
+      }
+
+      if ((await subhead.getAttribute('data-narrative-complete')) !== null) completedAt = y;
     }
 
-    // The sequence finished on screen, inside the pin, before any release.
+    // The fill finished on screen, inside the pin, before any release.
     expect(completedAt, 'sequence never completed within the pin').toBeGreaterThan(0);
     // All five phrases were reached — none skipped past the fold.
     expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);

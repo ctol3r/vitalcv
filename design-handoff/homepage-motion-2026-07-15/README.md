@@ -25,10 +25,15 @@ at 96% of the pin (the 85% dwell read as dead scroll); seams tightened; the
 carousel auto-advances with a pause control (Chris's direction, reversing the
 original no-autoplay rule).
 
-The reveal math itself is #683's pure `narrativeStateAt(progress, phrases)`
-(phrase-replace with a guaranteed dwell, 9 unit tests in
-`apps/web/__tests__/scroll-type-narrative.test.ts`). The pin only supplies the
-runway that math needs; unpinned viewports keep #683's 0.72vh distance.
+The reveal is a cumulative dim-ink scrub (Chris, 2026-07-16, mirroring
+Palantir/Anyscale): the full sentence is always laid out in muted ink and
+scroll fills it word by word — text accumulates, reverse scroll un-fills. The
+pure mapping is `narrativeStateAt(progress, words)` +
+`buildNarrativeWords(prefix, phrases)`, unit-tested in
+`apps/web/__tests__/scroll-type-narrative.test.ts` (this deliberately replaced
+#683's phrase-replace model while keeping its guarantees: rest-stable first
+clause, never blank, pure/reversible). The pin supplies the runway; unpinned
+viewports fill within ~0.55vh so the sentence completes before it can exit.
 
 Regenerate: build web, start it on 127.0.0.1:3000, then
 `CAPTURE_OUT=<dir> pnpm exec playwright test tests/e2e/capture-handoff.spec.ts`.
