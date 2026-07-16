@@ -10,12 +10,6 @@ name: SCA (dependency audit)
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '**/package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'scripts/security/**'
-      - '.github/workflows/security-audit.yml'
   push:
     branches: [main]
     paths:
