@@ -113,6 +113,24 @@ export function characterWindow(index: number, total: number): { start: number; 
   return { start, end: Math.min(1, start + 0.18) };
 }
 
+/**
+ * The wider window used by the single cinematic typography scene.
+ *
+ * A small line-aware wave keeps neighbouring graphemes from travelling along
+ * one mechanical diagonal. The overall sequence still advances in reading
+ * order and completes by 86%, reserving the final 14% for a stable lockup.
+ */
+export function sceneCharacterWindow(
+  index: number,
+  total: number,
+  lineIndex: number,
+): { start: number; end: number } {
+  const sequence = index / Math.max(1, total - 1);
+  const wave = Math.sin(index * 0.72 + lineIndex * 1.35) * 0.012;
+  const start = clamp01(0.025 + sequence * 0.585 + lineIndex * 0.018 + wave);
+  return { start, end: Math.min(0.86, start + 0.23) };
+}
+
 export function clamp01(value: number): number {
   if (Number.isNaN(value)) return 0;
   return Math.min(1, Math.max(0, value));
@@ -137,9 +155,10 @@ export function characterProgress(sectionProgress: number, index: number, total:
 export const LONG_HEADING_CHARACTERS = 80;
 
 export function resolveVariant(
-  requested: 'assemble' | 'ink',
+  requested: 'assemble' | 'ink' | 'scene',
   characterCount: number,
-): 'assemble' | 'ink' {
+): 'assemble' | 'ink' | 'scene' {
+  if (requested === 'scene') return 'scene';
   if (requested === 'ink') return 'ink';
   return characterCount > LONG_HEADING_CHARACTERS ? 'ink' : 'assemble';
 }

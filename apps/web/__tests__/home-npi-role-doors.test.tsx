@@ -140,6 +140,15 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     expect(html).toContain('This is not a completed credentialing, privileging, or employer clearance decision.');
   });
 
+  it('ships the cinematic statement complete and unpinned before JavaScript', () => {
+    const html = renderHomepage();
+    expect(html).toContain('data-scrub-scene');
+    expect(html).toContain('data-scrub-heading="static"');
+    expect(html).toContain('Every claim carries\nits source, its state,\nand its limits.');
+    // The runway only exists after hydration confirms motion is allowed.
+    expect(html).not.toContain('data-scrub-pin=""');
+  });
+
   it('keeps only real metrics and the dual-audience close', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-metric-strip');

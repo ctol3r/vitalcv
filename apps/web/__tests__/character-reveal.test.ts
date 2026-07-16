@@ -15,6 +15,7 @@ import {
   clamp01,
   LONG_HEADING_CHARACTERS,
   resolveVariant,
+  sceneCharacterWindow,
   segmentHeading,
   toGraphemes,
 } from '@/lib/motion/characterReveal';
@@ -135,6 +136,31 @@ describe('characterWindow — staggered thresholds', () => {
   });
 });
 
+describe('sceneCharacterWindow — cinematic overlap and hold', () => {
+  it('finishes by 86% so the resolved statement holds before release', () => {
+    const n = 48;
+    const last = sceneCharacterWindow(n - 1, n, 2);
+    expect(last.end).toBeLessThanOrEqual(0.86);
+    expect(last.end).toBeLessThan(1);
+  });
+
+  it('uses line-aware wave offsets instead of one identical path', () => {
+    const firstLine = sceneCharacterWindow(12, 48, 0);
+    const nextLine = sceneCharacterWindow(12, 48, 1);
+    expect(nextLine.start).not.toBe(firstLine.start);
+    expect(nextLine.end).not.toBe(firstLine.end);
+  });
+
+  it('keeps every reveal window finite and overlapping', () => {
+    for (let index = 0; index < 48; index += 1) {
+      const window = sceneCharacterWindow(index, 48, index < 18 ? 0 : index < 37 ? 1 : 2);
+      expect(Number.isFinite(window.start)).toBe(true);
+      expect(window.end).toBeGreaterThan(window.start);
+      expect(window.end - window.start).toBeLessThanOrEqual(0.23 + Number.EPSILON);
+    }
+  });
+});
+
 describe('characterProgress — clamped, pure, reversible', () => {
   const n = 10;
 
@@ -190,6 +216,10 @@ describe('resolveVariant — long-heading fallback', () => {
 
   it('never upgrades an explicit ink request', () => {
     expect(resolveVariant('ink', 10)).toBe('ink');
+  });
+
+  it('never downgrades the one explicit cinematic scene', () => {
+    expect(resolveVariant('scene', LONG_HEADING_CHARACTERS + 30)).toBe('scene');
   });
 
   it('a real long heading trips the fallback', () => {

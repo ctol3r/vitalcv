@@ -390,26 +390,68 @@
   transform-origin: 50% 80%;
   /* Preserve intra-word spaces if a heading ever contains one. */
   white-space: pre;
+  transform-style: preserve-3d;
+}
+
+.motion-line-mask {
+  display: block;
+  overflow: clip;
+  margin-block: -0.16em;
+  padding-block: 0.16em;
+}
+
+.motion-line {
+  display: block;
+  transform-style: preserve-3d;
+  white-space: nowrap;
 }
 
 /* Hero/manifesto mode only: the tall runway + sticky stage. Standard headings
    create no runway at all — they map their own viewport transit. */
 .scrub-heading-pin {
   position: relative;
-  min-height: 140vh;
+  min-height: 160vh;
 }
 
 .scrub-heading-pin .scrub-heading-stage {
   position: sticky;
-  top: 22vh;
+  top: 13vh;
+  display: flex;
+  align-items: center;
+  min-height: 74vh;
+  perspective: 980px;
+  perspective-origin: 50% 44%;
+}
+
+[data-scrub-scene] [data-scrub-lines] {
+  display: block;
+  transform-style: preserve-3d;
+}
+
+.evidence-cinematic-heading {
+  width: 100%;
+  color: var(--vt-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(2.35rem, 7.6vw, 7.4rem);
+  font-weight: 540;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  text-wrap: balance;
+  white-space: pre-line;
+}
+
+.evidence-truth-lede {
+  max-width: 40rem;
+  margin-top: clamp(1rem, 2vw, 1.5rem);
 }
 
 @media (max-width: 767px) {
-  /* Mobile: shorter runway, and the stage sits higher so the sticky section
-     can never trap the viewport on a small screen. */
-  .scrub-heading-pin { min-height: 100vh; }
-  .scrub-heading-pin .scrub-heading-stage { top: 16vh; }
+  /* Mobile remains a normal document flow: the scene simplifies as it enters
+     and never adds a pinned runway or scroll trap. */
+  .scrub-heading-pin { min-height: auto; }
+  .scrub-heading-pin .scrub-heading-stage { position: static; min-height: auto; }
   .motion-word { perspective: none; }
+  .evidence-cinematic-heading { line-height: 0.94; }
 }
 
 @media (prefers-reduced-motion: reduce) {
