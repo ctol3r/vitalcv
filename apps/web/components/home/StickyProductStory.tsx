@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
+import { ScrollTypeHeading } from '@/components/home/ScrollTypeHeading';
 
 type StateKind = 'source' | 'checked' | 'gated' | 'attention' | 'neutral';
 
@@ -335,6 +336,7 @@ export function StickyProductStory() {
       ref={rootRef}
       data-home-loop=""
       data-home-sticky-product-story=""
+      data-pin-container=""
       data-active-step={STEPS[active].id}
       className="sticky-product-story"
       aria-labelledby="product-story-title"
@@ -346,9 +348,15 @@ export function StickyProductStory() {
       <div className="story-stage">
         <div className="story-intro">
           <p className="mz-eyebrow">How it moves</p>
-          <h2 id="product-story-title" className="mz-h1">
-            One identity, carried all the way to <em className="mz-accent">accepted.</em>
-          </h2>
+          <ScrollTypeHeading
+            id="product-story-title"
+            className="mz-h1"
+            pinned
+            segments={[
+              { text: 'One identity, carried all the way to' },
+              { text: 'accepted.', accent: true },
+            ]}
+          />
           <p className="story-intro-body">
             Scroll the product path. Every step keeps its source state and review boundary attached.
           </p>

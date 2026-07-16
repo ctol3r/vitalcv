@@ -17,6 +17,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ScrollTypeHeading } from '@/components/home/ScrollTypeHeading';
 import { TrustGlyph } from '@/components/vital/TrustGlyph';
 import type { EvidenceState } from '@/lib/vital/evidenceState';
 
@@ -264,9 +265,14 @@ export function ProductCarousel() {
       <div className="product-carousel-heading">
         <div>
           <p className="mz-eyebrow">The product, end to end</p>
-          <h2 id="product-carousel-title" className="mz-h1">
-            One career record. <em className="mz-accent">Six reusable surfaces.</em>
-          </h2>
+          <ScrollTypeHeading
+            id="product-carousel-title"
+            className="mz-h1"
+            segments={[
+              { text: 'One career record.' },
+              { text: 'Six reusable surfaces.', accent: true },
+            ]}
+          />
         </div>
         <div className="product-carousel-controls">
           {/* No aria-live here: with auto-advance it would announce every 6s.

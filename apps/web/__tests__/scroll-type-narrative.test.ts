@@ -12,7 +12,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { buildNarrativeWords, narrativeStateAt } from '@/components/home/ScrollTypeNarrative';
+import { buildNarrativeChars, buildNarrativeWords, narrativeStateAt } from '@/components/home/ScrollTypeNarrative';
+import { buildHeadingChars, headingRevealAt } from '@/components/home/ScrollTypeHeading';
 
 const PREFIX = 'VitalCV ';
 const PHRASES = [
@@ -94,5 +95,59 @@ describe('narrativeStateAt — invariants', () => {
     narrativeStateAt(0.95, WORDS);
     const backward = [0.75, 0.4, 0.15].map((p) => narrativeStateAt(p, WORDS)).reverse();
     expect(backward).toEqual(forward);
+  });
+});
+
+describe('letter-level fill (Chris 2026-07-16: letters, not words)', () => {
+  const CHARS = buildNarrativeChars(PREFIX, PHRASES);
+
+  it('chars reconstruct the sentence and inherit clause tags', () => {
+    expect(CHARS.map((c) => c.text).join('')).toBe(
+      WORDS.map((w) => w.text).join(' ').replace(/ /g, ''),
+    );
+    expect(new Set(CHARS.map((c) => c.phraseIdx))).toEqual(new Set([0, 1, 2, 3, 4]));
+  });
+
+  it('narrativeStateAt works unchanged on char units (same guarantees)', () => {
+    const rest = narrativeStateAt(0, CHARS);
+    expect(rest.idx).toBe(0);
+    expect(rest.reveal).toBeGreaterThan(0);
+    expect(narrativeStateAt(1, CHARS)).toEqual({ reveal: CHARS.length, idx: 4, complete: true });
+    let previous = -1;
+    for (let p = 0; p <= 1.001; p += 0.02) {
+      const { reveal } = narrativeStateAt(p, CHARS);
+      expect(reveal).toBeGreaterThanOrEqual(previous);
+      previous = reveal;
+    }
+  });
+});
+
+describe('ScrollTypeHeading pure mapping', () => {
+  const SEGMENTS = [
+    { text: 'One identity, carried all the way to' },
+    { text: 'accepted.', accent: true },
+  ] as const;
+  const UNITS = buildHeadingChars(SEGMENTS);
+
+  it('reconstructs the header text with accent segment tagged', () => {
+    expect(UNITS.map((u) => u.ch).join('')).toBe('Oneidentity,carriedallthewaytoaccepted.');
+    expect(UNITS.filter((u) => u.segIdx === 1).map((u) => u.ch).join('')).toBe('accepted.');
+  });
+
+  it('headers rest EMPTY (unlike the narrative) and fill to complete', () => {
+    expect(headingRevealAt(0, UNITS.length)).toBe(0);
+    expect(headingRevealAt(1, UNITS.length)).toBe(UNITS.length);
+    expect(headingRevealAt(-0.4, UNITS.length)).toBe(0);
+    expect(headingRevealAt(1.7, UNITS.length)).toBe(UNITS.length);
+  });
+
+  it('fill is monotonic and reversible (pure function of progress)', () => {
+    let previous = -1;
+    for (let p = 0; p <= 1.001; p += 0.02) {
+      const r = headingRevealAt(p, UNITS.length);
+      expect(r).toBeGreaterThanOrEqual(previous);
+      previous = r;
+    }
+    expect(headingRevealAt(0.42, UNITS.length)).toBe(headingRevealAt(0.42, UNITS.length));
   });
 });

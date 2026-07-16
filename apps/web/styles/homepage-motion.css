@@ -55,7 +55,7 @@
 .sticky-product-story {
   position: relative;
   min-height: 560vh;
-  margin-top: 3.5rem;
+  margin-top: 2.25rem;
 }
 
 .story-observer {
@@ -82,7 +82,7 @@
 }
 
 .story-intro { align-self: center; }
-.story-intro .mz-h1 { margin-top: 0.9rem; max-width: 12ch; }
+.story-intro .mz-h1 { margin-top: 0.6rem; max-width: 12ch; }
 .story-intro-body {
   max-width: 31rem;
   margin-top: 1rem;
@@ -125,7 +125,7 @@
 .story-cards {
   position: relative;
   display: grid;
-  min-height: min(36rem, calc(100vh - 12rem));
+  min-height: min(34rem, calc(100vh - 13rem));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -260,11 +260,11 @@
   font-size: 0.7rem;
   font-weight: 650;
 }
-.story-footnote { position: absolute; bottom: 1.4rem; left: 0; max-width: 42rem; color: var(--vt-text-muted); font-size: 0.72rem; line-height: 1.55; }
+.story-footnote { position: absolute; bottom: 1rem; left: 0; max-width: 42rem; color: var(--vt-text-muted); font-size: 0.72rem; line-height: 1.55; }
 
-.product-carousel { margin-top: 4rem; }
+.product-carousel { margin-top: 2.5rem; }
 .product-carousel-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
-.product-carousel-heading .mz-h1 { max-width: 14ch; margin-top: 0.9rem; }
+.product-carousel-heading .mz-h1 { max-width: 14ch; margin-top: 0.6rem; }
 .product-carousel-controls { display: flex; align-items: center; gap: 0.55rem; }
 .product-carousel-count { margin-right: 0.4rem; color: var(--vt-text-muted); font-family: var(--font-mono); font-size: 0.72rem; }
 .product-carousel-controls button { border-color: var(--vt-border); background: var(--vt-surface); }
@@ -332,7 +332,7 @@
 
 @media (max-width: 1023px) {
   .homepage-section-rail { top: 5.75rem; }
-  .sticky-product-story { min-height: auto; margin-top: 3rem; }
+  .sticky-product-story { min-height: auto; margin-top: 2rem; }
   .story-observer { top: 0; height: 1px; }
   .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; padding-block: 0; }
   .story-intro .mz-h1 { max-width: 16ch; }
@@ -342,7 +342,7 @@
   .story-cards { display: flex; gap: 1rem; min-height: auto; margin-top: 1.5rem; overflow-x: auto; padding: 0 1.5rem 1rem 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .story-cards::-webkit-scrollbar { display: none; }
   .story-card { position: relative; inset: auto; flex: 0 0 min(84vw, 39rem); align-items: stretch; opacity: 1 !important; transform: none !important; scroll-snap-align: start; }
-  .story-card-shell { grid-template-columns: 1fr; min-height: 31rem; }
+  .story-card-shell { grid-template-columns: 1fr; min-height: 28rem; }
   .story-footnote { position: relative; bottom: auto; margin-top: 0.75rem; }
 }
 
@@ -352,7 +352,7 @@
   .product-carousel-controls { align-self: stretch; }
   .product-carousel-count { margin-right: auto; }
   .product-carousel-card { flex-basis: 86vw; }
-  .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 30rem; }
+  .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 27rem; }
   .story-product-ui li { align-items: flex-start; flex-direction: column; justify-content: center; }
   .story-state { max-width: 100%; text-align: left; }
 }
