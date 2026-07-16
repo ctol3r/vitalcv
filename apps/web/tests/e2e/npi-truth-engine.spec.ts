@@ -148,10 +148,11 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expect(unavailable.getByText('State-board source access required')).toBeVisible();
     await expect(confirmed.getByText('State licensure')).not.toBeVisible();
 
-    // One next step, and the snapshot names its own limits.
+    // One next step, and the snapshot names its own limits. /onboarding is the
+    // canonical destination (#686 route canon); /get-ready is only a 307 now.
     await expect(hero(page).getByRole('link', { name: /claim your wallet/i })).toHaveAttribute(
       'href',
-      '/get-ready',
+      '/onboarding',
     );
     await expect(
       hero(page).getByText(/not a completed credentialing decision/),

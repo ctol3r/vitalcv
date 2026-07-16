@@ -7,6 +7,8 @@ import {
   Award,
   BriefcaseBusiness,
   FileUp,
+  Pause,
+  Play,
   RefreshCw,
   SearchCheck,
   ShieldCheck,
@@ -107,11 +109,21 @@ const PRODUCTS: ReadonlyArray<{
   },
 ] as const;
 
+// Auto-advance cadence. Slow enough to read a card (title + three rows),
+// per Chris's 2026-07-16 direction reversing the wave's original no-autoplay
+// rule. WCAG 2.2.2 is honored via the pause control + the suspend conditions
+// in useAutoAdvance.
+const AUTO_ADVANCE_MS = 6000;
+
 export function ProductCarousel() {
+  const sectionRef = React.useRef<HTMLElement>(null);
   const trackRef = React.useRef<HTMLDivElement>(null);
   const cardRefs = React.useRef<Array<HTMLElement | null>>([]);
   const [active, setActive] = React.useState(0);
   const dragRef = React.useRef({ pointerId: -1, startX: 0, scrollLeft: 0, moved: false });
+  // User intent: the pause button toggles it, any manual navigation clears it.
+  const [autoPlay, setAutoPlay] = React.useState(true);
+  const [reducedMotion, setReducedMotion] = React.useState(false);
 
   const goTo = React.useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
     const safeIndex = Math.max(0, Math.min(PRODUCTS.length - 1, index));
@@ -121,6 +133,68 @@ export function ProductCarousel() {
     track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior });
     setActive(safeIndex);
   }, []);
+
+  // Manual navigation is a stronger signal than hover: the visitor took the
+  // wheel, so auto-advance stops for good (the pause button can restart it).
+  const stopAuto = React.useCallback(() => setAutoPlay(false), []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+
+  // Auto-advance loop. The interval always ticks while enabled; each tick
+  // re-checks the suspend conditions (hover, focus inside, off-screen, hidden
+  // tab) so pausing never tears down state, and resuming needs no bookkeeping.
+  const activeRef = React.useRef(active);
+  activeRef.current = active;
+  React.useEffect(() => {
+    if (!autoPlay || reducedMotion || typeof window === 'undefined') return;
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const hold = { hover: false, focus: false, offscreen: true, hidden: document.hidden };
+    const onEnter = () => { hold.hover = true; };
+    const onLeave = () => { hold.hover = false; };
+    const onFocusIn = () => { hold.focus = true; };
+    const onFocusOut = (event: FocusEvent) => {
+      hold.focus = section.contains(event.relatedTarget as Node | null);
+    };
+    const onVisibility = () => { hold.hidden = document.hidden; };
+    section.addEventListener('pointerenter', onEnter);
+    section.addEventListener('pointerleave', onLeave);
+    section.addEventListener('focusin', onFocusIn);
+    section.addEventListener('focusout', onFocusOut);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const observer =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            (entries) => { hold.offscreen = !entries.some((entry) => entry.isIntersecting); },
+            { threshold: 0.35 },
+          )
+        : null;
+    observer?.observe(section);
+
+    const timer = window.setInterval(() => {
+      if (hold.hover || hold.focus || hold.offscreen || hold.hidden) return;
+      goTo((activeRef.current + 1) % PRODUCTS.length);
+    }, AUTO_ADVANCE_MS);
+
+    return () => {
+      window.clearInterval(timer);
+      observer?.disconnect();
+      section.removeEventListener('pointerenter', onEnter);
+      section.removeEventListener('pointerleave', onLeave);
+      section.removeEventListener('focusin', onFocusIn);
+      section.removeEventListener('focusout', onFocusOut);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [autoPlay, reducedMotion, goTo]);
 
   React.useEffect(() => {
     const track = trackRef.current;
@@ -148,10 +222,12 @@ export function ProductCarousel() {
     else if (event.key === 'End') next = PRODUCTS.length - 1;
     else return;
     event.preventDefault();
+    stopAuto();
     goTo(next);
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    stopAuto();
     if (event.pointerType === 'touch') return;
     const track = trackRef.current;
     if (!track) return;
@@ -178,7 +254,13 @@ export function ProductCarousel() {
   };
 
   return (
-    <section data-home-product-carousel="" className="product-carousel" aria-labelledby="product-carousel-title">
+    <section
+      ref={sectionRef}
+      data-home-product-carousel=""
+      data-carousel-autoplay={autoPlay && !reducedMotion ? 'on' : 'off'}
+      className="product-carousel"
+      aria-labelledby="product-carousel-title"
+    >
       <div className="product-carousel-heading">
         <div>
           <p className="mz-eyebrow">The product, end to end</p>
@@ -187,16 +269,28 @@ export function ProductCarousel() {
           </h2>
         </div>
         <div className="product-carousel-controls">
-          <span aria-live="polite" className="product-carousel-count">
+          {/* No aria-live here: with auto-advance it would announce every 6s.
+              Manual position is conveyed by the slides' own labels. */}
+          <span className="product-carousel-count">
             {String(active + 1).padStart(2, '0')} / {String(PRODUCTS.length).padStart(2, '0')}
           </span>
           <Button
             type="button"
             variant="outline"
             size="icon"
+            aria-label={autoPlay ? 'Pause auto-advance' : 'Resume auto-advance'}
+            aria-pressed={!autoPlay}
+            onClick={() => setAutoPlay((value) => !value)}
+          >
+            {autoPlay ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
             aria-label="Previous product"
             disabled={active === 0}
-            onClick={() => goTo(active - 1)}
+            onClick={() => { stopAuto(); goTo(active - 1); }}
           >
             <ArrowLeft size={16} aria-hidden="true" />
           </Button>
@@ -206,7 +300,7 @@ export function ProductCarousel() {
             size="icon"
             aria-label="Next product"
             disabled={active === PRODUCTS.length - 1}
-            onClick={() => goTo(active + 1)}
+            onClick={() => { stopAuto(); goTo(active + 1); }}
           >
             <ArrowRight size={16} aria-hidden="true" />
           </Button>
@@ -225,6 +319,11 @@ export function ProductCarousel() {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onWheel={(event) => {
+          // Horizontal trackpad swipes are manual navigation; vertical wheel
+          // over the track is just page scrolling passing through.
+          if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) stopAuto();
+        }}
       >
         {PRODUCTS.map((product, index) => {
           const Icon = product.icon;

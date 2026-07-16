@@ -32,6 +32,9 @@ export default defineConfig({
     },
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !isCI,
-    timeout: 180_000,
+    // In CI this command is `preview:e2e`, which does a cold `next build`
+    // before serving — comfortably slower than a warm local build, so give it
+    // room rather than letting the gate flake on a slow runner.
+    timeout: isCI ? 420_000 : 180_000,
   },
 });

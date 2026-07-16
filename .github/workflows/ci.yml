@@ -77,3 +77,43 @@ jobs:
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
         run: bash scripts/launch-gate.sh
+
+  # The homepage's motion guarantees (scroll-linked typing that plays on screen,
+  # the pinned five-step story, mobile scroll-snap instead of hijacking,
+  # reduced-motion completeness, no horizontal overflow) and the hero NPI truth
+  # contract are only observable in a real browser. Without this job they cannot
+  # fail CI — which is how a broken assertion (#688) and one written against a
+  # since-canonicalised route (#685 vs #686) both reached main green.
+  web-e2e:
+    name: Web E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # @vitalcv/web's own build runs inside playwright's webServer
+      # (`preview:e2e`), but it resolves workspace deps from their dist/, so
+      # those must exist first. Excluding @vitalcv/web avoids building it twice.
+      - name: Build workspace package dependencies
+        run: pnpm turbo build --filter='!@vitalcv/web'
+      - name: Install Playwright chromium
+        run: pnpm --filter @vitalcv/web exec playwright install --with-deps chromium
+      # CI=true makes playwright.config.ts serve a production build
+      # (`preview:e2e`) rather than next dev. Clerk keys stay unset: the suite
+      # runs signed-out and must not depend on a backend.
+      - name: Run web e2e suite
+        run: pnpm --filter @vitalcv/web exec playwright test
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7

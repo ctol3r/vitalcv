@@ -226,7 +226,7 @@ export default function HomePageClient() {
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[calc(100svh-9rem)] items-center gap-12 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-14"
+            className="hero-stage relative isolate grid min-h-[calc(100svh-15rem)] items-center gap-12 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-8"
           >
           <div className="max-w-2xl">
             <div className="space-y-5">
@@ -340,18 +340,18 @@ export default function HomePageClient() {
 
         <StickyProductStory />
 
-        <div className="pt-20" data-home-experience="evidence-trace">
+        <div className="pt-12" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </div>
 
         <ProductCarousel />
 
-        <section id="employers" data-home-experience="metrics-and-cta" className="pt-20">
+        <section id="employers" data-home-experience="metrics-and-cta" className="pt-12">
           <MetricStrip />
           <DualAudienceCta />
         </section>
 
-        <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-16 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
+        <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Trust</span>
           {TRUST_FOOTER_LINKS.map((link, index) => (
             <React.Fragment key={link.href}>

@@ -45,7 +45,7 @@
    SCREEN before the page releases. Mobile and reduced motion never pin. */
 .hero-pin { position: relative; }
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-  .hero-pin { min-height: 220vh; }
+  .hero-pin { min-height: 260vh; }
   .hero-pin .hero-stage {
     position: sticky;
     top: 8.5rem;
@@ -54,8 +54,8 @@
 
 .sticky-product-story {
   position: relative;
-  min-height: 460vh;
-  margin-top: 6rem;
+  min-height: 560vh;
+  margin-top: 3.5rem;
 }
 
 .story-observer {
@@ -140,7 +140,7 @@
   opacity: var(--story-opacity);
   transform: translate3d(0, var(--story-translate), 0) scale(var(--story-scale));
   transform-origin: center top;
-  transition: opacity 120ms linear;
+  transition: opacity 280ms cubic-bezier(0.25, 0.6, 0.3, 1);
   will-change: transform, opacity;
 }
 
@@ -262,7 +262,7 @@
 }
 .story-footnote { position: absolute; bottom: 1.4rem; left: 0; max-width: 42rem; color: var(--vt-text-muted); font-size: 0.72rem; line-height: 1.55; }
 
-.product-carousel { margin-top: 7rem; }
+.product-carousel { margin-top: 4rem; }
 .product-carousel-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
 .product-carousel-heading .mz-h1 { max-width: 14ch; margin-top: 0.9rem; }
 .product-carousel-controls { display: flex; align-items: center; gap: 0.55rem; }
@@ -332,7 +332,7 @@
 
 @media (max-width: 1023px) {
   .homepage-section-rail { top: 5.75rem; }
-  .sticky-product-story { min-height: auto; margin-top: 5rem; }
+  .sticky-product-story { min-height: auto; margin-top: 3rem; }
   .story-observer { top: 0; height: 1px; }
   .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; padding-block: 0; }
   .story-intro .mz-h1 { max-width: 16ch; }
@@ -342,7 +342,7 @@
   .story-cards { display: flex; gap: 1rem; min-height: auto; margin-top: 1.5rem; overflow-x: auto; padding: 0 1.5rem 1rem 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .story-cards::-webkit-scrollbar { display: none; }
   .story-card { position: relative; inset: auto; flex: 0 0 min(84vw, 39rem); align-items: stretch; opacity: 1 !important; transform: none !important; scroll-snap-align: start; }
-  .story-card-shell { grid-template-columns: 1fr; min-height: 35rem; }
+  .story-card-shell { grid-template-columns: 1fr; min-height: 31rem; }
   .story-footnote { position: relative; bottom: auto; margin-top: 0.75rem; }
 }
 
@@ -352,7 +352,7 @@
   .product-carousel-controls { align-self: stretch; }
   .product-carousel-count { margin-right: auto; }
   .product-carousel-card { flex-basis: 86vw; }
-  .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 34rem; }
+  .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 30rem; }
   .story-product-ui li { align-items: flex-start; flex-direction: column; justify-content: center; }
   .story-state { max-width: 100%; text-align: left; }
 }
