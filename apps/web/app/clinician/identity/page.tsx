@@ -26,7 +26,7 @@ const RELATED_SURFACES = [
     detail: 'Every profile field with its origin labeled.',
   },
   {
-    href: '/get-ready',
+    href: '/onboarding',
     label: 'Claim or refresh your NPI',
     detail: 'Resolve your NPI against NPPES and link it to your account.',
   },

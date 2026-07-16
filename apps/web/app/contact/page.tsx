@@ -14,6 +14,8 @@ import { PilotIntakeForm } from './PilotIntakeForm';
  */
 
 export const dynamic = 'force-static';
+// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Contact — Start a Pilot — VitalCV',

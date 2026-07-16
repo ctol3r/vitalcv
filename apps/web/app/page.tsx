@@ -10,6 +10,12 @@ const TAGLINE = 'VitalCV — Your career evidence, ready before your next job.';
 const DESCRIPTION =
   'Enter your NPI to see what employers can confirm today, what still needs review, and the next step toward being ready to start.';
 
+// Cap shared-cache staleness: fully-static pages ship s-maxage=31536000, and
+// while Railway's edge busts on deploy, EXTERNAL caches don't — readers behind
+// one can see a pre-deploy site for up to a year (this happened: a site audit
+// was written against a stale cached copy). ISR at 300s bounds that to 5 min.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: { absolute: TAGLINE },
   description: DESCRIPTION,

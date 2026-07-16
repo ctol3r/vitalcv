@@ -410,6 +410,7 @@ type AuthExpectation = 'public' | 'clinician' | 'passthrough';
 
 const GOLDEN_PATH_ROUTES: Array<{ route: string; auth: AuthExpectation }> = [
   { route: '/get-ready', auth: 'public' },
+  { route: '/onboarding', auth: 'public' },
   { route: '/holder', auth: 'clinician' },
   { route: '/holder/home', auth: 'clinician' },
   { route: '/holder/readiness', auth: 'clinician' },
@@ -572,7 +573,7 @@ describe('negative controls — extractor', () => {
       // data-layer template assignment (the PR #491 escape route)
       { file: 'lib/mobile/clinician-state.ts', kind: 'dynamic-head', path: '/holder/blockers' },
       // server-side redirect() calls, static + template head
-      { file: 'app/holder/timeline/page.tsx', kind: 'exact', path: '/get-ready' },
+      { file: 'app/holder/timeline/page.tsx', kind: 'exact', path: '/onboarding' },
       { file: 'app/holder/timeline/page.tsx', kind: 'dynamic-head', path: '/activity' },
     ];
     const missing = probes.filter(({ file, kind, path }) => {

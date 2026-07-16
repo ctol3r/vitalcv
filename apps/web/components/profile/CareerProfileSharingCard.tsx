@@ -171,7 +171,7 @@ export function CareerProfileSharingCard({ npi }: { npi: string }) {
       {!isPublic && !meetsTier ? (
         <p className="mt-3 text-xs" style={{ color: 'var(--warn, #b45309)' }}>
           Publishing unlocks after you confirm a work email at your organization
-          in <a href="/get-ready" className="underline underline-offset-2">Get Ready</a>.
+          in <a href="/onboarding" className="underline underline-offset-2">Get Ready</a>.
           A personal or free email confirms contact only — this keeps career
           profile pages from being published under someone else&apos;s NPI.
         </p>

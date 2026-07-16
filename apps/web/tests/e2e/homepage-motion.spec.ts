@@ -14,46 +14,65 @@ async function captureStoryFrame(page: Page, testInfo: TestInfo, name: string, p
 }
 
 test.describe('Homepage motion convergence', () => {
-  test('hero narrative types on screen, scroll-linked and reversible', async ({ page }) => {
+  // behavior: 'instant' — the page sets CSS smooth scrolling, so 'auto' defers
+  // to it and one-shot reads would race the animation.
+  async function scrollTo(page: Page, y: number) {
+    await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
+    await page.waitForFunction((top) => Math.abs(window.scrollY - top) <= 1, y);
+    await page.waitForTimeout(110);
+  }
+
+  test('every narrative phrase plays while the line is on screen', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    // The hero pins on desktop so the sequence can finish before it leaves view.
+    // The hero pins on desktop, holding the line at a fixed viewport position
+    // for the whole reveal. Without the pin the line exits at scrollY ~584
+    // while a 0.72vh reveal runs to ~927 — phrases 3-5 played below the fold.
     await expect(page.locator('#wallet')).toHaveCSS('min-height', '2200px');
     await expect(page.locator('[data-home-hero-stage]')).toHaveCSS('position', 'sticky');
 
     const subhead = page.locator('[data-home-hero-subhead]');
-    const typedWords = async () => Number(await subhead.getAttribute('data-typed-words'));
-    // behavior: 'instant' — the page sets CSS smooth scrolling, and 'auto'
-    // would defer to it, so one-shot reads below would race the animation.
-    const scrollTo = async (y: number) => {
-      await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
-      await page.waitForFunction((top) => Math.abs(window.scrollY - top) <= 1, y);
-      await page.waitForTimeout(120);
+    const seen = new Set<string>();
+    const height = page.viewportSize()!.height;
+
+    // Sweep the whole pin. Each phrase must be inside the viewport whenever it
+    // is the active phrase — this is the guarantee the wave is actually about.
+    for (let y = 0; y <= 2200; y += 100) {
+      await scrollTo(page, y);
+      const state = await subhead.getAttribute('data-narrative-state');
+      const box = await subhead.boundingBox();
+      expect(box, `narrative missing at scrollY=${y}`).not.toBeNull();
+      expect(box!.y, `narrative above viewport at scrollY=${y} (state ${state})`).toBeGreaterThan(0);
+      expect(box!.y + box!.height, `narrative below viewport at scrollY=${y}`).toBeLessThan(height);
+      seen.add(String(state).split(':')[0]);
+    }
+
+    // All five phrases were reached — the sequence completes within the pin.
+    expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
+  });
+
+  test('narrative reveal is scroll-linked and reverses deterministically', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const subhead = page.locator('[data-home-hero-subhead]');
+    const stateAt = async (y: number) => {
+      await scrollTo(page, y);
+      return subhead.getAttribute('data-narrative-state');
     };
 
-    await scrollTo(0);
-    const atRest = await typedWords();
-    await scrollTo(500);
-    const midway = await typedWords();
-    await scrollTo(1000);
-    const late = await typedWords();
+    const forward: string[] = [];
+    for (const y of [0, 400, 800, 1200]) forward.push(String(await stateAt(y)));
 
-    // Typing is a function of scroll: strictly more words as we scroll down…
-    expect(midway).toBeGreaterThan(atRest);
-    expect(late).toBeGreaterThan(midway);
+    // Advancing scroll advances the sequence (never regresses).
+    const phraseIdx = forward.map((s) => Number(s.split(':')[0]));
+    expect(phraseIdx).toEqual([...phraseIdx].sort((a, b) => a - b));
+    expect(phraseIdx.at(-1)).toBeGreaterThan(phraseIdx[0]);
 
-    // …and the line is still inside the viewport while it types.
-    const box = await subhead.boundingBox();
-    const viewport = page.viewportSize()!;
-    expect(box!.y).toBeGreaterThan(0);
-    expect(box!.y + box!.height).toBeLessThan(viewport.height);
-
-    // Reverse scroll reverses the reveal to the same deterministic state.
-    await scrollTo(500);
-    expect(await typedWords()).toBe(midway);
-    await scrollTo(0);
-    expect(await typedWords()).toBe(atRest);
+    // Reverse scroll reproduces each state exactly (pure function of scroll).
+    for (const y of [800, 400, 0]) {
+      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 400, 800, 1200].indexOf(y)]);
+    }
   });
 
   test('captures the start, middle, and end of the reversible pinned sequence', async ({ page }, testInfo) => {
@@ -88,6 +107,24 @@ test.describe('Homepage motion convergence', () => {
       }
     });
   }
+
+  test('mobile swipe updates the active story step (card observer)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const story = page.locator('[data-home-sticky-product-story]');
+    await story.scrollIntoViewIfNeeded();
+    await expect(story).toHaveAttribute('data-active-step', 'recognize');
+    // Swipe (programmatic horizontal scroll of the snap track) to the 3rd card.
+    await page.evaluate(() => {
+      const track = document.querySelector('.story-cards')!;
+      const card = track.querySelectorAll<HTMLElement>('[data-story-card-index]')[2]!;
+      track.scrollTo({ left: card.offsetLeft - (track as HTMLElement).offsetLeft, behavior: 'auto' });
+    });
+    await expect(story).toHaveAttribute('data-active-step', 'match');
+    // Tap-to-jump also works (the dead cardRefs no-op is fixed).
+    await page.getByRole('button', { name: /05.*Accept/i }).click();
+    await expect(story).toHaveAttribute('data-active-step', 'accept');
+  });
 
   test('uses a readable scroll-snap story and carousel on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });

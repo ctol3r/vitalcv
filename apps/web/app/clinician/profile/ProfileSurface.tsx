@@ -4,7 +4,7 @@
  * ProfileSurface — the live professional profile for the signed-in clinician,
  * rendered in the D57 `.vcv-doc` paper/ink document system.
  *
- * Reads the real workspace PersonProfile (bound at /get-ready via the NPPES
+ * Reads the real workspace PersonProfile (bound at /onboarding via the NPPES
  * bootstrap) and the clinician's live passport, renders the provenance-honest
  * profile, and lets the clinician:
  *   - edit SELF-ATTESTED career links / resume link / work authorization
@@ -372,7 +372,7 @@ export default function ProfileSurface() {
         <EmptyCard
           title="Connect your NPI to start your profile"
           body="Your profile begins from your public NPPES registry record. Connecting takes about a minute."
-          ctaHref="/get-ready"
+          ctaHref="/onboarding"
           ctaLabel="Connect your NPI"
         />
       </Shell>

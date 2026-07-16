@@ -24,7 +24,7 @@ const TYPE_MAPPING: Record<string, { group: string, icon: any, color: string }> 
 };
 
 const QUICK_ACTIONS = [
-  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed wallet', icon: Fingerprint, action: 'nav', href: '/get-ready' },
+  { id: 'GetReady', label: 'Confirm my NPI', desc: 'Start your source-backed wallet', icon: Fingerprint, action: 'nav', href: '/onboarding' },
   { id: 'Wallet', label: 'Open my wallet', desc: 'Your credentials, readiness, and proof', icon: Wallet, action: 'nav', href: '/holder' },
   { id: 'Readiness', label: 'Check my readiness', desc: 'Live source coverage and blockers', icon: ShieldCheck, action: 'nav', href: '/holder/readiness' },
   { id: 'Recognition', label: 'My Recognition', desc: 'Employer-accepted head starts', icon: Award, action: 'nav', href: '/holder/recognition' },

@@ -32,7 +32,7 @@ export const ROLE_LANDING: Record<UserRoleType, string> = {
  * Order matters: more specific prefixes must come first.
  *
  * Surface classification (VCV_UI_DOCTRINE §1):
- *   Public   — /explore, /get-ready, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
+ *   Public   — /explore, /get-ready, /onboarding, /p/:npi, /verify/:npi, /sign-in, /sign-up, etc.
  *   Clinician — /holder/*, /passport/*, /onboarding/*     → CLINICIAN role
  *   Verifier  — /verifier/*, /employers/*, /issuer/*      → VERIFIER role
  *   Ops/Intel — /intelligence/*, /findings/*, /graph/*, …  → AUTHENTICATED (any)
@@ -88,7 +88,8 @@ export const PUBLIC_ROUTE_PATTERNS = [
   /^\/partners(\/.*)?$/, // public partners page
   /^\/sign-in(\/.*)?$/,
   /^\/sign-up(\/.*)?$/,
-  /^\/get-ready(\/.*)?$/, // clinician onboarding
+  /^\/get-ready(\/.*)?$/, // legacy entry — redirects to /onboarding
+  /^\/onboarding(\/.*)?$/, // canonical clinician activation (anonymous NPI preview)
   /^\/explore(\/.*)?$/, // public opportunities board
   /^\/search(\/.*)?$/, // public search
   /^\/p(\/.*)?$/, // public clinician profiles — /p/:npi and subpaths

@@ -51,7 +51,7 @@ export default async function HolderTimelinePage() {
     redirect('/sign-in?redirect_url=%2Fholder%2Ftimeline');
   }
   if (resolution.kind === 'no_npi') {
-    redirect('/get-ready');
+    redirect('/onboarding');
   }
   if (resolution.kind === 'npi') {
     redirect(`/activity/${encodeURIComponent(resolution.npi)}`);
