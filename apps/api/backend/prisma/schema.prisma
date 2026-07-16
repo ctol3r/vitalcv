@@ -1739,6 +1739,11 @@ model Application {
   reviewedBy    String?           @map("reviewed_by")
   reviewedAt    DateTime?         @map("reviewed_at")
   reviewNote    String?           @map("review_note")
+  /// Wave 0 (Seal): version of the immutable disclosure packet captured at
+  /// submission. NULL = legacy application submitted before packets existed —
+  /// rendered with an explicit legacy label, never a fabricated packet.
+  sealedPacketVersion Int?        @map("sealed_packet_version")
+  packets       ApplicationPacket[]
   opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -1748,6 +1753,46 @@ model Application {
   @@index([clerkUserId])
   @@index([status])
   @@map("applications")
+}
+
+/// Wave 0 (Seal): the immutable evidence disclosure a clinician shared at
+/// submission. NEVER updated after seal — refreshed disclosure creates a NEW
+/// version row; `supersededByPacketId` links forward and revocation is a
+/// state, not a deletion. Identifiers are FROZEN STRINGS (not relations to
+/// mutable rows) so the packet replays without rereading current state.
+model ApplicationPacket {
+  id                   String    @id @default(uuid()) @db.Uuid
+  applicationId        String    @map("application_id") @db.Uuid
+  packetVersion        Int       @map("packet_version")
+  clerkUserId          String    @map("clerk_user_id")
+  clinicianNpi         String    @map("clinician_npi")
+  opportunityId        String    @map("opportunity_id") @db.Uuid
+  employerOrgId        String    @map("employer_org_id")
+  purpose              String
+  recipient            String
+  /// string[] — section identifiers the clinician chose to disclose
+  selectedSections     Json      @map("selected_sections")
+  /// PacketFieldEntry[] — per-field value, evidence state, source id,
+  /// source observation time, freshness horizon, artifact/receipt ids
+  fields               Json
+  clinicianNote        String?   @map("clinician_note")
+  methodologyVersion   String    @map("methodology_version")
+  consentAt            DateTime  @map("consent_at")
+  consentReceiptId     String    @map("consent_receipt_id")
+  /// sha256 over the canonical (key-sorted) packet content — the seal
+  packetHash           String    @unique @map("packet_hash")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  supersededByPacketId String?   @map("superseded_by_packet_id") @db.Uuid
+  revokedAt            DateTime? @map("revoked_at")
+  revokedReason        String?   @map("revoked_reason")
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@unique([applicationId, packetVersion])
+  @@index([clerkUserId])
+  @@index([opportunityId])
+  @@index([employerOrgId])
+  @@map("application_packets")
 }
 
 model EmployerAcceptance {
