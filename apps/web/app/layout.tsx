@@ -6,7 +6,6 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { clerkAppearance } from '@/lib/clerkAppearance';
 import { vdsCssVariables } from '@/src/styles';
 import { ClerkProvider } from '@clerk/nextjs';
-import { auth } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
 import type React from 'react';
 import './globals.css';
@@ -107,46 +106,23 @@ export const metadata: Metadata = {
 
 const clerkEnabled = CLERK_PROVIDER_ENABLED;
 
-function parseInitialClerkRole(
-  claims: Record<string, unknown> | undefined,
-): string | null {
-  const vitalcv = claims?.vitalcv;
-  if (vitalcv && typeof vitalcv === 'object' && 'role' in vitalcv && typeof vitalcv.role === 'string') {
-    return vitalcv.role;
-  }
-
-  if (typeof claims?.role === 'string') {
-    return claims.role;
-  }
-
-  if (typeof claims?.org_role === 'string') {
-    return claims.org_role;
-  }
-
-  return null;
-}
-
-export default async function RootLayout({
+// CACHE CONTRACT (Wave 0.2 follow-up): this layout wraps EVERY route, so it
+// must never read request state — `auth()`, `headers()`, `cookies()` here
+// would force the entire public marketing site into per-request dynamic
+// rendering and strip its bounded shared caching (measured live: /, /employers,
+// /trust, /status, /pricing all went `ƒ` + no-store the first time Clerk was
+// correctly enabled at build). The client session is resolved after hydration
+// by RoleProvider (Clerk useAuth) and Clerk-native <SignedIn> chrome; a static
+// prerender can only ever carry the guest state anyway.
+// Guarded by __tests__/static-marketing-cache-contract.test.ts.
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialUserId: string | null = null;
-  let initialClerkRole: string | null = null;
   const staticFirstBuild =
     process.env.CF_PAGES === '1' || process.env.STATIC_FIRST_BUILD === 'true';
   const renderGlobalChrome = !staticFirstBuild;
-
-  if (clerkEnabled && !staticFirstBuild) {
-    try {
-      const session = await auth();
-      initialUserId = session.userId ?? null;
-      initialClerkRole = parseInitialClerkRole(session.sessionClaims as Record<string, unknown> | undefined);
-    } catch {
-      initialUserId = null;
-      initialClerkRole = null;
-    }
-  }
 
   const hydratedContent = (
     <html
@@ -156,7 +132,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-        <Providers initialUserId={initialUserId} initialClerkRole={initialClerkRole}>
+        <Providers initialUserId={null} initialClerkRole={null}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           {renderGlobalChrome ? <CommandPalette /> : null}
           {renderGlobalChrome ? <Toaster position="top-right" closeButton richColors /> : null}
