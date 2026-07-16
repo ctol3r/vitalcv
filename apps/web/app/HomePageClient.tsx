@@ -24,6 +24,7 @@ import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
 
 const SOURCE_REGISTRY_STRIP = [
@@ -115,17 +116,19 @@ function WalletPreview() {
         </span>
       </div>
 
-      <div className="mt-4 rounded-[9px] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">Readiness snapshot</p>
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--vt-accent-emerald)]">
-            <CheckCircle2 size={12} /> Source-backed
-          </span>
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="mz-meter flex-1"><span style={{ width: '72%' }} /></div>
-          <span className="w-9 text-right font-mono text-[13px] font-semibold tabular-nums text-[var(--vt-text-primary)]">72%</span>
-        </div>
+      {/* No fabricated score: a fake 72% reads as a real result even on a
+          mockup. The preview states its own nature and summarizes the honest
+          lane states below instead. */}
+      <p className="mt-3 rounded-[7px] border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
+        Illustrative product preview — not your readiness result
+      </p>
+
+      <div className="mt-3 rounded-[9px] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">Readiness preview</p>
+        <p className="mt-2 text-[13px] font-medium text-[var(--vt-text-primary)]">
+          {WALLET_PREVIEW_ROWS.length} source lanes shown ·{' '}
+          {WALLET_PREVIEW_ROWS.filter((r) => r.tone === 'pending').length} requires access
+        </p>
         <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">Honest about what is checked, gated, or stale.</p>
       </div>
 
@@ -171,22 +174,28 @@ export default function HomePageClient() {
   const [submittedNpi, setSubmittedNpi] = React.useState<string | null>(null);
 
   const digits = raw.replace(/\D/g, '').slice(0, 10);
+  // Canonical validation (lib/vital/npi): the hero previously enabled submit on
+  // ANY 10 digits while Passport checksum-validated — one shared rule now. A
+  // full-length value that fails the CMS check digit is a typo; catching it
+  // here saves a doomed lookup and says so in plain words.
+  const npiCheck = checkNpi(raw);
   const isFull = digits.length === 10;
+  const isValid = npiCheck.validity === 'valid';
 
   const handleSubmit = React.useCallback(() => {
-    if (!isFull) {
-      setError('Enter a full 10-digit NPI.');
+    if (!isValid || !npiCheck.npi) {
+      setError(npiCheck.reason ?? 'Enter a full 10-digit NPI.');
       return;
     }
     setError(null);
     try {
-      window.sessionStorage.setItem('onboarding_npi', digits);
-      window.localStorage.setItem('onboarding_npi', digits);
+      window.sessionStorage.setItem('onboarding_npi', npiCheck.npi);
+      window.localStorage.setItem('onboarding_npi', npiCheck.npi);
     } catch {
       // The lookup still works when storage is unavailable.
     }
-    setSubmittedNpi(digits);
-  }, [digits, isFull]);
+    setSubmittedNpi(npiCheck.npi);
+  }, [isValid, npiCheck.npi, npiCheck.reason]);
 
   return (
     <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
@@ -256,16 +265,16 @@ export default function HomePageClient() {
                         aria-describedby={error ? 'home-npi-error' : undefined}
                         className="h-14 flex-1 border-0 bg-transparent px-4 text-[18px] font-medium tracking-[0.14em] text-[var(--vt-text-primary)] shadow-none placeholder:text-[var(--vt-text-muted)]/40 focus-visible:ring-0"
                       />
-                      <span aria-hidden="true" className={cn('flex items-center justify-center pb-4 px-4 transition-opacity sm:pb-0 sm:pl-0 sm:pr-2', isFull ? 'opacity-100' : 'opacity-0')}>
+                      <span aria-hidden="true" className={cn('flex items-center justify-center pb-4 px-4 transition-opacity sm:pb-0 sm:pl-0 sm:pr-2', isValid ? 'opacity-100' : 'opacity-0')}>
                         <CheckCircle2 size={22} className="text-[var(--vt-accent-emerald)]" />
                       </span>
                       <button
                         type="submit"
                         data-home-primary-cta=""
-                        disabled={!isFull}
+                        disabled={!isValid}
                         className={cn(
                           'inline-flex h-14 items-center justify-center gap-2 border-t border-[var(--vt-border)] px-5 text-[13px] font-semibold sm:border-l sm:border-t-0 sm:px-6',
-                          isFull ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)]' : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
+                          isValid ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)]' : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
                         )}
                       >
                         Check readiness <ArrowRight size={16} aria-hidden="true" />
@@ -275,7 +284,12 @@ export default function HomePageClient() {
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--vt-text-secondary)]">
                     <span className={error ? 'text-[var(--vt-state-blocked)]' : undefined} role={error ? 'alert' : undefined} id={error ? 'home-npi-error' : undefined}>
-                      {error ?? (isFull ? 'Press Enter to continue' : `${digits.length}/10 digits`)}
+                      {error ??
+                        (isValid
+                          ? 'Press Enter to continue'
+                          : isFull
+                            ? (npiCheck.reason ?? 'Check the number for a typo.')
+                            : `${digits.length}/10 digits`)}
                     </span>
                     <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
                     <span>No account required</span>
