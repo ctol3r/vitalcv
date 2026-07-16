@@ -19,6 +19,12 @@ at a fixed viewport position for the whole reveal instead.
 - `09` real-number metric strip + dual-audience close.
 - `10–12` mobile (360px): unpinned hero, story scroll-snap card, carousel.
 
+Regenerated 2026-07-16 after the tuning pass: hero pin 260vh (was 220) and
+story 560vh (was 460) for slower, scroll-aligned pacing; the reveal completes
+at 96% of the pin (the 85% dwell read as dead scroll); seams tightened; the
+carousel auto-advances with a pause control (Chris's direction, reversing the
+original no-autoplay rule).
+
 The reveal math itself is #683's pure `narrativeStateAt(progress, phrases)`
 (phrase-replace with a guaranteed dwell, 9 unit tests in
 `apps/web/__tests__/scroll-type-narrative.test.ts`). The pin only supplies the

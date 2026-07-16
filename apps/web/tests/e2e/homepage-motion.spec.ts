@@ -29,7 +29,7 @@ test.describe('Homepage motion convergence', () => {
     // The hero pins on desktop, holding the line at a fixed viewport position
     // for the whole reveal. Without the pin the line exits at scrollY ~584
     // while a 0.72vh reveal runs to ~927 — phrases 3-5 played below the fold.
-    await expect(page.locator('#wallet')).toHaveCSS('min-height', '2200px');
+    await expect(page.locator('#wallet')).toHaveCSS('min-height', '2600px');
     await expect(page.locator('[data-home-hero-stage]')).toHaveCSS('position', 'sticky');
 
     const subhead = page.locator('[data-home-hero-subhead]');
@@ -43,7 +43,7 @@ test.describe('Homepage motion convergence', () => {
     const done = '4:4';
     let completedAt = -1;
 
-    for (let y = 0; y <= 2200 && completedAt < 0; y += 100) {
+    for (let y = 0; y <= 2600 && completedAt < 0; y += 100) {
       await scrollTo(page, y);
       const state = String(await subhead.getAttribute('data-narrative-state'));
       const box = await subhead.boundingBox();
@@ -89,7 +89,7 @@ test.describe('Homepage motion convergence', () => {
 
     const story = page.locator('[data-home-sticky-product-story]');
     await expect(story).toBeVisible();
-    await expect(story).toHaveCSS('min-height', '4600px');
+    await expect(story).toHaveCSS('min-height', '5600px');
 
     await captureStoryFrame(page, testInfo, 'start', 0);
     await expect(story).toHaveAttribute('data-active-step', 'recognize');
@@ -152,17 +152,88 @@ test.describe('Homepage motion convergence', () => {
     await expect(page.getByText(/VitalCV recognizes your identity, checks the primary sources/).first()).toBeVisible();
   });
 
-  test('carousel has keyboard controls and no autoplay', async ({ page }) => {
+  // Auto-advance was DELIBERATELY added on Chris's 2026-07-16 direction,
+  // reversing the wave's original "no autoplay" rule. The contract now is
+  // accessible autoplay: it advances only while idle, on-screen, and unhovered;
+  // any manual navigation stops it; a visible pause control exists; and
+  // reduced-motion users never see it move on its own.
+  // A goTo() smooth-scroll can be mid-flight when we sample (an autoplay tick
+  // or manual nav we just triggered). Wait until scrollLeft is stable before
+  // opening a no-drift assertion window, or the animation tail reads as drift.
+  async function settledScrollLeft(carousel: import('@playwright/test').Locator): Promise<number> {
+    let prev = -1;
+    await expect
+      .poll(
+        async () => {
+          const current = await carousel.evaluate((node) => node.scrollLeft);
+          const stable = Math.abs(current - prev) < 1;
+          prev = current;
+          return stable;
+        },
+        { intervals: [400], timeout: 8000 },
+      )
+      .toBe(true);
+    return prev;
+  }
+
+  test('carousel auto-advances while idle and stops on manual navigation', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
+    const section = page.locator('[data-home-product-carousel]');
     const carousel = page.getByRole('region', { name: 'VitalCV product surfaces' });
+    await section.scrollIntoViewIfNeeded();
+    await expect(section).toHaveAttribute('data-carousel-autoplay', 'on');
+
+    // Idle + visible + unhovered (mouse never entered the section) → advances.
     const before = await carousel.evaluate((node) => node.scrollLeft);
+    await expect
+      .poll(() => carousel.evaluate((node) => node.scrollLeft), { timeout: 10_000 })
+      .toBeGreaterThan(before);
+
+    // Keyboard navigation still works — and it takes the wheel: autoplay stops.
     await carousel.focus();
     await page.keyboard.press('ArrowRight');
-    await expect.poll(() => carousel.evaluate((node) => node.scrollLeft)).toBeGreaterThan(before);
-    await page.waitForTimeout(1200);
-    const afterKeyboard = await carousel.evaluate((node) => node.scrollLeft);
-    await page.waitForTimeout(700);
-    const afterWait = await carousel.evaluate((node) => node.scrollLeft);
-    expect(Math.abs(afterWait - afterKeyboard)).toBeLessThan(2);
+    await expect(section).toHaveAttribute('data-carousel-autoplay', 'off');
+    await page.mouse.move(10, 10);
+    await page.keyboard.press('Escape');
+    await carousel.evaluate((node) => (node as HTMLElement).blur());
+    const stopped = await settledScrollLeft(carousel);
+    await page.waitForTimeout(7000);
+    expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - stopped)).toBeLessThan(2);
+  });
+
+  test('carousel autoplay pauses on hover and honors the pause control', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const section = page.locator('[data-home-product-carousel]');
+    const carousel = page.getByRole('region', { name: 'VitalCV product surfaces' });
+    await section.scrollIntoViewIfNeeded();
+
+    // Hovering anywhere in the section suspends the timer (WCAG 2.2.2).
+    await section.hover();
+    const hovered = await settledScrollLeft(carousel);
+    await page.waitForTimeout(7000);
+    expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - hovered)).toBeLessThan(2);
+
+    // The visible pause control flips the state and survives un-hovering.
+    await page.getByRole('button', { name: 'Pause auto-advance' }).click();
+    await expect(section).toHaveAttribute('data-carousel-autoplay', 'off');
+    await expect(page.getByRole('button', { name: 'Resume auto-advance' })).toBeVisible();
+    await page.mouse.move(10, 10);
+    const paused = await settledScrollLeft(carousel);
+    await page.waitForTimeout(7000);
+    expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - paused)).toBeLessThan(2);
+  });
+
+  test('reduced motion never auto-advances', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await expect(page.locator('[data-home-product-carousel]')).toHaveAttribute(
+      'data-carousel-autoplay',
+      'off',
+    );
   });
 });

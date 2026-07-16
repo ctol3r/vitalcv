@@ -93,9 +93,10 @@ export function ScrollTypeNarrative({
       // position for `pinDistance`, so the reveal can use that whole runway and
       // still finish on screen — measured on the pre-pin build, phrases 3-5 all
       // played below the fold because 0.72vh outlives the line's exit at
-      // ~0.58vh. Complete at 85% of the pin, then dwell before release.
+      // ~0.58vh. Complete at 96% of the pin: the earlier 85% left a ~0.18vh
+      // dead-scroll dwell that read as empty page.
       const pinDistance = container.offsetHeight - vh;
-      const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.85 : vh * 0.72;
+      const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.96 : vh * 0.72;
       const p = (window.scrollY - containerTop) / revealDistance;
       const next = narrativeStateAt(p, phrases);
       setIdx(next.idx);
@@ -142,7 +143,7 @@ export function ScrollTypeNarrative({
                 key={`${idx}-${i}`}
                 style={{
                   opacity: words < 0 || i < words ? 1 : 0,
-                  transition: 'opacity 200ms cubic-bezier(0.2,0.7,0.2,1)',
+                  transition: 'opacity 360ms cubic-bezier(0.25,0.6,0.3,1)',
                 }}
               >
                 {w}

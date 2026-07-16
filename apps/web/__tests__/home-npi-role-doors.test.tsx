@@ -81,13 +81,17 @@ describe('HomePageClient — pinned product story', () => {
 });
 
 describe('HomePageClient — product carousel and rail', () => {
-  it('renders the six requested carousel cards without autoplay', () => {
+  it('renders the six requested carousel cards with accessible auto-advance', () => {
+    // Auto-advance deliberately reverses the wave's original no-autoplay rule
+    // (Chris, 2026-07-16). The guard now pins the accessibility contract that
+    // makes it defensible: a visible pause control ships in the SSR markup.
     const html = renderHomepage();
     expect(html).toContain('data-home-product-carousel');
     for (const product of ['wallet', 'readiness', 'matcha', 'apply', 'recognition', 'reuse']) {
       expect(html).toContain(`data-carousel-card="${product}"`);
     }
-    expect(html).not.toMatch(/autoplay/i);
+    expect(html).toContain('data-carousel-autoplay');
+    expect(html).toContain('aria-label="Pause auto-advance"');
     expect(html).toContain('aria-label="Previous product"');
     expect(html).toContain('aria-label="Next product"');
   });
