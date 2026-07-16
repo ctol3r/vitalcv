@@ -22,27 +22,22 @@ test.describe('Homepage motion convergence', () => {
     await page.waitForTimeout(110);
   }
 
-  test('every narrative phrase plays while the line is on screen', async ({ page }) => {
+  test('hero stays compact while every narrative phrase completes on screen', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    // The hero pins on desktop, holding the line at a fixed viewport position
-    // for the whole reveal. Without the pin the line exits at scrollY ~584
-    // while a 0.72vh reveal runs to ~927 — phrases 3-5 played below the fold.
-    await expect(page.locator('#wallet')).toHaveCSS('min-height', '2600px');
-    await expect(page.locator('[data-home-hero-stage]')).toHaveCSS('position', 'sticky');
+    const hero = page.locator('#wallet');
+    await expect(page.locator('[data-home-hero-stage]')).toHaveCSS('position', 'relative');
+    const heroHeight = await hero.evaluate((node) => node.getBoundingClientRect().height);
+    expect(heroHeight, 'hero must fit within the opening viewport').toBeLessThanOrEqual(1000);
+    await expect(page.locator('[data-home-primary-cta]')).toBeInViewport();
 
     const subhead = page.locator('[data-home-hero-subhead]');
     const seen = new Set<string>();
     const height = page.viewportSize()!.height;
-    // Fill complete = data-narrative-complete set. After that the pin is
-    // SUPPOSED to release and the hero scrolls away like any other section, so
-    // the guarantee is only that nothing fills off-screen while the sequence is
-    // still running. Sweeping past the release and demanding on-screen was the
-    // original form of this assertion, and it failed on the release frame.
     let completedAt = -1;
 
-    for (let y = 0; y <= 2600 && completedAt < 0; y += 100) {
+    for (let y = 0; y <= 360 && completedAt < 0; y += 30) {
       await scrollTo(page, y);
       const state = String(await subhead.getAttribute('data-narrative-state'));
       const box = await subhead.boundingBox();
@@ -65,8 +60,10 @@ test.describe('Homepage motion convergence', () => {
       if ((await subhead.getAttribute('data-narrative-complete')) !== null) completedAt = y;
     }
 
-    // The fill finished on screen, inside the pin, before any release.
-    expect(completedAt, 'sequence never completed within the pin').toBeGreaterThan(0);
+    // The fill finishes quickly while the hero remains visible; no extra
+    // viewport is reserved merely to complete decorative motion.
+    expect(completedAt, 'sequence never completed inside the compact hero').toBeGreaterThan(0);
+    expect(completedAt).toBeLessThanOrEqual(360);
     // All five phrases were reached — none skipped past the fold.
     expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
   });
@@ -81,7 +78,7 @@ test.describe('Homepage motion convergence', () => {
     };
 
     const forward: string[] = [];
-    for (const y of [0, 400, 800, 1200]) forward.push(String(await stateAt(y)));
+    for (const y of [0, 100, 200, 300]) forward.push(String(await stateAt(y)));
 
     // Advancing scroll advances the sequence (never regresses).
     const phraseIdx = forward.map((s) => Number(s.split(':')[0]));
@@ -89,8 +86,8 @@ test.describe('Homepage motion convergence', () => {
     expect(phraseIdx.at(-1)).toBeGreaterThan(phraseIdx[0]);
 
     // Reverse scroll reproduces each state exactly (pure function of scroll).
-    for (const y of [800, 400, 0]) {
-      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 400, 800, 1200].indexOf(y)]);
+    for (const y of [200, 100, 0]) {
+      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 100, 200, 300].indexOf(y)]);
     }
   });
 
@@ -104,7 +101,10 @@ test.describe('Homepage motion convergence', () => {
 
     const story = page.locator('[data-home-sticky-product-story]');
     await expect(story).toBeVisible();
-    await expect(story).toHaveCSS('min-height', '5600px');
+    await expect(story).toHaveCSS('min-height', '2400px');
+    const storyHeight = await story.evaluate((node) => node.getBoundingClientRect().height);
+    const transitionRunway = (storyHeight - page.viewportSize()!.height) / 4;
+    expect(transitionRunway, 'each card transition must begin within 35vh').toBeLessThanOrEqual(350);
 
     await captureStoryFrame(page, testInfo, 'start', 0);
     await expect(story).toHaveAttribute('data-active-step', 'recognize');
@@ -128,6 +128,16 @@ test.describe('Homepage motion convergence', () => {
         await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 250, 248)');
         await expect(page.locator('[data-home-evidence-trace]')).toHaveCount(1);
       }
+    });
+  }
+
+  for (const width of [1024, 1366]) {
+    test(`keeps the NPI action in the opening laptop viewport at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 768 });
+      await page.goto('/', { waitUntil: 'networkidle' });
+      await expect(page.locator('[data-home-primary-cta]')).toBeInViewport();
+      const heroHeight = await page.locator('[data-home-hero]').evaluate((node) => node.getBoundingClientRect().height);
+      expect(heroHeight).toBeLessThanOrEqual(768);
     });
   }
 

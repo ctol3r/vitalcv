@@ -216,17 +216,17 @@ export default function HomePageClient() {
       <HomepageSectionRail />
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
-        {/* Outer pin gives the scroll-typed narrative room to finish on screen
-            (desktop only); the inner stage stays sticky for that distance. */}
+        {/* The NPI action belongs in the first viewport. Hero motion is a
+            progressive enhancement, never a reason to reserve blank runway. */}
         <section
           id="wallet"
           aria-label="NPI lookup"
           data-home-hero=""
-          className="hero-pin mz mz-paper mz-persona-holder relative"
+          className="hero-compact mz mz-paper mz-persona-holder relative"
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[calc(100svh-16rem)] items-center gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-5"
+            className="hero-stage relative isolate grid min-h-[min(46rem,calc(100svh-11rem))] items-center gap-8 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-6"
           >
           <div className="max-w-3xl">
             <div className="space-y-4">
