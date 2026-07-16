@@ -6,7 +6,7 @@ import * as React from 'react';
  * ScrollTypeNarrative — the hero narrative, driven by SCROLL PROGRESS (not a
  * timer), in the Palantir/Anyscale register Chris asked this wave to mirror:
  * the COMPLETE five-step sentence sits on the page in muted ink, and scrolling
- * the pinned hero scrubs the fill through it word by word. Text ACCUMULATES —
+ * the compact hero scrubs the fill through it word by word. Text ACCUMULATES —
  * a clause stays inked once revealed — and scrolling back up un-fills it in
  * real time.
  *
@@ -129,14 +129,12 @@ export function ScrollTypeNarrative({
       if (!container) return;
       const vh = window.innerHeight || 1;
       const containerTop = container.getBoundingClientRect().top + window.scrollY;
-      // Pinned (desktop .hero-pin): the line is held at a fixed viewport
-      // position, so the fill can use ~the whole pin and still finish on
-      // screen (96% — completing earlier left a dead-scroll dwell).
-      // Unpinned (mobile sizing): the line scrolls away with the page, so the
-      // fill completes within ~half a viewport, before the line can exit.
-      const pinDistance = container.offsetHeight - vh;
-      const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.96 : vh * 0.55;
-      const p = (window.scrollY - containerTop) / Math.max(1, revealDistance);
+      // The hero no longer owns a pinned runway. Complete the decorative fill
+      // within a short, visibly active portion of the opening viewport so the
+      // NPI action and the next section are never delayed by motion.
+      const revealDistance = Math.max(180, Math.min(vh * 0.32, container.offsetHeight * 0.45));
+      const revealStart = Math.max(0, containerTop - vh * 0.16);
+      const p = (window.scrollY - revealStart) / Math.max(1, revealDistance);
       setReveal(narrativeStateAt(p, chars).reveal);
     };
     const onScroll = () => {

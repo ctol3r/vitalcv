@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env.CI;
+const e2ePort = process.env.PORT ?? '3000';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${e2ePort}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -12,7 +14,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL,
     trace: 'on-first-retry',
   },
 
@@ -30,7 +32,7 @@ export default defineConfig({
       CLERK_SECRET_KEY: '',
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: '',
     },
-    url: 'http://127.0.0.1:3000',
+    url: baseURL,
     reuseExistingServer: !isCI,
     // In CI this command is `preview:e2e`, which does a cold `next build`
     // before serving — comfortably slower than a warm local build, so give it
