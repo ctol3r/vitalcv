@@ -19,6 +19,33 @@ import * as React from 'react';
  *  - It is decoration beside the NPI form — it never gates or delays the input.
  */
 
+/**
+ * Pure scroll→narrative mapping (exported for unit tests).
+ *
+ * Rules (post-audit polish):
+ *  - Phrase 0 is the RESTING phrase: fully shown for its entire segment, so a
+ *    few pixels of scroll can never wipe the line and retype it (the old
+ *    `p < 0.005` special case collapsed to 0 words at p≈0.006).
+ *  - Later phrases type over the FIRST HALF of their segment and dwell fully
+ *    typed for the second half — every phrase gets a readable hold.
+ *  - A typing phrase never renders fewer than 1 word (no blank frames).
+ *  - Reversing scroll runs the same pure function backwards, so it untypes
+ *    deterministically.
+ */
+export function narrativeStateAt(
+  progress: number,
+  phrases: readonly string[],
+): { idx: number; shown: number } {
+  const p = Math.min(1, Math.max(0, progress));
+  const seg = p * phrases.length;
+  const idx = Math.min(phrases.length - 1, Math.floor(seg));
+  const wordCount = phrases[idx].split(' ').length;
+  if (idx === 0) return { idx, shown: wordCount };
+  const intra = seg - idx;
+  const shown = Math.max(1, Math.round(Math.min(1, intra / 0.5) * wordCount));
+  return { idx, shown };
+}
+
 export function ScrollTypeNarrative({
   prefix,
   phrases,
@@ -57,18 +84,14 @@ export function ScrollTypeNarrative({
       if (!container) return;
       const vh = window.innerHeight || 1;
       const containerTop = container.getBoundingClientRect().top + window.scrollY;
-      const revealDistance = Math.max(vh * 0.82, container.offsetHeight - vh * 0.3);
-      const p = Math.min(1, Math.max(0, (window.scrollY - containerTop) / revealDistance));
-      const seg = p * phrases.length;
-      const i = Math.min(phrases.length - 1, Math.floor(seg));
-      const intra = seg - i;
-      const wordCount = phrases[i].split(' ').length;
-      // At the very top, rest on the first phrase fully typed (never blank);
-      // otherwise type the active phrase over the first ~60% of its segment.
-      const shown =
-        p < 0.005 ? phrases[0].split(' ').length : Math.round(Math.min(1, intra / 0.66) * wordCount);
-      setIdx(i);
-      setWords(shown);
+      // The whole sequence completes within 0.72 viewport-heights, so the last
+      // phrases finish while the narrative is still on screen (previously
+      // distances up to ~1vh let steps play after the hero had scrolled away).
+      const revealDistance = vh * 0.72;
+      const p = (window.scrollY - containerTop) / revealDistance;
+      const next = narrativeStateAt(p, phrases);
+      setIdx(next.idx);
+      setWords(next.shown);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
