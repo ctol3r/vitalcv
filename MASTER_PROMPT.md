@@ -458,7 +458,7 @@ Design (vitalcvdesign-proposal)
   → Launch Readiness
 ```
 
-**Cowork mode (this context):** Authorized for: file operations in vitalcv workspace, triage/classification, artifact indexing, research hygiene, packaging exports, documentation. **Never:** modify source code directly (use Claude Code), delete without review, modify Prisma schema without review.
+**Cowork mode (this context):** Authorized for: file operations in vitalcv workspace, triage/classification, artifact indexing, research hygiene, packaging exports, documentation. **Never:** modify source code directly unless the repository owner explicitly authorizes the acting implementation agent in the task; otherwise use Claude Code; delete without review; modify Prisma schema without review.
 
 ---
 

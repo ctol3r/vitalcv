@@ -30,6 +30,11 @@ import {
   listEmployerWorkflowDashboard,
   runEmployerWorkflowAction,
 } from '../services/opportunities/employerWorkflowService';
+import {
+  parseApplicationPacketApplicationId,
+  parseRequestedPacketVersion,
+  readApplicationPacket,
+} from '../services/opportunities/applicationPacketReadService';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
@@ -95,6 +100,23 @@ export function registerApplicationRoutes(app: Express): void {
       const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
+    }),
+  );
+
+  /* ── Authorized immutable submission packet ── */
+  app.get(
+    '/api/applications/:applicationId/packet',
+    asyncHandler(async (req, res) => {
+      const clerkUserId = requireClerkUserId(req);
+      const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
+      const packetVersion = parseRequestedPacketVersion(req.query.version);
+
+      const packet = await readApplicationPacket({
+        applicationId,
+        clerkUserId,
+        packetVersion,
+      });
+      res.json(packet);
     }),
   );
 
