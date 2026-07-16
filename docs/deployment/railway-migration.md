@@ -1,8 +1,10 @@
 # Railway Migration — Vercel → Railway as sole deployment target
 
-**Status:** Railway is already the working deployment infrastructure for both the API and the web app. Vercel is legacy. This document records the audit, the explicit dependency check, and the steps to make Railway the *sole* target.
+**Status: RAILWAY IS CANONICAL.** Railway (project `inspiring-reflection`, environment `production`) is the declared production owner of `vitalcv.com` — services `vitalcv-web` (Next.js, built from `apps/web/Dockerfile`) and `delightful-essence` (backend API), plus Postgres. Every Vercel project on the VITALCV team is legacy: see `docs/deployment/vercel-legacy-inventory.md` for the per-project inventory and archive checklist. Deploy verification: `node scripts/deploy-smoke.mjs` runs on every deploy via `.github/workflows/release-verify.yml` (secretless, cache-busted) alongside the signed-in synthetic monitor.
 
-_Last verified: 2026-06-28 (W1400 ops-engine wave)._
+Build-time environment contract for the web service (the 18c9311 incident): `docs/deployment/railway-web-build-env.md`.
+
+_Last verified: 2026-07-16 (Wave 0.3 — production hardening)._
 
 ---
 

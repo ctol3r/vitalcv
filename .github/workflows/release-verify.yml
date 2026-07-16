@@ -84,6 +84,17 @@ jobs:
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
           echo "Target SHA: ${SHA:-(main HEAD)}"
 
+      # Secretless external smoke — runs on EVERY deploy, wired or not
+      # (Wave 0.3). Verifies platform/environment/branch/SHA via /api/version,
+      # the fail-closed auth-config health, the current-release homepage
+      # marker, session-route no-store, and the core public routes — all with
+      # cache-busted requests so a stale shared cache cannot fake a pass.
+      - name: Production smoke (secretless, cache-busted)
+        env:
+          RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+        run: node scripts/deploy-smoke.mjs
+
       - name: Preflight — is the monitor wired?
         id: preflight
         env:
