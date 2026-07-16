@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   description: 'Your verified medical credential wallet and opportunities.',
 };
 
+// Session-sensitive tree (Wave 0.2): the holder workspace is per-user.
+// Never prerender, never shared-cache.
+export const dynamic = 'force-dynamic';
+
 export default async function HolderLayout({
   children,
 }: {
