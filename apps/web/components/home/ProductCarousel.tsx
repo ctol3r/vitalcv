@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Award,
   BriefcaseBusiness,
-  CheckCircle2,
   FileUp,
   RefreshCw,
   SearchCheck,
@@ -16,15 +15,35 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { TrustGlyph } from '@/components/vital/TrustGlyph';
+import type { EvidenceState } from '@/lib/vital/evidenceState';
 
-const PRODUCTS = [
+// Each mockup row is either an EVIDENCE row (typed state → TrustGlyph, which
+// never shows a check for gated/review/unavailable — the Trust Center's exact
+// promise) or a WORKFLOW fact (no state → neutral dot that asserts nothing).
+// The previous version drew a green check on every row, including "Access
+// required" and "Review needed" — a truth-contract violation.
+type UiRow = { label: string; state?: EvidenceState };
+
+const PRODUCTS: ReadonlyArray<{
+  id: string;
+  title: string;
+  eyebrow: string;
+  body: string;
+  icon: React.ComponentType<{ size?: number }>;
+  ui: readonly UiRow[];
+}> = [
   {
     id: 'wallet',
     title: 'CV Wallet',
     eyebrow: 'Clinician-owned evidence',
     body: 'Keep source checks, receipts, and Recognition together across every career move.',
     icon: Wallet,
-    ui: ['NPI identity · Source-backed', 'OIG / LEIE · Checked', 'License · Access required'],
+    ui: [
+      { label: 'NPI identity · Source-backed', state: 'source_backed' },
+      { label: 'OIG / LEIE · Checked', state: 'checked' },
+      { label: 'License · Access required', state: 'access_required' },
+    ],
   },
   {
     id: 'readiness',
@@ -32,7 +51,11 @@ const PRODUCTS = [
     eyebrow: 'Know the next action',
     body: 'See what an employer can inspect today and what still needs access or review.',
     icon: ShieldCheck,
-    ui: ['Identity · Ready', 'Exclusions · Checked', 'Licensure · Needs access'],
+    ui: [
+      { label: 'Identity · Source-backed', state: 'source_backed' },
+      { label: 'Exclusions · Checked', state: 'checked' },
+      { label: 'Licensure · Access required', state: 'access_required' },
+    ],
   },
   {
     id: 'matcha',
@@ -40,7 +63,11 @@ const PRODUCTS = [
     eyebrow: 'Explainable matching',
     body: 'Match source-backed evidence and stated preferences to role requirements with the reasoning visible.',
     icon: SearchCheck,
-    ui: ['Specialty · Meets requirement', 'Location · Within preference', 'License · Review needed'],
+    ui: [
+      { label: 'Specialty · Meets requirement', state: 'checked' },
+      { label: 'Location · Your stated preference', state: 'self_attested' },
+      { label: 'License · Review needed', state: 'needs_review' },
+    ],
   },
   {
     id: 'apply',
@@ -48,7 +75,11 @@ const PRODUCTS = [
     eyebrow: 'Reuse the proof packet',
     body: 'Choose what to disclose, send one attributed packet, and keep the consent receipt.',
     icon: FileUp,
-    ui: ['4 claims selected', 'Source states included', 'Consent receipt ready'],
+    ui: [
+      { label: '4 claims selected' },
+      { label: 'Source states included' },
+      { label: 'Consent receipt ready' },
+    ],
   },
   {
     id: 'recognition',
@@ -56,7 +87,11 @@ const PRODUCTS = [
     eyebrow: 'Accepted as a head start',
     body: 'Record an employer acceptance without confusing it with a final credentialing decision.',
     icon: Award,
-    ui: ['Packet · Reviewed', 'Head start · Accepted', 'Audit event · Recorded'],
+    ui: [
+      { label: 'Packet · Reviewed' },
+      { label: 'Head start · Accepted', state: 'employer_decision' },
+      { label: 'Audit event · Recorded' },
+    ],
   },
   {
     id: 'reuse',
@@ -64,7 +99,11 @@ const PRODUCTS = [
     eyebrow: 'Nothing resets',
     body: 'Carry the same evidence and prior Recognition into the next opportunity instead of rebuilding from zero.',
     icon: RefreshCw,
-    ui: ['Wallet · Carried forward', 'Recognition · Reusable', 'New review · Ready to begin'],
+    ui: [
+      { label: 'Wallet · Carried forward' },
+      { label: 'Recognition · Reusable' },
+      { label: 'New review · Ready to begin' },
+    ],
   },
 ] as const;
 
@@ -212,9 +251,17 @@ export function ProductCarousel() {
                   </div>
                   <ul>
                     {product.ui.map((row) => (
-                      <li key={row}>
-                        <CheckCircle2 size={13} />
-                        <span>{row}</span>
+                      <li key={row.label}>
+                        {row.state ? (
+                          <TrustGlyph state={row.state} labelHidden size={13} />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: 'var(--vt-text-muted)' }}
+                          />
+                        )}
+                        <span>{row.label}</span>
                       </li>
                     ))}
                   </ul>
