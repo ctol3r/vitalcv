@@ -92,16 +92,19 @@ export function EmployerGetStartedClient() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: string };
         if (res.status === 401) {
-          setErrorMsg('Sign in first, then return here to claim ownership of your organization.');
+          setErrorMsg('Sign in first, then return here to request access to your organization.');
         } else {
-          setErrorMsg(data.error ?? `Ownership claim failed (${res.status}).`);
+          // 403 = the authority gate refused. Its message already explains the
+          // next step (work email at the org domain, or manual review), so show
+          // it verbatim rather than a generic failure.
+          setErrorMsg(data.error ?? `Access request failed (${res.status}).`);
         }
         setPhase('error');
         return;
       }
       setPhase('done');
     } catch {
-      setErrorMsg('Network error while claiming ownership. Try again.');
+      setErrorMsg('Network error while requesting access. Try again.');
       setPhase('error');
     }
   }
@@ -170,9 +173,19 @@ export function EmployerGetStartedClient() {
 
         {result.alreadyRegistered && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
-            This organization NPI is already registered. You can still claim it for your account.
+            This organization NPI is already registered to a VitalCV organization. Requesting access sends it for
+            review — it does not transfer the existing organization to you.
           </p>
         )}
+
+        {/* Honest framing: this is a REQUEST, not a grant. Finding an
+            organization in NPPES proves it exists — never that you may act for
+            it. Access is granted only on a work email at the organization's own
+            domain; anything else goes to a VitalCV reviewer. */}
+        <p className="rounded-lg border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-3 py-2 text-xs text-[var(--vt-text-secondary)]">
+          Access is granted when your work email matches this organization&rsquo;s domain. Otherwise a VitalCV reviewer
+          verifies your authority first.
+        </p>
 
         <div className="flex gap-3 pt-1">
           <button
@@ -180,7 +193,7 @@ export function EmployerGetStartedClient() {
             className="inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-foreground text-sm font-medium text-background hover:opacity-90"
           >
             <ShieldCheck className="mr-1.5 h-4 w-4" />
-            Claim ownership
+            Request organization access
           </button>
           <button onClick={reset} className="h-10 rounded-lg border border-border px-4 text-sm hover:bg-muted">
             Try another
@@ -195,7 +208,7 @@ export function EmployerGetStartedClient() {
     return (
       <div className="flex flex-col items-center gap-3 py-6">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Linking your organization…</p>
+        <p className="text-sm text-muted-foreground">Checking your authority for this organization…</p>
       </div>
     );
   }
