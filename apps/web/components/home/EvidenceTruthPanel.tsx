@@ -57,12 +57,13 @@ export function EvidenceTruthPanel() {
       <p className="mz-eyebrow">Truth before beauty</p>
       <ScrollScrubHeading
         as="h2"
-        className="mz-h1"
-        style={{ marginTop: 14, maxWidth: 720 }}
-        text="Every claim carries its source, its state, and its limits."
+        className="evidence-cinematic-heading"
+        text={'Every claim carries\nits source, its state,\nand its limits.'}
         accentWords={['its limits.']}
+        variant="scene"
+        pin
       />
-      <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
+      <p className="mz-body evidence-truth-lede">
         VitalCV never asks anyone to take a claim on faith. Behind each field is a named source, a
         current state, and a plain statement of what the result does not decide.
       </p>

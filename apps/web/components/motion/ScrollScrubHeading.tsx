@@ -15,6 +15,7 @@ import {
 import {
   characterWindow,
   resolveVariant,
+  sceneCharacterWindow,
   segmentHeading,
   type HeadingWord,
 } from '@/lib/motion/characterReveal';
@@ -45,7 +46,7 @@ import {
 export type ScrollScrubHeadingProps = {
   as?: 'h1' | 'h2' | 'h3';
   text: string;
-  variant?: 'assemble' | 'ink';
+  variant?: 'assemble' | 'ink' | 'scene';
   className?: string;
   /** Viewport position where the reveal begins (heading top). */
   startOffset?: string;
@@ -63,31 +64,67 @@ export type ScrollScrubHeadingProps = {
  * reads them as string[]/number[] ranges.
  */
 interface Choreography {
+  x: [number, number];
   y: [string, string];
+  z: [number, number];
   rotateX: [number, number];
+  scale: [number, number];
   opacity: [number, number];
 }
 
 /** Desktop `assemble`: tips up into place from below. */
 const ASSEMBLE: Choreography = {
+  x: [0, 0],
   y: ['0.55em', '0em'],
+  z: [0, 0],
   rotateX: [-55, 0],
+  scale: [1, 1],
   opacity: [0.12, 1],
 };
 
 /** Mobile `assemble`: shorter travel, NO perspective rotation, no blur. */
 const ASSEMBLE_MOBILE: Choreography = {
+  x: [0, 0],
   y: ['0.3em', '0em'],
+  z: [0, 0],
   rotateX: [0, 0],
+  scale: [1, 1],
   opacity: [0.14, 1],
 };
 
 /** `ink`: words progressively inked onto paper; movement ≤ 0.15em. */
 const INK: Choreography = {
+  x: [0, 0],
   y: ['0.12em', '0em'],
+  z: [0, 0],
   rotateX: [0, 0],
+  scale: [1, 1],
   opacity: [0.16, 1],
 };
+
+/** Scene values are completed per character in sceneChoreography(). */
+const SCENE: Choreography = {
+  x: [0, 0],
+  y: ['120%', '0%'],
+  z: [-180, 0],
+  rotateX: [72, 0],
+  scale: [0.82, 1],
+  opacity: [0, 1],
+};
+
+function sceneChoreography(index: number, lineIndex: number): Choreography {
+  const x = Math.sin(index * 0.86 + lineIndex * 1.7) * 28;
+  const y = 96 + ((index + lineIndex * 3) % 5) * 10;
+  const z = -(120 + ((index * 37 + lineIndex * 53) % 141));
+  const rotateX = 55 + ((index * 7 + lineIndex * 11) % 31);
+  return {
+    ...SCENE,
+    x: [x, 0],
+    y: [`${y}%`, '0%'],
+    z: [z, 0],
+    rotateX: [rotateX, 0],
+  };
+}
 
 /**
  * Restrained ease — precise arrival, no overshoot. `cubicBezier` (not a raw
@@ -115,6 +152,8 @@ function Character({
   progress,
   choreography,
   accent,
+  scene,
+  lineIndex,
 }: {
   char: string;
   index: number;
@@ -122,16 +161,24 @@ function Character({
   progress: MotionValue<number>;
   choreography: Choreography;
   accent: boolean;
+  scene: boolean;
+  lineIndex: number;
 }) {
-  const { start, end } = characterWindow(index, total);
+  const { start, end } = scene
+    ? sceneCharacterWindow(index, total, lineIndex)
+    : characterWindow(index, total);
   const range: [number, number] = [start, end];
   const options = { ease: EASE };
+  const path = scene ? sceneChoreography(index, lineIndex) : choreography;
 
   // Each of these is a derived MotionValue: it recomputes on the animation
   // frame without re-rendering React.
-  const y = useTransform(progress, range, choreography.y, options);
-  const rotateX = useTransform(progress, range, choreography.rotateX, options);
-  const opacity = useTransform(progress, range, choreography.opacity, options);
+  const x = useTransform(progress, range, path.x, options);
+  const y = useTransform(progress, range, path.y, options);
+  const z = useTransform(progress, range, path.z, options);
+  const rotateX = useTransform(progress, range, path.rotateX, options);
+  const scale = useTransform(progress, range, path.scale, options);
+  const opacity = useTransform(progress, range, path.opacity, options);
   const color = useTransform(
     progress,
     range,
@@ -146,7 +193,7 @@ function Character({
     <motion.span
       data-motion-character=""
       className="motion-character"
-      style={{ y, rotateX, opacity, color }}
+      style={{ x, y, z, rotateX, scale, opacity, color }}
     >
       {char}
     </motion.span>
@@ -158,11 +205,15 @@ function Word({
   total,
   progress,
   choreography,
+  scene,
+  lineIndex,
 }: {
   word: HeadingWord;
   total: number;
   progress: MotionValue<number>;
   choreography: Choreography;
+  scene: boolean;
+  lineIndex: number;
 }) {
   return (
     // inline-block + nowrap: a line can only break BETWEEN words, so letters
@@ -177,6 +228,8 @@ function Word({
           progress={progress}
           choreography={choreography}
           accent={word.accent}
+          scene={scene}
+          lineIndex={lineIndex}
         />
       ))}
     </span>
@@ -218,8 +271,15 @@ export function ScrollScrubHeading({
   React.useEffect(() => setMounted(true), []);
 
   const effectiveVariant = resolveVariant(variant, segmented.characterCount);
-  const choreography =
-    effectiveVariant === 'ink' ? INK : isMobile ? ASSEMBLE_MOBILE : ASSEMBLE;
+  const isScene = effectiveVariant === 'scene';
+  const sceneMotion = isScene && !isMobile;
+  const choreography = effectiveVariant === 'ink'
+    ? INK
+    : sceneMotion
+      ? SCENE
+      : isMobile
+        ? ASSEMBLE_MOBILE
+        : ASSEMBLE;
 
   // ONE scroll source for the whole heading. Pinned mode reads its tall
   // container; standard mode maps the heading's own viewport transit.
@@ -249,7 +309,7 @@ export function ScrollScrubHeading({
   // `mounted` ALONE first; only once mounted may reduceMotion decide anything.
   const isStatic = !mounted || reduceMotion;
   // The runway exists ONLY when actually scrubbing — never for reduced motion.
-  const usePin = pin && !isStatic;
+  const usePin = pin && !isStatic && !isMobile;
 
   return (
     // The ref div is ALWAYS rendered, even in the static paths: useScroll binds
@@ -259,6 +319,7 @@ export function ScrollScrubHeading({
       ref={ref}
       className={usePin ? 'scrub-heading-pin' : undefined}
       data-scrub-pin={usePin ? '' : undefined}
+      data-scrub-scene={isScene ? '' : undefined}
     >
       <div className={usePin ? 'scrub-heading-stage' : undefined}>
         {isStatic ? (
@@ -287,22 +348,32 @@ export function ScrollScrubHeading({
             {...rest}
           >
             <span aria-hidden="true" data-scrub-lines="">
-              {segmented.lines.map((line, lineIndex) => (
-                <React.Fragment key={lineIndex}>
-                  {lineIndex > 0 ? <br /> : null}
-                  {line.map((word, wordIndex) => (
-                    <React.Fragment key={wordIndex}>
-                      {wordIndex > 0 ? ' ' : ''}
-                      <Word
-                        word={word}
-                        total={segmented.characterCount}
-                        progress={progress}
-                        choreography={choreography}
-                      />
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              ))}
+              {segmented.lines.map((line, lineIndex) => {
+                const words = line.map((word, wordIndex) => (
+                  <React.Fragment key={wordIndex}>
+                    {wordIndex > 0 ? ' ' : ''}
+                    <Word
+                      word={word}
+                      total={segmented.characterCount}
+                      progress={progress}
+                      choreography={choreography}
+                      scene={sceneMotion}
+                      lineIndex={lineIndex}
+                    />
+                  </React.Fragment>
+                ));
+
+                return isScene ? (
+                  <span className="motion-line-mask" data-motion-line-mask="" key={lineIndex}>
+                    <span className="motion-line">{words}</span>
+                  </span>
+                ) : (
+                  <React.Fragment key={lineIndex}>
+                    {lineIndex > 0 ? <br /> : null}
+                    {words}
+                  </React.Fragment>
+                );
+              })}
             </span>
           </MotionTag>
         )}
