@@ -233,7 +233,7 @@ export default function GetReadySurface() {
           title="Sign in to confirm you're a clinician"
           lede="Your NPI binds to your VitalCV account, so sign-in comes first. It takes under a minute."
         />
-        <Link href="/sign-in?redirect_url=%2Fget-ready" className={primaryBtn}>
+        <Link href="/sign-in?redirect_url=%2Fonboarding" className={primaryBtn}>
           Sign in to continue <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
         <p className="mz-small mt-4 text-center">
@@ -306,7 +306,7 @@ export default function GetReadySurface() {
         </button>
         <p className="mz-small mt-4 text-center">
           <Link
-            href="/sign-in?redirect_url=%2Fget-ready"
+            href="/sign-in?redirect_url=%2Fonboarding"
             className="underline underline-offset-2 transition-opacity hover:opacity-70"
           >
             Use a different account

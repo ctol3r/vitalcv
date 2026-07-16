@@ -301,7 +301,7 @@ export default function HomePageClient() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px]">
-              <Link href="/get-ready" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
+              <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
                 <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
               </Link>
               <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>

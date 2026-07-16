@@ -331,7 +331,7 @@ export function buildClinicianIdentitySurface(
       label: 'No NPI linked',
       description:
         'No NPI binding is loaded for this account. Claim your NPI to resolve it against NPPES and start your source-backed record.',
-      href: '/get-ready',
+      href: '/onboarding',
       cta: 'Claim your NPI',
     });
   } else {
@@ -341,7 +341,7 @@ export function buildClinicianIdentitySurface(
         label: 'No name stored with your NPI',
         description:
           'Your NPI is linked but no name record accompanies it. Re-running the claim flow refreshes it from NPPES.',
-        href: '/get-ready',
+        href: '/onboarding',
         cta: 'Refresh from NPPES',
       });
     }

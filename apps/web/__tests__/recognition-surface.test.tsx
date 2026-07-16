@@ -137,7 +137,7 @@ describe('RecognitionSurface', () => {
     await renderSurface();
 
     expect(container.textContent).toContain('Set up your readiness first');
-    expect(container.querySelector('a[href="/get-ready"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/onboarding"]')).not.toBeNull();
   });
 
   it('presents lookup failures as system states, never findings', async () => {

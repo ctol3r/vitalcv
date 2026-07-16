@@ -83,7 +83,7 @@ describe('buildClinicianIdentitySurface', () => {
     }
   });
 
-  it('signed-in without an NPI binding: unbound + claim gap routed to /get-ready', () => {
+  it('signed-in without an NPI binding: unbound + claim gap routed to /onboarding', () => {
     const model = buildClinicianIdentitySurface({
       isSignedIn: true,
       accountEmail: 'doc@example.com',
@@ -93,7 +93,7 @@ describe('buildClinicianIdentitySurface', () => {
     expect(model.audience).toBe('signed_in');
     expect(model.bindingStatus).toBe('unbound');
     const claimGap = model.gaps.find((gap) => gap.id === 'claim_npi');
-    expect(claimGap?.href).toBe('/get-ready');
+    expect(claimGap?.href).toBe('/onboarding');
     // Account identity is present but never source-backed.
     expect(fieldById(model, 'account_email').value).toBe('doc@example.com');
     expect(fieldById(model, 'account_email').confidence).toBe('self-attested');
@@ -153,7 +153,7 @@ describe('buildClinicianIdentitySurface', () => {
 
     expect(model.bindingStatus).toBe('self_attested');
     const gap = model.gaps.find((candidate) => candidate.id === 'name_missing');
-    expect(gap?.href).toBe('/get-ready');
+    expect(gap?.href).toBe('/onboarding');
     expect(fieldById(model, 'name_on_file').value).toBeNull();
     expect(fieldById(model, 'name_on_file').provenance).toBe('UNKNOWN');
   });
@@ -281,7 +281,7 @@ describe('/clinician/identity page copy invariants', () => {
   });
 
   it('links the claim flow, verification policy, profile, and readiness surfaces', () => {
-    for (const href of ['/get-ready', '/clinician/identity/verification', '/clinician/profile', '/holder/readiness']) {
+    for (const href of ['/onboarding', '/clinician/identity/verification', '/clinician/profile', '/holder/readiness']) {
       expect(pageSrc).toContain(href);
     }
   });

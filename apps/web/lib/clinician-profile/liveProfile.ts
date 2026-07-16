@@ -2,7 +2,7 @@
  * liveProfile — pure helpers for the live /clinician/profile surface.
  *
  * Data flow: GET /api/me/workspaces returns the full workspace payload whose
- * `personProfile` is the backend PersonProfile row (bound at /get-ready via
+ * `personProfile` is the backend PersonProfile row (bound at /onboarding via
  * the NPPES bootstrap). The surface renders that record plus the clinician's
  * live passport (ClinicianProfileSections) and writes self-attested fields
  * through the existing intake proxies:
@@ -290,7 +290,7 @@ export const COMPLETENESS_DIMENSIONS: readonly CompletenessDimensionMeta[] = [
     weight: 30,
     whyItMatters:
       'Your NPPES registry record anchors your profile and is where every source check starts.',
-    fixHref: '/get-ready',
+    fixHref: '/onboarding',
     fixLabel: 'Connect your NPI',
   },
   {

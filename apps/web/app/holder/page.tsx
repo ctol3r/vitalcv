@@ -4,7 +4,7 @@
  * Holder Page — Clinician wallet & passport
  *
  * Loads the logged-in clinician's real NPI from their workspace profile.
- * If no NPI is set up yet, shows an onboarding empty state → /get-ready.
+ * If no NPI is set up yet, shows an onboarding empty state → /onboarding.
  *
  * State: LOADING → HAS_NPI (show passport) | NO_NPI (show setup prompt)
  */
@@ -85,7 +85,7 @@ export default function HolderPage() {
             </p>
           </div>
           <Link
-            href="/get-ready"
+            href="/onboarding"
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-7 py-3.5 text-sm font-semibold text-black transition w-full justify-center"
           >
             Verify my NPI <ChevronRight className="h-4 w-4" />
@@ -93,7 +93,7 @@ export default function HolderPage() {
           <ClinicianSupportCard
             topic="passport-setup"
             detail="If your clinician identity cannot be linked yet, start with NPI verification first. Support can help if your public registry record still does not resolve."
-            primaryHref="/get-ready"
+            primaryHref="/onboarding"
             primaryLabel="Verify NPI"
           />
           <p className="text-xs text-zinc-700">Free. No credit card. Your data stays yours.</p>

@@ -20,6 +20,7 @@ This document and that table must change together.
 | Route | Source component | Source file | Expected auth state | Public/Private | Production verification method | Last verified SHA |
 |---|---|---|---|---|---|---|
 | `/get-ready` | `GetReadySurface` | `apps/web/app/get-ready/GetReadySurface.tsx` | Anonymous OK (NPI binding entry) | Public | `curl` → 200 ✅ | `a2d03cac2` |
+| `/onboarding` | `GetReadySurface` | `apps/web/app/onboarding/GetReadySurface.tsx` | Anonymous OK (NPI binding entry) | Public | `curl` → 200 ✅ | `a2d03cac2` |
 | `/holder` | Holder hub | `apps/web/app/holder/page.tsx` | Signed-in, role `CLINICIAN` | Private | `curl` → 307 → `/sign-in` ✅; signed-in browser pass (Chris — Clerk CDN blocks automated browsers) | `a2d03cac2` |
 | `/holder/home` | `ClinicianHomeSurface` | `apps/web/components/mobile/ClinicianHomeSurface.tsx` (page: `apps/web/app/holder/home/page.tsx`) | Signed-in, role `CLINICIAN` | Private | `curl` → 307 ✅; signed-in browser pass | `a2d03cac2` |
 | `/holder/readiness` | `ReadinessSurface` | `apps/web/app/holder/readiness/ReadinessSurface.tsx` | Signed-in, role `CLINICIAN` | Private | `curl` → 307 ✅; signed-in browser pass | `a2d03cac2` |
