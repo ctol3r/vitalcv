@@ -45,6 +45,7 @@ import {
   type BoundIdentitySummary,
 } from '@/lib/get-ready/npi-binding';
 import EmailVerification from '@/components/get-ready/EmailVerification';
+import { OnboardingReadiness } from '@/components/onboarding/OnboardingReadiness';
 
 type Phase =
   | 'checking'
@@ -338,14 +339,18 @@ export default function GetReadySurface() {
             <EmailVerification />
           </div>
         )}
-        <div className="mt-6 space-y-3">
-          <Link href="/holder/readiness" className={primaryBtn}>
-            See your source-backed readiness <ChevronRight className="h-4 w-4" aria-hidden />
-          </Link>
-          <Link href="/holder" className={secondaryBtn}>
-            Open your wallet
-          </Link>
-        </div>
+        {/* Finish the golden path IN PLACE: stream the source checks, render the
+            readiness rail + one next-best action, end with "Your Wallet is
+            ready" — instead of bouncing the clinician to /holder/readiness. */}
+        {!summary.isOrganizationNpi && validateNpi(npiInput).npi ? (
+          <OnboardingReadiness npi={validateNpi(npiInput).npi!} />
+        ) : (
+          <div className="mt-6">
+            <Link href="/holder" className={primaryBtn}>
+              Open your wallet <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        )}
       </Shell>
     );
   }
