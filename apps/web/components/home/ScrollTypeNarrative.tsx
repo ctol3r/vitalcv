@@ -4,20 +4,39 @@ import * as React from 'react';
 
 /**
  * ScrollTypeNarrative — the hero narrative, driven by SCROLL PROGRESS (not a
- * timer). As the visitor scrolls the first screen, the sequence types out word
- * by word; scrolling back up reverses it cleanly. Replaces the interval-driven
- * KineticPhrase.
+ * timer). The five-step sequence assembles into one sentence, word by word, as
+ * the visitor scrolls; scrolling back up un-types it deterministically.
  *
  * Contract (per Chris's Motion Wave spec):
- *  - Reveal is a pure function of window scroll, so forward types / backward
- *    untypes deterministically (no setInterval, no time dependency).
- *  - Word-level reveal via opacity on the full current phrase → NO layout shift
- *    (a reserved min-height holds the line; words fade in place).
- *  - The COMPLETE static sentence is always in the DOM (sr-only) — meaning never
- *    depends on scroll or JS; no-JS and screen readers get the whole thing.
- *  - prefers-reduced-motion → the full sentence, no scroll dependency.
+ *  - Reveal is a pure function of window scroll (no setInterval, no time
+ *    dependency), so forward scroll types and backward scroll reverses.
+ *  - Words ACCUMULATE — a clause stays readable once typed — and the full
+ *    sentence's space is reserved up front, so typing cannot reflow layout.
+ *  - Inside the pinned desktop hero the reveal completes at ~85% of the pin
+ *    distance, so every clause types while the line is on screen. (The earlier
+ *    phrase-replace version typed steps 3–5 after the line had left the
+ *    viewport — measured at 1440×1000.)
+ *  - When the hero is not pinned (mobile / reduced motion fallback sizing) the
+ *    reveal completes within ~45% of one viewport of scroll, before the line
+ *    can leave the screen.
+ *  - The COMPLETE static sentence is always in the DOM (sr-only) — meaning
+ *    never depends on scroll or JS; prefers-reduced-motion renders it plainly.
  *  - It is decoration beside the NPI form — it never gates or delays the input.
  */
+
+type Word = { text: string; phraseIdx: number };
+
+function buildWords(prefix: string, phrases: readonly string[]): Word[] {
+  const words: Word[] = [];
+  const lead = prefix.trim();
+  if (lead) words.push({ text: lead, phraseIdx: 0 });
+  phrases.forEach((phrase, phraseIdx) => {
+    const last = phraseIdx === phrases.length - 1;
+    const clause = `${last && phrases.length > 1 ? 'and ' : ''}${phrase}${last ? '.' : ','}`;
+    for (const text of clause.split(' ')) words.push({ text, phraseIdx });
+  });
+  return words;
+}
 
 export function ScrollTypeNarrative({
   prefix,
@@ -35,13 +54,22 @@ export function ScrollTypeNarrative({
   scrollContainerId: string;
   className?: string;
 } & Omit<React.HTMLAttributes<HTMLParagraphElement>, 'children'>) {
-  const [idx, setIdx] = React.useState(0);
-  // words revealed in the current phrase; -1 means "show the whole phrase"
-  // (the resting state at scroll top and under reduced motion).
-  const [words, setWords] = React.useState(-1);
-  const [reduce, setReduce] = React.useState(false);
+  const phraseKey = `${prefix}|${phrases.join('|')}`;
+  const words = React.useMemo(
+    () => buildWords(prefix, phrases),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [phraseKey],
+  );
+  // The first clause is the resting state — the line is never blank.
+  const minReveal = React.useMemo(
+    () => words.filter((word) => word.phraseIdx === 0).length,
+    [words],
+  );
 
-  const phraseKey = phrases.join('|');
+  // Before hydration every word is revealed, so no-JS visitors read the whole
+  // sentence; the first scroll measurement takes over from there.
+  const [reveal, setReveal] = React.useState(words.length);
+  const [reduce, setReduce] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -57,18 +85,13 @@ export function ScrollTypeNarrative({
       if (!container) return;
       const vh = window.innerHeight || 1;
       const containerTop = container.getBoundingClientRect().top + window.scrollY;
-      const revealDistance = Math.max(vh * 0.82, container.offsetHeight - vh * 0.3);
-      const p = Math.min(1, Math.max(0, (window.scrollY - containerTop) / revealDistance));
-      const seg = p * phrases.length;
-      const i = Math.min(phrases.length - 1, Math.floor(seg));
-      const intra = seg - i;
-      const wordCount = phrases[i].split(' ').length;
-      // At the very top, rest on the first phrase fully typed (never blank);
-      // otherwise type the active phrase over the first ~60% of its segment.
-      const shown =
-        p < 0.005 ? phrases[0].split(' ').length : Math.round(Math.min(1, intra / 0.66) * wordCount);
-      setIdx(i);
-      setWords(shown);
+      // Pinned hero (container much taller than the viewport): finish typing at
+      // ~85% of the pin so the sequence completes on screen, then hold.
+      // Unpinned: finish within half a viewport, before the line scrolls away.
+      const pinDistance = container.offsetHeight - vh;
+      const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.85 : vh * 0.45;
+      const p = Math.min(1, Math.max(0, (window.scrollY - containerTop) / Math.max(1, revealDistance)));
+      setReveal(Math.max(minReveal, Math.round(p * words.length)));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -82,41 +105,35 @@ export function ScrollTypeNarrative({
       media.removeEventListener('change', syncMotion);
       if (raf) cancelAnimationFrame(raf);
     };
-  // phraseKey deliberately keeps inline array literals from re-binding the
-  // scroll listener on every parent render.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phraseKey, scrollContainerId]);
+  }, [minReveal, scrollContainerId, words]);
 
-  const current = phrases[idx] ?? phrases[0];
-  const wordArr = current.split(' ');
+  const sentence = words.map((word) => word.text).join(' ');
+  const activePhrase = words[Math.min(words.length, reveal) - 1]?.phraseIdx ?? 0;
 
   return (
-    <p className={className} {...rest}>
-      {/* Reserved grid cell: the longest phrase holds width/height while the
-          active phrase is painted in the same cell, so typing cannot reflow. */}
-      <span aria-hidden="true" className="grid min-h-[3.4rem] sm:min-h-[2.6rem]">
+    <p className={className} data-typed-words={reduce ? words.length : reveal} {...rest}>
+      {/* Reserved grid cell: the complete sentence holds its own space while the
+          revealed words are painted in the same cell, so typing cannot reflow. */}
+      <span aria-hidden="true" className="grid">
         {reduce ? (
           <span className="col-start-1 row-start-1">{staticSentence}</span>
         ) : (
           <>
-            <span className="invisible col-start-1 row-start-1">
-              {prefix}{phrases.reduce((longest, phrase) => phrase.length > longest.length ? phrase : longest, '')}
-            </span>
-            <span className="col-start-1 row-start-1">
-              {prefix}
-              {wordArr.map((w, i) => (
+          <span className="invisible col-start-1 row-start-1">{sentence}</span>
+          <span className="col-start-1 row-start-1">
+            {words.map((word, i) => (
               <span
-                key={`${idx}-${i}`}
+                key={i}
                 style={{
-                  opacity: words < 0 || i < words ? 1 : 0,
-                  transition: 'opacity 200ms cubic-bezier(0.2,0.7,0.2,1)',
+                  opacity: i < reveal ? 1 : 0,
+                  transition: 'opacity 180ms cubic-bezier(0.2,0.7,0.2,1)',
                 }}
               >
-                {w}
-                {i < wordArr.length - 1 ? ' ' : ''}
+                {word.text}
+                {i < words.length - 1 ? ' ' : ''}
               </span>
-              ))}
-            </span>
+            ))}
+          </span>
           </>
         )}
       </span>
@@ -127,8 +144,8 @@ export function ScrollTypeNarrative({
             key={i}
             className="h-1 rounded-full transition-all duration-300"
             style={{
-              width: i === idx ? 18 : 6,
-              backgroundColor: i <= idx ? 'var(--vt-text-primary)' : 'var(--vt-border)',
+              width: i === activePhrase ? 18 : 6,
+              backgroundColor: i <= activePhrase ? 'var(--vt-text-primary)' : 'var(--vt-border)',
             }}
           />
         ))}

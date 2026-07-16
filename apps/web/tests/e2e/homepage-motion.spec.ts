@@ -14,6 +14,48 @@ async function captureStoryFrame(page: Page, testInfo: TestInfo, name: string, p
 }
 
 test.describe('Homepage motion convergence', () => {
+  test('hero narrative types on screen, scroll-linked and reversible', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    // The hero pins on desktop so the sequence can finish before it leaves view.
+    await expect(page.locator('#wallet')).toHaveCSS('min-height', '2200px');
+    await expect(page.locator('[data-home-hero-stage]')).toHaveCSS('position', 'sticky');
+
+    const subhead = page.locator('[data-home-hero-subhead]');
+    const typedWords = async () => Number(await subhead.getAttribute('data-typed-words'));
+    // behavior: 'instant' — the page sets CSS smooth scrolling, and 'auto'
+    // would defer to it, so one-shot reads below would race the animation.
+    const scrollTo = async (y: number) => {
+      await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
+      await page.waitForFunction((top) => Math.abs(window.scrollY - top) <= 1, y);
+      await page.waitForTimeout(120);
+    };
+
+    await scrollTo(0);
+    const atRest = await typedWords();
+    await scrollTo(500);
+    const midway = await typedWords();
+    await scrollTo(1000);
+    const late = await typedWords();
+
+    // Typing is a function of scroll: strictly more words as we scroll down…
+    expect(midway).toBeGreaterThan(atRest);
+    expect(late).toBeGreaterThan(midway);
+
+    // …and the line is still inside the viewport while it types.
+    const box = await subhead.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box!.y).toBeGreaterThan(0);
+    expect(box!.y + box!.height).toBeLessThan(viewport.height);
+
+    // Reverse scroll reverses the reveal to the same deterministic state.
+    await scrollTo(500);
+    expect(await typedWords()).toBe(midway);
+    await scrollTo(0);
+    expect(await typedWords()).toBe(atRest);
+  });
+
   test('captures the start, middle, and end of the reversible pinned sequence', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
