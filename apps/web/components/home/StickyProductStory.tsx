@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
-import { ScrollTypeHeading } from '@/components/home/ScrollTypeHeading';
+import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 
 type StateKind = 'source' | 'checked' | 'gated' | 'attention' | 'neutral';
 
@@ -348,14 +348,14 @@ export function StickyProductStory() {
       <div className="story-stage">
         <div className="story-intro">
           <p className="mz-eyebrow">How it moves</p>
-          <ScrollTypeHeading
+          <ScrollScrubHeading
             id="product-story-title"
+            as="h2"
             className="mz-h1"
-            pinned
-            segments={[
-              { text: 'One identity, carried all the way to' },
-              { text: 'accepted.', accent: true },
-            ]}
+            text="One identity, carried all the way to accepted."
+            accentWords={['accepted.']}
+            startOffset="90%"
+            endOffset="45%"
           />
           <p className="story-intro-body">
             Scroll the product path. Every step keeps its source state and review boundary attached.

@@ -17,7 +17,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ScrollTypeHeading } from '@/components/home/ScrollTypeHeading';
+import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 import { TrustGlyph } from '@/components/vital/TrustGlyph';
 import type { EvidenceState } from '@/lib/vital/evidenceState';
 
@@ -265,13 +265,12 @@ export function ProductCarousel() {
       <div className="product-carousel-heading">
         <div>
           <p className="mz-eyebrow">The product, end to end</p>
-          <ScrollTypeHeading
+          <ScrollScrubHeading
             id="product-carousel-title"
+            as="h2"
             className="mz-h1"
-            segments={[
-              { text: 'One career record.' },
-              { text: 'Six reusable surfaces.', accent: true },
-            ]}
+            text="One career record. Six reusable surfaces."
+            accentWords={['Six reusable surfaces.']}
           />
         </div>
         <div className="product-carousel-controls">

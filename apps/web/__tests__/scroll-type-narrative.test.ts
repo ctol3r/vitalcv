@@ -13,7 +13,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildNarrativeChars, buildNarrativeWords, narrativeStateAt } from '@/components/home/ScrollTypeNarrative';
-import { buildHeadingChars, headingRevealAt } from '@/components/home/ScrollTypeHeading';
 
 const PREFIX = 'VitalCV ';
 const PHRASES = [
@@ -119,35 +118,5 @@ describe('letter-level fill (Chris 2026-07-16: letters, not words)', () => {
       expect(reveal).toBeGreaterThanOrEqual(previous);
       previous = reveal;
     }
-  });
-});
-
-describe('ScrollTypeHeading pure mapping', () => {
-  const SEGMENTS = [
-    { text: 'One identity, carried all the way to' },
-    { text: 'accepted.', accent: true },
-  ] as const;
-  const UNITS = buildHeadingChars(SEGMENTS);
-
-  it('reconstructs the header text with accent segment tagged', () => {
-    expect(UNITS.map((u) => u.ch).join('')).toBe('Oneidentity,carriedallthewaytoaccepted.');
-    expect(UNITS.filter((u) => u.segIdx === 1).map((u) => u.ch).join('')).toBe('accepted.');
-  });
-
-  it('headers rest EMPTY (unlike the narrative) and fill to complete', () => {
-    expect(headingRevealAt(0, UNITS.length)).toBe(0);
-    expect(headingRevealAt(1, UNITS.length)).toBe(UNITS.length);
-    expect(headingRevealAt(-0.4, UNITS.length)).toBe(0);
-    expect(headingRevealAt(1.7, UNITS.length)).toBe(UNITS.length);
-  });
-
-  it('fill is monotonic and reversible (pure function of progress)', () => {
-    let previous = -1;
-    for (let p = 0; p <= 1.001; p += 0.02) {
-      const r = headingRevealAt(p, UNITS.length);
-      expect(r).toBeGreaterThanOrEqual(previous);
-      previous = r;
-    }
-    expect(headingRevealAt(0.42, UNITS.length)).toBe(headingRevealAt(0.42, UNITS.length));
   });
 });
