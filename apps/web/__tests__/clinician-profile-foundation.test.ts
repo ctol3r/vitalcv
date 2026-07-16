@@ -214,23 +214,31 @@ describe('clinician profile foundation — completion math', () => {
   });
 });
 
-const ROUTE_DIR = resolve(__dirname, '..', 'app', 'clinician');
+const APP_DIR = resolve(__dirname, '..', 'app');
+const ROUTE_DIR = resolve(APP_DIR, 'clinician');
 
 function readRoute(rel: string): string {
   return readFileSync(resolve(ROUTE_DIR, rel), 'utf-8');
 }
 
+function readAppRoute(rel: string): string {
+  return readFileSync(resolve(APP_DIR, rel), 'utf-8');
+}
+
 describe('clinician foundation — route copy invariants', () => {
-  it('onboarding page declares user-entered ≠ verified', () => {
-    const src = readRoute('onboarding/page.tsx');
-    expect(src).toContain('User-entered information is not verified until source-backed evidence is attached.');
+  it('canonical onboarding keeps self-attestation separate from verification', () => {
+    const alias = readRoute('onboarding/page.tsx');
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
+    expect(alias).toContain("redirect('/onboarding')");
+    expect(src).toContain('You&apos;re attesting to your role');
+    expect(src).toContain('VitalCV records this attestation; it does not verify it here.');
   });
 
   it('onboarding page does not claim government ID / liveness is live', () => {
-    const src = readRoute('onboarding/page.tsx');
+    const src = readAppRoute('get-ready/GetReadySurface.tsx');
     expect(src.toLowerCase()).not.toContain('government id verified');
     expect(src.toLowerCase()).not.toContain('liveness verified');
-    expect(src).toMatch(/government ID and liveness — is on the roadmap/);
+    expect(src).toContain('Government ID, liveness, and license verification are separate');
   });
 
   it('profile page renders provenance vocabulary disclaimer', () => {
