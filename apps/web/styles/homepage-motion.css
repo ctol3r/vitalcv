@@ -370,3 +370,50 @@
   .product-carousel-controls,
   .product-carousel-progress { display: none; }
 }
+
+/* ── Motion M1: scroll-scrubbed character headings ──────────────────────────
+   Layout contract: a word is an inline-block with nowrap, so a line can only
+   ever break BETWEEN words — individual letters can never wrap onto their own
+   line at any width. Characters are inline-block so transforms apply without
+   affecting line box height (no reflow, no CLS while scrubbing). */
+.motion-word {
+  display: inline-block;
+  white-space: nowrap;
+  /* Perspective lives on the word so rotateX reads as depth per character
+     rather than one flat plane across the whole heading. */
+  perspective: 620px;
+}
+
+.motion-character {
+  display: inline-block;
+  /* Rotate about the baseline-ish anchor: characters tip up INTO place. */
+  transform-origin: 50% 80%;
+  /* Preserve intra-word spaces if a heading ever contains one. */
+  white-space: pre;
+}
+
+/* Hero/manifesto mode only: the tall runway + sticky stage. Standard headings
+   create no runway at all — they map their own viewport transit. */
+.scrub-heading-pin {
+  position: relative;
+  min-height: 140vh;
+}
+
+.scrub-heading-pin .scrub-heading-stage {
+  position: sticky;
+  top: 22vh;
+}
+
+@media (max-width: 767px) {
+  /* Mobile: shorter runway, and the stage sits higher so the sticky section
+     can never trap the viewport on a small screen. */
+  .scrub-heading-pin { min-height: 100vh; }
+  .scrub-heading-pin .scrub-heading-stage { top: 16vh; }
+  .motion-word { perspective: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No runway exists solely for animation when motion is unwanted. */
+  .scrub-heading-pin { min-height: 0; }
+  .scrub-heading-pin .scrub-heading-stage { position: static; }
+}

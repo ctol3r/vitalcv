@@ -94,44 +94,9 @@ test.describe('Homepage motion convergence', () => {
     }
   });
 
-  test('section headers fill letter-by-letter at their anchors and reverse', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const vh = 1000;
-
-    // Evidence header — viewport-transit driver: letters rest muted while the
-    // section is below the fold, fill as the anchor arrives, un-fill on reverse.
-    const evidence = page.locator('[data-home-evidence-truth] [data-heading-total]');
-    const evidenceTop = await evidence.evaluate((node) => node.getBoundingClientRect().top + window.scrollY);
-    const fill = async () => Number(await evidence.getAttribute('data-heading-fill'));
-    const total = Number(await evidence.getAttribute('data-heading-total'));
-    expect(total).toBeGreaterThan(20);
-
-    await scrollTo(page, Math.max(0, evidenceTop - vh));
-    expect(await fill(), 'header should rest un-filled below the fold').toBe(0);
-
-    await scrollTo(page, evidenceTop - vh * 0.45);
-    expect(await fill(), 'header should complete at reading position').toBe(total);
-    await expect(evidence).toHaveAttribute('data-heading-complete', '');
-
-    await scrollTo(page, Math.max(0, evidenceTop - vh));
-    expect(await fill(), 'reverse scroll must un-fill the header').toBe(0);
-
-    // Story header — pinned driver: fills across the first stretch of the pin.
-    const story = page.locator('[data-home-sticky-product-story]');
-    const storyMetrics = await story.evaluate((node) => {
-      const rect = node.getBoundingClientRect();
-      return { top: rect.top + window.scrollY, height: rect.height };
-    });
-    const storyHeading = page.locator('#product-story-title');
-    const storyDistance = storyMetrics.height - vh;
-    await scrollTo(page, storyMetrics.top + storyDistance * 0.005);
-    const early = Number(await storyHeading.getAttribute('data-heading-fill'));
-    const storyTotal = Number(await storyHeading.getAttribute('data-heading-total'));
-    expect(early, 'story header barely started at the pin entrance').toBeLessThan(storyTotal);
-    await scrollTo(page, storyMetrics.top + storyDistance * 0.2);
-    await expect(storyHeading).toHaveAttribute('data-heading-complete', '');
-  });
+  // Heading behavior (character scrub, anchors, reverse, reduced motion) is
+  // owned end-to-end by scrub-headings.spec.ts since Motion M1 replaced
+  // ScrollTypeHeading with ScrollScrubHeading.
 
   test('captures the start, middle, and end of the reversible pinned sequence', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -200,9 +165,9 @@ test.describe('Homepage motion convergence', () => {
     await expect(page.locator('.story-stage')).toHaveCSS('position', 'relative');
     await expect(page.locator('.product-carousel-track')).toHaveCSS('display', 'grid');
     await expect(page.getByText(/VitalCV recognizes your identity, checks the primary sources/).first()).toBeVisible();
-    // Headers render plain and complete under reduced motion — no fill dependency.
-    await expect(page.locator('#product-story-title')).toHaveAttribute('data-heading-complete', '');
-    await expect(page.locator('#product-carousel-title')).toHaveAttribute('data-heading-complete', '');
+    // Headings render plain and complete under reduced motion (M1 contract).
+    await expect(page.locator('#product-story-title')).toHaveAttribute('data-scrub-heading', 'reduced');
+    await expect(page.locator('#product-carousel-title')).toHaveAttribute('data-scrub-heading', 'reduced');
   });
 
   // Auto-advance was DELIBERATELY added on Chris's 2026-07-16 direction,

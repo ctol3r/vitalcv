@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScrollTypeHeading } from '@/components/home/ScrollTypeHeading';
+import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 
 /**
  * EvidenceTruthPanel — the fusion of Anyscale's "code → evidence proof" panel
@@ -55,13 +55,12 @@ export function EvidenceTruthPanel() {
   return (
     <section aria-label="What sits behind every claim" data-home-evidence-truth="" className="mz">
       <p className="mz-eyebrow">Truth before beauty</p>
-      <ScrollTypeHeading
+      <ScrollScrubHeading
+        as="h2"
         className="mz-h1"
         style={{ marginTop: 14, maxWidth: 720 }}
-        segments={[
-          { text: 'Every claim carries its source, its state, and' },
-          { text: 'its limits.', accent: true },
-        ]}
+        text="Every claim carries its source, its state, and its limits."
+        accentWords={['its limits.']}
       />
       <p className="mz-body" style={{ marginTop: 14, maxWidth: 640 }}>
         VitalCV never asks anyone to take a claim on faith. Behind each field is a named source, a
