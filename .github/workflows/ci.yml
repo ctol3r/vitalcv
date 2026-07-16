@@ -29,8 +29,6 @@ jobs:
   web-quality:
     name: Web Quality
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
     services:
       postgres:
         image: postgres:16
@@ -57,6 +55,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Prepare web integration-test database
         run: pnpm --filter @vitalcv/web exec prisma db push --schema prisma/schema.prisma --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       # Vitest resolves workspace deps (e.g. @vitalcv/trust-state,
       # @vitalcv/shared/pricing) via their package.json "main"/"exports"
       # which point at dist/*. Build the upstream workspace packages
@@ -69,6 +69,8 @@ jobs:
         run: pnpm --filter @vitalcv/web lint
       - name: Run web unit tests
         run: pnpm --filter @vitalcv/web test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_web_test
       - name: Build web app
         run: pnpm --filter @vitalcv/web build
       - name: Launch-Gate Smoke Test
