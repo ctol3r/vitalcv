@@ -218,7 +218,12 @@ describe('opportunityService org profile pilot policy', () => {
   });
 
   it('uses a canonical slug instead of a timestamped duplicate slug', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    // The create path grants admin membership, so it requires a work email at
+    // the organization's own domain — the account email must match the website.
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'director@mindbridgehealth.com',
+    });
     prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
     prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
     prismaMock.organization.findUnique.mockResolvedValue(null);
@@ -237,6 +242,22 @@ describe('opportunityService org profile pilot policy', () => {
         slug: 'mindbridge-health',
       }),
     }));
+  });
+
+  it('refuses to create an organization without work-domain authority', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      email: 'someone@gmail.com',
+    });
+    prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'person-1' });
+    prismaMock.workspaceMembership.findFirst.mockResolvedValue(null);
+
+    await expect(upsertOrgProfile('clerk-user-1', {
+      name: 'MindBridge Health, LLC',
+      website: 'mindbridgehealth.com',
+    })).rejects.toThrow('personal email address');
+
+    expect(prismaMock.organization.create).not.toHaveBeenCalled();
   });
 
   it('persists an organization NPI when employer setup includes one', async () => {
