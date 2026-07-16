@@ -14,6 +14,9 @@ import { Reveal } from '@/components/motion/Reveal';
  * pilot below.)
  */
 
+// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: 'For Employers · VitalCV',
   description:

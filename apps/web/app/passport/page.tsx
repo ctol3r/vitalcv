@@ -1,6 +1,8 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
+// (Removed a dead `export const dynamic = 'force-dynamic'` — segment config in
+// a client component is silently ignored by Next, so it never applied. The
+// segment's real caching lives in layout.tsx: revalidate = 300.)
 
 /**
  * /passport — Passport entry + live ingest hydration

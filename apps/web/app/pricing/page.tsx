@@ -23,6 +23,9 @@ import { CalendarBookingEmbed } from '@/components/pricing/CalendarBookingEmbed'
  *   design-handoff/claude-design-2026-07-12-wave1505/wave1505/w1505-pricing.jsx
  */
 
+// Bound external shared-cache staleness to 5 min (see app/page.tsx note).
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: 'Pricing Foundation | VitalCV',
   description: 'Pricing is a foundation preview. Payments are not collected in this build.',
