@@ -43,6 +43,30 @@ was never revisited (it hid passing suites); this list exists to be emptied.
 | `src/routes/__tests__/decisionRecommendations.test.ts` | **product bug (same as predictions)** | Institution recommendation bucket returns 0 (expected 1) — downstream of the `predictionEngineService.ts:189` `groupBy` field-name bug. Fixing the service should green both; delete both rows together. |
 | `__tests__/passportEntity.pdf.test.ts` | assertion — possible contract change | `renderPassportPdf`/`buildPassportDataByNpi` mocks not invoked as pinned and the fail-closed 404 body shape drifted (`Expected -3 / Received +1`). Verify whether the PDF route's error contract changed intentionally; update pins only if so. |
 
+## Migration drift — RESOLVED 2026-07-16 (Seal W0.0)
+
+This document previously tracked "the Application and BlockerResolutionEvent
+models have no migration" as an open deploy-integrity finding. The real count
+was **18 models**, not 2 — measured by comparing every `@@map`'d table in
+schema.prisma against every `CREATE TABLE` in the migration chain:
+
+`FrictionLog, PilotMetric, ValidationBaseline, advisory_outcome_events,
+applications, billing_events, blocker_resolution_events, employer_acceptances,
+employer_decision_events, employer_webhook_configs, feedback,
+residency_programs, specialty_taxonomies, start_attestations,
+start_outcome_events, state_compliance_rules, subscription_api_keys,
+system_failure_events`
+
+Consequence: `prisma migrate deploy` on a FRESH database could not rebuild the
+schema — a disaster-recovery gap. It surfaced only when a new migration finally
+referenced a drifted table and Railway's preflight died with
+`relation "applications" does not exist`.
+
+Fixed by `20260716200000_reconcile_migration_drift` (idempotent — a no-op on
+production, which already has every object) and kept fixed by
+`apps/api/backend/scripts/check-migration-drift.mjs`, which runs in
+backend-tests CI on every PR.
+
 ## Already fixed (NOT quarantined — left to run under the gate)
 - `trustStateEngine.authority` — clock-pin fix (commit `67f47ca2`).
 - 6 `User`/`PersonProfile` seed suites — relation-removal fix (commit `4a980f81`).
