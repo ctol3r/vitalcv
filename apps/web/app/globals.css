@@ -16,6 +16,7 @@
 @import '../styles/intelligence.css';
 @import '../styles/clinician-doc.css';
 @import '../styles/home-vitals.css';
+@import '../styles/homepage-motion.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 
 @custom-variant dark (&:is(.dark *));
