@@ -216,12 +216,18 @@ export default function HomePageClient() {
       <HomepageSectionRail />
 
       <main className="relative mx-auto w-full max-w-[1200px] px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
+        {/* Outer pin gives the scroll-typed narrative room to finish on screen
+            (desktop only); the inner stage stays sticky for that distance. */}
         <section
           id="wallet"
           aria-label="NPI lookup"
           data-home-hero=""
-          className="mz mz-paper mz-persona-holder relative isolate grid min-h-[calc(100svh-9rem)] items-center gap-12 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-14"
+          className="hero-pin mz mz-paper mz-persona-holder relative"
         >
+          <div
+            data-home-hero-stage=""
+            className="hero-stage relative isolate grid min-h-[calc(100svh-9rem)] items-center gap-12 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-14"
+          >
           <div className="max-w-2xl">
             <div className="space-y-5">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
@@ -314,6 +320,7 @@ export default function HomePageClient() {
             ) : (
               <WalletPreview />
             )}
+          </div>
           </div>
         </section>
 

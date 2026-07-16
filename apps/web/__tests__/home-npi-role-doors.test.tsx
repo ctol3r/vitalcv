@@ -44,6 +44,10 @@ describe('HomePageClient — hero and live NPI moment', () => {
   it('keeps the complete five-part scroll narrative in the DOM', () => {
     const html = renderHomepage();
     expect(html).toContain('data-home-hero-subhead');
+    // The pinned hero stage exists so the narrative can type on screen; the
+    // sticky behavior itself is desktop-only CSS (verified in e2e).
+    expect(html).toContain('hero-pin');
+    expect(html).toContain('data-home-hero-stage');
     for (const phrase of [
       'recognizes your identity',
       'checks the primary sources',

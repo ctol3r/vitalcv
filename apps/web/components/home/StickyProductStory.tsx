@@ -140,9 +140,17 @@ function clamp(value: number, min = 0, max = 1): number {
 function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: number }) {
   const offset = index - progress;
   const past = Math.min(0, offset);
-  const translate = offset >= 0 ? Math.min(132, offset * 78) : Math.max(-42, offset * 24);
+  const translate = offset >= 0 ? Math.min(160, offset * 120) : Math.max(-42, offset * 24);
   const scale = 1 + Math.max(-0.1, past * 0.045);
-  const opacity = offset > 1.1 ? 0 : offset < -1.4 ? 0.12 : 1 - Math.min(0.72, Math.abs(offset) * 0.34);
+  // Upcoming cards stay a faint whisper (their copy must not read through the
+  // active card); they only resolve as they slide into place. Receding cards
+  // keep the soft stacked-deck fade.
+  const opacity =
+    offset >= 0
+      ? Math.max(0, 1 - offset * 0.88)
+      : offset < -1.4
+        ? 0.12
+        : 1 - Math.min(0.72, Math.abs(offset) * 0.34);
   const Icon = step.icon;
 
   return (

@@ -40,6 +40,18 @@
 #apply,
 #employers { scroll-margin-top: 8.8rem; }
 
+/* Hero pin: on desktop (and only when motion is allowed) the hero holds for a
+   little over one extra viewport so the scroll-typed narrative finishes ON
+   SCREEN before the page releases. Mobile and reduced motion never pin. */
+.hero-pin { position: relative; }
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .hero-pin { min-height: 220vh; }
+  .hero-pin .hero-stage {
+    position: sticky;
+    top: 8.5rem;
+  }
+}
+
 .sticky-product-story {
   position: relative;
   min-height: 460vh;

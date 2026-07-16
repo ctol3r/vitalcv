@@ -84,10 +84,18 @@ export function ScrollTypeNarrative({
       if (!container) return;
       const vh = window.innerHeight || 1;
       const containerTop = container.getBoundingClientRect().top + window.scrollY;
-      // The whole sequence completes within 0.72 viewport-heights, so the last
-      // phrases finish while the narrative is still on screen (previously
-      // distances up to ~1vh let steps play after the hero had scrolled away).
-      const revealDistance = vh * 0.72;
+      // Reveal distance depends on whether the container PINS the narrative.
+      //
+      // Unpinned (mobile / reduced-motion sizing), the line scrolls away with
+      // the page, so the sequence has to be quick: 0.72vh.
+      //
+      // Pinned (desktop .hero-pin), the line is held at a fixed viewport
+      // position for `pinDistance`, so the reveal can use that whole runway and
+      // still finish on screen — measured on the pre-pin build, phrases 3-5 all
+      // played below the fold because 0.72vh outlives the line's exit at
+      // ~0.58vh. Complete at 85% of the pin, then dwell before release.
+      const pinDistance = container.offsetHeight - vh;
+      const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.85 : vh * 0.72;
       const p = (window.scrollY - containerTop) / revealDistance;
       const next = narrativeStateAt(p, phrases);
       setIdx(next.idx);
@@ -114,7 +122,9 @@ export function ScrollTypeNarrative({
   const wordArr = current.split(' ');
 
   return (
-    <p className={className} {...rest}>
+    // data-narrative-state exposes the scroll-derived reveal to e2e, so the
+    // "types while on screen" guarantee is asserted rather than assumed.
+    <p className={className} data-narrative-state={reduce ? 'reduced' : `${idx}:${words}`} {...rest}>
       {/* Reserved grid cell: the longest phrase holds width/height while the
           active phrase is painted in the same cell, so typing cannot reflow. */}
       <span aria-hidden="true" className="grid min-h-[3.4rem] sm:min-h-[2.6rem]">
