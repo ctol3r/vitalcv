@@ -215,7 +215,7 @@ export default function HomePageClient() {
 
       <HomepageSectionRail />
 
-      <main className="relative mx-auto w-full max-w-[1200px] px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
+      <main className="relative mx-auto w-full max-w-[1200px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* Outer pin gives the scroll-typed narrative room to finish on screen
             (desktop only); the inner stage stays sticky for that distance. */}
         <section
@@ -226,10 +226,10 @@ export default function HomePageClient() {
         >
           <div
             data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[calc(100svh-15rem)] items-center gap-12 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-8"
+            className="hero-stage relative isolate grid min-h-[calc(100svh-16rem)] items-center gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-5"
           >
           <div className="max-w-2xl">
-            <div className="space-y-5">
+            <div className="space-y-4">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
               <h1 className="mz-display">
                 Find the opportunity. Prove your career <em className="mz-accent">once.</em> Start faster.
@@ -244,7 +244,7 @@ export default function HomePageClient() {
               />
             </div>
 
-            <div className="mz-glass mz-glass-interactive mt-8 max-w-xl rounded-[12px]">
+            <div className="mz-glass mz-glass-interactive mt-5 max-w-xl rounded-[12px]">
               <Card id="npi" className="scroll-mt-36 rounded-[12px] border-0 bg-transparent shadow-none">
                 <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                   <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
@@ -324,7 +324,7 @@ export default function HomePageClient() {
           </div>
         </section>
 
-        <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-5">
+        <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-3.5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
             <p className="mz-eyebrow shrink-0">Reads primary sources</p>
             <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -340,18 +340,18 @@ export default function HomePageClient() {
 
         <StickyProductStory />
 
-        <div className="pt-12" data-home-experience="evidence-trace">
+        <div className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </div>
 
         <ProductCarousel />
 
-        <section id="employers" data-home-experience="metrics-and-cta" className="pt-12">
+        <section id="employers" data-home-experience="metrics-and-cta" className="pt-8">
           <MetricStrip />
           <DualAudienceCta />
         </section>
 
-        <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
+        <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Trust</span>
           {TRUST_FOOTER_LINKS.map((link, index) => (
             <React.Fragment key={link.href}>

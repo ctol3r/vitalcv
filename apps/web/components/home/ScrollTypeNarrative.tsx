@@ -44,6 +44,17 @@ export function buildNarrativeWords(prefix: string, phrases: readonly string[]):
 }
 
 /**
+ * Letter-level fill units (Chris, 2026-07-16: "letters of the words"). Words
+ * stay the LAYOUT unit — rendered nowrap so lines break only at spaces — while
+ * characters are the FILL unit the scrub advances through.
+ */
+export function buildNarrativeChars(prefix: string, phrases: readonly string[]): NarrativeWord[] {
+  return buildNarrativeWords(prefix, phrases).flatMap((word) =>
+    Array.from(word.text, (ch) => ({ text: ch, phraseIdx: word.phraseIdx })),
+  );
+}
+
+/**
  * Pure scroll→reveal mapping (exported for unit tests).
  *
  * The fill is LINEAR across the whole runway — the scroll thumb is the typing
@@ -93,9 +104,15 @@ export function ScrollTypeNarrative({
     [phraseKey],
   );
 
-  // Before hydration every word is inked, so no-JS visitors read the whole
+  const chars = React.useMemo(
+    () => buildNarrativeChars(prefix, phrases),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [phraseKey],
+  );
+
+  // Before hydration every letter is inked, so no-JS visitors read the whole
   // sentence; the first scroll measurement takes over from there.
-  const [reveal, setReveal] = React.useState(words.length);
+  const [reveal, setReveal] = React.useState(chars.length);
   const [reduce, setReduce] = React.useState(false);
 
   React.useEffect(() => {
@@ -120,7 +137,7 @@ export function ScrollTypeNarrative({
       const pinDistance = container.offsetHeight - vh;
       const revealDistance = pinDistance > vh * 0.4 ? pinDistance * 0.96 : vh * 0.55;
       const p = (window.scrollY - containerTop) / Math.max(1, revealDistance);
-      setReveal(narrativeStateAt(p, words).reveal);
+      setReveal(narrativeStateAt(p, chars).reveal);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -134,11 +151,20 @@ export function ScrollTypeNarrative({
       media.removeEventListener('change', syncMotion);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [scrollContainerId, words]);
+  }, [scrollContainerId, chars]);
 
-  const total = words.length;
-  const idx = words[Math.max(0, Math.min(total, reveal) - 1)]?.phraseIdx ?? 0;
+  const total = chars.length;
+  const idx = chars[Math.max(0, Math.min(total, reveal) - 1)]?.phraseIdx ?? 0;
   const complete = reveal >= total;
+
+  // Word wrappers (nowrap) keep line-breaking at spaces while LETTERS carry
+  // the fill; each word knows the char offset where its letters begin.
+  let charOffset = 0;
+  const wordSpans = words.map((word) => {
+    const start = charOffset;
+    charOffset += word.text.length;
+    return { word, start };
+  });
 
   return (
     // data-narrative-state / -complete expose the scroll-derived fill to e2e,
@@ -153,17 +179,24 @@ export function ScrollTypeNarrative({
         <span aria-hidden="true" className="block">{staticSentence}</span>
       ) : (
         <span aria-hidden="true" data-narrative-words="" className="block">
-          {words.map((word, i) => (
-            <span
-              key={i}
-              style={{
-                opacity: i < reveal ? 1 : PENDING_OPACITY,
-                transition: FILL_TRANSITION,
-              }}
-            >
-              {word.text}
-              {i < total - 1 ? ' ' : ''}
-            </span>
+          {wordSpans.map(({ word, start }, i) => (
+            <React.Fragment key={i}>
+              {i > 0 ? ' ' : ''}
+              <span style={{ whiteSpace: 'nowrap' }}>
+                {Array.from(word.text, (ch, j) => (
+                  <span
+                    key={j}
+                    data-ch=""
+                    style={{
+                      opacity: start + j < reveal ? 1 : PENDING_OPACITY,
+                      transition: FILL_TRANSITION,
+                    }}
+                  >
+                    {ch}
+                  </span>
+                ))}
+              </span>
+            </React.Fragment>
           ))}
         </span>
       )}
