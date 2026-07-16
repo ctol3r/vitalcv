@@ -168,9 +168,13 @@ describe('analytics / status / docs route copy invariants', () => {
     expect(src).toContain('Analytics events are a privacy-safe foundation vocabulary. No PHI or credential payloads are collected here.');
   });
 
-  it('status page renders the no-uptime-guarantee disclaimer', () => {
-    const src = readRoute('status/page.tsx');
-    expect(src).toContain('Status surfaces are foundation previews. No uptime guarantee is implied.');
+  it('status pages render their no-uptime honesty (split: customer + technical)', () => {
+    // The operator console moved to /status/technical and keeps the original
+    // foundation-preview disclaimer; the customer page carries its own.
+    const technical = readRoute('status/technical/page.tsx');
+    expect(technical).toContain('Status surfaces are foundation previews. No uptime guarantee is implied.');
+    const customer = readRoute('status/page.tsx');
+    expect(customer).toContain('does not publish uptime figures it has not measured');
   });
 
   it('docs page renders the foundation-not-complete-API disclaimer', () => {
@@ -240,6 +244,7 @@ describe('analytics / status / docs route copy invariants', () => {
     for (const rel of [
       'analytics-foundation/page.tsx',
       'status/page.tsx',
+      'status/technical/page.tsx',
       'docs/page.tsx',
     ]) {
       const src = readRoute(rel).toLowerCase();
@@ -265,6 +270,7 @@ describe('analytics / status / docs route copy invariants', () => {
     for (const rel of [
       'analytics-foundation/page.tsx',
       'status/page.tsx',
+      'status/technical/page.tsx',
       'docs/page.tsx',
     ]) {
       const src = readRoute(rel).toLowerCase();

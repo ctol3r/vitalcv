@@ -2,10 +2,12 @@ import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import StatusPage from '../app/status/page';
+import StatusPage from '../app/status/technical/page';
 
 /**
- * DOCS-STATUS-1 — `/status` renders the compliance-evidence shape
+ * DOCS-STATUS-1 — the technical status console (moved /status →
+ * /status/technical in the customer/technical split) renders the
+ * compliance-evidence shape
  * (data classification, retention, authority adapters) directly
  * from the same sources used by `/api/compliance/evidence`.
  *

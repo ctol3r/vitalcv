@@ -1,236 +1,190 @@
 /**
- * /status — VitalCV Public Operational Status
+ * /status — the customer-facing status summary (audit 5.2).
  *
- * Public SSR page. No auth required.
- * Shows live trust status board, source lane telemetry,
- * chronology integrity, and links to all .well-known endpoints.
+ * Honest by construction: every row is either a REAL per-request check (web
+ * version payload, backend /health probe) or the register's lane lifecycle
+ * (availability of the lane, labelled as such — never per-moment uptime we
+ * don't measure). No uptime percentages, no fabricated "Operational" badges.
+ * The operator console moved to /status/technical.
  */
 
-import * as React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LiveTrustStatusBoard } from '@/components/ops/LiveTrustStatusBoard';
-import { SourceLaneTelemetry } from '@/components/ops/SourceLaneTelemetry';
-import { ChronologyIntegrityTelemetry } from '@/components/ops/ChronologyIntegrityTelemetry';
-import { ConnectorMatrix } from '@/components/status/ConnectorMatrix';
-import { buildAdapterMatrix } from '@/lib/authority/adapterMatrix';
-import { buildDataClassificationFoundation } from '@/lib/security/dataClassificationFoundation';
-import { buildRetentionFoundation } from '@/lib/security/retentionFoundation';
+import { Activity, ArrowRight, FileCode2, ShieldCheck } from 'lucide-react';
+
+import { BACKEND_URL } from '@/lib/backend-url';
+import { getVersionInfo } from '@/lib/deployInfo';
+import { getTrustRegisterSnapshot } from '@/lib/trust/register';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Operational Status · VitalCV',
+  title: 'Status · VitalCV',
   description:
-    'Status surfaces are foundation previews. No uptime guarantee is implied. Live operational status for VitalCV trust infrastructure.',
+    'Plain-language status for the VitalCV web application, API, and the public data sources it reads. No uptime figures are claimed until they are measured.',
 };
 
-const WELL_KNOWN_ENDPOINTS = [
-  {
-    path: '/.well-known/jwks.json',
-    description: 'Public signing keys (ES256)',
-    auth: 'None',
-  },
-  {
-    path: '/.well-known/did.json',
-    description: 'W3C DID document',
-    auth: 'None',
-  },
-  {
-    path: '/.well-known/trust.json',
-    description: 'Trust manifest',
-    auth: 'None',
-  },
-  {
-    path: '/.well-known/trust-register',
-    description: 'Machine-readable doctrine register',
-    auth: 'None',
-  },
-  {
-    path: '/.well-known/openid-configuration',
-    description: 'OID4VCI discovery alias',
-    auth: 'None',
-  },
-  {
-    path: '/trust/graph',
-    description: 'Verifier-readable trust graph',
-    auth: 'None',
-  },
-  {
-    path: '/trust/schema',
-    description: 'Trust schema reference',
-    auth: 'None',
-  },
-  {
-    path: '/trust/doctrine',
-    description: 'Replay contract doctrine',
-    auth: 'None',
-  },
-  {
-    path: '/api/receipts/verify',
-    description: 'Verify a receipt JWT',
-    auth: 'None',
-  },
-  {
-    path: '/api/replay/[runId]',
-    description: 'Replay inspection payload',
-    auth: 'None',
-  },
-  {
-    path: '/api/receipt/[lineageKey]',
-    description: 'Receipt continuity payload',
-    auth: 'None',
-  },
-  {
-    path: '/api/status',
-    description: 'This endpoint — operational truth payload',
-    auth: 'None',
-  },
-];
+type RowTone = 'ok' | 'warn' | 'muted';
 
-export default function StatusPage() {
-  // Compliance evidence shape — read from the foundation modules so /status
-  // and /api/compliance/evidence agree on every count + Live flag. The page
-  // renders the literal flag strings (`redactionLive: false` etc.) so the
-  // status-page-compliance-evidence regression test catches any silent
-  // regressions in the underlying foundation modules.
-  const dataClassification = buildDataClassificationFoundation();
-  const retention = buildRetentionFoundation();
-  const authority = buildAdapterMatrix();
+function toneColor(tone: RowTone): string {
+  if (tone === 'ok') return 'var(--vt-accent-emerald)';
+  if (tone === 'warn') return 'var(--vt-state-stale, #a2670b)';
+  return 'var(--vt-text-muted)';
+}
+
+// The register lifecycle describes whether a source LANE is wired — honest
+// availability language, mirroring the Trust Center (never per-moment uptime).
+const LIFECYCLE_ROW: Record<string, { label: string; tone: RowTone }> = {
+  active: { label: 'Available', tone: 'ok' },
+  partial: { label: 'Partial', tone: 'warn' },
+  planned: { label: 'Access required', tone: 'warn' },
+  unintegrated: { label: 'Not yet connected', tone: 'muted' },
+};
+
+async function probeBackend(): Promise<{ label: string; tone: RowTone }> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/health`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3500),
+    });
+    return res.ok
+      ? { label: 'Responding', tone: 'ok' }
+      : { label: `Error ${res.status}`, tone: 'warn' };
+  } catch {
+    return { label: 'Not responding right now', tone: 'warn' };
+  }
+}
+
+function StatusRow({ name, note, state, tone }: { name: string; note: string; state: string; tone: RowTone }) {
+  const color = toneColor(tone);
+  return (
+    <div className="flex items-start justify-between gap-4 px-5 py-4">
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold text-[var(--vt-text-primary)]">{name}</p>
+        <p className="mt-0.5 text-[13px] text-[var(--vt-text-secondary)]">{note}</p>
+      </div>
+      <span
+        className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]"
+        style={{ color, borderColor: `color-mix(in oklab, ${color} 38%, transparent)` }}
+      >
+        <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+        {state}
+      </span>
+    </div>
+  );
+}
+
+export default async function StatusPage() {
+  const version = getVersionInfo();
+  const [backend, snapshot] = await Promise.all([probeBackend(), getTrustRegisterSnapshot()]);
+  const checkedAt = new Date();
+  const checkedLabel = `${checkedAt.toISOString().replace('T', ' ').slice(0, 19)} UTC`;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 font-mono">
-      {/* Header */}
-      <header className="border-b border-gray-800 px-6 py-5">
-        <div className="mx-auto max-w-4xl flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-white uppercase">
-              VitalCV · Operational Status
-            </h1>
-            <p className="mt-1 text-[10px] text-gray-500">
-              External observability surface — independently verifiable
-            </p>
-          </div>
-          <Link
-            href="/"
-            className="text-[10px] text-gray-500 hover:text-gray-300 underline underline-offset-2"
-          >
-            ← vitalcv.com
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
-        {/* Foundation status preview — disclaimer + compliance evidence shape */}
-        <section
-          aria-labelledby="foundation-status-heading"
-          className="border border-gray-800 bg-gray-950"
-        >
-          <div className="border-b border-gray-800 px-4 py-2">
-            <h2 id="foundation-status-heading" className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Foundation status preview
-            </h2>
-          </div>
-          <div className="px-4 py-3 text-xs leading-relaxed text-gray-300">
-            <p>
-              <strong>{'We publish the source of every field. We do not claim HIPAA, SOC 2, or NCQA certification.'}</strong>
-            </p>
-            <p className="mt-2">
-              <strong>{'Status surfaces are foundation previews. No uptime guarantee is implied.'}</strong>{' '}
-              Incident notices and public changelogs are planned surfaces. Neither is wired today.
-            </p>
-          </div>
-        </section>
-
-        {/* Connector matrix — per-source state, observation, and operator interpretation */}
-        <ConnectorMatrix />
-
-        <section
-          aria-labelledby="compliance-evidence-heading"
-          className="border border-gray-800 bg-gray-950"
-        >
-          <div className="border-b border-gray-800 px-4 py-2">
-            <h2 id="compliance-evidence-heading" className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Compliance evidence (foundation shape)
-            </h2>
-          </div>
-          <div className="space-y-3 px-4 py-3 text-xs leading-relaxed text-gray-300">
-            <p className="text-gray-400">
-              This report is a foundation shape for vendor risk assessments. It reflects planned controls, not enforced production policies.
-            </p>
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Data classification</dt>
-                <dd className="mt-1 font-mono text-[11px]">redactionLive: {String(dataClassification.redactionLive)}</dd>
-                <dd className="font-mono text-[11px] text-gray-500">{dataClassification.rules.length} redaction rules</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Retention</dt>
-                <dd className="mt-1 font-mono text-[11px]">retentionEnforced: {String(retention.retentionEnforced)}</dd>
-                <dd className="font-mono text-[11px] text-gray-500">{retention.policies.length} entity policies</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest text-gray-500">Authority adapters</dt>
-                <dd className="mt-1 font-mono text-[11px]">allAdaptersLive: {String(authority.allAdaptersLive)}</dd>
-                <dd className="font-mono text-[11px] text-gray-500">{authority.adapters.length} adapters</dd>
-              </div>
-            </dl>
-            <p className="text-[10px] text-gray-500">
-              Machine-readable shape:{' '}
-              <Link href="/api/compliance/evidence" className="underline hover:text-gray-300">/api/compliance/evidence</Link>
-            </p>
-          </div>
-        </section>
-
-        {/* Live status board */}
-        <LiveTrustStatusBoard />
-
-        {/* Source lane telemetry */}
-        <SourceLaneTelemetry />
-
-        {/* Chronology integrity */}
-        <ChronologyIntegrityTelemetry />
-
-        {/* Well-known endpoint index */}
-        <div className="border border-gray-700 bg-gray-950">
-          <div className="border-b border-gray-700 px-4 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              PUBLIC VERIFICATION ENDPOINTS
-            </span>
-          </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-gray-800 text-[9px] uppercase tracking-widest text-gray-600">
-                <th className="px-4 py-1.5 text-left font-normal">Endpoint</th>
-                <th className="px-4 py-1.5 text-left font-normal">Description</th>
-                <th className="px-4 py-1.5 text-left font-normal">Auth</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-900">
-              {WELL_KNOWN_ENDPOINTS.map((ep) => (
-                <tr key={ep.path} className="hover:bg-gray-900/40">
-                  <td className="px-4 py-1.5">
-                    <a
-                      href={ep.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-[11px] text-blue-500 hover:text-blue-300 underline underline-offset-2"
-                    >
-                      {ep.path}
-                    </a>
-                  </td>
-                  <td className="px-4 py-1.5 text-[10px] text-gray-400">{ep.description}</td>
-                  <td className="px-4 py-1.5 text-[10px] text-gray-600">{ep.auth}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer note */}
-        <p className="text-[9px] text-gray-700 text-center">
-          All endpoints are public. No authentication required for verification.
-          Source of truth: <Link href="/api/status" className="underline hover:text-gray-500">/api/status</Link>
+    <main className="mz mz-paper min-h-screen">
+      <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+        <p className="mz-eyebrow">Status</p>
+        <h1 className="mz-display" style={{ marginTop: 14, maxWidth: 720 }}>
+          Is VitalCV up?
+        </h1>
+        <p className="mz-lede" style={{ marginTop: 16, maxWidth: 620 }}>
+          A plain-language summary, checked when you loaded this page. Source rows describe whether a lane is
+          connected — VitalCV does not publish uptime figures it has not measured.
         </p>
-      </main>
-    </div>
+
+        {/* Application services — REAL per-request checks */}
+        <section aria-label="Application status" className="mt-12">
+          <p className="mz-eyebrow">Application</p>
+          <div className="mt-4 divide-y divide-[var(--vt-border-subtle,var(--vt-border))] overflow-hidden rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)]">
+            <StatusRow
+              name="Web application"
+              note={`Serving this page · build ${version.commitShort ?? 'unknown'}`}
+              state="Serving"
+              tone="ok"
+            />
+            <StatusRow
+              name="API"
+              note="Health probe from this page load"
+              state={backend.label}
+              tone={backend.tone}
+            />
+          </div>
+        </section>
+
+        {/* Source lanes — register lifecycle, availability language */}
+        <section aria-label="Source availability" className="mt-10">
+          <p className="mz-eyebrow">Public data sources</p>
+          <div className="mt-4 divide-y divide-[var(--vt-border-subtle,var(--vt-border))] overflow-hidden rounded-[12px] border border-[var(--vt-border)] bg-[var(--vt-surface)]">
+            {snapshot.sources.map((s) => {
+              const row = LIFECYCLE_ROW[s.lifecycle] ?? LIFECYCLE_ROW.unintegrated;
+              return (
+                <StatusRow
+                  key={s.sourceId}
+                  name={s.displayName}
+                  note={
+                    s.lifecycle === 'active'
+                      ? 'Lane wired and returning data.'
+                      : s.lifecycle === 'partial'
+                        ? 'Available for some records; being expanded.'
+                        : s.lifecycle === 'planned'
+                          ? 'A source exists; access is not yet in place.'
+                          : 'On the roadmap; not connected today.'
+                  }
+                  state={row.label}
+                  tone={row.tone}
+                />
+              );
+            })}
+          </div>
+          <p className="mt-3 text-[13px] text-[var(--vt-text-muted)]">
+            Availability describes the lane, not any one record —{' '}
+            <Link href="/trust" className="font-medium text-[var(--vt-text-secondary)] underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
+              what each state means
+            </Link>
+            .
+          </p>
+        </section>
+
+        {/* Incidents — honest empty state */}
+        <section aria-label="Incidents" className="mt-10">
+          <p className="mz-eyebrow">Incidents</p>
+          <div className="mt-4 rounded-[12px] border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-5 py-5">
+            <p className="text-[14px] text-[var(--vt-text-secondary)]">
+              No public incident feed is published yet. When an incident affects the product, it will be reported
+              here with what happened and what changed.
+            </p>
+          </div>
+        </section>
+
+        <p className="mt-8 text-[12px] text-[var(--vt-text-muted)]">
+          Checked <time dateTime={checkedAt.toISOString()} className="font-mono">{checkedLabel}</time> · re-checked on
+          every page load.
+        </p>
+
+        {/* Links out */}
+        <section aria-label="More detail" className="mt-10">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Link href="/status/technical" className="group flex items-center justify-between rounded-[10px] border border-[var(--vt-border)] px-4 py-3.5 transition-colors hover:border-[var(--vt-text-primary)]">
+              <span className="flex items-center gap-2 text-[14px] font-semibold text-[var(--vt-text-primary)]">
+                <FileCode2 size={15} aria-hidden="true" /> Technical status
+              </span>
+              <ArrowRight size={14} aria-hidden="true" className="text-[var(--vt-text-muted)] transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link href="/trust" className="group flex items-center justify-between rounded-[10px] border border-[var(--vt-border)] px-4 py-3.5 transition-colors hover:border-[var(--vt-text-primary)]">
+              <span className="flex items-center gap-2 text-[14px] font-semibold text-[var(--vt-text-primary)]">
+                <ShieldCheck size={15} aria-hidden="true" /> Trust Center
+              </span>
+              <ArrowRight size={14} aria-hidden="true" className="text-[var(--vt-text-muted)] transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <a href="/api/version" className="group flex items-center justify-between rounded-[10px] border border-[var(--vt-border)] px-4 py-3.5 transition-colors hover:border-[var(--vt-text-primary)]">
+              <span className="flex items-center gap-2 text-[14px] font-semibold text-[var(--vt-text-primary)]">
+                <Activity size={15} aria-hidden="true" /> Version payload
+              </span>
+              <ArrowRight size={14} aria-hidden="true" className="text-[var(--vt-text-muted)] transition-transform group-hover:translate-x-0.5" />
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
