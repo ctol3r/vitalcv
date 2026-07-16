@@ -211,7 +211,7 @@ export default function HomePageClient() {
           id="wallet"
           aria-label="NPI lookup"
           data-home-hero=""
-          className="mz mz-paper mz-persona-holder mz-ambient relative isolate grid min-h-[calc(100svh-9rem)] items-center gap-12 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-14"
+          className="mz mz-paper mz-persona-holder relative isolate grid min-h-[calc(100svh-9rem)] items-center gap-12 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:py-14"
         >
           <div className="max-w-2xl">
             <div className="space-y-5">
