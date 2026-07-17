@@ -1,0 +1,799 @@
+/*
+ * MATCHA Deck — scoped styles (.mdk namespace).
+ *
+ * Self-contained island stylesheet following the kinetic/graph/intelligence
+ * pattern: every rule lives under .mdk-root so nothing leaks into other
+ * surfaces. Colors consume the Calm Wave (.mz) tokens — paper, ink ramp,
+ * rules, and the ok/watch/unknown truth states — with static fallbacks so
+ * the deck stays readable if rendered outside an .mz scope.
+ */
+
+.mdk-root {
+  --mdk-paper: var(--paper, #fafaf8);
+  --mdk-card: var(--card, #ffffff);
+  --mdk-ink: var(--ink-950, #1c1c1a);
+  --mdk-ink-soft: var(--ink-600, #57544d);
+  --mdk-ink-faint: var(--ink-400, #8a867c);
+  --mdk-line: var(--rule, #e2e1dc);
+  --mdk-line-soft: var(--rule-soft, #ebeae5);
+  --mdk-green: var(--ok, #2f6f4f);
+  --mdk-green-bg: var(--ok-bg, #eaf3ee);
+  --mdk-green-rule: var(--ok-rule, #b9d4c5);
+  --mdk-watch: var(--watch, #8a6d1f);
+  --mdk-watch-bg: var(--watch-bg, #f6efdc);
+  --mdk-watch-rule: var(--watch-rule, #ddc98f);
+  --mdk-unknown: var(--unknown, #6f6d66);
+  --mdk-unknown-bg: var(--unknown-bg, #f0efec);
+  --mdk-unknown-rule: var(--unknown-rule, #d9d7d0);
+  --mdk-accent: var(--accent, #3d3a78);
+  --mdk-serif: var(--mz-serif, var(--font-fraunces, georgia, serif));
+  --mdk-sans: var(--mz-sans, ui-sans-serif, system-ui, sans-serif);
+  --mdk-mono: var(--mz-mono, ui-monospace, 'SF Mono', monospace);
+  --mdk-ease: var(--mz-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+  --mdk-shadow-card:
+    0 1px 2px rgba(28, 28, 26, 0.05),
+    0 8px 24px rgba(28, 28, 26, 0.09),
+    0 24px 56px rgba(28, 28, 26, 0.07);
+  --mdk-shadow-under: 0 1px 2px rgba(28, 28, 26, 0.04), 0 6px 18px rgba(28, 28, 26, 0.05);
+  --mdk-radius: 20px;
+
+  color: var(--mdk-ink);
+  font-family: var(--mdk-sans);
+  overscroll-behavior-x: none;
+}
+
+.mdk-root *,
+.mdk-root *::before,
+.mdk-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- page scaffold ---------- */
+
+.mdk-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.mdk-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.mdk-title {
+  font-family: var(--mdk-serif);
+  font-weight: 560;
+  font-size: clamp(26px, 4vw, 34px);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.mdk-subtitle {
+  margin: 4px 0 0;
+  color: var(--mdk-ink-soft);
+  font-size: 14.5px;
+  max-width: 56ch;
+}
+
+.mdk-mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--mdk-line);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--mdk-card);
+  gap: 2px;
+}
+
+.mdk-mode-toggle a {
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 560;
+  text-decoration: none;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-mode-toggle a[aria-current='page'] {
+  background: var(--mdk-ink);
+  color: var(--mdk-paper);
+}
+
+.mdk-mode-toggle a:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 2px;
+}
+
+/* sample-data banner — always visible while a fixture source is active */
+.mdk-sample-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--mdk-watch-rule);
+  background: var(--mdk-watch-bg);
+  color: var(--mdk-watch);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 530;
+  margin-bottom: 18px;
+}
+
+/* ---------- three-column desktop canvas ---------- */
+
+.mdk-canvas {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(340px, 460px) minmax(220px, 300px);
+  justify-content: center;
+  gap: 28px;
+  align-items: start;
+}
+
+.mdk-rail {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mdk-rail-card {
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.mdk-rail-card h2 {
+  font-size: 12px;
+  font-weight: 640;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mdk-ink-faint);
+  margin: 0 0 8px;
+}
+
+.mdk-rail-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--mdk-ink-soft);
+  line-height: 1.45;
+}
+
+.mdk-rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mdk-rail-list li {
+  font-size: 13.5px;
+  color: var(--mdk-ink);
+}
+
+.mdk-rail-item-note {
+  color: var(--mdk-ink-faint);
+  font-size: 12px;
+  display: block;
+}
+
+.mdk-kbd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-kbd {
+  font-family: var(--mdk-mono);
+  font-size: 11.5px;
+  border: 1px solid var(--mdk-line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 2px 7px;
+  background: var(--mdk-paper);
+  color: var(--mdk-ink);
+  white-space: nowrap;
+}
+
+/* ---------- the deck ---------- */
+
+.mdk-stage {
+  outline: none;
+}
+
+.mdk-stage:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 6px;
+  border-radius: calc(var(--mdk-radius) + 6px);
+}
+
+.mdk-stack {
+  position: relative;
+  /* Tall enough for the card + under-card offsets on all target viewports. */
+  min-height: 530px;
+}
+
+.mdk-card-holder {
+  position: absolute;
+  inset: 0;
+}
+
+.mdk-card {
+  position: absolute;
+  inset: 0;
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-line);
+  border-radius: var(--mdk-radius);
+  box-shadow: var(--mdk-shadow-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.mdk-card[data-depth='1'],
+.mdk-card[data-depth='2'] {
+  box-shadow: var(--mdk-shadow-under);
+  pointer-events: none;
+}
+
+.mdk-card--active {
+  cursor: grab;
+  touch-action: none;
+}
+
+.mdk-card--active:active {
+  cursor: grabbing;
+}
+
+.mdk-card-body {
+  padding: 22px 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  flex: 1;
+  min-height: 0;
+}
+
+.mdk-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mdk-employer {
+  font-size: 13.5px;
+  font-weight: 560;
+  color: var(--mdk-ink-soft);
+  margin: 0;
+}
+
+.mdk-role {
+  font-family: var(--mdk-serif);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  margin: 2px 0 0;
+}
+
+.mdk-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.mdk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mdk-chip--sample {
+  border-style: dashed;
+  border-color: var(--mdk-watch-rule);
+  color: var(--mdk-watch);
+  background: var(--mdk-watch-bg);
+}
+
+.mdk-chip--strong,
+.mdk-chip--promising {
+  background: var(--mdk-green-bg);
+  color: var(--mdk-green);
+  border-color: var(--mdk-green-rule);
+}
+
+.mdk-chip--possible {
+  background: var(--mdk-unknown-bg);
+  color: var(--mdk-unknown);
+  border-color: var(--mdk-unknown-rule);
+}
+
+.mdk-chip--limited {
+  background: var(--mdk-unknown-bg);
+  color: var(--mdk-ink-soft);
+  border-color: var(--mdk-unknown-rule);
+}
+
+.mdk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 14px;
+  color: var(--mdk-ink-soft);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mdk-meta .mdk-comp {
+  font-family: var(--mdk-mono);
+  font-size: 13.5px;
+  color: var(--mdk-ink);
+  font-weight: 560;
+}
+
+.mdk-unknown-text {
+  color: var(--mdk-ink-faint);
+  font-style: italic;
+}
+
+.mdk-divider {
+  border: 0;
+  border-top: 1px solid var(--mdk-line-soft);
+  margin: 0;
+}
+
+.mdk-match-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.mdk-match-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mdk-match-label {
+  font-weight: 640;
+  font-size: 15px;
+}
+
+.mdk-match-summary {
+  font-size: 12.5px;
+  color: var(--mdk-ink-faint);
+}
+
+.mdk-reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mdk-reason {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.mdk-reason-mark {
+  font-family: var(--mdk-mono);
+  font-size: 12.5px;
+  flex: none;
+  width: 16px;
+  text-align: center;
+}
+
+.mdk-reason--confirmed .mdk-reason-mark {
+  color: var(--mdk-green);
+}
+
+.mdk-reason--preference .mdk-reason-mark {
+  color: var(--mdk-accent);
+}
+
+.mdk-reason--review .mdk-reason-mark,
+.mdk-reason--blocker .mdk-reason-mark {
+  color: var(--mdk-watch);
+}
+
+.mdk-reason--unknown {
+  color: var(--mdk-ink-faint);
+}
+
+.mdk-reason-origin {
+  color: var(--mdk-ink-faint);
+  font-size: 12px;
+}
+
+.mdk-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px 15px;
+  border-top: 1px solid var(--mdk-line-soft);
+  font-size: 12.5px;
+  color: var(--mdk-ink-faint);
+}
+
+.mdk-freshness--stale {
+  color: var(--mdk-watch);
+  font-weight: 560;
+}
+
+/* directional overlays — edge ribbons, never covering the core content */
+.mdk-overlay {
+  position: absolute;
+  top: 18px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-family: var(--mdk-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.mdk-overlay--interested {
+  left: 18px;
+  background: var(--mdk-green);
+  color: var(--mdk-green-bg);
+  transform: rotate(-4deg);
+}
+
+.mdk-overlay--pass {
+  right: 18px;
+  background: var(--mdk-ink-soft);
+  color: var(--mdk-paper);
+  transform: rotate(4deg);
+}
+
+.mdk-overlay--details {
+  left: 50%;
+  translate: -50% 0;
+  background: var(--mdk-accent);
+  color: var(--mdk-paper);
+}
+
+/* ---------- action bar ---------- */
+
+.mdk-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.mdk-btn {
+  appearance: none;
+  border: 1px solid var(--mdk-line);
+  background: var(--mdk-card);
+  color: var(--mdk-ink);
+  border-radius: 999px;
+  min-height: 46px;
+  min-width: 46px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 580;
+  font-family: var(--mdk-sans);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--mdk-ease),
+    background-color 140ms var(--mdk-ease),
+    transform 140ms var(--mdk-ease);
+}
+
+.mdk-btn:hover:not(:disabled) {
+  border-color: var(--mdk-ink-faint);
+}
+
+.mdk-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.mdk-btn:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 2px;
+}
+
+.mdk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mdk-btn--interested {
+  background: var(--mdk-green);
+  border-color: var(--mdk-green);
+  color: var(--mdk-green-bg);
+}
+
+.mdk-btn--interested:hover:not(:disabled) {
+  border-color: var(--mdk-green);
+  filter: brightness(1.06);
+}
+
+.mdk-btn--priority {
+  border-color: var(--mdk-green-rule);
+  color: var(--mdk-green);
+}
+
+.mdk-btn-icon {
+  font-family: var(--mdk-mono);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ---------- details sheet ---------- */
+
+.mdk-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 28, 26, 0.32);
+  z-index: 60;
+}
+
+.mdk-sheet {
+  position: fixed;
+  z-index: 61;
+  inset: auto 0 0 0;
+  margin: 0 auto;
+  max-width: 720px;
+  max-height: min(86dvh, 900px);
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-line);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -18px 60px rgba(28, 28, 26, 0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.mdk-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--mdk-line-soft);
+}
+
+.mdk-sheet-title {
+  font-family: var(--mdk-serif);
+  font-size: 22px;
+  font-weight: 580;
+  margin: 0;
+}
+
+.mdk-sheet-sub {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-sheet-close {
+  flex: none;
+}
+
+.mdk-sheet-body {
+  overflow-y: auto;
+  padding: 16px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overscroll-behavior: contain;
+}
+
+.mdk-sheet-section h3 {
+  font-size: 11.5px;
+  font-weight: 660;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mdk-ink-faint);
+  margin: 0 0 8px;
+}
+
+.mdk-sheet-section p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--mdk-ink);
+}
+
+.mdk-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px 18px;
+  margin: 0;
+}
+
+.mdk-facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mdk-facts dt {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mdk-ink-faint);
+}
+
+.mdk-facts dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mdk-ink);
+}
+
+.mdk-sheet-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--mdk-line-soft);
+}
+
+.mdk-apply-note {
+  font-size: 12.5px;
+  color: var(--mdk-ink-faint);
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* ---------- end-of-deck / empty / error states ---------- */
+
+.mdk-done {
+  border: 1px solid var(--mdk-line);
+  border-radius: var(--mdk-radius);
+  background: var(--mdk-card);
+  padding: 40px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 420px;
+  justify-content: center;
+}
+
+.mdk-done h2 {
+  font-family: var(--mdk-serif);
+  font-size: 26px;
+  font-weight: 580;
+  margin: 0;
+}
+
+.mdk-done p {
+  margin: 0;
+  color: var(--mdk-ink-soft);
+  font-size: 14.5px;
+  max-width: 42ch;
+}
+
+.mdk-done-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.mdk-done-actions a {
+  text-decoration: none;
+}
+
+/* ---------- screen-reader-only ---------- */
+
+.mdk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1023px) {
+  .mdk-canvas {
+    grid-template-columns: minmax(300px, 520px);
+  }
+
+  .mdk-rail {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .mdk-shell {
+    padding: 14px 12px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mdk-stack {
+    min-height: min(64dvh, 580px);
+  }
+
+  .mdk-card-body {
+    padding: 18px 16px 12px;
+    gap: 11px;
+  }
+
+  .mdk-card-foot {
+    padding: 10px 16px 12px;
+  }
+
+  .mdk-actions {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    background: color-mix(in srgb, var(--mdk-paper) 90%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--mdk-line);
+    border-radius: 999px;
+    padding: 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .mdk-btn {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+
+  .mdk-btn .mdk-btn-text--hide-mobile {
+    display: none;
+  }
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .mdk-root *,
+  .mdk-root *::before,
+  .mdk-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
