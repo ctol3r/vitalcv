@@ -3,7 +3,8 @@
  *
  * A submitted ApplicationPacket is historical evidence. This service is the
  * only read path that authorizes access and re-verifies the sealed bytes before
- * exposing it. It deliberately does not resolve current trust state.
+ * exposing it. The evidence-view wrapper below adds current trust state without
+ * changing the immutable packet contract.
  */
 
 import {
@@ -16,12 +17,14 @@ import prisma from '../../graphql/prisma_client';
 import { sha256ForPayload } from '../../utils/deterministic';
 import { HttpError } from '../../utils/httpError';
 import {
+  buildFieldEntriesFromTrustState,
   type ApplicationPacketContent,
   type PacketEvidenceState,
   type PacketFieldEntry,
   type SealedApplicationPacket,
   verifySealedPacket,
 } from './applicationPacketService';
+import { computeClinicianTrustState } from '../trust/trustStateEngine';
 
 export type ApplicationPacketAccessPerspective = 'clinician' | 'employer' | 'admin';
 export type SubmittedPacketField = PacketFieldEntry;
@@ -35,6 +38,7 @@ export interface ApplicationPacketReadResponse {
   submittedPacket: {
     packetVersion: number;
     packetHash: string;
+    clinicianNpi: string;
     // Invalid packets fail closed before a response is constructed.
     integrity: 'valid' | 'invalid';
     purpose: string;
@@ -44,9 +48,38 @@ export interface ApplicationPacketReadResponse {
     selectedSections: string[];
     fields: SubmittedPacketField[];
     methodologyVersion: string;
+    clinicianNote: string | null;
     lifecycle: ApplicationPacketLifecycle;
   } | null;
   legacyNotice: string | null;
+}
+
+export type ApplicationEvidenceChangeKind =
+  | 'unchanged'
+  | 'added_after_submission'
+  | 'changed_after_submission'
+  | 'resolved_after_submission'
+  | 'became_stale'
+  | 'became_unavailable'
+  | 'removed_after_submission';
+
+export interface ApplicationEvidenceChange {
+  fieldId: string;
+  label: string;
+  kind: ApplicationEvidenceChangeKind;
+  submitted: SubmittedPacketField | null;
+  current: SubmittedPacketField | null;
+}
+
+export interface ApplicationEvidenceViewResponse extends ApplicationPacketReadResponse {
+  currentEvidence: {
+    status: 'available' | 'unavailable';
+    observedAt: string | null;
+    methodologyVersion: string | null;
+    fields: SubmittedPacketField[];
+    changesSinceSubmission: ApplicationEvidenceChange[];
+    notice: string;
+  };
 }
 
 export interface ReadApplicationPacketInput {
@@ -378,6 +411,7 @@ export async function readApplicationPacket(
     submittedPacket: {
       packetVersion: packet.packetVersion,
       packetHash: packet.packetHash,
+      clinicianNpi: packet.clinicianNpi,
       integrity: 'valid',
       purpose: packet.purpose,
       recipient: packet.recipient,
@@ -386,10 +420,113 @@ export async function readApplicationPacket(
       selectedSections: packet.selectedSections,
       fields: packet.fields,
       methodologyVersion: packet.methodologyVersion,
+      clinicianNote: packet.clinicianNote,
       lifecycle: lifecycleOf(storedPacket),
     },
     legacyNotice: null,
   };
+}
+
+const AFFIRMATIVE_STATES = new Set<PacketEvidenceState>(['source_backed', 'checked']);
+
+function fieldIsStale(field: SubmittedPacketField, now: Date): boolean {
+  if (!field.freshUntil) return false;
+  const deadline = new Date(field.freshUntil);
+  return !Number.isNaN(deadline.getTime()) && deadline.getTime() < now.getTime();
+}
+
+/** Pure submitted/current comparison shared by the clinician and employer views. */
+export function compareApplicationEvidence(
+  submittedFields: readonly SubmittedPacketField[],
+  currentFields: readonly SubmittedPacketField[],
+  now = new Date(),
+): ApplicationEvidenceChange[] {
+  const submitted = new Map(submittedFields.map((field) => [field.fieldId, field]));
+  const current = new Map(currentFields.map((field) => [field.fieldId, field]));
+  const ids = [...new Set([...submitted.keys(), ...current.keys()])].sort();
+
+  return ids.map((fieldId) => {
+    const before = submitted.get(fieldId) ?? null;
+    const after = current.get(fieldId) ?? null;
+    let kind: ApplicationEvidenceChangeKind;
+
+    if (!before) kind = 'added_after_submission';
+    else if (!after) kind = 'removed_after_submission';
+    else if (!fieldIsStale(before, now) && fieldIsStale(after, now)) kind = 'became_stale';
+    else if (after.evidenceState === 'unavailable' && before.evidenceState !== 'unavailable') kind = 'became_unavailable';
+    else if (!AFFIRMATIVE_STATES.has(before.evidenceState) && AFFIRMATIVE_STATES.has(after.evidenceState)) kind = 'resolved_after_submission';
+    else if (
+      before.value !== after.value
+      || before.evidenceState !== after.evidenceState
+      || before.sourceObservedAt !== after.sourceObservedAt
+      || before.freshUntil !== after.freshUntil
+    ) kind = 'changed_after_submission';
+    else kind = 'unchanged';
+
+    return { fieldId, label: after?.label ?? before?.label ?? fieldId, kind, submitted: before, current: after };
+  });
+}
+
+/**
+ * Authorized application evidence read model. The immutable packet remains the
+ * authority for what was submitted; current source resolution is additive and
+ * fail-soft so a connector outage never hides historical evidence.
+ */
+export async function readApplicationEvidenceView(
+  input: ReadApplicationPacketInput,
+): Promise<ApplicationEvidenceViewResponse> {
+  const packet = await readApplicationPacket(input);
+  const application = await prisma.application.findUnique({
+    where: { id: input.applicationId },
+    select: { npi: true },
+  });
+  const clinicianNpi = packet.submittedPacket?.clinicianNpi ?? application?.npi ?? null;
+  const selectedSections = packet.submittedPacket?.selectedSections
+    ?? ['identity', 'exclusions', 'licensure', 'enrollment'];
+
+  if (!clinicianNpi) {
+    return {
+      ...packet,
+      currentEvidence: {
+        status: 'unavailable',
+        observedAt: null,
+        methodologyVersion: null,
+        fields: [],
+        changesSinceSubmission: [],
+        notice: 'Current Wallet state is unavailable because this application has no clinician NPI attached.',
+      },
+    };
+  }
+
+  try {
+    const trustState = await computeClinicianTrustState(clinicianNpi);
+    const fields = buildFieldEntriesFromTrustState(trustState, selectedSections);
+    return {
+      ...packet,
+      currentEvidence: {
+        status: 'available',
+        observedAt: trustState.computed_at,
+        methodologyVersion: trustState.methodology_version,
+        fields,
+        changesSinceSubmission: compareApplicationEvidence(packet.submittedPacket?.fields ?? [], fields),
+        notice: packet.mode === 'legacy'
+          ? 'Current Wallet state — not the original submission.'
+          : 'Current Wallet evidence is shown separately and does not alter the submitted packet.',
+      },
+    };
+  } catch {
+    return {
+      ...packet,
+      currentEvidence: {
+        status: 'unavailable',
+        observedAt: null,
+        methodologyVersion: null,
+        fields: [],
+        changesSinceSubmission: [],
+        notice: 'Current Wallet sources are temporarily unavailable. The submitted packet remains intact.',
+      },
+    };
+  }
 }
 
 /** Strict route parser shared by API callers and route tests. */

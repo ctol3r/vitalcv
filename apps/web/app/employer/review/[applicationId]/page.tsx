@@ -1,56 +1,37 @@
-import React from 'react';
-import ReceiptVerificationBadge from '../../../../components/employer/ReceiptVerificationBadge';
-import { signPayloadES256 } from '../../../../lib/trust/cryptoService';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { ApplicationEvidenceView } from '@/components/applications/ApplicationEvidenceView';
+import { PageFrame } from '@/components/layout/PageFrame';
+import { loadApplicationEvidenceView } from '@/lib/server/applicationEvidence';
 
-export default async function EmployerReviewPage(props: { params: Promise<{ applicationId: string }> }) {
-  const { applicationId } = await props.params;
+export const dynamic = 'force-dynamic';
 
-  // Demo: sign a sample receipt so the employer can verify cryptographic integrity.
-  // proofTier is 'demo_receipt' — this token was NOT produced by the PSV promotion chain
-  // and does not represent a real PSVReceipt. It exists solely to demonstrate the
-  // signature-verification surface in the employer cockpit.
-  const demoToken = await signPayloadES256({
-    sub: `application:${applicationId}`,
-    iss: 'vitalcv',
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600,
-    proofTier: 'demo_receipt',
-    demo: true,
-    applicationId,
-    note: 'Demo receipt for employer review surface — not a real PSV receipt',
-  });
+export default async function EmployerReviewPage({
+  params,
+}: {
+  params: Promise<{ applicationId: string }>;
+}) {
+  const { applicationId } = await params;
+  const evidenceResult = await loadApplicationEvidenceView(applicationId);
+  if (evidenceResult.status === 'unauthorized') {
+    redirect(`/sign-in?redirect_url=${encodeURIComponent(`/employer/review/${applicationId}`)}`);
+  }
 
   return (
-    <div className="p-8 text-foreground bg-background max-w-3xl">
-      <h1 className="text-2xl font-bold mb-2">Application Review</h1>
-      <p className="text-muted-foreground mb-6">ID: {applicationId}</p>
-
-      <div className="grid gap-4">
-        <ReceiptVerificationBadge token={demoToken} />
-
-        <div className="p-4 border rounded-lg">
-          <h2 className="font-semibold mb-2">Identity Snapshot</h2>
-          <p className="text-sm text-muted-foreground">
-            Identity confirmed via NPI lookup. Receipt carries cryptographic proof of source attestation.
-          </p>
-        </div>
-
-        <div className="p-4 border rounded-lg">
-          <h2 className="font-semibold mb-3">Lane States</h2>
-          <ul className="space-y-2 text-sm">
-            <li className="flex justify-between"><span>Identity</span><span className="text-emerald-600 font-medium">CHECKED</span></li>
-            <li className="flex justify-between"><span>Sanctions</span><span className="text-emerald-600 font-medium">CLEAR</span></li>
-            <li className="flex justify-between"><span>Licensure</span><span className="text-amber-600 font-medium">ACCESS REQUIRED</span></li>
-            <li className="flex justify-between"><span>Enrollment</span><span className="text-emerald-600 font-medium">ENROLLED</span></li>
-          </ul>
-        </div>
-
-        <div className="flex gap-3 mt-2">
-          <button className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700">Accept as head start</button>
-          <button className="px-4 py-2 bg-amber-500 text-white rounded text-sm hover:bg-amber-600">Request missing info</button>
-          <button className="px-4 py-2 bg-destructive text-white rounded text-sm hover:opacity-90">Reject</button>
-        </div>
-      </div>
-    </div>
+    <main className="mz mz-paper mz-persona-employer min-h-screen">
+      <PageFrame mode="workflow" className="space-y-6">
+        <Link href="/employer/worklist" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Employer worklist
+        </Link>
+        <header>
+          <p className="mz-eyebrow">Employer review</p>
+          <h1 className="mz-h1 mt-2">Application evidence</h1>
+          <p className="mt-2 max-w-2xl mz-lede">Review the exact submitted packet and compare it with current Wallet evidence. Employer decisions remain separate.</p>
+          <p className="mt-2 break-all font-mono text-xs text-muted-foreground">Application {applicationId}</p>
+        </header>
+        <ApplicationEvidenceView result={evidenceResult} />
+      </PageFrame>
+    </main>
   );
 }

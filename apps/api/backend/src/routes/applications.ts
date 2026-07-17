@@ -34,6 +34,7 @@ import {
   parseApplicationPacketApplicationId,
   parseRequestedPacketVersion,
   readApplicationPacket,
+  readApplicationEvidenceView,
 } from '../services/opportunities/applicationPacketReadService';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
@@ -124,11 +125,14 @@ export function registerApplicationRoutes(app: Express): void {
       const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
       const packetVersion = parseRequestedPacketVersion(req.query.version);
 
-      const packet = await readApplicationPacket({
+      const readInput = {
         applicationId,
         clerkUserId,
         packetVersion,
-      });
+      };
+      const packet = req.query.includeCurrent === 'true'
+        ? await readApplicationEvidenceView(readInput)
+        : await readApplicationPacket(readInput);
       res.json(packet);
     }),
   );
