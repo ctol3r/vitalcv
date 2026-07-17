@@ -85,6 +85,29 @@ export interface SignalRow {
   opportunityId: string
   action: string
   createdAt?: Date | string
+  /** The opportunity version the clinician saw when deciding (J2). */
+  opportunityVersion?: string | null
+  /** The recommendation the decision responded to (J2). */
+  recommendationId?: string | null
+}
+
+/**
+ * The latest decision on one opportunity, with the provenance the workspaces
+ * (J4) need: what the clinician saw, and when. `decision` is the raw canonical
+ * action; lens it with `deckDecisionFor` / `boardStatusFor` at the call site.
+ */
+export interface DeckDecisionDetail {
+  opportunityId: string
+  decision: 'interested' | 'priority' | 'passed'
+  opportunityVersion?: string | null
+  recommendationId?: string | null
+  decidedAt?: string | null
+}
+
+function toIso(value: Date | string | undefined): string | null {
+  if (!value) return null
+  if (value instanceof Date) return value.toISOString()
+  return value
 }
 
 /**
@@ -192,6 +215,33 @@ export function boardStatuses(
     if (lensed) out[opportunityId] = lensed
   }
   return out
+}
+
+/**
+ * Deck-lens current decisions WITH provenance, newest-first — the source for
+ * the Interested and Passed workspaces (J4). Latest decision per opportunity
+ * wins; cleared/undone roles are omitted (undecided again). The relative order
+ * of the input (newest-first) is preserved, so callers get a recency-ordered
+ * list for free.
+ */
+export function deckDecisionDetails(rows: readonly SignalRow[]): DeckDecisionDetail[] {
+  const seen = new Set<string>()
+  const details: DeckDecisionDetail[] = []
+  for (const row of rows) {
+    if (!isDecisionAction(row.action)) continue // telemetry / funnel / unknown
+    if (seen.has(row.opportunityId)) continue // a newer row already won
+    seen.add(row.opportunityId)
+    const lensed = deckDecisionFor(row.action)
+    if (!lensed) continue // the latest decision was a clear/undo → undecided
+    details.push({
+      opportunityId: row.opportunityId,
+      decision: lensed,
+      opportunityVersion: row.opportunityVersion ?? null,
+      recommendationId: row.recommendationId ?? null,
+      decidedAt: toIso(row.createdAt),
+    })
+  }
+  return details
 }
 
 /**

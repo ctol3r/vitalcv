@@ -66,6 +66,10 @@ describe('clinician discovery decisions are private', () => {
       'apps/web/app/api/matcha/deck/signals/route.ts',
       'apps/web/app/api/matcha/opportunity-actions/route.ts',
       'apps/web/app/api/matcha/opportunity/[id]/action/route.ts',
+      // J4 — the Interested/Passed workspace loader reads the clinician's own
+      // decisions to hydrate their saved/passed roles; Clerk-scoped, no
+      // employer read path.
+      'apps/web/lib/matcha-deck/workspaceSource.ts',
     ])
   })
 

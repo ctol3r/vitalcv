@@ -818,3 +818,239 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Interested / Passed workspaces (J4) ---------- */
+
+.mdk-ws-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.mdk-ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mdk-ws-card {
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mdk-ws-card[data-status='unavailable'] {
+  background: var(--mdk-unknown-bg);
+  border-style: dashed;
+}
+
+.mdk-ws-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mdk-ws-employer {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-ws-role {
+  margin: 2px 0 0;
+  font-family: var(--mdk-serif);
+  font-size: 21px;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.mdk-ws-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: none;
+}
+
+.mdk-ws-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-ws-unavailable-note {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--mdk-ink-soft);
+  line-height: 1.5;
+}
+
+.mdk-ws-readiness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mdk-ws-stat {
+  font-size: 12.5px;
+  font-weight: 560;
+  border-radius: 999px;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+}
+
+.mdk-ws-stat[data-tone='ok'] {
+  color: var(--mdk-green);
+  background: var(--mdk-green-bg);
+  border-color: var(--mdk-green-rule);
+}
+
+.mdk-ws-stat[data-tone='watch'] {
+  color: var(--mdk-watch);
+  background: var(--mdk-watch-bg);
+  border-color: var(--mdk-watch-rule);
+}
+
+.mdk-ws-stat[data-tone='unknown'] {
+  color: var(--mdk-unknown);
+  background: var(--mdk-unknown-bg);
+  border-color: var(--mdk-unknown-rule);
+}
+
+.mdk-ws-unknowns {
+  font-size: 13.5px;
+  color: var(--mdk-ink-soft);
+}
+
+.mdk-ws-unknowns summary {
+  cursor: pointer;
+  font-weight: 560;
+  color: var(--mdk-ink);
+}
+
+.mdk-ws-unknowns ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mdk-ws-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mdk-ws-actions a.mdk-btn {
+  text-decoration: none;
+}
+
+.mdk-ws-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--mdk-watch);
+}
+
+/* compare table */
+.mdk-compare-scroll {
+  overflow-x: auto;
+  margin-bottom: 18px;
+  border: 1px solid var(--mdk-line);
+  border-radius: 14px;
+}
+
+.mdk-compare {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  font-size: 13.5px;
+}
+
+.mdk-compare th,
+.mdk-compare td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mdk-line-soft);
+  vertical-align: top;
+}
+
+.mdk-compare thead th {
+  background: var(--mdk-paper);
+  position: sticky;
+  top: 0;
+}
+
+.mdk-compare tbody th[scope='row'] {
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mdk-ink-faint);
+  white-space: nowrap;
+}
+
+.mdk-compare-role {
+  display: block;
+  font-family: var(--mdk-serif);
+  font-size: 15px;
+  font-weight: 580;
+}
+
+.mdk-compare-employer {
+  display: block;
+  font-size: 12px;
+  color: var(--mdk-ink-soft);
+  font-weight: 400;
+}
+
+@media (max-width: 560px) {
+  .mdk-ws-card-head {
+    flex-direction: column;
+  }
+  .mdk-ws-badges {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.mdk-nav-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mdk-saved-nav {
+  display: inline-flex;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.mdk-saved-nav a {
+  color: var(--mdk-ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.mdk-saved-nav a:hover {
+  color: var(--mdk-ink);
+  border-bottom-color: var(--mdk-line);
+}
+
+.mdk-saved-nav a:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 2px;
+}
