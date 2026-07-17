@@ -83,6 +83,20 @@ describe('MATCHA deck machine — decisions', () => {
     expect(state.announcement).toContain('Interest is not available')
   })
 
+  it('announcementSeq bumps on every announcing transition so identical text re-announces', () => {
+    const base = fresh()
+    const gated: DeckState = {
+      ...base,
+      recommendations: base.recommendations.map((rec, i) =>
+        i === 0 ? { ...rec, actions: { ...rec.actions, canExpressInterest: false } } : rec,
+      ),
+    }
+    const first = deckTransition(gated, { type: 'decide', decision: 'interested' })
+    const second = deckTransition(first.state, { type: 'decide', decision: 'interested' })
+    expect(second.state.announcement).toBe(first.state.announcement)
+    expect(second.state.announcementSeq).toBe(first.state.announcementSeq + 1)
+  })
+
   it('reaching the end of the deck announces caught up', () => {
     let state = fresh()
     for (let i = 0; i < FIXTURE_RECOMMENDATIONS.length; i += 1) {

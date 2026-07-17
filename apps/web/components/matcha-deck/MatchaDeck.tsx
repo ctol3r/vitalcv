@@ -84,7 +84,7 @@ interface DeckCardShellProps {
   reducedMotion: boolean
   onDragCommit: (decision: DeckDecision) => void
   onDragDetails: () => void
-  onExitComplete: (decision: DeckDecision) => void
+  onExitComplete: (recommendationId: string, decision: DeckDecision) => void
 }
 
 function DeckCardShell({
@@ -163,7 +163,7 @@ function DeckCardShell({
     const finish = () => {
       if (done) return
       done = true
-      onExitComplete(exitingDecision)
+      onExitComplete(recommendation.recommendationId, exitingDecision)
     }
     const controlsY =
       target.y !== 0 ? animate(y, target.y, { duration: EXIT_DURATION, ease: EASE }) : null
@@ -270,6 +270,10 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
   const [state, setState] = useState<DeckState | null>(null)
   const stateRef = useRef<DeckState | null>(null)
   const [exiting, setExiting] = useState<{ id: string; decision: DeckDecision } | null>(null)
+  // Mirror of `exiting` for guards inside memoized callbacks: state closures
+  // can be one render stale, and a decision slipping through mid-flight would
+  // let the completing flight record its decision against the wrong card.
+  const exitingRef = useRef<{ id: string; decision: DeckDecision } | null>(null)
   const restoredRef = useRef<{ id: string; decision: DeckDecision } | null>(null)
   const viewedRef = useRef<Set<string>>(new Set())
   const stageRef = useRef<HTMLDivElement>(null)
@@ -286,6 +290,9 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
         if (cancelled) return
         const initial = createDeckState(recommendations)
         stateRef.current = initial
+        // A fresh deck means fresh view tracking — without this, a retry
+        // after an error would silently drop the first card's viewed signal.
+        viewedRef.current = new Set()
         setState(initial)
         setLoadPhase('ready')
       })
@@ -323,10 +330,18 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
     dispatch({ type: 'card_viewed' })
   }, [activeId, dispatch])
 
+  // The restored-entry marker only exists to seed the re-entering card's
+  // mount position; clear it once the deck has rendered that card so a
+  // stale id can never replay a fly-in later. (Child mount-state capture
+  // happens during render, before this effect runs.)
+  useEffect(() => {
+    restoredRef.current = null
+  }, [activeId])
+
   const commitDecision = useCallback(
     (decision: DeckDecision) => {
       const current = stateRef.current
-      if (!current || exiting) return
+      if (!current || exitingRef.current) return
       const rec = activeRecommendation(current)
       if (!rec) return
       const refused =
@@ -338,15 +353,23 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
         dispatch({ type: 'decide', decision })
         return
       }
-      setExiting({ id: rec.recommendationId, decision })
+      exitingRef.current = { id: rec.recommendationId, decision }
+      setExiting(exitingRef.current)
     },
-    [dispatch, exiting, progress, reducedMotion],
+    [dispatch, progress, reducedMotion],
   )
 
   const handleExitComplete = useCallback(
-    (decision: DeckDecision) => {
+    (id: string, decision: DeckDecision) => {
       progress.set(0)
-      dispatch({ type: 'decide', decision })
+      // Only record the decision if the completing card is still the active
+      // one — a flight finishing against a changed deck must not decide a
+      // different card.
+      const current = stateRef.current
+      if (current && activeRecommendation(current)?.recommendationId === id) {
+        dispatch({ type: 'decide', decision })
+      }
+      exitingRef.current = null
       setExiting(null)
     },
     [dispatch, progress],
@@ -354,12 +377,12 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
 
   const undo = useCallback(() => {
     const current = stateRef.current
-    if (!current || current.history.length === 0 || exiting) return
+    if (!current || current.history.length === 0 || exitingRef.current) return
     const last = current.history[current.history.length - 1]
     restoredRef.current = { id: last.recommendationId, decision: last.decision }
     if (!reducedMotion) progress.set(1)
     dispatch({ type: 'undo' })
-  }, [dispatch, exiting, progress, reducedMotion])
+  }, [dispatch, progress, reducedMotion])
 
   const openDetails = useCallback(() => {
     dispatch({ type: 'open_details' })
@@ -498,7 +521,7 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
           className="mdk-stage"
           role="group"
           aria-roledescription="opportunity deck"
-          aria-label={state.announcement}
+          aria-label="Opportunity deck"
           aria-describedby="mdk-instructions"
           tabIndex={0}
           onKeyDown={handleStageKeyDown}
@@ -506,7 +529,7 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
           data-mdk-active={activeId ?? ''}
           data-mdk-exhausted={exhausted ? 'true' : 'false'}
         >
-          <p id="mdk-instructions" className="mdk-sr-only">
+          <p id="mdk-instructions" className="sr-only">
             Arrow right or S saves this opportunity as interested. Arrow left or P passes. Arrow up or
             Enter opens details. Z undoes your last decision. The buttons below the deck perform the same
             actions. Saving interest never submits an application.
@@ -660,9 +683,11 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
         </div>
       </aside>
 
-      {/* Screen-reader announcements */}
-      <p className="mdk-sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {state.announcement}
+      {/* Screen-reader announcements. The region persists; the keyed span
+          swaps its content node on every transition so identical text (e.g.
+          two refused attempts in a row) still re-announces. */}
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        <span key={state.announcementSeq}>{state.announcement}</span>
       </p>
 
       {/* Details sheet — layers 2/3, preserves deck position */}

@@ -70,7 +70,9 @@ export function MatchaDeckCard({ recommendation, children }: MatchaDeckCardProps
         <ul className="mdk-meta">
           <li>
             {location ?? <span className="mdk-unknown-text">Location not provided</span>}
-            {arrangement ? ` · ${arrangement}` : null}
+            {/* Skip the arrangement when it IS the location text (remote role
+                with no city/state) — never render "Remote · Remote". */}
+            {arrangement && arrangement !== location ? ` · ${arrangement}` : null}
           </li>
           <li>
             {compensation ? (
