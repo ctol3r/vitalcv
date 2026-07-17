@@ -44,17 +44,13 @@ import {
   type DeckEvent,
   type DeckState,
 } from './deckMachine'
+import { commitDistanceFor, resolveDragIntent } from './dragIntent'
 import type { DeckDecision, DeckRecommendation, DeckSignal, DeckSource } from './types'
 
-const COMMIT_VELOCITY = 700 // px per second, per the interaction spec
 const MAX_ROTATION = 7 // degrees
 const EXIT_DURATION = 0.38 // seconds — inside the 320–480ms window
 const RETURN_DURATION = 0.45 // undo re-entry — inside the 350–550ms window
 const EASE: [number, number, number, number] = [0.2, 0.7, 0.2, 1]
-
-function commitDistanceFor(width: number): number {
-  return Math.min(120, width * 0.28)
-}
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value))
@@ -185,17 +181,13 @@ function DeckCardShell({
     (_event: unknown, info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }) => {
       if (exitingDecision) return
       const width = cardRef.current?.offsetWidth ?? 420
-      const distance = commitDistanceFor(width)
-      const { offset, velocity } = info
-      const horizontal = Math.abs(offset.x) >= Math.abs(offset.y)
-      if (horizontal && (offset.x > distance || velocity.x > COMMIT_VELOCITY)) {
-        onDragCommit('interested')
-      } else if (horizontal && (offset.x < -distance || velocity.x < -COMMIT_VELOCITY)) {
-        onDragCommit('passed')
-      } else if (!horizontal && (offset.y < -distance || velocity.y < -COMMIT_VELOCITY)) {
+      const intent = resolveDragIntent(info.offset, info.velocity, width)
+      if (intent === 'details') {
         onDragDetails()
+      } else if (intent) {
+        onDragCommit(intent)
       }
-      // Otherwise dragSnapToOrigin returns the card; progress follows x.
+      // Otherwise (intent === null) dragSnapToOrigin returns the card.
     },
     [exitingDecision, onDragCommit, onDragDetails],
   )
@@ -537,11 +529,15 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
 
           {exhausted ? (
             <div className="mdk-done" data-mdk-done="true">
-              <h2>You are caught up.</h2>
-              <p>
-                You reviewed every opportunity in this deck — {interested.length} saved as interested,{' '}
-                {passed.length} passed. Nothing was shared with employers.
-              </p>
+              <h2>{source.mode === 'empty' ? 'No live recommendations are available.' : 'You are caught up.'}</h2>
+              {source.mode === 'empty' ? (
+                <p>{source.emptyMessage ?? 'The live MATCHA feed is unavailable right now.'}</p>
+              ) : (
+                <p>
+                  You reviewed every opportunity in this deck — {interested.length} saved as interested,{' '}
+                  {passed.length} passed. Nothing was shared with employers.
+                </p>
+              )}
               <div className="mdk-done-actions">
                 <Link href="/holder/opportunities" className="mdk-btn">
                   Browse all roles

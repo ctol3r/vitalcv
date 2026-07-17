@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 
 import { HolderWorkspaceFrame } from '@/components/holder/HolderWorkspaceFrame'
 import { DiscoverSurface } from '@/components/matcha-deck/DiscoverSurface'
+import { loadPreviewMatchaDeckPayload } from '@/lib/matcha-deck/previewServerSource'
 import { buildClinicianMobileData } from '@/lib/mobile/clinician-state'
 
 export const dynamic = 'force-dynamic'
@@ -20,12 +21,12 @@ export const metadata = {
  * without auth so drag physics, keyboard, reduced motion, and announcements
  * can be exercised in a real browser and by Playwright.
  *
- * Never available in production unless MATCHA_DECK_PREVIEW=1 is set
- * explicitly (used by the e2e web server, which builds in production mode).
+ * A production-mode local test build also requires MATCHA_DECK_PREVIEW=1.
+ * Canonical Railway production denies the harness even if that flag is set.
  */
 export default function MatchaDeckDevHarness() {
-  const enabled = process.env.NODE_ENV !== 'production' || process.env.MATCHA_DECK_PREVIEW === '1'
-  if (!enabled) notFound()
+  const payload = loadPreviewMatchaDeckPayload()
+  if (!payload) notFound()
 
   const initialData = buildClinicianMobileData({
     base: {
@@ -43,7 +44,7 @@ export default function MatchaDeckDevHarness() {
 
   return (
     <HolderWorkspaceFrame initialData={initialData} showClerkAccount={false}>
-      <DiscoverSurface />
+      <DiscoverSurface payload={payload} />
     </HolderWorkspaceFrame>
   )
 }

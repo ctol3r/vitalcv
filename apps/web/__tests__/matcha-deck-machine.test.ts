@@ -223,6 +223,7 @@ describe('MATCHA deck fixtures — visibly test-only', () => {
       expect(rec.opportunity.employerName).toMatch(/Sample/)
       expect(rec.recommendationId).toMatch(/^fx-/)
       expect(rec.opportunity.opportunityId).toMatch(/^fx-/)
+      expect(rec.actions.canApply).toBe(false)
     }
   })
 

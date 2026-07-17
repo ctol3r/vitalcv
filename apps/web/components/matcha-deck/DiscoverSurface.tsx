@@ -4,17 +4,17 @@
  * MATCHA Discover — the deck surface (PR J1).
  *
  * Hosts the MATCHA Deck under the holder workspace: header with the
- * Discover | Search mode toggle, an unmissable sample-data banner while the
- * deck runs on fixtures, and the deck itself. Live MATCHA recommendations
- * replace the fixture source behind the same DeckSource contract (PR J3).
+ * Discover | Search mode toggle, an unmissable sample-data banner when the
+ * server explicitly selects preview mode, and the deck itself. The client
+ * never selects or falls back to fixture data.
  */
 
 import Link from 'next/link'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import { MatchaDeck } from './MatchaDeck'
-import { fixtureDeckSource } from './fixtures'
-import type { DeckSignal, DeckSource } from './types'
+import { createDeckSource } from './sourceBoundary'
+import type { DeckSignal, DeckSourcePayload } from './types'
 
 declare global {
   interface Window {
@@ -23,10 +23,11 @@ declare global {
 }
 
 export interface DiscoverSurfaceProps {
-  source?: DeckSource
+  payload: DeckSourcePayload
 }
 
-export function DiscoverSurface({ source = fixtureDeckSource }: DiscoverSurfaceProps) {
+export function DiscoverSurface({ payload }: DiscoverSurfaceProps) {
+  const source = useMemo(() => createDeckSource(payload), [payload])
   // J1: signals stay in memory (persistence is PR J2). They are mirrored to
   // window.__mdkSignals so browser verification can assert exactly-once
   // emission without any network side effects.
@@ -37,7 +38,7 @@ export function DiscoverSurface({ source = fixtureDeckSource }: DiscoverSurfaceP
   }, [])
 
   return (
-    <div className="mdk-root">
+    <div className="mdk-root" data-matcha-deck-source-mode={payload.mode}>
       <div className="mdk-shell">
         <header className="mdk-header">
           <div>

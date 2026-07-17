@@ -8,12 +8,21 @@
  * source in PR J3 behind the same DeckSource contract.
  */
 
-import type { DeckRecommendation, DeckSource } from './types'
+import { createDeckSourcePayload } from './sourceBoundary'
+import type { DeckRecommendation } from './types'
 
 export const FIXTURE_SOURCE_LABEL = 'Sample deck — these are not real listings'
 
 function fixture(rec: Omit<DeckRecommendation, 'isFixture'>): DeckRecommendation {
-  return { ...rec, isFixture: true }
+  return {
+    ...rec,
+    isFixture: true,
+    actions: {
+      ...rec.actions,
+      canApply: false,
+      applyBlockReason: 'Sample listing — Apply with VitalCV is available on live roles.',
+    },
+  }
 }
 
 export const FIXTURE_RECOMMENDATIONS: DeckRecommendation[] = [
@@ -263,8 +272,8 @@ export const FIXTURE_RECOMMENDATIONS: DeckRecommendation[] = [
   }),
 ]
 
-export const fixtureDeckSource: DeckSource = {
+export const PREVIEW_FIXTURE_DECK_PAYLOAD = createDeckSourcePayload({
+  mode: 'preview_fixture',
   sourceLabel: FIXTURE_SOURCE_LABEL,
-  isFixture: true,
-  load: async () => FIXTURE_RECOMMENDATIONS,
-}
+  recommendations: FIXTURE_RECOMMENDATIONS,
+})

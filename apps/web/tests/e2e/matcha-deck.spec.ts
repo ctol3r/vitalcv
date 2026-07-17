@@ -16,7 +16,9 @@ async function openDeck(page: Page) {
   // The real holder frame has persistent status/launch trackers, so network
   // idle is not a meaningful readiness signal. The deck's loaded marker is.
   await page.goto(HARNESS, { waitUntil: 'domcontentloaded' })
-  await expect(page.locator('[data-mdk-loaded]')).toBeVisible()
+  // A cold worker may wait on the server-only preview boundary to compile;
+  // use the component marker, not a network heuristic, with CI-sized room.
+  await expect(page.locator('[data-mdk-loaded]')).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('[data-mdk-sample-banner]')).toBeVisible()
 }
 
@@ -127,9 +129,16 @@ test.describe('MATCHA Deck — pointer physics', () => {
     expect(transform === 'none' || /matrix\(1, 0, 0, 1, 0, 0\)/.test(transform)).toBe(true)
   })
 
+  /**
+   * 90px is deliberately short of the ~120px distance threshold, so this can
+   * only commit on velocity — it is the end-to-end proof that a flick reaches
+   * the velocity rule through real pointer input. The rule itself (700px/s,
+   * both boundaries, dominant axis) is pinned exactly and without timing
+   * dependence in __tests__/matcha-deck-drag-intent.test.ts.
+   */
   test('a fast flick commits on velocity even below the distance threshold', async ({ page }) => {
     await openDeck(page)
-    await drag(page, 90, 0, 3) // short but fast
+    await drag(page, 90, 0, 1) // single full-distance move ⇒ a real flick
 
     await expect(stage(page)).toHaveAttribute('data-mdk-active', 'fx-rec-002', { timeout: 3000 })
     expect(await signalCount(page, 'interested')).toBe(1)

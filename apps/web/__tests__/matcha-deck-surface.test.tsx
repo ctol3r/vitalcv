@@ -17,7 +17,12 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DiscoverSurface } from '@/components/matcha-deck/DiscoverSurface'
-import { FIXTURE_RECOMMENDATIONS } from '@/components/matcha-deck/fixtures'
+import {
+  FIXTURE_RECOMMENDATIONS,
+  PREVIEW_FIXTURE_DECK_PAYLOAD,
+} from '@/components/matcha-deck/fixtures'
+import { createDeckSourcePayload } from '@/components/matcha-deck/sourceBoundary'
+import type { DeckSourcePayload } from '@/components/matcha-deck/types'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -40,12 +45,12 @@ function stubMatchMedia() {
   })
 }
 
-async function renderSurface() {
+async function renderSurface(payload: DeckSourcePayload = PREVIEW_FIXTURE_DECK_PAYLOAD) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
   await act(async () => {
-    root.render(<DiscoverSurface />)
+    root.render(<DiscoverSurface payload={payload} />)
   })
   // Flush the async fixture load.
   await act(async () => {})
@@ -124,6 +129,24 @@ describe('MATCHA Discover surface (fixtures, reduced motion)', () => {
 
     // The deck emitted a viewed signal for the first card, exactly once.
     expect(signals().filter((s) => s.action === 'viewed')).toHaveLength(1)
+    await view.unmount()
+  })
+
+  it('renders an honest empty state without substituting preview roles', async () => {
+    const view = await renderSurface(
+      createDeckSourcePayload({
+        mode: 'empty',
+        sourceLabel: 'Live MATCHA feed unavailable',
+        recommendations: [],
+        emptyMessage: 'Live recommendations are unavailable. No sample roles were substituted.',
+      }),
+    )
+
+    expect(view.container.querySelector('[data-matcha-deck-source-mode="empty"]')).toBeTruthy()
+    expect(view.container.querySelector('[data-mdk-sample-banner]')).toBeFalsy()
+    expect(view.container.innerHTML).toContain('No live recommendations are available.')
+    expect(view.container.innerHTML).toContain('No sample roles were substituted.')
+    expect(view.container.innerHTML).not.toContain('Sample Health System')
     await view.unmount()
   })
 

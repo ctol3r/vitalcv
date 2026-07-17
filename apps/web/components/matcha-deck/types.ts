@@ -117,10 +117,25 @@ export interface DeckSignal {
   opportunityVersion: string
 }
 
-/** Adapter contract: J1 serves fixtures, J3+ serves live MATCHA recommendations. */
+export type MatchaDeckSourceMode = 'live' | 'preview_fixture' | 'empty'
+
+/**
+ * Serializable server-to-client source boundary. Server components select the
+ * mode; the client never decides whether preview fixtures are allowed.
+ */
+export interface DeckSourcePayload {
+  mode: MatchaDeckSourceMode
+  sourceLabel: string
+  recommendations: DeckRecommendation[]
+  emptyMessage?: string
+}
+
+/** Runtime adapter consumed by the interactive deck. */
 export interface DeckSource {
+  mode: MatchaDeckSourceMode
   /** Human label for the deck's data source, shown when the deck is not live. */
   sourceLabel: string
   isFixture: boolean
+  emptyMessage?: string
   load(): Promise<DeckRecommendation[]>
 }
