@@ -13,7 +13,9 @@ import { expect, test, type Page } from '@playwright/test'
 const HARNESS = '/dev/matcha-deck'
 
 async function openDeck(page: Page) {
-  await page.goto(HARNESS, { waitUntil: 'networkidle' })
+  // The real holder frame has persistent status/launch trackers, so network
+  // idle is not a meaningful readiness signal. The deck's loaded marker is.
+  await page.goto(HARNESS, { waitUntil: 'domcontentloaded' })
   await expect(page.locator('[data-mdk-loaded]')).toBeVisible()
   await expect(page.locator('[data-mdk-sample-banner]')).toBeVisible()
 }
@@ -24,6 +26,19 @@ function stage(page: Page) {
 
 function activeCard(page: Page) {
   return page.locator('.mdk-card--active')
+}
+
+async function expectNoOverlap(page: Page) {
+  const actionBar = page.locator('[data-matcha-deck-actions]')
+  await actionBar.scrollIntoViewIfNeeded()
+  const actions = await actionBar.boundingBox()
+  const bottomNav = await page.locator('[data-holder-mobile-bottom-nav]').boundingBox()
+
+  expect(actions, 'deck action bar must have a bounding box').not.toBeNull()
+  expect(bottomNav, 'holder bottom navigation must have a bounding box').not.toBeNull()
+  expect(actions!.y + actions!.height, 'deck actions must end above the holder nav').toBeLessThanOrEqual(
+    bottomNav!.y,
+  )
 }
 
 async function activeId(page: Page): Promise<string> {
@@ -192,9 +207,22 @@ test.describe('MATCHA Deck — mobile viewport', () => {
     for (const name of ['Pass', 'Details', 'Interested'] as const) {
       await expect(page.getByRole('button', { name })).toBeVisible()
     }
+    await expect(page.getByRole('button', { name: 'Send feedback' })).toHaveCount(0)
+    await expectNoOverlap(page)
 
     const { width } = await cardCenter(page)
     await drag(page, Math.min(120, width * 0.28) + 70, 0, 10)
     await expect(stage(page)).toHaveAttribute('data-mdk-active', 'fx-rec-002', { timeout: 3000 })
   })
 })
+
+for (const viewport of [
+  { width: 430, height: 932, label: '430 × 932' },
+  { width: 844, height: 390, label: 'landscape mobile' },
+] as const) {
+  test(`MATCHA Deck — ${viewport.label}: holder nav never overlaps deck actions`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await openDeck(page)
+    await expectNoOverlap(page)
+  })
+}

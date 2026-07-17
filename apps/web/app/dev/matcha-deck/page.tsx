@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 
+import { HolderWorkspaceFrame } from '@/components/holder/HolderWorkspaceFrame'
 import { DiscoverSurface } from '@/components/matcha-deck/DiscoverSurface'
+import { buildClinicianMobileData } from '@/lib/mobile/clinician-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,9 +27,23 @@ export default function MatchaDeckDevHarness() {
   const enabled = process.env.NODE_ENV !== 'production' || process.env.MATCHA_DECK_PREVIEW === '1'
   if (!enabled) notFound()
 
+  const initialData = buildClinicianMobileData({
+    base: {
+      signedIn: true,
+      workspace: null,
+      trustState: null,
+      applications: [],
+      opportunities: [],
+      missingForHigherMatches: [],
+      refreshedAt: '2026-07-16T00:00:00.000Z',
+    },
+    profileCompleteness: null,
+    rawTrustHistory: [],
+  })
+
   return (
-    <div className="mz mz-paper mz-persona-holder" style={{ minHeight: '100vh' }}>
+    <HolderWorkspaceFrame initialData={initialData} showClerkAccount={false}>
       <DiscoverSurface />
-    </div>
+    </HolderWorkspaceFrame>
   )
 }

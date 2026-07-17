@@ -582,7 +582,12 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
         </div>
 
         {/* Explicit action bar — every gesture has a button */}
-        <div className="mdk-actions" role="toolbar" aria-label="Deck actions">
+        <div
+          className="mdk-actions"
+          role="toolbar"
+          aria-label="Deck actions"
+          data-matcha-deck-actions="true"
+        >
           <button
             type="button"
             className="mdk-btn"
