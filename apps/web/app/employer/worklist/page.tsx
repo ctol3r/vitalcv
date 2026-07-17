@@ -4,6 +4,7 @@ import type { WorklistDbRow } from '@/lib/verifier/worklistRepo';
 import { WorklistPanel } from '@/components/verifier/WorklistPanel';
 import type { WorklistItem } from '@/lib/verifier/worklist';
 import { Reveal } from '@/components/motion/Reveal';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 // NPI is not stored on ReceiptCandidate (a future wave adds that lookup).
 // candidateId is used as the identifier in the panel until then.
@@ -32,9 +33,9 @@ export default async function EmployerWorklistPage(): Promise<ReactElement> {
   return (
     <main
       aria-label="Employer worklist"
-      className="mz mz-paper mz-persona-employer min-h-screen px-4 py-8 sm:px-6 lg:px-8"
+      className="mz mz-paper mz-persona-employer min-h-screen"
     >
-      <div className="mz-ambient mx-auto grid max-w-6xl gap-6">
+      <PageFrame mode="workflow" className="mz-ambient grid gap-6">
         <Reveal variant="fade">
           <div className="flex flex-col gap-3">
             <p className="mz-eyebrow">
@@ -62,7 +63,7 @@ export default async function EmployerWorklistPage(): Promise<ReactElement> {
         <Reveal delay={80}>
           <WorklistPanel items={items} />
         </Reveal>
-      </div>
+      </PageFrame>
     </main>
   );
 }

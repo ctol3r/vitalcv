@@ -19,6 +19,7 @@ import { completenessPercent } from '@/lib/matcha/preferences';
 import { loadStoredPreferences } from '@/lib/matcha/storage';
 import { FEATURES } from '@/lib/features';
 import { OpportunitySimulator } from '@/components/matcha/OpportunitySimulator';
+import { PageFrame } from '@/components/layout/PageFrame';
 import {
   buildCareerScoreboard,
   type RecognitionSummaryInput,
@@ -121,7 +122,7 @@ export default function CareerScoreboardSurface() {
         <span className="vcv-mono text-[10px] opacity-70">{npi ? `NPI ${npi}` : '…'}</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <PageFrame mode="product" className="max-w-5xl space-y-6">
         <header>
           <p className="vcv-mono text-xs vcv-muted">{name}</p>
           <h1 className="vcv-title text-3xl mt-1">{board.headline}</h1>
@@ -139,7 +140,7 @@ export default function CareerScoreboardSurface() {
         <p className="text-xs vcv-subtle max-w-2xl leading-relaxed border-t pt-4" style={{ borderColor: 'var(--hairline, #e3e7e3)' }}>
           {board.note}
         </p>
-      </div>
+      </PageFrame>
     </div>
   );
 }

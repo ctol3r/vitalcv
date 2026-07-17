@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { SignOutButton, UserButton, useUser } from '@clerk/nextjs';
 import { ChevronRight, IdCard, Share2, Settings as SettingsIcon, UserRound } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
@@ -24,7 +25,7 @@ export default function SettingsSurface() {
   const name = [person?.firstName, person?.lastName].filter(Boolean).join(' ') || null;
 
   return (
-    <main className="mz mz-paper mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
+    <PageFrame as="main" mode="product" className="vcv-page-frame--mobile-nav mz mz-paper max-w-3xl flex flex-col gap-5">
       <header className="flex items-center gap-3">
         <div className="mz-inset inline-flex h-11 w-11 items-center justify-center">
           <SettingsIcon className="h-5 w-5" style={{ color: 'var(--ink-700)' }} aria-hidden />
@@ -136,7 +137,7 @@ export default function SettingsSurface() {
           </div>
         </div>
       </section>
-    </main>
+    </PageFrame>
   );
 }
 

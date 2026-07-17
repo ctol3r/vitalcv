@@ -5,6 +5,7 @@ import { ArrowRight, ShieldCheck, FileCode2, Activity } from 'lucide-react';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
 import { StateChip } from '@/components/vital/StateChip';
 import { EVIDENCE_STATE, type EvidenceState } from '@/lib/vital/evidenceState';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +53,7 @@ export default async function TrustCenterPage() {
 
   return (
     <main className="mz mz-paper">
-      <div className="mx-auto max-w-4xl px-6 py-16 sm:py-20">
+      <PageFrame mode="marketing" className="max-w-5xl">
         {/* Hero */}
         <p className="mz-eyebrow">Trust Center</p>
         <h1 className="mz-display" style={{ marginTop: 14, maxWidth: 820 }}>
@@ -194,7 +195,7 @@ export default async function TrustCenterPage() {
             </a>
           </div>
         </Section>
-      </div>
+      </PageFrame>
     </main>
   );
 }

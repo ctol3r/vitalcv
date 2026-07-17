@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmployerProfileSurface } from '@/components/employer/EmployerProfileSurface';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 // The surface reads Clerk + the org profile at request time, so this page can't
 // be statically prerendered. Mirrors the clinician profile page.
@@ -16,8 +17,8 @@ export default function EmployerProfilePage() {
   // org data is loaded inside EmployerProfileSurface, client-side, so signed-out
   // viewers and tests get a calm, deterministic placeholder.
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:py-10">
+    <PageFrame as="main" mode="workflow" className="max-w-3xl space-y-5">
       <EmployerProfileSurface />
-    </main>
+    </PageFrame>
   );
 }

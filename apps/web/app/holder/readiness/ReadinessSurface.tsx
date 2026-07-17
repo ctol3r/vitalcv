@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { PageFrame } from '@/components/layout/PageFrame';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Award, Building2, Share2, TrendingUp } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
@@ -144,7 +145,7 @@ export default function ReadinessSurface() {
         <span className="vcv-mono text-[10px] opacity-70">{npi ? `NPI ${npi}` : '…'}</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <PageFrame mode="product" className="max-w-5xl space-y-6">
         {/* Product loop — Profile → Readiness → Recognition → Share → Opportunity */}
         <ProductLoopRail
           variant="doc"
@@ -337,7 +338,7 @@ export default function ReadinessSurface() {
             )}
           </>
         )}
-      </div>
+      </PageFrame>
     </div>
   );
 }
