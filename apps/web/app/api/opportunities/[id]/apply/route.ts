@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const res = await fetch(`${MARKETPLACE_BACKEND}/api/opportunities/${id}/apply`, {
       method: 'POST',
-      headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+      headers: await buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
       body,
       cache: 'no-store',
       signal: AbortSignal.timeout(12_000),

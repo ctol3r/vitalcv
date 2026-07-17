@@ -11,7 +11,7 @@ export async function loadApplicationEvidenceView(
   const session = await auth();
   if (!session.userId) return { status: 'unauthorized' };
 
-  const headers = buildMarketplaceHeaders(session);
+  const headers = await buildMarketplaceHeaders(session);
   await applyIdentityHeaders(headers, { userId: session.userId });
 
   try {
