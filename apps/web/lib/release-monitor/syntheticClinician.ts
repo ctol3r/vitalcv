@@ -453,6 +453,53 @@ export async function reachRoute(
   return analyzeNavigation(hops, pathOf(path));
 }
 
+export interface BackendIdentityProbeResult {
+  ok: boolean;
+  status: number;
+  detail: string;
+}
+
+/**
+ * Exercise ONE identity-bearing web→backend proxy with the synthetic session:
+ * GET /api/me/workspaces. The proxy mints a Clerk bearer via getToken() and
+ * forwards it with `x-clerk-user-id`; the backend's verifiedIdentity middleware
+ * sees exactly the request shape real signed-in traffic produces.
+ *
+ * This is the CLERK_JWT_VERIFICATION canary: in `shadow` it emits
+ * verified_match telemetry on every monitor run; in `enforce` it turns the
+ * release status red the moment the token path breaks (backend 401 propagates
+ * through the proxy). The page sweep alone cannot see this — the /holder
+ * surfaces render in the web tier without calling the backend.
+ *
+ * Uses /api/me/workspaces because it is a GET, requires identity (401 bare),
+ * and returns 200 for a brand-new user (ensureWorkspaceUser upserts — the same
+ * already-documented residual User row as the rest of the walkthrough).
+ */
+export async function probeBackendIdentityProxy(
+  deps: SyntheticClinicianDeps,
+  session: ClinicianSession,
+): Promise<BackendIdentityProbeResult> {
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  try {
+    const res = await fetchImpl(`${deps.appBase}/api/me/workspaces`, {
+      headers: { ...authHeaders(session), Accept: 'application/json' },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.status === 200) {
+      return { ok: true, status: 200, detail: 'identity-bearing proxy 200 (bearer verified end to end)' };
+    }
+    const body = await res.text().catch(() => '');
+    return {
+      ok: false,
+      status: res.status,
+      detail: `identity-bearing proxy → ${res.status}${body ? ` ${body.slice(0, 160)}` : ''}`,
+    };
+  } catch (err) {
+    return { ok: false, status: 0, detail: `identity-bearing proxy error: ${(err as Error).message}` };
+  }
+}
+
 export interface CleanupResult {
   attempted: boolean;
   ok: boolean;

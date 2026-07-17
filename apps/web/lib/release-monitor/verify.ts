@@ -15,7 +15,13 @@
  */
 
 import { HOLDER_ROUTES, pathOf, type NavOutcome } from './holderRoutes';
-import type { ClinicianSession, CleanupResult, MintResult, WarmUpResult } from './syntheticClinician';
+import type {
+  BackendIdentityProbeResult,
+  ClinicianSession,
+  CleanupResult,
+  MintResult,
+  WarmUpResult,
+} from './syntheticClinician';
 
 export interface ReleaseCheck {
   name: string;
@@ -54,6 +60,14 @@ export interface VerifyDeps {
   warmUp: (session: ClinicianSession) => Promise<WarmUpResult>;
   refresh: (session: ClinicianSession) => Promise<boolean>;
   reach: (session: ClinicianSession, path: string) => Promise<NavOutcome>;
+  /**
+   * One identity-bearing web→backend proxy call (GET /api/me/workspaces) with
+   * the synthetic session — the CLERK_JWT_VERIFICATION canary. The page sweep
+   * cannot detect a broken enforce flip because the /holder surfaces render
+   * without calling the backend; this check 401s (reds) the instant the
+   * bearer-forwarding path breaks under enforce.
+   */
+  probeBackendIdentity: (session: ClinicianSession) => Promise<BackendIdentityProbeResult>;
   runDeployCheck: () => Promise<{ ok: boolean; detail: string }>;
   cleanup: (created: { userId: string | null; orgId: string | null }) => Promise<CleanupResult>;
 }
@@ -105,6 +119,7 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
       for (const r of routes) {
         checks.push({ name: `holder:${r}`, ok: false, critical: true, detail: 'skipped — no session' });
       }
+      checks.push({ name: 'backend_identity_proxy', ok: false, critical: true, detail: 'skipped — no session' });
     } else {
       const session = minted.session;
       checks.push({ name: 'synthetic_session', ok: true, critical: true, detail: `minted clinician ${session.userId}` });
@@ -135,6 +150,15 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
             : `${outcome.reason ?? 'fail'} (final ${outcome.finalStatus ?? '∅'} ${outcome.finalUrl ?? ''})`,
         });
       }
+
+      // 6b. Identity-bearing backend proxy — the CLERK_JWT_VERIFICATION canary.
+      const identity = await deps.probeBackendIdentity(session);
+      checks.push({
+        name: 'backend_identity_proxy',
+        ok: identity.ok,
+        critical: true,
+        detail: identity.detail,
+      });
     }
 
     // 7. Deployment integrity (pnpm check:deploy).

@@ -30,6 +30,7 @@ import { runReleaseVerification } from '../apps/web/lib/release-monitor/verify.t
 import {
   cleanupClinician,
   mintClinicianSession,
+  probeBackendIdentityProxy,
   reachRoute,
   refreshSessionToken,
   warmUpClinicianSession,
@@ -160,6 +161,7 @@ async function main(): Promise<void> {
     warmUp: (s: ClinicianSession) => warmUpClinicianSession(scDeps, s),
     refresh: (s: ClinicianSession) => refreshSessionToken(scDeps, s),
     reach: (s: ClinicianSession, p: string) => reachRoute(scDeps, s, p),
+    probeBackendIdentity: (s: ClinicianSession) => probeBackendIdentityProxy(scDeps, s),
     runDeployCheck,
     cleanup: (created) => cleanupClinician(scDeps, created),
   });
