@@ -533,10 +533,11 @@ export default function CareerGraph({
     return best;
   };
   const onPointerDown = (e: React.PointerEvent) => {
-    // Interaction is consent to explore: fast-forward the narrated build
-    // rather than making the visitor wait out the story.
-    if (narratedRef.current && clockRef.current < INTRO_END) {
-      clockRef.current = INTRO_END;
+    // Interaction is consent to explore: fast-forward PAST the narrated build
+    // AND its caption tail, so the graph settles at once instead of flashing
+    // the final caption back on the next interval tick.
+    if (narratedRef.current && clockRef.current < INTRO_CAPTIONS_CLEAR) {
+      clockRef.current = INTRO_CAPTIONS_CLEAR;
       setIntroPhase(-1);
     }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);

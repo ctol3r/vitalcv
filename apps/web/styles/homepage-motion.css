@@ -398,6 +398,11 @@
   padding-block: 0.16em;
 }
 
+/* The hero eyebrow carries the accent so the primary palette registers at the
+   very top of the page; its rule-line softens the same hue. */
+[data-home-eyebrow] { color: var(--accent); }
+[data-home-eyebrow]::after { background: color-mix(in oklab, var(--accent) 45%, transparent); }
+
 /* ── `type` variant: the Palantir typewriter register ───────────────────────
    Characters are all laid out from the first frame (opacity 0 until typed), so
    typing can never reflow the page. The caret is a block the height of the
@@ -409,7 +414,10 @@
   margin-left: 0.04em;
   vertical-align: baseline;
   transform: translateY(0.08em);
-  background: currentColor;
+  /* The caret carries the primary accent (indigo/violet) so the typing cursor
+     is a point of colour on every heading — part of leaning into the purple/
+     green scheme. */
+  background: var(--accent, currentColor);
   animation: type-caret-blink 1.06s step-end infinite;
 }
 

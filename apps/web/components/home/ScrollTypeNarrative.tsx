@@ -215,7 +215,14 @@ export function ScrollTypeNarrative({
             className="h-1 rounded-full transition-all duration-300"
             style={{
               width: i === idx ? 18 : 6,
-              backgroundColor: i <= idx ? 'var(--vt-text-primary)' : 'var(--vt-border)',
+              // Reached clauses fill in source-green; the active clause is the
+              // deeper accent — the two primary hues read together on the rail.
+              backgroundColor:
+                i === idx
+                  ? 'var(--accent)'
+                  : i < idx
+                    ? 'var(--vt-accent-emerald)'
+                    : 'var(--vt-border)',
             }}
           />
         ))}

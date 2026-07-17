@@ -61,8 +61,14 @@ export type ScrollScrubHeadingProps = {
   startOffset?: string;
   /** Viewport position where the reveal completes. */
   endOffset?: string;
-  /** One phrase that finishes in source-green instead of primary ink. */
+  /** One phrase that finishes in the accent colour instead of primary ink. */
   accentWords?: string[];
+  /**
+   * The accent colour for accentWords. Defaults to source-green
+   * (`--vt-accent-emerald`); pass `'var(--accent)'` for the persona indigo/
+   * violet. Used to spread the purple/green primary palette across headings.
+   */
+  accentColor?: string;
   /** Hero/manifesto mode: taller runway + sticky stage. Use once per page. */
   pin?: boolean;
   /**
@@ -168,6 +174,7 @@ function Character({
   progress,
   choreography,
   accent,
+  accentColor,
   scene,
   lineIndex,
 }: {
@@ -177,6 +184,7 @@ function Character({
   progress: MotionValue<number>;
   choreography: Choreography;
   accent: boolean;
+  accentColor: string;
   scene: boolean;
   lineIndex: number;
 }) {
@@ -200,7 +208,7 @@ function Character({
     range,
     [
       'var(--vt-text-muted)',
-      accent ? 'var(--vt-accent-emerald)' : 'var(--vt-text-primary)',
+      accent ? accentColor : 'var(--vt-text-primary)',
     ],
     options,
   );
@@ -221,6 +229,7 @@ function Word({
   total,
   progress,
   choreography,
+  accentColor,
   scene,
   lineIndex,
 }: {
@@ -228,6 +237,7 @@ function Word({
   total: number;
   progress: MotionValue<number>;
   choreography: Choreography;
+  accentColor: string;
   scene: boolean;
   lineIndex: number;
 }) {
@@ -244,6 +254,7 @@ function Word({
           progress={progress}
           choreography={choreography}
           accent={word.accent}
+          accentColor={accentColor}
           scene={scene}
           lineIndex={lineIndex}
         />
@@ -261,6 +272,7 @@ export function ScrollScrubHeading({
   startOffset = '85%',
   endOffset = '35%',
   accentWords,
+  accentColor = 'var(--vt-accent-emerald)',
   pin = false,
   stageFooter,
   ...rest
@@ -437,7 +449,10 @@ export function ScrollScrubHeading({
                               <span
                                 data-motion-character=""
                                 className={word.accent ? 'motion-character type-accent' : 'motion-character'}
-                                style={{ opacity: idx < typedReveal ? 1 : 0 }}
+                                style={{
+                                  opacity: idx < typedReveal ? 1 : 0,
+                                  ...(word.accent ? { color: accentColor } : null),
+                                }}
                               >
                                 {char}
                               </span>
@@ -479,6 +494,7 @@ export function ScrollScrubHeading({
                       total={segmented.characterCount}
                       progress={progress}
                       choreography={choreography}
+                      accentColor={accentColor}
                       scene={sceneMotion}
                       lineIndex={lineIndex}
                     />

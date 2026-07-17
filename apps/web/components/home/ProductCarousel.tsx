@@ -314,6 +314,7 @@ export function ProductCarousel() {
             text="One career record. Six reusable surfaces."
             accentWords={['Six reusable surfaces.']}
             variant="type"
+            accentColor="var(--accent)"
           />
         </div>
         <div className="product-carousel-controls">

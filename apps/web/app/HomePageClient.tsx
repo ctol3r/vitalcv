@@ -152,6 +152,7 @@ export default function HomePageClient() {
                 data-home-hero-h1=""
                 text="Find the opportunity. Prove your career once. Start faster."
                 accentWords={['once.']}
+                accentColor="var(--accent)"
               />
               <ScrollTypeNarrative
                 data-home-hero-subhead=""
@@ -239,18 +240,23 @@ export default function HomePageClient() {
               the first thing a visitor sees moving. After an NPI is entered it
               becomes that provider's live result. The static wallet mockup it
               replaced said nothing the copy didn't already say. */}
+          {/* Light graph (Chris, 2026-07-17: "light like the background").
+              transparentBg lets the paper surface show through the canvas and
+              dissolves the edges into the card; the light theme's violet
+              (issuer) + green (verifier) nodes carry the primary palette
+              against paper. */}
           <div className={submittedNpi ? 'flex justify-center' : 'hidden lg:block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
               <div
                 data-home-hero-graph=""
-                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--ink-900,#0e1414)] shadow-[0_40px_90px_-60px_rgba(20,20,20,0.55)]"
+                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]"
               >
-                <CareerGraph initialTheme="dark" initialPanelOpen={false} narratedIntro />
+                <CareerGraph initialTheme="light" initialPanelOpen={false} transparentBg narratedIntro />
                 <Link
                   href="/evidence-network"
-                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/85 backdrop-blur-sm hover:bg-black/60"
+                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--vt-text-secondary)] backdrop-blur-sm hover:bg-[var(--vt-surface)]"
                 >
                   Explore the network <ArrowRight size={12} aria-hidden="true" />
                 </Link>
