@@ -16,8 +16,12 @@ jest.mock('../../../graphql/prisma_client', () => ({
     workspaceMembership: { findUnique: jest.fn() },
   },
 }));
+jest.mock('../../trust/trustStateEngine', () => ({
+  computeClinicianTrustState: jest.fn(),
+}));
 
 import prisma from '../../../graphql/prisma_client';
+import { computeClinicianTrustState } from '../../trust/trustStateEngine';
 import { HttpError } from '../../../utils/httpError';
 import {
   sealPacket,
@@ -25,10 +29,57 @@ import {
 } from '../applicationPacketService';
 import {
   applicationPacketLegacyNotice,
+  compareApplicationEvidence,
   parseApplicationPacketApplicationId,
   parseRequestedPacketVersion,
   readApplicationPacket,
+  readApplicationEvidenceView,
 } from '../applicationPacketReadService';
+
+const computeTrustStateMock = computeClinicianTrustState as jest.MockedFunction<typeof computeClinicianTrustState>;
+
+describe('compareApplicationEvidence', () => {
+  const field = (overrides: Record<string, unknown> = {}) => ({
+    sectionId: 'identity',
+    fieldId: 'identity.npi.nppes',
+    label: 'NPI',
+    value: '1558302470',
+    evidenceState: 'source_backed' as const,
+    sourceId: 'nppes',
+    sourceObservedAt: '2026-07-16T12:00:00.000Z',
+    freshUntil: '2026-10-14T12:00:00.000Z',
+    artifactId: null,
+    receiptId: null,
+    ...overrides,
+  });
+
+  it('classifies added, resolved, unavailable, stale, changed, and removed evidence explicitly', () => {
+    const submitted = [
+      field({ fieldId: 'resolved', evidenceState: 'needs_review' }),
+      field({ fieldId: 'unavailable' }),
+      field({ fieldId: 'stale', freshUntil: '2026-08-01T00:00:00.000Z' }),
+      field({ fieldId: 'changed', value: 'before' }),
+      field({ fieldId: 'removed' }),
+    ];
+    const current = [
+      field({ fieldId: 'added' }),
+      field({ fieldId: 'resolved', evidenceState: 'checked' }),
+      field({ fieldId: 'unavailable', evidenceState: 'unavailable' }),
+      field({ fieldId: 'stale', freshUntil: '2026-06-01T00:00:00.000Z' }),
+      field({ fieldId: 'changed', value: 'after' }),
+    ];
+
+    expect(compareApplicationEvidence(submitted, current, new Date('2026-07-16T14:00:00.000Z'))
+      .map(({ fieldId, kind }) => [fieldId, kind])).toEqual([
+      ['added', 'added_after_submission'],
+      ['changed', 'changed_after_submission'],
+      ['removed', 'removed_after_submission'],
+      ['resolved', 'resolved_after_submission'],
+      ['stale', 'became_stale'],
+      ['unavailable', 'became_unavailable'],
+    ]);
+  });
+});
 
 const APPLICATION_ID = 'a1111111-1111-4111-8111-111111111111';
 const OTHER_APPLICATION_ID = 'a2222222-2222-4222-8222-222222222222';
@@ -131,6 +182,40 @@ beforeEach(() => {
   prismaMock.personProfile.findUnique.mockResolvedValue({ id: 'employer-profile-id' });
   prismaMock.organizationProfile.findUnique.mockResolvedValue({ id: 'employer-org-profile-id' });
   prismaMock.workspaceMembership.findUnique.mockResolvedValue(null);
+});
+
+describe('readApplicationEvidenceView', () => {
+  it('keeps the submitted packet immutable while comparing the current canonical facts', async () => {
+    prismaMock.application.findUnique
+      .mockResolvedValueOnce(application())
+      .mockResolvedValueOnce({ npi: '1558302470' });
+    computeTrustStateMock.mockResolvedValue({
+      npi: '1558302470',
+      computed_at: '2026-07-16T14:00:00.000Z',
+      methodology_version: '243.4',
+      facts: [{
+        factType: 'npi', source: 'NPPES', status: 'source-backed', details: '1558302470',
+        verifiedAt: '2026-07-16T14:00:00.000Z', expiresAt: null,
+      }],
+    } as unknown as Awaited<ReturnType<typeof computeClinicianTrustState>>);
+
+    const result = await readApplicationEvidenceView({ applicationId: APPLICATION_ID, clerkUserId: OWNER });
+    expect(result.submittedPacket?.methodologyVersion).toBe('243.3');
+    expect(result.currentEvidence.methodologyVersion).toBe('243.4');
+    expect(result.currentEvidence.status).toBe('available');
+    expect(result.currentEvidence.notice).toContain('does not alter the submitted packet');
+  });
+
+  it('still returns the verified submitted packet when current sources fail', async () => {
+    prismaMock.application.findUnique
+      .mockResolvedValueOnce(application())
+      .mockResolvedValueOnce({ npi: '1558302470' });
+    computeTrustStateMock.mockRejectedValue(new Error('connector unavailable'));
+
+    const result = await readApplicationEvidenceView({ applicationId: APPLICATION_ID, clerkUserId: OWNER });
+    expect(result.submittedPacket?.integrity).toBe('valid');
+    expect(result.currentEvidence).toMatchObject({ status: 'unavailable', fields: [] });
+  });
 });
 
 describe('readApplicationPacket', () => {

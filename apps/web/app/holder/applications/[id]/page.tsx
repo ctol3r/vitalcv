@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import ClinicianApplicationDetailSurface from '@/components/mobile/ClinicianApplicationDetailSurface';
+import { loadApplicationEvidenceView } from '@/lib/server/applicationEvidence';
 
 export const metadata: Metadata = {
   title: 'Application',
-  description: 'Your application status, timeline, and readiness snapshot.',
+  description: 'Your application status, immutable submitted packet, and current Wallet evidence.',
 };
 
 // Detail page for a single application. ApplyModal redirects here on a
@@ -16,5 +17,6 @@ export default async function HolderApplicationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ClinicianApplicationDetailSurface applicationId={id} />;
+  const evidenceResult = await loadApplicationEvidenceView(id);
+  return <ClinicianApplicationDetailSurface applicationId={id} evidenceResult={evidenceResult} />;
 }

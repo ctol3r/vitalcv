@@ -20,17 +20,20 @@ jest.mock('../../services/decision/capsuleEngine', () => ({
 jest.mock('../../services/opportunities/applicationPacketReadService', () => ({
   ...jest.requireActual('../../services/opportunities/applicationPacketReadService'),
   readApplicationPacket: jest.fn(),
+  readApplicationEvidenceView: jest.fn(),
 }));
 
 import {
   readApplicationPacket,
+  readApplicationEvidenceView,
 } from '../../services/opportunities/applicationPacketReadService';
 import { HttpError } from '../../utils/httpError';
 import type { VerifiedAuth } from '../../middleware/verifiedIdentity';
 import { registerApplicationRoutes } from '../applications';
 
 const APPLICATION_ID = 'a1111111-1111-4111-8111-111111111111';
-const readPacketMock = readApplicationPacket as jest.MockedFunction<typeof readApplicationPacket>;
+const readSubmittedPacketMock = readApplicationPacket as jest.MockedFunction<typeof readApplicationPacket>;
+const readPacketMock = readApplicationEvidenceView as jest.MockedFunction<typeof readApplicationEvidenceView>;
 
 function responseFixture() {
   return {
@@ -41,6 +44,7 @@ function responseFixture() {
     submittedPacket: {
       packetVersion: 2,
       packetHash: 'a'.repeat(64),
+      clinicianNpi: '1558302470',
       integrity: 'valid' as const,
       purpose: 'Apply with VitalCV',
       recipient: 'Packet Test Health',
@@ -49,9 +53,18 @@ function responseFixture() {
       selectedSections: ['identity'],
       fields: [],
       methodologyVersion: '243.3',
+      clinicianNote: null,
       lifecycle: 'active' as const,
     },
     legacyNotice: null,
+    currentEvidence: {
+      status: 'available' as const,
+      observedAt: '2026-07-16T13:00:00.000Z',
+      methodologyVersion: '243.3',
+      fields: [],
+      changesSinceSubmission: [],
+      notice: 'Current Wallet evidence is shown separately and does not alter the submitted packet.',
+    },
   };
 }
 
@@ -73,6 +86,8 @@ function buildApp(verifiedUserId?: string) {
 }
 
 beforeEach(() => {
+  readSubmittedPacketMock.mockReset();
+  readSubmittedPacketMock.mockResolvedValue(responseFixture());
   readPacketMock.mockReset();
   readPacketMock.mockResolvedValue(responseFixture());
 });
@@ -83,7 +98,7 @@ describe('GET /api/applications/:applicationId/packet', () => {
       .get(`/api/applications/${APPLICATION_ID}/packet`)
       .set('x-clerk-user-id', 'clinician-owner')
       .expect(401);
-    expect(readPacketMock).not.toHaveBeenCalled();
+    expect(readSubmittedPacketMock).not.toHaveBeenCalled();
   });
 
   it('uses verified identity while ignoring client identity, role, and organization assertions', async () => {
@@ -95,12 +110,24 @@ describe('GET /api/applications/:applicationId/packet', () => {
       .set('x-organization-id', 'attacker-org')
       .expect(200);
 
-    expect(readPacketMock).toHaveBeenCalledWith({
+    expect(readSubmittedPacketMock).toHaveBeenCalledWith({
       applicationId: APPLICATION_ID,
       clerkUserId: 'clinician-owner',
       packetVersion: 2,
     });
     expect(response.body).toEqual(responseFixture());
+  });
+
+  it('adds current Wallet comparison only when the evidence view explicitly requests it', async () => {
+    await request(buildApp('clinician-owner'))
+      .get(`/api/applications/${APPLICATION_ID}/packet?includeCurrent=true`)
+      .expect(200);
+    expect(readPacketMock).toHaveBeenCalledWith({
+      applicationId: APPLICATION_ID,
+      clerkUserId: 'clinician-owner',
+      packetVersion: undefined,
+    });
+    expect(readSubmittedPacketMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -112,11 +139,11 @@ describe('GET /api/applications/:applicationId/packet', () => {
     await request(buildApp('clinician-owner'))
       .get(path)
       .expect(400);
-    expect(readPacketMock).not.toHaveBeenCalled();
+    expect(readSubmittedPacketMock).not.toHaveBeenCalled();
   });
 
   it('passes through the honest legacy response without exposing database fields', async () => {
-    readPacketMock.mockResolvedValue({
+    readSubmittedPacketMock.mockResolvedValue({
       ...responseFixture(),
       mode: 'legacy',
       submittedPacket: null,
@@ -133,13 +160,13 @@ describe('GET /api/applications/:applicationId/packet', () => {
   });
 
   it('does not leak packet or organization metadata for denied and integrity-failed reads', async () => {
-    readPacketMock.mockRejectedValueOnce(new HttpError(404, 'Application packet not found.'));
+    readSubmittedPacketMock.mockRejectedValueOnce(new HttpError(404, 'Application packet not found.'));
     const denied = await request(buildApp('other-user'))
       .get(`/api/applications/${APPLICATION_ID}/packet`)
       .expect(404);
     expect(denied.body).toEqual({ error: { code: 'NOT_FOUND', message: 'Application packet not found.' } });
 
-    readPacketMock.mockRejectedValueOnce(new HttpError(409, 'Application packet integrity verification failed.'));
+    readSubmittedPacketMock.mockRejectedValueOnce(new HttpError(409, 'Application packet integrity verification failed.'));
     const integrity = await request(buildApp('clinician-owner'))
       .get(`/api/applications/${APPLICATION_ID}/packet`)
       .expect(409);
