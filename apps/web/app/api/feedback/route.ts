@@ -30,7 +30,7 @@ function readRole(session: Awaited<ReturnType<typeof auth>>): string | null {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  const headers = buildMarketplaceHeaders(session, {
+  const headers = await buildMarketplaceHeaders(session, {
     'Content-Type': 'application/json',
   });
   const role = readRole(session);

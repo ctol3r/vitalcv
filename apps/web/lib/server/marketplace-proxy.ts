@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { getBackendBase } from '@/lib/api';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 
 export const MARKETPLACE_BACKEND = getBackendBase();
 
@@ -51,15 +52,19 @@ function parseSessionOrgRole(claims: SessionClaims): string | null {
     : null;
 }
 
-export function buildMarketplaceHeaders(
+export async function buildMarketplaceHeaders(
   session: Awaited<ReturnType<typeof auth>>,
   init?: HeadersInit,
-): Headers {
+): Promise<Headers> {
   const headers = new Headers(init);
   headers.set('Accept', 'application/json');
 
+  // Forward x-clerk-user-id AND Authorization: Bearer <clerk jwt>, so these
+  // proxies survive the backend's CLERK_JWT_VERIFICATION=enforce flip (which
+  // 401s an identity header without a verified token). Additive and safe in
+  // off/shadow today. Mirrors the 40 routes already on forwardIdentity.
   if (session.userId) {
-    headers.set('x-clerk-user-id', session.userId);
+    await applyIdentityHeaders(headers, { userId: session.userId });
   }
 
   const claims = sessionClaims(session);

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/verifier/accept`, {
     method: 'POST',
-    headers: buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
+    headers: await buildMarketplaceHeaders(session, { 'Content-Type': 'application/json' }),
     body,
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),

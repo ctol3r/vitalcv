@@ -25,7 +25,7 @@ async function resolveClinicianNpi(): Promise<Resolution> {
 
   try {
     const res = await fetch(`${MARKETPLACE_BACKEND}/api/me/workspaces`, {
-      headers: buildMarketplaceHeaders(session),
+      headers: await buildMarketplaceHeaders(session),
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

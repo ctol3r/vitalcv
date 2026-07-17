@@ -16,7 +16,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ a
   const { appId } = await params;
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/applications/${appId}/withdraw`, {
     method: 'DELETE',
-    headers: buildMarketplaceHeaders(session),
+    headers: await buildMarketplaceHeaders(session),
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),
   });
