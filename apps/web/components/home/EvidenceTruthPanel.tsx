@@ -58,15 +58,14 @@ export function EvidenceTruthPanel() {
       {/* No pinned runway. This heading previously ran `variant="scene" pin`,
           which reserved 124vh — 1.24 screens of blank paper whose only job was
           to scrub three lines of type. That runway WAS the homepage's "too much
-          empty space" (four waves tried to fix it by trimming padding and
-          enlarging type, none of which touch runway). `ink` scrubs the heading
-          in place as it enters, reserving no scroll of its own. */}
+          empty space". `type` (Palantir register, Chris 2026-07-17) types the
+          heading in TIME as it enters, still reserving no scroll of its own. */}
       <ScrollScrubHeading
         as="h2"
         className="evidence-cinematic-heading"
         text={'Every claim shows its source.'}
         accentWords={['source.']}
-        variant="ink"
+        variant="type"
       />
       {/* The triad (source / state / limits) is doctrine and stays — but as nine
           words under the heading, not thirty-two in a pinned void. */}

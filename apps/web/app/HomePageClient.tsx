@@ -20,6 +20,7 @@ import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
+import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
@@ -141,16 +142,25 @@ export default function HomePageClient() {
           <div className="max-w-3xl">
             <div className="space-y-4">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
-              <h1 className="mz-display">
-                Find the opportunity. Prove your career <em className="mz-accent">once.</em> Start faster.
-              </h1>
+              {/* Palantir register: the H1 types out character by character,
+                  then the narrative sentence below picks up the caret.
+                  startDelayMs ≈ the H1's typing time (51 chars × 26ms) + a beat. */}
+              <ScrollScrubHeading
+                as="h1"
+                variant="type"
+                className="mz-display"
+                data-home-hero-h1=""
+                text="Find the opportunity. Prove your career once. Start faster."
+                accentWords={['once.']}
+                accentColor="var(--accent)"
+              />
               <ScrollTypeNarrative
                 data-home-hero-subhead=""
                 className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
                 prefix="VitalCV "
                 phrases={HERO_PHRASES}
                 staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
-                scrollContainerId="wallet"
+                startDelayMs={1650}
               />
             </div>
 
@@ -230,18 +240,23 @@ export default function HomePageClient() {
               the first thing a visitor sees moving. After an NPI is entered it
               becomes that provider's live result. The static wallet mockup it
               replaced said nothing the copy didn't already say. */}
+          {/* Light graph (Chris, 2026-07-17: "light like the background").
+              transparentBg lets the paper surface show through the canvas and
+              dissolves the edges into the card; the light theme's violet
+              (issuer) + green (verifier) nodes carry the primary palette
+              against paper. */}
           <div className={submittedNpi ? 'flex justify-center' : 'hidden lg:block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
               <div
                 data-home-hero-graph=""
-                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--ink-900,#0e1414)] shadow-[0_40px_90px_-60px_rgba(20,20,20,0.55)]"
+                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]"
               >
-                <CareerGraph initialTheme="dark" initialPanelOpen={false} />
+                <CareerGraph initialTheme="light" initialPanelOpen={false} transparentBg narratedIntro />
                 <Link
                   href="/evidence-network"
-                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/85 backdrop-blur-sm hover:bg-black/60"
+                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--vt-text-secondary)] backdrop-blur-sm hover:bg-[var(--vt-surface)]"
                 >
                   Explore the network <ArrowRight size={12} aria-hidden="true" />
                 </Link>

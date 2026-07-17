@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 import {
-  ArrowLeft,
-  ArrowRight,
   Award,
   BriefcaseBusiness,
   FileUp,
@@ -14,7 +12,6 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
-import { animate, cubicBezier } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -25,8 +22,6 @@ import type { EvidenceState } from '@/lib/vital/evidenceState';
 // Each mockup row is either an EVIDENCE row (typed state → TrustGlyph, which
 // never shows a check for gated/review/unavailable — the Trust Center's exact
 // promise) or a WORKFLOW fact (no state → neutral dot that asserts nothing).
-// The previous version drew a green check on every row, including "Access
-// required" and "Review needed" — a truth-contract violation.
 type UiRow = { label: string; state?: EvidenceState };
 
 const PRODUCTS: ReadonlyArray<{
@@ -111,64 +106,31 @@ const PRODUCTS: ReadonlyArray<{
   },
 ] as const;
 
-// Auto-advance cadence. Slow enough to read a card (title + three rows),
-// per Chris's 2026-07-16 direction reversing the wave's original no-autoplay
-// rule. WCAG 2.2.2 is honored via the pause control + the suspend conditions
-// in useAutoAdvance.
-const AUTO_ADVANCE_MS = 11_000;
-const SLIDE_DURATION_SECONDS = 1.05;
-const SLIDE_EASE = cubicBezier(0.22, 1, 0.36, 1);
+/**
+ * Continuous flow (Chris, 2026-07-17: "100% continuous flow"): the belt moves
+ * at a constant reading pace with NO discrete stops — a seamless marquee, not
+ * a slide deck. The card sequence is duplicated once and the offset wraps at
+ * the halfway point, so the loop has no visible seam.
+ *
+ * WCAG 2.2.2 is honored the marquee way: a visible pause control, and the
+ * flow suspends while hovered, focused, off-screen, or in a hidden tab.
+ * prefers-reduced-motion collapses the belt to a static grid (CSS) and the
+ * loop never starts.
+ */
+const FLOW_PX_PER_SECOND = 42;
 
 export function ProductCarousel() {
   const sectionRef = React.useRef<HTMLElement>(null);
-  const trackRef = React.useRef<HTMLDivElement>(null);
-  const cardRefs = React.useRef<Array<HTMLElement | null>>([]);
-  const [active, setActive] = React.useState(0);
-  const dragRef = React.useRef({ pointerId: -1, startX: 0, scrollLeft: 0, moved: false });
-  const slideRef = React.useRef<ReturnType<typeof animate> | null>(null);
-  // User intent: the pause button toggles it, any manual navigation clears it.
+  const beltRef = React.useRef<HTMLDivElement>(null);
+  const offsetRef = React.useRef(0);
+  const dragRef = React.useRef({ pointerId: -1, lastX: 0, moved: false });
+  // User intent: the pause button toggles it.
   const [autoPlay, setAutoPlay] = React.useState(true);
   const [reducedMotion, setReducedMotion] = React.useState(false);
-
-  const cancelSlide = React.useCallback(() => {
-    slideRef.current?.stop();
-    slideRef.current = null;
-    if (trackRef.current) delete trackRef.current.dataset.transitioning;
-  }, []);
-
-  const goTo = React.useCallback((index: number, instant = false) => {
-    const safeIndex = Math.max(0, Math.min(PRODUCTS.length - 1, index));
-    const track = trackRef.current;
-    const card = cardRefs.current[safeIndex];
-    if (!track || !card) return;
-    cancelSlide();
-    const scrollPadding = Number.parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
-    const target = Math.max(0, card.offsetLeft - track.offsetLeft - scrollPadding);
-    setActive(safeIndex);
-    if (instant || reducedMotion) {
-      track.scrollLeft = target;
-      return;
-    }
-
-    track.dataset.transitioning = 'true';
-    slideRef.current = animate(track.scrollLeft, target, {
-      duration: SLIDE_DURATION_SECONDS,
-      ease: SLIDE_EASE,
-      onUpdate: (latest) => { track.scrollLeft = latest; },
-      onComplete: () => {
-        track.scrollLeft = target;
-        delete track.dataset.transitioning;
-        setActive(safeIndex);
-        slideRef.current = null;
-      },
-    });
-  }, [cancelSlide, reducedMotion]);
-
-  React.useEffect(() => cancelSlide, [cancelSlide]);
-
-  // Manual navigation is a stronger signal than hover: the visitor took the
-  // wheel, so auto-advance stops for good (the pause button can restart it).
-  const stopAuto = React.useCallback(() => setAutoPlay(false), []);
+  // The duplicate set exists only on the client with motion allowed — the
+  // server render (and reduced motion) is a single, honest list.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -179,17 +141,18 @@ export function ProductCarousel() {
     return () => media.removeEventListener('change', sync);
   }, []);
 
-  // Auto-advance loop. The interval always ticks while enabled; each tick
-  // re-checks the suspend conditions (hover, focus inside, off-screen, hidden
-  // tab) so pausing never tears down state, and resuming needs no bookkeeping.
-  const activeRef = React.useRef(active);
-  activeRef.current = active;
-  React.useEffect(() => {
-    if (!autoPlay || reducedMotion || typeof window === 'undefined') return;
-    const section = sectionRef.current;
-    if (!section) return;
+  const flowing = mounted && !reducedMotion;
 
-    const hold = { hover: false, focus: false, offscreen: true, hidden: document.hidden };
+  // The flow loop. Holds (hover, focus, off-screen, hidden tab) suspend
+  // advancement without tearing anything down; the offset lives in a ref and
+  // is applied as a transform — React never re-renders per frame.
+  React.useEffect(() => {
+    if (!flowing || !autoPlay) return;
+    const section = sectionRef.current;
+    const belt = beltRef.current;
+    if (!section || !belt) return;
+
+    const hold = { hover: false, focus: false, offscreen: true, hidden: document.hidden, dragging: false };
     const onEnter = () => { hold.hover = true; };
     const onLeave = () => { hold.hover = false; };
     const onFocusIn = () => { hold.focus = true; };
@@ -207,18 +170,28 @@ export function ProductCarousel() {
       typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(
             (entries) => { hold.offscreen = !entries.some((entry) => entry.isIntersecting); },
-            { threshold: 0.35 },
+            { threshold: 0.2 },
           )
         : null;
     observer?.observe(section);
 
-    const timer = window.setInterval(() => {
-      if (hold.hover || hold.focus || hold.offscreen || hold.hidden) return;
-      goTo((activeRef.current + 1) % PRODUCTS.length);
-    }, AUTO_ADVANCE_MS);
+    let raf = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const wrapAt = belt.scrollWidth / 2;
+      if (!hold.hover && !hold.focus && !hold.offscreen && !hold.hidden && !dragRef.current.moved && wrapAt > 0) {
+        offsetRef.current += FLOW_PX_PER_SECOND * dt;
+        if (offsetRef.current >= wrapAt) offsetRef.current -= wrapAt;
+        belt.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
 
     return () => {
-      window.clearInterval(timer);
+      cancelAnimationFrame(raf);
       observer?.disconnect();
       section.removeEventListener('pointerenter', onEnter);
       section.removeEventListener('pointerleave', onLeave);
@@ -226,90 +199,108 @@ export function ProductCarousel() {
       section.removeEventListener('focusout', onFocusOut);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [autoPlay, reducedMotion, goTo]);
+  }, [flowing, autoPlay]);
 
-  React.useEffect(() => {
-    const track = trackRef.current;
-    if (!track || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // A commanded slide owns its target until it locks. Letting threshold
-        // callbacks overwrite active mid-flight caused the scale state to jump
-        // back to the previous card. Native touch/trackpad scrolling still uses
-        // this observer because it never sets data-transitioning.
-        if (track.dataset.transitioning === 'true') return;
-        const mostVisible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!mostVisible) return;
-        const index = Number((mostVisible.target as HTMLElement).dataset.carouselIndex);
-        if (Number.isFinite(index)) setActive(index);
-      },
-      { root: track, threshold: [0.45, 0.65, 0.85] },
-    );
-    cardRefs.current.forEach((card) => card && observer.observe(card));
-    return () => observer.disconnect();
+  // Manual control moves the same offset the flow uses, so drag and flow can
+  // never fight: drag while flowing, release, and the belt streams on from
+  // exactly where the hand left it.
+  const applyOffset = React.useCallback((delta: number) => {
+    const belt = beltRef.current;
+    if (!belt) return;
+    const wrapAt = belt.scrollWidth / 2;
+    if (wrapAt <= 0) return;
+    let next = offsetRef.current + delta;
+    next = ((next % wrapAt) + wrapAt) % wrapAt;
+    offsetRef.current = next;
+    belt.style.transform = `translate3d(${-next}px, 0, 0)`;
   }, []);
 
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!flowing) return;
+    dragRef.current = { pointerId: event.pointerId, lastX: event.clientX, moved: false };
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    event.currentTarget.dataset.dragging = 'true';
+  };
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (drag.pointerId !== event.pointerId) return;
+    const delta = event.clientX - drag.lastX;
+    if (Math.abs(delta) > 0) {
+      drag.moved = true;
+      drag.lastX = event.clientX;
+      applyOffset(-delta);
+    }
+  };
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current.pointerId !== event.pointerId) return;
+    (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+    delete event.currentTarget.dataset.dragging;
+    dragRef.current = { pointerId: -1, lastX: 0, moved: false };
+  };
+
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    let next = active;
-    if (event.key === 'ArrowRight') next = Math.min(PRODUCTS.length - 1, active + 1);
-    else if (event.key === 'ArrowLeft') next = Math.max(0, active - 1);
-    else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = PRODUCTS.length - 1;
+    if (!flowing) return;
+    // A keyboard nudge of one card width in either direction; the flow itself
+    // is already suspended because focus is inside the section.
+    const card = beltRef.current?.querySelector<HTMLElement>('.product-carousel-card');
+    const stride = (card?.offsetWidth ?? 480) + 16;
+    if (event.key === 'ArrowRight') applyOffset(stride);
+    else if (event.key === 'ArrowLeft') applyOffset(-stride);
     else return;
     event.preventDefault();
-    stopAuto();
-    cancelSlide();
-    goTo(next);
   };
 
-  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    stopAuto();
-    cancelSlide();
-    if (event.pointerType === 'touch') return;
-    const track = trackRef.current;
-    if (!track) return;
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: track.scrollLeft, moved: false };
-    track.setPointerCapture(event.pointerId);
-    track.dataset.dragging = 'true';
-  };
-
-  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const track = trackRef.current;
-    const drag = dragRef.current;
-    if (!track || drag.pointerId !== event.pointerId) return;
-    const delta = event.clientX - drag.startX;
-    if (Math.abs(delta) > 4) drag.moved = true;
-    track.scrollLeft = drag.scrollLeft - delta;
-  };
-
-  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    const track = trackRef.current;
-    if (!track || dragRef.current.pointerId !== event.pointerId) return;
-    track.releasePointerCapture(event.pointerId);
-    delete track.dataset.dragging;
-    const nearest = cardRefs.current.reduce(
-      (best, card, index) => {
-        if (!card) return best;
-        const scrollPadding = Number.parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
-        const target = Math.max(0, card.offsetLeft - track.offsetLeft - scrollPadding);
-        const distance = Math.abs(target - track.scrollLeft);
-        return distance < best.distance ? { index, distance } : best;
-      },
-      { index: active, distance: Number.POSITIVE_INFINITY },
+  const renderCard = (product: (typeof PRODUCTS)[number], index: number, clone: boolean) => {
+    const Icon = product.icon;
+    return (
+      <article
+        key={clone ? `${product.id}-clone` : product.id}
+        data-carousel-card={clone ? undefined : product.id}
+        aria-hidden={clone ? 'true' : undefined}
+        aria-label={clone ? undefined : `${index + 1} of ${PRODUCTS.length}: ${product.title}`}
+        className="product-carousel-card"
+      >
+        <Card className="product-carousel-card-shell">
+          <div className="product-carousel-card-copy">
+            <span className="product-carousel-card-icon" aria-hidden="true"><Icon size={19} /></span>
+            <p>{product.eyebrow}</p>
+            <h3>{product.title}</h3>
+            <p>{product.body}</p>
+          </div>
+          <div className="product-carousel-ui" aria-hidden="true">
+            <div>
+              <span>VitalCV</span>
+              <BriefcaseBusiness size={15} />
+            </div>
+            <ul>
+              {product.ui.map((row) => (
+                <li key={row.label}>
+                  {row.state ? (
+                    <TrustGlyph state={row.state} labelHidden size={13} />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: 'var(--vt-text-muted)' }}
+                    />
+                  )}
+                  <span>{row.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+      </article>
     );
-    dragRef.current.pointerId = -1;
-    goTo(nearest.index);
   };
 
   return (
     <section
       ref={sectionRef}
       data-home-product-carousel=""
-      data-carousel-autoplay={autoPlay && !reducedMotion ? 'on' : 'off'}
-      data-carousel-hold-ms={AUTO_ADVANCE_MS}
-      data-carousel-transition-ms={Math.round(SLIDE_DURATION_SECONDS * 1000)}
+      data-carousel-flow="continuous"
+      data-carousel-autoplay={autoPlay && flowing ? 'on' : 'off'}
+      data-carousel-speed-pps={FLOW_PX_PER_SECOND}
       className="product-carousel"
       aria-labelledby="product-carousel-title"
     >
@@ -322,49 +313,25 @@ export function ProductCarousel() {
             className="mz-h1"
             text="One career record. Six reusable surfaces."
             accentWords={['Six reusable surfaces.']}
+            variant="type"
+            accentColor="var(--accent)"
           />
         </div>
         <div className="product-carousel-controls">
-          {/* No aria-live here: with auto-advance it would announce each cycle.
-              Manual position is conveyed by the slides' own labels. */}
-          <span className="product-carousel-count">
-            {String(active + 1).padStart(2, '0')} / {String(PRODUCTS.length).padStart(2, '0')}
-          </span>
           <Button
             type="button"
             variant="outline"
             size="icon"
-            aria-label={autoPlay ? 'Pause auto-advance' : 'Resume auto-advance'}
+            aria-label={autoPlay ? 'Pause the product flow' : 'Resume the product flow'}
             aria-pressed={!autoPlay}
             onClick={() => setAutoPlay((value) => !value)}
           >
             {autoPlay ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Previous product"
-            disabled={active === 0}
-            onClick={() => { stopAuto(); goTo(active - 1); }}
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Next product"
-            disabled={active === PRODUCTS.length - 1}
-            onClick={() => { stopAuto(); goTo(active + 1); }}
-          >
-            <ArrowRight size={16} aria-hidden="true" />
-          </Button>
         </div>
       </div>
 
       <div
-        ref={trackRef}
         className="product-carousel-track"
         tabIndex={0}
         role="region"
@@ -375,66 +342,12 @@ export function ProductCarousel() {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onWheel={(event) => {
-          // Horizontal trackpad swipes are manual navigation; vertical wheel
-          // over the track is just page scrolling passing through.
-          if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-            stopAuto();
-            cancelSlide();
-          }
-        }}
       >
-        {PRODUCTS.map((product, index) => {
-          const Icon = product.icon;
-          return (
-            <article
-              key={product.id}
-              ref={(node) => { cardRefs.current[index] = node; }}
-              data-carousel-card={product.id}
-              data-carousel-index={index}
-              data-active={index === active ? 'true' : 'false'}
-              aria-label={`${index + 1} of ${PRODUCTS.length}: ${product.title}`}
-              className="product-carousel-card"
-            >
-              <Card className="product-carousel-card-shell">
-                <div className="product-carousel-card-copy">
-                  <span className="product-carousel-card-icon" aria-hidden="true"><Icon size={19} /></span>
-                  <p>{product.eyebrow}</p>
-                  <h3>{product.title}</h3>
-                  <p>{product.body}</p>
-                </div>
-                <div className="product-carousel-ui" aria-hidden="true">
-                  <div>
-                    <span>VitalCV</span>
-                    <BriefcaseBusiness size={15} />
-                  </div>
-                  <ul>
-                    {product.ui.map((row) => (
-                      <li key={row.label}>
-                        {row.state ? (
-                          <TrustGlyph state={row.state} labelHidden size={13} />
-                        ) : (
-                          <span
-                            aria-hidden="true"
-                            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: 'var(--vt-text-muted)' }}
-                          />
-                        )}
-                        <span>{row.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Card>
-            </article>
-          );
-        })}
-      </div>
-
-      <div className="product-carousel-progress" aria-hidden="true">
-        {PRODUCTS.map((product, index) => (
-          <span key={product.id} data-active={index === active ? 'true' : 'false'} />
-        ))}
+        <div ref={beltRef} className="product-carousel-belt" data-carousel-belt="">
+          {PRODUCTS.map((product, index) => renderCard(product, index, false))}
+          {/* The seam-hiding duplicate — presentation only, hidden from AT. */}
+          {flowing ? PRODUCTS.map((product, index) => renderCard(product, index, true)) : null}
+        </div>
       </div>
     </section>
   );
