@@ -2,6 +2,7 @@ import { DecisionPanel } from '@/components/verifier/DecisionPanel';
 import type { WorklistItem } from '@/lib/verifier/worklist';
 import type { ReactElement } from 'react';
 import { Reveal } from '@/components/motion/Reveal';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 const MOCK_DECISION_ITEM: WorklistItem = {
   clinicianNpi: '1999999984',
@@ -16,11 +17,13 @@ export default async function EmployerDecisionPage(props: {
   const { applicationId } = await props.params;
 
   return (
-    <main
+    <PageFrame
+      as="main"
+      mode="workflow"
       aria-label="Employer decision shell"
-      className="mz mz-paper mz-persona-employer min-h-screen px-4 py-8 sm:px-6 lg:px-8"
+      className="mz mz-paper mz-persona-employer min-h-screen"
     >
-      <div className="mz-ambient mx-auto grid max-w-5xl gap-6">
+      <div className="mz-ambient grid gap-6">
         <Reveal variant="fade">
           <div className="flex flex-col gap-3">
             <p className="mz-eyebrow">
@@ -49,6 +52,6 @@ export default async function EmployerDecisionPage(props: {
           <DecisionPanel item={MOCK_DECISION_ITEM} />
         </Reveal>
       </div>
-    </main>
+    </PageFrame>
   );
 }

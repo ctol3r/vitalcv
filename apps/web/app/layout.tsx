@@ -11,6 +11,7 @@ import type React from 'react';
 import './globals.css';
 import '../styles/antigravity.css';
 import '../styles/typography.css';
+import '../styles/page-density.css';
 import Providers from './providers';
 import localFont from 'next/font/local';
 

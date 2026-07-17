@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ShieldCheck, FileCheck2, Clock } from 'lucide-react';
 import { EmployerGetStartedClient } from './EmployerGetStartedClient';
 import { Reveal } from '@/components/motion/Reveal';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 /**
  * /employers — the employer landing + onboarding.
@@ -47,8 +48,8 @@ export default function EmployersPage() {
     // same design language as the homepage, so the acquisition page reads as one
     // system instead of a plainer offshoot.
     <div className="mz mz-paper mz-persona-employer min-h-screen">
-      <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:py-16">
-        <header className="mb-8">
+      <PageFrame as="main" mode="focused-form">
+        <header className="mb-5">
           <p className="mz-eyebrow">For employers &amp; verifiers</p>
           <h1 className="mz-h1" style={{ marginTop: 12, maxWidth: 640 }}>
             Claim your organization, <span className="mz-accent">verify clinicians</span>.
@@ -59,7 +60,15 @@ export default function EmployersPage() {
           </p>
         </header>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <section className="mz-card p-5 sm:p-6" aria-label="Claim your organization">
+          <h2 className="mz-h2">Enter your organization&rsquo;s NPI</h2>
+          <p className="mz-small" style={{ marginTop: 4, marginBottom: 16 }}>
+            The same 30-second flow a clinician uses — resolved against NPPES, the federal source of record.
+          </p>
+          <EmployerGetStartedClient />
+        </section>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {VALUE_PROPS.map((v, i) => (
             <Reveal
               key={v.title}
@@ -78,14 +87,6 @@ export default function EmployersPage() {
           ))}
         </div>
 
-        <section className="mz-card mt-8 p-5 sm:p-6" aria-label="Claim your organization">
-          <h2 className="mz-h2">Enter your organization&rsquo;s NPI</h2>
-          <p className="mz-small" style={{ marginTop: 4, marginBottom: 16 }}>
-            The same 30-second flow a clinician uses — resolved against NPPES, the federal source of record.
-          </p>
-          <EmployerGetStartedClient />
-        </section>
-
         <p className="mt-6 text-center text-xs text-[var(--vt-text-muted)]">
           A network or health system?{' '}
           <Link href="/pilot" className="underline underline-offset-2 hover:text-[var(--vt-text-primary)]">
@@ -96,7 +97,7 @@ export default function EmployersPage() {
             Open your workspace
           </Link>
         </p>
-      </main>
+      </PageFrame>
     </div>
   );
 }

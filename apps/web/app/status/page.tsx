@@ -15,6 +15,7 @@ import { Activity, ArrowRight, FileCode2, ShieldCheck } from 'lucide-react';
 import { BACKEND_URL } from '@/lib/backend-url';
 import { getVersionInfo } from '@/lib/deployInfo';
 import { getTrustRegisterSnapshot } from '@/lib/trust/register';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ export default async function StatusPage() {
 
   return (
     <main className="mz mz-paper min-h-screen">
-      <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
+      <PageFrame mode="marketing" className="max-w-4xl">
         <p className="mz-eyebrow">Status</p>
         <h1 className="mz-display" style={{ marginTop: 14, maxWidth: 720 }}>
           Is VitalCV up?
@@ -184,7 +185,7 @@ export default async function StatusPage() {
             </a>
           </div>
         </section>
-      </div>
+      </PageFrame>
     </main>
   );
 }

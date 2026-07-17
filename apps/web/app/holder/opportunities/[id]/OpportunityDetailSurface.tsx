@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { PageFrame } from '@/components/layout/PageFrame';
 import {
   ArrowLeft,
   Banknote,
@@ -345,9 +346,9 @@ export default function OpportunityDetailSurface({ opportunityId }: { opportunit
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="mz mz-paper mz-ambient min-h-screen w-full">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-28 pt-6 sm:px-6 sm:pb-12">
+      <PageFrame mode="product" className="vcv-page-frame--mobile-nav max-w-3xl flex flex-col gap-5">
         {children}
-      </div>
+      </PageFrame>
     </main>
   );
 }

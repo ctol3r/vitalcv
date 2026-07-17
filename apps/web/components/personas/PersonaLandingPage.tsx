@@ -2,6 +2,7 @@ import * as React from 'react';
 import Link from 'next/link';
 
 import type { PersonaLandingContent } from '@/lib/personas/landingContent';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 interface PersonaLandingPageProps {
   content: PersonaLandingContent;
@@ -21,8 +22,10 @@ export function PersonaLandingPage({ content }: PersonaLandingPageProps) {
     // on full-width paper — the same design language as the homepage + /employers,
     // replacing the prior raw-Tailwind (sans, rounded-2xl, no accent) treatment.
     <div className="mz mz-paper mz-persona-verifier min-h-screen">
-      <main
-        className="mx-auto w-full max-w-[1120px] px-5 py-16 sm:py-20"
+      <PageFrame
+        as="main"
+        mode="marketing"
+        className="max-w-[1120px]"
         data-testid="persona-landing"
         data-persona-slug={content.slug}
         data-intake-persona={content.intakePersona}
@@ -107,7 +110,7 @@ export function PersonaLandingPage({ content }: PersonaLandingPageProps) {
             </Link>
           </div>
         </section>
-      </main>
+      </PageFrame>
     </div>
   );
 }
