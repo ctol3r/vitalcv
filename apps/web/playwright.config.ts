@@ -50,6 +50,8 @@ export default defineConfig({
       // /dev/matcha-deck; the CI web server builds in production mode where
       // the harness is disabled unless explicitly enabled.
       MATCHA_DECK_PREVIEW: '1',
+      // Same for the PageStack harness at /dev/page-stack.
+      PAGE_STACK_PREVIEW: '1',
     },
     url: baseURL,
     reuseExistingServer: !isCI,

@@ -71,7 +71,8 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tippy.js": "^6.3.7",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.12",
+    "@vitalcv/career-graph": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^6.19.2",
