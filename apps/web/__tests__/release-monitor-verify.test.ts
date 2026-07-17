@@ -125,6 +125,32 @@ describe('runReleaseVerification', () => {
     expect(canary?.detail).toContain('skipped');
   });
 
+  it('reports (does not redden) a deploy check that failed only for missing runner credentials', async () => {
+    const r = await runReleaseVerification(
+      baseDeps({
+        runDeployCheck: async () => ({
+          ok: false,
+          toolingAbsent: true,
+          detail: 'check:deploy exit 2 — no RAILWAY_API_TOKEN for the GraphQL fallback.',
+        }),
+      }),
+    );
+    expect(r.overall).toBe('pass');
+    expect(r.failedChecks).not.toContain('deploy_integrity');
+    const check = r.checks.find((c) => c.name === 'deploy_integrity');
+    expect(check?.ok).toBe(false);
+    expect(check?.critical).toBe(false);
+    expect(check?.detail).toContain('credentials absent');
+  });
+
+  it('still fails hard when the deploy check fails with credentials present', async () => {
+    const r = await runReleaseVerification(
+      baseDeps({ runDeployCheck: async () => ({ ok: false, detail: 'check:deploy exit 1 — drift detected' }) }),
+    );
+    expect(r.overall).toBe('fail');
+    expect(r.failedChecks).toContain('deploy_integrity');
+  });
+
   it('treats SHA mismatch as critical for a deploy-scoped run, reported for a scheduled run', async () => {
     const deployScoped = await runReleaseVerification(baseDeps({ containerSha: 'old', targetSha: 'new', mainSha: 'new' }));
     expect(deployScoped.failedChecks).toContain('web_sha');

@@ -68,7 +68,12 @@ export interface VerifyDeps {
    * bearer-forwarding path breaks under enforce.
    */
   probeBackendIdentity: (session: ClinicianSession) => Promise<BackendIdentityProbeResult>;
-  runDeployCheck: () => Promise<{ ok: boolean; detail: string }>;
+  /**
+   * `toolingAbsent` marks a failure caused by missing runner credentials
+   * (no Railway CLI link, no RAILWAY_API_TOKEN) rather than by the deploy
+   * itself — reported, but it must not redden the release status.
+   */
+  runDeployCheck: () => Promise<{ ok: boolean; detail: string; toolingAbsent?: boolean }>;
   cleanup: (created: { userId: string | null; orgId: string | null }) => Promise<CleanupResult>;
 }
 
@@ -163,7 +168,12 @@ export async function runReleaseVerification(deps: VerifyDeps): Promise<ReleaseV
 
     // 7. Deployment integrity (pnpm check:deploy).
     const deploy = await deps.runDeployCheck();
-    checks.push({ name: 'deploy_integrity', ok: deploy.ok, critical: true, detail: deploy.detail });
+    checks.push({
+      name: 'deploy_integrity',
+      ok: deploy.ok,
+      critical: !deploy.toolingAbsent,
+      detail: deploy.toolingAbsent ? `${deploy.detail} (runner credentials absent — reported, not blocking)` : deploy.detail,
+    });
   } finally {
     try {
       cleanup = await deps.cleanup(created);
