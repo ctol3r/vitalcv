@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
 import { WorkspaceCard } from './WorkspaceCard'
+import { useHydrated } from './useHydrated'
 import { useWorkspaceMutations } from './useWorkspaceMutations'
 import { COMPARE_FIELDS, toCompareColumn, type WorkspaceItem } from '@/lib/matcha-deck/workspace'
 
@@ -15,6 +16,7 @@ export interface InterestedWorkspaceSurfaceProps {
 export function InterestedWorkspaceSurface({ signedIn, items }: InterestedWorkspaceSurfaceProps) {
   const { restore, pendingId, errorId } = useWorkspaceMutations()
   const [comparing, setComparing] = useState(false)
+  const hydrated = useHydrated()
 
   const compareColumns = useMemo(
     () => items.map(toCompareColumn).filter((c): c is NonNullable<typeof c> => c !== null),
@@ -22,7 +24,7 @@ export function InterestedWorkspaceSurface({ signedIn, items }: InterestedWorksp
   )
 
   return (
-    <div className="mdk-root">
+    <div className="mdk-root" data-mdk-ws-ready={hydrated ? 'true' : undefined}>
       <div className="mdk-shell">
         <header className="mdk-header">
           <div>

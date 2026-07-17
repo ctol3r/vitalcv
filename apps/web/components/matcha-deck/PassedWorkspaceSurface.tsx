@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 import { WorkspaceCard } from './WorkspaceCard'
+import { useHydrated } from './useHydrated'
 import { useWorkspaceMutations } from './useWorkspaceMutations'
 import type { WorkspaceItem } from '@/lib/matcha-deck/workspace'
 
@@ -13,9 +14,10 @@ export interface PassedWorkspaceSurfaceProps {
 
 export function PassedWorkspaceSurface({ signedIn, items }: PassedWorkspaceSurfaceProps) {
   const { restore, pendingId, errorId } = useWorkspaceMutations()
+  const hydrated = useHydrated()
 
   return (
-    <div className="mdk-root">
+    <div className="mdk-root" data-mdk-ws-ready={hydrated ? 'true' : undefined}>
       <div className="mdk-shell">
         <header className="mdk-header">
           <div>
