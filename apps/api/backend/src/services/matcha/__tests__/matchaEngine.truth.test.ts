@@ -227,3 +227,81 @@ describe('MATCHA engine — credential coverage labels', () => {
     });
   });
 });
+
+/**
+ * Specialty carries the same coverage discipline as licensure: it may only be
+ * called "checked" when it came from an authoritative source (the clinician's
+ * NPPES primary taxonomy). A self-reported specialty — or one the engine could
+ * not source at all — is on file, not source-checked, and an absent provenance
+ * must default to unverified so a caller cannot over-claim by omission. This is
+ * the specialty analogue of the #712 licensure fix.
+ */
+describe('MATCHA engine — specialty coverage is honest about provenance', () => {
+  const imOpp = opportunity({ specialty: 'Internal Medicine', state: 'CA' });
+
+  const specialtyReason = (c: ClinicianProfile) =>
+    scoreOpportunity(c, null, imOpp).fitReasons.find((r) => r.dimension === 'specialty');
+
+  it('an NPPES-taxonomy specialty is reported as checked against NPPES', () => {
+    expect(specialtyReason(clinician({ specialtySource: 'nppes_taxonomy' }))).toEqual({
+      dimension: 'specialty',
+      label: 'Internal Medicine specialty checked · NPPES',
+      positive: true,
+    });
+  });
+
+  it('a self-reported specialty is on file, never source-checked', () => {
+    expect(specialtyReason(clinician({ specialtySource: 'self_reported' }))).toEqual({
+      dimension: 'specialty',
+      label: 'Internal Medicine specialty on file, not source-checked',
+      positive: true,
+    });
+  });
+
+  it('specialty with unknown or absent provenance is never called checked', () => {
+    for (const c of [clinician({ specialtySource: 'unknown' }), clinician()]) {
+      expect(specialtyReason(c)).toEqual({
+        dimension: 'specialty',
+        label: 'Internal Medicine specialty on file, not source-checked',
+        positive: true,
+      });
+    }
+  });
+
+  // The deck's explanation mapper routes a positive evidence reason into its
+  // source-backed "confirmed" group iff the label says it was checked AND does
+  // not say not-checked ("on file, not source-checked" contains the substring
+  // "checked", so the negative guard is load-bearing). Pin that exact contract
+  // from the engine side: the NPPES label must route to confirmed, and nothing
+  // below it ever may — otherwise this fix reintroduces the #712 bug class.
+  const CHECKED = /\bchecked\b/i;
+  const NOT_CHECKED = /not (?:source-)?checked/i;
+  const routesToConfirmed = (label: string) => CHECKED.test(label) && !NOT_CHECKED.test(label);
+
+  it('only the NPPES label routes to the deck confirmed group', () => {
+    expect(routesToConfirmed(specialtyReason(clinician({ specialtySource: 'nppes_taxonomy' }))!.label)).toBe(true);
+    for (const source of ['self_reported', 'unknown', undefined] as const) {
+      expect(routesToConfirmed(specialtyReason(clinician({ specialtySource: source }))!.label)).toBe(false);
+    }
+  });
+
+  it('a genuine specialty mismatch is unaffected by provenance and never says checked', () => {
+    const reason = scoreOpportunity(
+      clinician({ specialty: 'Cardiology', specialtySource: 'nppes_taxonomy' }),
+      null,
+      imOpp,
+    ).fitReasons.find((r) => r.dimension === 'specialty');
+    expect(reason).toEqual({
+      dimension: 'specialty',
+      label: 'Specialty mismatch (Internal Medicine required)',
+      positive: false,
+    });
+    expect(routesToConfirmed(reason!.label)).toBe(false);
+  });
+
+  it('no specialty reason ever uses the banned word "verified"', () => {
+    for (const source of ['nppes_taxonomy', 'self_reported', 'unknown', undefined] as const) {
+      expect(specialtyReason(clinician({ specialtySource: source }))!.label.toLowerCase()).not.toContain('verified');
+    }
+  });
+});
