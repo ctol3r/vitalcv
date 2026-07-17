@@ -55,23 +55,24 @@ export function EvidenceTruthPanel() {
   return (
     <section aria-label="What sits behind every claim" data-home-evidence-truth="" className="mz">
       <p className="mz-eyebrow">Truth before beauty</p>
+      {/* No pinned runway. This heading previously ran `variant="scene" pin`,
+          which reserved 124vh — 1.24 screens of blank paper whose only job was
+          to scrub three lines of type. That runway WAS the homepage's "too much
+          empty space" (four waves tried to fix it by trimming padding and
+          enlarging type, none of which touch runway). `ink` scrubs the heading
+          in place as it enters, reserving no scroll of its own. */}
       <ScrollScrubHeading
         as="h2"
         className="evidence-cinematic-heading"
-        text={'Every claim carries\nits source, its state,\nand its limits.'}
-        accentWords={['its limits.']}
-        variant="scene"
-        pin
-        stageFooter={
-          // Pinned WITH the heading: the runway is a fixed length of screen, so
-          // the lede either shares that screen or the visitor scrolls a viewport
-          // of blank paper to reach it.
-          <p className="mz-body evidence-truth-lede">
-            VitalCV never asks anyone to take a claim on faith. Behind each field is a named source,
-            a current state, and a plain statement of what the result does not decide.
-          </p>
-        }
+        text={'Every claim shows its source.'}
+        accentWords={['source.']}
+        variant="ink"
       />
+      {/* The triad (source / state / limits) is doctrine and stays — but as nine
+          words under the heading, not thirty-two in a pinned void. */}
+      <p className="mz-lede evidence-truth-lede">
+        A named source, a current state, and what it does not decide.
+      </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {/* LEFT — example evidence trace (dark technical readout) */}

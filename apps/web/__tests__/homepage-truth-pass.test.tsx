@@ -1,7 +1,10 @@
 /**
- * homepage-truth-pass.test.tsx — locks the three homepage truth fixes:
- *  1. WalletPreview carries the explicit illustrative label and no fabricated
- *     readiness percentage.
+ * homepage-truth-pass.test.tsx — locks the homepage truth fixes:
+ *  1. The hero carries no fabricated readiness percentage. (The static
+ *     WalletPreview mockup was replaced by the live Career Evidence Network
+ *     graph, which renders client-only and labels itself "illustrative
+ *     structure"; the anti-fabrication guard here is that no invented score —
+ *     e.g. "72%" — reaches the homepage server render.)
  *  2. ProductCarousel mockup rows use the typed evidence-state grammar — a
  *     check glyph appears ONLY on source-backed/checked rows, never on
  *     access-required / review-needed rows (the Trust Center's promise).
@@ -22,12 +25,13 @@ vi.mock('@clerk/nextjs', () => ({
 import HomePageClient from '@/app/HomePageClient';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 
-describe('WalletPreview — no fabricated score', () => {
-  it('labels the panel illustrative and contains no percentage score', () => {
+describe('Hero — no fabricated readiness score', () => {
+  it('renders no invented readiness percentage on the homepage', () => {
     const html = renderToStaticMarkup(<HomePageClient />);
-    expect(html).toContain('Illustrative product preview — not your readiness result');
-    expect(html).toContain('source lanes shown');
+    // The hero previously shipped a static wallet mockup; guard that no
+    // fabricated readiness percentage ever reaches the homepage.
     expect(html).not.toContain('72%');
+    expect(html).not.toMatch(/\b\d{1,3}% ready\b/i);
   });
 });
 
