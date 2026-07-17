@@ -13,6 +13,14 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
+import {
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from 'framer-motion';
 
 import { Card } from '@/components/ui/card';
 import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
@@ -134,38 +142,26 @@ const STATE_META: Record<StateKind, { icon: React.ReactNode; className: string }
   },
 };
 
-function clamp(value: number, min = 0, max = 1): number {
-  return Math.min(max, Math.max(min, value));
-}
+const STORY_TRANSITION_SECONDS = 1.05;
 
-function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: number }) {
-  const offset = index - progress;
-  const past = Math.min(0, offset);
-  const translate = offset >= 0 ? Math.min(160, offset * 120) : Math.max(-42, offset * 24);
-  const scale = 1 + Math.max(-0.1, past * 0.045);
-  // Upcoming cards stay a faint whisper (their copy must not read through the
-  // active card); they only resolve as they slide into place. Receding cards
-  // keep the soft stacked-deck fade.
-  const opacity =
-    offset >= 0
-      ? Math.max(0, 1 - offset * 0.88)
-      : offset < -1.4
-        ? 0.12
-        : 1 - Math.min(0.72, Math.abs(offset) * 0.34);
+function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: MotionValue<number> }) {
+  const offset = useTransform(progress, (latest) => index - latest);
+  // A card first approaches from below, overlaps the active card, locks into
+  // place, then recedes upward and backward. These are derived MotionValues:
+  // scroll frames never re-render React.
+  const y = useTransform(offset, [-2, -0.8, 0, 0.8, 2], [-44, -24, 0, 112, 180]);
+  const scale = useTransform(offset, [-2, -0.8, 0, 0.8, 2], [0.88, 0.93, 1, 0.965, 0.94]);
+  const opacity = useTransform(offset, [-1.5, -0.72, 0, 0.72, 1.2], [0, 0.38, 1, 0.18, 0]);
+  const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
   const Icon = step.icon;
 
   return (
-    <li
+    <motion.li
       data-story-card={step.id}
       data-story-card-index={index}
       data-section-observe={step.id === 'match' ? 'matcha' : step.id === 'apply' ? 'apply' : undefined}
       className="story-card"
-      style={{
-        '--story-translate': `${translate}px`,
-        '--story-scale': scale,
-        '--story-opacity': opacity,
-        '--story-z': Math.round(50 - Math.abs(offset) * 10),
-      } as React.CSSProperties}
+      style={{ y, scale, opacity, zIndex }}
     >
       <Card className="story-card-shell">
         <div className="story-card-copy">
@@ -199,17 +195,25 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
           </span>
         </div>
       </Card>
-    </li>
+    </motion.li>
   );
 }
 
 export function StickyProductStory() {
   const rootRef = React.useRef<HTMLElement>(null);
-  const [progress, setProgress] = React.useState(0);
   const [active, setActive] = React.useState(0);
   const [reducedMotion, setReducedMotion] = React.useState(false);
   // SSR defaults desktop; the media effect re-syncs before any interaction.
   const [isDesktop, setIsDesktop] = React.useState(true);
+  const { scrollYProgress } = useScroll({
+    target: rootRef,
+    offset: ['start start', 'end end'],
+  });
+  const rawProgress = useTransform(scrollYProgress, [0, 1], [0, STEPS.length - 1]);
+  const settledProgress = useSpring(rawProgress, {
+    bounce: 0,
+    duration: STORY_TRANSITION_SECONDS,
+  });
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -228,36 +232,13 @@ export function StickyProductStory() {
     };
   }, []);
 
-  // Desktop driver: page scroll through the pinned stage. Gated to desktop so
-  // it never fights the mobile swipe observer below (one driver per mode).
-  React.useEffect(() => {
-    if (reducedMotion || !isDesktop || typeof window === 'undefined') return;
-    let frame = 0;
-
-    const update = () => {
-      frame = 0;
-      const root = rootRef.current;
-      if (!root) return;
-      const top = root.getBoundingClientRect().top + window.scrollY;
-      const distance = Math.max(1, root.offsetHeight - window.innerHeight);
-      const nextProgress = clamp((window.scrollY - top) / distance) * (STEPS.length - 1);
-      setProgress(nextProgress);
-      setActive(Math.min(STEPS.length - 1, Math.max(0, Math.round(nextProgress))));
-    };
-
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [reducedMotion, isDesktop]);
+  // The MotionValue updates every animation frame, but React state changes only
+  // when the rounded step boundary changes (at most four times per traversal).
+  useMotionValueEvent(settledProgress, 'change', (latest) => {
+    if (reducedMotion || !isDesktop) return;
+    const next = Math.min(STEPS.length - 1, Math.max(0, Math.round(latest)));
+    setActive((current) => (current === next ? current : next));
+  });
 
   // Mobile driver: the cards scroll HORIZONTALLY (scroll-snap), so page scroll
   // says nothing about which card the user swiped to. Observe the cards inside
@@ -338,6 +319,8 @@ export function StickyProductStory() {
       data-home-sticky-product-story=""
       data-pin-container=""
       data-active-step={STEPS[active].id}
+      data-story-motion="motion-values"
+      data-story-transition-ms={Math.round(STORY_TRANSITION_SECONDS * 1000)}
       className="sticky-product-story"
       aria-labelledby="product-story-title"
     >
@@ -385,16 +368,7 @@ export function StickyProductStory() {
 
         <ol className="story-cards" aria-live="polite">
           {STEPS.map((step, index) => (
-            <React.Fragment key={step.id}>
-              {/* Off desktop, each card gets its OWN index as progress → offset
-                  0 → neutral transforms. The snap track owns mobile layout, and
-                  card geometry can never react to the swipe observer (no loop). */}
-              <StoryCard
-                step={step}
-                index={index}
-                progress={reducedMotion || !isDesktop ? index : progress}
-              />
-            </React.Fragment>
+            <StoryCard key={step.id} step={step} index={index} progress={settledProgress} />
           ))}
         </ol>
       </div>
