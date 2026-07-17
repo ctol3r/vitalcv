@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
+import { animate, cubicBezier } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -114,7 +115,9 @@ const PRODUCTS: ReadonlyArray<{
 // per Chris's 2026-07-16 direction reversing the wave's original no-autoplay
 // rule. WCAG 2.2.2 is honored via the pause control + the suspend conditions
 // in useAutoAdvance.
-const AUTO_ADVANCE_MS = 6000;
+const AUTO_ADVANCE_MS = 11_000;
+const SLIDE_DURATION_SECONDS = 1.05;
+const SLIDE_EASE = cubicBezier(0.22, 1, 0.36, 1);
 
 export function ProductCarousel() {
   const sectionRef = React.useRef<HTMLElement>(null);
@@ -122,18 +125,46 @@ export function ProductCarousel() {
   const cardRefs = React.useRef<Array<HTMLElement | null>>([]);
   const [active, setActive] = React.useState(0);
   const dragRef = React.useRef({ pointerId: -1, startX: 0, scrollLeft: 0, moved: false });
+  const slideRef = React.useRef<ReturnType<typeof animate> | null>(null);
   // User intent: the pause button toggles it, any manual navigation clears it.
   const [autoPlay, setAutoPlay] = React.useState(true);
   const [reducedMotion, setReducedMotion] = React.useState(false);
 
-  const goTo = React.useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
+  const cancelSlide = React.useCallback(() => {
+    slideRef.current?.stop();
+    slideRef.current = null;
+    if (trackRef.current) delete trackRef.current.dataset.transitioning;
+  }, []);
+
+  const goTo = React.useCallback((index: number, instant = false) => {
     const safeIndex = Math.max(0, Math.min(PRODUCTS.length - 1, index));
     const track = trackRef.current;
     const card = cardRefs.current[safeIndex];
     if (!track || !card) return;
-    track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior });
+    cancelSlide();
+    const scrollPadding = Number.parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
+    const target = Math.max(0, card.offsetLeft - track.offsetLeft - scrollPadding);
     setActive(safeIndex);
-  }, []);
+    if (instant || reducedMotion) {
+      track.scrollLeft = target;
+      return;
+    }
+
+    track.dataset.transitioning = 'true';
+    slideRef.current = animate(track.scrollLeft, target, {
+      duration: SLIDE_DURATION_SECONDS,
+      ease: SLIDE_EASE,
+      onUpdate: (latest) => { track.scrollLeft = latest; },
+      onComplete: () => {
+        track.scrollLeft = target;
+        delete track.dataset.transitioning;
+        setActive(safeIndex);
+        slideRef.current = null;
+      },
+    });
+  }, [cancelSlide, reducedMotion]);
+
+  React.useEffect(() => cancelSlide, [cancelSlide]);
 
   // Manual navigation is a stronger signal than hover: the visitor took the
   // wheel, so auto-advance stops for good (the pause button can restart it).
@@ -202,6 +233,11 @@ export function ProductCarousel() {
     if (!track || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
+        // A commanded slide owns its target until it locks. Letting threshold
+        // callbacks overwrite active mid-flight caused the scale state to jump
+        // back to the previous card. Native touch/trackpad scrolling still uses
+        // this observer because it never sets data-transitioning.
+        if (track.dataset.transitioning === 'true') return;
         const mostVisible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
@@ -224,11 +260,13 @@ export function ProductCarousel() {
     else return;
     event.preventDefault();
     stopAuto();
+    cancelSlide();
     goTo(next);
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     stopAuto();
+    cancelSlide();
     if (event.pointerType === 'touch') return;
     const track = trackRef.current;
     if (!track) return;
@@ -251,7 +289,18 @@ export function ProductCarousel() {
     if (!track || dragRef.current.pointerId !== event.pointerId) return;
     track.releasePointerCapture(event.pointerId);
     delete track.dataset.dragging;
+    const nearest = cardRefs.current.reduce(
+      (best, card, index) => {
+        if (!card) return best;
+        const scrollPadding = Number.parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
+        const target = Math.max(0, card.offsetLeft - track.offsetLeft - scrollPadding);
+        const distance = Math.abs(target - track.scrollLeft);
+        return distance < best.distance ? { index, distance } : best;
+      },
+      { index: active, distance: Number.POSITIVE_INFINITY },
+    );
     dragRef.current.pointerId = -1;
+    goTo(nearest.index);
   };
 
   return (
@@ -259,6 +308,8 @@ export function ProductCarousel() {
       ref={sectionRef}
       data-home-product-carousel=""
       data-carousel-autoplay={autoPlay && !reducedMotion ? 'on' : 'off'}
+      data-carousel-hold-ms={AUTO_ADVANCE_MS}
+      data-carousel-transition-ms={Math.round(SLIDE_DURATION_SECONDS * 1000)}
       className="product-carousel"
       aria-labelledby="product-carousel-title"
     >
@@ -274,7 +325,7 @@ export function ProductCarousel() {
           />
         </div>
         <div className="product-carousel-controls">
-          {/* No aria-live here: with auto-advance it would announce every 6s.
+          {/* No aria-live here: with auto-advance it would announce each cycle.
               Manual position is conveyed by the slides' own labels. */}
           <span className="product-carousel-count">
             {String(active + 1).padStart(2, '0')} / {String(PRODUCTS.length).padStart(2, '0')}
@@ -327,7 +378,10 @@ export function ProductCarousel() {
         onWheel={(event) => {
           // Horizontal trackpad swipes are manual navigation; vertical wheel
           // over the track is just page scrolling passing through.
-          if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) stopAuto();
+          if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+            stopAuto();
+            cancelSlide();
+          }
         }}
       >
         {PRODUCTS.map((product, index) => {
@@ -338,6 +392,7 @@ export function ProductCarousel() {
               ref={(node) => { cardRefs.current[index] = node; }}
               data-carousel-card={product.id}
               data-carousel-index={index}
+              data-active={index === active ? 'true' : 'false'}
               aria-label={`${index + 1} of ${PRODUCTS.length}: ${product.title}`}
               className="product-carousel-card"
             >

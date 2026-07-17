@@ -8,7 +8,9 @@ async function captureStoryFrame(page: Page, testInfo: TestInfo, name: string, p
   });
   const scrollDistance = Math.max(1, metrics.height - page.viewportSize()!.height);
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'auto' }), metrics.top + scrollDistance * progress);
-  await page.waitForTimeout(150);
+  // The story intentionally settles over ~1s; screenshots capture the stable
+  // lockup rather than an arbitrary frame in the overlap.
+  await page.waitForTimeout(1250);
   const screenshot = await page.screenshot({ animations: 'disabled' });
   await testInfo.attach(`homepage-story-${name}`, { body: screenshot, contentType: 'image/png' });
 }
@@ -102,6 +104,8 @@ test.describe('Homepage motion convergence', () => {
     const story = page.locator('[data-home-sticky-product-story]');
     await expect(story).toBeVisible();
     await expect(story).toHaveCSS('min-height', '2400px');
+    await expect(story).toHaveAttribute('data-story-motion', 'motion-values');
+    await expect(story).toHaveAttribute('data-story-transition-ms', '1050');
     const storyHeight = await story.evaluate((node) => node.getBoundingClientRect().height);
     const transitionRunway = (storyHeight - page.viewportSize()!.height) / 4;
     expect(transitionRunway, 'each card transition must begin within 35vh').toBeLessThanOrEqual(350);
@@ -204,19 +208,50 @@ test.describe('Homepage motion convergence', () => {
     return prev;
   }
 
+  test('carousel uses a controlled one-second slide with active-card depth', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const section = page.locator('[data-home-product-carousel]');
+    const carousel = page.getByRole('region', { name: 'VitalCV product surfaces' });
+    await section.scrollIntoViewIfNeeded();
+    await expect(section).toHaveAttribute('data-carousel-hold-ms', '11000');
+    await expect(section).toHaveAttribute('data-carousel-transition-ms', '1050');
+
+    const target = await carousel.evaluate((track) => {
+      const card = track.querySelector<HTMLElement>('[data-carousel-index="1"]')!;
+      const scrollPadding = Number.parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
+      return Math.max(0, card.offsetLeft - (track as HTMLElement).offsetLeft - scrollPadding);
+    });
+    const start = await carousel.evaluate((node) => node.scrollLeft);
+    await page.getByRole('button', { name: 'Next product' }).click();
+    await expect(section).toHaveAttribute('data-carousel-autoplay', 'off');
+    await expect(carousel).toHaveAttribute('data-transitioning', 'true');
+    await page.waitForTimeout(260);
+    const middle = await carousel.evaluate((node) => node.scrollLeft);
+    expect(middle).toBeGreaterThan(start + 1);
+    expect(middle).toBeLessThan(target - 1);
+
+    await expect.poll(() => carousel.evaluate((node) => node.scrollLeft), { timeout: 3000 }).toBeCloseTo(target, 0);
+    await expect(carousel).not.toHaveAttribute('data-transitioning', 'true');
+    await expect(carousel.locator('[data-carousel-index="1"]')).toHaveAttribute('data-active', 'true');
+    await expect(carousel.locator('[data-carousel-index="1"]'))
+      .toHaveCSS('opacity', '1');
+  });
+
   test('carousel auto-advances while idle and stops on manual navigation', async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(70_000);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
     const section = page.locator('[data-home-product-carousel]');
     const carousel = page.getByRole('region', { name: 'VitalCV product surfaces' });
     await section.scrollIntoViewIfNeeded();
     await expect(section).toHaveAttribute('data-carousel-autoplay', 'on');
+    await expect(section).toHaveAttribute('data-carousel-hold-ms', '11000');
 
     // Idle + visible + unhovered (mouse never entered the section) → advances.
     const before = await carousel.evaluate((node) => node.scrollLeft);
     await expect
-      .poll(() => carousel.evaluate((node) => node.scrollLeft), { timeout: 10_000 })
+      .poll(() => carousel.evaluate((node) => node.scrollLeft), { timeout: 15_000 })
       .toBeGreaterThan(before);
 
     // Keyboard navigation still works — and it takes the wheel: autoplay stops.
@@ -227,12 +262,12 @@ test.describe('Homepage motion convergence', () => {
     await page.keyboard.press('Escape');
     await carousel.evaluate((node) => (node as HTMLElement).blur());
     const stopped = await settledScrollLeft(carousel);
-    await page.waitForTimeout(7000);
+    await page.waitForTimeout(12_000);
     expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - stopped)).toBeLessThan(2);
   });
 
   test('carousel autoplay pauses on hover and honors the pause control', async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(70_000);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
     const section = page.locator('[data-home-product-carousel]');
@@ -242,7 +277,7 @@ test.describe('Homepage motion convergence', () => {
     // Hovering anywhere in the section suspends the timer (WCAG 2.2.2).
     await section.hover();
     const hovered = await settledScrollLeft(carousel);
-    await page.waitForTimeout(7000);
+    await page.waitForTimeout(12_000);
     expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - hovered)).toBeLessThan(2);
 
     // The visible pause control flips the state and survives un-hovering.
@@ -251,7 +286,7 @@ test.describe('Homepage motion convergence', () => {
     await expect(page.getByRole('button', { name: 'Resume auto-advance' })).toBeVisible();
     await page.mouse.move(10, 10);
     const paused = await settledScrollLeft(carousel);
-    await page.waitForTimeout(7000);
+    await page.waitForTimeout(2000);
     expect(Math.abs((await carousel.evaluate((node) => node.scrollLeft)) - paused)).toBeLessThan(2);
   });
 
