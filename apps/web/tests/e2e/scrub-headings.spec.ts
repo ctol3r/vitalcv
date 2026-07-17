@@ -34,10 +34,20 @@ async function headingTop(page: Page, selector: string): Promise<number> {
   return page.locator(selector).evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
 }
 
+/**
+ * The scrub's true scroll range. The pin starts scrubbing while the section is
+ * still ENTERING (offset 'start 78%'), so progress 0 is NOT the moment the
+ * stage parks — it is 0.78 of a viewport earlier. Deriving the range from the
+ * offsets, rather than assuming progress 0 === stage top, is what keeps these
+ * assertions honest about where the heading actually is.
+ */
 async function sceneMetrics(page: Page) {
   return page.locator(EVIDENCE_SCENE).evaluate((node) => {
     const top = node.getBoundingClientRect().top + window.scrollY;
-    return { top, distance: node.clientHeight - window.innerHeight };
+    const vh = window.innerHeight;
+    const startY = top - 0.78 * vh; // progress 0 — 'start 78%'
+    const endY = top + node.clientHeight - vh; // progress 1 — 'end end'
+    return { top, startY, endY, distance: endY - startY };
   });
 }
 
@@ -65,32 +75,60 @@ test.describe('scroll-scrubbed character headings', () => {
   test('characters resolve with scroll and REVERSE on scroll up', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const { top, distance } = await sceneMetrics(page);
+    const { startY, distance } = await sceneMetrics(page);
 
     // Early: fragments begin outside their line masks in genuine depth.
-    await scrollTo(page, top);
+    await scrollTo(page, startY);
     const early = await assembly(page, EVIDENCE_HEADING);
     expect(early).toBeGreaterThanOrEqual(0);
     expect(early).toBeLessThan(0.2);
 
     // Middle: the composition is clearly between fragments and lockup.
-    await scrollTo(page, top + distance * 0.5);
+    await scrollTo(page, startY + distance * 0.5);
     const middle = await assembly(page, EVIDENCE_HEADING);
     expect(middle).toBeGreaterThan(early);
     expect(middle).toBeLessThan(0.95);
 
     // Completed: fully inked, followed by a deliberate final hold.
-    await scrollTo(page, top + distance * 0.92);
+    await scrollTo(page, startY + distance * 0.92);
     const done = await assembly(page, EVIDENCE_HEADING);
     expect(done).toBeGreaterThan(middle);
     expect(done).toBeGreaterThan(0.97);
 
     // Reverse: scrolling back up un-resolves it — the state is a pure function
     // of scroll, not a one-way animation that latches.
-    await scrollTo(page, top);
+    await scrollTo(page, startY);
     const reversed = await assembly(page, EVIDENCE_HEADING);
     expect(reversed).toBeLessThan(0.2);
     expect(Math.abs(reversed - early)).toBeLessThan(0.05);
+  });
+
+  /**
+   * The regression this section actually shipped: under the old
+   * ['start start','end end'] offset the heading sat at progress 0 for the whole
+   * approach — every character translated 120% down behind an overflow:clip mask
+   * at opacity 0. The visitor scrolled into a 160vh stage holding NOTHING, which
+   * is what "too much empty space" was. The stage must park with its statement
+   * already legible, and with the lede on the same screen.
+   */
+  test('the pinned stage is never a blank screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const { top } = await sceneMetrics(page);
+
+    // The moment the stage parks at the top of the viewport.
+    await scrollTo(page, top);
+    const parked = await assembly(page, EVIDENCE_HEADING);
+    expect(parked, 'heading must be legible when the stage parks').toBeGreaterThan(0.5);
+
+    // The lede is pinned WITH the heading, not stranded past the runway.
+    const lede = page.locator('[data-home-evidence-truth] .evidence-truth-lede');
+    await expect(lede).toBeVisible();
+    const ledeInViewport = await lede.evaluate((n) => {
+      const r = n.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight;
+    });
+    expect(ledeInViewport, 'lede must share the pinned screen').toBe(true);
   });
 
   test('the one cinematic statement owns a masked full-width sticky stage', async ({ page }) => {
@@ -99,13 +137,18 @@ test.describe('scroll-scrubbed character headings', () => {
 
     const scene = page.locator(EVIDENCE_SCENE);
     await expect(scene).toHaveAttribute('data-scrub-pin', '');
-    await expect(scene).toHaveCSS('min-height', '1600px');
+    // 124vh at 1000px tall. The runway is deliberately shorter than the original
+    // 160vh: every vh beyond the scrub's needs is a viewport of empty stage.
+    // It must still EXCEED the viewport — useScroll resolves 'end end' before
+    // 'start start' once the container is shorter, which inverts progress and
+    // arrives pre-assembled.
+    await expect(scene).toHaveCSS('min-height', '1240px');
     await expect(scene.locator('.scrub-heading-stage')).toHaveCSS('position', 'sticky');
     await expect(scene.locator('[data-scrub-heading]')).toHaveAttribute('data-scrub-heading', 'scene');
     expect(await scene.locator('[data-motion-line-mask]').count()).toBe(3);
 
-    const { top } = await sceneMetrics(page);
-    await scrollTo(page, top);
+    const { startY } = await sceneMetrics(page);
+    await scrollTo(page, startY);
     const first = scene.locator('[data-motion-character]').first();
     const initial = await first.evaluate((node) => ({
       opacity: Number(getComputedStyle(node).opacity),
@@ -118,11 +161,11 @@ test.describe('scroll-scrubbed character headings', () => {
   test('the completed statement holds stable before the stage releases', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const { top, distance } = await sceneMetrics(page);
+    const { startY, distance } = await sceneMetrics(page);
 
-    await scrollTo(page, top + distance * 0.88);
+    await scrollTo(page, startY + distance * 0.88);
     const held = await assembly(page, EVIDENCE_HEADING);
-    await scrollTo(page, top + distance);
+    await scrollTo(page, startY + distance);
     const released = await assembly(page, EVIDENCE_HEADING);
 
     expect(held).toBeGreaterThan(0.99);
