@@ -130,6 +130,10 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  /* Rolodex depth: the flip needs real perspective or rotateX reads as a
+     vertical squash. Origin slightly above center so the wheel feels below. */
+  perspective: 1500px;
+  perspective-origin: 50% 30%;
 }
 
 .story-card {
@@ -137,7 +141,10 @@
   inset: 0;
   display: flex;
   align-items: center;
-  transform-origin: center top;
+  /* The spindle: rotation axis sits BELOW the card (116% of its height), so
+     cards swing around a common axle like rolodex leaves, not tilt in place. */
+  transform-origin: 50% 116%;
+  backface-visibility: hidden;
   will-change: transform, opacity;
 }
 
@@ -263,31 +270,31 @@
 .product-carousel-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
 .product-carousel-heading .mz-h1 { max-width: 14ch; margin-top: 0.6rem; }
 .product-carousel-controls { display: flex; align-items: center; gap: 0.55rem; }
-.product-carousel-count { margin-right: 0.4rem; color: var(--vt-text-muted); font-family: var(--font-mono); font-size: 0.72rem; }
 .product-carousel-controls button { border-color: var(--vt-border); background: var(--vt-surface); }
 
+/* Continuous flow: the track is a full-bleed clipping viewport; the belt
+   inside it carries two copies of the card sequence and slides by transform at
+   a constant pace. No scroll-snap, no discrete stops — 100% flow. */
 .product-carousel-track {
-  display: flex;
-  gap: 1rem;
   margin-top: 2.1rem;
   margin-inline: calc((100vw - min(100vw, 1320px)) / -2);
-  overflow-x: auto;
-  padding-inline: max(1.5rem, calc((100vw - 1320px) / 2));
+  overflow: hidden;
   padding-bottom: 1rem;
-  scroll-padding-inline: max(1.5rem, calc((100vw - 1320px) / 2));
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  touch-action: pan-x pan-y;
+  cursor: grab;
+  touch-action: pan-y;
 }
-.product-carousel-track::-webkit-scrollbar { display: none; }
-.product-carousel-track[data-dragging='true'],
-.product-carousel-track[data-transitioning='true'] { scroll-snap-type: none; }
 .product-carousel-track[data-dragging='true'] { cursor: grabbing; user-select: none; }
 .product-carousel-track:focus-visible { outline: 2px solid var(--vt-focus-ring); outline-offset: 5px; }
 
+.product-carousel-belt {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  will-change: transform;
+}
+
 .product-carousel-card {
   flex: 0 0 min(78vw, 33rem);
-  scroll-snap-align: start;
 }
 .product-carousel-card-shell {
   display: grid;
@@ -298,17 +305,6 @@
   border-radius: 1rem;
   background: var(--vt-surface);
   padding: 1.5rem;
-  opacity: 0.72;
-  transform: scale(0.965);
-  transform-origin: center center;
-  transition:
-    opacity 1050ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1050ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
-}
-.product-carousel-card[data-active='true'] {
-  opacity: 1;
-  transform: scale(1);
 }
 .product-carousel-card-copy { display: flex; flex-direction: column; justify-content: center; }
 .product-carousel-card-copy h3 { font-size: clamp(1.5rem, 2.7vw, 2.05rem); }
@@ -331,14 +327,6 @@
 }
 .product-carousel-ui li:last-child { border-bottom: 0; }
 .product-carousel-ui li svg { flex: none; color: var(--vt-accent-emerald); }
-.product-carousel-progress { display: flex; gap: 0.35rem; margin-top: 0.5rem; }
-.product-carousel-progress span { width: 0.42rem; height: 0.42rem; border-radius: 99px; background: var(--vt-border); transition: width 180ms ease, background-color 180ms ease; }
-.product-carousel-progress span[data-active='true'] { width: 1.6rem; background: var(--vt-text-primary); }
-
-@supports not (scroll-snap-type: x mandatory) {
-  .product-carousel-track { display: grid; overflow: visible; margin-inline: 0; padding-inline: 0; }
-  .product-carousel-card { width: 100%; }
-}
 
 @media (max-width: 1023px) {
   .homepage-section-rail { top: 5.75rem; }
@@ -360,7 +348,6 @@
   .homepage-section-rail > div { padding-inline: 1rem; }
   .product-carousel-heading { align-items: start; flex-direction: column; }
   .product-carousel-controls { align-self: stretch; }
-  .product-carousel-count { margin-right: auto; }
   .product-carousel-card { flex-basis: 86vw; }
   .product-carousel-card-shell { grid-template-columns: 1fr; min-height: 27rem; }
   .story-product-ui li { align-items: flex-start; flex-direction: column; justify-content: center; }
@@ -375,11 +362,11 @@
   .story-card { position: relative; inset: auto; opacity: 1 !important; transform: none !important; }
   .story-card-shell { min-height: auto; }
   .story-footnote { position: relative; bottom: auto; margin-top: 1rem; }
-  .product-carousel-track { display: grid; margin-inline: 0; overflow: visible; padding-inline: 0; scroll-snap-type: none; }
+  /* Reduced motion: no belt, no flow — a static readable grid. */
+  .product-carousel-track { margin-inline: 0; overflow: visible; cursor: default; }
+  .product-carousel-belt { display: grid; width: auto; transform: none !important; will-change: auto; }
   .product-carousel-card { width: 100%; }
-  .product-carousel-card { opacity: 1; transform: none; transition: none; }
-  .product-carousel-controls,
-  .product-carousel-progress { display: none; }
+  .product-carousel-controls { display: none; }
 }
 
 /* ── Motion M1: scroll-scrubbed character headings ──────────────────────────
@@ -409,6 +396,37 @@
   overflow: clip;
   margin-block: -0.16em;
   padding-block: 0.16em;
+}
+
+/* ── `type` variant: the Palantir typewriter register ───────────────────────
+   Characters are all laid out from the first frame (opacity 0 until typed), so
+   typing can never reflow the page. The caret is a block the height of the
+   type, riding the last typed character. */
+.type-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.82em;
+  margin-left: 0.04em;
+  vertical-align: baseline;
+  transform: translateY(0.08em);
+  background: currentColor;
+  animation: type-caret-blink 1.06s step-end infinite;
+}
+
+@keyframes type-caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Accent words in typed headings match .mz-accent (italic + accent ink) —
+   typed characters arrive at their final color, they do not interpolate. */
+.type-accent {
+  font-style: italic;
+  color: var(--accent, var(--vt-accent-emerald));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .type-caret { display: none; }
 }
 
 .motion-line {

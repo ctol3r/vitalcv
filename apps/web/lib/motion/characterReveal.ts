@@ -150,15 +150,32 @@ export function characterProgress(sectionProgress: number, index: number, total:
 /**
  * Long headings fall back to the quieter `ink` treatment: 80+ characters of
  * simultaneous transform is both visually noisy and the most expensive case on
- * mobile. Callers may also request `ink` explicitly.
+ * mobile. Callers may also request `ink` explicitly. `type` never demotes —
+ * typing is sequential, so its cost does not grow with heading length.
  */
 export const LONG_HEADING_CHARACTERS = 80;
 
+export type HeadingVariant = 'assemble' | 'ink' | 'scene' | 'type';
+
 export function resolveVariant(
-  requested: 'assemble' | 'ink' | 'scene',
+  requested: HeadingVariant,
   characterCount: number,
-): 'assemble' | 'ink' | 'scene' {
+): HeadingVariant {
   if (requested === 'scene') return 'scene';
   if (requested === 'ink') return 'ink';
+  if (requested === 'type') return 'type';
   return characterCount > LONG_HEADING_CHARACTERS ? 'ink' : 'assemble';
+}
+
+/**
+ * Typewriter cadence (Palantir register): how many characters are visible
+ * `elapsedMs` after typing began. Pure so the contract is unit-testable:
+ * monotonic in time, 0 before the start delay, complete at
+ * `delay + total * TYPE_CHAR_MS`.
+ */
+export const TYPE_CHAR_MS = 26;
+
+export function typedCount(elapsedMs: number, total: number, delayMs = 0): number {
+  if (elapsedMs <= delayMs) return 0;
+  return Math.min(total, Math.floor((elapsedMs - delayMs) / TYPE_CHAR_MS));
 }

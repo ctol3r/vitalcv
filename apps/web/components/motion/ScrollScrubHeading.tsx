@@ -17,6 +17,8 @@ import {
   resolveVariant,
   sceneCharacterWindow,
   segmentHeading,
+  typedCount,
+  type HeadingVariant,
   type HeadingWord,
 } from '@/lib/motion/characterReveal';
 
@@ -46,7 +48,14 @@ import {
 export type ScrollScrubHeadingProps = {
   as?: 'h1' | 'h2' | 'h3';
   text: string;
-  variant?: 'assemble' | 'ink' | 'scene';
+  /**
+   * `type` is the Palantir register: characters TYPE OUT in time (with a
+   * caret) once the heading enters the viewport, rather than scrubbing with
+   * scroll. All other variants remain pure functions of scroll.
+   */
+  variant?: HeadingVariant;
+  /** `type` only: ms to wait after entering the viewport before typing. */
+  typeDelayMs?: number;
   className?: string;
   /** Viewport position where the reveal begins (heading top). */
   startOffset?: string;
@@ -247,6 +256,7 @@ export function ScrollScrubHeading({
   as: Tag = 'h2',
   text,
   variant = 'assemble',
+  typeDelayMs = 0,
   className,
   startOffset = '85%',
   endOffset = '35%',
@@ -326,6 +336,55 @@ export function ScrollScrubHeading({
   const isStatic = !mounted || reduceMotion;
   // The runway exists ONLY when actually scrubbing — never for reduced motion.
   const usePin = pin && !isStatic && !isMobile;
+  const isType = effectiveVariant === 'type';
+
+  // ── `type` variant: time-driven typing, armed by viewport entry ──────────
+  // Every character is laid out from the first frame (opacity 0 until typed),
+  // so typing can never reflow the page — same no-CLS contract as the scrub
+  // variants. Reveal count is React state, but the functional update bails
+  // when the floor'd character count hasn't changed, so re-renders happen per
+  // CHARACTER (≈38/s), not per frame.
+  const [typedReveal, setTypedReveal] = React.useState(0);
+  const [caretParked, setCaretParked] = React.useState(false);
+  React.useEffect(() => {
+    if (!isType || isStatic) return;
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setTypedReveal(segmented.characterCount);
+      return;
+    }
+    let raf = 0;
+    let started = -1;
+    let parkTimer = 0;
+    const total = segmented.characterCount;
+    const tick = (now: number) => {
+      if (started < 0) started = now;
+      const next = typedCount(now - started, total, typeDelayMs);
+      setTypedReveal((prev) => (prev === next ? prev : next));
+      if (next < total) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        // Blink at the end of the line briefly, then park the caret.
+        parkTimer = window.setTimeout(() => setCaretParked(true), 1600);
+      }
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          io.disconnect();
+          raf = requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(node);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+      window.clearTimeout(parkTimer);
+    };
+  }, [isType, isStatic, segmented.characterCount, typeDelayMs]);
+  const typedComplete = typedReveal >= segmented.characterCount;
 
   return (
     // The ref div is ALWAYS rendered, even in the static paths: useScroll binds
@@ -350,6 +409,53 @@ export function ScrollScrubHeading({
             {...rest}
           >
             {text}
+          </MotionTag>
+        ) : isType ? (
+          // Typewriter branch: plain spans (no MotionValues — reveal is an
+          // index, not a transform), same accessibility shape as the scrub
+          // branch: one aria-label, characters aria-hidden and selectable.
+          <MotionTag
+            className={className}
+            aria-label={text}
+            data-scrub-heading="type"
+            data-scrub-characters={segmented.characterCount}
+            data-type-complete={typedComplete ? '' : undefined}
+            {...rest}
+          >
+            <span aria-hidden="true" data-scrub-lines="">
+              {segmented.lines.map((line, lineIndex) => (
+                <React.Fragment key={lineIndex}>
+                  {lineIndex > 0 ? <br /> : null}
+                  {line.map((word, wordIndex) => (
+                    <React.Fragment key={wordIndex}>
+                      {wordIndex > 0 ? ' ' : ''}
+                      <span className="motion-word" data-motion-word="">
+                        {word.characters.map((char, i) => {
+                          const idx = word.characterOffset + i;
+                          return (
+                            <React.Fragment key={i}>
+                              <span
+                                data-motion-character=""
+                                className={word.accent ? 'motion-character type-accent' : 'motion-character'}
+                                style={{ opacity: idx < typedReveal ? 1 : 0 }}
+                              >
+                                {char}
+                              </span>
+                              {idx === typedReveal - 1 && !caretParked ? (
+                                <span aria-hidden="true" className="type-caret" data-type-caret="" />
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </React.Fragment>
+              ))}
+              {typedReveal === 0 && !caretParked ? (
+                <span aria-hidden="true" className="type-caret" data-type-caret="" />
+              ) : null}
+            </span>
           </MotionTag>
         ) : (
           // One accessible name for the whole heading (aria-label), with every

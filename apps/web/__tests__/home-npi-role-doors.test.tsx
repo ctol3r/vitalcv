@@ -81,19 +81,21 @@ describe('HomePageClient — pinned product story', () => {
 });
 
 describe('HomePageClient — product carousel and rail', () => {
-  it('renders the six requested carousel cards with accessible auto-advance', () => {
-    // Auto-advance deliberately reverses the wave's original no-autoplay rule
-    // (Chris, 2026-07-16). The guard now pins the accessibility contract that
-    // makes it defensible: a visible pause control ships in the SSR markup.
+  it('renders the six carousel cards in a continuous flow with a pause control', () => {
+    // Continuous flow (Chris, 2026-07-17) replaced discrete auto-advance. The
+    // guard pins the accessibility contract that makes a marquee defensible:
+    // a visible pause control ships in the SSR markup, and the server render
+    // carries exactly ONE copy of each card (the seam-hiding duplicate is a
+    // client-only, aria-hidden presentation detail).
     const html = renderHomepage();
     expect(html).toContain('data-home-product-carousel');
+    expect(html).toContain('data-carousel-flow="continuous"');
     for (const product of ['wallet', 'readiness', 'matcha', 'apply', 'recognition', 'reuse']) {
-      expect(html).toContain(`data-carousel-card="${product}"`);
+      const occurrences = html.split(`data-carousel-card="${product}"`).length - 1;
+      expect(occurrences, `${product} card renders once in SSR`).toBe(1);
     }
     expect(html).toContain('data-carousel-autoplay');
-    expect(html).toContain('aria-label="Pause auto-advance"');
-    expect(html).toContain('aria-label="Previous product"');
-    expect(html).toContain('aria-label="Next product"');
+    expect(html).toContain('aria-label="Pause the product flow"');
   });
 
   it('renders direct section links in the required order', () => {

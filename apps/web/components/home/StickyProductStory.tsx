@@ -146,12 +146,17 @@ const STORY_TRANSITION_SECONDS = 1.05;
 
 function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: MotionValue<number> }) {
   const offset = useTransform(progress, (latest) => index - latest);
-  // A card first approaches from below, overlaps the active card, locks into
-  // place, then recedes upward and backward. These are derived MotionValues:
-  // scroll frames never re-render React.
-  const y = useTransform(offset, [-2, -0.8, 0, 0.8, 2], [-44, -24, 0, 112, 180]);
-  const scale = useTransform(offset, [-2, -0.8, 0, 0.8, 2], [0.88, 0.93, 1, 0.965, 0.94]);
-  const opacity = useTransform(offset, [-1.5, -0.72, 0, 0.72, 1.2], [0, 0.38, 1, 0.18, 0]);
+  // ROLODEX (Chris, 2026-07-17): cards flip around a horizontal spindle below
+  // the stack instead of fading through each other. The upcoming card lies
+  // tipped back behind the axle, rotates up to face the reader, locks flat,
+  // then falls forward over the spindle as the next one rises. transform-origin
+  // sits below the card (CSS: 50% 116%) so the rotation reads as a wheel turn,
+  // not an in-place tilt. Opacity only masks the extremes — mid-flip cards
+  // stay solid, which is what makes it feel mechanical rather than a fade.
+  // These are derived MotionValues: scroll frames never re-render React.
+  const rotateX = useTransform(offset, [-1.4, -0.9, 0, 0.9, 1.4], [96, 74, 0, -74, -96]);
+  const y = useTransform(offset, [-1.4, 0, 1.4], [-14, 0, 18]);
+  const opacity = useTransform(offset, [-1.35, -1, -0.55, 0, 0.55, 1, 1.35], [0, 0.55, 1, 1, 1, 0.55, 0]);
   const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
   const Icon = step.icon;
 
@@ -161,7 +166,7 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
       data-story-card-index={index}
       data-section-observe={step.id === 'match' ? 'matcha' : step.id === 'apply' ? 'apply' : undefined}
       className="story-card"
-      style={{ y, scale, opacity, zIndex }}
+      style={{ rotateX, y, opacity, zIndex }}
     >
       <Card className="story-card-shell">
         <div className="story-card-copy">
@@ -320,6 +325,7 @@ export function StickyProductStory() {
       data-pin-container=""
       data-active-step={STEPS[active].id}
       data-story-motion="motion-values"
+      data-story-effect="rolodex"
       data-story-transition-ms={Math.round(STORY_TRANSITION_SECONDS * 1000)}
       className="sticky-product-story"
       aria-labelledby="product-story-title"
@@ -337,8 +343,7 @@ export function StickyProductStory() {
             className="mz-h1"
             text="One identity, carried all the way to accepted."
             accentWords={['accepted.']}
-            startOffset="90%"
-            endOffset="45%"
+            variant="type"
           />
           <p className="story-intro-body">
             Scroll the product path. Every step keeps its source state and review boundary attached.

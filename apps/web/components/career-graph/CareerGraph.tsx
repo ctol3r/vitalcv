@@ -80,6 +80,28 @@ const DEFAULT_DISPLAY: Display = { arrows: false, textFade: 0.8, nodeSize: 1, li
 
 const ALL_GROUPS: GraphGroup[] = ['holder', 'verifier', 'issuer', 'evidence'];
 
+/* --------------------------- narrated intro ---------------------------- */
+/**
+ * The populate-in narration (Chris, 2026-07-17): instead of arriving whole,
+ * the graph BUILDS in doctrine order while a caption explains each layer —
+ * clinicians → primary sources → issuers → employers — then settles into the
+ * normal live graph. Nodes stagger in across each phase window; an edge draws
+ * only once BOTH endpoints exist, so connections appear exactly when the
+ * narration explains them. Honest copy only: the final caption claims reuse,
+ * not verification. Reduced motion (and any pointer interaction) skips
+ * straight to the settled graph.
+ */
+const INTRO_PHASES: ReadonlyArray<{ group: GraphGroup | null; start: number; caption: string }> = [
+  { group: 'holder', start: 0.5, caption: 'Clinicians anchor the network — each one owns their record.' },
+  { group: 'evidence', start: 3.0, caption: 'Every record links to primary sources — NPPES, OIG, state boards, specialties.' },
+  { group: 'issuer', start: 5.4, caption: 'Issuers sign credentials once. The proof travels with the clinician.' },
+  { group: 'verifier', start: 7.4, caption: 'Employers read the same evidence — and can accept it as a head start.' },
+  { group: null, start: 9.6, caption: 'One reusable network. Nothing resets.' },
+];
+const INTRO_PHASE_SPAN = 1.9;   // per-phase node stagger window (seconds)
+const INTRO_END = 9.6;          // clock at which every node has appeared
+const INTRO_CAPTIONS_CLEAR = 12.2;
+
 /* seeded layout so first paint is deterministic (no Math.random at import) */
 function seededXY(i: number, n: number): [number, number] {
   const golden = 2.399963;
@@ -92,7 +114,8 @@ export default function CareerGraph({
   initialTheme = 'dark',
   initialPanelOpen = true,
   transparentBg = false,
-}: { initialTheme?: ThemeName; initialPanelOpen?: boolean; transparentBg?: boolean }) {
+  narratedIntro = false,
+}: { initialTheme?: ThemeName; initialPanelOpen?: boolean; transparentBg?: boolean; narratedIntro?: boolean }) {
   const [themeName, setThemeName] = React.useState<ThemeName>(initialTheme);
   const theme = THEMES[themeName];
   const [physics, setPhysics] = React.useState<Physics>(DEFAULT_PHYSICS);
@@ -124,6 +147,32 @@ export default function CareerGraph({
   const introRef = React.useRef(0);
   const clockRef = React.useRef(0);
   const onscreenRef = React.useRef(true);
+  const narratedRef = React.useRef(narratedIntro); narratedRef.current = narratedIntro;
+  // Which narration caption is on screen; -1 once the intro has finished
+  // (or was skipped / reduced-motion).
+  const [introPhase, setIntroPhase] = React.useState(narratedIntro ? 0 : -1);
+
+  // Per-node appearance time for the narrated build: phase start by group,
+  // then a stagger across the phase window in dataset order.
+  const appearAt = React.useMemo(() => {
+    const at = new Map<string, number>();
+    if (!narratedIntro) return at;
+    const phaseOf = new Map<GraphGroup, number>();
+    INTRO_PHASES.forEach((p, i) => { if (p.group) phaseOf.set(p.group, i); });
+    const totals = new Map<number, number>(), seen = new Map<number, number>();
+    for (const n of CAREER_NODES) {
+      const p = phaseOf.get(n.group)!;
+      totals.set(p, (totals.get(p) ?? 0) + 1);
+    }
+    for (const n of CAREER_NODES) {
+      const p = phaseOf.get(n.group)!;
+      const i = seen.get(p) ?? 0; seen.set(p, i + 1);
+      const frac = i / Math.max(1, (totals.get(p) ?? 1) - 1);
+      at.set(n.id, INTRO_PHASES[p].start + frac * INTRO_PHASE_SPAN);
+    }
+    return at;
+  }, [narratedIntro]);
+  const appearRef = React.useRef(appearAt); appearRef.current = appearAt;
 
   // live refs so the rAF loop reads latest UI state without re-subscribing
   const physicsRef = React.useRef(physics); physicsRef.current = physics;
@@ -264,6 +313,15 @@ export default function CareerGraph({
       const eEdge = easeOut(clamp01((intro - 0.12) / 0.88));   // edges arrive just after nodes
       const fxOn = !reduced.current && onscreenRef.current;
       const clock = clockRef.current;
+      // Narrated build: each node has its own arrival on the clock; an edge is
+      // only as present as its least-arrived endpoint. Reduced motion renders
+      // the settled graph immediately (nodeIn collapses to eIntro).
+      const narrated = narratedRef.current && !reduced.current;
+      const nodeIn = (n: SimNode) => {
+        if (!narrated) return eIntro;
+        const t0 = appearRef.current.get(n.id) ?? 0;
+        return easeOut(clamp01((clock - t0) / 0.8));
+      };
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
@@ -286,8 +344,10 @@ export default function CareerGraph({
         if (e.kind === 'backlink' && !showBL) continue;
         const s = pos.get(e.source), t = pos.get(e.target);
         if (!s || !t || !visible(s) || !visible(t)) continue;
+        const eIn = narrated ? Math.min(nodeIn(s), nodeIn(t)) : eEdge;
+        if (eIn <= 0.01) continue;
         const dim = hov && !(focus(e.source) && focus(e.target));
-        ctx.globalAlpha = (dim ? 0.05 : 1) * eEdge;
+        ctx.globalAlpha = (dim ? 0.05 : 1) * eIn;
         ctx.strokeStyle = EDGE_COLOR(T, e.kind);
         ctx.lineWidth = (e.kind === 'backlink' ? 1.1 : 1) * D.linkThickness / cam.zoom;
         if (e.kind === 'backlink') ctx.setLineDash([3 / cam.zoom, 3 / cam.zoom]); else ctx.setLineDash([]);
@@ -316,6 +376,9 @@ export default function CareerGraph({
           const s = pos.get(e.source), t = pos.get(e.target);
           if (!s || !t || !visible(s) || !visible(t)) continue;
           if (hov && !(focus(e.source) && focus(e.target))) continue;
+          // During the narrated build, evidence only FLOWS once both ends of
+          // the relationship have fully arrived.
+          if (narrated && (nodeIn(s) < 0.99 || nodeIn(t) < 0.99)) continue;
           const phase = (i * 0.1371) % 1;
           const speed = e.kind === 'recognition' ? 0.17 : 0.1;
           const frac = (clock * speed + phase) % 1;
@@ -331,15 +394,17 @@ export default function CareerGraph({
       // nodes
       for (const n of sim) {
         if (!visible(n)) continue;
-        const r = radius(n) * (0.12 + 0.88 * eIntro);   // scale-in entrance
+        const ei = nodeIn(n);
+        if (ei <= 0.01) continue;                       // not yet arrived
+        const r = radius(n) * (0.12 + 0.88 * ei);       // scale-in entrance
         const dim = hov && !focus(n.id);
-        const a = dim ? 0.16 : 1;
+        const a = (dim ? 0.16 : 1) * ei;
 
         // soft glow halo — depth + colour bleed into the paper
         if (!dim) {
           const gr = r * 2.7;
           const glow = ctx.createRadialGradient(n.x, n.y, r * 0.35, n.x, n.y, gr);
-          glow.addColorStop(0, hexA(T.group[n.group], 0.16 * eIntro));
+          glow.addColorStop(0, hexA(T.group[n.group], 0.16 * ei));
           glow.addColorStop(1, hexA(T.group[n.group], 0));
           ctx.globalAlpha = 1; ctx.fillStyle = glow;
           ctx.beginPath(); ctx.arc(n.x, n.y, gr, 0, Math.PI * 2); ctx.fill();
@@ -348,7 +413,7 @@ export default function CareerGraph({
         // source-hub pulse ring — the primary sources quietly breathe
         if (fxOn && !dim && n.deg >= 6) {
           const pulse = 0.5 + 0.5 * Math.sin(clock * 1.4 + n.x * 0.04 + n.y * 0.04);
-          ctx.globalAlpha = (0.1 + 0.14 * pulse) * eIntro;
+          ctx.globalAlpha = (0.1 + 0.14 * pulse) * ei;
           ctx.strokeStyle = hexA(T.group[n.group], 1); ctx.lineWidth = 1 / cam.zoom;
           ctx.beginPath(); ctx.arc(n.x, n.y, r + (3 + pulse * 5) / cam.zoom, 0, Math.PI * 2); ctx.stroke();
         }
@@ -362,7 +427,7 @@ export default function CareerGraph({
         ctx.fillStyle = T.group[n.group]; ctx.fill();
         ctx.lineWidth = 1 / cam.zoom; ctx.strokeStyle = T.nodeStroke; ctx.stroke();
         // refined bead highlight — a small offset gloss for a dimensional feel
-        ctx.globalAlpha = a * eIntro;
+        ctx.globalAlpha = a;
         ctx.beginPath(); ctx.arc(n.x - r * 0.28, n.y - r * 0.32, r * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = hexA('#ffffff', isLight ? 0.45 : 0.24); ctx.fill();
       }
@@ -394,7 +459,10 @@ export default function CareerGraph({
         (hov && focus(n.id) ? 1e4 : 0) + n.deg;
       candidates.sort((a, b) => labelRank(b) - labelRank(a));
       for (const n of candidates) {
-        const r = radius(n) * (0.12 + 0.88 * eIntro);
+        const ei = nodeIn(n);
+        if (ei < 0.35) continue;                        // labels wait for their node
+        ctx.globalAlpha = ei;
+        const r = radius(n) * (0.12 + 0.88 * ei);
         const tx = n.x + r + 5 / cam.zoom, ty = n.y;
         const tw = ctx.measureText(n.label).width;
         const box = { x0: tx - padX, y0: ty - fs / 2 - padY, x1: tx + tw + padX, y1: ty + fs / 2 + padY };
@@ -420,6 +488,31 @@ export default function CareerGraph({
   React.useEffect(() => { kickRef.current(0); }, [themeName, display, enabledGroups, showBacklinks, search, selected, hovered]);
   React.useEffect(() => { kickRef.current(0.3); }, [physics]);
 
+  // Narration caption driver: a cheap poll of the render clock (the clock
+  // itself advances only while the graph is on screen, so scrolling away
+  // pauses the story mid-sentence and resumes it on return).
+  React.useEffect(() => {
+    if (!narratedIntro || typeof window === 'undefined') return;
+    let id = 0;
+    const tick = () => {
+      if (reduced.current) { setIntroPhase(-1); window.clearInterval(id); return; }
+      const c = clockRef.current;
+      if (c >= INTRO_CAPTIONS_CLEAR) { setIntroPhase(-1); window.clearInterval(id); return; }
+      let p = 0;
+      for (let i = 0; i < INTRO_PHASES.length; i++) if (c >= INTRO_PHASES[i].start) p = i;
+      setIntroPhase((prev) => (prev === p ? prev : p));
+    };
+    // Immediate check: a reduced-motion visitor must never see even one
+    // interval's worth of caption.
+    tick();
+    id = window.setInterval(tick, 180);
+    return () => window.clearInterval(id);
+  }, [narratedIntro]);
+
+  // A gentle reheat as each layer lands, so every arrival visibly stirs the
+  // layout instead of fading into a frozen constellation.
+  React.useEffect(() => { if (introPhase > 0) kickRef.current(0.12); }, [introPhase]);
+
   /* --------------------------- pointer handling -------------------------- */
   const toWorld = (cx: number, cy: number) => {
     const wrap = wrapRef.current!, r = wrap.getBoundingClientRect(), cam = camera.current;
@@ -440,6 +533,12 @@ export default function CareerGraph({
     return best;
   };
   const onPointerDown = (e: React.PointerEvent) => {
+    // Interaction is consent to explore: fast-forward the narrated build
+    // rather than making the visitor wait out the story.
+    if (narratedRef.current && clockRef.current < INTRO_END) {
+      clockRef.current = INTRO_END;
+      setIntroPhase(-1);
+    }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const hit = hitTest(e.clientX, e.clientY);
     dragRef.current = { id: hit?.id ?? null, panning: !hit, lx: e.clientX, ly: e.clientY, moved: false };
@@ -597,6 +696,29 @@ export default function CareerGraph({
           </div>
           <BacklinkList title={`Links → (${selInfo.out.length})`} items={selInfo.out} theme={theme} onPick={setSelected} />
           <BacklinkList title={`Backlinks ← (${selInfo.back.length})`} items={selInfo.back} theme={theme} onPick={setSelected} />
+        </div>
+      ) : null}
+
+      {/* narrated-build caption — explains each layer as it populates */}
+      {narratedIntro && introPhase >= 0 ? (
+        <div
+          aria-hidden="true"
+          data-graph-caption=""
+          style={{ position: 'absolute', left: '50%', bottom: 40, transform: 'translateX(-50%)', zIndex: 6, pointerEvents: 'none', maxWidth: 'min(88%, 400px)', width: 'max-content' }}
+        >
+          <style>{'@keyframes vcvGraphCaption { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }'}</style>
+          <div
+            key={introPhase}
+            style={{
+              animation: 'vcvGraphCaption 480ms ease-out both',
+              background: theme.panelBg, border: `1px solid ${theme.panelBorder}`, borderRadius: 7,
+              padding: '9px 13px', textAlign: 'center', color: theme.text,
+              fontFamily: "ui-monospace, 'Geist Mono', monospace", fontSize: 11.5, lineHeight: 1.5,
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {INTRO_PHASES[introPhase].caption}
+          </div>
         </div>
       ) : null}
 
