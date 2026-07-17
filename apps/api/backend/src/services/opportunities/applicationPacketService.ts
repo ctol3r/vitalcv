@@ -64,6 +64,16 @@ export interface ApplicationPacketContent {
   methodologyVersion: string;
   consentAt: string;
   consentReceiptId: string;
+  /**
+   * The opportunity version the application was sealed against (its updatedAt at
+   * seal time) — "what the clinician applied to". OPTIONAL, and covered by the
+   * hash when present. Legacy packets sealed before this field existed omit it
+   * entirely (undefined, which `canonicalize` drops), so their stored hash is
+   * unchanged and still verifies. New packets always set it, so it is always
+   * hashed for them. Never store `null` here for a new packet — an omitted key
+   * and a `null` key hash differently.
+   */
+  opportunityVersion?: string;
 }
 
 export interface SealedApplicationPacket extends ApplicationPacketContent {

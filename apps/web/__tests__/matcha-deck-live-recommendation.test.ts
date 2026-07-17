@@ -29,7 +29,8 @@ function match(overrides: Record<string, unknown> = {}) {
       matchBand: 'NEAR_CLEAR',
       matchScore: 72,
       fitReasons: [
-        { dimension: 'specialty', label: 'Specialty match: Internal Medicine', positive: true },
+        // Real engine output (#724): an NPPES-taxonomy specialty is source-checked.
+        { dimension: 'specialty', label: 'Internal Medicine specialty checked · NPPES', positive: true },
         { dimension: 'state', label: 'CA license on file, not source-checked', positive: true },
         { dimension: 'location', label: 'CA is in preferred locations', positive: true },
       ],
@@ -78,6 +79,17 @@ describe('live recommendation mapper — honesty', () => {
     const rec = toDeckRecommendation(match(), 0)
     expect(rec!.explanation.confirmed.every((r) => /\bchecked\b/i.test(r.label) && !/not (?:source-)?checked/i.test(r.label))).toBe(true)
     expect(rec!.explanation.needsReview.some((r) => /not source-checked/i.test(r.label))).toBe(true)
+  })
+
+  it('routes an NPPES source-checked specialty into confirmed (engine #724 ↔ mapper contract)', () => {
+    const rec = toDeckRecommendation(match(), 0)
+    expect(
+      rec!.explanation.confirmed.some(
+        (r) => r.label === 'Internal Medicine specialty checked · NPPES' && r.kind === 'source_backed',
+      ),
+    ).toBe(true)
+    // …while the unverified license claim stays out of confirmed.
+    expect(rec!.explanation.needsReview.some((r) => /CA license on file/i.test(r.label))).toBe(true)
   })
 
   it('a source-checked fit does reach confirmed', () => {

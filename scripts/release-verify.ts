@@ -30,6 +30,7 @@ import { runReleaseVerification } from '../apps/web/lib/release-monitor/verify.t
 import {
   cleanupClinician,
   mintClinicianSession,
+  probeBackendIdentityProxy,
   reachRoute,
   refreshSessionToken,
   warmUpClinicianSession,
@@ -86,7 +87,7 @@ async function probeResolving(base: string): Promise<{ status: number }> {
   }
 }
 
-function runDeployCheck(): Promise<{ ok: boolean; detail: string }> {
+function runDeployCheck(): Promise<{ ok: boolean; detail: string; toolingAbsent?: boolean }> {
   const tailOf = (s: string) => s.trim().split('\n').slice(-3).join(' | ').slice(0, 400);
   try {
     const out = execSync('pnpm check:deploy', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -94,7 +95,15 @@ function runDeployCheck(): Promise<{ ok: boolean; detail: string }> {
   } catch (err) {
     const e = err as { status?: number; stdout?: Buffer | string; stderr?: Buffer | string };
     const out = `${e.stdout ?? ''}${e.stderr ?? ''}`;
-    return Promise.resolve({ ok: false, detail: `check:deploy exit ${e.status ?? '?'} — ${tailOf(out) || 'no output'}` });
+    // Credential absence is a wiring gap in the runner env, not evidence the
+    // deploy lacks integrity — report it without reddening the release status
+    // (the same philosophy as the workflow's "monitor not wired" preflight).
+    const toolingAbsent = out.includes('no RAILWAY_API_TOKEN for the GraphQL fallback');
+    return Promise.resolve({
+      ok: false,
+      toolingAbsent,
+      detail: `check:deploy exit ${e.status ?? '?'} — ${tailOf(out) || 'no output'}`,
+    });
   }
 }
 
@@ -160,6 +169,7 @@ async function main(): Promise<void> {
     warmUp: (s: ClinicianSession) => warmUpClinicianSession(scDeps, s),
     refresh: (s: ClinicianSession) => refreshSessionToken(scDeps, s),
     reach: (s: ClinicianSession, p: string) => reachRoute(scDeps, s, p),
+    probeBackendIdentity: (s: ClinicianSession) => probeBackendIdentityProxy(scDeps, s),
     runDeployCheck,
     cleanup: (created) => cleanupClinician(scDeps, created),
   });

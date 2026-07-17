@@ -1812,6 +1812,12 @@ model ApplicationPacket {
   methodologyVersion   String    @map("methodology_version")
   consentAt            DateTime  @map("consent_at")
   consentReceiptId     String    @map("consent_receipt_id")
+  /// PR J5b — the opportunity version (updatedAt at seal time) the application
+  /// was sealed against. Additive + nullable: NULL = legacy packet sealed
+  /// before this column existed, which replays with the field OMITTED from the
+  /// canonical content so its original hash still verifies (never write NULL
+  /// for a new packet). Covered by the seal hash for new packets.
+  opportunityVersion   String?   @map("opportunity_version")
   /// sha256 over the canonical (key-sorted) packet content — the seal
   packetHash           String    @unique @map("packet_hash")
   createdAt            DateTime  @default(now()) @map("created_at")

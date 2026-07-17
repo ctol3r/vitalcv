@@ -65,12 +65,18 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
               role for you — applying is always a separate step with evidence preview and consent.
             </p>
           </div>
-          <nav className="mdk-mode-toggle" aria-label="Opportunity view mode">
-            <Link href="/holder/opportunities/discover" aria-current="page">
-              Discover
-            </Link>
-            <Link href="/holder/opportunities">Search</Link>
-          </nav>
+          <div className="mdk-nav-group">
+            <nav className="mdk-mode-toggle" aria-label="Opportunity view mode">
+              <Link href="/holder/opportunities/discover" aria-current="page">
+                Discover
+              </Link>
+              <Link href="/holder/opportunities">Search</Link>
+            </nav>
+            <nav className="mdk-saved-nav" aria-label="Saved roles">
+              <Link href="/holder/opportunities/interested">Interested</Link>
+              <Link href="/holder/opportunities/passed">Passed</Link>
+            </nav>
+          </div>
         </header>
 
         {source.isFixture ? (

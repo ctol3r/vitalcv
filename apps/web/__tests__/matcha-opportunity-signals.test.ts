@@ -14,6 +14,7 @@ import {
   TELEMETRY_ACTIONS,
   boardStatusFor,
   boardStatuses,
+  deckDecisionDetails,
   deckDecisionFor,
   deckDecisions,
   isDecisionAction,
@@ -189,5 +190,43 @@ describe('cross-surface continuity — the reason there is one log', () => {
     for (const status of Object.values(boardStatuses(rows))) {
       expect(['saved', 'connected', 'declined']).toContain(status)
     }
+  })
+})
+
+describe('deckDecisionDetails — the J4 workspace source', () => {
+  it('returns the latest decision per opportunity with provenance, newest-first', () => {
+    const rows: SignalRow[] = [
+      { opportunityId: 'opp-2', action: 'priority', createdAt: '2026-07-16T12:00:00Z', opportunityVersion: 'v2' },
+      { opportunityId: 'opp-1', action: 'interested', createdAt: '2026-07-16T10:00:00Z', opportunityVersion: 'v1', recommendationId: 'rec-1' },
+      { opportunityId: 'opp-3', action: 'passed', createdAt: '2026-07-16T09:00:00Z' },
+    ]
+    const details = deckDecisionDetails(rows)
+    expect(details.map((d) => d.opportunityId)).toEqual(['opp-2', 'opp-1', 'opp-3'])
+    expect(details[1]).toMatchObject({ decision: 'interested', opportunityVersion: 'v1', recommendationId: 'rec-1' })
+  })
+
+  it('a restored (undone) latest row drops the role from the workspaces', () => {
+    // Newest-first: the undo is the latest word, so the role is undecided.
+    const rows: SignalRow[] = [
+      { opportunityId: 'opp-1', action: 'restored', createdAt: '2026-07-16T11:00:00Z' },
+      { opportunityId: 'opp-1', action: 'interested', createdAt: '2026-07-16T10:00:00Z' },
+    ]
+    expect(deckDecisionDetails(rows)).toEqual([])
+  })
+
+  it('skips telemetry rows entirely', () => {
+    const rows: SignalRow[] = [
+      { opportunityId: 'opp-1', action: 'viewed', createdAt: '2026-07-16T11:00:00Z' },
+      { opportunityId: 'opp-1', action: 'interested', createdAt: '2026-07-16T10:00:00Z', opportunityVersion: 'v1' },
+    ]
+    // The viewed row is not a decision, so the latest DECISION (interested) wins.
+    const details = deckDecisionDetails(rows)
+    expect(details).toHaveLength(1)
+    expect(details[0]).toMatchObject({ opportunityId: 'opp-1', decision: 'interested' })
+  })
+
+  it('maps board saves into the deck lens (interested)', () => {
+    const rows: SignalRow[] = [{ opportunityId: 'opp-1', action: 'saved', createdAt: '2026-07-16T10:00:00Z' }]
+    expect(deckDecisionDetails(rows)[0].decision).toBe('interested')
   })
 })
