@@ -194,6 +194,8 @@ async function sealSubmissionPacket(
     clinicianNote: string | null;
     trustState: ClinicianTrustState;
     consentAt: Date;
+    /** The opportunity's updatedAt (ISO) at seal time — what was applied to. */
+    opportunityVersion: string;
   },
 ): Promise<SealedApplicationPacket> {
   const fields = buildFieldEntriesFromTrustState(args.trustState, args.selectedSections);
@@ -242,6 +244,10 @@ async function sealSubmissionPacket(
     methodologyVersion: args.trustState.methodology_version,
     consentAt: args.consentAt.toISOString(),
     consentReceiptId: consentReceipt.id,
+    // What the clinician applied to. Always set for new packets, so it is
+    // always covered by the seal hash. (`?? undefined` is defensive: a null
+    // would hash differently from an omitted key — see ApplicationPacketContent.)
+    opportunityVersion: args.opportunityVersion ?? undefined,
   };
   const sealed = sealPacket(content);
 
@@ -261,6 +267,7 @@ async function sealSubmissionPacket(
       methodologyVersion: sealed.methodologyVersion,
       consentAt: new Date(sealed.consentAt),
       consentReceiptId: sealed.consentReceiptId,
+      opportunityVersion: sealed.opportunityVersion ?? null,
       packetHash: sealed.packetHash,
     },
   });
@@ -407,6 +414,10 @@ export async function applyToOpportunity(input: ApplyInput): Promise<Marketplace
       clinicianNote: coverNote ?? null,
       trustState,
       consentAt,
+      // The version the clinician applied against — the opportunity's updatedAt
+      // now, frozen into the seal so the packet records what was on screen even
+      // after the listing is later edited.
+      opportunityVersion: opp.updatedAt.toISOString(),
     });
 
     // The application points at the sealed version only after the packet

@@ -154,6 +154,10 @@ async function readPacket(applicationId: string): Promise<SealedApplicationPacke
     methodologyVersion: row.methodologyVersion,
     consentAt: row.consentAt.toISOString(),
     consentReceiptId: row.consentReceiptId,
+    // Mirror the read service (J5b): a NULL column reconstructs as `undefined`
+    // so canonicalize omits the key and the seal hash still verifies. A new
+    // packet carries the version string, which is covered by the seal hash.
+    opportunityVersion: row.opportunityVersion ?? undefined,
     packetHash: row.packetHash,
   };
 }
@@ -172,6 +176,9 @@ describe('applyToOpportunity — sealed submission (real DB)', () => {
     const packet = await readPacket(application.id);
     expect(verifySealedPacket(packet)).toBe(true);
     expect(packet.fields.length).toBeGreaterThan(0);
+    // J5b: the packet records — inside the seal — which opportunity version it
+    // was sealed against, so it verifies WITH the version present (not omitted).
+    expect(packet.opportunityVersion).toBeTruthy();
     // Recipient is the org NAME frozen at consent time, not just an id.
     expect(packet.recipient).toBe('Seal Test Health');
     expect(packet.clinicianNote).toBe('Available in August.');
