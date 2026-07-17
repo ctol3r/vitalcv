@@ -82,6 +82,24 @@ async function drag(page: Page, dx: number, dy: number, steps: number, pauseMs =
   await page.mouse.up()
 }
 
+/**
+ * A fast flick: travel `dx` below the distance threshold, but fast enough to
+ * commit on velocity. A single synthetic move gives framer-motion only ONE
+ * sample, so its release-velocity estimate is unreliable and runner-dependent.
+ * Two moves separated by a controlled real gap give framer a clean two-sample
+ * history, so velocity ≈ (dx/2) / ~10ms is deterministically well above
+ * COMMIT_VELOCITY (700 px/s) whether on a fast laptop or a loaded CI runner.
+ */
+async function flick(page: Page, dx: number) {
+  const center = await cardCenter(page)
+  await page.mouse.move(center.x, center.y)
+  await page.mouse.down()
+  await page.mouse.move(center.x + dx * 0.5, center.y)
+  await page.waitForTimeout(10)
+  await page.mouse.move(center.x + dx, center.y)
+  await page.mouse.up()
+}
+
 async function signalCount(page: Page, action: string): Promise<number> {
   return page.evaluate(
     (a) =>
@@ -138,7 +156,11 @@ test.describe('MATCHA Deck — pointer physics', () => {
    */
   test('a fast flick commits on velocity even below the distance threshold', async ({ page }) => {
     await openDeck(page)
-    await drag(page, 90, 0, 1) // single full-distance move ⇒ a real flick
+    // Stay clearly below the distance threshold (min(120, width*0.28)) so only
+    // velocity can commit this — but flick fast enough that it does.
+    const { width } = await cardCenter(page)
+    const belowThreshold = Math.min(120, width * 0.28) - 20
+    await flick(page, belowThreshold)
 
     await expect(stage(page)).toHaveAttribute('data-mdk-active', 'fx-rec-002', { timeout: 3000 })
     expect(await signalCount(page, 'interested')).toBe(1)
