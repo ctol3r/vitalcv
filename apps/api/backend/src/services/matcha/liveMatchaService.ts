@@ -22,6 +22,7 @@ import type {
   HiringType,
   Opportunity as MatchaOpportunity,
   RequirementSpec,
+  SpecialtySource,
 } from './matchaModels';
 import {
   seededOrgExclusionFilter,
@@ -75,6 +76,10 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
   const url = `https://npiregistry.cms.hhs.gov/api/?number=${npi}&version=2.1`;
   let name = `Provider ${npi}`;
   let specialty = 'Medicine';
+  // Only an NPPES taxonomy we actually resolve counts as a source check; the
+  // generic 'Medicine' default and the NPPES-unavailable path stay 'unknown'
+  // so the engine never presents an unverified specialty as checked.
+  let specialtySource: SpecialtySource = 'unknown';
   let state = 'CA';
 
   try {
@@ -91,7 +96,12 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
         // Primary taxonomy
         const taxonomies: any[] = result.taxonomies ?? [];
         const primary = taxonomies.find((t: any) => t.primary) ?? taxonomies[0];
-        if (primary?.code) specialty = mapTaxonomy(primary.code);
+        if (primary?.code) {
+          specialty = mapTaxonomy(primary.code);
+          // A code we recognize is a genuine NPPES source check for specialty;
+          // an unmapped code falls back to 'Medicine' and stays unverified.
+          if (TAXONOMY_MAP[primary.code]) specialtySource = 'nppes_taxonomy';
+        }
         if (primary?.state) state = primary.state;
 
         // Address-based state fallback
@@ -199,7 +209,7 @@ async function buildClinicianProfile(npi: string): Promise<ClinicianProfile> {
     // CandidateCredential enrichment is best-effort — don't fail the whole profile
   }
 
-  return { npi, name, specialty, states: [state], credentials };
+  return { npi, name, specialty, specialtySource, states: [state], credentials };
 }
 
 // ── Map DB Opportunity → MATCHA Opportunity ───────────────────────────────────

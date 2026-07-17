@@ -29,6 +29,7 @@ import type {
   InstantOfferEligibility,
   CredentialKey,
   ClaimLevel,
+  SpecialtySource,
 } from './matchaModels';
 
 // ── Band thresholds ───────────────────────────────────────────────────────────
@@ -62,6 +63,21 @@ function credentialCoverageLabel(requirementLabel: string, claimLevel: ClaimLeve
   if (claimLevel === 'L3') return `${requirementLabel} checked`;
   if (claimLevel === 'L2') return `${requirementLabel} on file, not source-checked`;
   return `${requirementLabel} not checked`;
+}
+
+/**
+ * Specialty coverage copy — same honesty contract as credentialCoverageLabel.
+ * A specialty is "checked" ONLY when it was read from an authoritative source
+ * (the clinician's NPPES primary taxonomy). A self-reported specialty, or an
+ * unresolved default, is on file but not source-confirmed. Absent provenance is
+ * treated as unverified, never as checked, so a caller that forgets to set
+ * `specialtySource` can never over-claim (the bug class #712 fixed for
+ * licensure). The "checked · NPPES" wording is what the deck's explanation
+ * mapper keys on to route a specialty fit into its source-backed group.
+ */
+function specialtyCoverageLabel(specialty: string, source: SpecialtySource | undefined): string {
+  if (source === 'nppes_taxonomy') return `${specialty} specialty checked · NPPES`;
+  return `${specialty} specialty on file, not source-checked`;
 }
 
 /**
@@ -220,7 +236,11 @@ export function scoreOpportunity(
 
   if (specialtyMatch) {
     score += 10;
-    fitReasons.push({ dimension: 'specialty', label: `Specialty match: ${clinician.specialty}`, positive: true });
+    fitReasons.push({
+      dimension: 'specialty',
+      label: specialtyCoverageLabel(clinician.specialty, clinician.specialtySource),
+      positive: true,
+    });
   } else {
     score += 2;
     fitReasons.push({ dimension: 'specialty', label: `Specialty mismatch (${opp.specialty} required)`, positive: false });
