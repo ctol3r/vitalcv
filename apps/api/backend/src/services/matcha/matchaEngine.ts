@@ -159,16 +159,32 @@ export function scoreOpportunity(
 
   // ── 2. State / specialty eligibility (25 pts) ────────────────────────────
 
+  const license = stateLicenseClaim(clinician, opp.state);
   const practicesInState = clinician.states.includes(opp.state);
-  const stateEligible = practicesInState || opp.remote;
+
+  // Telehealth is practised where the PATIENT is: a remote posting does not
+  // relax state licensure, it relocates it to the posting's state. Remote is
+  // therefore NOT a licensure exemption and never grants state eligibility.
+  //   CCHP: "When telehealth is used, it is considered to be rendered at the
+  //   physical location of the patient, and therefore a provider typically
+  //   needs to be licensed in the patient's state."
+  //   FSMB: state boards require licensure where the patient is located, or
+  //   registration under a state's interstate telehealth registry.
+  // Eligibility comes from a licence claim for the state, or (weaker) an
+  // NPPES practice address there. Compacts (IMLC), state telehealth
+  // registries, and episodic/follow-up exceptions are real pathways we cannot
+  // see, so a missing licence is a SOFT blocker — never INELIGIBLE.
+  const stateEligible = license.held || practicesInState;
   const specialtyMatch = clinician.specialty.toLowerCase() === opp.specialty.toLowerCase()
     || opp.specialty === 'All Specialties';
 
-  // Scoring is unchanged. Only the CLAIM is corrected: clinician.states is
-  // built from the NPPES practice address, which is not a licence, and a
-  // remote posting says nothing about licensure in the posting's state. What
-  // we can honestly say comes from the state_license credential alone.
-  const license = stateLicenseClaim(clinician, opp.state);
+  const licenseBlocker = (actionLabel: string): MatchBlocker => ({
+    credentialKey: 'state_license',
+    label: `${opp.state} medical license`,
+    severity: 'soft',
+    actionLabel,
+    actionUrl: `/holder/readiness#state_license`,
+  });
 
   if (stateEligible) {
     score += 15;
@@ -180,53 +196,26 @@ export function scoreOpportunity(
         label: `${opp.state} license on file, not source-checked`,
         positive: true,
       });
-      blockers.push({
-        credentialKey: 'state_license',
-        label: `${opp.state} medical license`,
-        severity: 'soft',
-        actionLabel: `Confirm ${opp.state} license`,
-        actionUrl: `/holder/readiness#state_license`,
-      });
-    } else if (practicesInState) {
+      blockers.push(licenseBlocker(`Confirm ${opp.state} license`));
+    } else {
       // An NPPES practice address in the state — a location signal, not licensure.
       fitReasons.push({
         dimension: 'state',
         label: `Practice address in ${opp.state} — license not checked`,
         positive: false,
       });
-      blockers.push({
-        credentialKey: 'state_license',
-        label: `${opp.state} medical license`,
-        severity: 'soft',
-        actionLabel: `Add ${opp.state} license`,
-        actionUrl: `/holder/readiness#state_license`,
-      });
-    } else {
-      // Remote-only eligibility. Telehealth still requires state licensure;
-      // we have no claim for this state, so we say exactly that.
-      fitReasons.push({
-        dimension: 'state',
-        label: `Remote role — ${opp.state} license requirements not checked`,
-        positive: false,
-      });
-      blockers.push({
-        credentialKey: 'state_license',
-        label: `${opp.state} medical license`,
-        severity: 'soft',
-        actionLabel: `Add ${opp.state} license`,
-        actionUrl: `/holder/readiness#state_license`,
-      });
+      blockers.push(licenseBlocker(`Add ${opp.state} license`));
     }
   } else {
     score += 3;
-    fitReasons.push({ dimension: 'state', label: `No ${opp.state} license on file`, positive: false });
-    blockers.push({
-      credentialKey: 'state_license',
-      label: `${opp.state} medical license`,
-      severity: 'soft',
-      actionLabel: `Apply for ${opp.state} license`,
-      actionUrl: `/holder/readiness#state_license`,
+    fitReasons.push({
+      dimension: 'state',
+      label: opp.remote
+        ? `Remote role — needs ${opp.state} license (telehealth is practiced where the patient is)`
+        : `No ${opp.state} license on file`,
+      positive: false,
     });
+    blockers.push(licenseBlocker(`Apply for ${opp.state} license`));
   }
 
   if (specialtyMatch) {

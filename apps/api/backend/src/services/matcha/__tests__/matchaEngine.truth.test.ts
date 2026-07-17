@@ -64,10 +64,65 @@ describe('MATCHA engine — licensure is never fabricated', () => {
     }
     expect(reasons).toContainEqual({
       dimension: 'state',
-      label: 'Remote role — NY license requirements not checked',
+      label: 'Remote role — needs NY license (telehealth is practiced where the patient is)',
       positive: false,
     });
   });
+});
+
+/**
+ * Telehealth is practised where the patient is, so a remote posting relocates
+ * the licensure requirement rather than removing it (CCHP; FSMB). Remote must
+ * never buy state eligibility. Compacts, telehealth registries, and
+ * episodic-care exceptions are pathways we cannot see, so the gap stays SOFT.
+ */
+describe('MATCHA engine — remote is not a licensure exemption', () => {
+  const remoteNY = opportunity({ state: 'NY', remote: true, hiringType: 'telehealth' });
+
+  it('does not score an unlicensed clinician as state-eligible just because a role is remote', () => {
+    const remoteScore = scoreOpportunity(clinician(), null, remoteNY).matchScore;
+    const onsiteScore = scoreOpportunity(
+      clinician(),
+      null,
+      opportunity({ state: 'NY', remote: false }),
+    ).matchScore;
+    // Remote must earn no more state credit than the same unlicensed onsite role.
+    expect(remoteScore).toBeLessThanOrEqual(onsiteScore);
+  });
+
+  it('a missing license is a soft blocker with an action, never INELIGIBLE', () => {
+    const result = scoreOpportunity(clinician(), null, remoteNY);
+    expect(result.matchBand).not.toBe('INELIGIBLE');
+    const blocker = result.blockers.find(b => b.credentialKey === 'state_license');
+    expect(blocker).toMatchObject({ severity: 'soft', actionLabel: 'Apply for NY license' });
+  });
+
+  it('a license in the remote role’s state still earns state eligibility', () => {
+    const nyLicensed = clinician({
+      states: ['CA'], // practises in CA, licensed in NY — telehealth into NY is the point
+      credentials: [
+        { key: 'npi', status: 'active', claimLevel: 'L3', issuer: 'CMS NPPES' },
+        {
+          key: 'state_license',
+          status: 'active',
+          claimLevel: 'L3',
+          issuer: 'NY Medical Board',
+          state: 'NY',
+        },
+      ],
+    });
+    expect(stateReasons(nyLicensed, remoteNY)).toContainEqual({
+      dimension: 'state',
+      label: 'NY license checked',
+      positive: true,
+    });
+    expect(scoreOpportunity(nyLicensed, null, remoteNY).matchScore).toBeGreaterThan(
+      scoreOpportunity(clinician(), null, remoteNY).matchScore,
+    );
+  });
+});
+
+describe('MATCHA engine — claim-level honesty', () => {
 
   it('a practice address in the state is a location signal, not a license', () => {
     const noLicense = clinician({
