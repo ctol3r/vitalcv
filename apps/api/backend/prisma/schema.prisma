@@ -70,18 +70,51 @@ model PilotLead {
 /// (clerkUserId, opportunityId). Rows are never updated or deleted. Mirrored
 /// in apps/web/prisma/schema.prisma — the web app writes this table directly
 /// via an auth-scoped route (identity from Clerk auth(), never a header).
+///
+/// PR J2 — MATCHA Discover (the swipe deck) writes its decisions to THIS log
+/// too, so a role saved on the board is the same role the deck shows as
+/// decided; there is never a second competing "saved roles" list. Undo appends
+/// a `restored` row exactly as the board's un-toggle appends `cleared`.
+///
+/// action: saved | connected | declined | cleared        (board decisions)
+///       | interested | priority | passed | restored     (deck decisions)
+///       | viewed | details_opened                       (deck telemetry — NOT decisions)
+///       | application_started | application_submitted    (apply funnel, PR J5)
+/// The canonical vocabulary and the current-state derivation live in
+/// apps/web/lib/matcha/opportunitySignals.ts — read the log through it, never
+/// by casting `action` at a call site.
+///
+/// PRIVACY: these are the clinician's own private workflow decisions. Never
+/// credentials, never verification state, never an input to trust-state/CRS,
+/// and no employer-facing read path may expose them.
 model OpportunityAction {
   id            String   @id @default(uuid()) @db.Uuid
   clerkUserId   String
   npi           String?
   opportunityId String
-  action        String // saved | connected | declined | cleared
+  action        String
   source        String   @default("web")
   createdAt     DateTime @default(now())
+  /// PR J2 fields — additive + nullable, so every pre-deck row stays valid.
+  /// Which surface produced the signal: board | deck.
+  surface            String   @default("board")
+  /// The opportunity version the clinician actually saw when deciding.
+  /// Carried through Apply so a packet replays against what was on screen.
+  opportunityVersion String?
+  /// The MATCHA recommendation this decision responded to (replay/audit).
+  recommendationId   String?
+  /// Deck session, so a run of decisions can be reconstructed.
+  sessionId          String?
+  /// Optional structured pass reason (PR J6). Private preference data.
+  reason             String?
+  /// Client-generated idempotency key: a retried or replayed emit of the SAME
+  /// user intent collapses onto one row instead of duplicating the event.
+  clientSignalId     String?  @unique
 
   @@index([clerkUserId, opportunityId, createdAt])
   @@index([opportunityId])
   @@index([createdAt])
+  @@index([clerkUserId, surface, createdAt])
 }
 
 model Recognition {
