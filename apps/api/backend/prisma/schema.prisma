@@ -1830,8 +1830,13 @@ model ApplicationPacket {
 
 model EmployerAcceptance {
   id           String   @id @default(uuid()) @db.Uuid
-  entityId     String   @map("entity_id") @db.Uuid
-  organization String
+  // entityId/organization were NOT NULL, but the acceptance is keyed on
+  // (employerId, clinicianNpi) — the indexed business keys below. Of the four
+  // writers, only the review path has a real entityId; hiring.ts has none.
+  // Requiring them forced two @ts-nocheck writers to omit them and throw, and
+  // two others to fabricate a UUID. Nullable matches how the model is used.
+  entityId     String?  @map("entity_id") @db.Uuid
+  organization String?
   employerId   String?  @map("employer_id")
   clinicianNpi String?  @map("clinician_npi")
   artifactId   String?  @map("artifact_id")

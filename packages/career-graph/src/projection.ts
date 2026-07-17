@@ -114,11 +114,11 @@ export const NODE_PROJECTIONS: readonly NodeProjection[] = [
   },
   {
     type: 'decision',
-    model: 'EmployerDecisionEvent',
+    model: 'EmployerAcceptance',
     idField: 'id',
-    labelFields: ['decision'],
-    stateField: 'decision',
-    note: 'ISLAND. Real and written, but FK’d only to VcvEntity and VcvOrganizationContext — it references neither Application nor Recognition. So the decision that is supposed to sit between "employer reviewed a packet" and "Recognition was produced" connects to neither. See the decided_by / produced_recognition / accepted_as_head_start gaps.',
+    labelFields: ['status'],
+    stateField: 'status',
+    note: 'The REAL employer accept record is EmployerAcceptance (written by the /api/employer-review/:entityId/accept flow), NOT EmployerDecisionEvent — that latter model is written only by sealEventCapture and FKs to VcvEntity/VcvOrganizationContext. EmployerAcceptance is keyed on (employerId, clinicianNpi); it carries no applicationId or recognitionId FK, but applicationService.ts:739 already correlates it to applications by exactly that (employerId, clinicianNpi) business key. So the decision→application link IS drawable, coarsely — see the decided_by note. (Until 2026-07-17 this write threw on every call; revived by making entityId/organization nullable.)',
   },
   {
     type: 'decision_capsule',
@@ -253,6 +253,15 @@ export const EDGE_PROJECTIONS: readonly EdgeProjection[] = [
     model: 'Application',
     via: 'opportunityId',
     foreignKeyBacked: true,
+  },
+  {
+    type: 'decided_by',
+    from: 'application',
+    to: 'decision',
+    model: 'EmployerAcceptance',
+    via: '(opportunity.organizationId, application.npi) = (EmployerAcceptance.employerId, clinicianNpi)',
+    foreignKeyBacked: false,
+    note: 'COARSE. The employer accept carries no applicationId, so this joins on the (employer, clinician) business key — exactly as applicationService.ts:739 already does to surface accepted status. It is ambiguous when a clinician has multiple applications at one employer: any accept marks them all. A precise per-application link needs the accept request to carry applicationId (upstream product plumbing), not just a column.',
   },
   {
     type: 'presented_in',

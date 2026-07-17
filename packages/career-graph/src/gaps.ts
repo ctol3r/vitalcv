@@ -154,21 +154,15 @@ export const EDGE_GAPS: readonly EdgeGap[] = [
   },
   {
     type: 'accepted_as_head_start',
-    reason: 'no_persistence',
-    today: 'EmployerDecisionEvent.decision is a free String, and the record links to no packet or application, so nothing distinguishes an acceptance-as-head-start from any other decision in a projectable way.',
-    wouldRequire: 'A decision outcome discriminator, plus the application/packet link that decided_by needs.',
-  },
-  {
-    type: 'decided_by',
-    reason: 'no_persistence',
-    today: 'EmployerDecisionEvent FKs to VcvEntity and VcvOrganizationContext only — it carries no application, packet, or reviewer reference. The employer decision literally does not know which application it decided.',
-    wouldRequire: 'An applicationId (or packetId) on the decision record. Without it the loop "employer review → decision" cannot be drawn from data, no matter how the UI is built.',
+    reason: 'scalar_only',
+    today: 'EmployerAcceptance.status is a free String defaulting to "ACCEPTED" — every row looks the same. Nothing distinguishes acceptance-as-head-start from any other accept outcome in a projectable way.',
+    wouldRequire: 'A structured outcome discriminator on EmployerAcceptance rather than a free-text status.',
   },
   {
     type: 'produced_recognition',
     reason: 'no_persistence',
-    today: 'No link from EmployerDecisionEvent to Recognition. Recognition.subjectId/employerId are bare strings with no FK. So the decision→Recognition step of the canonical path is not recorded anywhere.',
-    wouldRequire: 'A recognitionId on the decision record, or a decisionId on Recognition. This is the seam between the review surface and the canonical path, and today it is an inference, not a record.',
+    today: 'No link from EmployerAcceptance (the review accept) to Recognition (the canonical-path record). They are disjoint subsystems: EmployerAcceptance is keyed on (employerId, clinicianNpi); Recognition on subjectId/recognitionId, both bare strings. Nothing joins an accept to the Recognition it should produce.',
+    wouldRequire: 'A recognitionId on EmployerAcceptance, or a bridge that mints a Recognition when an acceptance is recorded. This is the seam between the review surface and the canonical path — today it is an inference, not a record.',
   },
   {
     type: 'recognized_by',

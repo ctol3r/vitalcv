@@ -903,6 +903,11 @@ export async function recordEmployerReviewAcceptance(input: {
     const acceptanceRow = await tx.employerAcceptance.create({
       data: {
         id: randomUUID(),
+        // The review path has a real entity and org in hand — record them, so
+        // the acceptance ties to the VcvEntity that was reviewed. (Both columns
+        // are nullable; hiring.ts, which has neither, legitimately omits them.)
+        entityId: input.entityId,
+        organization: input.organizationName ?? input.employerId,
         employerId: input.employerId,
         clinicianNpi: input.clinicianNpi,
         artifactId: null,

@@ -174,6 +174,30 @@ describe('employerReviewActions service', () => {
     }));
   });
 
+  it('writes the required entityId and organization onto the acceptance row', async () => {
+    // Regression guard. entityId and organization are NOT NULL in the DDL, and
+    // this create used to omit them under a // @ts-nocheck — so every accept
+    // threw at Prisma validation and the transaction rolled back. No test
+    // asserted on the create args, so nothing caught it. This asserts them.
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+      organizationContextId: 'ctx-1',
+    });
+
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          entityId: 'entity-1',
+          organization: 'employer-1',
+          employerId: 'employer-1',
+          clinicianNpi: '1234567890',
+        }),
+      }),
+    );
+  });
+
   it('builds portable acceptance history with anonymized pilot organization labels', async () => {
     prismaMock.auditEvent.findMany.mockResolvedValue([
       {
