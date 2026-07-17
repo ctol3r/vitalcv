@@ -123,6 +123,32 @@
   margin-bottom: 18px;
 }
 
+/* Unsaved-decisions notice (PR J2) — only ever shown when persistence really
+   failed, so it must read as a live state, not decoration. */
+.mdk-unsaved-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--mdk-watch-rule);
+  background: var(--mdk-watch-bg);
+  color: var(--mdk-watch);
+  border-radius: 12px;
+  padding: 8px 8px 8px 14px;
+  font-size: 13.5px;
+  font-weight: 530;
+  margin-bottom: 18px;
+}
+
+.mdk-unsaved-banner > span:last-of-type {
+  flex: 1;
+}
+
+.mdk-btn--retry {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+}
+
 /* ---------- three-column desktop canvas ---------- */
 
 .mdk-canvas {

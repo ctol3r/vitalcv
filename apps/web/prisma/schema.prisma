@@ -120,24 +120,38 @@ model PilotLead {
 }
 
 // Wave K — clinician Save / Connect / Decline decisions on MATCHA
-// opportunities (mirror of the backend model; migration lives in
-// apps/api/backend/prisma/migrations/20260705000000_opportunity_actions).
+// opportunities (mirror of the backend model; migrations live in
+// apps/api/backend/prisma/migrations/20260705000000_opportunity_actions and
+// .../20260717000000_opportunity_signal_fields).
 // Append-only: every decision (including clearing one back to "new") is a
 // NEW row; current state = latest row per (clerkUserId, opportunityId).
 // These are the clinician's own workflow decisions — never credentials,
 // never verification state.
+//
+// PR J2 — MATCHA Discover (the swipe deck) writes here too, so a role saved
+// on the board is the same role the deck shows as decided. Read the log
+// through apps/web/lib/matcha/opportunitySignals.ts (canonical vocabulary +
+// current-state derivation), never by casting `action` at a call site.
 model OpportunityAction {
   id            String   @id @default(uuid()) @db.Uuid
   clerkUserId   String
   npi           String?
   opportunityId String
-  action        String // saved | connected | declined | cleared
+  action        String
   source        String   @default("web")
   createdAt     DateTime @default(now())
+  // PR J2 fields — additive + nullable, so every pre-deck row stays valid.
+  surface            String   @default("board")
+  opportunityVersion String?
+  recommendationId   String?
+  sessionId          String?
+  reason             String?
+  clientSignalId     String?  @unique
 
   @@index([clerkUserId, opportunityId, createdAt])
   @@index([opportunityId])
   @@index([createdAt])
+  @@index([clerkUserId, surface, createdAt])
 }
 
 // Mirror of the backend AuditEvent model (one shared DB; migrations owned by
