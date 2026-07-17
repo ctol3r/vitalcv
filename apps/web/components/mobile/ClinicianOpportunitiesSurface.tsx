@@ -1,10 +1,11 @@
 'use client';
 
 import { Compass, RefreshCw } from 'lucide-react';
-import { OpportunityGrid, SelectedOpportunityBanner } from '@/components/mobile/ClinicianPanels';
+import { SelectedOpportunityBanner } from '@/components/mobile/ClinicianPanels';
 import { ClinicianStatusBanner } from '@/components/mobile/ClinicianStatusBanner';
 import { ClinicianSupportCard } from '@/components/mobile/ClinicianSupportCard';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
+import { ClinicianSwipeBoard } from '@/components/mobile/ClinicianSwipeBoard';
 
 export default function ClinicianOpportunitiesSurface() {
   const {
@@ -51,11 +52,7 @@ export default function ClinicianOpportunitiesSurface() {
 
       <SelectedOpportunityBanner />
 
-      <OpportunityGrid
-        opportunities={data.opportunities}
-        heading="Live opportunity feed"
-        description="Choose a role, understand the fit, and move into apply without losing context."
-      />
+      <ClinicianSwipeBoard opportunities={data.opportunities} />
 
       <ClinicianSupportCard
         topic="opportunities"
