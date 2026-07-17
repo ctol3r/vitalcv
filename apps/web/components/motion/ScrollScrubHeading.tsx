@@ -56,6 +56,13 @@ export type ScrollScrubHeadingProps = {
   accentWords?: string[];
   /** Hero/manifesto mode: taller runway + sticky stage. Use once per page. */
   pin?: boolean;
+  /**
+   * Content pinned WITH the heading (pin mode only) — typically the lede.
+   * A pinned stage that holds only a display heading is mostly empty paper for
+   * the length of the runway; anything that belongs on the same screen as the
+   * claim belongs in here rather than after the runway.
+   */
+  stageFooter?: React.ReactNode;
 } & Omit<React.HTMLAttributes<HTMLHeadingElement>, 'children'>;
 
 /**
@@ -245,6 +252,7 @@ export function ScrollScrubHeading({
   endOffset = '35%',
   accentWords,
   pin = false,
+  stageFooter,
   ...rest
 }: ScrollScrubHeadingProps) {
   const accentKey = accentWords?.join('|') ?? '';
@@ -286,9 +294,17 @@ export function ScrollScrubHeading({
   // The public API takes plain strings ("85%"), while framer-motion's
   // ScrollOffset is a literal-template union no `string` can satisfy — so the
   // cast lives HERE, at the single boundary, rather than loosening the props.
+  //
+  // Pin starts the scrub while the section is still ENTERING ('start 78%'), not
+  // once it has already parked at the top. Under 'start start' progress sits at
+  // 0 for the whole approach, and progress 0 in `scene` means every character is
+  // still translated 120% down behind an overflow:clip mask at opacity 0 — i.e.
+  // an EMPTY SCREEN. That blank stage, not padding, was the homepage's "too much
+  // empty space". Given a head start the heading is already legible by the time
+  // it parks, and the pin holds a finished sentence instead of a void.
   const offset = (
     pin
-      ? ['start start', 'end end']
+      ? ['start 78%', 'end end']
       : [`start ${startOffset}`, `start ${endOffset}`]
   ) as UseScrollOptions['offset'];
 
@@ -377,6 +393,10 @@ export function ScrollScrubHeading({
             </span>
           </MotionTag>
         )}
+        {/* Rendered on every path, not just the pinned one: mobile and reduced
+            motion resolve usePin to false, and a pin-only footer would drop the
+            lede out of the document for exactly those visitors. */}
+        {stageFooter}
       </div>
     </div>
   );

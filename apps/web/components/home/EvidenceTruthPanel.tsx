@@ -62,13 +62,18 @@ export function EvidenceTruthPanel() {
         accentWords={['its limits.']}
         variant="scene"
         pin
+        stageFooter={
+          // Pinned WITH the heading: the runway is a fixed length of screen, so
+          // the lede either shares that screen or the visitor scrolls a viewport
+          // of blank paper to reach it.
+          <p className="mz-body evidence-truth-lede">
+            VitalCV never asks anyone to take a claim on faith. Behind each field is a named source,
+            a current state, and a plain statement of what the result does not decide.
+          </p>
+        }
       />
-      <p className="mz-body evidence-truth-lede">
-        VitalCV never asks anyone to take a claim on faith. Behind each field is a named source, a
-        current state, and a plain statement of what the result does not decide.
-      </p>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {/* LEFT — example evidence trace (dark technical readout) */}
         <div
           data-home-evidence-trace=""

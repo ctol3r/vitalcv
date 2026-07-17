@@ -417,17 +417,38 @@
 }
 
 /* Hero/manifesto mode only: the tall runway + sticky stage. Standard headings
-   create no runway at all — they map their own viewport transit. */
+   create no runway at all — they map their own viewport transit.
+
+   Runway length IS blank paper: the stage holds three lines, so every vh of
+   runway beyond the scrub's needs is a viewport of empty stage. Measured at
+   1440×900 with a 160vh runway, the worst frame was 620px blank — 69% of the
+   viewport — which is what "too much empty space" actually was. Trimming
+   padding and enlarging type never touched it, because the space was runway.
+
+   FLOOR: the runway must stay TALLER THAN THE VIEWPORT. useScroll's
+   ['start start','end end'] resolves 'end end' before 'start start' once the
+   container is shorter than the viewport, which inverts the progress range and
+   the heading arrives pre-assembled. 124vh = 24vh of real scrub travel, the
+   shortest that still reads as a deliberate beat rather than a pop-in. */
 .scrub-heading-pin {
   position: relative;
-  min-height: 160vh;
+  min-height: 124vh;
 }
 
+/* The stage carries the heading AND its lede (column, centred on the main axis
+   — children still stretch to full width, as the row axis gave them).
+
+   Shrinking this box is a trap: the blank is BELOW the stage, so a shorter
+   stage lifts its bottom edge and opens a WIDER gap to the fold. The fix is to
+   fill it, not shrink it — the lede moves in here (stageFooter) so the pinned
+   screen states the claim and its qualifier together, instead of centring three
+   lines in a void. */
 .scrub-heading-pin .scrub-heading-stage {
   position: sticky;
-  top: 13vh;
+  top: 11vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   min-height: 74vh;
   perspective: 980px;
   perspective-origin: 50% 44%;
