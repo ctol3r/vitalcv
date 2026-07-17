@@ -11,6 +11,7 @@ import {
   type MobileTrustState,
 } from '@/lib/mobile/dashboard';
 import { trackClinicianEvent } from '@/lib/mobile/analytics';
+import { emitApplyFunnelSignal } from '@/lib/matcha-deck/applyFunnel';
 import { useTrackEvent } from '@/lib/learning/useTrackEvent';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -174,6 +175,14 @@ export default function ApplyModal({
         organizationName: opportunity.organizationName ?? null,
       },
     });
+    // Close the MATCHA funnel loop in the unified decision log — the apply flow
+    // opened for this opportunity. Best-effort; never blocks the apply, and NPI
+    // is read as-is (attribution is best-effort, so it is not an effect dep).
+    void emitApplyFunnelSignal('application_started', {
+      opportunityId: opportunity.id,
+      npi: clinicianNpi,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingApplicationRecord, opportunity]);
 
   useEffect(() => {
@@ -272,6 +281,12 @@ export default function ApplyModal({
               opportunityId: application.opportunityId,
               status: application.status,
             },
+          });
+          // The packet sealed — record the funnel completion in the unified
+          // decision log. keepalive lets it survive the redirect that follows.
+          void emitApplyFunnelSignal('application_submitted', {
+            opportunityId: application.opportunityId,
+            npi: clinicianNpi,
           });
         }
 
