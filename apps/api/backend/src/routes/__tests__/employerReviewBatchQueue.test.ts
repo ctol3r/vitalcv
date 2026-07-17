@@ -60,9 +60,6 @@ jest.mock('../../services/seal/sealEventCapture', () => ({
 
 jest.mock('../../services/feedback/prismaEventStore', () => ({ emitLearningEvent: jest.fn() }));
 jest.mock('../../services/feedback/decisionSignalService', () => ({ captureDecisionSignal: jest.fn() }));
-jest.mock('../../services/feedback/matchBoostService', () => ({
-  recomputeMatchBoosts: jest.fn().mockResolvedValue(undefined),
-}));
 jest.mock('../../services/entity/employerPacket', () => ({ buildEmployerEvidencePacket: jest.fn() }));
 jest.mock('../../services/entity/employerPacketExport', () => ({
   createEmployerEvidencePacketZipStream: jest.fn(),

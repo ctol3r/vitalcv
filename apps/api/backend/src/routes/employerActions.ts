@@ -34,7 +34,6 @@ import {
 } from '../services/seal/sealEventCapture';
 import { emitLearningEvent } from '../services/feedback/prismaEventStore';
 import { captureDecisionSignal } from '../services/feedback/decisionSignalService';
-import { recomputeMatchBoosts } from '../services/feedback/matchBoostService';
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
@@ -470,7 +469,6 @@ export function registerEmployerActionRoutes(app: Express): void {
         } : null,
         bundleId: state.attribution.bundleId,
       });
-      void recomputeMatchBoosts().catch(() => {});
 
       return void res.status(201).json({ ok: true, state });
     }),
@@ -686,7 +684,6 @@ export function registerEmployerActionRoutes(app: Express): void {
         } : null,
         bundleId: state.attribution.bundleId,
       });
-      void recomputeMatchBoosts().catch(() => {});
 
       return void res.status(201).json({ ok: true, state });
     }),
@@ -1047,9 +1044,6 @@ export function registerEmployerActionRoutes(app: Express): void {
       }
 
       const succeeded = results.filter((r) => r.ok).length;
-      if (succeeded > 0 && (action === 'accept' || action === 'route-to-review')) {
-        void recomputeMatchBoosts().catch(() => {});
-      }
 
       log('info', 'employer_review_batch_completed', {
         action,
