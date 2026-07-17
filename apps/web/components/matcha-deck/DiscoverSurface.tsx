@@ -14,11 +14,13 @@
  */
 
 import Link from 'next/link'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { MatchaDeck } from './MatchaDeck'
+import { DiscoveryModeBar } from './DiscoveryModeBar'
 import { createDeckSource } from './sourceBoundary'
 import { useDeckSignals } from './useDeckSignals'
+import { applyDiscoveryMode, type DiscoveryMode } from '@/lib/matcha-deck/discoveryModes'
 import type { DeckSignal, DeckSourcePayload } from './types'
 
 declare global {
@@ -34,7 +36,20 @@ export interface DiscoverSurfaceProps {
 }
 
 export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
-  const source = useMemo(() => createDeckSource(payload), [payload])
+  const [mode, setMode] = useState<DiscoveryMode>('for_you')
+  const modeCtx = useMemo(() => ({ homeState: payload.homeState }), [payload.homeState])
+
+  // The mode re-orders the SAME loaded recommendations — a pure lens, no fetch.
+  // A new source object per mode makes the deck reload in the chosen order;
+  // 'for_you' is the identity so it costs nothing.
+  const source = useMemo(
+    () =>
+      createDeckSource({
+        ...payload,
+        recommendations: applyDiscoveryMode(payload.recommendations, mode, modeCtx),
+      }),
+    [payload, mode, modeCtx],
+  )
   // Persistence follows the server's source decision: a preview deck's
   // opportunity ids are not real, so its decisions are never written.
   const { emit, unsavedCount, retryUnsaved } = useDeckSignals({
@@ -84,6 +99,10 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
             <span aria-hidden="true">◌</span>
             {source.sourceLabel}. Decisions here are practice only and are not saved.
           </p>
+        ) : null}
+
+        {payload.recommendations.length > 0 ? (
+          <DiscoveryModeBar mode={mode} onChange={setMode} ctx={modeCtx} />
         ) : null}
 
         {unsavedCount > 0 ? (

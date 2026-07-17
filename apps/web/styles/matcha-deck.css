@@ -1054,3 +1054,53 @@
   outline: 2px solid var(--mdk-accent);
   outline-offset: 2px;
 }
+
+/* ---------- discovery mode selector (J6) ---------- */
+
+.mdk-modes {
+  margin-bottom: 16px;
+}
+
+.mdk-modes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mdk-mode-chip {
+  appearance: none;
+  border: 1px solid var(--mdk-line);
+  background: var(--mdk-card);
+  color: var(--mdk-ink-soft);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 560;
+  font-family: var(--mdk-sans);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--mdk-ease),
+    background-color 140ms var(--mdk-ease),
+    color 140ms var(--mdk-ease);
+}
+
+.mdk-mode-chip:hover {
+  border-color: var(--mdk-ink-faint);
+}
+
+.mdk-mode-chip:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 2px;
+}
+
+.mdk-mode-chip[data-active='true'] {
+  background: var(--mdk-ink);
+  border-color: var(--mdk-ink);
+  color: var(--mdk-paper);
+}
+
+.mdk-modes-hint {
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  color: var(--mdk-ink-faint);
+}

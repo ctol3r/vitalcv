@@ -36,6 +36,8 @@ export interface LiveFeed {
   npi: string
   /** Currently-active MATCHA recommendations, mapped for the deck. */
   recommendations: DeckRecommendation[]
+  /** The clinician's primary practice state, for the "Near me" mode (J6). */
+  homeState?: string
 }
 
 /**
@@ -57,11 +59,18 @@ export async function loadLiveFeed(): Promise<LiveFeed | null> {
   const npi = await resolveNpi(headers)
   if (!npi) return null
 
-  const payload = await backendJson<{ matches?: unknown }>(
+  const payload = await backendJson<{ matches?: unknown; state?: unknown }>(
     `/api/matcha/opportunities/${encodeURIComponent(npi)}`,
     headers,
   )
   if (!payload) return null
 
-  return { npi, recommendations: toDeckRecommendations(payload.matches) }
+  // The live matcha response carries the clinician's primary practice state
+  // (profile.states[0]); a valid 2-letter code enables the "Near me" mode.
+  const homeState =
+    typeof payload.state === 'string' && /^[A-Za-z]{2}$/.test(payload.state)
+      ? payload.state.toUpperCase()
+      : undefined
+
+  return { npi, recommendations: toDeckRecommendations(payload.matches), homeState }
 }
