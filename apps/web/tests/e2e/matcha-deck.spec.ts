@@ -51,16 +51,32 @@ async function cardCenter(page: Page): Promise<{ x: number; y: number; width: nu
   return { x: box.x + box.width / 2, y: box.y + box.height / 2, width: box.width }
 }
 
-/** Drag from the card center by (dx, dy). More steps ⇒ slower ⇒ lower velocity. */
+/**
+ * Drag from the card center by (dx, dy).
+ *
+ * pauseMs > 0 walks the steps one round-trip at a time, deliberately slow, so
+ * velocity stays under COMMIT_VELOCITY.
+ *
+ * pauseMs === 0 means "flick": travel the whole distance in a single move.
+ * Velocity is derived from the LAST pointer delta over its wall-clock gap, so
+ * splitting the path into steps shrinks that delta while a loaded CI runner
+ * stretches the gap — which parks a 90px/3-step drag right on the 700px/s
+ * line and makes it commit on a fast laptop but not in CI. One full-distance
+ * move keeps the delta large and the gap to a single round-trip.
+ */
 async function drag(page: Page, dx: number, dy: number, steps: number, pauseMs = 0) {
   const center = await cardCenter(page)
   await page.mouse.move(center.x, center.y)
   await page.mouse.down()
-  for (let i = 1; i <= steps; i += 1) {
-    await page.mouse.move(center.x + (dx * i) / steps, center.y + (dy * i) / steps)
-    if (pauseMs > 0) await page.waitForTimeout(pauseMs)
+  if (pauseMs > 0) {
+    for (let i = 1; i <= steps; i += 1) {
+      await page.mouse.move(center.x + (dx * i) / steps, center.y + (dy * i) / steps)
+      await page.waitForTimeout(pauseMs)
+    }
+    await page.waitForTimeout(120) // settle: kill residual velocity
+  } else {
+    await page.mouse.move(center.x + dx, center.y + dy)
   }
-  if (pauseMs > 0) await page.waitForTimeout(120) // settle: kill residual velocity
   await page.mouse.up()
 }
 
