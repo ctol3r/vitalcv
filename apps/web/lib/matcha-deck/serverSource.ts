@@ -43,7 +43,7 @@ async function loadLiveRecommendations(): Promise<DeckRecommendation[] | null> {
   const session = await auth()
   if (!session.userId) return null
 
-  const headers = buildMarketplaceHeaders(session)
+  const headers = await buildMarketplaceHeaders(session)
   const npi = await resolveNpi(headers)
   if (!npi) return null
 
