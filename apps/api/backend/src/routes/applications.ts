@@ -30,10 +30,16 @@ import {
   listEmployerWorkflowDashboard,
   runEmployerWorkflowAction,
 } from '../services/opportunities/employerWorkflowService';
+import {
+  parseApplicationPacketApplicationId,
+  parseRequestedPacketVersion,
+  readApplicationPacket,
+} from '../services/opportunities/applicationPacketReadService';
 import { capsuleEngine } from '../services/decision/capsuleEngine';
 import { HttpError } from '../utils/httpError';
 import { log } from '../obs/logger';
 import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
+import type { VerifiedAuth } from '../middleware/verifiedIdentity';
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -43,6 +49,15 @@ function requireClerkUserId(req: Request): string {
   const id = (req.headers['x-clerk-user-id'] as string | undefined)?.trim();
   if (!id) throw new HttpError(401, 'Missing x-clerk-user-id header.');
   return id;
+}
+
+function requireVerifiedClerkUserId(req: Request): string {
+  const verifiedUserId = (req as Request & { verifiedAuth?: VerifiedAuth })
+    .verifiedAuth?.verifiedUserId?.trim();
+  if (!verifiedUserId) {
+    throw new HttpError(401, 'Verified Clerk session required.');
+  }
+  return verifiedUserId;
 }
 
 // Opportunity.id and Application.id are Postgres uuid columns — querying them
@@ -95,6 +110,26 @@ export function registerApplicationRoutes(app: Express): void {
       const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
+    }),
+  );
+
+  /* ── Authorized immutable submission packet ── */
+  app.get(
+    '/api/applications/:applicationId/packet',
+    asyncHandler(async (req, res) => {
+      // This high-value read boundary requires a cryptographically verified
+      // Clerk JWT even while the repository-wide middleware remains in shadow
+      // rollout. A forgeable x-clerk-user-id header is never sufficient.
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
+      const packetVersion = parseRequestedPacketVersion(req.query.version);
+
+      const packet = await readApplicationPacket({
+        applicationId,
+        clerkUserId,
+        packetVersion,
+      });
+      res.json(packet);
     }),
   );
 

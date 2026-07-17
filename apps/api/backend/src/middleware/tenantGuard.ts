@@ -45,6 +45,7 @@ function normalizePath(path: string): string {
 
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
+  const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/packet$/.test(normalized);
 
   return (
     normalized === '/'
@@ -109,6 +110,11 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/watch')
     || normalized.startsWith('/api/search')
     || normalized.startsWith('/api/employers')
+    // Clinicians do not require an organization to read their own immutable
+    // submission. This exact read route performs verified-identity, ownership,
+    // employer-membership, and platform-admin authorization in its service.
+    // Other /api/applications routes remain tenant guarded.
+    || isAuthorizedPacketRead
     // MATCHA clinician demand-side surfaces: NPI-keyed scoring reads plus
     // Clerk-header-scoped intent/opportunity writes, called via the web
     // proxies before any org context exists (same posture as

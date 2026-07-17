@@ -40,6 +40,18 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/clinician/activate')).toBe(false);
   });
 
+  it('allows only the authorized packet read without tenant context', () => {
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/packet',
+    )).toBe(true);
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/packet/extra',
+    )).toBe(false);
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/withdraw',
+    )).toBe(false);
+  });
+
   it('skips tenant context for clerk-scoped workspace bootstrap routes', () => {
     expect(shouldSkipTenantContext('/api/me/workspaces')).toBe(true);
     expect(shouldSkipTenantContext('/api/workspaces/switch')).toBe(true);
