@@ -28,6 +28,7 @@ import type {
   EligibilityDecision,
   InstantOfferEligibility,
   CredentialKey,
+  ClaimLevel,
 } from './matchaModels';
 
 // ── Band thresholds ───────────────────────────────────────────────────────────
@@ -45,6 +46,43 @@ function scoreToBand(score: number, hardBlocked: boolean): MatchBand {
   if (score >= BAND_THRESHOLDS.NEAR_CLEAR) return 'NEAR_CLEAR';
   if (score >= BAND_THRESHOLDS.PARTIAL) return 'PARTIAL';
   return 'INELIGIBLE';
+}
+
+// ── Source-coverage honesty ───────────────────────────────────────────────────
+//
+// A fit reason is copy the clinician reads. It may only assert what the claim
+// level actually supports:
+//   L3 — confirmed against the issuing source        → "checked"
+//   L2 — claimed/derived, NOT source-confirmed       → "on file, not source-checked"
+//   L0/L1 — unknown                                  → "not checked"
+// Never "verified": an active status means the record is current, not that any
+// source confirmed it. See docs/architecture/vitalcv-knowledge-trust-graph.md.
+
+function credentialCoverageLabel(requirementLabel: string, claimLevel: ClaimLevel): string {
+  if (claimLevel === 'L3') return `${requirementLabel} checked`;
+  if (claimLevel === 'L2') return `${requirementLabel} on file, not source-checked`;
+  return `${requirementLabel} not checked`;
+}
+
+/**
+ * The clinician's licence claim for a specific state, if any. Licensure is a
+ * credential fact — it is NEVER inferred from a practice address, and a remote
+ * posting does not imply licensure in the posting's state.
+ */
+function stateLicenseClaim(
+  clinician: ClinicianProfile,
+  state: string,
+): { held: boolean; sourceChecked: boolean } {
+  const license = clinician.credentials.find(
+    c =>
+      c.key === 'state_license' &&
+      c.state === state &&
+      (c.status === 'active' || c.status === 'expiring'),
+  );
+  return {
+    held: !!license,
+    sourceChecked: !!license && levelNum(license.claimLevel) >= levelNum('L3'),
+  };
 }
 
 // ── Main scoring function ─────────────────────────────────────────────────────
@@ -92,9 +130,17 @@ export function scoreOpportunity(
         actionLabel: `Renew ${req.label}`,
         actionUrl: `/holder/readiness#${req.key}`,
       });
-      fitReasons.push({ dimension: 'credentials', label: `${req.label} active (expiring)`, positive: true });
+      fitReasons.push({
+        dimension: 'credentials',
+        label: `${credentialCoverageLabel(req.label, held.claimLevel)}, expiring soon`,
+        positive: true,
+      });
     } else {
-      fitReasons.push({ dimension: 'credentials', label: `${req.label} verified`, positive: true });
+      fitReasons.push({
+        dimension: 'credentials',
+        label: credentialCoverageLabel(req.label, held.claimLevel),
+        positive: true,
+      });
     }
   }
 
@@ -113,16 +159,67 @@ export function scoreOpportunity(
 
   // ── 2. State / specialty eligibility (25 pts) ────────────────────────────
 
-  const stateEligible = clinician.states.includes(opp.state) || opp.remote;
+  const practicesInState = clinician.states.includes(opp.state);
+  const stateEligible = practicesInState || opp.remote;
   const specialtyMatch = clinician.specialty.toLowerCase() === opp.specialty.toLowerCase()
     || opp.specialty === 'All Specialties';
 
+  // Scoring is unchanged. Only the CLAIM is corrected: clinician.states is
+  // built from the NPPES practice address, which is not a licence, and a
+  // remote posting says nothing about licensure in the posting's state. What
+  // we can honestly say comes from the state_license credential alone.
+  const license = stateLicenseClaim(clinician, opp.state);
+
   if (stateEligible) {
     score += 15;
-    fitReasons.push({ dimension: 'state', label: `Licensed in ${opp.state}`, positive: true });
+    if (license.sourceChecked) {
+      fitReasons.push({ dimension: 'state', label: `${opp.state} license checked`, positive: true });
+    } else if (license.held) {
+      fitReasons.push({
+        dimension: 'state',
+        label: `${opp.state} license on file, not source-checked`,
+        positive: true,
+      });
+      blockers.push({
+        credentialKey: 'state_license',
+        label: `${opp.state} medical license`,
+        severity: 'soft',
+        actionLabel: `Confirm ${opp.state} license`,
+        actionUrl: `/holder/readiness#state_license`,
+      });
+    } else if (practicesInState) {
+      // An NPPES practice address in the state — a location signal, not licensure.
+      fitReasons.push({
+        dimension: 'state',
+        label: `Practice address in ${opp.state} — license not checked`,
+        positive: false,
+      });
+      blockers.push({
+        credentialKey: 'state_license',
+        label: `${opp.state} medical license`,
+        severity: 'soft',
+        actionLabel: `Add ${opp.state} license`,
+        actionUrl: `/holder/readiness#state_license`,
+      });
+    } else {
+      // Remote-only eligibility. Telehealth still requires state licensure;
+      // we have no claim for this state, so we say exactly that.
+      fitReasons.push({
+        dimension: 'state',
+        label: `Remote role — ${opp.state} license requirements not checked`,
+        positive: false,
+      });
+      blockers.push({
+        credentialKey: 'state_license',
+        label: `${opp.state} medical license`,
+        severity: 'soft',
+        actionLabel: `Add ${opp.state} license`,
+        actionUrl: `/holder/readiness#state_license`,
+      });
+    }
   } else {
     score += 3;
-    fitReasons.push({ dimension: 'state', label: `Not yet licensed in ${opp.state}`, positive: false });
+    fitReasons.push({ dimension: 'state', label: `No ${opp.state} license on file`, positive: false });
     blockers.push({
       credentialKey: 'state_license',
       label: `${opp.state} medical license`,
