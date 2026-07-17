@@ -35,7 +35,7 @@ describe('page density system', () => {
       encoding: 'utf8',
     });
     const inventory = JSON.parse(raw) as Array<{ route: string; source: string; density: string }>;
-    expect(inventory).toHaveLength(124);
+    expect(inventory).toHaveLength(127);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(

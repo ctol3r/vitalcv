@@ -1,12 +1,7 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { ClinicianMobileProvider } from '@/components/mobile/ClinicianMobileProvider';
-import ClinicianLaunchTracker from '@/components/mobile/ClinicianLaunchTracker';
-import NetworkStatusBanner from '@/components/mobile/NetworkStatusBanner';
-import { MobileBottomNav } from '@/components/clinician/MobileBottomNav';
-import { HolderDesktopNav } from '@/components/holder/HolderDesktopNav';
-import { HolderWorkspaceShell } from '@/components/holder/HolderWorkspaceShell';
+import { HolderWorkspaceFrame } from '@/components/holder/HolderWorkspaceFrame';
 import { loadClinicianMobileData } from '@/lib/mobile/server';
 
 export const metadata: Metadata = {
@@ -32,17 +27,8 @@ export default async function HolderLayout({
   const initialData = await loadClinicianMobileData(session);
 
   return (
-    <ClinicianMobileProvider initialData={initialData}>
-      {/* VitalCV is light-only. HolderWorkspaceShell renders the workspace on
-          light `.mz` paper; dark-authored surfaces stay readable via
-          styles/holder-light-compat.css. */}
-      <HolderWorkspaceShell>
-        <ClinicianLaunchTracker />
-        <NetworkStatusBanner />
-        <HolderDesktopNav />
-        <div className="flex-1 pb-20 md:pb-0">{children}</div>
-        <MobileBottomNav />
-      </HolderWorkspaceShell>
-    </ClinicianMobileProvider>
+    <HolderWorkspaceFrame initialData={initialData}>
+      {children}
+    </HolderWorkspaceFrame>
   );
 }

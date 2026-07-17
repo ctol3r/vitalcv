@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
+import { UserRound } from 'lucide-react';
 import { useClinicianMobile } from '@/components/mobile/ClinicianMobileProvider';
 
 interface NavItem {
@@ -42,14 +43,14 @@ function isItemActive(item: NavItem, pathname: string): boolean {
   return item.matchPrefix ? pathname.startsWith(item.href) : pathname === item.href;
 }
 
-export function HolderDesktopNav() {
+export function HolderDesktopNav({ showClerkAccount = true }: { showClerkAccount?: boolean }) {
   const pathname = usePathname();
   const { unreadNotifications } = useClinicianMobile();
 
   return (
     <nav
       aria-label="Clinician workspace"
-      className="sticky top-0 z-40 hidden w-full border-b border-[var(--rule)] backdrop-blur-md md:block"
+      className="sticky top-0 z-40 hidden w-full border-b border-[var(--rule)] backdrop-blur-md lg:block"
       style={{ background: 'color-mix(in oklch, var(--card) 88%, transparent)' }}
     >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-6 lg:px-8">
@@ -97,7 +98,11 @@ export function HolderDesktopNav() {
         </Link>
 
         {/* Account menu — Manage account + Sign out (Clerk). */}
-        <UserButton afterSignOutUrl="/" />
+        {showClerkAccount ? (
+          <UserButton afterSignOutUrl="/" />
+        ) : (
+          <UserRound className="h-5 w-5 text-[var(--ink-500)]" aria-hidden="true" />
+        )}
       </div>
     </nav>
   );

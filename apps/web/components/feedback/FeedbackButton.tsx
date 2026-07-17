@@ -1,8 +1,21 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { openPilotReporter } from '@/lib/pilot-ops/client';
 
 export default function FeedbackButton() {
+  const pathname = usePathname();
+
+  // MATCHA Discover is a focused, one-handed workflow with its own sticky
+  // controls and details sheet. The global floating affordance must not cover
+  // or compete with those controls.
+  if (
+    pathname === '/holder/opportunities/discover'
+    || pathname === '/dev/matcha-deck'
+  ) {
+    return null;
+  }
+
   return (
     <button
       onClick={() => openPilotReporter({ kind: 'feedback' })}

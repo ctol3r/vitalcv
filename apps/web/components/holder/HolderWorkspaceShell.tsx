@@ -35,7 +35,7 @@ export function HolderWorkspaceShell({ children }: { children: React.ReactNode }
     <HolderThemeContext.Provider value={LIGHT_ONLY}>
       <div
         data-holder-theme="light"
-        className="mz mz-paper mz-persona-holder flex min-h-screen flex-col text-foreground selection:bg-vt-info/30"
+        className="mz mz-paper mz-persona-holder flex min-h-screen flex-col text-foreground selection:bg-vt-info/30 [--holder-mobile-bottom-nav-height:4rem]"
       >
         {children}
       </div>

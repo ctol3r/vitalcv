@@ -46,6 +46,10 @@ export default defineConfig({
       RECEIPT_KID: process.env.RECEIPT_KID ?? 'vitalcv-e2e-ephemeral',
       RECEIPT_PRIVATE_KEY_JWK:
         process.env.RECEIPT_PRIVATE_KEY_JWK ?? e2eReceiptPrivateJwk,
+      // The MATCHA Deck e2e spec drives the fixture harness at
+      // /dev/matcha-deck; the CI web server builds in production mode where
+      // the harness is disabled unless explicitly enabled.
+      MATCHA_DECK_PREVIEW: '1',
     },
     url: baseURL,
     reuseExistingServer: !isCI,

@@ -416,6 +416,7 @@ const GOLDEN_PATH_ROUTES: Array<{ route: string; auth: AuthExpectation }> = [
   { route: '/holder/readiness', auth: 'clinician' },
   { route: '/holder/blockers/[blockerId]', auth: 'clinician' },
   { route: '/holder/opportunities', auth: 'clinician' },
+  { route: '/holder/opportunities/discover', auth: 'clinician' },
   { route: '/holder/opportunities/[id]', auth: 'clinician' },
   { route: '/holder/applications', auth: 'clinician' },
   { route: '/holder/applications/[id]', auth: 'clinician' },
