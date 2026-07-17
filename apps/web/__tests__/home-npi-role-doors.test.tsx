@@ -140,12 +140,14 @@ describe('HomePageClient — consolidated story and truth boundary', () => {
     expect(html).toContain('This is not a completed credentialing, privileging, or employer clearance decision.');
   });
 
-  it('ships the cinematic statement complete and unpinned before JavaScript', () => {
+  it('ships the evidence statement complete and unpinned before JavaScript', () => {
     const html = renderHomepage();
-    expect(html).toContain('data-scrub-scene');
     expect(html).toContain('data-scrub-heading="static"');
-    expect(html).toContain('Every claim carries\nits source, its state,\nand its limits.');
-    // The runway only exists after hydration confirms motion is allowed.
+    expect(html).toContain('Every claim shows its source.');
+    // The heading now inks in place (variant="ink") — no scene, and crucially
+    // no pinned runway. The pin's 124vh of blank paper was the homepage's "too
+    // much empty space"; it must not return.
+    expect(html).not.toContain('data-scrub-scene');
     expect(html).not.toContain('data-scrub-pin=""');
   });
 

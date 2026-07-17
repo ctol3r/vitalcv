@@ -1,18 +1,24 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Motion M1 — scroll-scrubbed character headings, asserted against a
- * production build.
+ * Motion M1 — scroll-scrubbed character heading, asserted against a production
+ * build.
+ *
+ * The evidence-panel heading used to be a PINNED cinematic scene: a 124vh
+ * runway of blank paper whose only job was to scrub three lines of type. That
+ * runway was the homepage's "too much empty space", so it was removed — the
+ * heading now inks in place (variant="ink") as it enters the viewport, reserving
+ * no scroll of its own.
  *
  * The guarantees under test are the ones that break silently: the heading is
  * always semantic and complete, characters resolve as a function of SCROLL
- * (reversibly), words never shatter across lines, and reduced motion gets the
- * finished heading with no runway.
+ * (reversibly), words never shatter across lines, reduced motion gets the
+ * finished heading, and — the regression guard — NO pinned runway ever returns.
  */
 
 const HEADING = '[data-scrub-heading]';
 const EVIDENCE_HEADING = '[data-home-evidence-truth] [data-scrub-heading]';
-const EVIDENCE_SCENE = '[data-home-evidence-truth] [data-scrub-scene]';
+const EVIDENCE_TEXT = 'Every claim shows its source.';
 
 async function scrollTo(page: Page, y: number) {
   await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
@@ -20,7 +26,7 @@ async function scrollTo(page: Page, y: number) {
   await page.waitForTimeout(140); // let the spring settle
 }
 
-/** Mean opacity across a heading's characters = how assembled it is. */
+/** Mean opacity across a heading's characters = how inked it is. */
 async function assembly(page: Page, selector: string): Promise<number> {
   return page.locator(selector).evaluate((node) => {
     const chars = Array.from(node.querySelectorAll('[data-motion-character]'));
@@ -35,23 +41,21 @@ async function headingTop(page: Page, selector: string): Promise<number> {
 }
 
 /**
- * The scrub's true scroll range. The pin starts scrubbing while the section is
- * still ENTERING (offset 'start 78%'), so progress 0 is NOT the moment the
- * stage parks — it is 0.78 of a viewport earlier. Deriving the range from the
- * offsets, rather than assuming progress 0 === stage top, is what keeps these
- * assertions honest about where the heading actually is.
+ * The ink heading scrubs over its OWN viewport transit (offset
+ * ['start 85%','start 35%']): progress 0 when its top sits at 85% of the
+ * viewport (low on screen), progress 1 at 35% (high on screen). Deriving the
+ * scroll range from those offsets keeps the assertions honest about where the
+ * heading actually is.
  */
-async function sceneMetrics(page: Page) {
-  return page.locator(EVIDENCE_SCENE).evaluate((node) => {
-    const top = node.getBoundingClientRect().top + window.scrollY;
-    const vh = window.innerHeight;
-    const startY = top - 0.78 * vh; // progress 0 — 'start 78%'
-    const endY = top + node.clientHeight - vh; // progress 1 — 'end end'
-    return { top, startY, endY, distance: endY - startY };
-  });
+async function inkRange(page: Page) {
+  const top = await headingTop(page, EVIDENCE_HEADING);
+  const vh = await page.evaluate(() => window.innerHeight);
+  const startY = Math.max(0, top - 0.85 * vh); // progress 0
+  const endY = Math.max(0, top - 0.35 * vh); // progress 1
+  return { top, startY, endY, distance: endY - startY };
 }
 
-test.describe('scroll-scrubbed character headings', () => {
+test.describe('scroll-scrubbed character heading', () => {
   test('heading is fully present and semantic, with one accessible name', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -60,7 +64,7 @@ test.describe('scroll-scrubbed character headings', () => {
     // Correct native heading element — not a div dressed as one.
     expect(await evidence.evaluate((n) => n.tagName)).toBe('H2');
     // The accessible name is the COMPLETE sentence, never a stream of letters.
-    await expect(evidence).toHaveAccessibleName('Every claim carries its source, its state, and its limits.');
+    await expect(evidence).toHaveAccessibleName(EVIDENCE_TEXT);
     // Every character span is hidden from assistive tech.
     const exposed = await evidence.evaluate((node) =>
       Array.from(node.querySelectorAll('[data-motion-character]')).filter(
@@ -69,118 +73,71 @@ test.describe('scroll-scrubbed character headings', () => {
     );
     expect(exposed, 'character spans must be aria-hidden').toBe(0);
     // Text is really there (selectable, greppable), not painted pseudo-content.
-    expect((await evidence.innerText()).replace(/\s+/g, ' ')).toContain('Every claim carries its source');
+    expect((await evidence.innerText()).replace(/\s+/g, ' ')).toContain(EVIDENCE_TEXT);
   });
 
   test('characters resolve with scroll and REVERSE on scroll up', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const { startY, distance } = await sceneMetrics(page);
+    const { startY, endY, distance } = await inkRange(page);
 
-    // Early: fragments begin outside their line masks in genuine depth.
+    // Early: characters begin faint (ink opacity floor is 0.16).
     await scrollTo(page, startY);
     const early = await assembly(page, EVIDENCE_HEADING);
     expect(early).toBeGreaterThanOrEqual(0);
-    expect(early).toBeLessThan(0.2);
+    expect(early).toBeLessThan(0.5);
 
-    // Middle: the composition is clearly between fragments and lockup.
+    // Middle: clearly between faint and fully inked.
     await scrollTo(page, startY + distance * 0.5);
     const middle = await assembly(page, EVIDENCE_HEADING);
     expect(middle).toBeGreaterThan(early);
-    expect(middle).toBeLessThan(0.95);
 
-    // Completed: fully inked, followed by a deliberate final hold.
-    await scrollTo(page, startY + distance * 0.92);
+    // Completed: fully inked.
+    await scrollTo(page, endY + 20);
     const done = await assembly(page, EVIDENCE_HEADING);
     expect(done).toBeGreaterThan(middle);
     expect(done).toBeGreaterThan(0.97);
 
-    // Reverse: scrolling back up un-resolves it — the state is a pure function
-    // of scroll, not a one-way animation that latches.
+    // Reverse: scrolling back up un-inks it — the state is a pure function of
+    // scroll, not a one-way animation that latches.
     await scrollTo(page, startY);
     const reversed = await assembly(page, EVIDENCE_HEADING);
-    expect(reversed).toBeLessThan(0.2);
     expect(Math.abs(reversed - early)).toBeLessThan(0.05);
   });
 
   /**
-   * The regression this section actually shipped: under the old
-   * ['start start','end end'] offset the heading sat at progress 0 for the whole
-   * approach — every character translated 120% down behind an overflow:clip mask
-   * at opacity 0. The visitor scrolled into a 160vh stage holding NOTHING, which
-   * is what "too much empty space" was. The stage must park with its statement
-   * already legible, and with the lede on the same screen.
+   * THE REGRESSION GUARD. The heading must NOT be pinned: no data-scrub-pin, no
+   * data-scrub-scene, and no runway element taller than the viewport. A pinned
+   * runway is precisely the "too much empty space" this change removed.
    */
-  test('the pinned stage is never a blank screen', async ({ page }) => {
+  test('the heading reserves no pinned runway of blank paper', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const { top } = await sceneMetrics(page);
 
-    // The moment the stage parks at the top of the viewport.
-    await scrollTo(page, top);
-    const parked = await assembly(page, EVIDENCE_HEADING);
-    expect(parked, 'heading must be legible when the stage parks').toBeGreaterThan(0.5);
-
-    // The lede is pinned WITH the heading, not stranded past the runway.
+    const evidenceSection = page.locator('[data-home-evidence-truth]');
+    expect(await evidenceSection.locator('[data-scrub-pin]').count()).toBe(0);
+    expect(await evidenceSection.locator('[data-scrub-scene]').count()).toBe(0);
+    // The lede sits directly under the heading, not stranded past a runway.
     const lede = page.locator('[data-home-evidence-truth] .evidence-truth-lede');
     await expect(lede).toBeVisible();
-    const ledeInViewport = await lede.evaluate((n) => {
-      const r = n.getBoundingClientRect();
-      return r.top >= 0 && r.bottom <= window.innerHeight;
+    // No element inside the panel is a >1-viewport tall scroll runway.
+    const tallest = await evidenceSection.evaluate((node) => {
+      let max = 0;
+      node.querySelectorAll('*').forEach((el) => {
+        max = Math.max(max, (el as HTMLElement).getBoundingClientRect().height);
+      });
+      return max / window.innerHeight;
     });
-    expect(ledeInViewport, 'lede must share the pinned screen').toBe(true);
+    expect(tallest, 'no runway taller than the viewport').toBeLessThan(1.1);
   });
 
-  test('the one cinematic statement owns a masked full-width sticky stage', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    const scene = page.locator(EVIDENCE_SCENE);
-    await expect(scene).toHaveAttribute('data-scrub-pin', '');
-    // 124vh at 1000px tall. The runway is deliberately shorter than the original
-    // 160vh: every vh beyond the scrub's needs is a viewport of empty stage.
-    // It must still EXCEED the viewport — useScroll resolves 'end end' before
-    // 'start start' once the container is shorter, which inverts progress and
-    // arrives pre-assembled.
-    await expect(scene).toHaveCSS('min-height', '1240px');
-    await expect(scene.locator('.scrub-heading-stage')).toHaveCSS('position', 'sticky');
-    await expect(scene.locator('[data-scrub-heading]')).toHaveAttribute('data-scrub-heading', 'scene');
-    expect(await scene.locator('[data-motion-line-mask]').count()).toBe(3);
-
-    const { startY } = await sceneMetrics(page);
-    await scrollTo(page, startY);
-    const first = scene.locator('[data-motion-character]').first();
-    const initial = await first.evaluate((node) => ({
-      opacity: Number(getComputedStyle(node).opacity),
-      transform: getComputedStyle(node).transform,
-    }));
-    expect(initial.opacity).toBeLessThan(0.2);
-    expect(initial.transform).toContain('matrix3d');
-  });
-
-  test('the completed statement holds stable before the stage releases', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const { startY, distance } = await sceneMetrics(page);
-
-    await scrollTo(page, startY + distance * 0.88);
-    const held = await assembly(page, EVIDENCE_HEADING);
-    await scrollTo(page, startY + distance);
-    const released = await assembly(page, EVIDENCE_HEADING);
-
-    expect(held).toBeGreaterThan(0.99);
-    expect(released).toBeGreaterThan(0.99);
-    expect(Math.abs(released - held)).toBeLessThan(0.005);
-  });
-
-  test('mobile keeps the scene in normal flow with complete readable lines', async ({ page }) => {
+  test('mobile keeps the heading in normal flow, complete and readable', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const scene = page.locator(EVIDENCE_SCENE);
-    await expect(scene).not.toHaveAttribute('data-scrub-pin', '');
-    await expect(scene.locator('[data-scrub-heading]')).toBeVisible();
-    expect(await scene.locator('[data-motion-line-mask]').count()).toBe(3);
+    const evidence = page.locator(EVIDENCE_HEADING);
+    await expect(evidence).toBeVisible();
+    await expect(evidence).toContainText(EVIDENCE_TEXT);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -247,24 +204,22 @@ test.describe('scroll-scrubbed character headings', () => {
     }
     // No transforms to resolve, and the text is complete and fully inked.
     expect(await page.locator('[data-motion-character]').count()).toBe(0);
-    await expect(page.locator(EVIDENCE_HEADING)).toContainText(
-      'Every claim carries its source, its state, and its limits.',
-    );
+    await expect(page.locator(EVIDENCE_HEADING)).toContainText(EVIDENCE_TEXT);
   });
 
   test('heading assembly causes no layout shift', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    const { top, distance } = await sceneMetrics(page);
+    const { startY, endY } = await inkRange(page);
 
     // The heading's box must be identical unresolved vs. fully resolved: the
     // text is laid out from the start, only its ink changes.
-    await scrollTo(page, top);
+    await scrollTo(page, startY);
     const before = await page.locator(EVIDENCE_HEADING).evaluate((n) => {
       const r = n.getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height) };
     });
-    await scrollTo(page, top + distance * 0.92);
+    await scrollTo(page, endY);
     const after = await page.locator(EVIDENCE_HEADING).evaluate((n) => {
       const r = n.getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height) };
@@ -281,19 +236,12 @@ test.describe('scrub heading screenshot baselines', () => {
     test(`${name}: initial / mid / complete`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height });
       await page.goto('/', { waitUntil: 'networkidle' });
-      const scene = await sceneMetrics(page);
-      const mobileTop = width < 768 ? await headingTop(page, EVIDENCE_HEADING) : 0;
-      const positions = width < 768
-        ? [
-            ['initial', Math.max(0, mobileTop - height)],
-            ['mid', Math.max(0, mobileTop - height * 0.62)],
-            ['complete', Math.max(0, mobileTop - height * 0.3)],
-          ] as const
-        : [
-            ['initial', Math.max(0, scene.top)],
-            ['mid', scene.top + scene.distance * 0.5],
-            ['complete', scene.top + scene.distance * 0.92],
-          ] as const;
+      const top = await headingTop(page, EVIDENCE_HEADING);
+      const positions = [
+        ['initial', Math.max(0, top - height * 0.85)],
+        ['mid', Math.max(0, top - height * 0.6)],
+        ['complete', Math.max(0, top - height * 0.3)],
+      ] as const;
 
       for (const [label, y] of positions) {
         await scrollTo(page, y);

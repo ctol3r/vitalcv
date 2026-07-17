@@ -103,7 +103,7 @@ test.describe('Homepage motion convergence', () => {
 
     const story = page.locator('[data-home-sticky-product-story]');
     await expect(story).toBeVisible();
-    await expect(story).toHaveCSS('min-height', '2400px');
+    await expect(story).toHaveCSS('min-height', '2000px');
     await expect(story).toHaveAttribute('data-story-motion', 'motion-values');
     await expect(story).toHaveAttribute('data-story-transition-ms', '1050');
     const storyHeight = await story.evaluate((node) => node.getBoundingClientRect().height);

@@ -49,12 +49,13 @@
   margin-top: 2.25rem;
 }
 
-/* Five cards need four transition intervals. Each interval is capped at 35vh,
-   so every normal scroll gesture produces a visible state change instead of a
-   nearly static runway. The sticky stage itself contributes the first 100vh. */
+/* Five cards need four transition intervals. At 100vh of runway each interval
+   is 25vh — still a visible state change per scroll gesture, tighter than the
+   old 140vh (35vh each) so the story reads denser and reaches the evidence
+   panel sooner. The sticky stage itself contributes the first 100vh. */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
   .sticky-product-story {
-    min-height: calc(100vh + 140vh);
+    min-height: calc(100vh + 100vh);
   }
 }
 

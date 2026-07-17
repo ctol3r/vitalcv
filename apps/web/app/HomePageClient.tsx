@@ -1,14 +1,13 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { SignedIn } from '@clerk/nextjs';
 import {
   ArrowRight,
-  Award,
   CheckCircle2,
   Fingerprint,
-  Share2,
   Wallet,
   Zap,
 } from 'lucide-react';
@@ -26,6 +25,23 @@ import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
+
+/**
+ * The Career Evidence Network graph, in the hero.
+ *
+ * It reads window/matchMedia/canvas at mount, so ssr:false keeps it off the
+ * server render path (same contract as /evidence-network). It renders its own
+ * "N nodes · M links · illustrative structure" footer, so the honesty label
+ * travels with the canvas even though the control panel is closed here — the
+ * hero is a first impression, not an exploration surface. /evidence-network
+ * remains the full explorable version.
+ */
+const CareerGraph = dynamic(() => import('@/components/career-graph/CareerGraph'), {
+  ssr: false,
+  loading: () => (
+    <div aria-hidden="true" className="h-full w-full rounded-[14px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)]" />
+  ),
+});
 
 const SOURCE_REGISTRY_STRIP = [
   'NPPES NPI Registry',
@@ -59,112 +75,6 @@ function formatNpi(value: string): string {
   if (digits.length <= 3) return digits;
   if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-}
-
-function useWalletTilt<T extends HTMLElement>(): React.RefObject<T | null> {
-  const ref = React.useRef<T>(null);
-  React.useEffect(() => {
-    const node = ref.current;
-    if (!node || typeof window === 'undefined') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let frame = 0;
-    const onMove = (event: PointerEvent) => {
-      const rect = node.getBoundingClientRect();
-      const px = (event.clientX - rect.left) / rect.width - 0.5;
-      const py = (event.clientY - rect.top) / rect.height - 0.5;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        node.style.setProperty('--vh-ry', `${(px * 7).toFixed(2)}deg`);
-        node.style.setProperty('--vh-rx', `${(-py * 7).toFixed(2)}deg`);
-      });
-    };
-    const onLeave = () => {
-      cancelAnimationFrame(frame);
-      node.style.setProperty('--vh-rx', '0deg');
-      node.style.setProperty('--vh-ry', '0deg');
-    };
-    node.addEventListener('pointermove', onMove);
-    node.addEventListener('pointerleave', onLeave);
-    return () => {
-      cancelAnimationFrame(frame);
-      node.removeEventListener('pointermove', onMove);
-      node.removeEventListener('pointerleave', onLeave);
-    };
-  }, []);
-  return ref;
-}
-
-function WalletPreview() {
-  const tiltRef = useWalletTilt<HTMLDivElement>();
-
-  return (
-    <div
-      ref={tiltRef}
-      aria-hidden="true"
-      data-home-wallet-preview=""
-      className="relative w-full max-w-md rounded-[14px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-6"
-    >
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--vt-text-primary)]">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[7px] bg-[var(--vt-text-primary)] text-[var(--vt-bg)]">
-            <Wallet size={16} />
-          </span>
-          VitalCV Wallet
-        </span>
-        <span className="rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--vt-text-muted)]">
-          You own this
-        </span>
-      </div>
-
-      {/* No fabricated score: a fake 72% reads as a real result even on a
-          mockup. The preview states its own nature and summarizes the honest
-          lane states below instead. */}
-      <p className="mt-3 rounded-[7px] border border-dashed border-[var(--vt-border)] bg-[var(--vt-surface-subtle)] px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">
-        Illustrative product preview — not your readiness result
-      </p>
-
-      <div className="mt-3 rounded-[9px] border border-[var(--vt-border-subtle)] bg-[var(--vt-bg)] px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">Readiness preview</p>
-        <p className="mt-2 text-[15px] font-medium text-[var(--vt-text-primary)]">
-          {WALLET_PREVIEW_ROWS.length} source lanes shown ·{' '}
-          {WALLET_PREVIEW_ROWS.filter((r) => r.tone === 'pending').length} requires access
-        </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-[var(--vt-text-muted)]">Honest about what is checked, gated, or stale.</p>
-      </div>
-
-      <div className="mt-3 space-y-1.5">
-        {WALLET_PREVIEW_ROWS.map((row) => (
-          <div key={row.source} className="flex items-center justify-between rounded-[7px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface)] px-3 py-2">
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-[13.5px] font-semibold text-[var(--vt-text-primary)]">{row.field}</span>
-              <span className="truncate text-[10px] uppercase tracking-[0.12em] text-[var(--vt-text-muted)]">{row.source}</span>
-            </span>
-            <span className={cn(
-              'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]',
-              row.tone === 'ok'
-                ? 'bg-[color-mix(in_oklab,var(--vt-accent-emerald)_14%,transparent)] text-[var(--vt-accent-emerald)]'
-                : 'bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
-            )}>
-              {row.state}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-3 flex items-center justify-between rounded-[8px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)] px-4 py-3">
-        <span className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[7px] border border-[var(--vt-border)] text-[var(--vt-text-primary)]"><Award size={16} /></span>
-          <span className="flex flex-col">
-            <span className="text-[12px] font-semibold text-[var(--vt-text-primary)]">VitalCV Recognition</span>
-            <span className="text-[10px] text-[var(--vt-text-muted)]">Employer-accepted head start</span>
-          </span>
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-2.5 py-1 text-[10px] font-semibold text-[var(--vt-text-secondary)]">
-          <Share2 size={11} /> Share
-        </span>
-      </div>
-    </div>
-  );
 }
 
 export default function HomePageClient() {
@@ -314,11 +224,28 @@ export default function HomePageClient() {
             </div>
           </div>
 
-          <div className={submittedNpi ? 'flex justify-center' : 'hidden justify-center lg:flex'}>
+          {/* The hero's living panel. Before a lookup it is the Career Evidence
+              Network itself — the graph that was accidentally dropped from the
+              homepage in the motion-convergence rewrite (#679), restored here as
+              the first thing a visitor sees moving. After an NPI is entered it
+              becomes that provider's live result. The static wallet mockup it
+              replaced said nothing the copy didn't already say. */}
+          <div className={submittedNpi ? 'flex justify-center' : 'hidden lg:block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
-              <WalletPreview />
+              <div
+                data-home-hero-graph=""
+                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--ink-900,#0e1414)] shadow-[0_40px_90px_-60px_rgba(20,20,20,0.55)]"
+              >
+                <CareerGraph initialTheme="dark" initialPanelOpen={false} />
+                <Link
+                  href="/evidence-network"
+                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/85 backdrop-blur-sm hover:bg-black/60"
+                >
+                  Explore the network <ArrowRight size={12} aria-hidden="true" />
+                </Link>
+              </div>
             )}
           </div>
           </div>

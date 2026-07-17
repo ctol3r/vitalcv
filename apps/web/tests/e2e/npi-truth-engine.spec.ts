@@ -279,9 +279,11 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expectResolved(page);
 
     await page.getByRole('button', { name: /check another npi/i }).click();
-    await expect(
-      hero(page).getByText('Illustrative product preview — not your readiness result'),
-    ).toBeVisible();
+    // The pre-lookup panel is now the Career Evidence Network graph (it replaced
+    // the static wallet mockup). It carries its own honesty label, so reset
+    // still returns to an explicitly-illustrative preview — not a fabricated one.
+    await expect(hero(page).locator('[data-home-hero-graph]')).toBeVisible();
+    await expect(hero(page).getByText(/illustrative structure/i)).toBeVisible();
     await expect(page.getByLabel('NPI number')).toHaveValue('');
   });
 });
