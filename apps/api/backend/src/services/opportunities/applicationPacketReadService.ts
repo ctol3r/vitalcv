@@ -131,6 +131,8 @@ type StoredApplicationPacket = {
   methodologyVersion: string;
   consentAt: Date;
   consentReceiptId: string;
+  /** null for legacy packets sealed before this column existed. */
+  opportunityVersion: string | null;
   packetHash: string;
   supersededByPacketId: string | null;
   revokedAt: Date | null;
@@ -218,6 +220,11 @@ function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicatio
     methodologyVersion: row.methodologyVersion,
     consentAt: row.consentAt.toISOString(),
     consentReceiptId: row.consentReceiptId,
+    // CRITICAL for legacy replay: a null column (packet sealed before this
+    // field existed) must become `undefined` so `canonicalize` OMITS the key
+    // and re-hashes to the original seal. A `null` here would add a key the
+    // legacy hash never covered and fail every legacy packet's verification.
+    opportunityVersion: row.opportunityVersion ?? undefined,
   };
 
   return { ...content, packetHash: row.packetHash };

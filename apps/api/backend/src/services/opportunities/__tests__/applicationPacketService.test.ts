@@ -168,3 +168,40 @@ describe('buildFieldEntriesFromTrustState', () => {
     );
   });
 });
+
+describe('opportunityVersion in the sealed content (J5b)', () => {
+  it('is covered by the seal hash when present', () => {
+    const withVersion = { ...CONTENT, opportunityVersion: '2026-07-17T00:00:00.000Z' };
+    // A new packet that records the version must NOT hash the same as one that
+    // omits it — otherwise the version would sit outside the seal.
+    expect(hashPacketContent(withVersion)).not.toBe(hashPacketContent(CONTENT));
+  });
+
+  it('a packet sealed WITH a version replays and verifies', () => {
+    const sealed = sealPacket({ ...CONTENT, opportunityVersion: '2026-07-17T00:00:00.000Z' });
+    expect(verifySealedPacket(sealed)).toBe(true);
+  });
+
+  it('a legacy packet (no version) hashes identically whether the key is absent or undefined', () => {
+    // This is the legacy-replay guarantee: the read service maps a NULL column
+    // to `undefined`, and canonicalize drops undefined — so a legacy packet's
+    // reconstructed content hashes to exactly its original stored seal.
+    const omitted = hashPacketContent(CONTENT);
+    const undef = hashPacketContent({ ...CONTENT, opportunityVersion: undefined });
+    expect(undef).toBe(omitted);
+  });
+
+  it('a legacy sealed packet still verifies after the field is added to the type', () => {
+    const legacySeal = sealPacket(CONTENT); // sealed without opportunityVersion
+    // Reconstruction path for a legacy row: null column → undefined → omitted.
+    const reconstructed = { ...legacySeal, opportunityVersion: undefined };
+    expect(verifySealedPacket(reconstructed)).toBe(true);
+  });
+
+  it('a null version key would BREAK legacy verification — the reason we map null→undefined', () => {
+    const legacySeal = sealPacket(CONTENT);
+    // If the read service naively passed the NULL column through as null:
+    const naiveNull = { ...legacySeal, opportunityVersion: null } as unknown as typeof legacySeal;
+    expect(verifySealedPacket(naiveNull)).toBe(false);
+  });
+})
