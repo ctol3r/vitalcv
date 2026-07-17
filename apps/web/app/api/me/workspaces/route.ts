@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { applyIdentityHeaders } from '@/lib/auth/forwardIdentity';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -9,9 +10,9 @@ const BACKEND =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   'http://localhost:4000';
 
-function buildForwardHeaders(session: Awaited<ReturnType<typeof auth>>): Headers {
+async function buildForwardHeaders(session: Awaited<ReturnType<typeof auth>>): Promise<Headers> {
   const headers = new Headers();
-  headers.set('x-clerk-user-id', session.userId ?? '');
+  await applyIdentityHeaders(headers, { userId: session.userId });
 
   const emailClaim = (session.sessionClaims as Record<string, unknown> | undefined)?.email;
   if (typeof emailClaim === 'string' && emailClaim.length > 0) {
@@ -32,7 +33,7 @@ export async function GET() {
 
   try {
     const upstream = await fetch(`${BACKEND}/api/me/workspaces`, {
-      headers: buildForwardHeaders(session),
+      headers: await buildForwardHeaders(session),
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });

@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest) {
   }
 
   const res = await fetch(`${MARKETPLACE_BACKEND}/api/clinician/applications`, {
-    headers: buildMarketplaceHeaders(session),
+    headers: await buildMarketplaceHeaders(session),
     cache: 'no-store',
     signal: AbortSignal.timeout(12_000),
   });
