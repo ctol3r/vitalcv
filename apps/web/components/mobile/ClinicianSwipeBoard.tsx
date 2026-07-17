@@ -219,6 +219,7 @@ export function ClinicianSwipeBoard({ opportunities }: { opportunities: readonly
                   tabIndex={0}
                   style={{ touchAction: 'pan-y' }}
                   onKeyDown={(event) => {
+                    if ((event.target as HTMLElement).closest('a,button,input,textarea,select')) return;
                     if (event.key === 'Enter') setActiveOpportunityId(current.id);
                     if (activeOpportunityId) return;
                     if (event.key === 'ArrowRight') { event.preventDefault(); advance('right'); }
