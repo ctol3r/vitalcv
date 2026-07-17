@@ -539,6 +539,11 @@ export function MatchaDeck({ source, onSignal }: MatchaDeckProps) {
                 </p>
               )}
               <div className="mdk-done-actions">
+                {interested.length > 0 ? (
+                  <Link href="/holder/opportunities/interested" className="mdk-btn mdk-btn--interested">
+                    Review {interested.length} saved {interested.length === 1 ? 'role' : 'roles'}
+                  </Link>
+                ) : null}
                 <Link href="/holder/opportunities" className="mdk-btn">
                   Browse all roles
                 </Link>

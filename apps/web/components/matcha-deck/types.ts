@@ -128,6 +128,11 @@ export interface DeckSourcePayload {
   sourceLabel: string
   recommendations: DeckRecommendation[]
   emptyMessage?: string
+  /**
+   * The clinician's home/practice state (2-letter), when known — used only to
+   * offer the "Near me" discovery mode (J6). Absent ⇒ that mode is hidden.
+   */
+  homeState?: string
 }
 
 /** Runtime adapter consumed by the interactive deck. */

@@ -18,6 +18,7 @@ export async function loadHolderMatchaDeckPayload(): Promise<DeckSourcePayload> 
         mode: 'live',
         sourceLabel: 'Live MATCHA recommendations',
         recommendations: feed.recommendations,
+        homeState: feed.homeState,
       })
     }
   } catch {

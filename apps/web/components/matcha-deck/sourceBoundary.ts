@@ -13,6 +13,8 @@ export interface MatchaDeckPayloadInput {
   sourceLabel: string
   recommendations: DeckRecommendation[]
   emptyMessage?: string
+  /** Clinician home state (2-letter), for the "Near me" mode (J6). */
+  homeState?: string
 }
 
 export interface MatchaDeckPreviewEnvironment {
