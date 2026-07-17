@@ -12,6 +12,7 @@
 
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 
 import { arrangementLabel, formatCompensation, locationText, sponsorshipLabel } from './format'
@@ -246,15 +247,27 @@ export function DeckDetailSheet({ recommendation, onClose, onDecide }: DeckDetai
             </span>
             Priority
           </button>
-          <button
-            type="button"
-            className="mdk-btn"
-            disabled={applyBlocked}
-            title={applyNote ?? undefined}
-            aria-disabled={applyBlocked}
-          >
-            Apply with VitalCV
-          </button>
+          {applyBlocked ? (
+            <button
+              type="button"
+              className="mdk-btn"
+              disabled
+              title={applyNote ?? undefined}
+              aria-disabled="true"
+            >
+              Apply with VitalCV
+            </button>
+          ) : (
+            // A link to the consent surface — never a direct submit. ApplyModal
+            // (opened by ?apply=) is where evidence preview and consent happen;
+            // this handoff must land there, not POST an application.
+            <Link
+              className="mdk-btn mdk-btn--interested"
+              href={`/holder/opportunities?apply=${encodeURIComponent(opportunity.opportunityId)}`}
+            >
+              Apply with VitalCV
+            </Link>
+          )}
           {applyNote ? <p className="mdk-apply-note">{applyNote}</p> : null}
           <p className="mdk-apply-note">
             Interested saves this role for you — applying stays a separate step with evidence preview and
