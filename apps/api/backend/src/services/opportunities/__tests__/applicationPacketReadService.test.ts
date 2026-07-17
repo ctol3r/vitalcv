@@ -58,7 +58,10 @@ function application(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function storedPacket(overrides: Record<string, unknown> = {}) {
+function storedPacket(
+  overrides: Record<string, unknown> = {},
+  contentOverrides: Partial<ApplicationPacketContent> = {},
+) {
   const packetVersion = typeof overrides.packetVersion === 'number' ? overrides.packetVersion : 2;
   const { packetVersion: _packetVersion, ...rowOverrides } = overrides;
   const content: ApplicationPacketContent = {
@@ -87,6 +90,7 @@ function storedPacket(overrides: Record<string, unknown> = {}) {
     methodologyVersion: '243.3',
     consentAt: '2026-07-16T12:05:00.000Z',
     consentReceiptId: 'consent-1',
+    ...contentOverrides,
   };
   const sealed = sealPacket(content);
   return {
@@ -261,6 +265,14 @@ describe('readApplicationPacket', () => {
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ type: 'application_packet_integrity_failed' }),
     }));
+  });
+
+  it('fails closed when a validly hashed packet is bound to a different clinician', async () => {
+    const wrongClinician = storedPacket({}, { clerkUserId: 'another-clinician' });
+    prismaMock.applicationPacket.findFirst.mockResolvedValue(wrongClinician);
+
+    await expect(readApplicationPacket({ applicationId: APPLICATION_ID, clerkUserId: OWNER }))
+      .rejects.toMatchObject({ status: 409, code: 'APPLICATION_PACKET_INTEGRITY_FAILED' });
   });
 
   it('returns an honest legacy response without reading a packet row', async () => {

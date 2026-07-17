@@ -26,6 +26,7 @@ import {
   readApplicationPacket,
 } from '../../services/opportunities/applicationPacketReadService';
 import { HttpError } from '../../utils/httpError';
+import type { VerifiedAuth } from '../../middleware/verifiedIdentity';
 import { registerApplicationRoutes } from '../applications';
 
 const APPLICATION_ID = 'a1111111-1111-4111-8111-111111111111';
@@ -54,9 +55,15 @@ function responseFixture() {
   };
 }
 
-function buildApp() {
+function buildApp(verifiedUserId?: string) {
   const app = express();
   app.use(express.json());
+  app.use((req, _res, next) => {
+    (req as express.Request & { verifiedAuth?: VerifiedAuth }).verifiedAuth = verifiedUserId
+      ? { outcome: 'verified_match', verifiedUserId }
+      : { outcome: 'header_without_token' };
+    next();
+  });
   registerApplicationRoutes(app);
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const httpError = error instanceof HttpError ? error : new HttpError(500, 'Internal error.');
@@ -71,17 +78,18 @@ beforeEach(() => {
 });
 
 describe('GET /api/applications/:applicationId/packet', () => {
-  it('requires an authenticated Clerk identity', async () => {
+  it('rejects a forgeable identity header without a verified Clerk session', async () => {
     await request(buildApp())
       .get(`/api/applications/${APPLICATION_ID}/packet`)
+      .set('x-clerk-user-id', 'clinician-owner')
       .expect(401);
     expect(readPacketMock).not.toHaveBeenCalled();
   });
 
-  it('parses the requested version and ignores client role and organization assertions', async () => {
-    const response = await request(buildApp())
+  it('uses verified identity while ignoring client identity, role, and organization assertions', async () => {
+    const response = await request(buildApp('clinician-owner'))
       .get(`/api/applications/${APPLICATION_ID}/packet?version=2`)
-      .set('x-clerk-user-id', 'clinician-owner')
+      .set('x-clerk-user-id', 'forged-clinician')
       .set('x-clinician-id', 'another-clinician')
       .set('x-user-role', 'super-admin')
       .set('x-organization-id', 'attacker-org')
@@ -101,9 +109,8 @@ describe('GET /api/applications/:applicationId/packet', () => {
     [`/api/applications/${APPLICATION_ID}/packet?version=1.5`],
     [`/api/applications/${APPLICATION_ID}/packet?version=1&version=2`],
   ])('rejects malformed parameters: %s', async (path) => {
-    await request(buildApp())
+    await request(buildApp('clinician-owner'))
       .get(path)
-      .set('x-clerk-user-id', 'clinician-owner')
       .expect(400);
     expect(readPacketMock).not.toHaveBeenCalled();
   });
@@ -116,9 +123,8 @@ describe('GET /api/applications/:applicationId/packet', () => {
       legacyNotice: 'Legacy application — no immutable disclosure packet was captured at submission.',
     });
 
-    const response = await request(buildApp())
+    const response = await request(buildApp('clinician-owner'))
       .get(`/api/applications/${APPLICATION_ID}/packet`)
-      .set('x-clerk-user-id', 'clinician-owner')
       .expect(200);
 
     expect(response.body.submittedPacket).toBeNull();
@@ -128,16 +134,14 @@ describe('GET /api/applications/:applicationId/packet', () => {
 
   it('does not leak packet or organization metadata for denied and integrity-failed reads', async () => {
     readPacketMock.mockRejectedValueOnce(new HttpError(404, 'Application packet not found.'));
-    const denied = await request(buildApp())
+    const denied = await request(buildApp('other-user'))
       .get(`/api/applications/${APPLICATION_ID}/packet`)
-      .set('x-clerk-user-id', 'other-user')
       .expect(404);
     expect(denied.body).toEqual({ error: { code: 'NOT_FOUND', message: 'Application packet not found.' } });
 
     readPacketMock.mockRejectedValueOnce(new HttpError(409, 'Application packet integrity verification failed.'));
-    const integrity = await request(buildApp())
+    const integrity = await request(buildApp('clinician-owner'))
       .get(`/api/applications/${APPLICATION_ID}/packet`)
-      .set('x-clerk-user-id', 'clinician-owner')
       .expect(409);
     expect(integrity.body).toEqual({
       error: { code: 'CONFLICT', message: 'Application packet integrity verification failed.' },

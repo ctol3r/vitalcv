@@ -343,8 +343,10 @@ export async function readApplicationPacket(
     packet = reconstructSealedPacket(storedPacket);
     const applicationBindingValid = (
       packet.applicationId === application.id
+      && packet.clerkUserId === application.clerkUserId
       && packet.opportunityId === application.opportunityId
       && packet.employerOrgId === application.opportunity.organizationId
+      && packet.packetVersion === packetVersion
     );
     if (!applicationBindingValid || !verifySealedPacket(packet)) {
       throw new Error('Stored packet failed integrity verification.');
