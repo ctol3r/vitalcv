@@ -340,12 +340,14 @@ test.describe('Homepage motion convergence', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
     const field = page.locator('[data-home-evidence-field]');
     await expect(field).toBeVisible();
-    // The poster is the fallback and stays visible; the canvas never fades in
-    // under reduced motion, so it holds opacity 0.
+    // SHD-1.1 strengthened this contract: under reduced motion the
+    // SceneBoundary resolves the 'static' tier, so the live canvas scene is
+    // never MOUNTED (previously an idle canvas held opacity 0). The designed
+    // poster is the whole visual.
     await expect(field.locator('[data-field-poster]')).toBeVisible();
     await page.waitForTimeout(600);
-    const canvasOpacity = await field.locator('canvas').evaluate((n) => getComputedStyle(n).opacity);
-    expect(Number(canvasOpacity)).toBe(0);
+    await expect(field.locator('[data-scene-boundary]')).toHaveAttribute('data-scene-tier', 'static');
+    await expect(field.locator('canvas')).toHaveCount(0);
   });
 
   // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto ──
