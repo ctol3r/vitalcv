@@ -100,6 +100,34 @@ in a Railway webhook URL. The receiver holds the GitHub token server-side
 
 Overall = **fail** if any critical check fails.
 
+### Secretless smoke (every run, wired or not)
+
+Before the signed-in verification, the workflow runs `scripts/deploy-smoke.mjs`
+(`pnpm smoke:deploy`) — external, cache-busted, needs no secrets, so it runs on
+**every** deploy and scheduled tick even when the monitor is not wired. Its
+checks: `/api/version` platform/environment/branch/SHA, `/api/health/auth`
+(fail-closed auth config), `/api/health/db` (below), homepage release marker +
+bounded shared cache, `/onboarding` no-store, core public routes.
+
+**`/api/health/db` — web→database connectivity.** Added after the 2026-07-17
+incident in which `vitalcv-web` ran with a placeholder `DATABASE_URL`
+(localhost) for an unknown period and nothing surfaced it: every web-Prisma
+product route (the `/api/matcha/*` family) is deliberately fail-open — a dead
+DB degrades them to `persisted:false` / empty reads, never a 500 — and neither
+`/api/version` nor the synthetic flow touches web Prisma. The route runs
+`SELECT 1` through the same client (`apps/web/lib/db.ts`) with a short timeout
+and reports `db:"ok"` (200) or `db:"unreachable"` (503) — a fixed three-field
+body, never an error message (Prisma errors embed the DB host:port). The smoke
+retries it (3 attempts, 5 s apart) so one transient blip cannot redden a
+healthy deploy, then fails the run. Product routes stay fail-open; the health
+route observes, it does not gate — it is intentionally NOT part of
+`/api/readyz`, so a dead DB alerts without blocking container rollout.
+
+A failed smoke paints a **red** `vitalcv/release-verified` status directly
+(the signed-in preflight/verify steps are skipped when the smoke fails, so
+without this the run would have mis-posted the grey "monitor not wired"
+pending).
+
 The webhook trigger **fails closed**: `shouldTriggerVerification` fires only when
 the payload positively proves a web-service SUCCESS deploy in the target
 environment (service **and** environment name present and matching). An
@@ -245,6 +273,12 @@ green.
 - **A red status** → open the linked run; the job summary lists the failing
   checks. `holder:*` red = the signed-in flow is broken for real clinicians
   (treat as a P0). `web_sha` red on a webhook run = the new code is not serving.
+- **`db-health` red in the smoke** → the web container cannot reach Postgres —
+  almost always a broken/placeholder `DATABASE_URL` on the Railway
+  `vitalcv-web` service (it must be a `${{Postgres.DATABASE_URL}}` reference,
+  not a literal). The site will LOOK fine — web-Prisma routes fail open — but
+  MATCHA preferences/decisions are silently non-persistent. Fix the variable,
+  redeploy, and the next run self-heals.
 - **A neutral `pending` status** ("skipped — monitor not wired") → *not* a broken
   deploy; `CLERK_SECRET_KEY` is unset so verification never ran. Set the owner
   secrets (above) and the next run verifies for real.
