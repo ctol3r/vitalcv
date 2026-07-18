@@ -8,12 +8,13 @@
  */
 
 import { isPublicSurfacePath, isRouteActive } from '@/components/layout/publicSurfaceRoutes';
+import { LiquidMenu } from '@/components/layout/LiquidMenu';
 import { useUxTelemetry } from '@/hooks/useUxTelemetry';
 import { UX_EVENTS } from '@/lib/analytics/ux-events';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 // Public-only nav items, clinician-led (Sprint 1). Never add ops/internal routes
 // here, and never a dead link — /explore + /developers are intentionally omitted
@@ -24,9 +25,17 @@ const NAV_ITEMS = [
   { href: '/trust',     label: 'Trust' },
 ] as const;
 
+// Mobile menu destinations (VHS-2.5 required set): Home + the public nav.
+// Check Readiness + Sign In render as the overlay's CTA pair.
+const MOBILE_MENU_ITEMS = [
+  { href: '/', label: 'Home' },
+  ...NAV_ITEMS,
+] as const;
+
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   const { track } = useUxTelemetry();
 
   // Calm Wave: a single, consistent paper bar on every public surface. The
@@ -105,57 +114,31 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
+          ref={toggleRef}
           type="button"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
-          aria-controls="mobile-nav-menu"
+          aria-haspopup="dialog"
           className="rounded-lg p-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
-
-      {/* Mobile menu — inside the glass rail, on a near-opaque panel for legibility */}
-      {menuOpen && (
-        <nav id="mobile-nav-menu" className="border-t border-border/60 bg-[color-mix(in_oklab,var(--background)_88%,transparent)] px-5 py-4 md:hidden">
-          <ul className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => handleNavItemClick(item.label)}
-                  className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-                    isRouteActive(pathname, item.href)
-                      ? 'bg-foreground/10 text-foreground'
-                      : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 flex gap-2 border-t border-border pt-4">
-            <Link
-              href="/sign-in"
-              onClick={closeMenu}
-              className="flex-1 rounded-xl border border-border py-2.5 text-center text-sm font-medium text-muted-foreground"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/passport"
-              onClick={closeMenu}
-              style={{ backgroundColor: 'oklch(18% 0.012 265)' }}
-              className="flex-1 rounded-xl py-2.5 text-center text-sm font-semibold text-white"
-            >
-              Check Readiness
-            </Link>
-          </div>
-        </nav>
-      )}
       </div>
+
+      {/* Liquid mobile menu (VHS-2.5) — accessible modal overlay with an organic
+         circular bloom. Desktop nav stays conventional above. */}
+      <LiquidMenu
+        open={menuOpen}
+        onClose={closeMenu}
+        returnFocusRef={toggleRef}
+        onNavigate={handleNavItemClick}
+        items={MOBILE_MENU_ITEMS.map((item) => ({
+          ...item,
+          active: isRouteActive(pathname, item.href),
+        }))}
+      />
     </header>
   );
 }
