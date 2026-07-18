@@ -24,6 +24,7 @@ import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
+import { RotatingProofLine } from '@/components/home/RotatingProofLine';
 import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
@@ -295,6 +296,9 @@ export default function HomePageClient() {
         <div className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </div>
+
+        {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
+        <RotatingProofLine />
 
         <ProductCarousel />
 

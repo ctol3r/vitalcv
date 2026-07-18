@@ -412,4 +412,28 @@ test.describe('Homepage motion convergence', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
     await expect(page.locator('[data-home-outline-panel]')).toHaveCSS('display', 'none');
   });
+
+  test('the reusable-evidence cycler carries an honest static meaning', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const cycle = page.locator('[data-home-proof-cycle]');
+    // The animated words are decorative; the complete meaning is real text.
+    await expect(cycle).toHaveAccessibleName('Carry your source-backed evidence forward');
+    await expect(cycle.locator('.proofcycle-word')).toHaveCount(5);
+    // The rotation is running (an animation is applied to the words).
+    const anim = await cycle.locator('.proofcycle-word').first().evaluate(
+      (n) => getComputedStyle(n).animationName,
+    );
+    expect(anim).toBe('proofcycle-spin');
+  });
+
+  test('reduced motion parks the evidence cycler', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const anim = await page.locator('[data-home-proof-cycle] .proofcycle-word').first().evaluate(
+      (n) => getComputedStyle(n).animationName,
+    );
+    expect(anim).toBe('none');
+  });
 });
