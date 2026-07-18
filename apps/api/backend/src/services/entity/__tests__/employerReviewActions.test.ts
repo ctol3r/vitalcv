@@ -198,6 +198,36 @@ describe('employerReviewActions service', () => {
     );
   });
 
+  it('links the acceptance to the sealed packet when applicationId + packetHash are supplied (ACT-1.2)', async () => {
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+      applicationId: 'app-42',
+      packetHash: 'sha256:seal',
+    });
+
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ applicationId: 'app-42', packetHash: 'sha256:seal' }),
+      }),
+    );
+  });
+
+  it('leaves the linkage null on the NPI-keyed path (no application in hand)', async () => {
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+    });
+
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ applicationId: null, packetHash: null }),
+      }),
+    );
+  });
+
   it('builds portable acceptance history with anonymized pilot organization labels', async () => {
     prismaMock.auditEvent.findMany.mockResolvedValue([
       {

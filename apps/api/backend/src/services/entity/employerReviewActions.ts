@@ -848,6 +848,12 @@ export async function recordEmployerReviewAcceptance(input: {
   notes?: unknown;
   acceptanceScope?: unknown;
   acceptanceReason?: unknown;
+  organizationName?: string | null;
+  // ACT-1.2 — link this acceptance to the exact sealed packet it accepted. Both
+  // optional: the NPI-keyed accept path (no application in hand) omits them and
+  // is unaffected. The route verifies the hash against the live packet first.
+  applicationId?: string | null;
+  packetHash?: string | null;
 }): Promise<EmployerReviewActionState> {
   const now = new Date();
   const requestId = randomUUID();
@@ -911,6 +917,10 @@ export async function recordEmployerReviewAcceptance(input: {
         employerId: input.employerId,
         clinicianNpi: input.clinicianNpi,
         artifactId: null,
+        // ACT-1.2 linkage — the exact packet this acceptance accepted (null on
+        // the NPI-keyed path that has no application in hand).
+        applicationId: input.applicationId ?? null,
+        packetHash: input.packetHash ?? null,
         status: 'ACCEPTED',
         acceptedAt: now,
       },
@@ -930,6 +940,8 @@ export async function recordEmployerReviewAcceptance(input: {
           employerId: input.employerId,
           entityId: input.entityId,
           clinicianNpi: input.clinicianNpi,
+          applicationId: input.applicationId ?? null,
+          packetHash: input.packetHash ?? null,
           requestId,
           ...runtimeTrust,
           persistence: seededPersistence,
