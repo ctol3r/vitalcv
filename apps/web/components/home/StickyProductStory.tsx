@@ -6,12 +6,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Circle,
-  FileCheck2,
-  Fingerprint,
   Lock,
-  SearchCheck,
-  Send,
-  ShieldCheck,
 } from 'lucide-react';
 import {
   motion,
@@ -24,6 +19,7 @@ import {
 
 import { Card } from '@/components/ui/card';
 import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
+import { StoryIcon, type StoryIconName } from '@/components/home/StoryIcon';
 
 type StateKind = 'source' | 'checked' | 'gated' | 'attention' | 'neutral';
 
@@ -41,7 +37,7 @@ interface StoryStep {
   body: string;
   action: string;
   rows: readonly ProductRow[];
-  icon: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
+  icon: StoryIconName;
 }
 
 const STEPS: readonly StoryStep[] = [
@@ -52,7 +48,7 @@ const STEPS: readonly StoryStep[] = [
     title: 'Start with one NPI.',
     body: 'One NPI resolves your identity and starts the source checks. Nothing to rebuild.',
     action: 'Open readiness snapshot',
-    icon: Fingerprint,
+    icon: 'identity',
     rows: [
       { label: 'Identity', detail: 'NPPES · Source-backed', state: 'source' },
       { label: 'Exclusions', detail: 'OIG / LEIE · Checked', state: 'checked' },
@@ -66,7 +62,7 @@ const STEPS: readonly StoryStep[] = [
     title: 'See what is ready and what is not.',
     body: 'Every item names its source, its state, and the next action.',
     action: 'Resolve the next gap',
-    icon: ShieldCheck,
+    icon: 'readiness',
     rows: [
       { label: 'Identity', detail: 'Source-backed', state: 'source' },
       { label: 'Exclusions', detail: 'Checked', state: 'checked' },
@@ -81,7 +77,7 @@ const STEPS: readonly StoryStep[] = [
     title: 'Match evidence to the right opportunity.',
     body: 'MATCHA matches evidence to role requirements — reasoning visible.',
     action: 'See why it matched',
-    icon: SearchCheck,
+    icon: 'match',
     rows: [
       { label: 'Specialty', detail: 'Meets requirement', state: 'source' },
       { label: 'State license', detail: 'Access required', state: 'gated' },
@@ -95,7 +91,7 @@ const STEPS: readonly StoryStep[] = [
     title: 'Apply without starting over.',
     body: 'Share one attributed packet. Keep the consent receipt.',
     action: 'Share proof packet',
-    icon: Send,
+    icon: 'apply',
     rows: [
       { label: 'Identity', detail: 'Source-backed', state: 'source' },
       { label: 'Exclusions', detail: 'Checked', state: 'checked' },
@@ -110,7 +106,7 @@ const STEPS: readonly StoryStep[] = [
     title: 'Carry the employer decision forward.',
     body: 'VitalCV Recognition records the acceptance. Institution review remains.',
     action: 'View Recognition',
-    icon: FileCheck2,
+    icon: 'recognition',
     rows: [
       { label: 'Recognition', detail: 'Employer accepted', state: 'source' },
       { label: 'Decision capsule', detail: 'Audit event written', state: 'checked' },
@@ -159,7 +155,6 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
   const y = useTransform(offset, [-1.4, 0, 1.4], [-14, 0, 18]);
   const opacity = useTransform(offset, [-1.35, -1, -0.55, 0, 0.55, 1, 1.35], [0, 0.55, 1, 1, 1, 0.55, 0]);
   const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
-  const Icon = step.icon;
 
   return (
     <motion.li
@@ -172,7 +167,7 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
       <Card className="story-card-shell">
         <div className="story-card-copy">
           <span className="story-card-icon" aria-hidden="true">
-            <Icon size={18} />
+            <StoryIcon name={step.icon} size={40} />
           </span>
           <p className="story-card-eyebrow">{step.eyebrow}</p>
           <h3>{step.title}</h3>

@@ -1,21 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Award,
-  BriefcaseBusiness,
-  FileUp,
-  Pause,
-  Play,
-  RefreshCw,
-  SearchCheck,
-  ShieldCheck,
-  Wallet,
-} from 'lucide-react';
+import { BriefcaseBusiness, Pause, Play } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
+import { StoryIcon, type StoryIconName } from '@/components/home/StoryIcon';
 import { TrustGlyph } from '@/components/vital/TrustGlyph';
 import type { EvidenceState } from '@/lib/vital/evidenceState';
 
@@ -29,7 +20,7 @@ const PRODUCTS: ReadonlyArray<{
   title: string;
   eyebrow: string;
   body: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: StoryIconName;
   ui: readonly UiRow[];
 }> = [
   {
@@ -37,7 +28,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'CV Wallet',
     eyebrow: 'Clinician-owned evidence',
     body: 'Source checks, receipts, and Recognition — one wallet.',
-    icon: Wallet,
+    icon: 'wallet',
     ui: [
       { label: 'NPI identity · Source-backed', state: 'source_backed' },
       { label: 'OIG / LEIE · Checked', state: 'checked' },
@@ -49,7 +40,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'Readiness',
     eyebrow: 'Know the next action',
     body: 'What employers can confirm today — and what still needs review.',
-    icon: ShieldCheck,
+    icon: 'readiness',
     ui: [
       { label: 'Identity · Source-backed', state: 'source_backed' },
       { label: 'Exclusions · Checked', state: 'checked' },
@@ -61,7 +52,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'MATCHA',
     eyebrow: 'Explainable matching',
     body: 'Evidence matched to role requirements, reasoning visible.',
-    icon: SearchCheck,
+    icon: 'match',
     ui: [
       { label: 'Specialty · Meets requirement', state: 'checked' },
       { label: 'Location · Your stated preference', state: 'self_attested' },
@@ -73,7 +64,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'Apply with VitalCV',
     eyebrow: 'Reuse the proof packet',
     body: 'One attributed packet. One consent receipt.',
-    icon: FileUp,
+    icon: 'apply',
     ui: [
       { label: '4 claims selected' },
       { label: 'Source states included' },
@@ -85,7 +76,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'Employer Recognition',
     eyebrow: 'Accepted as a head start',
     body: 'Acceptance recorded — not a credentialing decision.',
-    icon: Award,
+    icon: 'recognition',
     ui: [
       { label: 'Packet · Reviewed' },
       { label: 'Head start · Accepted', state: 'employer_decision' },
@@ -97,7 +88,7 @@ const PRODUCTS: ReadonlyArray<{
     title: 'Career reuse',
     eyebrow: 'Nothing resets',
     body: 'The same evidence carries to the next opportunity.',
-    icon: RefreshCw,
+    icon: 'reuse',
     ui: [
       { label: 'Wallet · Carried forward' },
       { label: 'Recognition · Reusable' },
@@ -251,7 +242,6 @@ export function ProductCarousel() {
   };
 
   const renderCard = (product: (typeof PRODUCTS)[number], index: number, clone: boolean) => {
-    const Icon = product.icon;
     return (
       <article
         key={clone ? `${product.id}-clone` : product.id}
@@ -262,7 +252,7 @@ export function ProductCarousel() {
       >
         <Card className="product-carousel-card-shell">
           <div className="product-carousel-card-copy">
-            <span className="product-carousel-card-icon" aria-hidden="true"><Icon size={19} /></span>
+            <span className="product-carousel-card-icon" aria-hidden="true"><StoryIcon name={product.icon} size={38} /></span>
             <p>{product.eyebrow}</p>
             <h3>{product.title}</h3>
             <p>{product.body}</p>
