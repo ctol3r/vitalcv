@@ -36,7 +36,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'wallet',
     title: 'CV Wallet',
     eyebrow: 'Clinician-owned evidence',
-    body: 'Keep source checks, receipts, and Recognition together across every career move.',
+    body: 'Source checks, receipts, and Recognition — one wallet.',
     icon: Wallet,
     ui: [
       { label: 'NPI identity · Source-backed', state: 'source_backed' },
@@ -48,7 +48,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'readiness',
     title: 'Readiness',
     eyebrow: 'Know the next action',
-    body: 'See what an employer can inspect today and what still needs access or review.',
+    body: 'What employers can confirm today — and what still needs review.',
     icon: ShieldCheck,
     ui: [
       { label: 'Identity · Source-backed', state: 'source_backed' },
@@ -60,7 +60,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'matcha',
     title: 'MATCHA',
     eyebrow: 'Explainable matching',
-    body: 'Match source-backed evidence and stated preferences to role requirements with the reasoning visible.',
+    body: 'Evidence matched to role requirements, reasoning visible.',
     icon: SearchCheck,
     ui: [
       { label: 'Specialty · Meets requirement', state: 'checked' },
@@ -72,7 +72,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'apply',
     title: 'Apply with VitalCV',
     eyebrow: 'Reuse the proof packet',
-    body: 'Choose what to disclose, send one attributed packet, and keep the consent receipt.',
+    body: 'One attributed packet. One consent receipt.',
     icon: FileUp,
     ui: [
       { label: '4 claims selected' },
@@ -84,7 +84,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'recognition',
     title: 'Employer Recognition',
     eyebrow: 'Accepted as a head start',
-    body: 'Record an employer acceptance without confusing it with a final credentialing decision.',
+    body: 'Acceptance recorded — not a credentialing decision.',
     icon: Award,
     ui: [
       { label: 'Packet · Reviewed' },
@@ -96,7 +96,7 @@ const PRODUCTS: ReadonlyArray<{
     id: 'reuse',
     title: 'Career reuse',
     eyebrow: 'Nothing resets',
-    body: 'Carry the same evidence and prior Recognition into the next opportunity instead of rebuilding from zero.',
+    body: 'The same evidence carries to the next opportunity.',
     icon: RefreshCw,
     ui: [
       { label: 'Wallet · Carried forward' },
@@ -313,7 +313,6 @@ export function ProductCarousel() {
             className="mz-h1"
             text="One career record. Six reusable surfaces."
             accentWords={['Six reusable surfaces.']}
-            variant="type"
             accentColor="var(--accent)"
           />
         </div>
