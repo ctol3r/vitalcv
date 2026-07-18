@@ -19,6 +19,8 @@
 
 import * as React from 'react';
 
+import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
+
 /* deterministic PRNG so the field's geometry is identical every render (no CLS,
    no Math.random at import). */
 function mulberry32(seed: number): () => number {
@@ -220,8 +222,12 @@ function FieldLegend() {
   );
 }
 
-export function CareerEvidenceField() {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
+/**
+ * The live Canvas-2D scene. Mounted only through SceneBoundary, so it never
+ * exists under reduced motion / static tier (no loop, not an idle canvas) and
+ * a crash inside it can only ever fall back to the poster.
+ */
+function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | null> }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [canvasReady, setCanvasReady] = React.useState(false);
 
@@ -229,9 +235,8 @@ export function CareerEvidenceField() {
     const wrap = wrapRef.current;
     const canvas = canvasRef.current;
     if (!wrap || !canvas) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // poster stays
     const ctx = canvas.getContext('2d');
-    if (!ctx) return; // no canvas → poster stays
+    if (!ctx) return; // no 2D context → poster stays
 
     let palette = readPalette(wrap);
     let raf = 0;
@@ -422,7 +427,19 @@ export function CareerEvidenceField() {
       wrap.removeEventListener('pointermove', onMove);
       wrap.removeEventListener('pointerleave', onLeave);
     };
-  }, []);
+  }, [wrapRef]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 transition-opacity duration-700"
+      style={{ opacity: canvasReady ? 1 : 0 }}
+    />
+  );
+}
+
+export function CareerEvidenceField() {
+  const wrapRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <div
@@ -432,14 +449,14 @@ export function CareerEvidenceField() {
     >
       {/* Decorative visual layer only. The honest meaning lives in the
           accessible legend below, kept OUT of this aria-hidden subtree so
-          assistive tech still receives it (VHS-1 §7). */}
+          assistive tech still receives it (VHS-1 §7). The SceneBoundary owns
+          the tier decision (SHD-1.1): poster always renders; the canvas scene
+          mounts only when animation is allowed, and any scene crash falls
+          back to the poster silently. */}
       <div aria-hidden="true" className="absolute inset-0">
-        <FieldPoster />
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 transition-opacity duration-700"
-          style={{ opacity: canvasReady ? 1 : 0 }}
-        />
+        <SceneBoundary poster={<FieldPoster />} className="absolute inset-0">
+          {() => <FieldCanvas wrapRef={wrapRef} />}
+        </SceneBoundary>
       </div>
       <FieldLegend />
     </div>
