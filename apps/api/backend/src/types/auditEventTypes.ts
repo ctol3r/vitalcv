@@ -57,6 +57,11 @@ export type ResearchEventType =
   | 'RESEARCH_SCORE_COMPUTED'
   | 'RESEARCH_DISCLOSURE_UPDATED';
 
+// ── Activation lifecycle (ACT-1.3) ───────────────────────────
+export type ActivationEventType =
+  | 'ACTIVATION_REQUIREMENTS_INSTANTIATED'
+  | 'ACTIVATION_REQUIREMENT_RESOLVED';
+
 // ── Canonical union ──────────────────────────────────────────
 export type AuditEventType =
   | VerificationEventType
@@ -65,4 +70,5 @@ export type AuditEventType =
   | EmployerReviewEventType
   | TrustChainEventType
   | OperationalEventType
-  | ResearchEventType;
+  | ResearchEventType
+  | ActivationEventType;

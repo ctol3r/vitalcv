@@ -1777,6 +1777,7 @@ model Application {
   /// rendered with an explicit legacy label, never a fabricated packet.
   sealedPacketVersion Int?        @map("sealed_packet_version")
   packets       ApplicationPacket[]
+  activationRequirements ActivationRequirement[]
   opportunity   Opportunity       @relation(fields: [opportunityId], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -1832,6 +1833,37 @@ model ApplicationPacket {
   @@index([opportunityId])
   @@index([employerOrgId])
   @@map("application_packets")
+}
+
+/// ACT-1.3 — the application-linked activation requirement ledger. One canonical
+/// record per remaining step to a qualified start; drives both the clinician and
+/// employer views. Instantiated only after an employer decision. Status/necessity
+/// vocabulary is enforced in the requirementLifecycle state machine, not the DB.
+model ActivationRequirement {
+  id                  String    @id @default(uuid()) @db.Uuid
+  applicationId       String    @map("application_id") @db.Uuid
+  organizationId      String    @map("organization_id")
+  sourceRequirementId String?   @map("source_requirement_id")
+  category            String
+  label               String
+  necessity           String    @default("required")
+  status              String    @default("not_started")
+  owner               String    @default("system")
+  evidenceRule        String?   @map("evidence_rule")
+  dependencyIds       String[]  @map("dependency_ids")
+  dueAt               DateTime? @map("due_at")
+  resolvedBy          String?   @map("resolved_by")
+  resolvedAt          DateTime? @map("resolved_at")
+  policyVersion       String?   @map("policy_version")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("activation_requirements")
 }
 
 model EmployerAcceptance {
