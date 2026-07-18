@@ -18,11 +18,12 @@
  *
  * `fetch` is injected so the step sequence / cookie propagation / cleanup calls
  * are unit-testable; the live redemption is validated by the owner running the
- * workflow with real secrets. Every synthetic identity uses an `@*.local` email
+ * workflow with real secrets. Every synthetic identity uses a plus-tagged `svc-monitor+*@vitalcv.com` email
  * so it can never collide with (or rebind, per #504) a real user row.
  */
 
 import {
+  ACCEPTED_DESTINATIONS,
   analyzeNavigation,
   isAuthErrorPath,
   isResolvingPath,
@@ -182,7 +183,10 @@ export async function mintClinicianSession(deps: SyntheticClinicianDeps): Promis
   const fapi = deps.fapiBase ?? DEFAULT_FAPI;
   const origin = new URL(deps.appBase).origin;
   const nowMs = (deps.now ?? Date.now)();
-  const email = `svc-monitor+${deps.runId}@vitalcv-monitor.local`;
+  // Plus-tagged on the real owned domain: production Clerk rejects invalid TLDs
+  // (`.local` → 422 form_param_format_invalid), and Backend-API user creation
+  // sends no email, so nothing is ever delivered to this address.
+  const email = `svc-monitor+${deps.runId}@vitalcv.com`;
   const created: { userId: string | null; orgId: string | null } = { userId: null, orgId: null };
   const jar: Record<string, string> = {};
 
@@ -448,9 +452,11 @@ export async function reachRoute(
     }
     break;
   }
-  // Enforce the terminal path is the requested surface (or under it) — a
-  // role-mismatch redirect that 200s elsewhere is a failure, not a pass.
-  return analyzeNavigation(hops, pathOf(path));
+  // Enforce the terminal path is an accepted destination for the surface — a
+  // role-mismatch redirect that 200s elsewhere is a failure, not a pass, but a
+  // dispatcher surface (timeline) may settle on its documented targets.
+  const requested = pathOf(path) as keyof typeof ACCEPTED_DESTINATIONS;
+  return analyzeNavigation(hops, ACCEPTED_DESTINATIONS[requested] ?? pathOf(path));
 }
 
 export interface BackendIdentityProbeResult {
@@ -510,7 +516,7 @@ export interface CleanupResult {
  * Delete the synthetic org + user (best-effort, idempotent). Takes the `created`
  * ids directly so it runs even when mint failed partway. Note: the backend has
  * no delete API for the `User` row it upserts on first role-resolve, so one
- * orphan DB row per run remains (placeholder `@*.local` email, non-colliding —
+ * orphan DB row per run remains (placeholder `svc-monitor+*@vitalcv.com` email, non-colliding —
  * see doc for the reconciliation follow-up).
  */
 export async function cleanupClinician(

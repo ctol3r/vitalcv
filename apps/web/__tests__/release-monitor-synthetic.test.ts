@@ -153,7 +153,7 @@ const session = {
   jwt: 'jwt',
   clientUat: '1',
   cookies: { __session: 'jwt', __client_uat: '1' } as Record<string, string>,
-  email: 'svc@vitalcv-monitor.local',
+  email: 'svc-monitor+test@vitalcv.com',
 };
 
 describe('warmUpClinicianSession', () => {

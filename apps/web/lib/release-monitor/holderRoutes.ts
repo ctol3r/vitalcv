@@ -25,6 +25,24 @@ export const HOLDER_ROUTES = [
 
 export type HolderRoute = (typeof HOLDER_ROUTES)[number];
 
+/**
+ * Where each surface may legitimately settle. Most surfaces must land on
+ * themselves — but `/holder/timeline` is a pure dispatcher
+ * (app/holder/timeline/page.tsx): a clinician with no NPI resolution is
+ * redirected to `/onboarding`, an NPI-bound clinician to `/activity/:npi`, and
+ * it renders in place only on a resolution error. A fresh synthetic clinician
+ * therefore CORRECTLY terminates on /onboarding; treating that as
+ * wrong_destination made the check unsatisfiable by design.
+ */
+export const ACCEPTED_DESTINATIONS: Record<HolderRoute, readonly string[]> = {
+  '/holder': ['/holder'],
+  '/holder/home': ['/holder/home'],
+  '/holder/readiness': ['/holder/readiness'],
+  '/holder/opportunities': ['/holder/opportunities'],
+  '/holder/applications': ['/holder/applications'],
+  '/holder/timeline': ['/holder/timeline', '/onboarding', '/activity'],
+};
+
 /** One hop in a manually-followed redirect chain. */
 export interface NavHop {
   /** Path (or full URL) that was requested for this hop. */
@@ -89,7 +107,7 @@ export function isResolvingPath(pathOrUrl: string): boolean {
  * steady-state per-route checks, where the role is already resolved so a
  * healthy chain is a single 200 with no redirects.
  */
-export function analyzeNavigation(hops: NavHop[], expectedPath?: string): NavOutcome {
+export function analyzeNavigation(hops: NavHop[], expectedPath?: string | readonly string[]): NavOutcome {
   if (hops.length === 0) {
     return { ok: false, finalStatus: null, finalUrl: null, hops: 0, reason: 'no_hops' };
   }
@@ -116,8 +134,10 @@ export function analyzeNavigation(hops: NavHop[], expectedPath?: string): NavOut
   }
 
   if (expectedPath) {
+    const accepted = typeof expectedPath === 'string' ? [expectedPath] : expectedPath;
     const finalPath = pathOf(last.url);
-    if (finalPath !== expectedPath && !finalPath.startsWith(`${expectedPath}/`)) {
+    const onAccepted = accepted.some((p) => finalPath === p || finalPath.startsWith(`${p}/`));
+    if (!onAccepted) {
       return { ok: false, finalStatus: 200, finalUrl: last.url, hops: hops.length, reason: 'wrong_destination' };
     }
   }
