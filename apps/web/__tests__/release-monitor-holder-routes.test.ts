@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ACCEPTED_DESTINATIONS,
   HOLDER_ROUTES,
   analyzeNavigation,
   isAuthErrorPath,
@@ -92,5 +93,26 @@ describe('analyzeNavigation', () => {
 
   it('fails an empty chain', () => {
     expect(analyzeNavigation([]).reason).toBe('no_hops');
+  });
+
+  it('accepts any of a list of accepted destinations (dispatcher surfaces)', () => {
+    const timeline = ACCEPTED_DESTINATIONS['/holder/timeline'];
+    // Fresh clinician (the monitor identity): timeline dispatches to /onboarding.
+    expect(analyzeNavigation([{ url: '/onboarding', status: 200 }], timeline).ok).toBe(true);
+    // Error branch renders in place.
+    expect(analyzeNavigation([{ url: '/holder/timeline', status: 200 }], timeline).ok).toBe(true);
+    // The NPI-bound terminal (/activity/:npi) is unreachable for the monitor —
+    // it never binds an NPI — so it is deliberately NOT an accepted destination.
+    expect(analyzeNavigation([{ url: '/activity/1234567890', status: 200 }], timeline).reason).toBe(
+      'wrong_destination',
+    );
+    // A destination outside the accepted set is still wrong.
+    expect(analyzeNavigation([{ url: '/verifier', status: 200 }], timeline).reason).toBe('wrong_destination');
+  });
+
+  it('does not loosen non-dispatcher surfaces: /holder must not settle on /onboarding', () => {
+    expect(
+      analyzeNavigation([{ url: '/onboarding', status: 200 }], ACCEPTED_DESTINATIONS['/holder']).reason,
+    ).toBe('wrong_destination');
   });
 });
