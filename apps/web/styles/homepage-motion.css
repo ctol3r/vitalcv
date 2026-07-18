@@ -120,6 +120,14 @@
   background: var(--vt-text-secondary);
 }
 
+/* A clear focus ring on the rail link itself — keyboard users must see where
+   focus landed, not only the revealed label (AUD-1.2). */
+.homepage-section-rail a:focus-visible {
+  outline: 2px solid var(--vt-focus-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 .homepage-section-rail a[aria-current='location'] {
   color: var(--vt-text-primary);
 }
@@ -129,14 +137,18 @@
   transform: scale(1.3);
 }
 
+/* The rail is a motion affordance (a scroll-progress indicator). Under reduced
+   motion it is hidden entirely — the vertical DOM order and the header nav
+   remain a complete route to every section (AUD-1.2). */
 @media (prefers-reduced-motion: reduce) {
-  .homepage-section-rail__dot,
-  .homepage-section-rail__label { transition: none; }
+  .homepage-section-rail { display: none; }
 }
 
-/* Hide the floating rail on smaller screens — the header nav covers navigation
-   there and the rail would overlap content. */
-@media (max-width: 1023px) {
+/* Hide the floating rail on smaller screens and on coarse pointers (touch) —
+   the header nav covers navigation there, the hover-to-reveal label is
+   meaningless without a fine pointer, and the rail would overlap content
+   (AUD-1.2). */
+@media (max-width: 1023px), (pointer: coarse) {
   .homepage-section-rail { display: none; }
 }
 
