@@ -7,6 +7,7 @@ export * from './ConfidenceTierBadge';
 export * from './Dropdown';
 export * from './EvidenceTable';
 export * from './FreshnessIndicator';
+export * from './FreshnessMeter';
 export * from './IdentityField';
 export * from './IdentityFieldsCard';
 export * from './LaneStateBadge';
