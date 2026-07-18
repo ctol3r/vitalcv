@@ -88,7 +88,7 @@ export function EvidenceTruthPanel() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.55)' }}>
               Evidence trace
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
               example
             </span>
           </div>
@@ -110,7 +110,7 @@ export function EvidenceTruthPanel() {
             </dl>
             <div className="mt-5 space-y-3 border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   Why this matters
                 </p>
                 <p className="mt-1 text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
@@ -118,7 +118,7 @@ export function EvidenceTruthPanel() {
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'rgba(255,255,255,0.62)' }}>
                   What this does not decide
                 </p>
                 <p className="mt-1 text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
