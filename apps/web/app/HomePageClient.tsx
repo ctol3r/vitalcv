@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
+import { HeroLoopPills } from '@/components/home/HeroLoopPills';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
@@ -227,6 +228,9 @@ export default function HomePageClient() {
               </Link>
               <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
             </div>
+
+            {/* The deck's four-stage career loop as a connected pill strip. */}
+            <HeroLoopPills />
           </div>
 
           {/* The hero's living panel. Before a lookup it is the Career Evidence
