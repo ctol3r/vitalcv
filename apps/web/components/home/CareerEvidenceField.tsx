@@ -207,6 +207,7 @@ function FieldLegend() {
   return (
     <ul
       data-field-legend=""
+      aria-label="Evidence states this page distinguishes"
       className="pointer-events-none absolute inset-x-3 bottom-3 z-[3] flex flex-wrap items-center gap-x-3 gap-y-1"
     >
       {LEGEND.map((item) => (
@@ -359,15 +360,19 @@ export function CareerEvidenceField() {
     <div
       ref={wrapRef}
       data-home-evidence-field=""
-      aria-hidden="true"
       className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)] lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]"
     >
-      <FieldPoster />
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{ opacity: canvasReady ? 1 : 0 }}
-      />
+      {/* Decorative visual layer only. The honest meaning lives in the
+          accessible legend below, kept OUT of this aria-hidden subtree so
+          assistive tech still receives it (VHS-1 §7). */}
+      <div aria-hidden="true" className="absolute inset-0">
+        <FieldPoster />
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{ opacity: canvasReady ? 1 : 0 }}
+        />
+      </div>
       <FieldLegend />
     </div>
   );
