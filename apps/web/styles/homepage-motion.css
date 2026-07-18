@@ -275,11 +275,89 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border: 1px solid var(--vt-border);
-  border-radius: 0.65rem;
+  border-radius: 0.9rem;
   background: var(--vt-surface-subtle);
+  color: var(--vt-text-primary);
+}
+
+/* ── Animated story icons (Chris, 2026-07-18) ───────────────────────────────
+   Bespoke line icons that animate to tell each product stage. Every resting
+   state is complete, so reduced motion (all animation off) still shows a
+   finished icon. */
+.aicon { display: block; overflow: visible; }
+
+/* identity — a scan line sweeps across the fingerprint ridges */
+.aicon-scan { animation: aicon-scan 2.8s ease-in-out infinite; }
+@keyframes aicon-scan {
+  0%, 100% { transform: translateY(-9px); opacity: 0.2; }
+  50% { transform: translateY(9px); opacity: 1; }
+}
+
+/* readiness / recognition — a check (and ring) that periodically draws in */
+.aicon-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0; /* resting = fully drawn (reduced-motion safe) */
+  animation: aicon-draw 4s ease-in-out infinite;
+}
+@keyframes aicon-draw {
+  0% { stroke-dashoffset: 1; }
+  30%, 100% { stroke-dashoffset: 0; }
+}
+.aicon-ring {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: aicon-draw 4s ease-in-out infinite;
+}
+
+/* match — the radar sweep rotates continuously; the blip pulses */
+.aicon-radar { animation: aicon-spin 3.6s linear infinite; }
+@keyframes aicon-spin { to { transform: rotate(360deg); } }
+.aicon-blip { animation: aicon-blip 3.6s ease-in-out infinite; }
+@keyframes aicon-blip {
+  0%, 60%, 100% { opacity: 0.2; }
+  75% { opacity: 1; }
+}
+
+/* apply — the proof packet glides out and returns */
+.aicon-fly { animation: aicon-fly 3.4s ease-in-out infinite; }
+@keyframes aicon-fly {
+  0% { transform: translate(0, 0); }
+  45% { transform: translate(4px, -4px); }
+  60% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+.aicon-trail { animation: aicon-trail 3.4s ease-in-out infinite; }
+@keyframes aicon-trail {
+  0%, 100% { opacity: 0.15; }
+  45% { opacity: 0.7; }
+}
+
+/* recognition — sparkle */
+.aicon-spark { animation: aicon-spark 4s ease-in-out infinite; transform-origin: 37px 14px; }
+@keyframes aicon-spark {
+  0%, 55%, 100% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1); }
+}
+
+/* reuse — the two arrows cycle */
+.aicon-cycle { animation: aicon-spin 7s linear infinite; }
+
+/* wallet — a card slides up out of the wallet, then settles back */
+.aicon-card { animation: aicon-card 3.6s ease-in-out infinite; }
+@keyframes aicon-card {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aicon-scan, .aicon-draw, .aicon-ring, .aicon-radar, .aicon-blip,
+  .aicon-fly, .aicon-trail, .aicon-spark, .aicon-cycle, .aicon-card {
+    animation: none;
+  }
+  .aicon-scan { opacity: 0.8; transform: translateY(0); }
 }
 .story-card-eyebrow,
 .product-carousel-card-copy > p:first-of-type {
