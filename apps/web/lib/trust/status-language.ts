@@ -233,8 +233,11 @@ export function canonicalCredStatus(raw: string): string {
     gated: 'Access required',
     REVIEW_REQUIRED: 'Review required',
     review_required: 'Review required',
-    REVOKED: 'Unavailable',
-    revoked: 'Unavailable',
+    // Revoked is a first-class fail-closed state — distinct from Unavailable
+    // (a system condition) and from adverse. Surfaced honestly so a withdrawn
+    // credential reads as withdrawn, never as merely missing.
+    REVOKED: 'Revoked',
+    revoked: 'Revoked',
     NOT_DECISION_GRADE: 'Not decision-grade',
     not_decision_grade: 'Not decision-grade',
   };
