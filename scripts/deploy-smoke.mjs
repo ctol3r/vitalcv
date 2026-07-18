@@ -7,13 +7,19 @@
  * every deploy even when the signed-in monitor is not wired.
  *
  *   node scripts/deploy-smoke.mjs [--base https://vitalcv.com] [--sha <expected>]
- *                                 [--allow-missing-auth-health] [--json]
+ *                                 [--allow-missing-auth-health]
+ *                                 [--allow-missing-db-health] [--json]
  *
  * Checks:
  *  - /api/version: service=web, platform=railway, environment=production,
  *    branch=main, commit matches --sha when given
  *  - /api/health/auth: HTTP 200 + status "ok" (fail-closed auth config;
  *    --allow-missing-auth-health tolerates 404 until Wave 0.1 is deployed)
+ *  - /api/health/db: HTTP 200 + db "ok" (web→database connectivity — the
+ *    2026-07-17 placeholder-DATABASE_URL incident was invisible because the
+ *    web Prisma product routes are fail-open; retried so one transient blip
+ *    cannot paint a healthy deploy red; --allow-missing-db-health tolerates
+ *    404 until the endpoint is deployed)
  *  - / : current-release homepage marker (data-narrative-words), bounded
  *    shared cache (s-maxage ≤ 300)
  *  - /onboarding: HTTP 200 AND private/no-store with no s-maxage (Wave 0.2)
@@ -33,6 +39,9 @@ const opt = (name, fallback) => {
 const BASE = (opt('--base', process.env.RELEASE_PROBE_BASE || 'https://vitalcv.com')).replace(/\/$/, '');
 const EXPECTED_SHA = opt('--sha', process.env.EXPECTED_SHA || '').toLowerCase();
 const ALLOW_MISSING_AUTH_HEALTH = flag('--allow-missing-auth-health');
+const ALLOW_MISSING_DB_HEALTH = flag('--allow-missing-db-health');
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const results = [];
 const record = (name, ok, detail) => {
@@ -74,6 +83,30 @@ try {
     let authInfo = {};
     try { authInfo = JSON.parse(authHealth.body); } catch { /* handled below */ }
     record('auth-health: HTTP 200 + status ok', authHealth.status === 200 && authInfo.status === 'ok', `HTTP ${authHealth.status} status=${authInfo.status ?? 'unparseable'}`);
+  }
+
+  // 2b. /api/health/db — web→database connectivity. The 2026-07-17
+  // placeholder-DATABASE_URL incident was invisible from outside: every web
+  // Prisma product route is fail-open by design, so a dead DB degrades
+  // silently. This is the one check that turns that state red. Retried (3
+  // attempts, 5 s apart) so a single transient blip cannot fail a healthy
+  // deploy; a placeholder/unreachable DATABASE_URL fails every attempt.
+  const parseDb = (body) => {
+    try { return JSON.parse(body).db; } catch { return undefined; }
+  };
+  const firstDbHealth = await get('/api/health/db');
+  if (firstDbHealth.status === 404 && ALLOW_MISSING_DB_HEALTH) {
+    record('db-health: endpoint present', true, 'missing but tolerated (pre-db-health deploy)');
+  } else {
+    let dbStatus = firstDbHealth.status;
+    let db = parseDb(firstDbHealth.body);
+    for (let attempt = 1; attempt < 3 && !(dbStatus === 200 && db === 'ok'); attempt += 1) {
+      await sleep(5000);
+      const retry = await get('/api/health/db');
+      dbStatus = retry.status;
+      db = parseDb(retry.body);
+    }
+    record('db-health: HTTP 200 + db ok', dbStatus === 200 && db === 'ok', `HTTP ${dbStatus} db=${db ?? 'unparseable'}`);
   }
 
   // 3. Homepage — release marker + bounded shared caching.

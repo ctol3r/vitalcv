@@ -86,10 +86,14 @@ jobs:
 
       # Secretless external smoke — runs on EVERY deploy, wired or not
       # (Wave 0.3). Verifies platform/environment/branch/SHA via /api/version,
-      # the fail-closed auth-config health, the current-release homepage
-      # marker, session-route no-store, and the core public routes — all with
-      # cache-busted requests so a stale shared cache cannot fake a pass.
+      # the fail-closed auth-config health, web→database connectivity via
+      # /api/health/db (the placeholder-DATABASE_URL incident: web Prisma
+      # product routes are fail-open, so a dead DB is invisible without this),
+      # the current-release homepage marker, session-route no-store, and the
+      # core public routes — all with cache-busted requests so a stale shared
+      # cache cannot fake a pass.
       - name: Production smoke (secretless, cache-busted)
+        id: smoke
         env:
           RELEASE_PROBE_BASE: ${{ secrets.RELEASE_PROBE_BASE || 'https://vitalcv.com' }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
@@ -137,13 +141,22 @@ jobs:
           REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.sha }}
           TARGET_SHA: ${{ steps.target.outputs.sha }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           WIRED: ${{ steps.preflight.outputs.wired }}
         run: |
           # The commit Status API has no `neutral` state (that lives in the Checks
           # API); `pending` is its non-pass/non-fail signal and renders as a grey
           # dot — deliberately NOT the red X that reads as a broken deploy.
-          if [ "$WIRED" != "true" ]; then
+          #
+          # A FAILED smoke is a real deploy problem (wrong SHA, auth config, or
+          # web→DB connectivity) — it must paint a RED status, never the grey
+          # "not wired" pending it used to fall through to (preflight is skipped
+          # when the smoke step fails, so WIRED is empty on that path).
+          if [ "$SMOKE_OUTCOME" = "failure" ]; then
+            STATE=failure
+            DESC="production smoke failed (version / auth-config / db-connectivity / public routes)"
+          elif [ "$WIRED" != "true" ]; then
             STATE=pending
             DESC="skipped — monitor not wired (set CLERK_SECRET_KEY)"
           elif [ "$VERIFY_OUTCOME" = "success" ]; then
