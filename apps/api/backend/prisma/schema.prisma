@@ -1846,6 +1846,11 @@ model EmployerAcceptance {
   employerId   String?  @map("employer_id")
   clinicianNpi String?  @map("clinician_npi")
   artifactId   String?  @map("artifact_id")
+  // ACT-1.2 — traceable link to the exact sealed packet this acceptance
+  // accepted. Nullable + no FK (matching the model's convention); packetHash is
+  // the immutable content seal, applicationId the packet's application.
+  applicationId String? @map("application_id") @db.Uuid
+  packetHash    String? @map("packet_hash")
   status       String?  @default("ACCEPTED")
   acceptedAt   DateTime @map("accepted_at")
   acceptedBy   String?  @map("accepted_by")
@@ -1854,6 +1859,7 @@ model EmployerAcceptance {
   @@index([employerId])
   @@index([clinicianNpi])
   @@index([acceptedAt])
+  @@index([applicationId])
   @@map("employer_acceptances")
 }
 

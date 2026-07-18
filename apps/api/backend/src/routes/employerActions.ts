@@ -49,6 +49,7 @@ import {
   resolveEmployerReviewSubjectByNpi,
   type EmployerReviewActionState,
 } from '../services/entity/employerReviewActions';
+import { evaluatePacketAcceptance } from '../services/entity/packetAcceptanceGuard';
 import { getCachedTrustState } from '../services/trust/trustStateEngine';
 import { getOrgProfile } from '../services/opportunities/opportunityService';
 import {
@@ -391,7 +392,54 @@ export function registerEmployerActionRoutes(app: Express): void {
         acceptanceReason?: string;
         organizationContextId?: string;
         bundleId?: string;
+        applicationId?: string;
+        packetHash?: string;
       };
+
+      // ACT-1.2 — when the reviewer accepts BY application (passing the
+      // applicationId + the packetHash they reviewed), verify the hash still
+      // matches the live sealed packet and it is not revoked BEFORE recording.
+      // This ties the acceptance to exactly the evidence reviewed and fails
+      // closed on a changed/revoked packet. Absent → the legacy NPI-keyed path,
+      // unchanged.
+      const applicationId = typeof req.body?.applicationId === 'string' ? req.body.applicationId.trim() : '';
+      const claimedPacketHash = typeof req.body?.packetHash === 'string' ? req.body.packetHash.trim() : '';
+      let linkage: { applicationId: string; packetHash: string } | undefined;
+      if (applicationId) {
+        if (!claimedPacketHash) {
+          throw new HttpError(400, 'packetHash is required when accepting by applicationId.');
+        }
+        const packetRow = await prisma.applicationPacket.findFirst({
+          where: { applicationId },
+          orderBy: { packetVersion: 'desc' },
+          select: { packetHash: true, packetVersion: true, opportunityVersion: true, revokedAt: true, supersededByPacketId: true },
+        });
+        const verdict = evaluatePacketAcceptance(
+          claimedPacketHash,
+          packetRow
+            ? {
+                applicationId,
+                packetHash: packetRow.packetHash,
+                packetVersion: packetRow.packetVersion,
+                opportunityVersion: packetRow.opportunityVersion ?? null,
+                revokedAt: packetRow.revokedAt ? packetRow.revokedAt.toISOString() : null,
+                supersededByPacketId: packetRow.supersededByPacketId ?? null,
+              }
+            : null,
+        );
+        if (!verdict.ok) {
+          await writeDeniedEmployerReviewMutation({
+            req,
+            actorId: employerId,
+            entityId,
+            clinicianNpi: subject.clinicianNpi,
+            denialReason: verdict.reason,
+            payload: { applicationId, claimedPacketHash },
+          });
+          throw new HttpError(409, `Cannot accept this packet: ${verdict.reason}.`);
+        }
+        linkage = { applicationId, packetHash: verdict.packetHash };
+      }
 
       const state = await recordEmployerReviewAcceptance({
         entityId,
@@ -405,6 +453,8 @@ export function registerEmployerActionRoutes(app: Express): void {
         notes,
         acceptanceScope: req.body?.acceptanceScope,
         acceptanceReason: req.body?.acceptanceReason,
+        applicationId: linkage?.applicationId,
+        packetHash: linkage?.packetHash,
       });
 
       log('info', 'employer_review_accepted', {
