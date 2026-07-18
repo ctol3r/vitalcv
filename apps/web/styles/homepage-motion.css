@@ -58,38 +58,87 @@
   .proofcycle-word { animation: none; }
 }
 
+/* Floating scroll-progress rail pinned to the right edge (desktop only).
+   Compact dots that expand to labelled pills on hover/focus — keeps
+   jump-to-section navigation without a full-width bar crowding the top. */
 .homepage-section-rail {
-  position: sticky;
-  top: 5.75rem;
+  position: fixed;
+  right: 1.15rem;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 45;
-  width: 100%;
-  border-block: 1px solid var(--vt-border);
-  background: color-mix(in oklab, var(--vt-bg) 92%, transparent);
-  backdrop-filter: blur(18px) saturate(130%);
 }
 
-.homepage-section-rail > div {
+.homepage-section-rail ul {
   display: flex;
-  width: min(100%, 1320px);
-  margin-inline: auto;
-  gap: 0.65rem;
-  overflow-x: auto;
-  padding: 0.65rem 1.5rem;
-  scrollbar-width: none;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.homepage-section-rail > div::-webkit-scrollbar { display: none; }
-.homepage-section-rail span { color: var(--vt-border); }
 .homepage-section-rail a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 0.3rem 0.4rem;
   color: var(--vt-text-muted);
-  font-size: 0.72rem;
+  text-decoration: none;
+}
+
+.homepage-section-rail__dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--vt-border);
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.homepage-section-rail__label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-size: 0.7rem;
   font-weight: 650;
   letter-spacing: 0.08em;
-  text-decoration: none;
   text-transform: uppercase;
+  white-space: nowrap;
+  transition: max-width 0.22s ease, opacity 0.18s ease;
 }
-.homepage-section-rail a[aria-current='location'] { color: var(--vt-text-primary); }
+
+.homepage-section-rail a:hover .homepage-section-rail__label,
+.homepage-section-rail a:focus-visible .homepage-section-rail__label {
+  max-width: 9rem;
+  opacity: 1;
+}
+
+.homepage-section-rail a:hover .homepage-section-rail__dot,
+.homepage-section-rail a:focus-visible .homepage-section-rail__dot {
+  background: var(--vt-text-secondary);
+}
+
+.homepage-section-rail a[aria-current='location'] {
+  color: var(--vt-text-primary);
+}
+
+.homepage-section-rail a[aria-current='location'] .homepage-section-rail__dot {
+  background: var(--vt-text-primary);
+  transform: scale(1.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homepage-section-rail__dot,
+  .homepage-section-rail__label { transition: none; }
+}
+
+/* Hide the floating rail on smaller screens — the header nav covers navigation
+   there and the rail would overlap content. */
+@media (max-width: 1023px) {
+  .homepage-section-rail { display: none; }
+}
 
 #wallet,
 #readiness,
@@ -387,7 +436,6 @@
 .product-carousel-ui li svg { flex: none; color: var(--vt-accent-emerald); }
 
 @media (max-width: 1023px) {
-  .homepage-section-rail { top: 5.75rem; }
   .sticky-product-story { min-height: auto; margin-top: 2rem; }
   .story-observer { top: 0; height: 1px; }
   .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; padding-block: 0; }
@@ -403,7 +451,6 @@
 }
 
 @media (max-width: 700px) {
-  .homepage-section-rail > div { padding-inline: 1rem; }
   .product-carousel-heading { align-items: start; flex-direction: column; }
   .product-carousel-controls { align-self: stretch; }
   .product-carousel-card { flex-basis: 86vw; }
