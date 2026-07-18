@@ -34,3 +34,4 @@ export * from './TruthStateChip';
 export * from './TruthStateLegend';
 export * from './ProvenanceChip';
 export * from './ProvenanceChipLegend';
+export * from './VerdictSplit';
