@@ -2,11 +2,17 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
+import { ArrowRight, PartyPopper } from 'lucide-react';
 
 import { ProofContinuityRail, type ProofLane } from '@/components/vital/ProofContinuityRail';
 import { SkeletonStack } from '@/components/vital/SkeletonStack';
 import type { EvidenceState } from '@/lib/vital/evidenceState';
+import {
+  CHECK_SEQUENCE,
+  SourceCheckNarration,
+  useSourceCheckSequence,
+  type TrustState,
+} from '@/components/readiness/sourceCheckNarration';
 
 /**
  * OnboardingReadiness — the final step of the canonical activation flow. After
@@ -19,22 +25,6 @@ import type { EvidenceState } from '@/lib/vital/evidenceState';
  * checked, PECOS not-found → needs review, licensure unknown → access required).
  * Nothing here is a completed credentialing decision.
  */
-interface TrustState {
-  identityVerified?: boolean;
-  exclusionStatus?: string; // CLEAR | EXCLUDED | UNCHECKED
-  pecosStatus?: string; // ENROLLED | NOT_FOUND | UNKNOWN
-  licensureStatus?: string; // unknown | ...
-  blockers?: string[];
-  nextActions?: string[];
-}
-
-const CHECK_SEQUENCE = [
-  'Recognizing your identity',
-  'Checking federal exclusion data (OIG)',
-  'Checking Medicare enrollment (PECOS)',
-  'Preparing your readiness snapshot',
-] as const;
-
 export function trustStateToLanes(trust: TrustState | null): ProofLane[] {
   const lane = (id: string, label: string, state: EvidenceState, why?: string): ProofLane => ({ id, label, state, why });
   const lanes: ProofLane[] = [];
@@ -63,63 +53,34 @@ export function trustStateToLanes(trust: TrustState | null): ProofLane[] {
 }
 
 export function OnboardingReadiness({ npi }: { npi: string }) {
-  const [step, setStep] = React.useState(0);
   const [trust, setTrust] = React.useState<TrustState | null>(null);
-  const [phase, setPhase] = React.useState<'resolving' | 'ready' | 'error'>('resolving');
-
-  React.useEffect(() => {
-    const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    const t = window.setInterval(() => setStep((s) => Math.min(s + 1, CHECK_SEQUENCE.length)), 600);
-    return () => window.clearInterval(t);
-  }, []);
+  const { step, phase, finish } = useSourceCheckSequence({ stepCount: CHECK_SEQUENCE.length });
 
   React.useEffect(() => {
     let alive = true;
-    const started = Date.now();
     (async () => {
       try {
         const res = await fetch(`/api/trust-state/${npi}`, { cache: 'no-store' });
         if (!alive) return;
         if (res.ok) setTrust((await res.json()) as TrustState);
-        const wait = Math.max(0, 1800 - (Date.now() - started));
-        window.setTimeout(() => {
-          if (!alive) return;
-          setStep(CHECK_SEQUENCE.length);
-          setPhase(res.ok ? 'ready' : 'error');
-        }, wait);
+        finish(res.ok);
       } catch {
-        if (alive) setPhase('error');
+        if (alive) finish(false);
       }
     })();
     return () => {
       alive = false;
     };
-  }, [npi]);
+  }, [npi, finish]);
 
   if (phase === 'resolving') {
     return (
       <div className="mt-6 text-left" aria-live="polite">
-        <p className="mz-eyebrow">Reading primary sources</p>
-        <ul className="mt-3 space-y-2.5">
-          {CHECK_SEQUENCE.map((label, i) => {
-            const done = i < step;
-            const active = i === step;
-            return (
-              <li key={label} className="flex items-center gap-2.5 text-[13px]">
-                {done ? (
-                  <CheckCircle2 size={15} className="shrink-0 text-[var(--vt-accent-emerald)]" aria-hidden="true" />
-                ) : active ? (
-                  <Loader2 size={15} className="shrink-0 animate-spin text-[var(--vt-text-muted)]" aria-hidden="true" />
-                ) : (
-                  <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-[var(--vt-border)]" aria-hidden="true" />
-                )}
-                <span className={done ? 'text-[var(--vt-text-primary)]' : 'text-[var(--vt-text-secondary)]'}>{label}</span>
-              </li>
-            );
-          })}
-        </ul>
-        <SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness snapshot" />
+        <SourceCheckNarration
+          step={step}
+          compact
+          trailing={<SkeletonStack rows={4} className="mt-5" aria-label="Preparing your readiness snapshot" />}
+        />
       </div>
     );
   }
