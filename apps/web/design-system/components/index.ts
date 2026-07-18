@@ -1,3 +1,4 @@
+export * from './AcceptanceDiff';
 export * from './ActionCard';
 export * from './Badge';
 export * from './Button';
