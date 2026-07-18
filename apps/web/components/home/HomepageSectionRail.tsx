@@ -10,6 +10,12 @@ const ITEMS = [
   { id: 'employers', label: 'Employers' },
 ] as const;
 
+/**
+ * HomepageSectionRail — a compact scroll-progress rail pinned to the right edge
+ * of the viewport (desktop only). Each section is a dot; its label reveals on
+ * hover/focus. Replaces the former full-width sticky bar that sat under the
+ * header and crowded the top of the page.
+ */
 export function HomepageSectionRail() {
   const [active, setActive] = React.useState<(typeof ITEMS)[number]['id']>('wallet');
 
@@ -31,20 +37,20 @@ export function HomepageSectionRail() {
 
   return (
     <nav className="homepage-section-rail" aria-label="Homepage sections" data-home-section-rail="">
-      <div>
-        {ITEMS.map((item, index) => (
-          <React.Fragment key={item.id}>
-            {index > 0 ? <span aria-hidden="true">·</span> : null}
+      <ul>
+        {ITEMS.map((item) => (
+          <li key={item.id}>
             <a
               href={`#${item.id}`}
               aria-current={active === item.id ? 'location' : undefined}
               onClick={() => setActive(item.id)}
             >
-              {item.label}
+              <span className="homepage-section-rail__dot" aria-hidden="true" />
+              <span className="homepage-section-rail__label">{item.label}</span>
             </a>
-          </React.Fragment>
+          </li>
         ))}
-      </div>
+      </ul>
     </nav>
   );
 }
