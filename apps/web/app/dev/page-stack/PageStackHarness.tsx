@@ -12,13 +12,13 @@
  * /holder; it is not seeded here because it needs the ClinicianMobile provider.
  */
 
-import { PaneLink } from '@/components/page-stack/PaneLink';
+import { EntityLink } from '@/components/page-stack/EntityLink';
 import { PageStack } from '@/components/page-stack/PageStack';
 import type { PaneKey } from '@/lib/page-stack/types';
 
-const SEED_LINKS: readonly { key: PaneKey; label: string }[] = [
-  { key: { type: 'employer', id: 'org_demo' }, label: 'Open an employer' },
-  { key: { type: 'evidence_claim', id: 'claim_demo' }, label: 'Open an evidence claim' },
+const SEED_LINKS: readonly { key: PaneKey; label: string; relationship: string }[] = [
+  { key: { type: 'employer', id: 'org_demo' }, label: 'Open an employer', relationship: 'offered_by' },
+  { key: { type: 'evidence_claim', id: 'claim_demo' }, label: 'Open an evidence claim', relationship: 'backed_by' },
 ];
 
 function HarnessRoot() {
@@ -32,10 +32,15 @@ function HarnessRoot() {
         Back, Forward, refresh, and a shared link all restore it.
       </p>
       <nav aria-label="Seed entity links" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {SEED_LINKS.map(({ key, label }) => (
-          <PaneLink key={`${key.type}:${key.id}`} paneKey={key} className="mz-chip mz-interactive">
+        {SEED_LINKS.map(({ key, label, relationship }) => (
+          <EntityLink
+            key={`${key.type}:${key.id}`}
+            entity={key}
+            relationship={relationship}
+            className="mz-chip mz-interactive"
+          >
             {label}
-          </PaneLink>
+          </EntityLink>
         ))}
       </nav>
     </div>
