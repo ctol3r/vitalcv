@@ -17,7 +17,6 @@ import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { HeroLoopPills } from '@/components/home/HeroLoopPills';
-import { HomepageOutlinePanel } from '@/components/home/HomepageOutlinePanel';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
@@ -103,8 +102,12 @@ export default function HomePageClient() {
         </SignedIn>
       )}
 
+      {/* The right-edge dot rail is the sole page-level in-page navigator
+          (AUD-1.2). The former left-floating "Page outline" was removed: at
+          desktop width it overlaid the first lines of major headings. The
+          header covers site destinations; StickyProductStory's 01–05 controls
+          are local story-step controls only. */}
       <HomepageSectionRail />
-      <HomepageOutlinePanel />
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* The NPI action belongs in the first viewport. Hero motion is a

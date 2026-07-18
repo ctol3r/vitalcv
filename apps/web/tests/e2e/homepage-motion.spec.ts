@@ -348,7 +348,7 @@ test.describe('Homepage motion convergence', () => {
     expect(Number(canvasOpacity)).toBe(0);
   });
 
-  // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto + outline ──
+  // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto ──
 
   test('the manifesto lines come into focus by distance from viewport centre', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -383,31 +383,37 @@ test.describe('Homepage motion convergence', () => {
     expect(Math.min(...opacities)).toBeGreaterThan(0.99);
   });
 
-  test('the outline panel appears past the hero and scroll-spies the sections', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
+  // AUD-1.1 guard: the left-floating "Page outline" was removed because at
+  // desktop width it overlaid the first lines of major headings. This is the
+  // regression guard — no fixed/sticky overlay may cover the primary heading,
+  // the NPI field, or the primary CTA at 1366px desktop.
+  test('no fixed/sticky overlay covers the primary heading or NPI action (AUD-1.1)', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const panel = page.locator('[data-home-outline-panel]');
-    // Hidden (faded out) while the hero owns the viewport.
-    await expect(panel).toHaveCSS('opacity', '0');
+    // The removed left-floating outline must not return.
+    await expect(page.locator('[data-home-outline-panel]')).toHaveCount(0);
 
-    // Scroll to a mid-page section; the panel fades in and marks a current item.
-    const story = page.locator('[data-home-sticky-product-story]');
-    const top = await story.evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
-    await scrollTo(page, top + 40);
-    await expect(panel).toHaveCSS('opacity', '1');
-    await expect(panel.locator('[aria-current="true"]')).toHaveCount(1);
-    // No horizontal overflow from the fixed panel.
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(1);
-  });
-
-  test('the outline panel is desktop-only', async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('[data-home-outline-panel]')).toHaveCSS('display', 'none');
+    // At each key content anchor, the topmost painted element must be the
+    // content itself (or an ancestor/descendant of it) — never a fixed/sticky
+    // overlay sitting on top.
+    for (const sel of ['h1', '#npi-input', '[data-home-primary-cta]']) {
+      const overlay = await page.locator(sel).first().evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (!top || el.contains(top) || top.contains(el)) return null;
+        for (let n: Element | null = top; n; n = n.parentElement) {
+          const pos = getComputedStyle(n).position;
+          if (pos === 'fixed' || pos === 'sticky') {
+            return n.getAttribute('data-home-outline-panel') !== null
+              ? 'outline-panel'
+              : n.className || n.tagName;
+          }
+        }
+        return null;
+      });
+      expect(overlay, `fixed/sticky overlay covering ${sel}`).toBeNull();
+    }
   });
 
   test('the reusable-evidence cycler carries an honest static meaning', async ({ page }) => {
