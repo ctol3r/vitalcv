@@ -1150,3 +1150,115 @@
     display: none;
   }
 }
+
+/* ---------- pass-reason prompt (J6b) — non-blocking, fixed ---------- */
+.mdk-passreason {
+  position: fixed;
+  z-index: 55;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-line);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(28, 28, 26, 0.18);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mdk-passreason-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mdk-passreason-q {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mdk-ink);
+}
+
+.mdk-passreason-q strong {
+  font-weight: 620;
+}
+
+.mdk-passreason-opt {
+  color: var(--mdk-ink-faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mdk-passreason-close {
+  flex: none;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--mdk-ink-soft);
+  font-size: 13px;
+  font-weight: 560;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.mdk-passreason-close:focus-visible,
+.mdk-passreason-mute:focus-visible,
+.mdk-passreason-chip:focus-visible {
+  outline: 2px solid var(--mdk-accent);
+  outline-offset: 2px;
+}
+
+.mdk-passreason-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mdk-passreason-chip {
+  appearance: none;
+  border: 1px solid var(--mdk-line);
+  background: var(--mdk-paper);
+  color: var(--mdk-ink);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 540;
+  cursor: pointer;
+}
+
+.mdk-passreason-chip:hover {
+  border-color: var(--mdk-ink-faint);
+}
+
+.mdk-passreason-mute {
+  align-self: flex-start;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--mdk-ink-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* On mobile the bottom is crowded by the sticky action bar and holder nav, so
+   anchor the prompt to the TOP instead — clear of both, still non-blocking. */
+@media (max-width: 560px), (max-width: 1023px) and (max-height: 560px) {
+  .mdk-passreason {
+    bottom: auto;
+    top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdk-passreason {
+    box-shadow: 0 8px 24px rgba(28, 28, 26, 0.16);
+  }
+}

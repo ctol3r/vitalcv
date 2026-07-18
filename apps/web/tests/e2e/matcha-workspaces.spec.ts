@@ -84,7 +84,7 @@ test.describe('MATCHA Passed workspace', () => {
 })
 
 test.describe('MATCHA workspaces — reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' })
+  test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
   test('render fully with reduced motion, controls intact', async ({ page }) => {
     await open(page, INTERESTED)
