@@ -26,6 +26,7 @@ import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { RotatingProofLine } from '@/components/home/RotatingProofLine';
 import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
+import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
@@ -33,13 +34,6 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
 
-
-const SOURCE_REGISTRY_STRIP = [
-  'NPPES NPI Registry',
-  'OIG LEIE Exclusions',
-  'CMS PECOS Enrollment',
-  'State license boards',
-] as const;
 
 const TRUST_FOOTER_LINKS = [
   { label: 'Status', href: '/status' },
@@ -241,19 +235,7 @@ export default function HomePageClient() {
           <HeroLoopPills />
         </div>
 
-        <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-3.5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
-            <p className="mz-eyebrow shrink-0">Reads primary sources</p>
-            <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              {SOURCE_REGISTRY_STRIP.map((name) => (
-                <li key={name} className="inline-flex items-center gap-2 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--vt-text-secondary)]">
-                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--vt-accent-emerald)]" />{name}
-                </li>
-              ))}
-            </ul>
-            <p className="shrink-0 text-[11px] text-[var(--vt-text-muted)]">Every field shows its state.</p>
-          </div>
-        </section>
+        <SourceCoverageRibbon />
 
         <ProblemStatBand />
 
