@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { SignedIn } from '@clerk/nextjs';
 import {
@@ -15,6 +14,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
+import { CareerEvidenceField } from '@/components/home/CareerEvidenceField';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { HeroLoopPills } from '@/components/home/HeroLoopPills';
 import { HomepageOutlinePanel } from '@/components/home/HomepageOutlinePanel';
@@ -33,22 +33,6 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
 
-/**
- * The Career Evidence Network graph, in the hero.
- *
- * It reads window/matchMedia/canvas at mount, so ssr:false keeps it off the
- * server render path (same contract as /evidence-network). It renders its own
- * "N nodes · M links · illustrative structure" footer, so the honesty label
- * travels with the canvas even though the control panel is closed here — the
- * hero is a first impression, not an exploration surface. /evidence-network
- * remains the full explorable version.
- */
-const CareerGraph = dynamic(() => import('@/components/career-graph/CareerGraph'), {
-  ssr: false,
-  loading: () => (
-    <div aria-hidden="true" className="h-full w-full rounded-[14px] border border-[var(--vt-border-subtle)] bg-[var(--vt-surface-subtle)]" />
-  ),
-});
 
 const SOURCE_REGISTRY_STRIP = [
   'NPPES NPI Registry',
@@ -57,15 +41,10 @@ const SOURCE_REGISTRY_STRIP = [
   'State license boards',
 ] as const;
 
-const WALLET_PREVIEW_ROWS = [
-  { source: 'NPPES', field: 'Identity', state: 'Source-backed', tone: 'ok' as const },
-  { source: 'OIG / LEIE', field: 'Exclusions', state: 'Checked', tone: 'ok' as const },
-  { source: 'State board', field: 'Licensure', state: 'Access required', tone: 'pending' as const },
-] as const;
-
 const TRUST_FOOTER_LINKS = [
   { label: 'Status', href: '/status' },
   { label: 'Source attribution', href: '/trust/attribution' },
+  { label: 'Evidence network', href: '/evidence-network' },
   { label: 'Trust', href: '/trust' },
 ] as const;
 
@@ -238,29 +217,18 @@ export default function HomePageClient() {
               Network itself — the graph that was accidentally dropped from the
               homepage in the motion-convergence rewrite (#679), restored here as
               the first thing a visitor sees moving. After an NPI is entered it
-              becomes that provider's live result. The static wallet mockup it
-              replaced said nothing the copy didn't already say. */}
-          {/* Light graph (Chris, 2026-07-17: "light like the background").
-              transparentBg lets the paper surface show through the canvas and
-              dissolves the edges into the card; the light theme's violet
-              (issuer) + green (verifier) nodes carry the primary palette
-              against paper. */}
-          <div className={submittedNpi ? 'flex justify-center' : 'hidden lg:block'}>
+              becomes that provider's live result. */}
+          {/* VHS-1 Career Evidence Field (Chris, 2026-07-18): the hero's
+              force-directed graph is replaced by an abstract generative field —
+              source signals converging into a wallet capsule, arcs out to
+              opportunity + one bounded acceptance ring. The explorable graph
+              moves to /evidence-network (linked from the trust footer). On
+              mobile the field follows the form; on desktop it fills the panel. */}
+          <div className={submittedNpi ? 'flex justify-center' : 'block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
-              <div
-                data-home-hero-graph=""
-                className="relative h-[clamp(30rem,58vh,40rem)] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]"
-              >
-                <CareerGraph initialTheme="light" initialPanelOpen={false} transparentBg narratedIntro />
-                <Link
-                  href="/evidence-network"
-                  className="absolute bottom-3 left-3 z-[6] inline-flex items-center gap-1.5 rounded-full border border-[var(--vt-border)] bg-[var(--vt-surface)]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--vt-text-secondary)] backdrop-blur-sm hover:bg-[var(--vt-surface)]"
-                >
-                  Explore the network <ArrowRight size={12} aria-hidden="true" />
-                </Link>
-              </div>
+              <CareerEvidenceField />
             )}
           </div>
           </div>

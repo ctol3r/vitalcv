@@ -309,46 +309,43 @@ test.describe('Homepage motion convergence', () => {
     );
   });
 
-  // ── Narrated graph build (hero) ─────────────────────────────────────────
-  // The Career Evidence Network populates in doctrine order while captions
-  // explain each layer, then settles into the normal live graph. The canvas
-  // itself is unverifiable from the DOM; the caption rail IS the observable
-  // contract, so that is what the test pins.
+  // ── Career Evidence Field (hero, VHS-1) ─────────────────────────────────
+  // The force-directed graph was replaced by an abstract generative field. The
+  // canvas itself is unverifiable from the DOM, so the tests pin the resilience
+  // contract: a static SSR poster is always present (no blank/black hero), the
+  // honest legend carries the meaning, and no graph appears in the hero.
 
-  test('hero graph narrates its build, then the captions clear', async ({ page }) => {
-    test.setTimeout(45_000);
+  test('the hero renders the evidence field with an SSR poster and legend, no graph', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const graph = page.locator('[data-home-hero-graph]');
-    await expect(graph).toBeVisible();
-    const caption = page.locator('[data-graph-caption]');
-    await expect(caption).toBeVisible();
-    await expect(caption).toContainText('Clinicians anchor the network');
-    // The story advances: sources layer…
-    await expect(caption).toContainText('primary sources', { timeout: 8000 });
-    // …through employers…
-    await expect(caption).toContainText('head start', { timeout: 8000 });
-    // …and once the build completes, the narration gets out of the way.
-    await expect(caption).toHaveCount(0, { timeout: 16_000 });
+    const field = page.locator('[data-home-evidence-field]');
+    await expect(field).toBeVisible();
+    // Static poster is server-rendered → present even before/without canvas.
+    await expect(field.locator('[data-field-poster]')).toBeAttached();
+    // The honest, non-claiming legend expresses the meaning semantically.
+    const legend = field.locator('[data-field-legend]');
+    await expect(legend).toContainText('Source-backed');
+    await expect(legend).toContainText('Employer decision');
+    // No force-directed graph remains in the hero.
+    await expect(page.locator('[data-home-hero-graph]')).toHaveCount(0);
+    await expect(page.locator('[data-graph-caption]')).toHaveCount(0);
+    // The deep graph is still reachable from the trust footer.
+    await expect(page.locator('[data-home-trust-footer]').getByRole('link', { name: /evidence network/i })).toHaveAttribute('href', '/evidence-network');
   });
 
-  test('pointer interaction fast-forwards the graph narration', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const graph = page.locator('[data-home-hero-graph]');
-    await expect(page.locator('[data-graph-caption]')).toBeVisible();
-    await graph.click({ position: { x: 30, y: 30 } });
-    await expect(page.locator('[data-graph-caption]')).toHaveCount(0, { timeout: 2000 });
-  });
-
-  test('reduced motion skips the graph narration entirely', async ({ page }) => {
+  test('reduced motion keeps the field poster with no animation loop', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-    await expect(page.locator('[data-home-hero-graph]')).toBeVisible();
-    await page.waitForTimeout(1200);
-    await expect(page.locator('[data-graph-caption]')).toHaveCount(0);
+    const field = page.locator('[data-home-evidence-field]');
+    await expect(field).toBeVisible();
+    // The poster is the fallback and stays visible; the canvas never fades in
+    // under reduced motion, so it holds opacity 0.
+    await expect(field.locator('[data-field-poster]')).toBeVisible();
+    await page.waitForTimeout(600);
+    const canvasOpacity = await field.locator('canvas').evaluate((n) => getComputedStyle(n).opacity);
+    expect(Number(canvasOpacity)).toBe(0);
   });
 
   // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto + outline ──
