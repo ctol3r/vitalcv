@@ -34,7 +34,7 @@ test.describe('Homepage motion convergence', () => {
     await page.waitForTimeout(110);
   }
 
-  test('hero stays compact and the narrative TYPES to completion without scrolling', async ({ page }) => {
+  test('hero stays compact while every narrative phrase completes on screen', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -44,29 +44,63 @@ test.describe('Homepage motion convergence', () => {
     expect(heroHeight, 'hero must fit within the opening viewport').toBeLessThanOrEqual(1000);
     await expect(page.locator('[data-home-primary-cta]')).toBeInViewport();
 
-    // Palantir register: the sentence types in TIME (after the H1's head
-    // start), accumulating monotonically — no scroll input involved.
     const subhead = page.locator('[data-home-hero-subhead]');
-    const revealOf = (state: string | null) => Number(String(state).split(':')[1] ?? -1);
-    let lastReveal = -1;
-    await expect
-      .poll(
-        async () => {
-          const reveal = revealOf(await subhead.getAttribute('data-narrative-state'));
-          expect(reveal, 'typed reveal must never regress').toBeGreaterThanOrEqual(lastReveal);
-          lastReveal = Math.max(lastReveal, reveal);
-          return reveal;
-        },
-        { intervals: [150], timeout: 4000 },
-      )
-      .toBeGreaterThan(0);
-    await expect(subhead).toHaveAttribute('data-narrative-complete', '', { timeout: 8000 });
-    // Once typed, the sentence stays typed — and the first letter is inked.
-    const firstCharOpacity = await subhead
-      .locator('[data-narrative-words] span[data-ch]')
-      .first()
-      .evaluate((node) => Number(getComputedStyle(node).opacity));
-    expect(firstCharOpacity).toBeGreaterThan(0.9);
+    const seen = new Set<string>();
+    const height = page.viewportSize()!.height;
+    let completedAt = -1;
+
+    for (let y = 0; y <= 360 && completedAt < 0; y += 30) {
+      await scrollTo(page, y);
+      const state = String(await subhead.getAttribute('data-narrative-state'));
+      const box = await subhead.boundingBox();
+      expect(box, `narrative missing at scrollY=${y}`).not.toBeNull();
+      expect(box!.y, `phrase ${state} filled above the viewport at scrollY=${y}`).toBeGreaterThan(0);
+      expect(box!.y + box!.height, `phrase ${state} filled below the viewport at scrollY=${y}`).toBeLessThan(height);
+      seen.add(state.split(':')[0]);
+
+      // The fill ACCUMULATES. Once the scrub has moved past the first clause,
+      // the sentence's first word must still be fully inked — phrase-replace
+      // (words vanishing) is a regression.
+      if (Number(state.split(':')[0]) >= 1) {
+        const firstWordOpacity = await subhead
+          .locator('[data-narrative-words] span[data-ch]')
+          .first()
+          .evaluate((node) => Number(getComputedStyle(node).opacity));
+        expect(firstWordOpacity, `first letter un-inked at scrollY=${y} (state ${state})`).toBeGreaterThan(0.9);
+      }
+
+      if ((await subhead.getAttribute('data-narrative-complete')) !== null) completedAt = y;
+    }
+
+    // The fill finishes quickly while the hero remains visible; no extra
+    // viewport is reserved merely to complete decorative motion.
+    expect(completedAt, 'sequence never completed inside the compact hero').toBeGreaterThan(0);
+    expect(completedAt).toBeLessThanOrEqual(360);
+    // All five phrases were reached — none skipped past the fold.
+    expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
+  });
+
+  test('narrative reveal is scroll-linked and reverses deterministically', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const subhead = page.locator('[data-home-hero-subhead]');
+    const stateAt = async (y: number) => {
+      await scrollTo(page, y);
+      return subhead.getAttribute('data-narrative-state');
+    };
+
+    const forward: string[] = [];
+    for (const y of [0, 100, 200, 300]) forward.push(String(await stateAt(y)));
+
+    // Advancing scroll advances the sequence (never regresses).
+    const phraseIdx = forward.map((s) => Number(s.split(':')[0]));
+    expect(phraseIdx).toEqual([...phraseIdx].sort((a, b) => a - b));
+    expect(phraseIdx.at(-1)).toBeGreaterThan(phraseIdx[0]);
+
+    // Reverse scroll reproduces each state exactly (pure function of scroll).
+    for (const y of [200, 100, 0]) {
+      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 100, 200, 300].indexOf(y)]);
+    }
   });
 
   test('captures the start, middle, and end of the reversible rolodex sequence', async ({ page }, testInfo) => {

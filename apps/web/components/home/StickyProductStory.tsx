@@ -50,7 +50,7 @@ const STEPS: readonly StoryStep[] = [
     label: 'Recognize',
     eyebrow: '01 · Identity',
     title: 'Start with one NPI.',
-    body: 'VitalCV resolves the public identity and runs the first source checks without asking the clinician to rebuild a profile.',
+    body: 'One NPI resolves your identity and starts the source checks. Nothing to rebuild.',
     action: 'Open readiness snapshot',
     icon: Fingerprint,
     rows: [
@@ -64,7 +64,7 @@ const STEPS: readonly StoryStep[] = [
     label: 'Prepare',
     eyebrow: '02 · Readiness',
     title: 'See what is ready and what is not.',
-    body: 'Every dimension names its source state and the next useful action. Missing access stays visible instead of becoming a green checkmark.',
+    body: 'Every item names its source, its state, and the next action.',
     action: 'Resolve the next gap',
     icon: ShieldCheck,
     rows: [
@@ -79,7 +79,7 @@ const STEPS: readonly StoryStep[] = [
     label: 'Match',
     eyebrow: '03 · MATCHA',
     title: 'Match evidence to the right opportunity.',
-    body: 'MATCHA compares source-backed facts and stated preferences to role requirements, then shows the reasoning behind the match.',
+    body: 'MATCHA matches evidence to role requirements — reasoning visible.',
     action: 'See why it matched',
     icon: SearchCheck,
     rows: [
@@ -93,7 +93,7 @@ const STEPS: readonly StoryStep[] = [
     label: 'Apply',
     eyebrow: '04 · Proof packet',
     title: 'Apply without starting over.',
-    body: 'The clinician chooses what to share. The employer receives a source-attributed packet, and the share leaves a consent receipt.',
+    body: 'Share one attributed packet. Keep the consent receipt.',
     action: 'Share proof packet',
     icon: Send,
     rows: [
@@ -108,7 +108,7 @@ const STEPS: readonly StoryStep[] = [
     label: 'Accept',
     eyebrow: '05 · Recognition',
     title: 'Carry the employer decision forward.',
-    body: 'An employer can accept the packet as a head start. VitalCV Recognition records that decision without replacing final institutional review.',
+    body: 'VitalCV Recognition records the acceptance. Institution review remains.',
     action: 'View Recognition',
     icon: FileCheck2,
     rows: [
@@ -146,18 +146,24 @@ const STORY_TRANSITION_SECONDS = 1.05;
 
 function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: MotionValue<number> }) {
   const offset = useTransform(progress, (latest) => index - latest);
-  // ROLODEX (Chris, 2026-07-17): cards flip around a horizontal spindle below
-  // the stack instead of fading through each other. The upcoming card lies
-  // tipped back behind the axle, rotates up to face the reader, locks flat,
-  // then falls forward over the spindle as the next one rises. transform-origin
-  // sits below the card (CSS: 50% 116%) so the rotation reads as a wheel turn,
-  // not an in-place tilt. Opacity only masks the extremes — mid-flip cards
-  // stay solid, which is what makes it feel mechanical rather than a fade.
-  // These are derived MotionValues: scroll frames never re-render React.
-  const rotateX = useTransform(offset, [-1.4, -0.9, 0, 0.9, 1.4], [96, 74, 0, -74, -96]);
-  const y = useTransform(offset, [-1.4, 0, 1.4], [-14, 0, 18]);
-  const opacity = useTransform(offset, [-1.35, -1, -0.55, 0, 0.55, 1, 1.35], [0, 0.55, 1, 1, 1, 0.55, 0]);
-  const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
+  // ROLODEX (Chris, 2026-07-17, tightened same day: "closer to an actual
+  // rolodex"). Cards ride ONE wheel: the upcoming card is VISIBLE behind the
+  // axle, fanned back like the next leaf on the spindle (not hidden edge-on),
+  // rotates up to face the reader, locks flat, then falls FORWARD over the
+  // front of the wheel and drops away — the flick of a real rolodex. The
+  // asymmetry is the realism: backward-leaning leaves fan gently (−58° at rest
+  // behind), the outgoing leaf snaps forward fast (+95° within one step).
+  // transform-origin sits below the card (CSS: 50% 116%) = the axle; a visible
+  // rod + punched mounting slots (CSS) complete the mechanism. Opacity only
+  // masks the far extremes — mid-flip leaves stay solid so the motion reads
+  // mechanical, never a cross-fade. Derived MotionValues: scroll frames never
+  // re-render React.
+  const rotateX = useTransform(offset, [-1.05, -0.55, 0, 0.6, 1, 1.9], [95, 62, 0, -40, -58, -74]);
+  const y = useTransform(offset, [-1, 0, 1, 2], [-10, 0, 6, 10]);
+  const opacity = useTransform(offset, [-1.05, -0.85, -0.4, 0, 1.35, 1.9], [0, 0.75, 1, 1, 0.85, 0]);
+  // Outgoing leaves flip over the FRONT of the wheel (above the active card);
+  // upcoming leaves stack progressively deeper behind it.
+  const zIndex = useTransform(offset, (latest) => Math.round(50 - latest * 10));
   const Icon = step.icon;
 
   return (
@@ -343,10 +349,11 @@ export function StickyProductStory() {
             className="mz-h1"
             text="One identity, carried all the way to accepted."
             accentWords={['accepted.']}
-            variant="type"
+            startOffset="90%"
+            endOffset="45%"
           />
           <p className="story-intro-body">
-            Scroll the product path. Every step keeps its source state and review boundary attached.
+            Scroll the path. Every step keeps its source state.
           </p>
 
           <div
@@ -379,8 +386,7 @@ export function StickyProductStory() {
       </div>
 
       <p className="story-footnote">
-        Product UI is illustrative. Source-backed, checked, gated, and review-required states remain explicit;
-        institution review remains the final step.
+        Illustrative UI — states stay explicit; institution review remains the final step.
       </p>
     </section>
   );

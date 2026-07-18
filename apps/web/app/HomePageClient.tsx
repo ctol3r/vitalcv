@@ -19,10 +19,12 @@ import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
+import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
-import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
+import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
+import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
@@ -142,25 +144,18 @@ export default function HomePageClient() {
           <div className="max-w-3xl">
             <div className="space-y-4">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
-              {/* Palantir register: the H1 types out character by character,
-                  then the narrative sentence below picks up the caret.
-                  startDelayMs ≈ the H1's typing time (51 chars × 26ms) + a beat. */}
-              <ScrollScrubHeading
-                as="h1"
-                variant="type"
-                className="mz-display"
-                data-home-hero-h1=""
-                text="Find the opportunity. Prove your career once. Start faster."
-                accentWords={['once.']}
-                accentColor="var(--accent)"
-              />
+              {/* Typing effect reverted (Chris, 2026-07-17 pm): the H1 is
+                  static ink again and the sentence below scrubs with scroll. */}
+              <h1 className="mz-display">
+                Find the opportunity. Prove your career <em className="mz-accent">once.</em> Start faster.
+              </h1>
               <ScrollTypeNarrative
                 data-home-hero-subhead=""
                 className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
                 prefix="VitalCV "
                 phrases={HERO_PHRASES}
                 staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
-                startDelayMs={1650}
+                scrollContainerId="wallet"
               />
             </div>
 
@@ -280,6 +275,10 @@ export default function HomePageClient() {
           </div>
         </section>
 
+        <ProblemStatBand />
+
+        <TimeToStartComparison />
+
         <StickyProductStory />
 
         <div className="pt-8" data-home-experience="evidence-trace">
@@ -288,7 +287,9 @@ export default function HomePageClient() {
 
         <ProductCarousel />
 
-        <section id="employers" data-home-experience="metrics-and-cta" className="pt-8">
+        <ResumeToProof />
+
+        <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <MetricStrip />
           <DualAudienceCta />
         </section>
