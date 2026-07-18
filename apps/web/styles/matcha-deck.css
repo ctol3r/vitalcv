@@ -1262,3 +1262,41 @@
     box-shadow: 0 8px 24px rgba(28, 28, 26, 0.16);
   }
 }
+
+/* ---------- preference nudge (J6c) ---------- */
+.mdk-pref-nudge {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--holder-mobile-bottom-nav-height, 0px) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 55;
+  width: min(520px, calc(100vw - 24px));
+  background: var(--mdk-card);
+  border: 1px solid var(--mdk-green-rule);
+  border-radius: 16px;
+  box-shadow: var(--mdk-shadow-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mdk-pref-nudge-q {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mdk-ink);
+}
+
+.mdk-pref-nudge-effect {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--mdk-ink-soft);
+  line-height: 1.45;
+}
+
+.mdk-pref-nudge-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
