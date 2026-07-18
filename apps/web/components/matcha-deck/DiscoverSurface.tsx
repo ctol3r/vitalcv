@@ -14,13 +14,20 @@
  */
 
 import Link from 'next/link'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { MatchaDeck } from './MatchaDeck'
 import { DiscoveryModeBar } from './DiscoveryModeBar'
+import { PassReasonBar } from './PassReasonBar'
 import { createDeckSource } from './sourceBoundary'
 import { useDeckSignals } from './useDeckSignals'
 import { applyDiscoveryMode, type DiscoveryMode } from '@/lib/matcha-deck/discoveryModes'
+import { emitPassReason } from '@/lib/matcha-deck/emitPassReason'
+import {
+  loadPassReasonSuppressed,
+  persistPassReasonSuppressed,
+  shouldPromptForReason,
+} from '@/lib/matcha-deck/passReasons'
 import type { DeckSignal, DeckSourcePayload } from './types'
 
 declare global {
@@ -57,17 +64,68 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
     npi,
   })
 
+  // Progressive pass-reason prompting. Refs (not deps) so handleSignal stays a
+  // stable callback the deck can hold, and a stale closure can't misfire.
+  const passCountRef = useRef(0)
+  const suppressedRef = useRef(false)
+  const [pendingPass, setPendingPass] = useState<{
+    opportunityId: string
+    opportunityVersion: string
+    title: string
+  } | null>(null)
+
+  useEffect(() => {
+    suppressedRef.current = loadPassReasonSuppressed()
+  }, [])
+
   const handleSignal = useCallback(
     (signal: DeckSignal) => {
       emit(signal)
       // Mirrored to window.__mdkSignals so browser verification can assert
       // exactly-once emission independently of any network side effects.
-      if (typeof window === 'undefined') return
-      window.__mdkSignals = window.__mdkSignals ?? []
-      window.__mdkSignals.push(signal)
+      if (typeof window !== 'undefined') {
+        window.__mdkSignals = window.__mdkSignals ?? []
+        window.__mdkSignals.push(signal)
+      }
+      // After selected passes, offer an optional reason — never on every swipe.
+      if (signal.action === 'passed') {
+        passCountRef.current += 1
+        if (shouldPromptForReason(passCountRef.current, suppressedRef.current)) {
+          const rec = payload.recommendations.find(
+            (r) => r.opportunity.opportunityId === signal.opportunityId,
+          )
+          setPendingPass({
+            opportunityId: signal.opportunityId,
+            opportunityVersion: signal.opportunityVersion,
+            title: rec?.opportunity.title ?? 'this role',
+          })
+        }
+      }
     },
-    [emit],
+    [emit, payload.recommendations],
   )
+
+  const handlePickReason = useCallback(
+    (reasonId: string) => {
+      // A preview deck's ids are not real, so its reasons are practice only.
+      if (pendingPass && !source.isFixture) {
+        void emitPassReason({
+          opportunityId: pendingPass.opportunityId,
+          opportunityVersion: pendingPass.opportunityVersion,
+          reason: reasonId,
+          npi,
+        })
+      }
+      setPendingPass(null)
+    },
+    [pendingPass, source.isFixture, npi],
+  )
+
+  const handleDontAskAgain = useCallback(() => {
+    suppressedRef.current = true
+    persistPassReasonSuppressed(true)
+    setPendingPass(null)
+  }, [])
 
   return (
     <div className="mdk-root" data-matcha-deck-source-mode={payload.mode}>
@@ -120,6 +178,15 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
 
         <MatchaDeck source={source} onSignal={handleSignal} />
       </div>
+
+      {pendingPass ? (
+        <PassReasonBar
+          roleTitle={pendingPass.title}
+          onPick={handlePickReason}
+          onSkip={() => setPendingPass(null)}
+          onDontAskAgain={handleDontAskAgain}
+        />
+      ) : null}
     </div>
   )
 }
