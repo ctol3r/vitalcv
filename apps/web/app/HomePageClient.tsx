@@ -232,9 +232,6 @@ export default function HomePageClient() {
               </Link>
               <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
             </div>
-
-            {/* The deck's four-stage career loop as a connected pill strip. */}
-            <HeroLoopPills />
           </div>
 
           {/* The hero's living panel. Before a lookup it is the Career Evidence
@@ -268,6 +265,13 @@ export default function HomePageClient() {
           </div>
           </div>
         </section>
+
+        {/* The deck's four-stage career loop as a connected pill strip. Placed
+            just below the hero (not inside it) so it never pushes the NPI action
+            below the opening laptop viewport — the compact-hero contract. */}
+        <div className="pt-5">
+          <HeroLoopPills />
+        </div>
 
         <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-3.5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
