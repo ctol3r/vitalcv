@@ -350,4 +350,90 @@ test.describe('Homepage motion convergence', () => {
     await page.waitForTimeout(1200);
     await expect(page.locator('[data-graph-caption]')).toHaveCount(0);
   });
+
+  // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto + outline ──
+
+  test('the manifesto lines come into focus by distance from viewport centre', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const band = page.locator('[data-home-manifesto]');
+    const lines = page.locator('[data-manifesto-line]');
+    await expect(lines).toHaveCount(4);
+    // Every line's full text is present regardless of the visual focus.
+    await expect(band).toContainText('A résumé says you are qualified.');
+    await expect(band).toContainText('VitalCV is the system beneath it:');
+
+    // Park the band so its top sits high in the viewport: the first line is far
+    // from centre (dim) while a lower line sits near centre (sharp).
+    const top = await band.evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
+    await scrollTo(page, Math.max(0, top - 60));
+    await page.waitForTimeout(160);
+    const opacities = await lines.evaluateAll((els) =>
+      els.map((e) => Number(getComputedStyle(e).opacity)),
+    );
+    const spread = Math.max(...opacities) - Math.min(...opacities);
+    expect(spread, `focus gradient across lines (${opacities.join(', ')})`).toBeGreaterThan(0.25);
+  });
+
+  test('reduced motion renders every manifesto line fully legible', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const opacities = await page
+      .locator('[data-manifesto-line]')
+      .evaluateAll((els) => els.map((e) => Number(getComputedStyle(e).opacity)));
+    expect(Math.min(...opacities)).toBeGreaterThan(0.99);
+  });
+
+  test('the outline panel appears past the hero and scroll-spies the sections', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const panel = page.locator('[data-home-outline-panel]');
+    // Hidden (faded out) while the hero owns the viewport.
+    await expect(panel).toHaveCSS('opacity', '0');
+
+    // Scroll to a mid-page section; the panel fades in and marks a current item.
+    const story = page.locator('[data-home-sticky-product-story]');
+    const top = await story.evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
+    await scrollTo(page, top + 40);
+    await expect(panel).toHaveCSS('opacity', '1');
+    await expect(panel.locator('[aria-current="true"]')).toHaveCount(1);
+    // No horizontal overflow from the fixed panel.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test('the outline panel is desktop-only', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await expect(page.locator('[data-home-outline-panel]')).toHaveCSS('display', 'none');
+  });
+
+  test('the reusable-evidence cycler carries an honest static meaning', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const cycle = page.locator('[data-home-proof-cycle]');
+    // The animated words are decorative; the complete meaning is real text.
+    await expect(cycle).toHaveAccessibleName('Carry your source-backed evidence forward');
+    await expect(cycle.locator('.proofcycle-word')).toHaveCount(5);
+    // The rotation is running (an animation is applied to the words).
+    const anim = await cycle.locator('.proofcycle-word').first().evaluate(
+      (n) => getComputedStyle(n).animationName,
+    );
+    expect(anim).toBe('proofcycle-spin');
+  });
+
+  test('reduced motion parks the evidence cycler', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const anim = await page.locator('[data-home-proof-cycle] .proofcycle-word').first().evaluate(
+      (n) => getComputedStyle(n).animationName,
+    );
+    expect(anim).toBe('none');
+  });
 });

@@ -16,12 +16,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
+import { HeroLoopPills } from '@/components/home/HeroLoopPills';
+import { HomepageOutlinePanel } from '@/components/home/HomepageOutlinePanel';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
+import { RotatingProofLine } from '@/components/home/RotatingProofLine';
+import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
@@ -127,6 +131,7 @@ export default function HomePageClient() {
       )}
 
       <HomepageSectionRail />
+      <HomepageOutlinePanel />
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* The NPI action belongs in the first viewport. Hero motion is a
@@ -261,6 +266,13 @@ export default function HomePageClient() {
           </div>
         </section>
 
+        {/* The deck's four-stage career loop as a connected pill strip. Placed
+            just below the hero (not inside it) so it never pushes the NPI action
+            below the opening laptop viewport — the compact-hero contract. */}
+        <div className="pt-5">
+          <HeroLoopPills />
+        </div>
+
         <section aria-label="Primary sources VitalCV reads" data-home-source-strip="" className="border-y border-[var(--vt-border-subtle)] py-3.5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
             <p className="mz-eyebrow shrink-0">Reads primary sources</p>
@@ -277,6 +289,10 @@ export default function HomePageClient() {
 
         <ProblemStatBand />
 
+        {/* The reframe: résumé = form, VitalCV = system. Scroll-focus prose +
+            the hand-drawn form/systems diagram (Chris, 2026-07-18). */}
+        <ScrollFocusManifesto />
+
         <TimeToStartComparison />
 
         <StickyProductStory />
@@ -284,6 +300,9 @@ export default function HomePageClient() {
         <div className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </div>
+
+        {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
+        <RotatingProofLine />
 
         <ProductCarousel />
 

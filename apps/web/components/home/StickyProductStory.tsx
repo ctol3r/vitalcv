@@ -146,24 +146,19 @@ const STORY_TRANSITION_SECONDS = 1.05;
 
 function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: MotionValue<number> }) {
   const offset = useTransform(progress, (latest) => index - latest);
-  // ROLODEX (Chris, 2026-07-17, tightened same day: "closer to an actual
-  // rolodex"). Cards ride ONE wheel: the upcoming card is VISIBLE behind the
-  // axle, fanned back like the next leaf on the spindle (not hidden edge-on),
-  // rotates up to face the reader, locks flat, then falls FORWARD over the
-  // front of the wheel and drops away — the flick of a real rolodex. The
-  // asymmetry is the realism: backward-leaning leaves fan gently (−58° at rest
-  // behind), the outgoing leaf snaps forward fast (+95° within one step).
-  // transform-origin sits below the card (CSS: 50% 116%) = the axle; a visible
-  // rod + punched mounting slots (CSS) complete the mechanism. Opacity only
-  // masks the far extremes — mid-flip leaves stay solid so the motion reads
-  // mechanical, never a cross-fade. Derived MotionValues: scroll frames never
-  // re-render React.
-  const rotateX = useTransform(offset, [-1.05, -0.55, 0, 0.6, 1, 1.9], [95, 62, 0, -40, -58, -74]);
-  const y = useTransform(offset, [-1, 0, 1, 2], [-10, 0, 6, 10]);
-  const opacity = useTransform(offset, [-1.05, -0.85, -0.4, 0, 1.35, 1.9], [0, 0.75, 1, 1, 0.85, 0]);
-  // Outgoing leaves flip over the FRONT of the wheel (above the active card);
-  // upcoming leaves stack progressively deeper behind it.
-  const zIndex = useTransform(offset, (latest) => Math.round(50 - latest * 10));
+  // ROLODEX (Chris, 2026-07-17). Cards flip around a horizontal spindle below
+  // the stack: the upcoming card is tipped back behind the axle, rotates up to
+  // face the reader, locks flat, then falls forward over the spindle as the
+  // next one rises. transform-origin sits below the card (CSS: 50% 116%) so the
+  // rotation reads as a wheel turn, not an in-place tilt. Opacity only masks the
+  // extremes — mid-flip cards stay solid, mechanical rather than a fade.
+  // (The 2026-07-17-pm "physical props" pass — axle rod, punched slots,
+  // asymmetric snap — read as cheap clip-art and clipped oddly; reverted to
+  // this cleaner symmetric flip.) Derived MotionValues: scroll never re-renders.
+  const rotateX = useTransform(offset, [-1.4, -0.9, 0, 0.9, 1.4], [96, 74, 0, -74, -96]);
+  const y = useTransform(offset, [-1.4, 0, 1.4], [-14, 0, 18]);
+  const opacity = useTransform(offset, [-1.35, -1, -0.55, 0, 0.55, 1, 1.35], [0, 0.55, 1, 1, 1, 0.55, 0]);
+  const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
   const Icon = step.icon;
 
   return (
