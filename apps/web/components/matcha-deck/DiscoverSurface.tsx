@@ -19,15 +19,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MatchaDeck } from './MatchaDeck'
 import { DiscoveryModeBar } from './DiscoveryModeBar'
 import { PassReasonBar } from './PassReasonBar'
+import { PreferenceNudge } from './PreferenceNudge'
 import { createDeckSource } from './sourceBoundary'
 import { useDeckSignals } from './useDeckSignals'
 import { applyDiscoveryMode, type DiscoveryMode } from '@/lib/matcha-deck/discoveryModes'
+import { applyPreferenceNudge } from '@/lib/matcha-deck/applyPreferenceNudge'
 import { emitPassReason } from '@/lib/matcha-deck/emitPassReason'
 import {
   loadPassReasonSuppressed,
   persistPassReasonSuppressed,
   shouldPromptForReason,
 } from '@/lib/matcha-deck/passReasons'
+import {
+  detectPreferenceNudge,
+  type PreferenceNudge as PreferenceNudgeData,
+  type SessionPass,
+} from '@/lib/matcha-deck/preferenceNudges'
 import type { DeckSignal, DeckSourcePayload } from './types'
 
 declare global {
@@ -74,6 +81,13 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
     title: string
   } | null>(null)
 
+  // Progressive preference suggestion (J6c). Session-scoped pass pattern,
+  // offered once, applied only on explicit confirmation, live decks only.
+  const sessionPassesRef = useRef<SessionPass[]>([])
+  const nudgeDismissedRef = useRef<Set<string>>(new Set())
+  const [nudge, setNudge] = useState<PreferenceNudgeData | null>(null)
+  const [nudgePending, setNudgePending] = useState(false)
+
   useEffect(() => {
     suppressedRef.current = loadPassReasonSuppressed()
   }, [])
@@ -90,19 +104,29 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
       // After selected passes, offer an optional reason — never on every swipe.
       if (signal.action === 'passed') {
         passCountRef.current += 1
+        const rec = payload.recommendations.find(
+          (r) => r.opportunity.opportunityId === signal.opportunityId,
+        )
         if (shouldPromptForReason(passCountRef.current, suppressedRef.current)) {
-          const rec = payload.recommendations.find(
-            (r) => r.opportunity.opportunityId === signal.opportunityId,
-          )
           setPendingPass({
             opportunityId: signal.opportunityId,
             opportunityVersion: signal.opportunityVersion,
             title: rec?.opportunity.title ?? 'this role',
           })
         }
+        // Accumulate the session's pass pattern and, on a live deck, surface a
+        // preference suggestion once — but never stacked on the reason prompt.
+        if (!source.isFixture && rec) {
+          sessionPassesRef.current.push({ workArrangement: rec.opportunity.workArrangement })
+          const detected = detectPreferenceNudge(
+            sessionPassesRef.current,
+            nudgeDismissedRef.current,
+          )
+          if (detected) setNudge(detected)
+        }
       }
     },
-    [emit, payload.recommendations],
+    [emit, payload.recommendations, source.isFixture],
   )
 
   const handlePickReason = useCallback(
@@ -126,6 +150,20 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
     persistPassReasonSuppressed(true)
     setPendingPass(null)
   }, [])
+
+  const dismissNudge = useCallback(() => {
+    if (nudge) nudgeDismissedRef.current.add(nudge.id)
+    setNudge(null)
+  }, [nudge])
+
+  const applyNudge = useCallback(async () => {
+    if (!nudge) return
+    setNudgePending(true)
+    await applyPreferenceNudge(nudge.field, nudge.value)
+    setNudgePending(false)
+    nudgeDismissedRef.current.add(nudge.id)
+    setNudge(null)
+  }, [nudge])
 
   return (
     <div className="mdk-root" data-matcha-deck-source-mode={payload.mode}>
@@ -186,6 +224,9 @@ export function DiscoverSurface({ payload, npi }: DiscoverSurfaceProps) {
           onSkip={() => setPendingPass(null)}
           onDontAskAgain={handleDontAskAgain}
         />
+      ) : nudge ? (
+        // Only when no reason prompt is up — never stack two overlays.
+        <PreferenceNudge nudge={nudge} pending={nudgePending} onApply={applyNudge} onDismiss={dismissNudge} />
       ) : null}
     </div>
   )
