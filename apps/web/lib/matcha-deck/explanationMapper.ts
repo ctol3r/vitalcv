@@ -65,6 +65,14 @@ const NOT_CHECKED_PATTERN = /not (?:source-)?checked|requirements not checked/i
 /** Dimensions that express a clinician-stated preference rather than evidence. */
 const PREFERENCE_DIMENSIONS = new Set(['schedule', 'location', 'pay', 'intent', 'employer'])
 
+/**
+ * Evidence dimensions whose "checked" labels come from a named source check in
+ * the engine (license/credential registries; NPPES taxonomy for specialty).
+ * Membership mirrors the engine's coverage-label builders — a dimension belongs
+ * here only if its "checked" wording is backed by an actual source lookup.
+ */
+const SOURCE_CHECK_DIMENSIONS = new Set(['credentials', 'state', 'specialty'])
+
 const OVERALL_LABEL_BY_BAND: Record<string, DeckOverallLabel> = {
   CLEAR: 'strong',
   NEAR_CLEAR: 'promising',
@@ -80,7 +88,7 @@ export function overallLabelForBand(band: string): DeckOverallLabel {
 function originFor(kind: MatchReasonKind, dimension: string): string {
   switch (kind) {
     case 'source_backed':
-      return dimension === 'credentials' || dimension === 'state' ? 'Source check' : 'Evidence on file'
+      return SOURCE_CHECK_DIMENSIONS.has(dimension) ? 'Source check' : 'Evidence on file'
     case 'preference':
       return 'Your stated preferences'
     case 'inferred':
