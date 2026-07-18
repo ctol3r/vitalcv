@@ -17,12 +17,14 @@ import { Input } from '@/components/ui/input';
 import { DualAudienceCta } from '@/components/home/DualAudienceCta';
 import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { HeroLoopPills } from '@/components/home/HeroLoopPills';
+import { HomepageOutlinePanel } from '@/components/home/HomepageOutlinePanel';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
 import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
+import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
@@ -128,6 +130,7 @@ export default function HomePageClient() {
       )}
 
       <HomepageSectionRail />
+      <HomepageOutlinePanel />
 
       <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
         {/* The NPI action belongs in the first viewport. Hero motion is a
@@ -280,6 +283,10 @@ export default function HomePageClient() {
         </section>
 
         <ProblemStatBand />
+
+        {/* The reframe: résumé = form, VitalCV = system. Scroll-focus prose +
+            the hand-drawn form/systems diagram (Chris, 2026-07-18). */}
+        <ScrollFocusManifesto />
 
         <TimeToStartComparison />
 
