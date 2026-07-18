@@ -33,6 +33,13 @@ export type HolderRoute = (typeof HOLDER_ROUTES)[number];
  * it renders in place only on a resolution error. A fresh synthetic clinician
  * therefore CORRECTLY terminates on /onboarding; treating that as
  * wrong_destination made the check unsatisfiable by design.
+ *
+ * The monitor identity never binds an NPI (see syntheticClinician.ts), so its
+ * timeline always resolves `no_npi` → /onboarding — the `/activity/:npi`
+ * terminal is unreachable for it and is intentionally NOT an accepted
+ * destination here (its prefix without a dynamic segment would also read as a
+ * dead golden-namespace URL to the route-contract sweep, since the live route
+ * is the dynamic /activity/[npi]).
  */
 export const ACCEPTED_DESTINATIONS: Record<HolderRoute, readonly string[]> = {
   '/holder': ['/holder'],
@@ -40,7 +47,7 @@ export const ACCEPTED_DESTINATIONS: Record<HolderRoute, readonly string[]> = {
   '/holder/readiness': ['/holder/readiness'],
   '/holder/opportunities': ['/holder/opportunities'],
   '/holder/applications': ['/holder/applications'],
-  '/holder/timeline': ['/holder/timeline', '/onboarding', '/activity'],
+  '/holder/timeline': ['/holder/timeline', '/onboarding'],
 };
 
 /** One hop in a manually-followed redirect chain. */
