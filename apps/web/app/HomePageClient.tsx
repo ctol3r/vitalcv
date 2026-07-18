@@ -19,9 +19,12 @@ import { EvidenceTruthPanel } from '@/components/home/EvidenceTruthPanel';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
+import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
+import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
+import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
@@ -272,6 +275,10 @@ export default function HomePageClient() {
           </div>
         </section>
 
+        <ProblemStatBand />
+
+        <TimeToStartComparison />
+
         <StickyProductStory />
 
         <div className="pt-8" data-home-experience="evidence-trace">
@@ -280,7 +287,9 @@ export default function HomePageClient() {
 
         <ProductCarousel />
 
-        <section id="employers" data-home-experience="metrics-and-cta" className="pt-8">
+        <ResumeToProof />
+
+        <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
           <MetricStrip />
           <DualAudienceCta />
         </section>
