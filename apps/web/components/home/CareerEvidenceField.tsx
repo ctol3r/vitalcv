@@ -240,6 +240,9 @@ export function CareerEvidenceField() {
     let hidden = document.hidden;
     let ready = false;
     let start = performance.now();
+    // Pointer parallax: a small eased depth shift (≤ ~10px), never a cursor
+    // follow. Target set on move, eased toward 0 when the pointer leaves.
+    const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
 
     const resize = () => {
       const r = wrap.getBoundingClientRect();
@@ -259,6 +262,26 @@ export function CareerEvidenceField() {
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
+
+      // ease pointer toward its target and apply a whole-scene parallax
+      ptr.x += (ptr.tx - ptr.x) * 0.06;
+      ptr.y += (ptr.ty - ptr.y) * 0.06;
+      const parX = ptr.x * 10, parY = ptr.y * 8;
+      ctx.translate(parX, parY);
+
+      // faint clinical grid — fine engraved geometry behind the field
+      const grid = 30;
+      ctx.strokeStyle = withAlpha(palette.ink, 0.035);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let gx = ((-parX % grid) + grid) % grid - grid; gx < w + grid; gx += grid) {
+        ctx.moveTo(gx, -Math.abs(parY) - grid); ctx.lineTo(gx, h + Math.abs(parY) + grid);
+      }
+      for (let gy = ((-parY % grid) + grid) % grid - grid; gy < h + grid; gy += grid) {
+        ctx.moveTo(-Math.abs(parX) - grid, gy); ctx.lineTo(w + Math.abs(parX) + grid, gy);
+      }
+      ctx.stroke();
+
       const cap = MODEL.capsule;
       const capX = px(cap.x), capY = py(cap.y);
 
@@ -288,31 +311,65 @@ export function CareerEvidenceField() {
       // the wallet capsule — a frosted refractive plate that breathes softly
       const breathe = 1 + Math.sin(t * 0.9) * 0.02;
       const cw = 34 * breathe, ch = 26 * breathe;
-      const grad = ctx.createLinearGradient(capX - cw / 2, capY - ch / 2, capX + cw / 2, capY + ch / 2);
-      grad.addColorStop(0, withAlpha(palette.capsule, 0.96));
-      grad.addColorStop(1, withAlpha(palette.proof, 0.1));
-      roundRect(ctx, capX - cw / 2, capY - ch / 2, cw, ch, 8);
+      const cx0 = capX - cw / 2, cy0 = capY - ch / 2;
+      // outer bloom so it sits in light, not on a flat card
+      const bloom = ctx.createRadialGradient(capX, capY, ch * 0.3, capX, capY, cw * 1.5);
+      bloom.addColorStop(0, withAlpha(palette.proof, 0.12));
+      bloom.addColorStop(1, withAlpha(palette.proof, 0));
+      ctx.fillStyle = bloom;
+      ctx.beginPath(); ctx.arc(capX, capY, cw * 1.5, 0, Math.PI * 2); ctx.fill();
+      // frosted body: a diagonal refraction gradient
+      const grad = ctx.createLinearGradient(cx0, cy0, capX + cw / 2, capY + ch / 2);
+      grad.addColorStop(0, withAlpha(palette.capsule, 0.97));
+      grad.addColorStop(0.55, withAlpha(palette.capsule, 0.9));
+      grad.addColorStop(1, withAlpha(palette.proof, 0.14));
+      roundRect(ctx, cx0, cy0, cw, ch, 8);
       ctx.fillStyle = grad; ctx.fill();
-      ctx.lineWidth = 1; ctx.strokeStyle = withAlpha(palette.capsuleEdge, 0.9); ctx.stroke();
+      // caustic highlight — a soft light band sweeping the upper third
+      ctx.save();
+      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.clip();
+      const sweep = capX + Math.sin(t * 0.5) * cw * 0.28;
+      const caustic = ctx.createLinearGradient(sweep - cw * 0.4, cy0, sweep + cw * 0.4, cy0 + ch * 0.6);
+      caustic.addColorStop(0, withAlpha('#ffffff', 0));
+      caustic.addColorStop(0.5, withAlpha('#ffffff', 0.5));
+      caustic.addColorStop(1, withAlpha('#ffffff', 0));
+      ctx.fillStyle = caustic;
+      ctx.fillRect(cx0, cy0, cw, ch * 0.55);
+      ctx.restore();
+      // rim light (top) + edge
+      ctx.lineWidth = 1; ctx.strokeStyle = withAlpha(palette.capsuleEdge, 0.9);
+      roundRect(ctx, cx0, cy0, cw, ch, 8); ctx.stroke();
+      ctx.lineWidth = 1.2; ctx.strokeStyle = withAlpha('#ffffff', 0.5);
+      ctx.beginPath();
+      ctx.moveTo(cx0 + 8, cy0 + 0.6); ctx.lineTo(cx0 + cw - 8, cy0 + 0.6); ctx.stroke();
       // engraved centre line — the "record" seam
       ctx.strokeStyle = withAlpha(palette.ink, 0.12);
-      ctx.beginPath(); ctx.moveTo(capX - cw / 2 + 6, capY); ctx.lineTo(capX + cw / 2 - 6, capY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx0 + 6, capY); ctx.lineTo(cx0 + cw - 6, capY); ctx.stroke();
 
-      // atoms
+      // atoms — bloom + core + a small specular for dimensionality; larger
+      // (nearer) atoms take a touch more parallax for depth.
       MODEL.atoms.forEach((a) => {
-        const ax = px(a.x), ay = py(a.y);
+        const depth = (a.base - 0.7) * 4;
+        const ax = px(a.x) + ptr.x * depth, ay = py(a.y) + ptr.y * depth;
         const pulse = 0.5 + 0.5 * Math.sin(t * 1.3 + a.phase);
         const r = (2.2 + a.base * 2.4) * (0.9 + pulse * 0.16);
         const col = KIND_COLOR(palette, a.kind);
-        // soft halo
-        const halo = ctx.createRadialGradient(ax, ay, r * 0.3, ax, ay, r * 2.6);
-        halo.addColorStop(0, withAlpha(col, a.kind === 'attention' ? 0.16 : 0.22));
+        // soft bloom halo
+        const halo = ctx.createRadialGradient(ax, ay, r * 0.3, ax, ay, r * 2.8);
+        halo.addColorStop(0, withAlpha(col, a.kind === 'attention' ? 0.18 : 0.26));
         halo.addColorStop(1, withAlpha(col, 0));
         ctx.fillStyle = halo;
-        ctx.beginPath(); ctx.arc(ax, ay, r * 2.6, 0, Math.PI * 2); ctx.fill();
-        // core
-        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(ax, ay, r * 2.8, 0, Math.PI * 2); ctx.fill();
+        // core with a subtle vertical shade for roundness
+        const core = ctx.createLinearGradient(ax, ay - r, ax, ay + r);
+        core.addColorStop(0, withAlpha('#ffffff', 0.35));
+        core.addColorStop(0.35, col);
+        core.addColorStop(1, withAlpha(col, 0.85));
+        ctx.fillStyle = core;
         ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.fill();
+        // specular dot
+        ctx.fillStyle = withAlpha('#ffffff', 0.55);
+        ctx.beginPath(); ctx.arc(ax - r * 0.3, ay - r * 0.34, r * 0.32, 0, Math.PI * 2); ctx.fill();
       });
 
       // a SINGLE bounded acceptance ring — never a universal "cleared" signal
@@ -346,6 +403,15 @@ export function CareerEvidenceField() {
     io.observe(wrap);
     const onVis = () => { hidden = document.hidden; wake(); };
     document.addEventListener('visibilitychange', onVis);
+    const onMove = (e: PointerEvent) => {
+      const r = wrap.getBoundingClientRect();
+      ptr.tx = Math.max(-0.5, Math.min(0.5, (e.clientX - r.left) / r.width - 0.5));
+      ptr.ty = Math.max(-0.5, Math.min(0.5, (e.clientY - r.top) / r.height - 0.5));
+      wake();
+    };
+    const onLeave = () => { ptr.tx = 0; ptr.ty = 0; wake(); };
+    wrap.addEventListener('pointermove', onMove);
+    wrap.addEventListener('pointerleave', onLeave);
 
     wake();
     return () => {
@@ -353,6 +419,8 @@ export function CareerEvidenceField() {
       ro.disconnect();
       io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
+      wrap.removeEventListener('pointermove', onMove);
+      wrap.removeEventListener('pointerleave', onLeave);
     };
   }, []);
 
