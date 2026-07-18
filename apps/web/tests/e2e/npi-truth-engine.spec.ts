@@ -279,11 +279,11 @@ test.describe('NPI truth engine — homepage hero', () => {
     await expectResolved(page);
 
     await page.getByRole('button', { name: /check another npi/i }).click();
-    // The pre-lookup panel is now the Career Evidence Network graph (it replaced
-    // the static wallet mockup). It carries its own honesty label, so reset
-    // still returns to an explicitly-illustrative preview — not a fabricated one.
-    await expect(hero(page).locator('[data-home-hero-graph]')).toBeVisible();
-    await expect(hero(page).getByText(/illustrative structure/i)).toBeVisible();
+    // The pre-lookup panel is the abstract Career Evidence Field (VHS-1). It is
+    // a system metaphor, not per-clinician data — its legend names source states
+    // rather than asserting an outcome. Reset returns to it with a cleared field.
+    await expect(hero(page).locator('[data-home-evidence-field]')).toBeVisible();
+    await expect(hero(page).locator('[data-field-legend]')).toContainText('Source-backed');
     await expect(page.getByLabel('NPI number')).toHaveValue('');
   });
 });
