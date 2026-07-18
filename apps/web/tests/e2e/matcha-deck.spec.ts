@@ -84,20 +84,52 @@ async function drag(page: Page, dx: number, dy: number, steps: number, pauseMs =
 
 /**
  * A fast flick: travel `dx` below the distance threshold, but fast enough to
- * commit on velocity. A single synthetic move gives framer-motion only ONE
- * sample, so its release-velocity estimate is unreliable and runner-dependent.
- * Two moves separated by a controlled real gap give framer a clean two-sample
- * history, so velocity ≈ (dx/2) / ~10ms is deterministically well above
- * COMMIT_VELOCITY (700 px/s) whether on a fast laptop or a loaded CI runner.
+ * commit on velocity — made deterministic against runner load with a fake clock.
+ *
+ * Why the clock: framer-motion derives its release velocity from FRAME
+ * timestamps (motion-dom's batcher samples `performance.now()` once per
+ * `requestAnimationFrame`), not from pointer-event timestamps. So a real-time
+ * flick's velocity is `offset / (wall-clock frame span)`, and on a loaded shared
+ * runner that span stretches until a below-threshold flick dips under
+ * COMMIT_VELOCITY (700 px/s) — the flake this replaces. Controlling the pointer
+ * event's own timestamp cannot fix it, because framer ignores it.
+ *
+ * Instead we drive framer's frame clock with Playwright's fake timers (both
+ * `requestAnimationFrame` and `performance.now` are faked): pause it, then
+ * advance a fixed 16ms per sampled move. Two moves are deliberate — framer's
+ * getVelocity anchors on the pointer-down origin, whose frame timestamp can be
+ * stale after load; its stale-origin guard only rescues that when
+ * `history.length > 2`. With two samples the release velocity resolves to a
+ * fixed `dx / 0.032s` (≈ 3000+ px/s at any realistic card width) whether framer
+ * anchors on the origin or, via the guard, on the first move — independent of
+ * how loaded the machine is.
+ *
+ * The product threshold in dragIntent.ts is untouched: `dx` stays below the
+ * distance threshold, so only the velocity rule can commit this gesture.
+ *
+ * Requires the caller to have installed the clock (`page.clock.install()`)
+ * before navigating, so it ran naturally during load; this helper then pauses
+ * it and advances it in controlled steps.
  */
 async function flick(page: Page, dx: number) {
+  // Freeze framer's frame clock. Jump slightly forward first so any app timers
+  // still mid-flight from load fire once and settle before the clock pauses.
+  const fakeNow = await page.evaluate(() => Date.now())
+  await page.clock.pauseAt(fakeNow + 200)
+
   const center = await cardCenter(page)
   await page.mouse.move(center.x, center.y)
   await page.mouse.down()
   await page.mouse.move(center.x + dx * 0.5, center.y)
-  await page.waitForTimeout(10)
+  await page.clock.runFor(16) // frame 1: pan starts, first velocity sample
   await page.mouse.move(center.x + dx, center.y)
+  await page.clock.runFor(16) // frame 2: second sample → velocity = dx / 0.032s
   await page.mouse.up()
+
+  // Advance past the commit-flight (EXIT_DURATION ≈ 0.38s animation, ≈ 0.63s
+  // wall-clock fallback) so the deck reports the decision. Generous, to stay
+  // decoupled from the exact exit timing.
+  await page.clock.runFor(1500)
 }
 
 async function signalCount(page: Page, action: string): Promise<number> {
@@ -155,6 +187,10 @@ test.describe('MATCHA Deck — pointer physics', () => {
    * dependence in __tests__/matcha-deck-drag-intent.test.ts.
    */
   test('a fast flick commits on velocity even below the distance threshold', async ({ page }) => {
+    // Install the fake clock before navigating so it runs naturally during load;
+    // `flick` then pauses it and advances framer's frame clock in fixed steps,
+    // making the release velocity independent of runner load. See `flick`.
+    await page.clock.install()
     await openDeck(page)
     // Stay clearly below the distance threshold (min(120, width*0.28)) so only
     // velocity can commit this — but flick fast enough that it does.
