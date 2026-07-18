@@ -136,27 +136,6 @@
   perspective-origin: 50% 30%;
 }
 
-/* The visible axle: a rod under the card stack that every leaf appears to
-   hinge on. Sits above fanned-back leaves (z ≤ 40) and below the active/
-   outgoing leaf (z ≥ 50), so cards read as mounted ON it. */
-.story-cards::after {
-  content: '';
-  position: absolute;
-  z-index: 46;
-  left: 6%;
-  right: 6%;
-  bottom: 0.2rem;
-  height: 9px;
-  border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    var(--ink-200, #d9d7d0) 0%,
-    var(--ink-400, #a5a29a) 45%,
-    var(--ink-200, #d9d7d0) 100%
-  );
-  box-shadow: 0 2px 6px rgba(20, 20, 20, 0.18);
-}
-
 .story-card {
   position: absolute;
   inset: 0;
@@ -168,22 +147,6 @@
   backface-visibility: hidden;
   will-change: transform, opacity;
 }
-
-/* Punched mounting slots — the signature rolodex cutouts where the card grips
-   the axle. Two capsules low on the card, punched INTO the surface. */
-.story-card-shell::before,
-.story-card-shell::after {
-  content: '';
-  position: absolute;
-  bottom: 0.55rem;
-  width: 34px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--paper-2, #efede6);
-  box-shadow: inset 0 1.5px 3px rgba(20, 20, 20, 0.28);
-}
-.story-card-shell::before { left: 26%; }
-.story-card-shell::after { right: 26%; }
 
 .story-card-shell {
   position: relative;
@@ -377,10 +340,6 @@
   .story-progress-step[data-active='true'] { border-left-color: transparent; border-bottom-color: var(--vt-text-primary); }
   .story-cards { display: flex; gap: 1rem; min-height: auto; margin-top: 1.5rem; overflow-x: auto; padding: 0 1.5rem 1rem 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .story-cards::-webkit-scrollbar { display: none; }
-  /* Flat horizontal snap deck — no wheel, so no axle or mounting slots. */
-  .story-cards::after,
-  .story-card-shell::before,
-  .story-card-shell::after { display: none; }
   .story-card { position: relative; inset: auto; flex: 0 0 min(84vw, 39rem); align-items: stretch; opacity: 1 !important; transform: none !important; scroll-snap-align: start; }
   .story-card-shell { grid-template-columns: 1fr; min-height: 28rem; }
   .story-footnote { position: relative; bottom: auto; margin-top: 0.75rem; }
@@ -401,9 +360,6 @@
   .story-stage { position: relative; top: auto; display: block; min-height: auto; overflow: visible; }
   .story-progress-rail { display: none; }
   .story-cards { position: relative; display: grid; gap: 1rem; min-height: auto; margin-top: 2rem; overflow: visible; }
-  .story-cards::after,
-  .story-card-shell::before,
-  .story-card-shell::after { display: none; }
   .story-card { position: relative; inset: auto; opacity: 1 !important; transform: none !important; }
   .story-card-shell { min-height: auto; }
   .story-footnote { position: relative; bottom: auto; margin-top: 1rem; }
