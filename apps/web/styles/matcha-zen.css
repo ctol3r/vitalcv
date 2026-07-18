@@ -74,7 +74,11 @@
   --vt-border-subtle: var(--rule-soft);
   --vt-text-primary: var(--ink-900);
   --vt-text-secondary: var(--ink-600);
-  --vt-text-muted: var(--ink-400);
+  /* AUD-2.1: muted TEXT must meet WCAG AA (4.5:1). --ink-400 (oklch 72%) was
+     only ~2.4:1 on paper — unusable for body text, and even below large-text
+     AA. The semantic text token is pinned to an AA-legible ink here; --ink-400
+     itself is unchanged for decorative (aria-hidden) use like dot separators. */
+  --vt-text-muted: oklch(53% 0.008 265);
   --vt-status-resolved: var(--ok);
   --vt-state-verified: var(--ok);
   --vt-risk-high: var(--p0);
@@ -111,6 +115,10 @@
   --ink-50: #201e19;
   --rule: #322f29;
   --rule-soft: #262420;
+
+  /* Keep muted TEXT mode-appropriate on dark paper (the light .mz literal above
+     would otherwise leak in). --ink-500 is a legible warm grey on charcoal. */
+  --vt-text-muted: var(--ink-500);
 
   /* Truth states — same hues, lifted foregrounds on deep backgrounds. */
   --ok: #6cc79a;        --ok-bg: #10241a;      --ok-rule: #245c3d;
@@ -154,7 +162,10 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  color: var(--ink-400);
+  /* AUD-2.1: eyebrows are small (9.5px) informational labels and must meet AA.
+     --ink-400 (oklch 72%) was 2.37:1; the AA-legible muted text token is
+     ~5:1 and stays mode-aware (light/dark). */
+  color: var(--vt-text-muted);
 }
 .mz-eyebrow::after { content: ''; width: 40px; height: 1px; background: var(--rule); }
 
