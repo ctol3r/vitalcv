@@ -17,7 +17,13 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CheckCircle2, AlertTriangle, Lock, Loader2, ArrowRight, Fingerprint, RotateCcw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Lock, ArrowRight, Fingerprint, RotateCcw } from 'lucide-react';
+import {
+  CHECK_SEQUENCE,
+  SourceCheckNarration,
+  useSourceCheckSequence,
+  type TrustState,
+} from '@/components/readiness/sourceCheckNarration';
 
 interface Bootstrap {
   firstName?: string;
@@ -26,22 +32,7 @@ interface Bootstrap {
   state?: string;
   npiType?: string;
 }
-interface TrustState {
-  identityVerified?: boolean;
-  exclusionStatus?: string; // CLEAR | EXCLUDED | UNCHECKED
-  pecosStatus?: string; // ENROLLED | NOT_FOUND | UNKNOWN
-  licensureStatus?: string; // unknown | ...
-  blockers?: string[];
-  nextActions?: string[];
-}
 type Row = { label: string; detail: string };
-
-const CHECK_SEQUENCE = [
-  'Recognizing your identity',
-  'Checking federal exclusion data (OIG)',
-  'Checking Medicare enrollment (PECOS)',
-  'Preparing your readiness snapshot',
-] as const;
 
 function titleCaseName(b: Bootstrap): string {
   const raw = [b.firstName, b.lastName].filter(Boolean).join(' ').trim();
@@ -50,23 +41,12 @@ function titleCaseName(b: Bootstrap): string {
 }
 
 export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => void }) {
-  const [step, setStep] = React.useState(0);
   const [boot, setBoot] = React.useState<Bootstrap | null>(null);
   const [trust, setTrust] = React.useState<TrustState | null>(null);
-  const [phase, setPhase] = React.useState<'resolving' | 'resolved' | 'error'>('resolving');
-
-  // Progressive check sequence — advances on a timer while the fetch runs, so
-  // the reveal never beats the data and always shows the sequence.
-  React.useEffect(() => {
-    const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    const t = window.setInterval(() => setStep((s) => Math.min(s + 1, CHECK_SEQUENCE.length)), 620);
-    return () => window.clearInterval(t);
-  }, []);
+  const { step, phase, finish } = useSourceCheckSequence({ stepCount: CHECK_SEQUENCE.length });
 
   React.useEffect(() => {
     let alive = true;
-    const started = Date.now();
     (async () => {
       try {
         const [bRes, tRes] = await Promise.all([
@@ -75,27 +55,20 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
         ]);
         if (!alive) return;
         if (!bRes.ok) {
-          setPhase('error');
+          finish(false);
           return;
         }
         setBoot((await bRes.json()) as Bootstrap);
         if (tRes && tRes.ok) setTrust((await tRes.json()) as TrustState);
-        // Let the check sequence breathe (min ~1.9s) before the reveal.
-        const wait = Math.max(0, 1900 - (Date.now() - started));
-        window.setTimeout(() => {
-          if (alive) {
-            setStep(CHECK_SEQUENCE.length);
-            setPhase('resolved');
-          }
-        }, wait);
+        finish(true);
       } catch {
-        if (alive) setPhase('error');
+        if (alive) finish(false);
       }
     })();
     return () => {
       alive = false;
     };
-  }, [npi]);
+  }, [npi, finish]);
 
   const shell =
     'w-full max-w-sm rounded-[6px] border border-[var(--vt-border)] bg-[var(--vt-surface)] p-5 shadow-[0_1px_0_rgba(255,255,255,0.7),0_18px_48px_rgba(15,23,42,0.06)]';
@@ -114,31 +87,11 @@ export function LiveNpiResult({ npi, onReset }: { npi: string; onReset: () => vo
     );
   }
 
-  // ── Resolving: the progressive check sequence ──
+  // ── Resolving: the shared source-check narration ──
   if (phase === 'resolving') {
     return (
       <div className={shell} aria-live="polite">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--vt-text-muted)]">
-          Reading primary sources
-        </p>
-        <ul className="mt-4 space-y-3">
-          {CHECK_SEQUENCE.map((label, i) => {
-            const done = i < step;
-            const active = i === step;
-            return (
-              <li key={label} className="flex items-center gap-3 text-[13px]">
-                {done ? (
-                  <CheckCircle2 size={16} className="shrink-0 text-[var(--vt-accent-emerald)]" aria-hidden="true" />
-                ) : active ? (
-                  <Loader2 size={16} className="shrink-0 animate-spin text-[var(--vt-text-muted)]" aria-hidden="true" />
-                ) : (
-                  <span className="h-4 w-4 shrink-0 rounded-full border border-[var(--vt-border)]" aria-hidden="true" />
-                )}
-                <span className={done ? 'text-[var(--vt-text-primary)]' : 'text-[var(--vt-text-secondary)]'}>{label}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <SourceCheckNarration step={step} />
       </div>
     );
   }
