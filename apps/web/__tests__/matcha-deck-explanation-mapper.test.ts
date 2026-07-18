@@ -53,6 +53,45 @@ describe('explanation mapper — confirmed is only ever source-checked', () => {
     expect(result.needsReview[0].kind).toBe('inferred')
   })
 
+  it('an NPPES-checked specialty is source-backed with a source-check origin', () => {
+    // PR #724 wording contract: specialty is "checked · NPPES" only when the
+    // engine read it from the clinician's NPPES taxonomy — a genuine source
+    // check, so its origin caption must say so (not "Evidence on file").
+    const result = mapEngineExplanation(
+      engine({
+        fitReasons: [
+          { dimension: 'specialty', label: 'Internal Medicine specialty checked · NPPES', positive: true },
+        ],
+      }),
+    )
+    expect(result.confirmed).toHaveLength(1)
+    expect(result.confirmed[0]).toMatchObject({
+      kind: 'source_backed',
+      label: 'Internal Medicine specialty checked · NPPES',
+      origin: 'Source check',
+    })
+  })
+
+  it('a self-reported specialty stays inferred with an on-file origin', () => {
+    const result = mapEngineExplanation(
+      engine({
+        fitReasons: [
+          {
+            dimension: 'specialty',
+            label: 'Internal Medicine specialty on file, not source-checked',
+            positive: true,
+          },
+        ],
+      }),
+    )
+    expect(result.confirmed).toHaveLength(0)
+    expect(result.needsReview).toHaveLength(1)
+    expect(result.needsReview[0]).toMatchObject({
+      kind: 'inferred',
+      origin: 'On file — not source-checked',
+    })
+  })
+
   it('the fabrication shape can NEVER reach confirmed', () => {
     // Every positive evidence label that does not literally say "checked" must
     // stay out of the confirmed group. This is the guard against a future
@@ -152,6 +191,7 @@ describe('explanation mapper — classifyFitReason units', () => {
     expect(classifyFitReason({ dimension: 'location', label: 'preferred', positive: true })).toBe('preference')
     expect(classifyFitReason({ dimension: 'pay', label: 'below minimum', positive: false })).toBe('needs_review')
     expect(classifyFitReason({ dimension: 'state', label: 'requirements not checked', positive: false })).toBe('unknown')
+    expect(classifyFitReason({ dimension: 'specialty', label: 'Internal Medicine specialty checked · NPPES', positive: true })).toBe('source_backed')
     expect(classifyFitReason({ dimension: 'specialty', label: 'mismatch', positive: false })).toBe('needs_review')
   })
 })
