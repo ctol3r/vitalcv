@@ -26,6 +26,7 @@ import {
   readPalette,
   withAlpha,
 } from '@/components/home/evidence-field/model';
+import { cn } from '@/lib/utils';
 
 /* The seeded field model, palette bridge, and color helpers moved to
    components/home/evidence-field/model.ts (SHD-2.1) so the WebGPU tier, this
@@ -381,7 +382,19 @@ function FieldGpuCanvas({
   );
 }
 
-export function CareerEvidenceField() {
+/**
+ * SHD-2.2 hero interaction signal. The field reflects only SAFE, non-sensitive
+ * input state:
+ *   'idle'      — no interaction;
+ *   'listening' — the NPI caret is present (the system is attending);
+ *   'ready'     — the entered value passes the CMS checksum (still not a
+ *                 lookup — no clinician-specific claim is rendered).
+ * The cue is a bordered/elevation shift on the container only; it never
+ * fabricates data and needs no animation, so it is reduced-motion-safe.
+ */
+export type FieldSignal = 'idle' | 'listening' | 'ready';
+
+export function CareerEvidenceField({ signal = 'idle' }: { signal?: FieldSignal }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   // Sticky per-mount: once the GPU path declines, stay on Canvas 2D.
   const [gpuFailed, setGpuFailed] = React.useState(false);
@@ -391,7 +404,15 @@ export function CareerEvidenceField() {
     <div
       ref={wrapRef}
       data-home-evidence-field=""
-      className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--vt-border)] bg-[var(--vt-surface)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)] lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]"
+      data-field-signal={signal}
+      className={cn(
+        'relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border bg-[var(--vt-surface)] transition-[box-shadow,border-color] duration-500 lg:aspect-auto lg:h-[clamp(28rem,54vh,38rem)]',
+        signal === 'ready'
+          ? 'border-[color-mix(in_oklab,var(--vt-accent-emerald)_55%,var(--vt-border))] shadow-[0_30px_70px_-52px_color-mix(in_oklab,var(--vt-accent-emerald)_45%,transparent)]'
+          : signal === 'listening'
+            ? 'border-[color-mix(in_oklab,var(--vt-accent-emerald)_28%,var(--vt-border))] shadow-[0_30px_70px_-54px_rgba(20,20,20,0.4)]'
+            : 'border-[var(--vt-border)] shadow-[0_30px_70px_-55px_rgba(20,20,20,0.4)]',
+      )}
     >
       {/* Decorative visual layer only. The honest meaning lives in the
           accessible legend below, kept OUT of this aria-hidden subtree so

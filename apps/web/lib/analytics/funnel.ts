@@ -26,6 +26,9 @@ export const FUNNEL_EVENTS = {
   PACKET_DOWNLOADED: 'packet_downloaded',
   TIME_TO_START_CLICKED: 'time_to_start_clicked',
   DROPOFF_DETECTED: 'dropoff_detected',
+  // SHD-2.2: the quiet employer entry beside the clinician NPI action, so the
+  // two sides of the hero conversion are distinguishable in the funnel.
+  EMPLOYER_ENTRY_CLICKED: 'employer_entry_clicked',
 } as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
