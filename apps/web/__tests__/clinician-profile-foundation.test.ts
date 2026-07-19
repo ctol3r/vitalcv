@@ -262,19 +262,16 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src.toLowerCase()).not.toContain('publications verified');
   });
 
-  it('graph preview page says the graph does not verify by itself', () => {
+  it('graph page is quarantined (SHD-0.3): a redirect, not a public synthetic graph', () => {
+    // /clinician/graph carries no auth gate (roles.ts classes it as neither
+    // public nor protected, so middleware passes it through) yet it mounted the
+    // same synthetic force-directed clinician roster as the legacy public
+    // /evidence-network. SHD retires it: the route now redirects to the public
+    // Trust Center and imports no graph. A real clinician evidence graph lives
+    // only in the gated /holder workspace.
     const src = readRoute('graph/page.tsx');
-    expect(src).toContain('The graph explains provenance and gaps. It does not verify a claim by itself.');
-  });
-
-  it('graph page lists the node groups + provenance taxonomy', () => {
-    // The page is now the interactive career-evidence graph (unified with the
-    // home page). It lists the three node groups it colors by, plus the
-    // provenance states every claim carries.
-    const src = readRoute('graph/page.tsx');
-    for (const label of ['Holder', 'Verifier', 'Issuer', 'Source', 'User-entered', 'Unknown']) {
-      expect(src).toContain(label);
-    }
+    expect(src).toMatch(/redirect\('\/trust'\)/);
+    expect(src).not.toMatch(/CareerGraph/);
   });
 
   it('no clinician foundation page contains forbidden truth-contract phrases', () => {
