@@ -85,6 +85,34 @@ export function resolveProgress(
   };
 }
 
+/**
+ * Build a ChapterProgress from the horizontal rail's continuous position
+ * (SHD-3.1 → SHD-1.3 bridge). While the rail is pinned, chapter tops are all
+ * equal (the track translates instead of scrolling), so the vertical-span
+ * model cannot see the journey — the rail publishes THIS instead, and the dot
+ * rail + ambient scene follow the same single driver in both modes.
+ */
+export function railChapterProgress(
+  chapterIds: readonly string[],
+  progress01: number,
+): ChapterProgress | null {
+  if (chapterIds.length === 0) return null;
+  const span = Math.max(1, chapterIds.length - 1);
+  const global = Math.min(1, Math.max(0, progress01)) * span;
+  const index = Math.min(chapterIds.length - 1, Math.floor(global));
+  const local = Math.min(1, Math.max(0, global - index));
+  const here = getChapterScene(chapterIds[index]);
+  const next = index + 1 < chapterIds.length ? getChapterScene(chapterIds[index + 1]) : here;
+  const raw = local >= 1 - BLEND_WINDOW ? (local - (1 - BLEND_WINDOW)) / BLEND_WINDOW : 0;
+  return {
+    index,
+    id: chapterIds[index],
+    local,
+    global,
+    blend: { from: here, to: next, t: smoothstep(raw) },
+  };
+}
+
 export interface BlendedSceneParams {
   flow: number;
   wake: number;

@@ -177,6 +177,18 @@
   }
 }
 
+/* Controlled (rail) mode: the story sits inside a pinned horizontal chapter —
+   no scroll runway, no sticky stage. The step buttons/keyboard drive the
+   rolodex; the section is content-sized so the chapter fits one viewport. */
+.sticky-product-story.story-controlled {
+  min-height: 0 !important;
+  margin-top: 0;
+}
+.sticky-product-story.story-controlled .story-stage {
+  position: relative;
+  top: auto;
+}
+
 .story-observer {
   position: absolute;
   left: 0;

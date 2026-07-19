@@ -1,19 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
-
-async function captureStoryFrame(page: Page, testInfo: TestInfo, name: string, progress: number) {
-  const story = page.locator('[data-home-sticky-product-story]');
-  const metrics = await story.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    return { top: rect.top + window.scrollY, height: rect.height };
-  });
-  const scrollDistance = Math.max(1, metrics.height - page.viewportSize()!.height);
-  await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'auto' }), metrics.top + scrollDistance * progress);
-  // The story intentionally settles over ~1s; screenshots capture the stable
-  // lockup rather than an arbitrary frame in the flip.
-  await page.waitForTimeout(1250);
-  const screenshot = await page.screenshot({ animations: 'disabled' });
-  await testInfo.attach(`homepage-story-${name}`, { body: screenshot, contentType: 'image/png' });
-}
+import { expect, test, type Page } from '@playwright/test';
 
 /** The belt's current leftward travel in px (0 when untransformed). */
 async function beltOffset(page: Page): Promise<number> {
@@ -49,7 +34,10 @@ test.describe('Homepage motion convergence', () => {
     const height = page.viewportSize()!.height;
     let completedAt = -1;
 
-    for (let y = 0; y <= 360 && completedAt < 0; y += 30) {
+    // SHD-3.1 rail: the hero chapter dwells for ~one viewport of runway
+    // scroll (1000px at this size), so the fill completes across that dwell
+    // rather than the old 360px vertical-page window.
+    for (let y = 0; y <= 1000 && completedAt < 0; y += 50) {
       await scrollTo(page, y);
       const state = String(await subhead.getAttribute('data-narrative-state'));
       const box = await subhead.boundingBox();
@@ -72,10 +60,10 @@ test.describe('Homepage motion convergence', () => {
       if ((await subhead.getAttribute('data-narrative-complete')) !== null) completedAt = y;
     }
 
-    // The fill finishes quickly while the hero remains visible; no extra
-    // viewport is reserved merely to complete decorative motion.
-    expect(completedAt, 'sequence never completed inside the compact hero').toBeGreaterThan(0);
-    expect(completedAt).toBeLessThanOrEqual(360);
+    // The fill finishes within the hero chapter's dwell — while the pinned
+    // hero is still the visible chapter, before the rail hands off.
+    expect(completedAt, 'sequence never completed inside the hero chapter').toBeGreaterThan(0);
+    expect(completedAt).toBeLessThanOrEqual(1000);
     // All five phrases were reached — none skipped past the fold.
     expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
   });
@@ -89,8 +77,11 @@ test.describe('Homepage motion convergence', () => {
       return subhead.getAttribute('data-narrative-state');
     };
 
+    // Probe across the hero CHAPTER's dwell (~1000px of runway at this size —
+    // SHD-3.1: the fill follows chapter-local progress, not raw page offset).
+    const probes = [0, 300, 600, 900];
     const forward: string[] = [];
-    for (const y of [0, 100, 200, 300]) forward.push(String(await stateAt(y)));
+    for (const y of probes) forward.push(String(await stateAt(y)));
 
     // Advancing scroll advances the sequence (never regresses).
     const phraseIdx = forward.map((s) => Number(s.split(':')[0]));
@@ -98,24 +89,23 @@ test.describe('Homepage motion convergence', () => {
     expect(phraseIdx.at(-1)).toBeGreaterThan(phraseIdx[0]);
 
     // Reverse scroll reproduces each state exactly (pure function of scroll).
-    for (const y of [200, 100, 0]) {
-      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 100, 200, 300].indexOf(y)]);
+    for (const y of [600, 300, 0]) {
+      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[probes.indexOf(y)]);
     }
   });
 
-  test('captures the start, middle, and end of the reversible rolodex sequence', async ({ page }, testInfo) => {
+  test('the rolodex flips through its steps via its own controls inside the rail', async ({ page }) => {
+    // SHD-3.1 applied: page scroll advances CHAPTERS, so the rolodex is
+    // driven by its step buttons/keyboard (variant="controlled"). Same
+    // spindle-flip mechanics, new driver.
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/#matcha', { waitUntil: 'networkidle' });
 
     const story = page.locator('[data-home-sticky-product-story]');
-    await expect(story).toBeVisible();
-    await expect(story).toHaveCSS('min-height', '2000px');
+    await expect(story).toHaveAttribute('data-story-variant', 'controlled');
     await expect(story).toHaveAttribute('data-story-motion', 'motion-values');
     await expect(story).toHaveAttribute('data-story-effect', 'rolodex');
     await expect(story).toHaveAttribute('data-story-transition-ms', '1050');
-    const storyHeight = await story.evaluate((node) => node.getBoundingClientRect().height);
-    const transitionRunway = (storyHeight - page.viewportSize()!.height) / 4;
-    expect(transitionRunway, 'each card transition must begin within 35vh').toBeLessThanOrEqual(350);
 
     // The rolodex mechanics: the stack has real perspective and cards hinge on
     // a spindle BELOW their box, so the step change is a flip, not a fade.
@@ -129,29 +119,23 @@ test.describe('Homepage motion convergence', () => {
     });
     expect(originYFraction, `spindle below the card (origin ${origin})`).toBeGreaterThan(1.05);
 
-    await captureStoryFrame(page, testInfo, 'start', 0);
     await expect(story).toHaveAttribute('data-active-step', 'recognize');
 
-    // Mid-flip, a non-active card is ROTATED in X (matrix3d), not just faded.
-    await page.evaluate(() => {
-      const node = document.querySelector('[data-home-sticky-product-story]')!;
-      const rect = node.getBoundingClientRect();
-      const distance = rect.height - window.innerHeight;
-      window.scrollTo({ top: rect.top + window.scrollY + distance * 0.32, behavior: 'auto' });
-    });
-    await page.waitForTimeout(400);
+    // Advance to step 3 via the visible step controls; a non-active card is
+    // ROTATED in X (matrix3d) mid-flip — a rotary flip, not a fade.
+    await story.getByRole('button', { name: /03\s*Match/i }).click();
+    await page.waitForTimeout(300);
     const midTransform = await page
       .locator('[data-story-card="prepare"]')
       .evaluate((n) => getComputedStyle(n).transform);
     expect(midTransform, 'transitioning card must carry a 3d flip').toContain('matrix3d');
-
-    await captureStoryFrame(page, testInfo, 'middle', 0.5);
     await expect(story).toHaveAttribute('data-active-step', 'match');
-    await captureStoryFrame(page, testInfo, 'end', 1);
+
+    await story.getByRole('button', { name: /05\s*Accept/i }).click();
     await expect(story).toHaveAttribute('data-active-step', 'accept');
 
-    // Reverse scroll must deterministically reverse the active state.
-    await captureStoryFrame(page, testInfo, 'reverse-middle', 0.5);
+    // Reversing lands the exact same intermediate state (deterministic).
+    await story.getByRole('button', { name: /03\s*Match/i }).click();
     await expect(story).toHaveAttribute('data-active-step', 'match');
   });
 
@@ -350,39 +334,14 @@ test.describe('Homepage motion convergence', () => {
     await expect(field.locator('canvas')).toHaveCount(0);
   });
 
-  // ── Reader features (Chris, 2026-07-18): scroll-focus manifesto ──
-
-  test('the manifesto lines come into focus by distance from viewport centre', async ({ page }) => {
+  // The scroll-focus manifesto and problem stat band were ABSORBED into the
+  // rail chapters (SHD-4.1: one narrative, not repeats) — their former tests
+  // ended here. A guard keeps them from silently returning as duplicates:
+  test('absorbed sections do not reappear alongside the rail', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
-
-    const band = page.locator('[data-home-manifesto]');
-    const lines = page.locator('[data-manifesto-line]');
-    await expect(lines).toHaveCount(4);
-    // Every line's full text is present regardless of the visual focus.
-    await expect(band).toContainText('A résumé says you are qualified.');
-    await expect(band).toContainText('VitalCV is the system beneath it:');
-
-    // Park the band so its top sits high in the viewport: the first line is far
-    // from centre (dim) while a lower line sits near centre (sharp).
-    const top = await band.evaluate((n) => n.getBoundingClientRect().top + window.scrollY);
-    await scrollTo(page, Math.max(0, top - 60));
-    await page.waitForTimeout(160);
-    const opacities = await lines.evaluateAll((els) =>
-      els.map((e) => Number(getComputedStyle(e).opacity)),
-    );
-    const spread = Math.max(...opacities) - Math.min(...opacities);
-    expect(spread, `focus gradient across lines (${opacities.join(', ')})`).toBeGreaterThan(0.25);
-  });
-
-  test('reduced motion renders every manifesto line fully legible', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const opacities = await page
-      .locator('[data-manifesto-line]')
-      .evaluateAll((els) => els.map((e) => Number(getComputedStyle(e).opacity)));
-    expect(Math.min(...opacities)).toBeGreaterThan(0.99);
+    await expect(page.locator('[data-home-manifesto]')).toHaveCount(0);
+    await expect(page.locator('[data-home-problem-band]')).toHaveCount(0);
   });
 
   // AUD-1.1 guard: the left-floating "Page outline" was removed because at
@@ -445,6 +404,9 @@ test.describe('Homepage motion convergence', () => {
   // ── SHD-1.3: one chapter-progress driver behind the rail and the scene ──
 
   test('the dot rail follows the chapter driver forward and agrees in reverse', async ({ page }) => {
+    // SHD-3.1 applied: while the rail is pinned, the horizontal rail feeds the
+    // SAME chapter driver the dot rail consumes — active state is a pure
+    // function of runway scroll in both directions.
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -453,34 +415,32 @@ test.describe('Homepage motion convergence', () => {
         .locator('[data-home-section-rail] a[aria-current="location"]')
         .getAttribute('href');
 
-    // chapter tops in document space, as the driver measures them
-    const tops = await page.evaluate(() =>
-      Object.fromEntries(
-        ['wallet', 'readiness', 'matcha', 'employers'].map((id) => [
-          id,
-          (document.getElementById(id)?.getBoundingClientRect().top ?? 0) + window.scrollY,
-        ]),
-      ),
-    );
+    await expect(page.locator('[data-story-rail]')).toHaveAttribute('data-rail-pinned', 'true');
+    // Chapter k's rest position on the runway: top + (k/(n-1)) * travel.
+    const geo = await page.evaluate(() => {
+      const runway = document.querySelector<HTMLElement>('.story-rail-runway')!;
+      const top = runway.getBoundingClientRect().top + window.scrollY;
+      return { top, travel: Math.max(1, runway.offsetHeight - window.innerHeight) };
+    });
+    const restY = (k: number) => Math.round(geo.top + (k / 5) * geo.travel);
 
-    // Anchor sits at 35% viewport height: scroll so each chapter top passes it.
-    const anchorLead = 1000 * 0.35 - 40;
     expect(await railActive()).toBe('#wallet');
 
-    await scrollTo(page, tops.readiness - anchorLead + 80);
-    await expect
-      .poll(railActive, { message: 'rail follows into readiness' })
-      .toBe('#readiness');
+    await scrollTo(page, restY(1));
+    await expect.poll(railActive, { message: 'rail follows into readiness' }).toBe('#readiness');
 
-    await scrollTo(page, tops.matcha - anchorLead + 80);
+    await scrollTo(page, restY(2));
     await expect.poll(railActive).toBe('#matcha');
 
-    await scrollTo(page, tops.employers - anchorLead + 80);
+    await scrollTo(page, restY(4));
     await expect.poll(railActive).toBe('#employers');
+
+    await scrollTo(page, restY(5));
+    await expect.poll(railActive).toBe('#start');
 
     // Reverse scrub: the model is a pure function of scroll position, so the
     // same positions resolve identically on the way back — no stuck state.
-    await scrollTo(page, tops.matcha - anchorLead + 80);
+    await scrollTo(page, restY(2));
     await expect.poll(railActive).toBe('#matcha');
 
     await scrollTo(page, 0);

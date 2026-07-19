@@ -2,6 +2,12 @@
 
 import * as React from 'react';
 
+import {
+  useActiveChapter,
+  useChapterProgressSubscription,
+} from '@/components/home/scene/ChapterProgress';
+import type { ChapterProgress } from '@/components/home/scene/progress';
+
 /**
  * ScrollTypeNarrative — the hero narrative, driven by SCROLL PROGRESS (not a
  * timer), in the Palantir/Anyscale register Chris asked this wave to mirror:
@@ -115,8 +121,25 @@ export function ScrollTypeNarrative({
   const [reveal, setReveal] = React.useState(chars.length);
   const [reduce, setReduce] = React.useState(false);
 
+  // SHD-3.1 applied: with the chapter driver present, the fill follows the
+  // HERO CHAPTER's local progress — correct in BOTH modes. (The legacy
+  // window-scroll math below broke under the pinned rail: the container's
+  // rect.top tracks scrollY while sticky, freezing the fill half-inked — the
+  // exact "partially legible message" state AUD-2.2 bans.) Completes by ~80%
+  // of the chapter dwell so the settled hero reads whole before handoff.
+  const hasDriver = useActiveChapter() !== null;
+  const onChapterProgress = React.useCallback(
+    (p: ChapterProgress) => {
+      if (reduce) return;
+      const pEff = p.index > 0 ? 1 : Math.min(1, p.local * 1.25);
+      setReveal(narrativeStateAt(pEff, chars).reveal);
+    },
+    [reduce, chars],
+  );
+  useChapterProgressSubscription(hasDriver ? onChapterProgress : null);
+
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || hasDriver) return;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const syncMotion = () => setReduce(media.matches);
     syncMotion();
@@ -149,7 +172,7 @@ export function ScrollTypeNarrative({
       media.removeEventListener('change', syncMotion);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [scrollContainerId, chars]);
+  }, [scrollContainerId, chars, hasDriver]);
 
   const total = chars.length;
   const idx = chars[Math.max(0, Math.min(total, reveal) - 1)]?.phraseIdx ?? 0;

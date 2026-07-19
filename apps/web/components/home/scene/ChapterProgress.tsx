@@ -45,6 +45,13 @@ interface ChapterProgressContextValue {
   activeId: string;
   subscribe: (cb: ProgressListener) => () => void;
   getProgress: () => ChapterProgress | null;
+  /**
+   * SHD-3.1 bridge: while the horizontal rail is pinned, chapter tops are all
+   * equal (the track translates; the page position no longer maps to
+   * chapters), so the rail publishes the journey here and the vertical span
+   * model stands down. Publish `null` to hand control back on unpin.
+   */
+  publishExternal: (p: ChapterProgress | null) => void;
 }
 
 const ChapterProgressContext = React.createContext<ChapterProgressContextValue | null>(null);
@@ -54,6 +61,7 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
   const listenersRef = React.useRef<Set<ProgressListener>>(new Set());
   const progressRef = React.useRef<ChapterProgress | null>(null);
   const activeIdRef = React.useRef(activeId);
+  const externalRef = React.useRef(false);
 
   React.useEffect(() => {
     let spans: ChapterSpan[] = [];
@@ -71,6 +79,7 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
 
     const compute = () => {
       raf = 0;
+      if (externalRef.current) return; // the rail owns the journey while pinned
       if (spans.length === 0) return;
       const anchor = window.scrollY + window.innerHeight * ANCHOR_VIEWPORT_FRACTION;
       const p = resolveProgress(anchor, spans, document.documentElement.scrollHeight);
@@ -116,6 +125,16 @@ export function ChapterProgressProvider({ children }: { children: React.ReactNod
         return () => listenersRef.current.delete(cb);
       },
       getProgress: () => progressRef.current,
+      publishExternal: (p) => {
+        externalRef.current = p !== null;
+        if (!p) return; // internal scroll model resumes on its next frame
+        progressRef.current = p;
+        listenersRef.current.forEach((cb) => cb(p));
+        if (p.id !== activeIdRef.current) {
+          activeIdRef.current = p.id;
+          setActiveId(p.id);
+        }
+      },
     }),
     [activeId],
   );
@@ -140,4 +159,13 @@ export function useChapterProgressSubscription(cb: ProgressListener | null): voi
     if (!ctx || !cb) return;
     return ctx.subscribe(cb);
   }, [ctx, cb]);
+}
+
+/**
+ * The rail's publishing handle (no-op without a provider). Returns a stable
+ * function; publishing `null` returns control to the vertical span model.
+ */
+export function usePublishChapterProgress(): (p: ChapterProgress | null) => void {
+  const ctx = React.useContext(ChapterProgressContext);
+  return ctx?.publishExternal ?? (() => undefined);
 }

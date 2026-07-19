@@ -38,6 +38,17 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  /* Clear the fixed glass navbar so no chapter content starts underneath it
+     (the loop pills clipped without this), and keep a small bottom breath. */
+  padding-top: 6.5rem;
+  padding-bottom: 1.5rem;
+}
+
+/* The hero chapter carries its own internal top rhythm (the compact-hero
+   contract keeps the NPI action inside the opening viewport) — full navbar
+   padding would push its wallet CTA under the fold at 900px-tall laptops. */
+.story-rail-chapter:first-child {
+  padding-top: 3.5rem;
 }
 
 /* ── Vertical fallback (default / SSR / mobile / reduced motion) ──

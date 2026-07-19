@@ -20,20 +20,23 @@ import { HeroLoopPills } from '@/components/home/HeroLoopPills';
 import { HomepageSectionRail } from '@/components/home/HomepageSectionRail';
 import { LiveNpiResult } from '@/components/home/LiveNpiResult';
 import { MetricStrip } from '@/components/home/MetricStrip';
-import { ProblemStatBand } from '@/components/home/ProblemStatBand';
 import { ProductCarousel } from '@/components/home/ProductCarousel';
 import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { RotatingProofLine } from '@/components/home/RotatingProofLine';
-import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
+import { HorizontalStoryRail, type RailChapter } from '@/components/home/rail/HorizontalStoryRail';
 import { AmbientField } from '@/components/home/scene/AmbientField';
-import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
+import {
+  ChapterProgressProvider,
+  usePublishChapterProgress,
+} from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
 import { MagneticButton } from '@/components/home/scene/MagneticButton';
+import { railChapterProgress } from '@/components/home/scene/progress';
 import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
 import { SceneCursor } from '@/components/home/scene/SceneCursor';
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
@@ -42,7 +45,6 @@ import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
-
 
 const TRUST_FOOTER_LINKS = [
   { label: 'Status', href: '/status' },
@@ -59,11 +61,70 @@ const HERO_PHRASES = [
   'carries your evidence forward',
 ] as const;
 
+/**
+ * The six-chapter journey (SHD-3.1, applied): ids match the scene registry /
+ * chapter driver / dot rail. Module→chapter mapping follows the VHS-2
+ * integration bundle: Hero · Evidence · Opportunity · Application ·
+ * Acceptance · Start. ScrollFocusManifesto and ProblemStatBand are ABSORBED
+ * (SHD-4.1): their reframe/time messages are carried by ResumeToProof and
+ * TimeToStartComparison inside the rail — one narrative, not repeats.
+ */
+const RAIL_IDS = ['wallet', 'readiness', 'matcha', 'apply', 'employers', 'start'] as const;
+
 function formatNpi(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 10);
   if (digits.length <= 3) return digits;
   if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+}
+
+/** Readable content column inside a full-bleed rail chapter. */
+function ChapterShell({
+  children,
+  className,
+  ...rest
+}: {
+  children: React.ReactNode;
+  className?: string;
+  [key: string]: unknown;
+}) {
+  return (
+    <div
+      className={cn('mz-scale-lg mx-auto w-full max-w-[1320px] px-4 sm:px-6', className)}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Rail + chapter-driver bridge. While pinned, the rail publishes the journey
+ * into the SAME ChapterProgress context the dot rail and ambient scene
+ * already consume (SHD-1.3's one-driver rule holds in both modes). Stable
+ * callbacks: NPI keystrokes re-render the page, and the rail's scroll driver
+ * must not tear down per keystroke.
+ */
+function HomeStoryRail({ chapters }: { chapters: RailChapter[] }) {
+  const publish = usePublishChapterProgress();
+  const onProgress = React.useCallback(
+    (p: number) => publish(railChapterProgress(RAIL_IDS, p)),
+    [publish],
+  );
+  const onPinnedChange = React.useCallback(
+    (pinned: boolean) => {
+      if (!pinned) publish(null);
+    },
+    [publish],
+  );
+  return (
+    <HorizontalStoryRail
+      chapters={chapters}
+      skipTargetId="start"
+      onProgress={onProgress}
+      onPinnedChange={onPinnedChange}
+    />
+  );
 }
 
 export default function HomePageClient() {
@@ -96,59 +157,14 @@ export default function HomePageClient() {
     setSubmittedNpi(npiCheck.npi);
   }, [isValid, npiCheck.npi, npiCheck.reason]);
 
-  return (
-    <SceneProvider>
-    {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
-        consume this driver; neither owns a private scroll listener. */}
-    <ChapterProgressProvider>
-    <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
-      <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
-
-      {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere
-          (manifest rows 1–3, 23). Fixed to the viewport like the source's
-          full-page shader, painted UNDER all positioned content. Decorative
-          only — the poster gradient stands alone on the static tier, and the
-          grain is a baked SVG texture, not a render loop. */}
-      <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
-        <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
-          {() => <AmbientField />}
-        </SceneBoundary>
-        <GrainOverlay opacity={getChapterScene('wallet').grain} />
-      </div>
-      <SceneCursor />
-
-      {CLERK_PROVIDER_ENABLED && (
-        <SignedIn>
-          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_10%,transparent)] px-4 py-2.5 text-center">
-            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-accent-emerald)]">
-              <Zap className="h-3.5 w-3.5" aria-hidden="true" />
-              You are signed in securely.
-              <Link href="/holder/home" className="ml-1 font-semibold underline underline-offset-4">Go to your wallet</Link>
-            </p>
-          </div>
-        </SignedIn>
-      )}
-
-      {/* The right-edge dot rail is the sole page-level in-page navigator
-          (AUD-1.2). The former left-floating "Page outline" was removed: at
-          desktop width it overlaid the first lines of major headings. The
-          header covers site destinations; StickyProductStory's 01–05 controls
-          are local story-step controls only. */}
-      <HomepageSectionRail />
-
-      <main className="mz-scale-lg relative mx-auto w-full max-w-[1320px] px-4 pb-14 pt-4 sm:px-6 sm:pt-6">
-        {/* The NPI action belongs in the first viewport. Hero motion is a
-            progressive enhancement, never a reason to reserve blank runway. */}
-        <section
-          id="wallet"
-          aria-label="NPI lookup"
-          data-home-hero=""
-          className="hero-compact mz mz-paper mz-persona-holder relative"
+  /* ── Chapter 01 · Hero — identity, NPI action, evidence field ─────────── */
+  const heroChapter = (
+    <ChapterShell>
+      <div data-home-hero="" className="hero-compact mz mz-paper mz-persona-holder relative">
+        <div
+          data-home-hero-stage=""
+          className="hero-stage relative isolate grid min-h-[min(46rem,calc(100svh-11rem))] items-center gap-8 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-6"
         >
-          <div
-            data-home-hero-stage=""
-            className="hero-stage relative isolate grid min-h-[min(46rem,calc(100svh-11rem))] items-center gap-8 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,29rem)] lg:py-6"
-          >
           <div className="max-w-3xl">
             <div className="space-y-4">
               <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
@@ -258,80 +274,139 @@ export default function HomePageClient() {
             </p>
           </div>
 
-          {/* The hero's living panel. Before a lookup it is the Career Evidence
-              Network itself — the graph that was accidentally dropped from the
-              homepage in the motion-convergence rewrite (#679), restored here as
-              the first thing a visitor sees moving. After an NPI is entered it
-              becomes that provider's live result. */}
-          {/* VHS-1 Career Evidence Field (Chris, 2026-07-18): the hero's
-              force-directed graph is replaced by an abstract generative field —
-              source signals converging into a wallet capsule, arcs out to
-              opportunity + one bounded acceptance ring. The explorable graph
-              moves to /evidence-network (linked from the trust footer). On
-              mobile the field follows the form; on desktop it fills the panel. */}
+          {/* The hero's living panel: the Career Evidence Field before a
+              lookup; that provider's live result after (VHS-1 / SHD-2.1). */}
           <div className={submittedNpi ? 'flex justify-center' : 'block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
               // SHD-2.2: the field responds to SAFE, non-sensitive input state
-              // only — the caret being present ('listening') and a valid
-              // checksum ('ready'). No clinician-specific claim is ever
-              // rendered before a real lookup returns.
+              // only — never a clinician-specific claim before a real lookup.
               <CareerEvidenceField signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'} />
             )}
           </div>
-          </div>
-        </section>
-
-        {/* The deck's four-stage career loop as a connected pill strip. Placed
-            just below the hero (not inside it) so it never pushes the NPI action
-            below the opening laptop viewport — the compact-hero contract. */}
-        <div className="pt-5">
-          <HeroLoopPills />
         </div>
+      </div>
+    </ChapterShell>
+  );
 
-        <SourceCoverageRibbon />
-
-        {/* Visible uplift: static sections rise+fade as they enter view (the
-            template's reveal grammar via the platform Reveal primitive —
-            reduced-motion-safe, shows content if JS/IO is unavailable). The
-            scroll-COUPLED sections (manifesto, product story, ribbon) keep
-            their own motion and are deliberately not wrapped. */}
-        <Reveal><ProblemStatBand /></Reveal>
-
-        {/* The reframe: résumé = form, VitalCV = system. Scroll-focus prose +
-            the hand-drawn form/systems diagram (Chris, 2026-07-18). */}
-        <ScrollFocusManifesto />
-
-        <Reveal><TimeToStartComparison /></Reveal>
-
-        <StickyProductStory />
-
-        <Reveal className="pt-8" data-home-experience="evidence-trace">
-          <EvidenceTruthPanel />
-        </Reveal>
-
-        {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
-        <RotatingProofLine />
-
-        <Reveal><ProductCarousel /></Reveal>
-
-        <Reveal><ResumeToProof /></Reveal>
-
-        <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
+  /* ── The six-chapter rail (order = RAIL_IDS) ──────────────────────────── */
+  const chapters: RailChapter[] = [
+    { id: 'wallet', label: 'Your wallet — check readiness with one NPI', node: heroChapter },
+    {
+      id: 'readiness',
+      label: 'Evidence — what the sources say',
+      node: (
+        <ChapterShell>
+          <SourceCoverageRibbon />
+          <Reveal className="pt-6" data-home-experience="evidence-trace">
+            <EvidenceTruthPanel />
+          </Reveal>
+        </ChapterShell>
+      ),
+    },
+    {
+      id: 'matcha',
+      label: 'Opportunity — MATCHA matches evidence to roles',
+      node: (
+        <ChapterShell>
+          <div className="pb-4">
+            <HeroLoopPills />
+          </div>
+          {/* Rail mode: page scroll advances chapters, so the rolodex is
+              driven by its own step controls (SHD-3.2 "inside the rail"). */}
+          <StickyProductStory variant="controlled" />
+        </ChapterShell>
+      ),
+    },
+    {
+      id: 'apply',
+      label: 'Apply — one attributed proof packet',
+      node: (
+        <ChapterShell>
+          <Reveal><ResumeToProof /></Reveal>
+          <Reveal delay={90}><ProductCarousel /></Reveal>
+        </ChapterShell>
+      ),
+    },
+    {
+      id: 'employers',
+      label: 'Recognition — the employer decision, carried forward',
+      node: (
+        <ChapterShell data-home-experience="metrics-and-cta">
+          <RotatingProofLine />
           <Reveal><MetricStrip /></Reveal>
+        </ChapterShell>
+      ),
+    },
+    {
+      id: 'start',
+      label: 'Start faster — clinician and employer next steps',
+      node: (
+        <ChapterShell>
+          <Reveal><TimeToStartComparison /></Reveal>
           <Reveal delay={90}><DualAudienceCta /></Reveal>
-        </section>
+        </ChapterShell>
+      ),
+    },
+  ];
 
-        <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Trust</span>
-          {TRUST_FOOTER_LINKS.map((link, index) => (
-            <React.Fragment key={link.href}>
-              {index > 0 ? <span aria-hidden="true" className="text-[var(--vt-border)]">·</span> : null}
-              <Link href={link.href} className="font-medium text-[var(--vt-text-secondary)] underline-offset-4 hover:underline">{link.label}</Link>
-            </React.Fragment>
-          ))}
-        </nav>
+  return (
+    <SceneProvider>
+    {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
+        consume this driver — fed by the vertical span model normally, and by
+        the horizontal rail while it is pinned. */}
+    <ChapterProgressProvider>
+    <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+      <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
+
+      {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere.
+          Fixed to the viewport, painted UNDER all positioned content. */}
+      <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
+        <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
+          {() => <AmbientField />}
+        </SceneBoundary>
+        <GrainOverlay opacity={getChapterScene('wallet').grain} />
+      </div>
+      <SceneCursor />
+
+      {CLERK_PROVIDER_ENABLED && (
+        <SignedIn>
+          <div className="relative border-b border-[var(--vt-border-subtle)] bg-[color-mix(in_oklab,var(--vt-accent-emerald)_10%,transparent)] px-4 py-2.5 text-center">
+            <p className="flex items-center justify-center gap-2 text-[12px] font-medium text-[var(--vt-accent-emerald)]">
+              <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+              You are signed in securely.
+              <Link href="/holder/home" className="ml-1 font-semibold underline underline-offset-4">Go to your wallet</Link>
+            </p>
+          </div>
+        </SignedIn>
+      )}
+
+      {/* The right-edge dot rail is the sole page-level in-page navigator
+          (AUD-1.2); it follows the chapter driver in both rail modes. */}
+      <HomepageSectionRail />
+
+      <main className="relative pb-14 pt-4 sm:pt-6">
+        {/* SHD-3.1 APPLIED: on eligible desktop, bounded vertical scroll
+            advances these six chapters horizontally (a left-to-right career
+            journey). Everywhere else — mobile, coarse pointer, reduced
+            motion, no-JS, SSR — the SAME chapters render vertically in DOM
+            order. Full-bleed: chapters are 100vw; each carries its own
+            readable content column (ChapterShell). */}
+        <HomeStoryRail chapters={chapters} />
+
+        {/* Trust/legal stays in normal vertical flow after the rail. */}
+        <div className="mz-scale-lg mx-auto w-full max-w-[1320px] px-4 sm:px-6">
+          <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">Trust</span>
+            {TRUST_FOOTER_LINKS.map((link, index) => (
+              <React.Fragment key={link.href}>
+                {index > 0 ? <span aria-hidden="true" className="text-[var(--vt-border)]">·</span> : null}
+                <Link href={link.href} className="font-medium text-[var(--vt-text-secondary)] underline-offset-4 hover:underline">{link.label}</Link>
+              </React.Fragment>
+            ))}
+          </nav>
+        </div>
       </main>
     </div>
     </ChapterProgressProvider>

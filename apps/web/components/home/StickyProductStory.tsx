@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import {
   motion,
+  useMotionValue,
   useMotionValueEvent,
   useScroll,
   useSpring,
@@ -204,7 +205,20 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
   );
 }
 
-export function StickyProductStory() {
+export interface StickyProductStoryProps {
+  /**
+   * 'scroll' (default): the original vertical pin — page scroll scrubs the
+   * rolodex. 'controlled' (SHD-3.1 rail mode): the story lives INSIDE a
+   * pinned horizontal chapter, where page scroll advances CHAPTERS — so the
+   * rolodex is driven by its own step buttons/keyboard (and swipe on mobile),
+   * resting each card through the same spring. No observer spans, no own
+   * hash handling (the rail owns #matcha etc.), no tall scroll runway.
+   */
+  variant?: 'scroll' | 'controlled';
+}
+
+export function StickyProductStory({ variant = 'scroll' }: StickyProductStoryProps) {
+  const controlled = variant === 'controlled';
   const rootRef = React.useRef<HTMLElement>(null);
   const [active, setActive] = React.useState(0);
   const [reducedMotion, setReducedMotion] = React.useState(false);
@@ -215,7 +229,17 @@ export function StickyProductStory() {
     offset: ['start start', 'end end'],
   });
   const rawProgress = useTransform(scrollYProgress, [0, 1], [0, STEPS.length - 1]);
-  const settledProgress = useSpring(rawProgress, {
+  // One spring, two possible drivers: scroll progress (scroll mode) or the
+  // active step (controlled mode). The driver is a plain MotionValue so the
+  // hook order never changes between modes.
+  const driver = useMotionValue(0);
+  useMotionValueEvent(rawProgress, 'change', (latest) => {
+    if (!controlled) driver.set(latest);
+  });
+  React.useEffect(() => {
+    if (controlled) driver.set(active);
+  }, [controlled, active, driver]);
+  const settledProgress = useSpring(driver, {
     bounce: 0,
     duration: STORY_TRANSITION_SECONDS,
   });
@@ -239,8 +263,10 @@ export function StickyProductStory() {
 
   // The MotionValue updates every animation frame, but React state changes only
   // when the rounded step boundary changes (at most four times per traversal).
+  // Controlled mode inverts the relationship (active drives the spring), so
+  // this scroll→active mirror only runs in scroll mode.
   useMotionValueEvent(settledProgress, 'change', (latest) => {
-    if (reducedMotion || !isDesktop) return;
+    if (controlled || reducedMotion || !isDesktop) return;
     const next = Math.min(STEPS.length - 1, Math.max(0, Math.round(latest)));
     setActive((current) => (current === next ? current : next));
   });
@@ -279,6 +305,11 @@ export function StickyProductStory() {
     if (!root || typeof window === 'undefined') return;
     const desktop = window.matchMedia('(min-width: 1024px)').matches && !reducedMotion;
 
+    if (controlled) {
+      // Rail mode: the step IS the state — no page scrolling involved.
+      setActive(index);
+      return;
+    }
     if (desktop) {
       const top = root.getBoundingClientRect().top + window.scrollY;
       const distance = Math.max(1, root.offsetHeight - window.innerHeight);
@@ -293,10 +324,12 @@ export function StickyProductStory() {
       cards[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       setActive(index);
     }
-  }, [reducedMotion]);
+  }, [controlled, reducedMotion]);
 
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Rail mode: #readiness/#matcha/#apply are CHAPTER hashes owned by the
+    // rail — the story must not reinterpret them as step jumps.
+    if (controlled || typeof window === 'undefined') return;
     const syncHash = () => {
       const hashIndex: Record<string, number> = { '#readiness': 1, '#matcha': 2, '#apply': 3 };
       const next = hashIndex[window.location.hash];
@@ -304,7 +337,7 @@ export function StickyProductStory() {
     };
     window.addEventListener('hashchange', syncHash);
     return () => window.removeEventListener('hashchange', syncHash);
-  }, [selectStep]);
+  }, [controlled, selectStep]);
 
   const onRailKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     let next = active;
@@ -326,13 +359,20 @@ export function StickyProductStory() {
       data-active-step={STEPS[active].id}
       data-story-motion="motion-values"
       data-story-effect="rolodex"
+      data-story-variant={variant}
       data-story-transition-ms={Math.round(STORY_TRANSITION_SECONDS * 1000)}
-      className="sticky-product-story"
+      className={controlled ? 'sticky-product-story story-controlled' : 'sticky-product-story'}
       aria-labelledby="product-story-title"
     >
-      <span id="readiness" data-section-observe="readiness" className="story-observer story-observer-readiness" />
-      <span id="matcha" data-section-observe="matcha" className="story-observer story-observer-matcha" />
-      <span id="apply" data-section-observe="apply" className="story-observer story-observer-apply" />
+      {/* Observer spans exist only in scroll mode — in the rail, the chapter
+          sections own the #readiness/#matcha/#apply ids. */}
+      {!controlled && (
+        <>
+          <span id="readiness" data-section-observe="readiness" className="story-observer story-observer-readiness" />
+          <span id="matcha" data-section-observe="matcha" className="story-observer story-observer-matcha" />
+          <span id="apply" data-section-observe="apply" className="story-observer story-observer-apply" />
+        </>
+      )}
 
       <div className="story-stage">
         <div className="story-intro">
@@ -347,7 +387,9 @@ export function StickyProductStory() {
             endOffset="45%"
           />
           <p className="story-intro-body">
-            Scroll the path. Every step keeps its source state.
+            {controlled
+              ? 'Step through the path. Every step keeps its source state.'
+              : 'Scroll the path. Every step keeps its source state.'}
           </p>
 
           <div

@@ -10,6 +10,7 @@ const ITEMS = [
   { id: 'matcha', label: 'MATCHA' },
   { id: 'apply', label: 'Apply' },
   { id: 'employers', label: 'Employers' },
+  { id: 'start', label: 'Start' },
 ] as const;
 
 /**

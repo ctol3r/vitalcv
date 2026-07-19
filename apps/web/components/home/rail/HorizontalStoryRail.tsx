@@ -42,6 +42,10 @@ interface HorizontalStoryRailProps {
   dwellVh?: number;
   /** Called with the active chapter index as the runway scrubs. */
   onActiveChange?: (index: number) => void;
+  /** Per-frame continuous progress (0→1 across the whole rail) while pinned. */
+  onProgress?: (progress01: number) => void;
+  /** Fires when the pin engages/disengages (drive external-model handoff). */
+  onPinnedChange?: (pinned: boolean) => void;
   /** id of the element to land on when "Skip product story" is used. */
   skipTargetId?: string;
 }
@@ -51,6 +55,8 @@ export function HorizontalStoryRail({
   minWidth = 1024,
   dwellVh = 1,
   onActiveChange,
+  onProgress,
+  onPinnedChange,
   skipTargetId,
 }: HorizontalStoryRailProps) {
   const { capabilities, ready } = useScene();
@@ -71,6 +77,11 @@ export function HorizontalStoryRail({
 
   const pinned =
     ready && wideEnough && !capabilities.reducedMotion && !capabilities.coarsePointer;
+
+  // Pin-state handoff (e.g. return the chapter driver to its vertical model).
+  React.useEffect(() => {
+    onPinnedChange?.(pinned);
+  }, [pinned, onPinnedChange]);
 
   // The native-scroll driver: one rAF-throttled scroll listener maps scrollY to
   // a horizontal transform. Active only while pinned.
@@ -111,6 +122,7 @@ export function HorizontalStoryRail({
         rootRef.current.dataset.railActive = String(geo.activeIndex);
         rootRef.current.dataset.railProgress = geo.progress.toFixed(3);
       }
+      onProgress?.(geo.progress);
       if (geo.activeIndex !== activeRef.current) {
         activeRef.current = geo.activeIndex;
         onActiveChange?.(geo.activeIndex);
@@ -138,7 +150,7 @@ export function HorizontalStoryRail({
       window.removeEventListener('resize', onResize);
       ro.disconnect();
     };
-  }, [pinned, chapters.length, dwellVh, onActiveChange]);
+  }, [pinned, chapters.length, dwellVh, onActiveChange, onProgress]);
 
   const scrollToChapter = React.useCallback(
     (index: number) => {
