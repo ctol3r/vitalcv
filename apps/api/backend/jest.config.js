@@ -23,7 +23,6 @@ module.exports = {
     '__tests__/nppesApi\\.test\\.ts$',               // value mismatches (TX/CA, ORG/INDIVIDUAL) — parser regression vs stale mock
     'credentialIngestion\\.trustState\\.test\\.ts$', // divergence findMany on unmocked model + PECOS clock-drift
     'vcvCredentialMaterializer\\.test\\.ts$',        // VcvCredential.subject relation removed → subjectId scalar (model-aware fix)
-    'routes/__tests__/employerActions\\.test\\.ts$',
     'routes/__tests__/velocity\\.test\\.ts$',
     'services/identity/__tests__/divergenceEngine\\.test\\.ts$',
     'services/entity/__tests__/passportService\\.test\\.ts$',

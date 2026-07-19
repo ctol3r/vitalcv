@@ -29,7 +29,6 @@ was never revisited (it hid passing suites); this list exists to be emptied.
 | `__tests__/nppesApi.test.ts` | **possible product bug** | 2 value mismatches: expected `TX`/`ORGANIZATION`, got `CA`/`INDIVIDUAL`. Either a stale mock response **or a real NPPES-parser regression** — investigate the parser before "fixing" the test. |
 | `__tests__/credentialIngestion.trustState.test.ts` | mock + clock-drift | Divergence detection calls `.findMany` on a Prisma model the test doesn't mock; also a PECOS `UNKNOWN` from freshness clock-drift (pin the clock like `trustStateEngine.authority`). |
 | `__tests__/vcvCredentialMaterializer.test.ts` | schema-drift (model-aware) | `where: { subject: { npi } }` — `VcvCredential` no longer has a `subject` relation; it has a `subjectId` scalar (`@map("subject_id")`). Needs a query rewrite, not a rename. |
-| `src/routes/__tests__/employerActions.test.ts` | assertion (uninvestigated) | Ran with assertion failures; classify clock-drift vs logic. |
 | `src/routes/__tests__/velocity.test.ts` | assertion (uninvestigated) | Org-scope drilldown assertion; classify. |
 | `src/services/identity/__tests__/divergenceEngine.test.ts` | assertion (uninvestigated) | "detects all seven canonical divergence rules" — likely clock-drift or fixture. |
 | `src/services/entity/__tests__/passportService.test.ts` | assertion (uninvestigated) | Freshness-window / posture assertions — likely clock-drift (pin the clock). |
@@ -68,6 +67,11 @@ production, which already has every object) and kept fixed by
 backend-tests CI on every PR.
 
 ## Already fixed (NOT quarantined — left to run under the gate)
+- `src/routes/__tests__/employerActions.test.ts` — classified 2026-07-18: the
+  Wave B RBAC gate (`enforceEmployerMutationRbac`) began resolving
+  `prisma.user.findUnique` on every mutation, and the suite's prisma mock had
+  no `user` model, so every mutation test 500'd. Fixed by mocking an ACTIVE
+  VERIFIER caller; all 32 tests green (ACT-1.2 packet-binding fix PR).
 - `trustStateEngine.authority` — clock-pin fix (commit `67f47ca2`).
 - 6 `User`/`PersonProfile` seed suites — relation-removal fix (commit `4a980f81`).
 - The `credentialIngestion.trustState` / `nppesApi` / `predictions` **compile**
