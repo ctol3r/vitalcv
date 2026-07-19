@@ -95,6 +95,10 @@ export default defineConfig({
       MATCHA_DECK_PREVIEW: '1',
       // Same for the PageStack harness at /dev/page-stack.
       PAGE_STACK_PREVIEW: '1',
+      // Same for the SHD-3.1 story-rail harness at /dev/story-rail. Without
+      // this, the CI production build 404s the harness (dev builds keep it
+      // open, which is why story-rail.spec.ts passed locally but failed in CI).
+      STORY_RAIL_PREVIEW: '1',
     },
     url: baseURL,
     reuseExistingServer: !isCI,
