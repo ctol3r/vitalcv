@@ -76,3 +76,41 @@
 4. **SHD-2.x hero**: Graphene-language evidence field over `SceneProvider`; NPI form-first contract preserved; employer secondary entry.
 5. **SHD-3.x rail + Rolodex**: port the source rail driver with keyboard + skip-story + vertical fallback; rebuild `StickyProductStory` as `CareerRolodex` inside chapter flow.
 Existing test contracts that must stay green throughout: `homepage-motion.spec.ts` (22), `home-npi-role-doors`, `homepage-truth-pass`, `check-public-claims`, route-inventory count.
+
+## 6. Tasklist v2 additions — public-graph quarantine
+
+The v2 tasklist (2026-07-19) adds two safety tasks. Both are **already shipped and
+verified on `main`** — recorded here so this manifest matches the current tasklist.
+
+| Task | Requirement | State on `main` |
+|---|---|---|
+| **SHD-0.3 (P0)** — quarantine legacy public `/evidence-network` | No public visitor may see synthetic clinician nodes, physics/debug controls, or a "nodes are live clinicians" claim; not reachable from header/footer/homepage as a graph. | **Done.** `apps/web/app/evidence-network/page.tsx` is a static transparency page (no `career-graph` import, no canvas). `/clinician/graph` retired → `redirect('/trust')`. Regression suite `__tests__/evidence-network-quarantine.test.tsx` (7 tests) extracts the synthetic roster and asserts every name/surname, `Dr.` pattern, and physics/debug control is absent, no `career-graph` import, and a model-not-people disclaimer is present. |
+| **SHD-2.3** — Evidence Network as provenance, not people | Public route retains the name but describes the evidence MODEL (system concepts only), with a written explanation + static DOM equivalent and an explicit "not live clinicians" statement. | **Done.** Same page renders `CONCEPTS` (identity, named sources with honest availability, source states, consented proof packet, opportunity requirements, employer head-start Recognition) via `ProvenanceChipLegend`; `data-evidence-model-disclaimer` + canonical `data-provenance-state` vocabulary asserted by the same suite. |
+
+**Manifest row 27/28 note:** the homepage trust-footer `Evidence network` link is
+retained and now points at this safe transparency surface (permitted by SHD-2.3);
+the `homepage-motion.spec.ts` assertion on that link therefore stays valid.
+
+## 7. SHD execution status ledger (as of alignment with v2)
+
+| Task | Status | Where |
+|---|---|---|
+| SHD-0.1 baseline · SHD-0.2 manifest | ✅ shipped | #769 |
+| **SHD-0.3 public-graph quarantine (P0)** | ✅ shipped (prior lane) | #773 / #776 |
+| SHD-1.1 scene runtime | ✅ shipped | #770 |
+| SHD-1.2 visual primitives | ✅ shipped | #771 |
+| SHD-1.3 chapter-progress driver | ✅ shipped | #774 |
+| SHD-2.1 Graphene/WebGPU hero | ✅ shipped | #777 |
+| SHD-2.2 hero conversion (employer entry) | ✅ shipped | #778 |
+| **SHD-2.3 Evidence Network provenance** | ✅ shipped (prior lane) | with #773 |
+| SHD-3.1 horizontal rail | ◐ engine + `/dev/story-rail` harness shipped (#780); **not yet applied to the live homepage** — pending inner scroll-coupled components migrating to the chapter-progress model | #780 |
+| SHD-3.2 3D Rolodex | ✅ shipped (prior lane); `rolodex-leaves.test.ts` locks the ≥2-leaves exit criterion. Residual: run it *inside* the rail (coupled to SHD-3.1 application) | — |
+| SHD-3.3 scene reacts to chapter | ◐ ambient field blends accent/flow per chapter (#774); Graphene-field + overlay per-chapter reaction not yet wired | #774 |
+| SHD-4.1 Optimus product composition · 4.2 proof moment | ▢ not started (existing truthful modules present; not recomposed into the six-chapter card grammar) | — |
+| SHD-5.1 Liquid mobile menu | ✅ shipped (prior lane) | #763 |
+| SHD-6.1 / 6.2 hardening | ◐ ongoing (per-wave verification) | — |
+
+**Next genuinely-unbuilt step:** apply the SHD-3.1 rail to the live homepage
+(migrating `ScrollTypeNarrative` / `ScrollFocusManifesto` / the Rolodex to read
+the shared chapter-progress model), which also closes the SHD-3.2 and SHD-3.3
+residuals.
