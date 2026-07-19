@@ -9,6 +9,12 @@
  * Pure + deterministic (compares ISO `checkedAt` strings; no Date.now()), so it
  * is fully testable and reusable by the employer-review backend (ACT-1.2) — it
  * diffs the accept-time source-coverage snapshot against the current one.
+ *
+ * The `accepted` side is persisted at accept time by the backend accept route
+ * as `EmployerAcceptance.metadata.acceptedSourceSnapshot.checks` (schema
+ * `vitalcv.employer-acceptance.metadata.v1`, built in
+ * apps/api/backend/src/services/entity/acceptanceSourceSnapshot.ts) — each
+ * check already matches AcceptanceSourceCheck.
  */
 
 import type { CanonicalSourceCoverageState } from '@vitalcv/trust-state';

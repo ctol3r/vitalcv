@@ -9,9 +9,15 @@ jest.mock('../../graphql/prisma_client', () => ({
       findUnique: jest.fn(),
       findFirst: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+    },
     employerAcceptance: {
       findFirst: jest.fn(),
       create: jest.fn(),
+    },
+    applicationPacket: {
+      findFirst: jest.fn(),
     },
     startAttestation: {
       create: jest.fn(),
@@ -82,9 +88,15 @@ const prismaMock = prisma as unknown as {
     findUnique: jest.Mock;
     findFirst: jest.Mock;
   };
+  user: {
+    findUnique: jest.Mock;
+  };
   employerAcceptance: {
     findFirst: jest.Mock;
     create: jest.Mock;
+  };
+  applicationPacket: {
+    findFirst: jest.Mock;
   };
   startAttestation: {
     create: jest.Mock;
@@ -377,8 +389,10 @@ describe('employer action routes', () => {
   beforeEach(() => {
     prismaMock.vcvEntity.findUnique.mockReset();
     prismaMock.vcvEntity.findFirst.mockReset();
+    prismaMock.user.findUnique.mockReset();
     prismaMock.employerAcceptance.findFirst.mockReset();
     prismaMock.employerAcceptance.create.mockReset();
+    prismaMock.applicationPacket.findFirst.mockReset();
     prismaMock.startAttestation.create.mockReset();
     prismaMock.auditEvent.create.mockReset();
     prismaMock.auditEvent.findFirst.mockReset();
@@ -400,7 +414,12 @@ describe('employer action routes', () => {
       npi: '1234567890',
     });
     prismaMock.vcvEntity.findFirst.mockResolvedValue(null);
+    // The RBAC gate resolves the caller's User row; an active VERIFIER is
+    // allowed in both shadow and enforced modes, so these route tests stay
+    // focused on the per-route contracts.
+    prismaMock.user.findUnique.mockResolvedValue({ role: 'VERIFIER', status: 'ACTIVE' });
     prismaMock.employerAcceptance.findFirst.mockResolvedValue(null);
+    prismaMock.applicationPacket.findFirst.mockResolvedValue(null);
     prismaMock.employerAcceptance.create.mockResolvedValue({
       id: 'accept-1',
       acceptedAt: new Date('2026-03-23T18:00:00.000Z'),
@@ -496,6 +515,115 @@ describe('employer action routes', () => {
         acceptanceReason: 'Accepted as head start using VitalCV verification.',
       }),
     }));
+  });
+
+  it('fails closed with packet_subject_mismatch when the referenced packet belongs to another clinician', async () => {
+    // A verifier who knows a foreign applicationId + its packetHash must not be
+    // able to attach that packet reference to an acceptance for a different
+    // clinician — the subject binding is checked before hash/lifecycle state.
+    prismaMock.applicationPacket.findFirst.mockResolvedValue({
+      packetHash: 'sha256:foreign',
+      packetVersion: 1,
+      opportunityVersion: 'v1',
+      clinicianNpi: '9999999999',
+      employerOrgId: 'org-other-tenant',
+      revokedAt: null,
+      supersededByPacketId: null,
+    });
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
+      .set('x-clerk-user-id', 'employer-1')
+      .send({
+        applicationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        packetHash: 'sha256:foreign',
+      })
+      .expect(409);
+
+    expect(response.body.error).toContain('packet_subject_mismatch');
+    expect(prismaMock.employerAcceptance.create).not.toHaveBeenCalled();
+    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        type: 'EMPLOYER_REVIEW_MUTATION_DENIED',
+        metadata: expect.objectContaining({
+          denialReason: 'packet_subject_mismatch',
+        }),
+      }),
+    }));
+  });
+
+  it('accepts by application when the packet subject matches, persisting linkage and the accept-time source snapshot', async () => {
+    buildPassportMock.mockResolvedValue({
+      entityId: '11111111-1111-4111-8111-111111111111',
+      decisionPosture: { status: 'READY', blockers: [], missing: [] },
+      sourceCoverage: {
+        checks: [
+          { sourceId: 'OIG_LEIE', state: 'checked', checkedAt: '2026-03-20T00:00:00.000Z', reason: 'clear' },
+          { sourceId: 'NPPES_API', state: 'checked', checkedAt: '2026-03-21T00:00:00.000Z', reason: 'checked' },
+        ],
+      },
+    } as never);
+    prismaMock.applicationPacket.findFirst.mockResolvedValue({
+      packetHash: 'sha256:reviewed',
+      packetVersion: 3,
+      opportunityVersion: 'v2',
+      clinicianNpi: '1234567890',
+      employerOrgId: 'org-good-health',
+      revokedAt: null,
+      supersededByPacketId: null,
+    });
+
+    await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
+      .set('x-clerk-user-id', 'employer-1')
+      .send({
+        applicationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        packetHash: 'sha256:reviewed',
+      })
+      .expect(201);
+
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        applicationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        packetHash: 'sha256:reviewed',
+        metadata: {
+          schema: 'vitalcv.employer-acceptance.metadata.v1',
+          acceptedSourceSnapshot: {
+            capturedAt: expect.any(String),
+            checks: [
+              {
+                sourceId: 'NPPES_API',
+                label: 'CMS NPI Registry API',
+                state: 'checked',
+                checkedAt: '2026-03-21T00:00:00.000Z',
+              },
+              {
+                sourceId: 'OIG_LEIE',
+                label: 'HHS OIG List of Excluded Individuals/Entities (LEIE)',
+                state: 'checked',
+                checkedAt: '2026-03-20T00:00:00.000Z',
+              },
+            ],
+          },
+        },
+      }),
+    }));
+  });
+
+  it('leaves acceptance metadata NULL when the passport exposes no source coverage', async () => {
+    // Default buildPassport mock has no sourceCoverage — the row must keep a
+    // NULL metadata column, not an empty snapshot that would later diff as
+    // "everything is new".
+    await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/accept')
+      .set('x-clerk-user-id', 'employer-1')
+      .send({})
+      .expect(201);
+
+    const createArgs = prismaMock.employerAcceptance.create.mock.calls[0][0] as {
+      data: { metadata?: unknown };
+    };
+    expect(createArgs.data.metadata).toBeUndefined();
   });
 
   it('returns anonymized portable acceptance history without requiring employer auth', async () => {
