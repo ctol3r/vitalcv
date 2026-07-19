@@ -262,19 +262,13 @@ describe('clinician foundation — route copy invariants', () => {
     expect(src.toLowerCase()).not.toContain('publications verified');
   });
 
-  it('graph preview page says the graph does not verify by itself', () => {
+  it('graph page is quarantined (SHD-0.3): a redirect, not a public synthetic graph', () => {
+    // The public /clinician/graph rendered the same synthetic force-directed
+    // clinician graph as the legacy /evidence-network. SHD-0.3 removes it — the
+    // route now redirects to the Trust Center and imports no graph.
     const src = readRoute('graph/page.tsx');
-    expect(src).toContain('The graph explains provenance and gaps. It does not verify a claim by itself.');
-  });
-
-  it('graph page lists the node groups + provenance taxonomy', () => {
-    // The page is now the interactive career-evidence graph (unified with the
-    // home page). It lists the three node groups it colors by, plus the
-    // provenance states every claim carries.
-    const src = readRoute('graph/page.tsx');
-    for (const label of ['Holder', 'Verifier', 'Issuer', 'Source', 'User-entered', 'Unknown']) {
-      expect(src).toContain(label);
-    }
+    expect(src).toMatch(/redirect\('\/trust'\)/);
+    expect(src).not.toMatch(/CareerGraph/);
   });
 
   it('no clinician foundation page contains forbidden truth-contract phrases', () => {

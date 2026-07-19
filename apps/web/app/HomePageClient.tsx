@@ -37,7 +37,6 @@ import { cn } from '@/lib/utils';
 const TRUST_FOOTER_LINKS = [
   { label: 'Status', href: '/status' },
   { label: 'Source attribution', href: '/trust/attribution' },
-  { label: 'Evidence network', href: '/evidence-network' },
   { label: 'Trust', href: '/trust' },
 ] as const;
 
@@ -210,16 +209,15 @@ export default function HomePageClient() {
             </div>
           </div>
 
-          {/* The hero's living panel. Before a lookup it is the Career Evidence
-              Network itself — the graph that was accidentally dropped from the
-              homepage in the motion-convergence rewrite (#679), restored here as
-              the first thing a visitor sees moving. After an NPI is entered it
-              becomes that provider's live result. */}
-          {/* VHS-1 Career Evidence Field (Chris, 2026-07-18): the hero's
-              force-directed graph is replaced by an abstract generative field —
-              source signals converging into a wallet capsule, arcs out to
-              opportunity + one bounded acceptance ring. The explorable graph
-              moves to /evidence-network (linked from the trust footer). On
+          {/* The hero's living panel. Before a lookup it is the abstract Career
+              Evidence Field — source signals converging into a wallet capsule,
+              arcs out to opportunity + one bounded acceptance ring. After an NPI
+              is entered it becomes that provider's live result.
+
+              SHD-0.3: the legacy public force-directed graph (synthetic "Dr. …"
+              nodes + physics controls) is quarantined — /evidence-network now
+              redirects to the Trust Center. A real evidence-relationship view is
+              authenticated/tenant-scoped only, never a public marketing page. On
               mobile the field follows the form; on desktop it fills the panel. */}
           <div className={submittedNpi ? 'flex justify-center' : 'block'}>
             {submittedNpi ? (

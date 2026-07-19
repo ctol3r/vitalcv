@@ -1,23 +1,17 @@
+import { redirect } from 'next/navigation';
+
 /**
- * /evidence-network — the Provider Career Evidence Network as an explorable,
- * Obsidian-style force-directed graph (dedicated surface). Self-chromed
- * (registered in OPS_SURFACE_PREFIXES → no Navbar/Footer); the graph carries
- * its own controls and a dark/light toggle.
+ * SHD-0.3 (P0 quarantine) — the legacy public force-directed knowledge graph
+ * here rendered invented clinician-like nodes and exposed layout/physics debug
+ * controls. That is incompatible with a healthcare trust product and with
+ * VitalCV's privacy and truth requirements, so the public graph is removed.
  *
- * Groups follow the doctrine: holder (clinician) / verifier (= employer) /
- * issuer, plus neutral evidence artifacts. Edges are bidirectional (backlinks).
- * The dataset is illustrative structure, labeled as such on the canvas.
+ * The route redirects to the Trust Center (the real source-attribution and
+ * transparency surface). A real clinician evidence-relationship view, if ever
+ * built, is an authenticated, authorized, tenant-scoped product surface — never
+ * a public marketing page. The abstract public "Evidence Network" transparency
+ * page (system concepts only, no people) is SHD-2.3, built separately.
  */
-
-import type { Metadata } from 'next';
-import EvidenceNetworkMount from './EvidenceNetworkMount';
-
-export const metadata: Metadata = {
-  title: 'The Provider Career Evidence Network — VitalCV',
-  description:
-    'Explore how source-backed clinician evidence connects holders, verifiers, and issuers into one reusable career network — an interactive, force-directed graph with bidirectional links.',
-};
-
 export default function EvidenceNetworkPage() {
-  return <EvidenceNetworkMount />;
+  redirect('/trust');
 }
