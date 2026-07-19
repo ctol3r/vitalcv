@@ -20,127 +20,16 @@
 import * as React from 'react';
 
 import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
+import {
+  KIND_COLOR,
+  MODEL,
+  readPalette,
+  withAlpha,
+} from '@/components/home/evidence-field/model';
 
-/* deterministic PRNG so the field's geometry is identical every render (no CLS,
-   no Math.random at import). */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-type SignalKind = 'source' | 'proof' | 'opportunity' | 'attention';
-
-interface Atom {
-  x: number; // normalized 0..1
-  y: number;
-  kind: SignalKind;
-  base: number; // base radius weight
-  phase: number; // animation phase offset
-}
-
-interface FieldModel {
-  atoms: Atom[];
-  capsule: { x: number; y: number };
-  /** source/proof atom index → capsule (evidence converging in) */
-  inLinks: number[];
-  /** capsule → opportunity atom index (career moving out) */
-  outLinks: number[];
-  /** the single opportunity that carries a bounded acceptance ring */
-  acceptance: number;
-}
-
-/** One curated, seeded composition — a system metaphor, not a data graph. */
-function buildModel(): FieldModel {
-  const rnd = mulberry32(0x51a1c7);
-  const atoms: Atom[] = [];
-  const capsule = { x: 0.6, y: 0.5 };
-
-  // Source + proof signals fan in from the left in two soft arcs.
-  const inCount = 7;
-  for (let i = 0; i < inCount; i++) {
-    const t = i / (inCount - 1);
-    const kind: SignalKind = i % 3 === 1 ? 'proof' : 'source';
-    atoms.push({
-      x: 0.08 + rnd() * 0.16 + t * 0.06,
-      y: 0.12 + t * 0.76 + (rnd() - 0.5) * 0.08,
-      kind,
-      base: 0.7 + rnd() * 0.9,
-      phase: rnd() * Math.PI * 2,
-    });
-  }
-  // A single, rare "needs action" signal — unknown is not adverse.
-  atoms.push({ x: 0.2, y: 0.5 + (rnd() - 0.5) * 0.1, kind: 'attention', base: 0.6, phase: rnd() * 6 });
-
-  // Opportunities sit to the right of the capsule.
-  const outCount = 4;
-  const oppStart = atoms.length;
-  for (let i = 0; i < outCount; i++) {
-    const t = i / (outCount - 1);
-    atoms.push({
-      x: 0.84 + rnd() * 0.08,
-      y: 0.2 + t * 0.6 + (rnd() - 0.5) * 0.06,
-      kind: 'opportunity',
-      base: 0.8 + rnd() * 0.7,
-      phase: rnd() * Math.PI * 2,
-    });
-  }
-
-  const inLinks = atoms.map((_, i) => i).filter((i) => i < inCount + 1 && atoms[i].kind !== 'opportunity');
-  const outLinks = atoms.map((_, i) => i).filter((i) => i >= oppStart);
-  return { atoms, capsule, inLinks, outLinks, acceptance: oppStart + 1 };
-}
-
-const MODEL = buildModel();
-
-interface Palette {
-  source: string;
-  proof: string;
-  opportunity: string;
-  attention: string;
-  ink: string;
-  line: string;
-  capsule: string;
-  capsuleEdge: string;
-}
-
-function readPalette(el: HTMLElement): Palette {
-  const s = getComputedStyle(el);
-  const v = (name: string, fallback: string) => {
-    const raw = s.getPropertyValue(name).trim();
-    return raw || fallback;
-  };
-  return {
-    source: v('--vt-accent-emerald', '#1c7c54'),
-    proof: v('--accent', '#4f46e5'),
-    opportunity: v('--vt-field-opportunity', '#2f6fb0'),
-    attention: v('--vt-state-stale', '#a2670b'),
-    ink: v('--vt-text-primary', '#141414'),
-    line: v('--vt-border', '#dddbd3'),
-    capsule: v('--vt-surface', '#ffffff'),
-    capsuleEdge: v('--vt-border', '#dddbd3'),
-  };
-}
-
-function withAlpha(color: string, a: number): string {
-  const c = color.trim();
-  if (c.startsWith('#')) {
-    const h = c.slice(1);
-    const n = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
-    const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
-    return `rgba(${r},${g},${b},${a})`;
-  }
-  // oklch()/rgb()/hsl() → wrap via color-mix so alpha still applies theme colors.
-  return `color-mix(in oklab, ${c} ${Math.round(a * 100)}%, transparent)`;
-}
-
-const KIND_COLOR = (p: Palette, k: SignalKind) =>
-  k === 'source' ? p.source : k === 'proof' ? p.proof : k === 'opportunity' ? p.opportunity : p.attention;
+/* The seeded field model, palette bridge, and color helpers moved to
+   components/home/evidence-field/model.ts (SHD-2.1) so the WebGPU tier, this
+   2D tier, and the SVG poster all bind the SAME semantic composition. */
 
 function FieldPoster() {
   // Static, theme-aware SVG that matches the animated composition. Inherits the
@@ -438,8 +327,65 @@ function FieldCanvas({ wrapRef }: { wrapRef: React.RefObject<HTMLDivElement | nu
   );
 }
 
+/**
+ * The WebGPU tier (SHD-2.1). Lazily imports the renderer only when the tier
+ * grants it; a missing adapter, slow init (deadline-bounded), or device loss
+ * resolves to `onFallback()`, which swaps in the Canvas-2D tier on the SAME
+ * semantic model. No user-visible failure state exists at any point.
+ */
+function FieldGpuCanvas({
+  wrapRef,
+  onFallback,
+}: {
+  wrapRef: React.RefObject<HTMLDivElement | null>;
+  onFallback: () => void;
+}) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [gpuReady, setGpuReady] = React.useState(false);
+
+  React.useEffect(() => {
+    const wrap = wrapRef.current;
+    const canvas = canvasRef.current;
+    if (!wrap || !canvas) return;
+    let cancelled = false;
+    let handle: { destroy(): void } | null = null;
+
+    void import('@/components/home/evidence-field/webgpu').then(async (mod) => {
+      if (cancelled) return;
+      const h = await mod.initEvidenceFieldGpu(canvas, wrap, onFallback);
+      if (!h) {
+        if (!cancelled) onFallback();
+        return;
+      }
+      if (cancelled) {
+        h.destroy();
+        return;
+      }
+      handle = h;
+      setGpuReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      handle?.destroy();
+    };
+  }, [wrapRef, onFallback]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      data-field-gpu=""
+      className="absolute inset-0 transition-opacity duration-700"
+      style={{ opacity: gpuReady ? 1 : 0 }}
+    />
+  );
+}
+
 export function CareerEvidenceField() {
   const wrapRef = React.useRef<HTMLDivElement>(null);
+  // Sticky per-mount: once the GPU path declines, stay on Canvas 2D.
+  const [gpuFailed, setGpuFailed] = React.useState(false);
+  const fallBack = React.useCallback(() => setGpuFailed(true), []);
 
   return (
     <div
@@ -450,12 +396,21 @@ export function CareerEvidenceField() {
       {/* Decorative visual layer only. The honest meaning lives in the
           accessible legend below, kept OUT of this aria-hidden subtree so
           assistive tech still receives it (VHS-1 §7). The SceneBoundary owns
-          the tier decision (SHD-1.1): poster always renders; the canvas scene
+          the tier decision (SHD-1.1): poster always renders; a live scene
           mounts only when animation is allowed, and any scene crash falls
-          back to the poster silently. */}
+          back to the poster silently. SHD-2.1 adds the ladder INSIDE the
+          animated branch: webgpu tier → Graphene-language renderer; anything
+          less (or a declined/lost device) → the deterministic Canvas 2D
+          field. All tiers draw the same seeded semantic model. */}
       <div aria-hidden="true" className="absolute inset-0">
         <SceneBoundary poster={<FieldPoster />} className="absolute inset-0">
-          {() => <FieldCanvas wrapRef={wrapRef} />}
+          {(tier) =>
+            tier === 'webgpu' && !gpuFailed ? (
+              <FieldGpuCanvas wrapRef={wrapRef} onFallback={fallBack} />
+            ) : (
+              <FieldCanvas wrapRef={wrapRef} />
+            )
+          }
         </SceneBoundary>
       </div>
       <FieldLegend />
