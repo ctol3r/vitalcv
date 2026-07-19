@@ -54,8 +54,9 @@ export const OPS_SURFACE_PREFIXES = [
   '/ops/engine',
   // Design-reference surfaces carry their own chrome (wave1505 port et al.)
   '/design',
-  // Immersive career-evidence graph explorer (own chrome + dark/light toggle)
-  '/evidence-network',
+  // NOTE: /evidence-network is no longer self-chromed — the public route is a
+  // static transparency page (SHD-0.3 quarantine) rendered with standard site
+  // chrome; the explorable graph lives on signed-in surfaces only.
 ] as const;
 
 const PREFIX_MATCHERS = [
