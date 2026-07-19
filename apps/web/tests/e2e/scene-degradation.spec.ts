@@ -1,0 +1,161 @@
+import { expect, test } from '@playwright/test';
+
+/**
+ * SHD-6.1 — the scene degradation matrix.
+ *
+ * The homepage scene system (SHD-1.1) resolves a capability tier
+ * (static | canvas2d | webgpu) and every consumer must stay complete at every
+ * tier: the designed poster always present, the NPI action usable, no blank or
+ * black region, and a GPU-less browser forced to `webgpu` must degrade
+ * cleanly. Tiers are forced via `?sceneTier=` — honored in the e2e web server
+ * because it sets NEXT_PUBLIC_SCENE_DEBUG=1 (production builds without that
+ * flag ignore the override; see scene/capabilities.ts).
+ *
+ * This spec is the release guard for the masterlist's SHD-6.1 exit criteria:
+ * "no blank hero or chapter can occur when GPU initialization fails; every
+ * meaningful chapter is present before the client scene hydrates; reduced
+ * motion uses no continuous render loop."
+ */
+
+const DESKTOP = { width: 1440, height: 900 };
+
+/** Uncaught page exceptions collected per test — the no-user-visible-error bar. */
+function collectPageErrors(page: import('@playwright/test').Page): string[] {
+  const errors: string[] = [];
+  page.on('pageerror', (err) => errors.push(String(err)));
+  return errors;
+}
+
+async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
+  const overflow = await page.evaluate(() => {
+    const de = document.documentElement;
+    return de.scrollWidth - de.clientWidth;
+  });
+  expect(overflow).toBeLessThanOrEqual(1);
+}
+
+async function expectNpiActionUsable(page: import('@playwright/test').Page) {
+  const input = page.getByLabel('NPI number');
+  await expect(input).toBeVisible();
+  await input.fill('1234567893'); // checksum-valid — enables the CTA
+  await expect(page.getByRole('button', { name: /check readiness/i })).toBeEnabled();
+}
+
+test.describe('scene degradation matrix (SHD-6.1)', () => {
+  test('static tier: posters only, no live canvas, NPI fully usable', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=static', { waitUntil: 'networkidle' });
+
+    // Every scene boundary honors the forced tier.
+    const boundaries = page.locator('[data-scene-boundary]');
+    const count = await boundaries.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(boundaries.nth(i)).toHaveAttribute('data-scene-tier', 'static');
+    }
+
+    // The designed poster is the visual — no live scene canvas mounts.
+    await expect(page.locator('[data-field-poster]')).toBeAttached();
+    await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
+
+    await expectNpiActionUsable(page);
+    await expectNoHorizontalOverflow(page);
+    expect(errors).toEqual([]);
+  });
+
+  test('canvas2d tier: the live 2D scene mounts over the poster, which stays', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=canvas2d', { waitUntil: 'networkidle' });
+
+    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
+    await expect(field).toHaveAttribute('data-scene-tier', 'canvas2d');
+    // Live scene present…
+    await expect(page.locator('[data-home-evidence-field] canvas')).not.toHaveCount(0);
+    // …and the poster is layered beneath it, never removed.
+    await expect(page.locator('[data-field-poster]')).toBeAttached();
+
+    await expectNpiActionUsable(page);
+    expect(errors).toEqual([]);
+  });
+
+  test('webgpu tier in a GPU-less browser: degrades cleanly, never a blank or error region', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=webgpu', { waitUntil: 'networkidle' });
+
+    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
+    // The boundary grants the forced tier; the field's WebGPU renderer must
+    // fall back internally (onFallback → Canvas-2D) when init fails.
+    await expect(field).toHaveAttribute('data-scene-tier', 'webgpu');
+    // Never a crash-fallback marker, never a missing poster.
+    await expect(field).not.toHaveAttribute('data-scene-error', '');
+    await expect(page.locator('[data-field-poster]')).toBeAttached();
+    // A live surface eventually paints (WebGPU where supported, else the 2D
+    // fallback) — either way a canvas exists and the page stays whole.
+    await expect(page.locator('[data-home-evidence-field] canvas')).not.toHaveCount(0, { timeout: 10_000 });
+
+    await expectNpiActionUsable(page);
+    expect(errors).toEqual([]);
+  });
+
+  test('an invalid sceneTier value is ignored — real detection decides, page stays whole', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/?sceneTier=bogus', { waitUntil: 'networkidle' });
+
+    const field = page.locator('[data-home-evidence-field] [data-scene-boundary]');
+    const tier = await field.getAttribute('data-scene-tier');
+    expect(['static', 'canvas2d', 'webgpu']).toContain(tier);
+    await expect(page.locator('[data-field-poster]')).toBeAttached();
+    await expectNpiActionUsable(page);
+    expect(errors).toEqual([]);
+  });
+
+  test('reduced motion resolves every boundary to static — no live scene anywhere', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const boundaries = page.locator('[data-scene-boundary]');
+    const count = await boundaries.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(boundaries.nth(i)).toHaveAttribute('data-scene-tier', 'static');
+    }
+    await expect(page.locator('[data-home-evidence-field] canvas')).toHaveCount(0);
+  });
+
+  test('no-JS SSR floor: heading, NPI form, posters, and source lanes are all served', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: DESKTOP });
+    const page = await context.newPage();
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.getByLabel('NPI number')).toBeAttached();
+    await expect(page.locator('[data-field-poster]')).toBeAttached();
+    await expect(page.locator('[data-home-source-strip]')).toBeAttached();
+    // The scene never blocks the semantic page: boundaries render their poster
+    // server-side (static) with no client JS at all.
+    await expect(page.locator('[data-scene-boundary]').first()).toBeAttached();
+
+    await context.close();
+  });
+
+  test('keyboard reaches the NPI input from the top of the page — no trap before the primary action', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    let reached = false;
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      const isNpi = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return !!el && el.getAttribute('aria-label') === 'NPI number';
+      });
+      if (isNpi) { reached = true; break; }
+    }
+    expect(reached, 'Tab order must reach the NPI input within 25 stops').toBe(true);
+  });
+});

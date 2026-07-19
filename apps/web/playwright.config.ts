@@ -99,6 +99,11 @@ export default defineConfig({
       // this, the CI production build 404s the harness (dev builds keep it
       // open, which is why story-rail.spec.ts passed locally but failed in CI).
       STORY_RAIL_PREVIEW: '1',
+      // scene-degradation.spec.ts forces capability tiers via `?sceneTier=`;
+      // readForcedTier() ignores the override in production builds unless this
+      // is set at BUILD time (NEXT_PUBLIC_* is inlined by `next build`, which
+      // webServer runs with this env). E2E server only — never production.
+      NEXT_PUBLIC_SCENE_DEBUG: '1',
     },
     url: baseURL,
     reuseExistingServer: !isCI,
