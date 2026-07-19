@@ -307,14 +307,20 @@ export default function HomePageClient() {
 
         <StickyProductStory />
 
-        <Reveal className="pt-8" data-home-experience="evidence-trace">
+        {/* fade (not rise): this section carries a scrub-coupled heading, and
+            mz-rise's scale(0.985) changes the heading's measured box while the
+            reveal settles — breaking the scrub contract "the text is laid out
+            from the start, only its ink changes" (scrub-headings e2e, the CLS
+            guard). Opacity-only keeps the uplift with stable geometry. */}
+        <Reveal variant="fade" className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
         </Reveal>
 
         {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
         <RotatingProofLine />
 
-        <Reveal><ProductCarousel /></Reveal>
+        {/* fade for the same reason: the carousel title is a scrub heading. */}
+        <Reveal variant="fade"><ProductCarousel /></Reveal>
 
         <Reveal><ResumeToProof /></Reveal>
 
