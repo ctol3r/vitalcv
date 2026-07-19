@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "next": "15.2.8",
-    "turbo": "^2.9.6",
+    "turbo": "^2.10.5",
     "typescript": "5.9.3"
   },
   "pnpm": {
