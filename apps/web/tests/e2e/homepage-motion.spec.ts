@@ -330,8 +330,9 @@ test.describe('Homepage motion convergence', () => {
     // No force-directed graph remains in the hero.
     await expect(page.locator('[data-home-hero-graph]')).toHaveCount(0);
     await expect(page.locator('[data-graph-caption]')).toHaveCount(0);
-    // The deep graph is still reachable from the trust footer.
-    await expect(page.locator('[data-home-trust-footer]').getByRole('link', { name: /evidence network/i })).toHaveAttribute('href', '/evidence-network');
+    // SHD-0.3: the legacy public graph is quarantined — the trust footer no
+    // longer links to it, so a visitor cannot reach the synthetic graph.
+    await expect(page.locator('[data-home-trust-footer]').getByRole('link', { name: /evidence network/i })).toHaveCount(0);
   });
 
   test('reduced motion keeps the field poster with no animation loop', async ({ page }) => {
