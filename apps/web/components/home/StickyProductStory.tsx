@@ -20,6 +20,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { ScrollScrubHeading } from '@/components/motion/ScrollScrubHeading';
 import { StoryIcon, type StoryIconName } from '@/components/home/StoryIcon';
+import { ROLODEX_OPACITY_OFFSETS, ROLODEX_OPACITY_VALUES } from '@/lib/home/rolodex';
 
 type StateKind = 'source' | 'checked' | 'gated' | 'attention' | 'neutral';
 
@@ -142,19 +143,22 @@ const STORY_TRANSITION_SECONDS = 1.05;
 
 function StoryCard({ step, index, progress }: { step: StoryStep; index: number; progress: MotionValue<number> }) {
   const offset = useTransform(progress, (latest) => index - latest);
-  // ROLODEX (Chris, 2026-07-17). Cards flip around a horizontal spindle below
-  // the stack: the upcoming card is tipped back behind the axle, rotates up to
-  // face the reader, locks flat, then falls forward over the spindle as the
-  // next one rises. transform-origin sits below the card (CSS: 50% 116%) so the
-  // rotation reads as a wheel turn, not an in-place tilt. Opacity only masks the
-  // extremes — mid-flip cards stay solid, mechanical rather than a fade.
-  // (The 2026-07-17-pm "physical props" pass — axle rod, punched slots,
-  // asymmetric snap — read as cheap clip-art and clipped oddly; reverted to
-  // this cleaner symmetric flip.) Derived MotionValues: scroll never re-renders.
-  const rotateX = useTransform(offset, [-1.4, -0.9, 0, 0.9, 1.4], [96, 74, 0, -74, -96]);
-  const y = useTransform(offset, [-1.4, 0, 1.4], [-14, 0, 18]);
-  const opacity = useTransform(offset, [-1.35, -1, -0.55, 0, 0.55, 1, 1.35], [0, 0.55, 1, 1, 1, 0.55, 0]);
-  const zIndex = useTransform(offset, (latest) => Math.round(50 - Math.abs(latest) * 10));
+  // ROTARY FILE (SHD-3.2). Cards flip around a horizontal spindle below the
+  // stack (transform-origin 50% 116% in CSS), so rotation reads as a wheel turn.
+  // Unlike the earlier curve — which faded neighbours to a whisper and hid the
+  // card-file mechanic — at least TWO leaves each side now stay visibly fanned
+  // with real depth: completed leaves fan UP + back (recede), upcoming leaves
+  // fan DOWN + slightly forward (anticipation), and the active card is centred,
+  // front-most, and fully legible. Depth is translateZ + scale, not opacity.
+  // Derived MotionValues, so scroll never re-renders.
+  const rotateX = useTransform(offset, [-2.4, -2, -1, 0, 1, 2, 2.4], [90, 76, 48, 0, -48, -76, -90]);
+  const y = useTransform(offset, [-2.4, -1, 0, 1, 2.4], [-86, -34, 0, 36, 90]);
+  const z = useTransform(offset, [-2.4, -1, 0, 1, 2.4], [-172, -48, 46, -6, -104]);
+  const scale = useTransform(offset, [-2.4, -1, 0, 1, 2.4], [0.8, 0.92, 1, 0.93, 0.83]);
+  // Two leaves each side stay readable; cull only beyond the fan. Curve lives in
+  // lib/home/rolodex.ts so the "≥2 visible leaves" contract is unit-locked.
+  const opacity = useTransform(offset, ROLODEX_OPACITY_OFFSETS, ROLODEX_OPACITY_VALUES);
+  const zIndex = useTransform(offset, (latest) => Math.round(60 - Math.abs(latest) * 8));
 
   return (
     <motion.li
@@ -162,7 +166,7 @@ function StoryCard({ step, index, progress }: { step: StoryStep; index: number; 
       data-story-card-index={index}
       data-section-observe={step.id === 'match' ? 'matcha' : step.id === 'apply' ? 'apply' : undefined}
       className="story-card"
-      style={{ rotateX, y, opacity, zIndex }}
+      style={{ rotateX, y, z, scale, opacity, zIndex }}
     >
       <Card className="story-card-shell">
         <div className="story-card-copy">
