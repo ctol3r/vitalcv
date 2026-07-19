@@ -6,22 +6,26 @@
  * `ChromaFlow` layers (the `shaders` npm package ships no license, so this is
  * an original implementation, not an import).
  *
- * Visual language: a handful of large, very soft radial tints drifting slowly
- * across the paper — provenance emerald, evidence indigo, and (only where a
- * chapter declares it) bounded amber — plus a low-amplitude pointer wake that
- * trails the cursor as a moving tint. Chroma stays low; this is atmosphere,
- * not a light show. Red never appears (reserved for real fail-closed states).
+ * SHD-1.3: the field is a chapter-progress consumer. It subscribes to the
+ * single ChapterProgress driver and crossfades accent palettes / flow / wake
+ * through each chapter handoff, so the whole page reads as one continuous
+ * environment in both scroll directions. Without a provider it renders the
+ * `chapterId` prop's scene statically — same field, no journey.
  *
  * Runtime discipline (rides SHD-1.1):
  *  - mounts only when SceneBoundary grants an animated tier;
  *  - static tier / errors → the CSS poster gradient in scene.css stands alone;
  *  - DPR capped at 1.5 (it is blurred anyway), rAF suspends offscreen/hidden;
- *  - deterministic seeded geometry — zero Math.random, zero CLS.
+ *  - deterministic seeded geometry — zero Math.random, zero CLS;
+ *  - flow is integrated incrementally (phase += dt · flow), so a mid-journey
+ *    flow change bends the motion instead of jumping it.
  */
 
 import * as React from 'react';
 
-import { getChapterScene, type ChapterScene, type SceneAccent } from './registry';
+import { useChapterProgressSubscription } from './ChapterProgress';
+import { blendSceneParams, type ChapterProgress, type SceneBlend } from './progress';
+import { getChapterScene, type SceneAccent } from './registry';
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -35,13 +39,10 @@ function mulberry32(seed: number): () => number {
 }
 
 interface Blob {
-  /** anchor position, normalized */
   x: number;
   y: number;
-  /** drift orbit radii, normalized */
   ox: number;
   oy: number;
-  /** angular speed + phase */
   w: number;
   phase: number;
   /** radius as a fraction of the larger viewport side */
@@ -93,7 +94,7 @@ function tint(color: string, alpha: number): string {
 }
 
 export interface AmbientFieldProps {
-  /** Active chapter id; resolves flow/wake/accents from the registry. */
+  /** Fallback scene when no ChapterProgressProvider is mounted. */
   chapterId?: string;
 }
 
@@ -103,9 +104,14 @@ export interface AmbientFieldProps {
  */
 export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const sceneRef = React.useRef<ChapterScene>(getChapterScene(chapterId));
-  sceneRef.current = getChapterScene(chapterId);
+  const fallbackScene = getChapterScene(chapterId);
+  const blendRef = React.useRef<SceneBlend>({ from: fallbackScene, to: fallbackScene, t: 0 });
   const [ready, setReady] = React.useState(false);
+
+  const onProgress = React.useCallback((p: ChapterProgress) => {
+    blendRef.current = p.blend;
+  }, []);
+  useChapterProgressSubscription(onProgress);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -121,8 +127,9 @@ export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
     let dpr = 1;
     let onscreen = true;
     let hidden = document.hidden;
-    const start = performance.now();
-    // Pointer wake: eased trail point + strength that decays when still.
+    let lastNow = performance.now();
+    /** Integrated journey clock: advances by dt·flow each frame. */
+    let phase = 0;
     const wake = { x: 0.5, y: 0.4, tx: 0.5, ty: 0.4, energy: 0 };
 
     const resize = () => {
@@ -139,41 +146,59 @@ export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
       setReady(true);
     };
 
+    const drawBlob = (b: Blob, color: string, alpha: number) => {
+      if (alpha <= 0.001) return;
+      const bx = (b.x + Math.cos(phase * b.w * Math.PI * 2 + b.phase) * b.ox) * w;
+      const by = (b.y + Math.sin(phase * b.w * Math.PI * 2 + b.phase * 1.3) * b.oy) * h;
+      const br = b.r * Math.max(w, h);
+      const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+      g.addColorStop(0, tint(color, 0.05 * alpha));
+      g.addColorStop(0.6, tint(color, 0.022 * alpha));
+      g.addColorStop(1, tint(color, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
     const draw = (now: number) => {
-      const scene = sceneRef.current;
-      const t = ((now - start) / 1000) * scene.flow;
+      const blend = blendRef.current;
+      const params = blendSceneParams(blend);
+      const dt = Math.min(0.1, Math.max(0, (now - lastNow) / 1000));
+      lastNow = now;
+      phase += dt * params.flow;
+
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
-      const side = Math.max(w, h);
+      // chapter handoff: each blob crossfades from-accent → to-accent
       for (const b of BLOBS) {
-        const bx = (b.x + Math.cos(t * b.w * Math.PI * 2 + b.phase) * b.ox) * w;
-        const by = (b.y + Math.sin(t * b.w * Math.PI * 2 + b.phase * 1.3) * b.oy) * h;
-        const br = b.r * side;
-        const col = accentColor(palette, b.accent === 'accent' ? scene.accent : scene.support);
-        const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-        g.addColorStop(0, tint(col, 0.05));
-        g.addColorStop(0.6, tint(col, 0.022));
-        g.addColorStop(1, tint(col, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, Math.PI * 2);
-        ctx.fill();
+        const fromCol = accentColor(
+          palette,
+          b.accent === 'accent' ? blend.from.accent : blend.from.support,
+        );
+        const toCol = accentColor(
+          palette,
+          b.accent === 'accent' ? blend.to.accent : blend.to.support,
+        );
+        if (blend.t < 0.999 || fromCol === toCol) drawBlob(b, fromCol, 1 - blend.t);
+        if (blend.t > 0.001 && fromCol !== toCol) drawBlob(b, toCol, blend.t);
       }
 
-      // pointer wake — a single soft tint trailing the cursor, bounded by the
-      // chapter's declared amplitude; decays to nothing when the pointer rests.
-      if (scene.wake > 0 && wake.energy > 0.01) {
+      // pointer wake — bounded by the BLENDED chapter amplitude; decays when
+      // the pointer rests. Accent follows the dominant scene of the handoff.
+      if (params.wake > 0 && wake.energy > 0.01) {
         wake.x += (wake.tx - wake.x) * 0.07;
         wake.y += (wake.ty - wake.y) * 0.07;
         wake.energy *= 0.985;
         const wx = wake.x * w;
         const wy = wake.y * h;
-        const wr = side * 0.22;
-        const col = accentColor(palette, scene.accent);
+        const wr = Math.max(w, h) * 0.22;
+        const dominant = blend.t < 0.5 ? blend.from : blend.to;
+        const col = accentColor(palette, dominant.accent);
         const g = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-        g.addColorStop(0, tint(col, 0.06 * scene.wake * wake.energy));
+        g.addColorStop(0, tint(col, 0.06 * params.wake * wake.energy));
         g.addColorStop(1, tint(col, 0));
         ctx.fillStyle = g;
         ctx.beginPath();
@@ -190,7 +215,10 @@ export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
       raf = requestAnimationFrame(frame);
     };
     const wakeLoop = () => {
-      if (!raf && onscreen && !hidden) raf = requestAnimationFrame(frame);
+      if (!raf && onscreen && !hidden) {
+        lastNow = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
     };
 
     resize();

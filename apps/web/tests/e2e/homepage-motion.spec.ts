@@ -441,4 +441,66 @@ test.describe('Homepage motion convergence', () => {
     );
     expect(anim).toBe('none');
   });
+
+  // ── SHD-1.3: one chapter-progress driver behind the rail and the scene ──
+
+  test('the dot rail follows the chapter driver forward and agrees in reverse', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const railActive = () =>
+      page
+        .locator('[data-home-section-rail] a[aria-current="location"]')
+        .getAttribute('href');
+
+    // chapter tops in document space, as the driver measures them
+    const tops = await page.evaluate(() =>
+      Object.fromEntries(
+        ['wallet', 'readiness', 'matcha', 'employers'].map((id) => [
+          id,
+          (document.getElementById(id)?.getBoundingClientRect().top ?? 0) + window.scrollY,
+        ]),
+      ),
+    );
+
+    // Anchor sits at 35% viewport height: scroll so each chapter top passes it.
+    const anchorLead = 1000 * 0.35 - 40;
+    expect(await railActive()).toBe('#wallet');
+
+    await scrollTo(page, tops.readiness - anchorLead + 80);
+    await expect
+      .poll(railActive, { message: 'rail follows into readiness' })
+      .toBe('#readiness');
+
+    await scrollTo(page, tops.matcha - anchorLead + 80);
+    await expect.poll(railActive).toBe('#matcha');
+
+    await scrollTo(page, tops.employers - anchorLead + 80);
+    await expect.poll(railActive).toBe('#employers');
+
+    // Reverse scrub: the model is a pure function of scroll position, so the
+    // same positions resolve identically on the way back — no stuck state.
+    await scrollTo(page, tops.matcha - anchorLead + 80);
+    await expect.poll(railActive).toBe('#matcha');
+
+    await scrollTo(page, 0);
+    await expect.poll(railActive).toBe('#wallet');
+  });
+
+  test('the ambient scene layer rides under content and never blocks input', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const scene = page.locator('[data-home-scene]');
+    await expect(scene).toHaveCSS('pointer-events', 'none');
+    await expect(scene).toHaveCSS('position', 'fixed');
+
+    // The ambient canvas is mounted on animated tiers and aria-hidden.
+    await expect(page.locator('[data-scene-ambient]')).toHaveCount(1);
+    await expect(scene).toHaveAttribute('aria-hidden', 'true');
+
+    // The NPI input receives real clicks straight through the fixed layer.
+    await page.locator('#npi-input').click();
+    await expect(page.locator('#npi-input')).toBeFocused();
+  });
 });

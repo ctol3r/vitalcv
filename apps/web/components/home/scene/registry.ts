@@ -110,6 +110,16 @@ export const CHAPTER_SCENES: readonly ChapterScene[] = Object.freeze([
   }),
 ]);
 
+/**
+ * DOM ids that differ from the canonical journey ids. Today's homepage marks
+ * the evidence chapter with the legacy `#readiness` observer span; the rail
+ * and driver work in DOM ids, the registry answers in canonical scenes.
+ */
+export const CHAPTER_DOM_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  readiness: 'evidence',
+});
+
 export function getChapterScene(id: string): ChapterScene {
-  return CHAPTER_SCENES.find((c) => c.id === id) ?? CHAPTER_SCENES[0];
+  const canonical = CHAPTER_DOM_ALIASES[id] ?? id;
+  return CHAPTER_SCENES.find((c) => c.id === canonical) ?? CHAPTER_SCENES[0];
 }

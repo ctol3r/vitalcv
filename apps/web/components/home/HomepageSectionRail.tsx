@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 
+import { useActiveChapter } from '@/components/home/scene/ChapterProgress';
+
 const ITEMS = [
   { id: 'wallet', label: 'Wallet' },
   { id: 'readiness', label: 'Readiness' },
@@ -15,25 +17,16 @@ const ITEMS = [
  * of the viewport (desktop only). Each section is a dot; its label reveals on
  * hover/focus. Replaces the former full-width sticky bar that sat under the
  * header and crowded the top of the page.
+ *
+ * SHD-1.3: the rail consumes the single ChapterProgress driver — its former
+ * private IntersectionObserver is gone (one scroll model, one owner; forward
+ * and reverse scrubbing stay symmetric because active state is a pure
+ * function of scroll position). Without a provider (isolated render, tests)
+ * it falls back to the first section active, which is also the SSR state.
  */
 export function HomepageSectionRail() {
-  const [active, setActive] = React.useState<(typeof ITEMS)[number]['id']>('wallet');
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
-    const nodes = ITEMS.map((item) => document.getElementById(item.id)).filter(Boolean) as HTMLElement[];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target.id) setActive(visible.target.id as (typeof ITEMS)[number]['id']);
-      },
-      { rootMargin: '-108px 0px -62% 0px', threshold: [0, 0.15, 0.4] },
-    );
-    nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, []);
+  const activeChapter = useActiveChapter();
+  const active = activeChapter ?? ITEMS[0].id;
 
   return (
     <nav className="homepage-section-rail" aria-label="Homepage sections" data-home-section-rail="">
@@ -43,7 +36,6 @@ export function HomepageSectionRail() {
             <a
               href={`#${item.id}`}
               aria-current={active === item.id ? 'location' : undefined}
-              onClick={() => setActive(item.id)}
             >
               <span className="homepage-section-rail__dot" aria-hidden="true" />
               <span className="homepage-section-rail__label">{item.label}</span>
