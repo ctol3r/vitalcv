@@ -389,8 +389,10 @@ export async function initEvidenceFieldGpu(
       // camera: gentle idle drift + bounded pointer orbit (≤ ~6°)
       ptr.x += (ptr.tx - ptr.x) * 0.06;
       ptr.y += (ptr.ty - ptr.y) * 0.06;
-      const yaw = ptr.x * 0.1 + Math.sin(t * 0.07) * 0.03;
-      const pitch = ptr.y * 0.08 + Math.cos(t * 0.09) * 0.02;
+      // Idle drift is a visible slow orbit so the field reads as a living 3D
+      // scene, not a flat graph; pointer adds a bounded parallax on top.
+      const yaw = ptr.x * 0.12 + Math.sin(t * 0.11) * 0.07;
+      const pitch = ptr.y * 0.09 + Math.cos(t * 0.13) * 0.045;
       const dist = 2.35;
       const eye = {
         x: Math.sin(yaw) * dist,
@@ -431,14 +433,14 @@ export async function initEvidenceFieldGpu(
       };
 
       // capsule first (behind atoms)
-      const breathe = 1 + Math.sin(t * 0.9) * 0.02;
+      const breathe = 1 + Math.sin(t * 0.9) * 0.04;
       put(capsuleWorld, 0.19 * breathe, colors.capsule, 0.96, SHAPE_CAPSULE, 0, 1.3);
 
       // atoms
       for (const a of MODEL.atoms) {
         const w = toWorld(a.x, a.y, a.z);
         const pulse = 0.5 + 0.5 * Math.sin(t * 1.3 + a.phase);
-        const size = (0.028 + a.base * 0.03) * (0.9 + pulse * 0.16);
+        const size = (0.032 + a.base * 0.034) * (0.86 + pulse * 0.26);
         put(w, size, kindRgb(a.kind), a.kind === 'attention' ? 0.8 : 0.95, SHAPE_ATOM, a.phase);
       }
 

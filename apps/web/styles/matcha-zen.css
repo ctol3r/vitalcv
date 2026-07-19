@@ -389,6 +389,12 @@
 .mz-reveal.is-in {
   animation: mz-rise var(--mz-rise-dur, 720ms) var(--mz-ease) var(--mz-delay, 0ms) both;
 }
+/* No-JS safety: without scripting the IntersectionObserver never adds .is-in,
+   so reveal content would stay at opacity:0 forever. Force it visible — every
+   chapter must be readable with JS disabled (a homepage fallback requirement). */
+@media (scripting: none) {
+  .mz-reveal { opacity: 1 !important; animation: none !important; }
+}
 .mz-reveal-fade.is-in { animation-name: mz-fade; }
 
 /* A calm attention pulse for "a pleasant surprise" moments (new evidence, a

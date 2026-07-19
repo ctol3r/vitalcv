@@ -13,18 +13,18 @@
   inset: 0;
   background:
     radial-gradient(
-      42% 38% at 18% 22%,
-      color-mix(in oklab, var(--vt-accent-emerald) 5%, transparent),
+      48% 44% at 16% 20%,
+      color-mix(in oklab, var(--vt-accent-emerald) 12%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      46% 42% at 78% 30%,
-      color-mix(in oklab, var(--accent) 4%, transparent),
+      52% 46% at 82% 28%,
+      color-mix(in oklab, var(--accent) 10%, transparent),
       transparent 72%
     ),
     radial-gradient(
-      50% 44% at 55% 82%,
-      color-mix(in oklab, var(--vt-accent-emerald) 3%, transparent),
+      56% 48% at 55% 86%,
+      color-mix(in oklab, var(--vt-accent-emerald) 8%, transparent),
       transparent 75%
     );
 }

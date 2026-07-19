@@ -29,6 +29,7 @@ import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
+import { Reveal } from '@/components/motion/Reveal';
 import { AmbientField } from '@/components/home/scene/AmbientField';
 import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
@@ -291,30 +292,35 @@ export default function HomePageClient() {
 
         <SourceCoverageRibbon />
 
-        <ProblemStatBand />
+        {/* Visible uplift: static sections rise+fade as they enter view (the
+            template's reveal grammar via the platform Reveal primitive —
+            reduced-motion-safe, shows content if JS/IO is unavailable). The
+            scroll-COUPLED sections (manifesto, product story, ribbon) keep
+            their own motion and are deliberately not wrapped. */}
+        <Reveal><ProblemStatBand /></Reveal>
 
         {/* The reframe: résumé = form, VitalCV = system. Scroll-focus prose +
             the hand-drawn form/systems diagram (Chris, 2026-07-18). */}
         <ScrollFocusManifesto />
 
-        <TimeToStartComparison />
+        <Reveal><TimeToStartComparison /></Reveal>
 
         <StickyProductStory />
 
-        <div className="pt-8" data-home-experience="evidence-trace">
+        <Reveal className="pt-8" data-home-experience="evidence-trace">
           <EvidenceTruthPanel />
-        </div>
+        </Reveal>
 
         {/* Kinetic reusable-evidence beat (UIverse word-cycler, MIT). */}
         <RotatingProofLine />
 
-        <ProductCarousel />
+        <Reveal><ProductCarousel /></Reveal>
 
-        <ResumeToProof />
+        <Reveal><ResumeToProof /></Reveal>
 
         <section id="employers" data-home-experience="metrics-and-cta" className="pt-14">
-          <MetricStrip />
-          <DualAudienceCta />
+          <Reveal><MetricStrip /></Reveal>
+          <Reveal delay={90}><DualAudienceCta /></Reveal>
         </section>
 
         <nav aria-label="Trust footer" data-home-trust-footer="" className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--vt-border-subtle)] pt-6 text-[12px] text-[var(--vt-text-muted)]">
