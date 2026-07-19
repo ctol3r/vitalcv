@@ -249,9 +249,10 @@
   padding: 0;
   list-style: none;
   /* Rolodex depth: the flip needs real perspective or rotateX reads as a
-     vertical squash. Origin slightly above center so the wheel feels below. */
+     vertical squash. Origin centred so the up-fan (completed leaves) and the
+     down-fan (upcoming leaves) both read (SHD-3.2). */
   perspective: 1500px;
-  perspective-origin: 50% 30%;
+  perspective-origin: 50% 44%;
 }
 
 .story-card {
@@ -262,8 +263,30 @@
   /* The spindle: rotation axis sits BELOW the card (116% of its height), so
      cards swing around a common axle like rolodex leaves, not tilt in place. */
   transform-origin: 50% 116%;
+  transform-style: preserve-3d;
   backface-visibility: hidden;
   will-change: transform, opacity;
+}
+
+/* Reduced motion: the rotary file collapses to a clean, static vertical stack —
+   the same chapters in DOM order, no flip, no perspective, no render loop
+   (SHD-3.2 exit criterion). */
+@media (prefers-reduced-motion: reduce) {
+  .story-cards {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    min-height: auto;
+    perspective: none;
+  }
+  .story-card {
+    position: relative;
+    inset: auto;
+    transform: none !important;
+    opacity: 1 !important;
+    transform-origin: center !important;
+    will-change: auto;
+  }
 }
 
 .story-card-shell {
