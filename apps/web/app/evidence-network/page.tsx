@@ -20,6 +20,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ProvenanceChipLegend } from '@/design-system/components';
+import { EvidenceModelMap } from '@/components/trust/EvidenceModelMap';
 
 export const metadata: Metadata = {
   title: 'The Evidence Network — how career evidence moves',
@@ -146,6 +147,8 @@ export default function EvidenceNetworkPage() {
         credentialing. Views of a real record exist only on signed-in, authorized
         product surfaces.
       </div>
+
+      <EvidenceModelMap />
 
       {CONCEPTS.map((concept) => (
         <Section key={concept.title}>
