@@ -110,4 +110,17 @@ describe('SHD-0.3 — public /evidence-network quarantine', () => {
   it('never renders the bare status word "Verified"', () => {
     expect(/>\s*Verified\s*</.test(html)).toBe(false);
   });
+
+  // SHD-2.3: the abstract evidence-model visual — system concepts only.
+  it('renders the evidence-model map as a decorative, concept-only diagram', () => {
+    expect(html).toContain('data-evidence-model-map');
+    expect(html).toContain('role="img"'); // summarised for assistive tech
+    // The map is a diagram of concepts, explicitly not people.
+    expect(html).toMatch(/system concepts only — no clinicians/i);
+    // Concept legend labels, not identities.
+    expect(html).toContain('Consented proof packet');
+    expect(html).toContain('Bounded employer Recognition');
+    // The topology carries no <canvas> and no synthetic identity.
+    expect(html).not.toContain('<canvas');
+  });
 });
