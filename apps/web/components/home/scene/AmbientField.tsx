@@ -152,8 +152,8 @@ export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
       const by = (b.y + Math.sin(phase * b.w * Math.PI * 2 + b.phase * 1.3) * b.oy) * h;
       const br = b.r * Math.max(w, h);
       const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-      g.addColorStop(0, tint(color, 0.05 * alpha));
-      g.addColorStop(0.6, tint(color, 0.022 * alpha));
+      g.addColorStop(0, tint(color, 0.11 * alpha));
+      g.addColorStop(0.6, tint(color, 0.05 * alpha));
       g.addColorStop(1, tint(color, 0));
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -198,7 +198,7 @@ export function AmbientField({ chapterId = 'wallet' }: AmbientFieldProps) {
         const dominant = blend.t < 0.5 ? blend.from : blend.to;
         const col = accentColor(palette, dominant.accent);
         const g = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-        g.addColorStop(0, tint(col, 0.06 * params.wake * wake.energy));
+        g.addColorStop(0, tint(col, 0.11 * params.wake * wake.energy));
         g.addColorStop(1, tint(col, 0));
         ctx.fillStyle = g;
         ctx.beginPath();
