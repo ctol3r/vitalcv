@@ -30,6 +30,7 @@ import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { AmbientField } from '@/components/home/scene/AmbientField';
+import { ChapterProgressProvider } from '@/components/home/scene/ChapterProgress';
 import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
 import { MagneticButton } from '@/components/home/scene/MagneticButton';
 import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
@@ -95,6 +96,9 @@ export default function HomePageClient() {
 
   return (
     <SceneProvider>
+    {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
+        consume this driver; neither owns a private scroll listener. */}
+    <ChapterProgressProvider>
     <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
 
@@ -105,7 +109,7 @@ export default function HomePageClient() {
           grain is a baked SVG texture, not a render loop. */}
       <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
         <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
-          {() => <AmbientField chapterId="wallet" />}
+          {() => <AmbientField />}
         </SceneBoundary>
         <GrainOverlay opacity={getChapterScene('wallet').grain} />
       </div>
@@ -302,6 +306,7 @@ export default function HomePageClient() {
         </nav>
       </main>
     </div>
+    </ChapterProgressProvider>
     </SceneProvider>
   );
 }
