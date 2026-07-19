@@ -18,6 +18,7 @@
 @import '../styles/home-vitals.css';
 @import '../styles/homepage-motion.css';
 @import '../styles/scene.css';
+@import '../styles/story-rail.css';
 @import '../styles/matcha-deck.css';
 /* glue.css superseded by antigravity.css (imported in layout.tsx) */
 

@@ -35,7 +35,8 @@ describe('page density system', () => {
       encoding: 'utf8',
     });
     const inventory = JSON.parse(raw) as Array<{ route: string; source: string; density: string }>;
-    expect(inventory).toHaveLength(136);
+    // 137 = 136 + the SHD-3.1 /dev/story-rail harness (dev-gated, noindex).
+    expect(inventory).toHaveLength(137);
     expect(inventory.every((item) => !item.source.includes('/_archive/'))).toBe(true);
     expect(inventory.every((item) => !item.route.startsWith('/api/'))).toBe(true);
     expect(new Set(inventory.map((item) => item.density))).toEqual(
