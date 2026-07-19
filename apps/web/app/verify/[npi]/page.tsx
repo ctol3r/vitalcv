@@ -23,6 +23,7 @@ import { ReceiptVerificationPane } from '@/components/verifier/ReceiptVerificati
 import { IssuerContinuityPanel } from '@/components/verifier/IssuerContinuityPanel';
 import { ReplayChronologyPanel } from '@/components/verifier/ReplayChronologyPanel';
 import type { LaneSnapshot } from '@/components/proof/trust-types';
+import { VerdictSplit, type VerdictItem } from '@/design-system/components';
 import type { PassportData } from '@/lib/trust/passport-contract';
 import {
   normalizeEmployerAcceptanceHistoryResponse,
@@ -270,6 +271,46 @@ export default async function VerifierPage({
     selfReportedEducation.length > 0 ||
     selfReportedAffiliations.length > 0;
 
+  // ── Two-half verdict (W4 mount) — built ONLY from what this page really
+  // has. Integrity = what this snapshot records (checks, receipts, tier).
+  // Issuer legitimacy = the published issuer record this site serves.
+  // Revocation is a VISIBLE step even though this public snapshot cannot
+  // check it yet (the upstream read filters revoked artifacts) — honest
+  // "Not checked" beats a silent omission; wiring the live status list is
+  // the backend follow-up.
+  const checkedLanes = lanes.filter((l) => l.status === 'verified');
+  const receiptLanes = lanes.filter((l) => l.receiptId);
+  const tierKey = String(proofTier).toLowerCase();
+  const integrityItems: VerdictItem[] = [
+    {
+      label: 'Source checks recorded',
+      status: checkedLanes.length > 0 ? 'pass' : 'pending',
+      detail: `${checkedLanes.length} of ${lanes.length} lanes checked`,
+      provenance: passport.lastCheckedAt ? `checked ${formatUtc(passport.lastCheckedAt)}` : undefined,
+    },
+    {
+      label: 'Receipts recorded',
+      status: receiptLanes.length > 0 ? 'pass' : 'pending',
+      detail:
+        receiptLanes.length > 0
+          ? `${receiptLanes.length} check${receiptLanes.length === 1 ? '' : 's'} carry receipt ids`
+          : 'no receipts on this snapshot',
+    },
+    {
+      label: 'Coverage tier',
+      status: tierKey.includes('decision') ? 'pass' : tierKey.includes('partial') ? 'mixed' : 'pending',
+      detail: tierConfig.label,
+    },
+  ];
+  const issuerItems: VerdictItem[] = [
+    {
+      label: 'Issuer record published',
+      status: 'pass',
+      detail: 'vitalcv.com',
+      provenance: 'did:web:vitalcv.com · /.well-known/did.json',
+    },
+  ];
+
   return (
     <div className="mz mz-paper mz-persona-verifier min-h-screen overflow-hidden">
       {/* ── Read-Only Header ───────────────────────────────────────────────── */}
@@ -288,39 +329,15 @@ export default async function VerifierPage({
       </div>
 
       <div className="mz-ambient max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Verdict bar — per design R-01: verdict before content */}
+        {/* Verdict — per design R-01: verdict before content. Two halves
+            (integrity | issuer legitimacy) with revocation as a visible step;
+            never one green banner. */}
         <Reveal variant="fade">
-        <div className="mz-glass-strong rounded-[14px]">
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="mz-mono text-[10px] font-medium text-[var(--ink-400)] uppercase tracking-[0.22em]">
-                Verdict
-              </span>
-              <span
-                className={`mz-chip ${
-                  String(proofTier).toLowerCase().includes('decision')
-                    ? 'mz-chip-ok'
-                    : String(proofTier).toLowerCase().includes('partial')
-                    ? 'mz-chip-watch'
-                    : 'mz-chip-unknown'
-                }`}
-              >
-                <span className="mz-gl" aria-hidden="true" />
-                {String(proofTier).toLowerCase().includes('decision') ? 'Verifiable'
-                  : String(proofTier).toLowerCase().includes('partial') ? 'Partial coverage'
-                  : 'Pending'}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mz-mono text-[11px] text-[var(--ink-500)]">
-              {lanes.filter(l => l.status === 'verified').length > 0 && (
-                <span>{lanes.filter(l => l.status === 'verified').length} of {lanes.length} sources confirmed</span>
-              )}
-              {passport.lastCheckedAt && (
-                <><span className="text-[var(--ink-300)]">|</span><span>checked {formatUtc(passport.lastCheckedAt)}</span></>
-              )}
-            </div>
-          </div>
-        </div>
+          <VerdictSplit
+            integrity={integrityItems}
+            issuer={issuerItems}
+            revocation={{ state: 'unknown', source: 'not checked on this public snapshot' }}
+          />
         </Reveal>
 
         {/* ── Identity + Proof Tier Hero ─────────────────────────────────── */}
@@ -367,14 +384,18 @@ export default async function VerifierPage({
             </div>
           </div>
 
-          {/* ── Practice location (source-backed) + self-reported detail ──── */}
+          {/* ── Practice location + self-reported detail. NPPES practice
+              address is data the clinician self-reported TO the registry —
+              labelling it green "Source-backed" overstated it (beat-TopNPI
+              honesty rule): the registry entry is real, the underlying fact
+              is self-reported. ── */}
           {hasProfileDetail && (
             <div className="mt-4 pt-4 border-t border-[var(--rule-soft)] space-y-3.5">
               {practiceLocationText && (
                 <ProfileDetailGroup
                   title="Practice location"
-                  chipLabel="Source-backed"
-                  chipClass="mz-chip-ok"
+                  chipLabel="Self-reported to NPPES"
+                  chipClass="mz-chip-unknown"
                   rows={[practiceLocationText]}
                 />
               )}
