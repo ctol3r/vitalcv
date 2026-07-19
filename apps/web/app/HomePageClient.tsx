@@ -29,6 +29,13 @@ import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
 import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
+import { AmbientField } from '@/components/home/scene/AmbientField';
+import { GrainOverlay } from '@/components/home/scene/GrainOverlay';
+import { MagneticButton } from '@/components/home/scene/MagneticButton';
+import { SceneBoundary } from '@/components/home/scene/SceneBoundary';
+import { SceneCursor } from '@/components/home/scene/SceneCursor';
+import { SceneProvider } from '@/components/home/scene/SceneProvider';
+import { getChapterScene } from '@/components/home/scene/registry';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
@@ -87,8 +94,22 @@ export default function HomePageClient() {
   }, [isValid, npiCheck.npi, npiCheck.reason]);
 
   return (
+    <SceneProvider>
     <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
+
+      {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere
+          (manifest rows 1–3, 23). Fixed to the viewport like the source's
+          full-page shader, painted UNDER all positioned content. Decorative
+          only — the poster gradient stands alone on the static tier, and the
+          grain is a baked SVG texture, not a render loop. */}
+      <div aria-hidden="true" data-home-scene="" className="pointer-events-none fixed inset-0">
+        <SceneBoundary poster={<div className="scene-ambient-poster" />} className="absolute inset-0">
+          {() => <AmbientField chapterId="wallet" />}
+        </SceneBoundary>
+        <GrainOverlay opacity={getChapterScene('wallet').grain} />
+      </div>
+      <SceneCursor />
 
       {CLERK_PROVIDER_ENABLED && (
         <SignedIn>
@@ -203,9 +224,13 @@ export default function HomePageClient() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 text-[13px]">
-              <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
-                <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
-              </Link>
+              {/* Magnetic affordance (SHD-1.2, manifest row 7): pure translate
+                  on a wrapper; the Link keeps its own semantics and focus. */}
+              <MagneticButton>
+                <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--vt-text-primary)] px-4 py-2 font-semibold text-[var(--vt-bg)]">
+                  <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
+                </Link>
+              </MagneticButton>
               <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
             </div>
           </div>
@@ -277,5 +302,6 @@ export default function HomePageClient() {
         </nav>
       </main>
     </div>
+    </SceneProvider>
   );
 }

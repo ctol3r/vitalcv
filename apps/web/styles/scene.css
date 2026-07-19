@@ -1,0 +1,72 @@
+/**
+ * Scene layer styles (SHD-1.2) — poster, scrim, and cursor chrome for the
+ * homepage scene system. Everything here is decorative; semantic content
+ * never depends on these layers rendering.
+ */
+
+/* ── Ambient poster ─────────────────────────────────────────────────────────
+   The static-tier stand-in for AmbientField: the same palette as the canvas
+   (provenance emerald + evidence indigo at whisper amplitude on paper), so
+   reduced-motion / no-canvas / crash states look designed, not disabled. */
+.scene-ambient-poster {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      42% 38% at 18% 22%,
+      color-mix(in oklab, var(--vt-accent-emerald) 5%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      46% 42% at 78% 30%,
+      color-mix(in oklab, var(--accent) 4%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      50% 44% at 55% 82%,
+      color-mix(in oklab, var(--vt-accent-emerald) 3%, transparent),
+      transparent 75%
+    );
+}
+
+/* ── Scrim ──────────────────────────────────────────────────────────────────
+   The manifest's row-3 port: any text that sits directly on an animated
+   scene region sits on one of these. Opacity floor enforced by the registry
+   test (SCENE_SCRIM_FLOOR). The paper var keeps it correct in both themes. */
+.scene-scrim {
+  background: color-mix(in oklab, var(--vt-bg) 72%, transparent);
+}
+.scene-scrim-strong {
+  background: color-mix(in oklab, var(--vt-bg) 86%, transparent);
+}
+
+/* ── Custom cursor (fine pointer only; SceneCursor renders nothing on
+   coarse pointer / reduced motion, so these rules simply never apply). ── */
+.scene-cursor-dot,
+.scene-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.scene-cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--vt-text-primary);
+}
+.scene-cursor-ring {
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in oklab, var(--vt-text-primary) 55%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-cursor-dot,
+  .scene-cursor-ring {
+    display: none;
+  }
+}
