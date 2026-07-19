@@ -38,6 +38,7 @@ import { SceneCursor } from '@/components/home/scene/SceneCursor';
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
 import { getChapterScene } from '@/components/home/scene/registry';
 import { CLERK_PROVIDER_ENABLED } from '@/lib/auth/clerkConfig';
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
 import { checkNpi } from '@/lib/vital/npi';
 import { cn } from '@/lib/utils';
 
@@ -237,6 +238,23 @@ export default function HomePageClient() {
               </MagneticButton>
               <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
             </div>
+
+            {/* SHD-2.2: a quiet employer entry beside the clinician action.
+                Subdued so the NPI lookup stays visually and semantically
+                primary; routed to the real /employers destination (no
+                speculative onboarding). Distinct data hook + funnel event so
+                the two sides of the hero conversion stay distinguishable. */}
+            <p className="mt-3 text-[13px] text-[var(--vt-text-secondary)]">
+              <Link
+                href="/employers"
+                data-home-employer-cta=""
+                onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+                className="inline-flex items-center gap-1 font-medium underline decoration-[var(--vt-border)] underline-offset-4 transition-colors hover:decoration-[var(--vt-text-secondary)]"
+              >
+                For employers — start review from evidence
+                <ArrowRight size={13} aria-hidden="true" />
+              </Link>
+            </p>
           </div>
 
           {/* The hero's living panel. Before a lookup it is the Career Evidence
@@ -254,7 +272,11 @@ export default function HomePageClient() {
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />
             ) : (
-              <CareerEvidenceField />
+              // SHD-2.2: the field responds to SAFE, non-sensitive input state
+              // only — the caret being present ('listening') and a valid
+              // checksum ('ready'). No clinician-specific claim is ever
+              // rendered before a real lookup returns.
+              <CareerEvidenceField signal={focused ? (isValid ? 'ready' : 'listening') : 'idle'} />
             )}
           </div>
           </div>
