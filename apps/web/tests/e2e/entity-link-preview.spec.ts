@@ -15,7 +15,11 @@ const HARNESS = '/dev/page-stack'
 
 test.describe('EntityLink — live preview wiring', () => {
   test('a hover fires a single request to the preview API', async ({ page }) => {
-    await page.goto(HARNESS)
+    // networkidle ≈ hydration complete: the link is SSR-visible long before
+    // React attaches its pointer listeners, and a hover that lands in that
+    // window is silently lost (the CI flake this replaces — a one-shot
+    // hover + fixed wait had no recovery).
+    await page.goto(HARNESS, { waitUntil: 'networkidle' })
     const link = page.getByRole('link', { name: 'Open an employer' })
     await expect(link).toBeVisible()
 
@@ -23,12 +27,23 @@ test.describe('EntityLink — live preview wiring', () => {
     page.on('request', (r) => {
       if (r.url().includes('/api/entities/employer/org_demo/preview')) previewReqs.push(r.method())
     })
-    await link.hover()
-    await page.waitForTimeout(1500) // past the 300ms intent gate, with headroom
-    // The wiring fires a GET to the preview API. Exactly-once/lazy/delayed is
-    // asserted deterministically in the jsdom unit test (fake timers); a real
-    // browser only needs to prove the request actually goes out on hover.
-    expect(previewReqs.length).toBeGreaterThan(0)
+    // Re-hover until the wiring answers: leave the element (resetting the
+    // intent gate), hover again, give the 300ms gate headroom, and poll.
+    // One successful attempt proves the wiring; exactly-once/lazy/delayed
+    // stays asserted deterministically in the jsdom unit test (fake timers).
+    await expect
+      .poll(
+        async () => {
+          if (previewReqs.length === 0) {
+            await page.mouse.move(0, 0)
+            await link.hover()
+            await page.waitForTimeout(600) // past the 300ms intent gate
+          }
+          return previewReqs.length
+        },
+        { timeout: 15_000, message: 'hover should fire the preview GET after hydration' },
+      )
+      .toBeGreaterThan(0)
     expect(previewReqs.every((m) => m === 'GET')).toBe(true)
   })
 
