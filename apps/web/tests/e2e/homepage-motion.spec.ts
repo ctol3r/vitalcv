@@ -120,7 +120,8 @@ test.describe('Homepage motion convergence', () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(1);
       if (width === 1440) {
-        await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 250, 248)');
+        // Cloud Dancer public paper (HERO-RESET-1): #F0EEE9, route-scoped.
+        await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(240, 238, 233)');
         await expect(page.locator('[data-home-evidence-trace]')).toHaveCount(1);
       }
     });

@@ -206,7 +206,8 @@ test.describe('hero reset — clinician sell and field visibility (HERO-RESET-1)
         token: getComputedStyle(root).getPropertyValue('--vt-cloud-dancer').trim(),
       };
     });
-    expect(paper.token).toBe('#F0EEE9');
+    // CSS minification lowercases hex — compare case-insensitively.
+    expect(paper.token.toLowerCase()).toBe('#f0eee9');
     expect(paper.root).toBe('rgb(240, 238, 233)');
     expect(paper.body).toBe('rgb(240, 238, 233)');
 
