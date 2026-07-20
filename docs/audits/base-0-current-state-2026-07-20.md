@@ -73,11 +73,13 @@ The relationship to the shared driver is one-way: it *emits* the anchors `#readi
 
 This is exactly the "second scroll model" the plan's law 4 forbids — and precisely what ROLO-3.1 asks to delete.
 
-### 3.3 `ProofPacketInspector` — DEV-ONLY and *unguarded*
+### 3.3 `ProofPacketInspector` — public design reference (decision recorded)
 
-Mounted only at `app/design/proof-packet/page.tsx`. Unlike `/dev/story-rail`, that page has **no `notFound()` guard** — only `robots: { index: false, follow: false }` (`:20`). It is technically reachable in production, merely unlinked and unindexed.
+Mounted at `app/design/proof-packet/page.tsx`, reachable in production, unlinked and unindexed.
 
-PROOF-5.1 mounts this into the Apply chapter. Either give `/design/*` the same guard as `/dev/*`, or accept it as a deliberate public reference page — but the current state is neither decision, it is an oversight.
+**DECISION (2026-07-20, resolves the oversight this section previously flagged):** `/design/*` pages are **deliberate public reference surfaces** — living design documentation of the trust system (provenance, freshness, verify verdict, transcript, acceptance diff, proof packet). They are intentionally *not* `notFound()`-gated like `/dev/*` harnesses, because they carry no fixtures, no live clinician reads, and no debug controls — their copy is scanned by the public-claims gate, and they have been shared externally as references. The invariants that make this safe are CI-locked by `apps/web/__tests__/design-reference-guard.test.tsx`: every `/design` page must export `robots: { index: false }` and must not fetch per-clinician data. A page that should be indexed or go live-data is a product decision — update this section first, then the guard.
+
+PROOF-5.1 (mounting the inspector into the Apply chapter) is unaffected: it reuses the component, not the reference route.
 
 ---
 
@@ -145,8 +147,10 @@ There is an adjacent, *different* start path that **is** live: `POST /api/employ
 | **#636** NPPES licensure + Doximity | 2026-07-13, **148 behind** | **REBASE and merge** | Self-contained, honest by construction (self-reported label, never a status). Touches profile surfaces the reskins have since moved — expect conflicts; re-verify the three host-validation sync points survive the rebase. |
 | **#543** student / no-NPI lane | 2026-07-05, **231 behind** | **EXTRACT or CLOSE** | Predates the identity-tier ladder and the signup gate. Rebasing 231 commits of onboarding drift is likely more work than re-cutting the lane against today's gate. Decide deliberately; do not leave it rotting. |
 | **#506** backend transport-auth for `/api/me/role` | 2026-07-03 | **HOLD (correctly)** | Title says DO-NOT-MERGE pending backend env rollout. Still true. Revisit with the Clerk enforce flip. |
-| **#465** ops-engine live (+3011 lines) | 2026-06-28, **305 behind** | **CLOSE** | Three thousand lines, ten months of drift, and the Ops Center has moved to `/admin/platform` since. Re-cut from the current roster/ledger if still wanted. |
-| **#443** open-PR triage matrix (docs) | 2026-05-30 | **CLOSE — superseded** | This document replaces it. |
+| **#465** ops-engine live (+3011 lines) | 2026-06-28, **305 behind** | **CLOSED 2026-07-20** ✓ | Three thousand lines, ten months of drift, and the Ops Center has moved to `/admin/platform` since. Re-cut from the current roster/ledger if still wanted. |
+| **#443** open-PR triage matrix (docs) | 2026-05-30 | **CLOSED 2026-07-20** ✓ | This document replaces it. |
+| **#411–#414** May-era hardening quartet (verification-integrity / P0-P1 semantics / deterministic confidence / deployment integrity) | 2026-05-21→22, ~2 months of drift | **CLOSED 2026-07-20** ✓ | Each was anchored on a dedicated guard test that **no longer exists on main** (`verification-integrity-hardening`, `p0-p1-institutional-hardening`, `deterministic-confidence-enforcement`, `production-deployment-integrity` — all gone), and their concerns were re-implemented by later chains (ASVS L2 register, M-wave trust-core gates, ACT-1 decision path, Wave-0 deploy hardening + release monitoring). Reopen only with a fresh re-cut against today's surfaces. |
+| **#420** NPPES identity success preservation (backend ingest) | 2026-05-26, mergeable | **KEEP — re-validate** | Targets (`ingestOrchestrator.ts` + tests) still exist on main. May still fix a real fallback bug; needs a fresh read against the current ingest/passport chain before rebase-or-close. |
 | Dependabot (#794, #582, #581, #580, #577, #576, #575, #574, #573) | — | **Batch separately** | Not wave work. `#581` (vitest 1.6→4.1) is a real migration, not a bump — treat as its own task. |
 
 ---
