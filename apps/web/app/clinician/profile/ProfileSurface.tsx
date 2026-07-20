@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { ClinicianProfileSections } from '@/components/profile/ClinicianProfileSections';
 import SelfAttestedEditor from '@/components/profile/SelfAttestedEditor';
+import { NppesLicensureCard } from '@/components/profile/NppesLicensureCard';
 import CareerProfileSharingCard from '@/components/profile/CareerProfileSharingCard';
 import { isPassportData, type PassportData } from '@/lib/trust/passport-contract';
 import { PROVENANCE_META, type ProfileProvenance } from '@/lib/profile/provenance';
@@ -703,6 +704,13 @@ export default function ProfileSurface() {
           </div>
         </form>
       </section>
+
+      {/* State license number(s) on file with NPPES (self-reported, no status)
+          + the self-reported Doximity link. */}
+      <NppesLicensureCard
+        licenses={passport?.nppesLicensure ?? []}
+        doximityUrl={profile.selfAttested?.doximityUrl ?? null}
+      />
 
       {/* Self-attested structured sections — editable */}
       <SelfAttestedEditor initial={profile.selfAttested} onSaved={handleSelfAttestedSaved} />

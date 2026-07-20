@@ -452,6 +452,8 @@ export interface SelfAttestedProfile {
   affiliations?:   SelfAttestedAffiliation[];
   careerGoals?:    string;
   researchSummary?: string;
+  /** Clinician-provided Doximity profile URL. Host-validated (doximity.com, https). */
+  doximityUrl?:    string;
   sharing?:        SelfAttestedSharing;
 }
 
@@ -471,6 +473,25 @@ function cleanYear(value: unknown): number | undefined {
   if (!Number.isFinite(n)) return undefined;
   const year = Math.trunc(n);
   return year >= MIN_YEAR && year <= MAX_YEAR ? year : undefined;
+}
+
+/**
+ * Accept only a well-formed https doximity.com profile URL; drop anything
+ * else so a self-attested external link can never point off-Doximity.
+ */
+function cleanDoximityUrl(value: unknown): string | undefined {
+  const raw = cleanStr(value);
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  const host = url.hostname.toLowerCase();
+  if (host !== 'doximity.com' && host !== 'www.doximity.com') return undefined;
+  return url.toString();
 }
 
 /** Drop keys whose values are all undefined so the JSON stays compact. */
@@ -548,6 +569,9 @@ export function sanitizeSelfAttested(input: unknown): SelfAttestedProfile {
 
   const researchSummary = cleanStr(src.researchSummary);
   if (researchSummary) out.researchSummary = researchSummary;
+
+  const doximityUrl = cleanDoximityUrl(src.doximityUrl);
+  if (doximityUrl) out.doximityUrl = doximityUrl;
 
   const sharingSrc = (src.sharing && typeof src.sharing === 'object' ? src.sharing : {}) as Record<string, unknown>;
   if (sharingSrc.careerProfile === 'public' || sharingSrc.careerProfile === 'private') {
