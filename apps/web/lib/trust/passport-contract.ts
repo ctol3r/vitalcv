@@ -225,6 +225,17 @@ export interface PassportData {
   /** Wave 245: Continuous monitoring status */
   monitoring?: PassportMonitoringStatus;
   /**
+   * Revocation summary (additive; older backends omit it). `checked: true`
+   * means the artifact ledger was really queried at `checkedAt`;
+   * `revokedCount` counts artifacts revoked at the source. The verify surface
+   * renders this as a visible step — never a silent omission.
+   */
+  revocation?: {
+    checked: boolean;
+    revokedCount: number;
+    checkedAt: string | null;
+  };
+  /**
    * Wave 4: Verifier-visible trust-container manifest entry. Optional —
    * present only when the backend attaches a trust-container issuance
    * record to the review. Shape mirrors the backend

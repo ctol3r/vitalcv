@@ -124,6 +124,68 @@ describe('/verify/[npi] — invalid-id path', () => {
     expect(html).not.toMatch(/>\s*Verified\s*</);
   });
 
+  it('renders a REAL clean revocation check ("None found") when the backend attaches the summary', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/passport/npi/')) {
+          return new Response(
+            JSON.stringify({
+              identity: { displayName: 'Test Clinician' },
+              lastCheckedAt: '2026-07-19T12:00:00Z',
+              revocation: { checked: true, revokedCount: 0, checkedAt: '2026-07-19T12:00:00Z' },
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response('{}', { status: 404 });
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      (await renderPage('1234567890')) as React.ReactElement,
+    );
+    // The step is now a real, dated check against the artifact ledger…
+    expect(html).toContain('None found');
+    expect(html).toContain('artifact ledger');
+    expect(html).not.toContain('Not checked');
+    // …and a clean ledger never renders the fail-closed verdict.
+    expect(html).not.toContain('data-verdict="revoked"');
+    expect(html).not.toMatch(/>\s*Verified\s*</);
+  });
+
+  it('fails the verdict CLOSED when the ledger reports revoked artifacts', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/passport/npi/')) {
+          return new Response(
+            JSON.stringify({
+              identity: { displayName: 'Test Clinician' },
+              lastCheckedAt: '2026-07-19T12:00:00Z',
+              revocation: { checked: true, revokedCount: 2, checkedAt: '2026-07-19T12:00:00Z' },
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response('{}', { status: 404 });
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      (await renderPage('1234567890')) as React.ReactElement,
+    );
+    // Revoked artifacts are loud: the whole verdict fails closed, with the
+    // canonical revoked register — never a silent omission, never "Unavailable".
+    expect(html).toContain('data-verdict="revoked"');
+    expect(html).toContain('Revoked — fails closed');
+    expect(html).toContain('data-provenance-state="revoked"');
+    expect(html).toContain('2 revoked');
+    expect(html).not.toMatch(/>\s*Verified\s*</);
+  });
+
   it('keeps the in-page not-found state for a well-formed NPI the backend does not know', async () => {
     vi.stubGlobal(
       'fetch',
