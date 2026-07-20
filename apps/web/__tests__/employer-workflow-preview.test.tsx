@@ -58,6 +58,17 @@ describe('EmployerWorkflowPreview — the honest job-to-start loop (EMP-6.1)', (
     }
   });
 
+  it('uses no buyer-facing infra/crypto jargon (mirrors the /employers page guard)', () => {
+    // The same buyer-banned terms buyer-proof-page.test.tsx enforces on the
+    // rendered page — asserted here too so a regression fails at the component,
+    // not only in CI's merge-build. "ledger" tripped this once (the requirement
+    // ledger is internal + unmounted; it must not surface as buyer copy).
+    const normalized = render().toLowerCase();
+    for (const term of ['blockchain', 'ledger', 'wallet', 'zero-knowledge', 'immutable', 'audit chain', 'hire instantly']) {
+      expect(normalized, `buyer-jargon "${term}" present`).not.toContain(term);
+    }
+  });
+
   it('names a source-backed record without fabricating people, employers, or metrics', () => {
     const html = render();
     // The value proposition is a real record moving through review — no sample

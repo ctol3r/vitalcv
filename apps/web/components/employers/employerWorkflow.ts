@@ -55,6 +55,6 @@ export const EMPLOYER_STAGES: readonly EmployerStage[] = [
   {
     ordinal: '06',
     title: 'Reach start-ready',
-    body: 'Work the requirement ledger down until the role is start-ready. Every step is attributable and recorded, so the path from interest to start is auditable end to end.',
+    body: 'Work the remaining requirements down until the role is start-ready. Every step is attributable and recorded, so the path from interest to start is auditable end to end.',
   },
 ] as const;
