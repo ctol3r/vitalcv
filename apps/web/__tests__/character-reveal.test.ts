@@ -224,7 +224,7 @@ describe('resolveVariant — long-heading fallback', () => {
 
   it('a real long heading trips the fallback', () => {
     const long = segmentHeading(
-      'VitalCV recognizes your identity, checks the primary sources, and shows what still needs review before you apply.',
+      'Career evidence that carries your licenses, training, and work history across every application you send out.',
     );
     expect(resolveVariant('assemble', long.characterCount)).toBe('ink');
   });

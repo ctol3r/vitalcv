@@ -26,7 +26,6 @@ import { ResumeToProof } from '@/components/home/ResumeToProof';
 import { RotatingProofLine } from '@/components/home/RotatingProofLine';
 import { ScrollFocusManifesto } from '@/components/home/ScrollFocusManifesto';
 import { SourceCoverageRibbon } from '@/components/home/SourceCoverageRibbon';
-import { ScrollTypeNarrative } from '@/components/home/ScrollTypeNarrative';
 import { StickyProductStory } from '@/components/home/StickyProductStory';
 import { TimeToStartComparison } from '@/components/home/TimeToStartComparison';
 import { Reveal } from '@/components/motion/Reveal';
@@ -49,14 +48,6 @@ const TRUST_FOOTER_LINKS = [
   { label: 'Source attribution', href: '/trust/attribution' },
   { label: 'Evidence network', href: '/evidence-network' },
   { label: 'Trust', href: '/trust' },
-] as const;
-
-const HERO_PHRASES = [
-  'recognizes your identity',
-  'checks the primary sources',
-  'shows what still needs review',
-  'matches the right opportunity',
-  'carries your evidence forward',
 ] as const;
 
 function formatNpi(value: string): string {
@@ -101,7 +92,13 @@ export default function HomePageClient() {
     {/* SHD-1.3: ONE scroll model. The dot rail and the ambient field both
         consume this driver; neither owns a private scroll listener. */}
     <ChapterProgressProvider>
-    <div className="mz mz-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+    <div className="mz mz-paper mz-cloud-paper relative overflow-x-clip text-[var(--vt-text-primary)]">
+      {/* Route-scoped paper: the PUBLIC homepage sits on Cloud Dancer
+          (PANTONE 11-4201 web approximation, --vt-cloud-dancer). A page-level
+          style tag keeps the document body behind overscroll on the same
+          paper; it unmounts with the route, so signed-in, dark, and
+          verification surfaces never inherit it. */}
+      <style>{'body{background:var(--vt-cloud-dancer,#F0EEE9)}'}</style>
       <div aria-hidden="true" className="mz-dotgrid pointer-events-none absolute inset-x-0 top-0 h-[26rem] opacity-20" />
 
       {/* SHD-1.2 scene layer: the page-level career-evidence atmosphere
@@ -151,20 +148,21 @@ export default function HomePageClient() {
           >
           <div className="max-w-3xl">
             <div className="space-y-4">
-              <p data-home-eyebrow="" className="mz-eyebrow">The clinician career evidence network</p>
-              {/* Typing effect reverted (Chris, 2026-07-17 pm): the H1 is
-                  static ink again and the sentence below scrubs with scroll. */}
+              {/* HERO-RESET-1: outcome first. The category eyebrow and the
+                  scroll-scrubbed system sentence are gone — a clinician must
+                  answer "what do I get?" and "what do I do?" at a glance,
+                  before any category language. Category framing now lives in
+                  the product story below the fold. */}
               <h1 className="mz-display">
-                Find the opportunity. Prove your career <em className="mz-accent">once.</em> Start faster.
+                Get hired <em className="mz-accent">faster.</em>
               </h1>
-              <ScrollTypeNarrative
+              <p
                 data-home-hero-subhead=""
                 className="max-w-2xl text-[21px] leading-[1.5] text-[var(--vt-text-secondary)]"
-                prefix="VitalCV "
-                phrases={HERO_PHRASES}
-                staticSentence="VitalCV recognizes your identity, checks the primary sources, shows what still needs review, matches the right opportunity, and carries your evidence forward."
-                scrollContainerId="wallet"
-              />
+              >
+                Start with your NPI. See what employers can confirm, fix what is
+                missing, and reuse your career profile for every job.
+              </p>
             </div>
 
             <div className="mz-glass mz-glass-interactive mt-5 max-w-2xl rounded-[12px]">
@@ -172,7 +170,7 @@ export default function HomePageClient() {
                 <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
                   <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); handleSubmit(); }}>
                     <label htmlFor="npi-input" className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--vt-text-muted)]">
-                      Start free — enter your NPI
+                      Start with your NPI
                     </label>
                     <div className={cn(
                       'flex flex-col overflow-hidden rounded-[8px] border bg-[var(--vt-bg)] transition-colors sm:flex-row',
@@ -206,7 +204,7 @@ export default function HomePageClient() {
                           isValid ? 'bg-[var(--vt-text-primary)] text-[var(--vt-bg)]' : 'cursor-not-allowed bg-[var(--vt-surface-subtle)] text-[var(--vt-text-muted)]',
                         )}
                       >
-                        Check readiness <ArrowRight size={16} aria-hidden="true" />
+                        Check what&rsquo;s ready <ArrowRight size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </form>
@@ -221,7 +219,9 @@ export default function HomePageClient() {
                             : `${digits.length}/10 digits`)}
                     </span>
                     <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
-                    <span>No account required</span>
+                    {/* The reassurance line lives once, directly under the form
+                        (HERO-RESET-1); the wallet CTA row no longer repeats it. */}
+                    <span>Free for clinicians · No account required</span>
                     <span aria-hidden="true" className="text-[var(--vt-border)]">·</span>
                     <Link href="/sign-in" data-home-secondary-cta="" className="font-medium underline underline-offset-4">Sign in</Link>
                   </div>
@@ -237,7 +237,6 @@ export default function HomePageClient() {
                   <Wallet size={14} aria-hidden="true" /> Get your free CV Wallet
                 </Link>
               </MagneticButton>
-              <span className="text-[var(--vt-text-muted)]">Free for clinicians · No card required</span>
             </div>
 
             {/* SHD-2.2: a quiet employer entry beside the clinician action.
@@ -258,17 +257,14 @@ export default function HomePageClient() {
             </p>
           </div>
 
-          {/* The hero's living panel. Before a lookup it is the Career Evidence
-              Network itself — the graph that was accidentally dropped from the
-              homepage in the motion-convergence rewrite (#679), restored here as
-              the first thing a visitor sees moving. After an NPI is entered it
-              becomes that provider's live result. */}
-          {/* VHS-1 Career Evidence Field (Chris, 2026-07-18): the hero's
-              force-directed graph is replaced by an abstract generative field —
-              source signals converging into a wallet capsule, arcs out to
-              opportunity + one bounded acceptance ring. The explorable graph
-              moves to /evidence-network (linked from the trust footer). On
-              mobile the field follows the form; on desktop it fills the panel. */}
+          {/* The hero's living panel: the abstract Career Evidence Field
+              (VHS-1, made visibly intentional in HERO-RESET-1) — named public
+              sources converging into a clinician-owned record, arcs out to
+              opportunity, ONE bounded employer-decision ring. It is decorative
+              support for the NPI action, never a public person graph; the
+              formerly explorable public graph is retired (SHD-0.3) and
+              /evidence-network is a static system-concept page. After an NPI
+              is entered the panel becomes that provider's live result. */}
           <div className={submittedNpi ? 'flex justify-center' : 'block'}>
             {submittedNpi ? (
               <LiveNpiResult npi={submittedNpi} onReset={() => { setSubmittedNpi(null); setRaw(''); }} />

@@ -18,7 +18,7 @@ import { HorizontalStoryRail, type RailChapter } from '@/components/home/rail/Ho
 import { SceneProvider } from '@/components/home/scene/SceneProvider';
 
 const CHAPTERS: { id: string; label: string; blurb: string; accent: string }[] = [
-  { id: 'wallet', label: 'Career Evidence Field', blurb: 'Enter one NPI. VitalCV recognizes your identity and shows readiness evidence.', accent: 'var(--vt-accent-emerald)' },
+  { id: 'wallet', label: 'Career Evidence Field', blurb: 'Enter one NPI. See what employers can confirm and what still needs review.', accent: 'var(--vt-accent-emerald)' },
   { id: 'evidence', label: 'Evidence / Readiness', blurb: 'Named sources with visible states: source-backed, checked, access-required.', accent: 'var(--vt-accent-emerald)' },
   { id: 'matcha', label: 'Opportunity / MATCHA', blurb: 'Matches with the reasoning visible — never an opaque rank.', accent: 'var(--accent)' },
   { id: 'apply', label: 'Apply / proof packet', blurb: 'A consented, source-attributed proof packet, frozen at submission.', accent: 'var(--accent)' },
