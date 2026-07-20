@@ -1,5 +1,17 @@
-@import 'normalize.css/normalize.css';
+/* Layer order is declared here, before any @import, so it wins: normalize sits
+   above Tailwind's base (preflight) but below components/utilities.
+
+   Why not unlayered: unlayered CSS outranks every layered rule regardless of
+   specificity, so normalize's `a { background-color: transparent }` silently
+   killed every bg-* utility on an <a> — CTAs rendered invisible.
+
+   Why not layer(base): that puts normalize below preflight, which then wins
+   `html { line-height: 1.5 }` over normalize's 1.15 and re-spaces every text
+   block on the site. Its own layer keeps normalize authoritative over
+   preflight (the long-standing behaviour) while utilities win again. */
+@layer theme, base, normalize, components, utilities;
 @import 'tailwindcss';
+@import 'normalize.css/normalize.css' layer(normalize);
 @import '../styles/themes/index.css';
 @import '../styles/vds.css';
 @import '../styles/design-tokens.css';
