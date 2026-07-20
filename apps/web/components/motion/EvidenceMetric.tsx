@@ -103,6 +103,8 @@ export function AnimatedMetricValue({
   // only rewinds after mount, when it is already certain it can play forward.
   const [display, setDisplay] = React.useState<string[]>(tokens.map((t) => t.text));
   const [revealed, setRevealed] = React.useState(false);
+  /** zero-mode only: JS confirmed running, dimmed, waiting for its reveal. */
+  const [primed, setPrimed] = React.useState(false);
 
   React.useEffect(() => {
     const host = hostRef.current;
@@ -163,7 +165,11 @@ export function AnimatedMetricValue({
       style={{ fontVariantNumeric: 'tabular-nums', ...style }}
     >
       {/* animated layer — decoration only */}
-      <span aria-hidden="true" data-metric-animated="" className={zero ? `metric-zero${revealed ? ' is-revealed' : ''}` : undefined}>
+      <span
+        aria-hidden="true"
+        data-metric-animated=""
+        className={zero ? `metric-zero${primed && !revealed ? ' is-primed' : ''}` : undefined}
+      >
         {display.join('')}
       </span>
       {/* the stable accessible value */}

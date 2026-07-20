@@ -804,3 +804,23 @@
   .mz-scale-lg .story-card-shell,
   .mz-scale-lg .product-carousel-card-shell { min-height: auto; }
 }
+
+/* ── Evidence metrics (NUM-1.1) ────────────────────────────────────────────
+   Zero/status values never fake-count: they play a brief ink reveal instead.
+   No-JS safety: the default is FULL ink — the dim state exists only after the
+   component primes it with JavaScript confirmed running, so SSR/no-JS always
+   shows the final value. Reduced motion never dims at all. */
+.metric-zero {
+  opacity: 1;
+  transition: opacity 620ms var(--mz-ease, ease);
+}
+.metric-zero.is-primed {
+  opacity: 0.22;
+}
+@media (prefers-reduced-motion: reduce) {
+  .metric-zero,
+  .metric-zero.is-primed {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+}
