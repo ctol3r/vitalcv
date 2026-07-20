@@ -34,7 +34,7 @@ test.describe('Homepage motion convergence', () => {
     await page.waitForTimeout(110);
   }
 
-  test('hero stays compact while every narrative phrase completes on screen', async ({ page }) => {
+  test('hero reset: outcome-first static copy, compact, with the scrub narrative gone', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -44,63 +44,21 @@ test.describe('Homepage motion convergence', () => {
     expect(heroHeight, 'hero must fit within the opening viewport').toBeLessThanOrEqual(1000);
     await expect(page.locator('[data-home-primary-cta]')).toBeInViewport();
 
+    // The sell is readable at a glance (HERO-RESET-1): outcome, then mechanism.
+    await expect(page.locator('h1').first()).toHaveText('Get hired faster.');
     const subhead = page.locator('[data-home-hero-subhead]');
-    const seen = new Set<string>();
-    const height = page.viewportSize()!.height;
-    let completedAt = -1;
+    await expect(subhead).toBeVisible();
+    await expect(subhead).toContainText('Start with your NPI.');
 
-    for (let y = 0; y <= 360 && completedAt < 0; y += 30) {
+    // The scroll-scrub effect is deleted — no listener hooks, no progress
+    // dots, no character spans, at any scroll depth.
+    for (const y of [0, 150, 300]) {
       await scrollTo(page, y);
-      const state = String(await subhead.getAttribute('data-narrative-state'));
-      const box = await subhead.boundingBox();
-      expect(box, `narrative missing at scrollY=${y}`).not.toBeNull();
-      expect(box!.y, `phrase ${state} filled above the viewport at scrollY=${y}`).toBeGreaterThan(0);
-      expect(box!.y + box!.height, `phrase ${state} filled below the viewport at scrollY=${y}`).toBeLessThan(height);
-      seen.add(state.split(':')[0]);
-
-      // The fill ACCUMULATES. Once the scrub has moved past the first clause,
-      // the sentence's first word must still be fully inked — phrase-replace
-      // (words vanishing) is a regression.
-      if (Number(state.split(':')[0]) >= 1) {
-        const firstWordOpacity = await subhead
-          .locator('[data-narrative-words] span[data-ch]')
-          .first()
-          .evaluate((node) => Number(getComputedStyle(node).opacity));
-        expect(firstWordOpacity, `first letter un-inked at scrollY=${y} (state ${state})`).toBeGreaterThan(0.9);
-      }
-
-      if ((await subhead.getAttribute('data-narrative-complete')) !== null) completedAt = y;
+      await expect(page.locator('[data-narrative-state], [data-narrative-words], [data-narrative-complete]')).toHaveCount(0);
+      await expect(subhead).toContainText('reuse your career profile for every job.');
     }
-
-    // The fill finishes quickly while the hero remains visible; no extra
-    // viewport is reserved merely to complete decorative motion.
-    expect(completedAt, 'sequence never completed inside the compact hero').toBeGreaterThan(0);
-    expect(completedAt).toBeLessThanOrEqual(360);
-    // All five phrases were reached — none skipped past the fold.
-    expect([...seen].sort()).toEqual(['0', '1', '2', '3', '4']);
-  });
-
-  test('narrative reveal is scroll-linked and reverses deterministically', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const subhead = page.locator('[data-home-hero-subhead]');
-    const stateAt = async (y: number) => {
-      await scrollTo(page, y);
-      return subhead.getAttribute('data-narrative-state');
-    };
-
-    const forward: string[] = [];
-    for (const y of [0, 100, 200, 300]) forward.push(String(await stateAt(y)));
-
-    // Advancing scroll advances the sequence (never regresses).
-    const phraseIdx = forward.map((s) => Number(s.split(':')[0]));
-    expect(phraseIdx).toEqual([...phraseIdx].sort((a, b) => a - b));
-    expect(phraseIdx.at(-1)).toBeGreaterThan(phraseIdx[0]);
-
-    // Reverse scroll reproduces each state exactly (pure function of scroll).
-    for (const y of [200, 100, 0]) {
-      expect(await stateAt(y), `reverse mismatch at scrollY=${y}`).toBe(forward[[0, 100, 200, 300].indexOf(y)]);
-    }
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('recognizes your identity');
   });
 
   test('captures the start, middle, and end of the reversible rolodex sequence', async ({ page }, testInfo) => {
@@ -214,7 +172,7 @@ test.describe('Homepage motion convergence', () => {
     await expect(page.locator('[data-carousel-belt]')).toHaveCSS('display', 'grid');
     // One copy of each card only — the seam duplicate never renders.
     await expect(page.locator('[data-carousel-belt] article')).toHaveCount(6);
-    await expect(page.getByText(/VitalCV recognizes your identity, checks the primary sources/).first()).toBeVisible();
+    await expect(page.getByText(/Start with your NPI\. See what employers can confirm/).first()).toBeVisible();
     // Headings render plain and complete under reduced motion (M1 contract).
     await expect(page.locator('#product-story-title')).toHaveAttribute('data-scrub-heading', 'reduced');
     await expect(page.locator('#product-carousel-title')).toHaveAttribute('data-scrub-heading', 'reduced');
